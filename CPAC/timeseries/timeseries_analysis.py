@@ -143,9 +143,9 @@ def clean_roi_csv(roi_csv):
         with open(edited_roi_csv, 'wt') as f:
             for line in edited_lines:
                 f.write(line)
-        edited_roi_csv = [edited_roi_csv]
+        edited_roi_csv = edited_roi_csv
     else:
-        edited_roi_csv = [roi_csv]
+        edited_roi_csv = roi_csv
 
     data = pd.read_csv(edited_roi_csv[0], sep=',', header=1)
     data = data.dropna(axis=1)
