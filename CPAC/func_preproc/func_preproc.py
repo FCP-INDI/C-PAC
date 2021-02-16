@@ -714,6 +714,9 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                                        function=get_mcflirt_rms_abs),
                               name=f'get_mcflirt_rms_abs_{pipe_num}')
 
+        wf.connect(func_motion_correct_A, 'rms_files',
+                   get_rms_abs, 'rms_files')
+
         outputs = {
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
             'max_displacement': (get_rms_abs, 'abs_file'),
