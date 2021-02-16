@@ -1469,7 +1469,7 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         write_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
                                       name='combine_fsl_warps')
 
-        wf.connect(inputNode, 'T1w_brain_template',
+        wf.connect(inputNode, 'T1w_brain_template_funcreg',
                    write_composite_xfm, 'reference')
 
         wf.connect(inputNode, 'coreg_xfm', write_composite_xfm, 'premat')
