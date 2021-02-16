@@ -127,6 +127,8 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None):
     """
 
     if atlas_id:
+        if '_' in atlas_id:
+            atlas_id = atlas_id.replace("_", "")
         resource = f'atlas-{atlas_id}_{resource}'
 
     if scan_id:
