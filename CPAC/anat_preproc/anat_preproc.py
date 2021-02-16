@@ -455,7 +455,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
     
     elif method == 'freesurfer-abcd':
         ### ABCD harmonization - anatomical brain mask generation ###
-        # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L159
+        # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
         
         wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
                                             output_names=['out_file'],
@@ -690,14 +690,16 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     # --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
     non_linear_reg = pe.Node(interface=fsl.FNIRT(),
                          name='non_linear_reg')
+    
     non_linear_reg.inputs.field_file = True # --fout
     non_linear_reg.inputs.jacobian_file = True # --jout
     non_linear_reg.inputs.modulatedref_file = True # --refout
-    # non_linear_reg.inputs.warped_file = True # --iout
-    # non_linear_reg.inputs.log_file = True # --logout
+    # non_linear_reg.inputs.warped_file = 'T1w_acpc_to_MNI_nonlin.nii.gz' # --iout
+    # non_linear_reg.inputs.log_file = 'NonlinearReg.txt' # --logout
     non_linear_reg.inputs.out_intensitymap_file = True # --intout
     non_linear_reg.inputs.fieldcoeff_file = True # --cout
-
+    non_linear_reg.inputs.config_file = config.fnirt_config_file
+    
     preproc.connect(inputnode, 'anat_data',
                     non_linear_reg, 'in_file')
 
@@ -715,13 +717,14 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     # applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
     apply_warp = pe.Node(interface=fsl.ApplyWarp(),
                         name='apply_warp')
+
     apply_warp.inputs.interp = 'spline'
-    apply_warp.inputs.premat = config.identityMatrix
+    apply_warp.inputs.relwarp = True
 
     preproc.connect(inputnode, 'anat_data',
                     apply_warp, 'in_file')
 
-    preproc.connect(inputnode, 'template_skull_for_anat_2mm',
+    preproc.connect(inputnode, 'template_skull_for_anat',
                     apply_warp, 'ref_file')
 
     preproc.connect(non_linear_reg, 'field_file',
@@ -1256,6 +1259,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
             applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
                         name='applywarp_head_to_head_1mm')
+            applywarp_head_to_head_1mm.inputs.relwarp = True
             applywarp_head_to_head_1mm.inputs.interp = 'spline'
             applywarp_head_to_head_1mm.inputs.premat = config.identityMatrix
 
@@ -1268,6 +1272,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
             applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
                         name='applywarp_brain_to_head_1mm')
+            applywarp_brain_to_head_1mm.inputs.relwarp = True
             applywarp_brain_to_head_1mm.inputs.interp = 'nn'
             applywarp_brain_to_head_1mm.inputs.premat = config.identityMatrix
 
