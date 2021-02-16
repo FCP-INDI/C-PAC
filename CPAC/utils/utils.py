@@ -1594,10 +1594,6 @@ def dct_diff(dct1, dct2):
             dct1_val = dct1.get(key)
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
 
-            # skip unspecified values
-            if dct2_val in [None, 'None']:
-                continue
-
             if dct1_val != dct2_val:
                 diff[key] = (dct1_val, dct2_val)
 
@@ -1608,7 +1604,7 @@ def dct_diff(dct1, dct2):
                 diff[key] = dct2[key]
 
     # only return non-empty diffs
-    return {k: diff[k] for k in diff if diff[k]}
+    return {k: diff[k] for k in diff if k in dct2}
 
 
 def list_item_replace(l, old, new):  # noqa E741
@@ -1665,12 +1661,16 @@ def lookup_nested_value(d, keys):
     if not isinstance(d, dict):
         return d
     if len(keys) == 1:
-        value = d.get(keys[0])
+        value = d[keys[0]]
         if value is None:
             return ''
         return value
     else:
-        return lookup_nested_value(d.get(keys[0], {}), keys[1:])
+        try:
+            return lookup_nested_value(d[keys[0]], keys[1:])
+        except KeyError as e:
+            e.args = (keys,)
+            raise
 
 
 def _remove_somethings(value, things_to_remove):
@@ -1865,7 +1865,7 @@ def update_config_dict(old_dict):
         [1, 2]
         '''
         if not isinstance(current_value, list):
-            if current_value:
+            if current_value is not None:
                 current_value = [current_value]
             else:
                 current_value = []
@@ -1941,12 +1941,9 @@ def update_config_dict(old_dict):
         current_value : any
         '''
         old_value = old_dict.pop(key)
-        try:
-            current_value = lookup_nested_value(
-                new_dict, NESTED_CONFIG_MAPPING[key]
-            )
-        except KeyError:
-            current_value = []
+        current_value = lookup_nested_value(
+            new_dict, NESTED_CONFIG_MAPPING[key]
+        )
         return old_dict, new_dict, old_value, current_value
 
     new_dict = {}
@@ -1968,9 +1965,12 @@ def update_config_dict(old_dict):
                 'runZScoring'
             }
             if key in special_cases:
-                old_dict, new_dict, old_value, current_value = _get_old_values(
-                    old_dict, new_dict, key
-                )
+                try:
+                    (
+                        old_dict, new_dict, old_value, current_value
+                    ) = _get_old_values(old_dict, new_dict, key)
+                except KeyError:
+                    continue
 
                 # anatomical_preproc.acpc_alignment.run_before_preproc
                 if key == 'acpc_run_preprocessing':
@@ -2014,7 +2014,19 @@ def update_config_dict(old_dict):
                     current_value = _replace_in_value_list(
                         current_value, (' ', '_'))
                     if key == 'runRegisterFuncToTemplate':
-                        new_value = None
+                        current_value = [
+                            v for v in current_value if v not in {
+                                'Off', 'False', False
+                            }
+                        ]
+                        new_value = []
+                        new_dict = set_nested_value(
+                            new_dict,
+                            ['registration_workflows',
+                             'functional_registration',
+                             'func_registration_to_template', 'run'],
+                            bool(current_value)
+                        )
                     if key == 'runRegisterFuncToEPI':
                         new_value = _bool_to_str(old_value, 'EPI_template')
 
@@ -2079,7 +2091,6 @@ def update_config_dict(old_dict):
                 new_dict, NESTED_CONFIG_MAPPING[key], current_value)
         elif key in NESTED_CONFIG_DEPRECATIONS:
             old_dict.pop(key)
-
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
@@ -2169,9 +2180,13 @@ def update_pipeline_values_1_8(d_old):
         [('3dAutoMask', 'AFNI'), ('BET', 'FSL')]
     )
 
-    seg_use_threshold = lookup_nested_value(d, [
-        'segmentation', 'tissue_segmentation', 'using'])
-    if not (seg_use_threshold and isinstance(seg_use_threshold, list)):
+    try:
+        seg_use_threshold = lookup_nested_value(d, [
+            'segmentation', 'tissue_segmentation', 'using'])
+    except KeyError:
+        seg_use_threshold = []
+
+    if not isinstance(seg_use_threshold, list):
         seg_use_threshold = [seg_use_threshold]
     if 'FSL-FAST Thresholding' in seg_use_threshold:
         if 'using' in d['segmentation'].get(
@@ -2198,22 +2213,24 @@ def update_pipeline_values_1_8(d_old):
     for centr in ['degree_centrality', 'eigenvector_centrality',
                   'local_functional_connectivity_density']:
         centr_keys = ['network_centrality', centr, 'weight_options']
-        centr_value = lookup_nested_value(d, centr_keys)
-        if any([isinstance(v, bool) for v in centr_value]):
-            for i in range(2):
-                if centr_value[i] is True:
-                    centr_value[i] = valid_options['centrality'][
-                        'weight_options'][i]
-            while False in centr_value:
-                centr_value.remove(False)
-            set_nested_value(d, centr_keys, centr_value)
+        try:
+            centr_value = lookup_nested_value(d, centr_keys)
+            if any([isinstance(v, bool) for v in centr_value]):
+                for i in range(2):
+                    if centr_value[i] is True:
+                        centr_value[i] = valid_options['centrality'][
+                            'weight_options'][i]
+                while False in centr_value:
+                    centr_value.remove(False)
+                set_nested_value(d, centr_keys, centr_value)
+        except KeyError:
+            continue
 
     seg_template_key = [
         'segmentation', 'tissue_segmentation',
         'Template_Based', 'template_for_segmentation']
-    seg_template = lookup_nested_value(d, seg_template_key)
-
-    if seg_template:
+    try:
+        seg_template = lookup_nested_value(d, seg_template_key)
         for replacement in [
             ('EPI_template', valid_options['segmentation']['template'][0]),
             ('T1_template', valid_options['segmentation']['template'][1])
@@ -2225,20 +2242,28 @@ def update_pipeline_values_1_8(d_old):
             seg_template.remove(False)
         d = set_nested_value(d, seg_template_key, seg_template)
         d = remove_None(d, seg_template_key)
+    except KeyError:
+        pass
 
     distcor_key = ['functional_preproc', 'distortion_correction', 'using']
-    if lookup_nested_value(d, distcor_key):
+    try:
+        lookup_nested_value(d, distcor_key)
         d = remove_None(d, distcor_key)
+    except KeyError:
+        pass
 
     tse_key = ['timeseries_extraction', 'roi_tse_outputs']
-    tse = lookup_nested_value(d, tse_key)
-    if isinstance(tse, list) and isinstance(tse[0], bool):
-        new_tse = []
-        if len(tse) and tse[0]:
-            new_tse.append('csv')
-        if len(tse) > 1 and tse[1]:
-            new_tse.append('numpy')
-        d = set_nested_value(d, tse_key, new_tse)
+    try:
+        tse = lookup_nested_value(d, tse_key)
+        if isinstance(tse, list) and isinstance(tse[0], bool):
+            new_tse = []
+            if len(tse) and tse[0]:
+                new_tse.append('csv')
+            if len(tse) > 1 and tse[1]:
+                new_tse.append('numpy')
+            d = set_nested_value(d, tse_key, new_tse)
+    except KeyError:
+        pass
 
     if 'functional_registration' in d and isinstance(
         d['functional_registration'], dict
@@ -2379,16 +2404,17 @@ def _replace_changed_values(d, nested_key, replacement_list):
     >>> _replace_changed_values(d, ['test', 'this'], [('function', 'success')])
     {'test': {'this': ['success']}}
     '''
-    current_value = lookup_nested_value(d, nested_key)
-    if bool(current_value):
-        if isinstance(current_value, list):
-            current_value = _replace_in_value_list(
-                current_value, replacement_list)
-        else:
-            for replacement in replacement_list:
-                current_value = list_item_replace(current_value, *replacement)
-        return set_nested_value(d, nested_key, current_value)
-    return d
+    try:
+        current_value = lookup_nested_value(d, nested_key)
+    except KeyError:
+        return d
+    if isinstance(current_value, list):
+        current_value = _replace_in_value_list(
+            current_value, replacement_list)
+    else:
+        for replacement in replacement_list:
+            current_value = list_item_replace(current_value, *replacement)
+    return set_nested_value(d, nested_key, current_value)
 
 
 def _replace_in_value_list(current_value, replacement_tuple):

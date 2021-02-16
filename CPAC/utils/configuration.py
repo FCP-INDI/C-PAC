@@ -103,10 +103,13 @@ class Configuration(object):
 
         config_map = self.nonestr_to_None(config_map)
 
-        regressors = lookup_nested_value(
-            config_map,
-            ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
-        )
+        try:
+            regressors = lookup_nested_value(
+                config_map,
+                ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
+            )
+        except KeyError:
+            regressors = []
         if isinstance(regressors, list):
             for i, regressor in enumerate(regressors):
                 # set Regressor 'Name's if not provided
@@ -114,7 +117,6 @@ class Configuration(object):
                     regressor['Name'] = f'Regressor-{str(i + 1)}'
                 # replace spaces with hyphens in Regressor 'Name's
                 regressor['Name'] = regressor['Name'].replace(' ', '-')
-
         config_map = schema(config_map)
 
         # remove 'FROM' before setting attributes now that it's imported
@@ -350,13 +352,20 @@ def _enforce_forkability(config_dict):
 
     key_list_list = collect_key_list(config_dict)
     for key_list in key_list_list:
-        schema_check = lookup_nested_value(schema.schema, key_list)
+        try:
+            schema_check = lookup_nested_value(schema.schema, key_list)
+        except KeyError:
+            continue
         if hasattr(schema_check, 'validators'):
             schema_check = schema_check.validators
             if bool in schema_check and [bool] in schema_check:
-                value = lookup_nested_value(config_dict, key_list)
+                try:
+                    value = lookup_nested_value(config_dict, key_list)
+                except KeyError:
+                    continue
                 if isinstance(value, bool):
-                    set_nested_value(config_dict, key_list, [value])
+                    config_dict = set_nested_value(
+                        config_dict, key_list, [value])
     return config_dict
 
 
