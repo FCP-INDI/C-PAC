@@ -215,7 +215,7 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
                         name='inputspec')
 
     multi_input = False
-    if 'correlations' in multi_input:
+    if 'correlations' in label:
         multi_input = True
 
     apply_xfm = apply_transform(f'warp_{label}_to_template', reg_tool,
