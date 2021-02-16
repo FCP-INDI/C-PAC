@@ -1529,7 +1529,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w_template')
     wf.connect(node, out, fsl, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data('ref_mask')
+    node, out = strat_pool.get_data('template_ref_mask')
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
 
     return (wf, outputs)
@@ -1547,7 +1547,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                  "desc-brain_T1w"),
                 "T1w_template",
                 "T1w_brain_template",
-                "template_ref_mask"],
+                "template_dilated_symmetric_brain_mask"],
      "outputs": ["space-symtemplate_desc-brain_T1w",
                  "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
@@ -1581,7 +1581,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('T1w_template_symmetric')
     wf.connect(node, out, fsl, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data('dilated_symmetric_brain_mask')
+    node, out = strat_pool.get_data('template_dilated_symmetric_brain_mask')
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
 
     return (wf, outputs)
