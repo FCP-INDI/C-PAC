@@ -1603,8 +1603,10 @@ def dct_diff(dct1, dct2):
             if key not in dct1:
                 diff[key] = dct2[key]
 
-    # only return non-empty diffs
-    return {k: diff[k] for k in diff if k in dct2}
+        # only return non-empty diffs
+        return {k: diff[k] for k in diff if k in dct2}
+
+    return {}
 
 
 def list_item_replace(l, old, new):  # noqa E741
@@ -1962,7 +1964,8 @@ def update_config_dict(old_dict):
                 'template_for_resample',
                 'fnirtConfig',
                 'run_smoothing',
-                'runZScoring'
+                'runZScoring',
+                'run_longitudinal'
             }
             if key in special_cases:
                 try:
@@ -1971,6 +1974,13 @@ def update_config_dict(old_dict):
                     ) = _get_old_values(old_dict, new_dict, key)
                 except KeyError:
                     continue
+
+                # longitudinal_template_generation.run
+                if key == 'run_longitudinal':
+                    if 'anat' in old_value or 'func' in old_value:
+                        current_value = True
+                    else:
+                        current_value = False
 
                 # anatomical_preproc.acpc_alignment.run_before_preproc
                 if key == 'acpc_run_preprocessing':
@@ -2076,7 +2086,7 @@ def update_config_dict(old_dict):
                 if key not in {  # if key not in non-list-valued keys
                     'acpc_run_preprocessing', 'acpc_template_brain',
                     'functional_registration', 'template_for_resample',
-                    'fnirtConfig'
+                    'fnirtConfig', 'run_longitudinal'
                 }:
                     current_value = _append_to_list(current_value, new_value)
 
