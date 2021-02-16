@@ -52,10 +52,6 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
     if reg_tool == 'ants':
 
-        input_image_type = 1
-        if time_series:
-            input_image_type = 3
-
         if multi_input:
             apply_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                                     name=f'apply_warp_{wf_name}',
@@ -65,8 +61,10 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                  name=f'apply_warp_{wf_name}')
 
         apply_warp.inputs.dimension = 3
-        apply_warp.inputs.input_image_type = input_image_type
         apply_warp.interface.num_threads = int(num_ants_cores)
+
+        if time_series:
+            apply_warp.inputs.input_image_type = 3
 
         wf.connect(inputNode, 'reference', apply_warp, 'reference_image')
 
