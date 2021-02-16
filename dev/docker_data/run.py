@@ -477,9 +477,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         c.update(overrides)
 
     if args.anat_only:
-        # TODO
-        # c.update({'functional_preproc': 'run': Off})?
-        c.update({"runFunctional": [0]})
+        c.update({'FROM': 'anat-only'})
+
+    c = Configuration(c)
 
     # get the aws_input_credentials, if any are specified
     if args.aws_input_creds:
@@ -523,8 +523,6 @@ elif args.analysis_level in ["test_config", "participant"]:
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
-
-    c = Configuration(c)
 
     c['disable_log'] = args.disable_file_logging
 
@@ -577,8 +575,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
         )
 
-    with open(pipeline_config_file, 'w') as f:
-        f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
+    open(pipeline_config_file, 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+    open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
     participant_labels = []
     if args.participant_label:

@@ -8,7 +8,9 @@ from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
     update_config_dict, update_pipeline_values_1_8
 
 
-def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
+def create_yaml_from_template(
+    d, template=DEFAULT_PIPELINE_FILE, include_all=False
+):
     """Save dictionary to a YAML file, keeping the structure
     (such as first level comments and ordering) from the template
 
@@ -21,6 +23,9 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
     template : str
         path to template
+
+    include_all : bool
+        include every key, even those that are unchanged
 
     Examples
     --------
@@ -164,7 +169,11 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         template_name = 'default'
 
     # update values
-    d = _create_import_dict(dct_diff(d_default, d))
+    if include_all:
+        d_default.update(d.dict())
+        d = _create_import_dict(dct_diff({}, d_default))
+    else:
+        d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
     with open(template, 'r') as f:
