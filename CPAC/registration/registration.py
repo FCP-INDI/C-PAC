@@ -1165,13 +1165,13 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     collect_transforms = pe.Node(util.Merge(3),
                                  name=f'collect_transforms{symm}')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_transforms, 'in1')
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
                collect_transforms, 'in2')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_transforms, 'in3')
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
@@ -1212,13 +1212,13 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
                                      name='collect_inv_transforms'
                                           f'{symm}')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_inv_transforms, 'in1')
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
                collect_inv_transforms, 'in2')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_inv_transforms, 'in3')
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
@@ -1273,16 +1273,16 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
                                  name=f'collect_all_transforms'
                                       f'{symm}')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.warp_field',
                collect_all_transforms, 'in1')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_all_transforms, 'in2')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
                collect_all_transforms, 'in3')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.warp_field',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_all_transforms, 'in4')
 
     wf.connect(collect_all_transforms, 'out',
@@ -1308,23 +1308,23 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
 
     write_composite_inv_xfm.inputs.input_image_type = 0
     write_composite_inv_xfm.inputs.dimension = 3
-    write_composite_inv_xfm.inputs.invert_transform_flags = [False, True,
-                                                             True, True]
+    write_composite_inv_xfm.inputs.invert_transform_flags = [True, True,
+                                                             True, False]
 
     collect_all_inv_transforms = pe.Node(util.Merge(4),
                                          name=f'collect_all_inv_transforms'
                                          f'{symm}')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.inverse_warp_field',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_all_inv_transforms, 'in1')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
                collect_all_inv_transforms, 'in2')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_all_inv_transforms, 'in3')
 
-    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
+    wf.connect(ants_reg_anat_mni, 'outputspec.inverse_warp_field',
                collect_all_inv_transforms, 'in4')
 
     wf.connect(collect_all_inv_transforms, 'out',
@@ -1415,10 +1415,10 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         collect_all_transforms = pe.Node(util.Merge(2),
                                          name=f'collect_all_transforms')
 
-        wf.connect(change_transform, 'updated_affine_file',
+        wf.connect(change_transform, 'T1w_to_template_xfm',
                    collect_all_transforms, 'in1')
 
-        wf.connect(inputNode, 'T1w_to_template_xfm',
+        wf.connect(inputNode, 'updated_affine_file',
                    collect_all_transforms, 'in2')
 
         wf.connect(collect_all_transforms, 'out',
@@ -1429,7 +1429,7 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
             name=f'write_composite_inv_xfm',
             mem_gb=1.5)
         write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
-        write_composite_inv_xfm.inputs.invert_transform_flags = [False, True]
+        write_composite_inv_xfm.inputs.invert_transform_flags = [True, False]
         write_composite_inv_xfm.inputs.output_image = \
             f"from-{sym}template_to-bold_mode-image_xfm.nii.gz"
 
@@ -1448,10 +1448,10 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         collect_inv_transforms = pe.Node(util.Merge(2),
                                          name='collect_inv_transforms')
 
-        wf.connect(inputNode, 'template_to_T1w_xfm',
+        wf.connect(inputNode, 'updated_affine_file',
                    collect_inv_transforms, 'in1')
 
-        wf.connect(change_transform, 'updated_affine_file',
+        wf.connect(change_transform, 'template_to_T1w_xfm',
                    collect_inv_transforms, 'in2')
 
         wf.connect(collect_inv_transforms, 'out',
