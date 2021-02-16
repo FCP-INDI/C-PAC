@@ -989,7 +989,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         )
 
         # Input registration parameters
-        wf.connect(inputNode, 'interpolation', flirt_reg_anat_mni, 'interp')
+        wf.connect(inputNode, 'interpolation', flirt_reg_anat_mni, 'inputspec.interp')
 
         wf.connect(inputNode, 'input_brain',
                    flirt_reg_anat_mni, 'inputspec.input_brain')
@@ -1488,10 +1488,9 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "register_FSL_anat_to_template",
-     "config": ["registration_workflows", "anatomical_registration",
-                "registration"],
+     "config": ["registration_workflows", "anatomical_registration"],
      "switch": ["run"],
-     "option_key": "using",
+     "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-brain_T1w"),
@@ -1506,14 +1505,14 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
-                                              f'template_{pipe_idx}', cfg,
+                                              f'template_{pipe_num}', cfg,
                                               'T1w', opt)
 
-    fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
+    fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'interpolation']
 
-    fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
+    fsl.inputs.inputspec.fnirt_config = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'fnirt_config']
 
@@ -1540,10 +1539,9 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                                             opt=None):
     '''
     {"name": "register_symmetric_FSL_anat_to_template",
-     "config": ["registration_workflows", "anatomical_registration",
-                "registration"],
+     "config": ["registration_workflows", "anatomical_registration"],
      "switch": ["run"],
-     "option_key": "using",
+     "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-brain_T1w"),
@@ -1559,14 +1557,14 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
 
     fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
                                               f'template_symmetric_'
-                                              f'{pipe_idx}', cfg, 'T1w', opt,
+                                              f'{pipe_num}', cfg, 'T1w', opt,
                                               symmetric=True)
 
-    fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
+    fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'interpolation']
 
-    fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
+    fsl.inputs.inputspec.fnirt_config = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'fnirt_config']
 
