@@ -177,7 +177,7 @@ def T2wToT1wReg(wf_name='T2w_to_T1w_reg'):
 
     # ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$T2wImage" --ref="$T1wImage" --premat="$WD"/T2w2T1w.mat --out="$WD"/T2w2T1w
     T2w2T1w = pe.Node(interface=fsl.ApplyWarp(),
-                        name='T2w2T1w')
+                        name='T2w2T1w_applywarp')
     T2w2T1w.inputs.interp = 'spline'
     T2w2T1w.inputs.relwarp = True
 
