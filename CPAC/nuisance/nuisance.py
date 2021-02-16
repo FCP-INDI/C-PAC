@@ -1657,7 +1657,7 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
                  "desc-reorient_bold", "bold"],
-                "from-bold_to-template_mode-image_desc-linear_xfm",
+                "from-bold_to-T1w_mode-image_desc-linear_xfm",
                 "from-T1w_to-template_mode-image_xfm"],
      "outputs": ["desc-cleaned_bold"]}
     '''
@@ -1677,7 +1677,8 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "desc-preproc_bold", "bold"])
     wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
 
-    node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
+    node, out = strat_pool.get_data(
+        "from-bold_to-T1w_mode-image_desc-linear_xfm")
     wf.connect(node, out, aroma_preproc, 'inputspec.mat_file')
 
     node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
