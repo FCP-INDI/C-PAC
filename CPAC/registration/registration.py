@@ -1415,10 +1415,10 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         collect_all_transforms = pe.Node(util.Merge(2),
                                          name=f'collect_all_transforms')
 
-        wf.connect(change_transform, 'T1w_to_template_xfm',
+        wf.connect(inputNode, 'T1w_to_template_xfm',
                    collect_all_transforms, 'in1')
 
-        wf.connect(inputNode, 'updated_affine_file',
+        wf.connect(change_transform, 'updated_affine_file',
                    collect_all_transforms, 'in2')
 
         wf.connect(collect_all_transforms, 'out',
@@ -1448,10 +1448,10 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         collect_inv_transforms = pe.Node(util.Merge(2),
                                          name='collect_inv_transforms')
 
-        wf.connect(inputNode, 'updated_affine_file',
+        wf.connect(change_transform, 'updated_affine_file',
                    collect_inv_transforms, 'in1')
 
-        wf.connect(change_transform, 'template_to_T1w_xfm',
+        wf.connect(inputNode, 'template_to_T1w_xfm',
                    collect_inv_transforms, 'in2')
 
         wf.connect(collect_inv_transforms, 'out',
