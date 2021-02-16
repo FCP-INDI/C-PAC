@@ -214,8 +214,13 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
                                                        'transform']),
                         name='inputspec')
 
+    multi_input = False
+    if 'correlations' in multi_input:
+        multi_input = True
+
     apply_xfm = apply_transform(f'warp_{label}_to_template', reg_tool,
-                                time_series=False, num_cpus=num_cpus,
+                                time_series=False, multi_input=multi_input,
+                                num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':

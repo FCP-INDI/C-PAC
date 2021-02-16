@@ -546,11 +546,7 @@ class ResourcePool(object):
 
             for num, xfm_entry in enumerate(xfm_info):
 
-                # TODO: next, try parsing num, xfm entry etc.
-                # TODO: also just please pass the cfg into rpool, thanks.
-
                 xfm_idx, xfm_prov = xfm_entry
-
                 reg_tool = check_prov_for_regtool(xfm_prov)
 
                 xfm = transform_derivative(f'{label}_xfm_{pipe_x}_{num}',
