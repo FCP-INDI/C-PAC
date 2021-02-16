@@ -180,6 +180,7 @@ def normalize_motion_parameters(in_file):
 def get_mcflirt_rms_abs(rms_files):
     for path in rms_files:
         if 'abs.rms' in path:
+            path = path.replace('.rms', '.1D')
             return path
 
 
