@@ -1512,10 +1512,12 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                               'T1w', opt)
 
     fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
-        'anatomical_registration']['FSL-FNIRT']['interpolation']
+        'anatomical_registration']['registration']['FSL-FNIRT'][
+        'interpolation']
 
     fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
-        'registration']['FSL-FNIRT']['fnirt_config']
+        'anatomical_registration']['registration']['FSL-FNIRT'][
+        'fnirt_config']
 
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out, fsl, 'inputspec.input_brain')
@@ -1563,10 +1565,12 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                                               symmetric=True)
 
     fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
-        'anatomical_registration']['FSL-FNIRT']['interpolation']
+        'anatomical_registration']['registration']['FSL-FNIRT'][
+        'interpolation']
 
     fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
-        'registration']['FSL-FNIRT']['fnirt_config']
+        'anatomical_registration']['registration']['FSL-FNIRT'][
+        'fnirt_config']
 
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out, fsl, 'inputspec.input_brain')
