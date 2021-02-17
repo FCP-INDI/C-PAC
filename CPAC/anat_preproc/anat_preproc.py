@@ -660,6 +660,7 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
                                                        'ref_mask_2mm',
+                                                       'template_skull_for_anat',
                                                        'template_skull_for_anat_2mm',
                                                        'template_brain_mask_for_anat']), 
                          name='inputspec')
@@ -1218,6 +1219,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             preproc.connect(inputnode, 'ref_mask_2mm',
                             brain_extraction, 'inputspec.ref_mask_2mm')
+
+            preproc.connect(inputnode, 'template_skull_for_anat',
+                            brain_extraction, 'inputspec.template_skull_for_anat')
 
             preproc.connect(inputnode, 'template_skull_for_anat_2mm',
                             brain_extraction, 'inputspec.template_skull_for_anat_2mm')
