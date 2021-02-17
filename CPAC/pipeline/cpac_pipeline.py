@@ -35,6 +35,7 @@ import CPAC
 
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
+    freesurfer_preproc,
     anatomical_init,
     acpc_align_head,
     acpc_align_head_with_mask,
@@ -78,7 +79,8 @@ from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_fsl_fast,
     tissue_seg_T1_template_based,
     tissue_seg_EPI_template_based,
-    tissue_seg_ants_prior
+    tissue_seg_ants_prior,
+    tissue_seg_freesurfer
 )
 
 from CPAC.func_preproc.func_preproc import (
@@ -790,11 +792,14 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
+    pipeline_blocks += [freesurfer_preproc]
+
     if not rpool.check_rpool('desc-preproc_T1w'):
 
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
-            if rpool.check_rpool('space-T1w_desc-brain_mask'):
+            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+                    cfg.surface_analysis['run_freesurfer']:
                 acpc_blocks = [
                     brain_extraction,
                     acpc_align_brain_with_mask
@@ -813,7 +818,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
-            if rpool.check_rpool('space-T1w_desc-brain_mask'):
+            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+                    cfg.surface_analysis['run_freesurfer']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -835,7 +841,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_blocks
 
     # Anatomical brain masking
-    if not rpool.check_rpool('space-T1w_desc-brain_mask'):
+    if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
+            cfg.surface_analysis['run_freesurfer']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
@@ -924,11 +931,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Anatomical tissue segmentation
     if not rpool.check_rpool('label-CSF_mask') or \
-            not rpool.check_rpool('label-WM_mask') or \
-                not rpool.check_rpool('label-CSF_probseg'):
+            not rpool.check_rpool('label-WM_mask'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
+             #tissue_seg_freesurfer
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:

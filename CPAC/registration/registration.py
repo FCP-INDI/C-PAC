@@ -2212,8 +2212,9 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=False, num_cpus=num_cpus,
+    apply_xfm = apply_transform(f'warp_bold_mask_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
@@ -2261,8 +2262,9 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=False, num_cpus=num_cpus,
+    apply_xfm = apply_transform(f'warp_deriv_mask_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"

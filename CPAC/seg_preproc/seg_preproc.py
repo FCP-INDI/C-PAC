@@ -477,10 +477,11 @@ def create_seg_preproc_freesurfer(config=None,
                         name='anat_autorecon2')
 
     reconall2.inputs.directive = 'autorecon2'
-    reconall2.inputs.openmp = config.num_omp_threads  # TODO: update nested
+    reconall2.inputs.openmp = config.pipeline_setup['system_config'][
+        'num_omp_threads']
 
-    if config.autorecon2_args is not None:  # TODO: update nested
-        reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
+    #if config.autorecon2_args is not None:  # TODO: update nested
+    #    reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
 
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
@@ -858,3 +859,31 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
+def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "tissue_seg_freesurfer",
+     "config": ["segmentation"],
+     "switch": ["run"],
+     "option_key": ["tissue_segmentation", "using"],
+     "option_val": "FreeSurfer",
+     "inputs": ["freesurfer_subject_dir"],
+     "outputs": ["label-CSF_mask",
+                 "label-GM_mask",
+                 "label-WM_mask"]}
+    '''
+
+    fs_seg = create_seg_preproc_freesurfer(config=cfg,
+                                           wf_name='seg_preproc_freesurfer'
+                                                   f'_{pipe_num}')
+
+    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
+
+    outputs = {
+        'label-CSF_mask': (fs_seg, 'outputspec.csf_mask'),
+        'label-GM_mask': (fs_seg, 'outputspec.gm_mask'),
+        'label-WM_mask': (fs_seg, 'outputspec.wm_mask')
+    }
+
+    return (wf, outputs)
