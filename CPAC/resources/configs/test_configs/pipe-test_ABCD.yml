@@ -21,6 +21,12 @@ pipeline_setup:
 
   system_config: 
 
+    # Select Off if you intend to run CPAC on a single machine.
+    # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
+    on_grid: 
+
+      run: Off
+
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
     # - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
@@ -78,6 +84,12 @@ segmentation:
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
+
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -179,6 +191,14 @@ registration_workflows:
 
   functional_registration: 
 
+    EPI_registration: 
+
+      ANTs: 
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
+
     func_registration_to_template: 
 
       output_resolution: 
@@ -223,6 +243,11 @@ registration_workflows:
 
 functional_preproc: 
 
+  scaling: 
+
+    # Scale functional raw data, usually used in rodent pipeline
+    run: Off
+
   motion_estimates_and_correction: 
 
     motion_correction: 
@@ -236,6 +261,16 @@ functional_preproc:
 
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: On
+
+  distortion_correction: 
+
+    # using: ['PhaseDiff', 'Blip']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   NOTE:
+    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
+    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    using: []
 
   func_masking: 
 
@@ -269,27 +304,29 @@ nuisance_corrections:
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks: 
 
-  spatial_smoothing: 
+      erode_anatomical_brain_mask: 
 
-    # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
-    #
-    # Options:
-    #     ['smoothed', 'nonsmoothed']
-    output: [nonsmoothed]
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
 
-  z-scoring: 
+      erode_csf: 
 
-    # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
-    #
-    # Options:
-    #     ['z-scored', 'raw']
-    output: [raw]
+        # Erode binarized csf tissue mask.
+        run: Off
+
+      erode_wm: 
+
+        # Erode WM binarized tissue mask.
+        run: Off
+
+      erode_gm: 
+
+        # Erode GM binarized tissue mask.
+        run: Off
 
 timeseries_extraction: 
 

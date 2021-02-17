@@ -191,6 +191,13 @@ schema = Schema({
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
+                'run': In(False, [False]),
+                'run_before_preproc': Maybe(bool),
+                'brain_size': Maybe(int),
+                'acpc_target': Maybe(In(valid_options['acpc']['target'])),
+                'T1w_ACPC_template': Maybe(str),
+                'T1w_brain_ACPC_template': Maybe(str),
+            }, {
                 'run': forkable,
                 'run_before_preproc': bool,
                 'brain_size': int,
@@ -206,7 +213,7 @@ schema = Schema({
                 'T1w_brain_ACPC_template': str,
             },),
             msg='\'brain\' requires \'T1w_brain_ACPC_template\' to '
-                'be populated',
+                'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
             'already_skullstripped': bool,

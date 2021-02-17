@@ -71,8 +71,11 @@ def create_yaml_from_template(
 
         Examples
         --------
-        >>> _create_import_dict({'anatomical_preproc': {'brain_extraction': {'extraction': {'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
-        {'anatomical_preproc': {'brain_extraction': {'extraction': {'using': ['niworkflows-ants']}}}}
+        >>> _create_import_dict({'anatomical_preproc': {
+        ...     'brain_extraction': {'extraction': {
+        ...         'run': ([True], False),
+        ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
+        {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
         '''  # noqa
         if isinstance(diff, tuple) and len(diff) == 2:
             return diff[1]
@@ -80,10 +83,12 @@ def create_yaml_from_template(
             i = {}
             for k in diff:
                 try:
-                    i[k] = _create_import_dict(diff[k])
+                    j = _create_import_dict(diff[k])
+                    if j != {}:
+                        i[k] = j
                 except KeyError:
                     continue
-            return {k: i[k] for k in i if i[k]}
+            return i
         return diff
 
     def _format_key(key, level):
@@ -149,6 +154,8 @@ def create_yaml_from_template(
     list_level = 0
     line_level = 0
     template_name = template
+    if isinstance(d, Configuration):
+        d = d.dict()
     try:
         template = load_preconfig(template)
     except OptionError:
@@ -170,7 +177,7 @@ def create_yaml_from_template(
 
     # update values
     if include_all:
-        d_default.update(d.dict())
+        d_default.update(d)
         d = _create_import_dict(dct_diff({}, d_default))
     else:
         d = _create_import_dict(dct_diff(d_default, d))
@@ -249,23 +256,19 @@ def create_yaml_from_template(
                             ) for orig_item in orig_value])
                             )):
                                 value = yaml_bool(value)
-                            if value:
-                                # prepend comment from template
-                                if len(comment.strip()):
-                                    output += comment
-                                else:
-                                    output += '\n'
-
-                                # write YAML
-                                output += _format_key(key, line_level)
-                                if isinstance(value, list):
-                                    output += _format_list_items(
-                                        value, line_level)
-                                elif not isinstance(value, dict):
-                                    output += str(value)
+                            # prepend comment from template
+                            if len(comment.strip()):
+                                output += comment
                             else:
-                                # clear comment for unchanged key
-                                comment = '\n'
+                                output += '\n'
+
+                            # write YAML
+                            output += _format_key(key, line_level)
+                            if isinstance(value, list):
+                                output += _format_list_items(
+                                    value, line_level)
+                            elif not isinstance(value, dict):
+                                output += str(value)
                         except KeyError:
                             # clear comment for excluded key
                             comment = '\n'
@@ -275,7 +278,6 @@ def create_yaml_from_template(
                         level = line_level
             elif len(comment) > 1 and comment[-2] != '\n':
                 comment += '\n'
-
     return output.lstrip('\n')
 
 

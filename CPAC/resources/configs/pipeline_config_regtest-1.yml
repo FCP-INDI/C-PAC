@@ -23,6 +23,12 @@ pipeline_setup:
     # Include extra outputs in the output directory that may be of interest when more information is needed.
     write_debugging_outputs: On
 
+  working_directory: 
+
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: /output
@@ -32,6 +38,8 @@ pipeline_setup:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
+
+      run: Off
 
       SGE: 
 
@@ -63,6 +71,21 @@ pipeline_setup:
     # - This number cannot be greater than the number of cores per participant.
     num_ants_threads: 2
 
+anatomical_preproc: 
+
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: Off
+
+  # N4 bias field correction via ANTs
+  n4_bias_field_correction: Off
+
+  brain_extraction: 
+
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
+
 segmentation: 
 
   tissue_segmentation: 
@@ -82,6 +105,12 @@ segmentation:
 
     Template_Based: 
 
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
+
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
 
@@ -96,6 +125,11 @@ segmentation:
 
 registration_workflows: 
 
+  anatomical_registration: 
+
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
+
   functional_registration: 
 
     func_registration_to_template: 
@@ -109,6 +143,11 @@ registration_workflows:
         func_derivative_outputs: 2mm
 
 functional_preproc: 
+
+  scaling: 
+
+    # Scale functional raw data, usually used in rodent pipeline
+    run: Off
 
   motion_estimates_and_correction: 
 
@@ -184,27 +223,29 @@ nuisance_corrections:
           include_squared: false
         Name: Regressor-3
 
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks: 
 
-  spatial_smoothing: 
+      erode_anatomical_brain_mask: 
 
-    # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
-    #
-    # Options:
-    #     ['smoothed', 'nonsmoothed']
-    output: [smoothed, nonsmoothed]
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
 
-  z-scoring: 
+      erode_csf: 
 
-    # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
-    #
-    # Options:
-    #     ['z-scored', 'raw']
-    output: [z-scored, raw]
+        # Erode binarized csf tissue mask.
+        run: Off
+
+      erode_wm: 
+
+        # Erode WM binarized tissue mask.
+        run: Off
+
+      erode_gm: 
+
+        # Erode GM binarized tissue mask.
+        run: Off
 
 timeseries_extraction: 
 
