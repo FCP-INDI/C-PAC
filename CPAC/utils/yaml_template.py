@@ -141,7 +141,9 @@ def create_yaml_from_template(
         # list long or complex lists on lines with indented '-' lead-ins
         indent = " " * (2 * line_level + 2)
         return '\n' + '\n'.join([
-            f'{indent}{li}' for li in yaml.dump(l).split('\n')
+            f'{indent}{li}' for li in yaml.dump(
+                yaml_bool(l)
+            ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
         ]).rstrip()
 
     # set starting values
@@ -183,6 +185,7 @@ def create_yaml_from_template(
         d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
+    template_dict = yaml.safe_load(open(template, 'r'))
     with open(template, 'r') as f:
         for line in f:
 
@@ -212,7 +215,8 @@ def create_yaml_from_template(
                 else:
                     # extract dict key
                     key_group = re.match(
-                        r'^\s*([a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
+                        r'^\s*(([a-z0-9A-Z_]+://){0,1}'
+                        r'[a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
                     if key_group:
                         if not template_included:
                             # prepend comment from template
@@ -267,7 +271,21 @@ def create_yaml_from_template(
                             if isinstance(value, list):
                                 output += _format_list_items(
                                     value, line_level)
-                            elif not isinstance(value, dict):
+                            elif isinstance(value, dict):
+                                for k in value.keys():
+                                    try:
+                                        lookup_nested_value(template_dict, nest + [k])
+                                    # include keys not in template
+                                    except KeyError:
+                                        output += _format_key(
+                                            k, line_level + 1)
+                                        output += _format_list_items(
+                                            value[k],
+                                            line_level + 1
+                                        ) if isinstance(
+                                            value[k], list) else yaml_bool(
+                                                value[k])
+                            else:
                                 output += str(value)
                         except KeyError:
                             # clear comment for excluded key
@@ -303,12 +321,13 @@ def yaml_bool(value):
         True: 'On', 'True': 'On', 1: 'On',
         False: 'Off', 'False': 'Off', 0: 'Off'}
     if (
-        isinstance(value, bool) or isinstance(value, str) or
-        isinstance(value, int)
+        isinstance(value, bool) or isinstance(value, str)
     ) and value in yaml_lookup:
         return yaml_lookup[value]
     elif isinstance(value, list):
         return [yaml_bool(item) for item in value]
+    elif isinstance(value, dict):
+        return {k: yaml_bool(value[k]) for k in value}
     return value
 
 

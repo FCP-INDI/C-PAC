@@ -335,14 +335,14 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: false
+          erode_mask: Off
           summary: Mean
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: false
-          include_delayed_squared: false
-          include_squared: false
+          include_delayed: Off
+          include_delayed_squared: Off
+          include_squared: Off
         Name: Regressor-1
 
     # Standard Lateral Ventricles Binary Mask

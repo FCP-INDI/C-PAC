@@ -208,9 +208,9 @@ nuisance_corrections:
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 1
@@ -223,15 +223,15 @@ nuisance_corrections:
           - WhiteMatter
           - CerebrospinalFluid
       - CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: false
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: Off
+          include_squared: On
         Name: Regressor-2
         aCompCor:
           extraction_resolution: 2
@@ -248,9 +248,9 @@ nuisance_corrections:
           - type: FD_P
             value: 0.3
         Motion:
-          include_delayed: true
-          include_delayed_squared: false
-          include_squared: false
+          include_delayed: On
+          include_delayed_squared: Off
+          include_squared: Off
         Name: Regressor-3
 
     # Process and refine masks used to produce regressors and time series for
@@ -284,14 +284,17 @@ timeseries_extraction:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
 
 seed_based_correlation_analysis: 
 
-  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 voxel_mirrored_homotopic_connectivity: 
 

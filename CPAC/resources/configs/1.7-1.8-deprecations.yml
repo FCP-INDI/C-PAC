@@ -21,3 +21,5 @@
 - runMotionSpike
 - spikeThreshold
 - smoothing_order
+- already_skullstripped
+- roiTSOutputs

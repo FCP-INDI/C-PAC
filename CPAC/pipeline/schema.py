@@ -1,6 +1,6 @@
 from itertools import chain, permutations
-from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Range, \
-                       Required, Schema
+from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
+                       Range, Required, Schema
 from voluptuous.validators import Maybe
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -33,9 +33,16 @@ valid_options = {
                              'Correlation threshold'],
        'weight_options': ['Binarized', 'Weighted']
     },
+    'sca': {
+        'roi_paths': {'Avg', 'DualReg', 'MultReg'},
+    },
     'segmentation': {
         'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
-        'template': ['EPI_Template', 'T1_Template']
+        'template': ['EPI_Template', 'T1_Template'],
+    },
+    'timeseries': {
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
+                      'PartialCorr'},
     },
     'Regressors': {
         'CompCor': {
@@ -136,6 +143,33 @@ ANTs_parameters = [Any(
     }, dict  # TODO: specify other valid ANTs parameters
 )]
 
+
+def permutation_message(key, options):
+    '''Function to give a clean, human-readable error message for keys that accept permutation values
+
+    Parameters
+    ----------
+    key: str
+
+    options: list or set
+
+    Returns
+    -------
+    msg: str'''  # noqa E501
+    return f'''
+
+\'{key}\' takes a dictionary with paths to region-of-interest (ROI)
+ NIFTI files (.nii or .nii.gz) as keys and a comma separated string
+ of analyses to run. For example, if you wish to run Avg and
+ MultReg, you would enter:
+
+    '/path/to/ROI.nii.gz': Avg, MultReg
+
+Available analyses for \'{key}\' are {options}
+
+'''
+
+
 schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
@@ -216,7 +250,6 @@ schema = Schema({
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
-            'already_skullstripped': bool,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
@@ -556,7 +589,7 @@ schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'Regressors': Maybe([Schema({
-                Required('Name'): str,
+                'Name': Required(str),
                 'Censor': {
                     'method': str,
                     'thresholds': [{
@@ -653,27 +686,34 @@ schema = Schema({
     },
     'timeseries_extraction': {
         'run': forkable,
-        'tse_roi_paths': Maybe({
-            str: In({', '.join([
-                option for option in options
-            ]) for options in list(chain.from_iterable([list(
-                permutations({'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
-                              'PartialCorr'}, number_of)
-            ) for number_of in range(1, 6)]))}),
-        }),
+        'tse_roi_paths': Optional(
+            Maybe({
+                str: In({', '.join([
+                    option for option in options
+                ]) for options in list(chain.from_iterable([list(
+                    permutations(valid_options['timeseries']['roi_paths'],
+                                 number_of)
+                ) for number_of in range(1, 6)]))}),
+            }),
+            msg=permutation_message(
+                'tse_roi_paths', valid_options['timeseries']['roi_paths'])
+        ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
-        'roi_tse_outputs': Maybe([In({None, 'csv', 'numpy'})]),
     },
 
     'seed_based_correlation_analysis': {
         'run': forkable,
-        'sca_roi_paths': Maybe({
-            str: In({', '.join([
-                option for option in options
-            ]) for options in list(chain.from_iterable([list(
-                permutations({'Avg', 'DualReg', 'MultReg'}, number_of)
-            ) for number_of in range(1, 4)]))})
-        }),
+        'sca_roi_paths': Optional(
+            Maybe({
+                str: In({', '.join([
+                    option for option in options
+                ]) for options in list(chain.from_iterable([list(
+                    permutations(valid_options['sca']['roi_paths'], number_of)
+                ) for number_of in range(1, 4)]))})
+            }),
+            msg=permutation_message(
+                'sca_roi_paths', valid_options['sca']['roi_paths'])
+        ),
         'norm_timeseries_for_DR': bool,
     },
     'network_centrality': {
