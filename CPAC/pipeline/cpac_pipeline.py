@@ -389,11 +389,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                     'weight_options']) != 0
 
     # Check system dependencies
+    check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
+    if isinstance(check_ica_aroma, list):
+        check_ica_aroma = True in check_ica_aroma
     check_system_deps(check_ants='ANTS' in c.registration_workflows[
         'anatomical_registration']['registration']['using'],
-                      check_ica_aroma=True in
-                                      c.nuisance_corrections['1-ICA-AROMA'][
-                                          'run'],
+                      check_ica_aroma=check_ica_aroma,
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
 
@@ -515,7 +516,7 @@ Please, make yourself aware of how it works and its assumptions:
                 )
 
             # PyPEER kick-off
-            # if True in c.PyPEER['run']:
+            # if c.PyPEER['run']:
             #    from CPAC.pypeer.peer import prep_for_pypeer
             #    prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
             #                    c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
@@ -939,7 +940,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += seg_blocks
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if True in cfg.functional_preproc['run'] and \
+    if cfg.functional_preproc['run'] and \
             (not rpool.check_rpool('desc-brain_bold') or
              not rpool.check_rpool('space-bold_desc-brain_mask')):
         func_init_blocks = [
@@ -1032,7 +1033,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'using']:
             nuisance += [ICA_AROMA_EPIreg]
 
-        if True in cfg.nuisance_corrections['2-nuisance_regression']['run'] \
+        if cfg.nuisance_corrections['2-nuisance_regression']['run'] \
             and cfg.nuisance_corrections['2-nuisance_regression'][
                 'Regressors']:
             nuisance_blocks = [

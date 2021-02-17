@@ -163,7 +163,7 @@ schema = Schema({
         'system_config': {
             'FSLDIR': Maybe(str),
             'on_grid': {
-                'run': forkable,
+                'run': bool,
                 'resource_manager': Maybe(str),
                 'SGE': {
                     'parallel_environment': Maybe(str),
@@ -185,27 +185,27 @@ schema = Schema({
         },
     },
     'anatomical_preproc': {
-        'run': forkable,
+        'run': bool,
         'non_local_means_filtering': forkable,
         'n4_bias_field_correction': forkable,
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
-                'run': In(False, [False]),
+                'run': False,
                 'run_before_preproc': Maybe(bool),
                 'brain_size': Maybe(int),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
             }, {
-                'run': forkable,
+                'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
             }, {
-                'run': forkable,
+                'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
                 'acpc_target': valid_options['acpc']['target'][0],
@@ -272,7 +272,7 @@ schema = Schema({
         },
     },
     'segmentation': {
-        'run': forkable,
+        'run': bool,
         'tissue_segmentation': {
             'using': [In(
                 {'FSL-FAST', 'FreeSurfer', 'ANTs_Prior_Based',
@@ -288,7 +288,7 @@ schema = Schema({
                     },
                 },
                 'use_priors': {
-                    'run': forkable,
+                    'run': bool,
                     'priors_path': str,
                     'WM_path': str,
                     'GM_path': str,
@@ -319,7 +319,7 @@ schema = Schema({
     },
     'registration_workflows': {
         'anatomical_registration': {
-            'run': forkable,
+            'run': bool,
             'resolution_for_anat': All(str, Match(resolution_regex)),
             'T1w_brain_template': str,
             'T1w_template': str,
@@ -346,7 +346,7 @@ schema = Schema({
         },
         'functional_registration': {
             'coregistration': {
-                'run': forkable,
+                'run': bool,
                 'func_input_prep': {
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'
@@ -367,7 +367,7 @@ schema = Schema({
                 },
             },
             'EPI_registration': {
-                'run': forkable,
+                'run': bool,
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'EPI_template': str,
                 'EPI_template_mask': Maybe(str),
@@ -384,7 +384,7 @@ schema = Schema({
                 },
             },
             'func_registration_to_template': {
-                'run': forkable,
+                'run': bool,
                 'output_resolution': {
                     'func_preproc_outputs': All(
                         str, Match(resolution_regex)),
@@ -421,7 +421,7 @@ schema = Schema({
         'run_freesurfer': bool,
     },
     'longitudinal_template_generation': {
-        'run': forkable,
+        'run': bool,
         'average_method': In({'median', 'mean', 'std'}),
         'dof': In({12, 9, 7, 6}),
         'interp': In({'trilinear', 'nearestneighbour', 'sinc', 'spline'}),
@@ -432,13 +432,13 @@ schema = Schema({
         'convergence_threshold': Number,
     },
     'functional_preproc': {
-        'run': forkable,
+        'run': bool,
         'truncation': {
             'start_tr': int,
             'stop_tr': Maybe(Any(int, 'End'))
         },
         'scaling': {
-            'run': forkable,
+            'run': bool,
             'scaling_factor': Number
         },
         'despiking': {
@@ -595,25 +595,25 @@ schema = Schema({
                 In({'After', 'Before'})),
             'regressor_masks': {
                 'erode_anatomical_brain_mask': {
-                    'run': forkable,
+                    'run': bool,
                     'brain_mask_erosion_prop': Number,
                     'brain_mask_erosion_mm': Number,
                     'brain_erosion_mm': Number
                 },
                 'erode_csf': {
-                    'run': forkable,
+                    'run': bool,
                     'csf_erosion_prop': Number,
                     'csf_mask_erosion_mm': Number,
                     'csf_erosion_mm': Number,
                 },
                 'erode_wm': {
-                    'run': forkable,
+                    'run': bool,
                     'wm_erosion_prop': Number,
                     'wm_mask_erosion_mm': Number,
                     'wm_erosion_mm': Number,
                 },
                 'erode_gm': {
-                    'run': forkable,
+                    'run': bool,
                     'gm_erosion_prop': Number,
                     'gm_mask_erosion_mm': Number,
                     'gm_erosion_mm': Number,
@@ -622,12 +622,12 @@ schema = Schema({
         },
     },
     'amplitude_low_frequency_fluctuation': {
-        'run': forkable,
+        'run': bool,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
     'voxel_mirrored_homotopic_connectivity': {
-        'run': forkable,
+        'run': bool,
         'symmetric_registration': {
             'T1w_brain_template_symmetric': str,
             'T1w_brain_template_symmetric_for_resample': str,
@@ -638,7 +638,7 @@ schema = Schema({
         },
     },
     'regional_homogeneity': {
-        'run': forkable,
+        'run': bool,
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
@@ -652,7 +652,7 @@ schema = Schema({
         },
     },
     'timeseries_extraction': {
-        'run': forkable,
+        'run': bool,
         'tse_roi_paths': Maybe({
             str: In({', '.join([
                 option for option in options
@@ -666,7 +666,7 @@ schema = Schema({
     },
 
     'seed_based_correlation_analysis': {
-        'run': forkable,
+        'run': bool,
         'sca_roi_paths': Maybe({
             str: In({', '.join([
                 option for option in options
@@ -677,7 +677,7 @@ schema = Schema({
         'norm_timeseries_for_DR': bool,
     },
     'network_centrality': {
-        'run': forkable,
+        'run': bool,
         'memory_allocation': Number,
         'template_specification_file': str,
         'degree_centrality': {
@@ -709,7 +709,7 @@ schema = Schema({
         },
     },
     'PyPEER': {
-        'run': forkable,
+        'run': bool,
         'eye_scan_names': [str],
         'data_scan_names': [str],
         'eye_mask_path': str,

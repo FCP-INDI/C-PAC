@@ -49,8 +49,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.

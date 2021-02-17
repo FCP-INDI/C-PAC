@@ -45,8 +45,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.
@@ -278,11 +276,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  scaling: 
-
-    # Scale functional raw data, usually used in rodent pipeline
-    run: Off
-
   motion_estimates_and_correction: 
 
     # calculate motion statistics BEFORE slice-timing correction
@@ -383,39 +376,34 @@ nuisance_corrections:
         # Erode WM binarized tissue mask.
         run: On
 
-      erode_gm: 
-
-        # Erode GM binarized tissue mask.
-        run: Off
-
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -443,7 +431,7 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.

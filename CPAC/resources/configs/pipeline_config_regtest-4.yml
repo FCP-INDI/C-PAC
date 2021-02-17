@@ -39,8 +39,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.
@@ -202,11 +200,6 @@ functional_preproc:
     # Note: the selection here applies to all scans of all participants.
     stop_tr: 100
 
-  scaling: 
-
-    # Scale functional raw data, usually used in rodent pipeline
-    run: Off
-
   motion_estimates_and_correction: 
 
     # calculate motion statistics BEFORE slice-timing correction
@@ -293,30 +286,6 @@ nuisance_corrections:
           include_delayed_squared: false
           include_squared: false
         Name: Regressor-3
-
-    # Process and refine masks used to produce regressors and time series for
-    # regression.
-    regressor_masks: 
-
-      erode_anatomical_brain_mask: 
-
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
-        run: Off
-
-      erode_csf: 
-
-        # Erode binarized csf tissue mask.
-        run: Off
-
-      erode_wm: 
-
-        # Erode WM binarized tissue mask.
-        run: Off
-
-      erode_gm: 
-
-        # Erode GM binarized tissue mask.
-        run: Off
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
