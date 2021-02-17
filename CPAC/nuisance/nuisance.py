@@ -1706,6 +1706,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
                   "desc-reorient_bold", "bold"],
+                 "desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm",
                  "from-template_to-bold_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
