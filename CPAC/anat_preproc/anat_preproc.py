@@ -1092,7 +1092,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'anat_freesurfer')
 
     if not os.path.exists(freesurfer_subject_dir):
-        os.mkdirs(freesurfer_subject_dir)
+        os.makedirs(freesurfer_subject_dir)
 
     reconall.inputs.directive = 'all'
     reconall.inputs.subjects_dir = freesurfer_subject_dir
