@@ -84,6 +84,7 @@ anatomical_preproc:
   n4_bias_field_correction: On
 
   brain_extraction: 
+    already_skullstripped: Off
 
     FSL-BET: 
 
@@ -258,6 +259,7 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
+  roi_tse_outputs: [csv, numpy]
 
   run: [Off]
 

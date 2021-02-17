@@ -84,6 +84,7 @@ anatomical_preproc:
   n4_bias_field_correction: Off
 
   brain_extraction: 
+    already_skullstripped: Off
 
 segmentation: 
 
@@ -167,15 +168,15 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 2
@@ -191,13 +192,13 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-2
         PolyOrt:
           degree: 2
@@ -239,6 +240,7 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
+  roi_tse_outputs: [csv, numpy]
 
   run: [Off]
 

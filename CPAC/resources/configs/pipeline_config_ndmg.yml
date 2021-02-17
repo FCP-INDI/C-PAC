@@ -41,6 +41,7 @@ anatomical_preproc:
   n4_bias_field_correction: Off
 
   brain_extraction: 
+    already_skullstripped: Off
 
 segmentation: 
 
@@ -207,12 +208,33 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
+  roi_tse_outputs: [csv, numpy]
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/CPAC200_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Desikan_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DKT_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00071_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00096_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00108_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00140_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00195_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00278_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00350_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00446_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00583_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS00833_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/DS01216_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/JHU_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Princetonvisual-top_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
 
 seed_based_correlation_analysis: 
 

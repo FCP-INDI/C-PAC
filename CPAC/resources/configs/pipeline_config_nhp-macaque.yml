@@ -100,6 +100,7 @@ anatomical_preproc:
     T1w_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm.nii.gz
 
   brain_extraction: 
+    already_skullstripped: Off
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
     # this is a fork option
@@ -329,9 +330,9 @@ nuisance_corrections:
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 2
@@ -369,6 +370,7 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
+  roi_tse_outputs: [csv, numpy]
 
   run: [Off]
 
@@ -377,6 +379,8 @@ timeseries_extraction:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
 
 seed_based_correlation_analysis: 
 
@@ -390,6 +394,8 @@ seed_based_correlation_analysis:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
 
 amplitude_low_frequency_fluctuation: 
 
