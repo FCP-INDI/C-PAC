@@ -650,7 +650,6 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
     return preproc
 
 
-# TODO function node for fnirt-based brain extraction
 def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=None):
 
     ### ABCD Harmonization - FNIRT-based brain extraction ###
@@ -763,7 +762,7 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     preproc.connect(apply_inv_warp, 'out_file',
                     outputnode, 'anat_brain_mask')
     
-    # creating mask
+    # applying mask to create brain
     # fslmaths "$Input" -mas "$OutputBrainMask" "$OutputBrainExtractedImage"
     apply_mask = pe.Node(interface=fsl.MultiImageMaths(),
                             name='apply_mask')
@@ -781,7 +780,6 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     return preproc
 
 
-# TODO function node for FAST bias field correction
 def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None):
 
     ### ABCD Harmonization - FAST bias field correction ###
