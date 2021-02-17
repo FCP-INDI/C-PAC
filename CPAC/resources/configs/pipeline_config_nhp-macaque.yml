@@ -49,8 +49,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.
@@ -120,7 +118,7 @@ segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
   # and CSF based on prior probability maps.
-  run: [Off]
+  run: Off
 
   tissue_segmentation: 
 
@@ -269,11 +267,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  scaling: 
-
-    # Scale functional raw data, usually used in rodent pipeline
-    run: Off
-
   despiking: 
 
     # Run AFNI 3dDespike
@@ -344,33 +337,9 @@ nuisance_corrections:
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: 
 
-    # Process and refine masks used to produce regressors and time series for
-    # regression.
-    regressor_masks: 
-
-      erode_anatomical_brain_mask: 
-
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
-        run: Off
-
-      erode_csf: 
-
-        # Erode binarized csf tissue mask.
-        run: Off
-
-      erode_wm: 
-
-        # Erode WM binarized tissue mask.
-        run: Off
-
-      erode_gm: 
-
-        # Erode GM binarized tissue mask.
-        run: Off
-
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
@@ -383,7 +352,7 @@ seed_based_correlation_analysis:
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
@@ -395,19 +364,19 @@ amplitude_low_frequency_fluctuation:
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -435,7 +404,7 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
