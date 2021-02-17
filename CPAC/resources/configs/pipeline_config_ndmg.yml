@@ -40,9 +40,6 @@ anatomical_preproc:
   # N4 bias field correction via ANTs
   n4_bias_field_correction: Off
 
-  brain_extraction: 
-    already_skullstripped: Off
-
 segmentation: 
 
   tissue_segmentation: 
@@ -208,7 +205,6 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
-  roi_tse_outputs: [csv, numpy]
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg

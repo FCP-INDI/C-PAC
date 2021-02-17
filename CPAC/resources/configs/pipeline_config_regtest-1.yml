@@ -80,7 +80,6 @@ anatomical_preproc:
   n4_bias_field_correction: Off
 
   brain_extraction: 
-    already_skullstripped: Off
 
     FSL-BET: 
 
@@ -249,7 +248,6 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
-  roi_tse_outputs: [csv, numpy]
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
@@ -260,7 +258,7 @@ timeseries_extraction:
 
 seed_based_correlation_analysis: 
 
-  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg

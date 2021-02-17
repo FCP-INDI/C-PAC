@@ -83,9 +83,6 @@ anatomical_preproc:
   # N4 bias field correction via ANTs
   n4_bias_field_correction: Off
 
-  brain_extraction: 
-    already_skullstripped: Off
-
 segmentation: 
 
   tissue_segmentation: 
@@ -240,7 +237,6 @@ nuisance_corrections:
         run: Off
 
 timeseries_extraction: 
-  roi_tse_outputs: [csv, numpy]
 
   run: [Off]
 

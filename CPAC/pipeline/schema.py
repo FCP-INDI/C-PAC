@@ -250,7 +250,6 @@ schema = Schema({
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
-            'already_skullstripped': bool,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
@@ -700,7 +699,6 @@ schema = Schema({
                 'tse_roi_paths', valid_options['timeseries']['roi_paths'])
         ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
-        'roi_tse_outputs': Maybe([In({None, 'csv', 'numpy'})]),
     },
 
     'seed_based_correlation_analysis': {

@@ -64,7 +64,6 @@ anatomical_preproc:
   n4_bias_field_correction: On
 
   brain_extraction: 
-    already_skullstripped: Off
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
     # this is a fork option
@@ -391,7 +390,6 @@ post_processing:
     fwhm: [6]
 
 timeseries_extraction: 
-  roi_tse_outputs: [csv, numpy]
 
   run: [Off]
 
