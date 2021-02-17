@@ -380,6 +380,7 @@ template_skull_for_anat_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm.nii.gz
 ref_mask_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
 
 
+# A config file for fnirt
 fnirt_config_file : /ABCD_pipeline_config/T1_2_MNI152_2mm.cnf
 
 
