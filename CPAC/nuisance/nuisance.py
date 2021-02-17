@@ -1749,8 +1749,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-preproc_bold",
-                                     "desc-reorient_bold", "bold"])
+    node, out = strat_pool.get_data("desc-mean_bold")
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
     node, out = strat_pool.get_data('from-template_to-bold_mode-image_xfm')

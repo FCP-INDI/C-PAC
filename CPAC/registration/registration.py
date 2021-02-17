@@ -1400,7 +1400,7 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         write_composite_xfm.inputs.output_image = \
             f"from-bold_to-{sym}template_mode-image_xfm.nii.gz"
 
-        wf.connect(inputNode, 'input_brain',
+        wf.connect(inputNode, 'mean_bold',
                    write_composite_xfm, 'input_image')
 
         wf.connect(inputNode, 'T1w_brain_template_funcreg',
