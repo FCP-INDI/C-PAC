@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/work
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/log
@@ -44,6 +48,8 @@ pipeline_setup:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
+
+      run: Off
 
       SGE: 
 
@@ -63,6 +69,15 @@ pipeline_setup:
     # Full path to the FSL version to be used by CPAC.
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
     FSLDIR: FSLDIR
+
+anatomical_preproc: 
+
+  brain_extraction: 
+
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
 
 segmentation: 
 
@@ -89,6 +104,9 @@ registration_workflows:
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
 
     registration: 
 
@@ -263,28 +281,6 @@ nuisance_corrections:
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
-
-  spatial_smoothing: 
-
-    # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
-    #
-    # Options:
-    #     ['smoothed', 'nonsmoothed']
-    output: [smoothed, nonsmoothed]
-
-  z-scoring: 
-
-    # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
-    #
-    # Options:
-    #     ['z-scored', 'raw']
-    output: [z-scored, raw]
 
 timeseries_extraction: 
 

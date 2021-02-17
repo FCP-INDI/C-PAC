@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/anat/working
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/anat/log
@@ -44,6 +48,8 @@ pipeline_setup:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
+
+      run: Off
 
       SGE: 
 
@@ -71,8 +77,18 @@ pipeline_setup:
 
 anatomical_preproc: 
 
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: Off
+
   # N4 bias field correction via ANTs
   n4_bias_field_correction: On
+
+  brain_extraction: 
+
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
 
 segmentation: 
 
@@ -92,6 +108,12 @@ segmentation:
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
+
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -117,6 +139,9 @@ registration_workflows:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
+
     registration: 
 
       FSL-FNIRT: 
@@ -135,6 +160,12 @@ registration_workflows:
         run: [Off]
 
     EPI_registration: 
+
+      ANTs: 
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
 
       FSL-FNIRT: 
 
@@ -171,6 +202,16 @@ functional_preproc:
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: On
 
+  distortion_correction: 
+
+    # using: ['PhaseDiff', 'Blip']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   NOTE:
+    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
+    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    using: []
+
 nuisance_corrections: 
 
   1-ICA-AROMA: 
@@ -185,9 +226,36 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+    # Select which nuisance signal corrections to apply
+    Regressors: 
+
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks: 
+
+      erode_anatomical_brain_mask: 
+
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
+
+      erode_csf: 
+
+        # Erode binarized csf tissue mask.
+        run: Off
+
+      erode_wm: 
+
+        # Erode WM binarized tissue mask.
+        run: Off
+
+      erode_gm: 
+
+        # Erode GM binarized tissue mask.
+        run: Off
 
 timeseries_extraction: 
 

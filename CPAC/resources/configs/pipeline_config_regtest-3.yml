@@ -23,6 +23,12 @@ pipeline_setup:
     # Include extra outputs in the output directory that may be of interest when more information is needed.
     write_debugging_outputs: On
 
+  working_directory: 
+
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: /output
@@ -32,6 +38,8 @@ pipeline_setup:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
+
+      run: Off
 
       SGE: 
 
@@ -82,6 +90,11 @@ anatomical_preproc:
     # this is a fork option
     using: [niworkflows-ants]
 
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
+
 segmentation: 
 
   tissue_segmentation: 
@@ -101,6 +114,12 @@ segmentation:
 
     Template_Based: 
 
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
+
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
 
@@ -115,7 +134,20 @@ segmentation:
 
 registration_workflows: 
 
+  anatomical_registration: 
+
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
+
   functional_registration: 
+
+    EPI_registration: 
+
+      ANTs: 
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
 
     func_registration_to_template: 
 
@@ -142,6 +174,11 @@ functional_preproc:
     # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
     # Note: the selection here applies to all scans of all participants.
     stop_tr: 100
+
+  scaling: 
+
+    # Scale functional raw data, usually used in rodent pipeline
+    run: Off
 
   despiking: 
 
@@ -238,32 +275,40 @@ nuisance_corrections:
     # Options: 'After' or 'Before'
     bandpass_filtering_order: Before
 
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks: 
+
+      erode_anatomical_brain_mask: 
+
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
+
+      erode_csf: 
+
+        # Erode binarized csf tissue mask.
+        run: Off
+
+      erode_wm: 
+
+        # Erode WM binarized tissue mask.
+        run: Off
+
+      erode_gm: 
+
+        # Erode GM binarized tissue mask.
+        run: Off
+
 # OUTPUTS AND DERIVATIVES
 # -----------------------
 post_processing: 
 
   spatial_smoothing: 
 
-    # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
-    #
-    # Options:
-    #     ['smoothed', 'nonsmoothed']
-    output: [smoothed, nonsmoothed]
-
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
     smoothing_method: [AFNI]
-
-  z-scoring: 
-
-    # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
-    #
-    # Options:
-    #     ['z-scored', 'raw']
-    output: [z-scored, raw]
 
 timeseries_extraction: 
 

@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/preproc/working
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/preproc/log
@@ -44,6 +48,8 @@ pipeline_setup:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
+
+      run: Off
 
       SGE: 
 
@@ -69,6 +75,16 @@ pipeline_setup:
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: On
 
+anatomical_preproc: 
+
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: Off
+
+  # N4 bias field correction via ANTs
+  n4_bias_field_correction: Off
+
+  brain_extraction: 
+
 segmentation: 
 
   tissue_segmentation: 
@@ -88,6 +104,12 @@ segmentation:
 
     Template_Based: 
 
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
+
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
 
@@ -100,7 +122,24 @@ segmentation:
       # Full path to a binarized CSF mask.
       CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
+registration_workflows: 
+
+  functional_registration: 
+
+    EPI_registration: 
+
+      ANTs: 
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
+
 functional_preproc: 
+
+  scaling: 
+
+    # Scale functional raw data, usually used in rodent pipeline
+    run: Off
 
   motion_estimates_and_correction: 
 
@@ -174,6 +213,30 @@ nuisance_corrections:
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks: 
+
+      erode_anatomical_brain_mask: 
+
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
+
+      erode_csf: 
+
+        # Erode binarized csf tissue mask.
+        run: Off
+
+      erode_wm: 
+
+        # Erode WM binarized tissue mask.
+        run: Off
+
+      erode_gm: 
+
+        # Erode GM binarized tissue mask.
+        run: Off
 
 timeseries_extraction: 
 
