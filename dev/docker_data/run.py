@@ -16,7 +16,7 @@ from CPAC import __version__
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 
 import yamlordereddictloader
 from warnings import simplefilter, warn
@@ -473,11 +473,12 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     overrides = {}
     if args.pipeline_override:
-        overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
-        c.update(overrides)
+        overrides = {
+            k: v for d in args.pipeline_override for k, v in d.items()}
+        c = update_nested_dict(c, overrides)
 
     if args.anat_only:
-        c.update({'FROM': 'anat-only'})
+        c = update_nested_dict(c, {'FROM': 'anat-only'})
 
     c = Configuration(c)
 
