@@ -1,31 +1,16 @@
 import os
 import time
-import six
-import re
 import csv
 import shutil
 import pickle
 import copy
-import json
 import yaml
 
-import pandas as pd
-import pkg_resources as p
-import networkx as nx
 import logging as cb_logging
 from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.freesurfer as freesurfer
-import nipype.interfaces.io as nio
-import nipype.interfaces.utility as util
-from nipype.interfaces.afni import preprocess
-import nipype.interfaces.ants as ants
-import nipype.interfaces.c3 as c3
-from nipype.interfaces.utility import Merge
-from nipype.pipeline.engine.utils import format_dot
 from nipype import config
 from nipype import logging
 
@@ -35,6 +20,7 @@ import CPAC
 
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
+    freesurfer_preproc,
     anatomical_init,
     acpc_align_head,
     acpc_align_head_with_mask,
@@ -78,7 +64,8 @@ from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_fsl_fast,
     tissue_seg_T1_template_based,
     tissue_seg_EPI_template_based,
-    tissue_seg_ants_prior
+    tissue_seg_ants_prior,
+    tissue_seg_freesurfer
 )
 
 from CPAC.func_preproc.func_preproc import (
@@ -144,67 +131,19 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
-from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
-
-from CPAC.image_utils import (
-    z_score_standardize,
-    fisher_z_score_standardize,
-    calc_avg
-)
-
-from CPAC.registration import (
-    create_fsl_flirt_linear_reg,
-    create_fsl_fnirt_nonlinear_reg,
-    create_wf_calculate_ants_warp
-)
-
-from CPAC.nuisance import create_regressor_workflow, \
-    create_nuisance_regression_workflow, \
-    filtering_bold_and_regressors, \
-    bandpass_voxels, \
-    NuisanceRegressor
-from CPAC.aroma import create_aroma
-from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.scrubbing import create_scrubbing_preproc
-from CPAC.timeseries import (
-    get_roi_timeseries,
-    get_voxel_timeseries,
-    get_vertices_timeseries,
-    get_spatial_map_timeseries
-)
-
-from CPAC.connectome.pipeline import create_connectome
-
 from CPAC.utils.datasource import (
-    create_anat_datasource,
-    create_roi_mask_dataflow,
-    create_spatial_map_dataflow,
-    resolve_resolution,
-    resample_func_roi,
     gather_extraction_maps
 )
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
-from CPAC.utils import Configuration, Strategy, Outputs, find_files
-from CPAC.utils.interfaces.function import Function
-
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
 
 from CPAC.utils.utils import (
-    extract_one_d,
-    get_tr,
-    extract_txt,
-    extract_output_mean,
-    create_output_mean_csv,
-    get_zscore,
-    get_fisher_zscore,
-    concat_list,
     check_config_resources,
     check_system_deps,
-    ordereddict_to_dict
 )
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
@@ -389,11 +328,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                     'weight_options']) != 0
 
     # Check system dependencies
+    check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
+    if isinstance(check_ica_aroma, list):
+        check_ica_aroma = True in check_ica_aroma
     check_system_deps(check_ants='ANTS' in c.registration_workflows[
         'anatomical_registration']['registration']['using'],
-                      check_ica_aroma=True in
-                                      c.nuisance_corrections['1-ICA-AROMA'][
-                                          'run'],
+                      check_ica_aroma=check_ica_aroma,
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
 
@@ -515,7 +455,7 @@ Please, make yourself aware of how it works and its assumptions:
                 )
 
             # PyPEER kick-off
-            # if True in c.PyPEER['run']:
+            # if c.PyPEER['run']:
             #    from CPAC.pypeer.peer import prep_for_pypeer
             #    prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
             #                    c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
@@ -790,11 +730,14 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
+    pipeline_blocks += [freesurfer_preproc]
+
     if not rpool.check_rpool('desc-preproc_T1w'):
 
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
-            if rpool.check_rpool('space-T1w_desc-brain_mask'):
+            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+                    cfg.surface_analysis['run_freesurfer']:
                 acpc_blocks = [
                     brain_extraction,
                     acpc_align_brain_with_mask
@@ -805,15 +748,16 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
                      brain_mask_acpc_niworkflows_ants,
-                     brain_mask_acpc_unet,
-                     brain_mask_acpc_freesurfer],
+                     brain_mask_acpc_unet],
+                       #brain_mask_acpc_freesurfer
                     # we don't want these masks to be used later
                     brain_extraction,
                     acpc_align_brain
                 ]
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
-            if rpool.check_rpool('space-T1w_desc-brain_mask'):
+            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+                    cfg.surface_analysis['run_freesurfer']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -835,13 +779,14 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_blocks
 
     # Anatomical brain masking
-    if not rpool.check_rpool('space-T1w_desc-brain_mask'):
+    if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
+            cfg.surface_analysis['run_freesurfer']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
              brain_mask_niworkflows_ants,
-             brain_mask_unet,
-             brain_mask_freesurfer]
+             brain_mask_unet]
+               #brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
@@ -904,8 +849,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
      PREPROCESSING
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    # TODO: longitudinal placeholder
-
     wf, rpool = initiate_rpool(wf, cfg, sub_dict)
 
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
@@ -924,11 +867,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Anatomical tissue segmentation
     if not rpool.check_rpool('label-CSF_mask') or \
-            not rpool.check_rpool('label-WM_mask') or \
-                not rpool.check_rpool('label-CSF_probseg'):
+            not rpool.check_rpool('label-WM_mask'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
+             #tissue_seg_freesurfer
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -939,7 +882,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += seg_blocks
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if True in cfg.functional_preproc['run'] and \
+    if cfg.functional_preproc['run'] and \
             (not rpool.check_rpool('desc-brain_bold') or
              not rpool.check_rpool('space-bold_desc-brain_mask')):
         func_init_blocks = [
@@ -1032,7 +975,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'using']:
             nuisance += [ICA_AROMA_EPIreg]
 
-        if True in cfg.nuisance_corrections['2-nuisance_regression']['run'] \
+        if cfg.nuisance_corrections['2-nuisance_regression']['run'] \
             and cfg.nuisance_corrections['2-nuisance_regression'][
                 'Regressors']:
             nuisance_blocks = [

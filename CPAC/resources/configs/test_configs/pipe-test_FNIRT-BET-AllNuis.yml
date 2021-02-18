@@ -179,24 +179,24 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 2
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -218,24 +218,24 @@ nuisance_corrections:
           - type: FD_J
             value: 0.2
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-2
         PolyOrt:
           degree: 2
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -257,24 +257,24 @@ nuisance_corrections:
           - type: FD_J
             value: 0.2
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-3
         PolyOrt:
           degree: 2
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -297,14 +297,17 @@ timeseries_extraction:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
 
 seed_based_correlation_analysis: 
 
-  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 voxel_mirrored_homotopic_connectivity: 
 

@@ -146,7 +146,10 @@ registration_workflows:
 
   functional_registration: 
 
-    coregistration: 
+    coregistration:
+      # functional (BOLD/EPI) registration to anatomical (structural/T1)
+
+      run: Off
 
       boundary_based_registration: 
 

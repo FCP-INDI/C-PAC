@@ -170,7 +170,7 @@ registration_workflows:
                   type: MI
                 shrink-factors: 2x1
                 smoothing-sigmas: 2.0x1.0vox
-                use-histogram-matching: true
+                use-histogram-matching: On
             - Affine:
                 convergence:
                   convergenceThreshold: 1e-06
@@ -185,7 +185,7 @@ registration_workflows:
                   type: MI
                 shrink-factors: 2x1
                 smoothing-sigmas: 1.0x0.0vox
-                use-histogram-matching: true
+                use-histogram-matching: On
             - SyN:
                 convergence:
                   convergenceThreshold: 1e-06
@@ -200,7 +200,7 @@ registration_workflows:
                 smoothing-sigmas: 3.0x2.0x1.0x0.0vox
                 totalFieldVarianceInVoxelSpace: 0.0
                 updateFieldVarianceInVoxelSpace: 3.0
-                use-histogram-matching: true
+                use-histogram-matching: On
                 winsorize-image-intensities:
                   lowerQuantile: 0.005
                   upperQuantile: 0.995
@@ -319,20 +319,20 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: false
+          erode_mask: Off
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 2
         WhiteMatter:
-          erode_mask: false
+          erode_mask: Off
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -346,7 +346,7 @@ nuisance_corrections:
           - CerebrospinalFluid
         tCompCor:
           degree: 2
-          erode_mask_mm: true
+          erode_mask_mm: On
           summary:
             components: 5
             filter: cosine
