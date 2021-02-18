@@ -81,9 +81,13 @@ segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
   # and CSF based on prior probability maps.
-  run: [Off]
+  run: [On]
 
-  tissue_segmentation: 
+  tissue_segmentation:
+
+    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
+    # this is a fork point
+    using: ['Template_Based']
 
     # option parameters
     FSL-FAST: 
@@ -116,7 +120,7 @@ segmentation:
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
       # Options: ['T1_Template', 'EPI_Template']
-      template_for_segmentation: [EPI_Template]
+      template_for_segmentation: ['EPI_Template']
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
