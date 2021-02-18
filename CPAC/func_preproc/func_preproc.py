@@ -985,9 +985,12 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'max-displacement': wf_outputs['max-displacement'],
-        'movement-parameters': wf_outputs['movement-parameters'],
-        'coordinate-transformation': wf_outputs['coordinate-transformation']
+        'movement-parameters': wf_outputs['movement-parameters']
     }
+
+    if 'coordinate-transformation' in wf_outputs:
+        outputs['coordinate-transformation'] = \
+            wf_outputs['coordinate-transformation']
 
     if 'rels-displacement' in wf_outputs:
         outputs['rels-displacement'] = wf_outputs['rels-displacement']
