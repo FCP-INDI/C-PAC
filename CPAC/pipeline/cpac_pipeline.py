@@ -810,8 +810,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
                      brain_mask_acpc_niworkflows_ants,
-                     brain_mask_acpc_unet,
-                     brain_mask_acpc_freesurfer],
+                     brain_mask_acpc_unet],
+                       #brain_mask_acpc_freesurfer
                     # we don't want these masks to be used later
                     brain_extraction,
                     acpc_align_brain
@@ -847,8 +847,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             [brain_mask_afni,
              brain_mask_fsl,
              brain_mask_niworkflows_ants,
-             brain_mask_unet,
-             brain_mask_freesurfer]
+             brain_mask_unet]
+               #brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
