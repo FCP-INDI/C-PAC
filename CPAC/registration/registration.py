@@ -1955,7 +1955,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("bold_coreg_input",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("T1w",
-                 "label-CSF_probseg"),
+                 ["label-WM_probseg", "label-WM_mask"]),
                 "diffphase_dwell",
                 "diffphase_pedir",
                 ("despiked_fieldmap",
@@ -1988,7 +1988,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
-    node, out = strat_pool.get_data('label-CSF_probseg')
+    node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
