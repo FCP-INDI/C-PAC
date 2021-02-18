@@ -1666,7 +1666,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['anatomical_registration'][
         'registration']['ANTs']['T1_registration']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template', cfg,
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                f'{pipe_num}', cfg,
                                                 params, 'T1w')
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
@@ -1726,8 +1727,8 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
         'registration']['ANTs']['T1_registration']
 
     ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
-                                                'symmetric', cfg, params,
-                                                'T1w', True)
+                                                f'symmetric_{pipe_num}', cfg,
+                                                params, 'T1w', True)
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
@@ -1785,8 +1786,9 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['functional_registration'][
         'EPI_registration']['ANTs']['parameters']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI_template',
-                                                cfg, params, 'bold')
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI_template'
+                                                f'_{pipe_num}', cfg, params,
+                                                'bold')
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'functional_registration']['EPI_registration']['ANTs'][
