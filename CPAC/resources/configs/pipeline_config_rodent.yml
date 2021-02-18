@@ -59,7 +59,7 @@ anatomical_preproc:
 
   brain_extraction: 
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [BET]
 
@@ -309,12 +309,6 @@ functional_preproc:
       functional_mean_boolean: On
 
 nuisance_corrections: 
-
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
 
   2-nuisance_regression: 
 

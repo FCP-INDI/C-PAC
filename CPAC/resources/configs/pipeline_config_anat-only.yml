@@ -146,10 +146,7 @@ registration_workflows:
 
   functional_registration: 
 
-    coregistration:
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: Off
+    coregistration: 
 
       boundary_based_registration: 
 
@@ -211,12 +208,6 @@ functional_preproc:
     using: []
 
 nuisance_corrections: 
-
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
 
   2-nuisance_regression: 
 

@@ -167,12 +167,6 @@ functional_preproc:
 
 nuisance_corrections: 
 
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
-
   2-nuisance_regression: 
 
     # Select which nuisance signal corrections to apply

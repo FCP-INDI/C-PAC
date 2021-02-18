@@ -47,7 +47,7 @@ anatomical_preproc:
 
   brain_extraction: 
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [FreeSurfer-ABCD]
 
@@ -60,7 +60,7 @@ segmentation:
 
   tissue_segmentation: 
 
-    # using: ['FSL-FAST', 'Template_Based', 'Freesurfer', 'ANTs_Prior_Based']
+    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
     # this is a fork point
     using: [FreeSurfer]
 
@@ -265,12 +265,6 @@ functional_preproc:
     using: [Anatomical_Based]
 
 nuisance_corrections: 
-
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
 
   2-nuisance_regression: 
 
