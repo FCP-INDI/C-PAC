@@ -552,7 +552,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(out_split_func, 'out_file',
                    func_motion_correct_A, 'in_file')
 
-        node, out = strat_pool.get_data('motion_basefile')
+        node, out = strat_pool.get_data('motion-basefile')
         wf.connect(node, out, func_motion_correct_A, 'basefile')
 
         if cfg:
@@ -947,7 +947,7 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
-                 "motion_basefile")],
+                 "motion-basefile")],
      "outputs": ["desc-motion_bold",
                  "max-displacement",
                  "movement-parameters",
@@ -969,7 +969,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
-                 "motion_basefile")],
+                 "motion-basefile")],
      "outputs": ["max-displacement",
                  "movement-parameters",
                  "coordinate-transformation"]}
