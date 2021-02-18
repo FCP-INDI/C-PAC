@@ -2,7 +2,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
 
-from CPAC.utils import function,
+from CPAC.utils import function
 from CPAC.utils.utils import (
     extract_output_mean,
     get_zscore,
