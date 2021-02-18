@@ -1,31 +1,16 @@
 import os
 import time
-import six
-import re
 import csv
 import shutil
 import pickle
 import copy
-import json
 import yaml
 
-import pandas as pd
-import pkg_resources as p
-import networkx as nx
 import logging as cb_logging
 from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.freesurfer as freesurfer
-import nipype.interfaces.io as nio
-import nipype.interfaces.utility as util
-from nipype.interfaces.afni import preprocess
-import nipype.interfaces.ants as ants
-import nipype.interfaces.c3 as c3
-from nipype.interfaces.utility import Merge
-from nipype.pipeline.engine.utils import format_dot
 from nipype import config
 from nipype import logging
 
@@ -146,67 +131,19 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
-from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
-
-from CPAC.image_utils import (
-    z_score_standardize,
-    fisher_z_score_standardize,
-    calc_avg
-)
-
-from CPAC.registration import (
-    create_fsl_flirt_linear_reg,
-    create_fsl_fnirt_nonlinear_reg,
-    create_wf_calculate_ants_warp
-)
-
-from CPAC.nuisance import create_regressor_workflow, \
-    create_nuisance_regression_workflow, \
-    filtering_bold_and_regressors, \
-    bandpass_voxels, \
-    NuisanceRegressor
-from CPAC.aroma import create_aroma
-from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.scrubbing import create_scrubbing_preproc
-from CPAC.timeseries import (
-    get_roi_timeseries,
-    get_voxel_timeseries,
-    get_vertices_timeseries,
-    get_spatial_map_timeseries
-)
-
-from CPAC.connectome.pipeline import create_connectome
-
 from CPAC.utils.datasource import (
-    create_anat_datasource,
-    create_roi_mask_dataflow,
-    create_spatial_map_dataflow,
-    resolve_resolution,
-    resample_func_roi,
     gather_extraction_maps
 )
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
-from CPAC.utils import Configuration, Strategy, Outputs, find_files
-from CPAC.utils.interfaces.function import Function
-
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
 
 from CPAC.utils.utils import (
-    extract_one_d,
-    get_tr,
-    extract_txt,
-    extract_output_mean,
-    create_output_mean_csv,
-    get_zscore,
-    get_fisher_zscore,
-    concat_list,
     check_config_resources,
     check_system_deps,
-    ordereddict_to_dict
 )
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
@@ -910,8 +847,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
     """""""""""""""""""""""""""""""""""""""""""""""""""
-
-    # TODO: longitudinal placeholder
 
     wf, rpool = initiate_rpool(wf, cfg, sub_dict)
 
