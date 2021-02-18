@@ -1353,7 +1353,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # binarize anat mask, in case of it is not a binary mask.
     anat_brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                                  name='anat_brain_mask_bin')
+                                  name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
@@ -1361,7 +1361,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fill holes of anat mask
     anat_mask_filled = pe.Node(interface=afni.MaskTool(),
-                               name='anat_brain_mask_filled')
+                               name=f'anat_brain_mask_filled_{pipe_num}')
     anat_mask_filled.inputs.fill_holes = True
     anat_mask_filled.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1370,17 +1370,17 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # init_bold_mask : input raw func
     init_bold_mask = anat_refined_mask(init_bold_mask=True,
-                                       wf_name='init_bold_mask')
+                                       wf_name=f'init_bold_mask_{pipe_num}')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name='raw_func_deoblique')
+                             name=f'raw_func_deoblique_{pipe_num}')
     func_deoblique.inputs.deoblique = True
 
     node, out = strat_pool.get_data('bold')
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name='raw_func_reorient')
+                            name=f'raw_func_reorient_{pipe_num}')
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1399,7 +1399,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # dilate init func brain mask
     func_tmp_brain_mask = pe.Node(interface=fsl.ImageMaths(),
-                                  name='func_tmp_brain_mask_dil')
+                                  name=f'func_tmp_brain_mask_dil_{pipe_num}')
     func_tmp_brain_mask.inputs.op_string = '-dilM'
 
     wf.connect(init_bold_mask, 'outputspec.func_brain_mask',
@@ -1407,7 +1407,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # refined_bold_mask : input motion corrected func
     refined_bold_mask = anat_refined_mask(init_bold_mask=False,
-                                          wf_name='refined_bold_mask')
+                                          wf_name='refined_bold_mask'
+                                                  f'_{pipe_num}')
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
@@ -1423,7 +1424,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg.functional_preproc['func_masking']['Anatomical_Refined'][
         'anatomical_mask_dilation']:
         anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
-                                   name='anat_mask_dilate')
+                                   name=f'anat_mask_dilate_{pipe_num}')
         anat_mask_dilate.inputs.dilate_inputs = '1'
         anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1438,7 +1439,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # get final func mask
     func_mask_final = pe.Node(interface=fsl.MultiImageMaths(),
-                              name='func_mask_final')
+                              name=f'func_mask_final_{pipe_num}')
     func_mask_final.inputs.op_string = "-mul %s"
 
     wf.connect(func_tmp_brain_mask, 'out_file',
