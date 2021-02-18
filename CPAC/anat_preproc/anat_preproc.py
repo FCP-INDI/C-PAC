@@ -1065,9 +1065,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run_freesurfer"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_template",
-                "T1w_template"],
+     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-T1w_desc-brain_mask",
                  "freesurfer_subject_dir",
                  "label-CSF_mask",
@@ -1087,8 +1085,8 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
 
-    freesurfer_subject_dir = os.path.join(
-        cfg.pipeline_setup['working_directory']['path'],
+    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup[
+                                              'working_directory']['path'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
 
@@ -1110,14 +1108,10 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         name='fs_brain_mask_to_native')
     fs_brain_mask_to_native.inputs.reg_header = True
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
-    wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
-
-    node, out = strat_pool.get_data('raw_average')
-    wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
-
-    node, out = strat_pool.get_data('freesurfer_subject_dir')
-    wf.connect(node, out, fs_brain_mask_to_native, 'subjects_dir')
+    wf.connect(reconall, 'brainmask', fs_brain_mask_to_native, 'source_file')
+    wf.connect(reconall, 'rawavg', fs_brain_mask_to_native, 'target_file')
+    wf.connect(reconall, 'subjects_dir',
+               fs_brain_mask_to_native, 'subjects_dir')
 
     # convert brain mask file from .mgz to .nii.gz
     fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
