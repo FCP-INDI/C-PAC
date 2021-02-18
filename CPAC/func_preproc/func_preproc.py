@@ -180,10 +180,10 @@ def normalize_motion_parameters(in_file):
 def get_mcflirt_rms_abs(rms_files):
     for path in rms_files:
         if 'abs.rms' in path:
-            abs_path = path.replace('.rms', '.1D')
-        if 'rels.rms' in path:
-            rels_path = path.replace('.rms', '.1D')
-    return (abs_path, rels_path)
+            abs_file = path
+        if 'rel.rms' in path:
+            rels_file = path
+    return (abs_file, rels_file)
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):

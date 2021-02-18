@@ -357,7 +357,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
             T_rb_prev = T_rb
 
     elif motion_correct_tool == 'mcflirt':
-        rel_rms = np.loadtxt(in_file[1])
+        rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
