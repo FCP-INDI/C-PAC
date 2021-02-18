@@ -92,8 +92,7 @@ def create_sca(name_sca='sca'):
 
     sca = pe.Workflow(name=name_sca)
     inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
-                                                'functional_file',
-                                                ]),
+                                                       'functional_file',]),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
@@ -101,7 +100,7 @@ def create_sca(name_sca='sca'):
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
-                        name='outputspec')
+                         name='outputspec')
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
