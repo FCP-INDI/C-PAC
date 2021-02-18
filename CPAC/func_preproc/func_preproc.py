@@ -180,8 +180,10 @@ def normalize_motion_parameters(in_file):
 def get_mcflirt_rms_abs(rms_files):
     for path in rms_files:
         if 'abs.rms' in path:
-            path = path.replace('.rms', '.1D')
-            return path
+            abs_path = path.replace('.rms', '.1D')
+        if 'rels.rms' in path:
+            rels_path = path.replace('.rms', '.1D')
+    return (abs_path, rels_path)
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
@@ -711,7 +713,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                    normalize_motion_params, 'in_file')
 
         get_rms_abs = pe.Node(Function(input_names=['rms_files'],
-                                       output_names=['abs_file'],
+                                       output_names=['abs_file',
+                                                     'rels_file'],
                                        function=get_mcflirt_rms_abs),
                               name=f'get_mcflirt_rms_abs_{pipe_num}')
 
@@ -721,8 +724,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         outputs = {
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
             'max-displacement': (get_rms_abs, 'abs_file'),
+            'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
-            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
@@ -950,6 +953,7 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
                  "motion-basefile")],
      "outputs": ["desc-motion_bold",
                  "max-displacement",
+                 "rels-displacement",
                  "movement-parameters",
                  "coordinate-transformation"]}
     '''
@@ -971,6 +975,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
      "outputs": ["max-displacement",
+                 "rels-displacement",
                  "movement-parameters",
                  "coordinate-transformation"]}
     '''
@@ -983,6 +988,9 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
         'movement-parameters': wf_outputs['movement-parameters'],
         'coordinate-transformation': wf_outputs['coordinate-transformation']
     }
+
+    if 'rels-displacement' in wf_outputs:
+        outputs['rels-displacement'] = wf_outputs['rels-displacement']
 
     return (wf, outputs)
 
@@ -1080,6 +1088,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-bold_desc-brain_mask",
                  "movement-parameters",
                  "max-displacement",
+                 "rels-displacement",
                  "coordinate-transformation"),
                 "subject",
                 "scan"],
@@ -1124,6 +1133,11 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats,
                'inputspec.max_displacement')
+
+    if strat_pool.check_rpool('rels-displacement')
+        node, out_file = strat_pool.get_data('rels-displacement')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.rels_displacement')
 
     node, out_file = strat_pool.get_data('coordinate-transformation')
     wf.connect(node, out_file,
