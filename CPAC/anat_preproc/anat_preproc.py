@@ -422,7 +422,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     unet_mask = pe.Node(util.Function(input_names=['model_path', 'cimg_in'],
                                       output_names=['out_path'],
                                       function=predict_volumes),
-                        name='unet_mask')
+                        name=f'unet_mask_{pipe_num}')
 
     node, out = strat_pool.get_data('unet_model')
     wf.connect(node, out, unet_mask, 'model_path')
@@ -436,7 +436,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     """
     # fslmaths <whole head> -mul <mask> brain.nii.gz
     unet_masked_brain = pe.Node(interface=fsl.MultiImageMaths(),
-                                name='unet_masked_brain')
+                                name=f'unet_masked_brain_{pipe_num}')
     unet_masked_brain.inputs.op_string = "-mul %s"
 
     node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
@@ -447,7 +447,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
     # TODO: antsRegistration -z 0 -d 3 -r [NMT_SS_0.5mm.nii.gz,brain.nii.gz,0] -o [transform,brain_rot2atl.nii.gz,brain_inv_rot2atl.nii.gz] -t Rigid[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1 -t Affine[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1
     native_brain_to_template_brain = pe.Node(interface=fsl.FLIRT(),
-                                             name='native_brain_to_template_brain')
+                                             name=f'native_brain_to_template_'
+                                                  f'brain_{pipe_num}')
     native_brain_to_template_brain.inputs.dof = 6
     native_brain_to_template_brain.inputs.interp = 'sinc'
     wf.connect(unet_masked_brain, 'out_file',
@@ -459,7 +460,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
     # TODO: antsApplyTransforms -d 3 -i head.nii.gz -r NMT_0.5mm.nii.gz -n Linear -o head_rot2atl.nii.gz -v -t transform1Rigid.mat -t transform2Affine.mat -t transform0DerivedInitialMovingTranslation.mat
     native_head_to_template_head = pe.Node(interface=fsl.FLIRT(),
-                                           name='native_head_to_template_head')
+                                           name=f'native_head_to_template_'
+                                                f'head_{pipe_num}')
     native_head_to_template_head.inputs.apply_xfm = True
 
     node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
@@ -474,7 +476,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
     template_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                  name='template_brain_mask')
+                                  name=f'template_brain_mask_{pipe_num}')
     template_brain_mask.inputs.args = '-bin'
 
     node, out = strat_pool.get_data('T1w_brain_template')
@@ -482,7 +484,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
     ants_template_head_to_template = pe.Node(interface=ants.Registration(),
-                                             name='template_head_to_template')
+                                             name=f'template_head_to_'
+                                                  f'template_{pipe_num}')
     ants_template_head_to_template.inputs.metric = ['CC']
     ants_template_head_to_template.inputs.metric_weight = [1, 5]
     ants_template_head_to_template.inputs.transforms = ['SyN']
@@ -503,7 +506,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     template_head_transform_to_template = pe.Node(
         interface=ants.ApplyTransforms(),
-        name='template_head_transform_to_template')
+        name=f'template_head_transform_to_template_{pipe_num}')
     template_head_transform_to_template.inputs.dimension = 3
 
     wf.connect(template_brain_mask, 'out_file',
@@ -523,7 +526,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # flirt -in brain_rot2atl_mask.nii.gz -ref brain.nii.gz -o brain_mask.nii.gz -applyxfm -init brain_rot2native.mat
     template_brain_to_native_brain = pe.Node(interface=fsl.FLIRT(),
-                                             name='template_brain_to_native_brain')
+                                             name=f'template_brain_to_native_'
+                                                  f'brain_{pipe_num}')
     template_brain_to_native_brain.inputs.apply_xfm = True
     wf.connect(template_head_transform_to_template, 'output_image',
                template_brain_to_native_brain, 'in_file')
@@ -533,7 +537,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                'in_matrix_file')
 
     # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
-    refined_mask = pe.Node(interface=fsl.Threshold(), name='refined_mask')
+    refined_mask = pe.Node(interface=fsl.Threshold(), name=f'refined_mask'
+                                                           f'_{pipe_num}')
     refined_mask.inputs.thresh = 0.5
     refined_mask.inputs.args = '-bin'
     wf.connect(template_brain_to_native_brain, 'out_file', refined_mask,
@@ -937,7 +942,8 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template"],
+                "T1w_template",
+                "unet_model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -955,7 +961,8 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template"],
+                "T1w_template",
+                "unet_model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 
