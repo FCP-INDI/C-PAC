@@ -1134,7 +1134,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                gen_motion_stats,
                'inputspec.max_displacement')
 
-    if strat_pool.check_rpool('rels-displacement')
+    if strat_pool.check_rpool('rels-displacement'):
         node, out_file = strat_pool.get_data('rels-displacement')
         wf.connect(node, out_file, gen_motion_stats,
                    'inputspec.rels_displacement')
