@@ -1142,10 +1142,10 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out_file, gen_motion_stats,
                    'inputspec.rels_displacement')
 
-    node, out_file = strat_pool.get_data('coordinate-transformation')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.transformations')
+    if strat_pool.check_rpool('coordinate-transformation'):
+        node, out_file = strat_pool.get_data('coordinate-transformation')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.transformations')
 
     outputs = {
         'framewise-displacement-power':
