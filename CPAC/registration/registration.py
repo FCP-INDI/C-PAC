@@ -1666,7 +1666,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['anatomical_registration'][
         'registration']['ANTs']['T1_registration']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template', cfg,
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                f'{pipe_num}', cfg,
                                                 params, 'T1w')
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
@@ -1726,8 +1727,8 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
         'registration']['ANTs']['T1_registration']
 
     ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
-                                                'symmetric', cfg, params,
-                                                'T1w', True)
+                                                f'symmetric_{pipe_num}', cfg,
+                                                params, 'T1w', True)
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
@@ -1785,8 +1786,9 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['functional_registration'][
         'EPI_registration']['ANTs']['parameters']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI_template',
-                                                cfg, params, 'bold')
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI_template'
+                                                f'_{pipe_num}', cfg, params,
+                                                'bold')
 
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'functional_registration']['EPI_registration']['ANTs'][
@@ -1953,7 +1955,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("bold_coreg_input",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("T1w",
-                 "label-CSF_probseg"),
+                 ["label-WM_probseg", "label-WM_mask"]),
                 "diffphase_dwell",
                 "diffphase_pedir",
                 ("despiked_fieldmap",
@@ -1986,7 +1988,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
-    node, out = strat_pool.get_data('label-CSF_probseg')
+    node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
@@ -2212,8 +2214,9 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=False, num_cpus=num_cpus,
+    apply_xfm = apply_transform(f'warp_bold_mask_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
@@ -2261,8 +2264,9 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=False, num_cpus=num_cpus,
+    apply_xfm = apply_transform(f'warp_deriv_mask_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"

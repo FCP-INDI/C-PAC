@@ -124,8 +124,8 @@ registration_workflows:
           - initial-moving-transform:
               initializationFeature: 1
           - masks:
-              fixed_image_mask: true
-              moving_image_mask: true
+              fixed_image_mask: On
+              moving_image_mask: On
           - transforms:
             - Rigid:
                 convergence:
@@ -141,7 +141,7 @@ registration_workflows:
                   type: MI
                 shrink-factors: 8x4x2x1
                 smoothing-sigmas: 3.0x2.0x1.0x0.0
-                use-histogram-matching: false
+                use-histogram-matching: Off
             - Affine:
                 convergence:
                   convergenceThreshold: 1e-6
@@ -156,7 +156,7 @@ registration_workflows:
                   type: MI
                 shrink-factors: 8x4x2x1
                 smoothing-sigmas: 3.0x2.0x1.0x0.0
-                use-histogram-matching: false
+                use-histogram-matching: Off
             - SyN:
                 convergence:
                   convergenceThreshold: 1e-6
@@ -171,7 +171,7 @@ registration_workflows:
                 smoothing-sigmas: 3.0x2.0x1.0x0.0
                 totalFieldVarianceInVoxelSpace: 0.0
                 updateFieldVarianceInVoxelSpace: 3.0
-                use-histogram-matching: false
+                use-histogram-matching: Off
                 winsorize-image-intensities:
                   lowerQuantile: 0.005
                   upperQuantile: 0.995
@@ -281,9 +281,9 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     Regressors: 
       - Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
 
     # Standard Lateral Ventricles Binary Mask

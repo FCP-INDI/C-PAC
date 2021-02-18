@@ -834,6 +834,7 @@ class ResourcePool(object):
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 if resource.split('_')[-1] in atlas_suffixes:
+                    '''
                     atlas_idx_to_match = pipe_idx.replace(resource,
                                                           'atlas_name')
                     atlas_idxs = self.get_pipe_idxs('atlas_name')
@@ -847,7 +848,7 @@ class ResourcePool(object):
                         if to_match:
                             atlas_idx = idx
                             break
-
+                    '''
                     # TODO: hold this stuff below
                     '''
                     if 'space-template' in resource:
@@ -876,12 +877,23 @@ class ResourcePool(object):
                         new_idx = pipe_idx
                     '''
 
+                    atlas_idx = pipe_idx.replace(resource, 'atlas_name')
+
                     # need the single quote and the colon inside the double
                     # quotes - it's the encoded pipe_idx
                     #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
                     #                            "'atlas_name:")
-                    node, out = self.rpool['atlas_name'][atlas_idx]['data']
-                    wf.connect(node, out, id_string, 'atlas_id')
+                    if atlas_idx in self.rpool['atlas_name']:
+                        node, out = self.rpool['atlas_name'][atlas_idx]['data']
+                        wf.connect(node, out, id_string, 'atlas_id')
+                    elif 'atlas-' in resource:
+                        for tag in resource.split('_'):
+                            if 'atlas-' in tag:
+                                atlas_id = tag.replace('atlas-', '')
+                        id_string.inputs.atlas_id = atlas_id
+                    else:
+                        raise Exception("\n[!] No atlas ID found for "
+                                        f"{resource}.\n")
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
@@ -1317,6 +1329,12 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
         for ext in exts:
             filename = filename.split("/")[-1].replace(ext, '')
         data_label = filename.split(unique_id)[1].lstrip('_')
+
+        if len(filename) == len(data_label):
+            raise Exception('\n\n[!] Possibly wrong participant or '
+                            'session in this directory?\n\n'
+                            f'Filepath: {filepath}\n\n')
+
         if 'task-' in data_label:
             for tag in data_label.split('_'):
                 if 'task-' in tag:
@@ -1332,10 +1350,10 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
 
         unique_data_label = str(data_label)
 
-        if 'sub-' in data_label or 'ses-' in data_label:
-            raise Exception('\n\n[!] Possibly wrong participant or '
-                            'session in this directory?\n\nDirectory: '
-                            f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
+        #if 'sub-' in data_label or 'ses-' in data_label:
+        #    raise Exception('\n\n[!] Possibly wrong participant or '
+        #                    'session in this directory?\n\nDirectory: '
+        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
         for tag in data_label.split('_'):
             if 'desc-' in tag:

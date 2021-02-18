@@ -116,10 +116,6 @@ acpc_run_preprocessing:
    - anatomical_preproc
    - acpc_alignment
    - run_before_preproc  # changed from string to boolean
-already_skullstripped:
-   - anatomical_preproc
-   - brain_extraction
-   - already_skullstripped
 skullstrip_option:
    - anatomical_preproc
    - brain_extraction
@@ -930,9 +926,6 @@ realignment:
 tsa_roi_paths:
    - timeseries_extraction
    - tse_roi_paths
-roiTSOutputs:
-   - timeseries_extraction
-   - roi_tse_outputs  # changed from boolean to string
 runSCA:
    - seed_based_correlation_analysis
    - run

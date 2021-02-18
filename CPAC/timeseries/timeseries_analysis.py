@@ -147,7 +147,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = roi_csv
 
-    data = pd.read_csv(edited_roi_csv[0], sep=',', header=1)
+    data = pd.read_csv(edited_roi_csv, sep=',', header=1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 

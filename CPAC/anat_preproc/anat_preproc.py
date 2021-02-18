@@ -1065,9 +1065,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run_freesurfer"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_template",
-                "T1w_template"],
+     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-T1w_desc-brain_mask",
                  "freesurfer_subject_dir",
                  "label-CSF_mask",
@@ -1080,19 +1078,20 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "sulcal_depth_surface_maps",
                  "cortical_thickness_surface_maps",
                  "cortical_volume_surface_maps",
-                 "white_matter_surface_mesh"]}
+                 "white_matter_surface_mesh",
+                 "raw_average"]}
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
 
-    freesurfer_subject_dir = os.path.join(
-        cfg.pipeline_setup['working_directory'],
+    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup[
+                                              'working_directory']['path'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
 
     if not os.path.exists(freesurfer_subject_dir):
-        os.mkdirs(freesurfer_subject_dir)
+        os.makedirs(freesurfer_subject_dir)
 
     reconall.inputs.directive = 'all'
     reconall.inputs.subjects_dir = freesurfer_subject_dir
@@ -1103,7 +1102,40 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "T1w"])
     wf.connect(node, out, reconall, 'T1_files')
 
-    ### segmentation output ###
+    # register FS brain mask to native space
+    fs_brain_mask_to_native = pe.Node(
+        interface=freesurfer.ApplyVolTransform(),
+        name='fs_brain_mask_to_native')
+    fs_brain_mask_to_native.inputs.reg_header = True
+
+    wf.connect(reconall, 'brainmask', fs_brain_mask_to_native, 'source_file')
+    wf.connect(reconall, 'rawavg', fs_brain_mask_to_native, 'target_file')
+    wf.connect(reconall, 'subjects_dir',
+               fs_brain_mask_to_native, 'subjects_dir')
+
+    # convert brain mask file from .mgz to .nii.gz
+    fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+                                                   output_names=['out_file'],
+                                                   function=mri_convert),
+                                     name='fs_brainmask_to_nifti')
+    wf.connect(fs_brain_mask_to_native, 'transformed_file',
+               fs_brain_mask_to_nifti, 'in_file')
+
+    # binarize the brain mask
+    binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                                     name='binarize_fs_brainmask')
+    binarize_fs_brain_mask.inputs.args = '-bin'
+    wf.connect(fs_brain_mask_to_nifti, 'out_file',
+               binarize_fs_brain_mask, 'in_file')
+
+    # fill holes
+    fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
+                                 name='fill_fs_brainmask')
+    fill_fs_brain_mask.inputs.fill_holes = True
+    fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+    wf.connect(binarize_fs_brain_mask, 'out_file',
+               fill_fs_brain_mask, 'in_file')
+
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                                 name='fs_aseg_to_native')
@@ -1134,6 +1166,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
     outputs = {
+        'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer_subject_dir': (reconall, 'subjects_dir'),
         'label-CSF_mask': (pick_tissue, 'csf_mask'),
         'label-WM_mask': (pick_tissue, 'wm_mask'),

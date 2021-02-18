@@ -2142,9 +2142,9 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-reorient_bold", "bold"],
                  "space-bold_desc-brain_mask",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "movement_parameters",
-                 "framewise_displacement_jenkinson",
-                 "framewise_displacement_power",
+                 "movement-parameters",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
                  "dvars"),
                 ("desc-brain_T1w",
                  ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
@@ -2219,13 +2219,13 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_desc-linear_xfm')
     wf.connect(node, out, regressors, 'inputspec.anat_to_mni_linear_xfm_file_path')
 
-    node, out = strat_pool.get_data('movement_parameters')
+    node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, regressors, 'inputspec.motion_parameters_file_path')
 
-    node, out = strat_pool.get_data('framewise_displacement_jenkinson')
+    node, out = strat_pool.get_data('framewise-displacement-jenkinson')
     wf.connect(node, out, regressors, 'inputspec.fd_j_file_path')
 
-    node, out = strat_pool.get_data('framewise_displacement_power')
+    node, out = strat_pool.get_data('framewise-displacement-power')
     wf.connect(node, out, regressors, 'inputspec.fd_p_file_path')
 
     node, out = strat_pool.get_data('dvars')
@@ -2247,10 +2247,10 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(regressors, 'outputspec.regressors_file_path',
                    nuis, 'inputspec.regressor_file')
 
-        node, out = strat_pool.get_data("framewise_displacement_jenkinson")
+        node, out = strat_pool.get_data("framewise-displacement-jenkinson")
         wf.connect(node, out, nuis, 'inputspec.fd_j_file_path')
 
-        node, out = strat_pool.get_data("framewise_displacement_power")
+        node, out = strat_pool.get_data("framewise-displacement-power")
         wf.connect(node, out, nuis, 'inputspec.fd_p_file_path')
 
         node, out = strat_pool.get_data("dvars")
