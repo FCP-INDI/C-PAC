@@ -21,12 +21,6 @@ pipeline_setup:
 
   system_config: 
 
-    # Select Off if you intend to run CPAC on a single machine.
-    # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
-    on_grid: 
-
-      run: Off
-
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
     # - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
@@ -65,7 +59,7 @@ anatomical_preproc:
 
   brain_extraction: 
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [BET]
 
@@ -81,13 +75,9 @@ segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
   # and CSF based on prior probability maps.
-  run: [On]
+  run: On
 
-  tissue_segmentation:
-
-    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
-    # this is a fork point
-    using: ['Template_Based']
+  tissue_segmentation: 
 
     # option parameters
     FSL-FAST: 
@@ -120,7 +110,7 @@ segmentation:
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
       # Options: ['T1_Template', 'EPI_Template']
-      template_for_segmentation: ['EPI_Template']
+      template_for_segmentation: [EPI_Template]
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -278,11 +268,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  scaling: 
-
-    # Scale functional raw data, usually used in rodent pipeline
-    run: Off
-
   slice_timing_correction: 
 
     # Interpolate voxel time courses so they are sampled at the same time points.
@@ -325,12 +310,6 @@ functional_preproc:
 
 nuisance_corrections: 
 
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
-
   2-nuisance_regression: 
 
     # Select which nuisance signal corrections to apply
@@ -354,30 +333,6 @@ nuisance_corrections:
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: /template/chd8_functional_template_ventricles_ag.nii.gz
 
-    # Process and refine masks used to produce regressors and time series for
-    # regression.
-    regressor_masks: 
-
-      erode_anatomical_brain_mask: 
-
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
-        run: Off
-
-      erode_csf: 
-
-        # Erode binarized csf tissue mask.
-        run: Off
-
-      erode_wm: 
-
-        # Erode WM binarized tissue mask.
-        run: Off
-
-      erode_gm: 
-
-        # Erode GM binarized tissue mask.
-        run: Off
-
 # OUTPUTS AND DERIVATIVES
 # -----------------------
 post_processing: 
@@ -396,32 +351,32 @@ post_processing:
 
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -449,7 +404,7 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
 # PACKAGE INTEGRATIONS
 # --------------------
