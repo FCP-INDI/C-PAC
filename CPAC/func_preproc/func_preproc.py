@@ -1030,7 +1030,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "filter_type",
      "option_val": ["notch", "lowpass"],
      "inputs": ["movement-parameters",
-                "tr"],
+                "TR"],
      "outputs": ["movement-parameters",
                  "motion-filter-info",
                  "motion-filter-plot"]}
@@ -1082,7 +1082,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, notch, 'motion_params')
 
-    node, out = strat_pool.get_data('tr')
+    node, out = strat_pool.get_data('TR')
     wf.connect(node, out, notch, 'TR')
 
     outputs = {
