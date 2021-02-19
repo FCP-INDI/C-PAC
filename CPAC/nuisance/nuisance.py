@@ -2148,9 +2148,9 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars"),
                 ("desc-brain_T1w",
                  ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
-                 ["label-CSF_desc-eroded_mask", "label-CSF_desc-preproc_mask"],
-                 ["label-WM_desc-eroded_mask", "label-WM_desc-preproc_mask"],
-                 ["label-GM_desc-eroded_mask", "label-GM_desc-preproc_mask"],
+                 ["label-CSF_desc-eroded_mask", "label-CSF_desc-preproc_mask", "label-CSF_mask"],
+                 ["label-WM_desc-eroded_mask", "label-WM_desc-preproc_mask", "label-WM_mask"],
+                 ["label-GM_desc-eroded_mask", "label-GM_desc-preproc_mask", "label-GM_mask"],
                  "from-template_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral_ventricles_mask",
@@ -2186,15 +2186,18 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.anatomical_eroded_brain_mask_file_path')
 
     node, out = strat_pool.get_data(["label-CSF_desc-eroded_mask",
-                                     "label-CSF_desc-preproc_mask"])
+                                     "label-CSF_desc-preproc_mask", 
+                                     "label-CSF_mask"])
     wf.connect(node, out, regressors, 'inputspec.csf_mask_file_path')
 
     node, out = strat_pool.get_data(["label-WM_desc-eroded_mask",
-                                     "label-WM_desc-preproc_mask"])
+                                     "label-WM_desc-preproc_mask", 
+                                     "label-WM_mask"])
     wf.connect(node, out, regressors, 'inputspec.wm_mask_file_path')
 
     node, out = strat_pool.get_data(["label-GM_desc-eroded_mask",
-                                     "label-GM_desc-preproc_mask"])
+                                     "label-GM_desc-preproc_mask", 
+                                     "label-GM_mask"])
     wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
 
     node, out = strat_pool.get_data('lateral_ventricles_mask')

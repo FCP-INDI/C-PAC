@@ -681,7 +681,8 @@ class ResourcePool(object):
         non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
                     'pe_direction', 'subject', 'atlas_name', 'scan_params',
                     'deltaTE', 'diff_phase_dwell', 'dwell_asym_ratio',
-                    'diffphase_scan_params', 'diffmag_scan_params']
+                    'diffphase_scan_params', 'diffmag_scan_params',
+                    'motion-basefile']
         excl = ['T1w', 'bold', 'motion_basefile', 'bold_coreg_input',
                 'diffphase', 'diffmag', 'epi']
         config_paths = ['T1w_ACPC_template', 'T1w_brain_ACPC_template',

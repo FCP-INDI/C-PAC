@@ -875,10 +875,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
+            seg_blocks = [
+                [tissue_seg_fsl_fast,
+                 tissue_seg_ants_prior,
+                 tissue_seg_T1_template_based]
+                # tissue_seg_freesurfer
+            ]
             seg_blocks.append(tissue_seg_T1_template_based)
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks.append(tissue_seg_EPI_template_based)
+            seg_blocks = [
+                [tissue_seg_fsl_fast,
+                 tissue_seg_ants_prior,
+                 tissue_seg_EPI_template_based]
+                # tissue_seg_freesurfer
+            ]
         pipeline_blocks += seg_blocks
 
     # Functional Preprocessing, including motion correction and BOLD masking

@@ -180,8 +180,10 @@ def normalize_motion_parameters(in_file):
 def get_mcflirt_rms_abs(rms_files):
     for path in rms_files:
         if 'abs.rms' in path:
-            path = path.replace('.rms', '.1D')
-            return path
+            abs_file = path
+        if 'rel.rms' in path:
+            rels_file = path
+    return (abs_file, rels_file)
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
@@ -711,7 +713,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                    normalize_motion_params, 'in_file')
 
         get_rms_abs = pe.Node(Function(input_names=['rms_files'],
-                                       output_names=['abs_file'],
+                                       output_names=['abs_file',
+                                                     'rels_file'],
                                        function=get_mcflirt_rms_abs),
                               name=f'get_mcflirt_rms_abs_{pipe_num}')
 
@@ -721,8 +724,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         outputs = {
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
             'max-displacement': (get_rms_abs, 'abs_file'),
+            'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
-            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
@@ -950,6 +953,7 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
                  "motion-basefile")],
      "outputs": ["desc-motion_bold",
                  "max-displacement",
+                 "rels-displacement",
                  "movement-parameters",
                  "coordinate-transformation"]}
     '''
@@ -971,6 +975,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
      "outputs": ["max-displacement",
+                 "rels-displacement",
                  "movement-parameters",
                  "coordinate-transformation"]}
     '''
@@ -980,9 +985,15 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'max-displacement': wf_outputs['max-displacement'],
-        'movement-parameters': wf_outputs['movement-parameters'],
-        'coordinate-transformation': wf_outputs['coordinate-transformation']
+        'movement-parameters': wf_outputs['movement-parameters']
     }
+
+    if 'coordinate-transformation' in wf_outputs:
+        outputs['coordinate-transformation'] = \
+            wf_outputs['coordinate-transformation']
+
+    if 'rels-displacement' in wf_outputs:
+        outputs['rels-displacement'] = wf_outputs['rels-displacement']
 
     return (wf, outputs)
 
@@ -1010,7 +1021,7 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
+def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimate_filter",
      "config": ["functional_preproc", "motion_estimates_and_correction",
@@ -1019,7 +1030,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
      "option_key": "filter_type",
      "option_val": ["notch", "lowpass"],
      "inputs": ["movement-parameters",
-                "tr"],
+                "TR"],
      "outputs": ["movement-parameters",
                  "motion-filter-info",
                  "motion-filter-plot"]}
@@ -1046,18 +1057,32 @@ def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
                              imports=notch_imports),
                     name=f'filter_motion_params_{pipe_num}')
 
-    notch.inputs.filter_type = cfg.motion_estimate_filter['filter_type']
-    notch.inputs.fc_RR_min = cfg.motion_estimate_filter['breathing_rate_min']
-    notch.inputs.fc_RR_max = cfg.motion_estimate_filter['breathing_rate_max']
-    notch.inputs.center_freq = cfg.motion_estimate_filter['center_frequency']
-    notch.inputs.freq_bw = cfg.motion_estimate_filter['filter_bandwidth']
-    notch.inputs.lowpass_cutoff = cfg.motion_estimate_filter['lowpass_cutoff']
-    notch.inputs.filter_order = cfg.motion_estimate_filter['filter_order']
+    notch.inputs.filter_type = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_type']
+    notch.inputs.fc_RR_min = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_min']
+    notch.inputs.fc_RR_max = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_max']
+    notch.inputs.center_freq = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['center_frequency']
+    notch.inputs.freq_bw = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_bandwidth']
+    notch.inputs.lowpass_cutoff = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['lowpass_cutoff']
+    notch.inputs.filter_order = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_order']
 
     node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, notch, 'motion_params')
 
-    node, out = strat_pool.get_data('tr')
+    node, out = strat_pool.get_data('TR')
     wf.connect(node, out, notch, 'TR')
 
     outputs = {
@@ -1080,6 +1105,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-bold_desc-brain_mask",
                  "movement-parameters",
                  "max-displacement",
+                 "rels-displacement",
                  "coordinate-transformation"),
                 "subject",
                 "scan"],
@@ -1125,10 +1151,15 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                gen_motion_stats,
                'inputspec.max_displacement')
 
-    node, out_file = strat_pool.get_data('coordinate-transformation')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.transformations')
+    if strat_pool.check_rpool('rels-displacement'):
+        node, out_file = strat_pool.get_data('rels-displacement')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.rels_displacement')
+
+    if strat_pool.check_rpool('coordinate-transformation'):
+        node, out_file = strat_pool.get_data('coordinate-transformation')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.transformations')
 
     outputs = {
         'framewise-displacement-power':

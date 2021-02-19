@@ -92,8 +92,7 @@ def create_sca(name_sca='sca'):
 
     sca = pe.Workflow(name=name_sca)
     inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
-                                                'functional_file',
-                                                ]),
+                                                       'functional_file',]),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
@@ -101,7 +100,7 @@ def create_sca(name_sca='sca'):
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
-                        name='outputspec')
+                         name='outputspec')
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
@@ -124,35 +123,33 @@ def create_sca(name_sca='sca'):
     concat.inputs.outputtype = 'NIFTI_GZ'
 
     # also write out volumes as individual files
-    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-    split.inputs.dimension = 't'
-    split.inputs.out_base_name = 'sca_'
+    #split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+    #split.inputs.dimension = 't'
+    #split.inputs.out_base_name = 'sca_'
 
-    get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
-                                                          'prefix'],
-                                             output_names=['roi_list'],
-                                             function=get_roi_num_list),
-                               name='get_roi_num_list')
-    get_roi_num_list.inputs.prefix = "sca"
+    #get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
+    #                                                      'prefix'],
+    #                                         output_names=['roi_list'],
+    #                                         function=get_roi_num_list),
+    #                           name='get_roi_num_list')
+    #get_roi_num_list.inputs.prefix = "sca"
 
-    rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                             iterfield=['in_file', 'format_string'])
-    rename_rois.inputs.keep_ext = True
+    #sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
+    #            'timeseries_file')
+
+    #rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
+    #                         iterfield=['in_file', 'format_string'])
+    #rename_rois.inputs.keep_ext = True
+
+    #sca.connect(split, 'out_files', rename_rois, 'in_file')
+    #sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
 
     sca.connect(corr, 'out_file', concat, 'in_files')
-    sca.connect(concat, 'out_file', split, 'in_file')
+    #sca.connect(concat, 'out_file', split, 'in_file')
     sca.connect(concat, 'out_file',
                 outputNode, 'correlation_stack')
-
-    sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-                'timeseries_file')
-
-    sca.connect(split, 'out_files', rename_rois, 'in_file')
-
-    sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
-    sca.connect(rename_rois, 'out_file', outputNode,
-                'correlation_files')
+    #sca.connect(rename_rois, 'out_file', outputNode,
+    #            'correlation_files')
 
     return sca
 
@@ -464,7 +461,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                                     #('outputspec.roi_outputs',
                                     # extract_one_d)),
         'desc-MeanSCA_correlations':
-            (sca_roi, 'outputspec.correlation_files'),
+            (sca_roi, 'outputspec.correlation_stack'),
         'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
     }
 

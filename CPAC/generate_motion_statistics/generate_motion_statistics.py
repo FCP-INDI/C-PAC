@@ -175,6 +175,7 @@ def motion_power_statistics(name='motion_stats',
                                                         'scan_id',
                                                         'movement_parameters',
                                                         'max_displacement',
+                                                        'rels_displacement',
                                                         'motion_correct',
                                                         'mask',
                                                         'transformations']),
@@ -220,7 +221,7 @@ def motion_power_statistics(name='motion_stats',
     if motion_correct_tool == '3dvolreg':
         wf.connect(input_node, 'transformations', calculate_FDJ, 'in_file')
     elif motion_correct_tool == 'mcflirt':
-        wf.connect(input_node, 'max_displacement', calculate_FDJ, 'in_file')
+        wf.connect(input_node, 'rels_displacement', calculate_FDJ, 'in_file')
 
     wf.connect(calculate_FDJ, 'out_file', output_node, 'FDJ_1D')
 
@@ -356,7 +357,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
             T_rb_prev = T_rb
 
     elif motion_correct_tool == 'mcflirt':
-        rel_rms = np.loadtxt(in_file[1])
+        rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
@@ -400,9 +401,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         maxdisp = np.loadtxt(max_displacement)
 
     elif motion_correct_tool == 'mcflirt':
-        maxdisp = np.loadtxt(max_displacement[
-                                 0])  # TODO: mcflirt outputs absdisp, instead of maxdisp
-        reldisp = np.loadtxt(max_displacement[1])
+        maxdisp = np.loadtxt(max_displacement)  # TODO: mcflirt outputs absdisp, instead of maxdisp
 
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
