@@ -79,6 +79,8 @@ segmentation:
 
   tissue_segmentation: 
 
+    using: ['Template_Based']
+
     # option parameters
     FSL-FAST: 
 
