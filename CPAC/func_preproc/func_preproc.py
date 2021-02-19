@@ -1057,13 +1057,27 @@ def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
                              imports=notch_imports),
                     name=f'filter_motion_params_{pipe_num}')
 
-    notch.inputs.filter_type = cfg.motion_estimate_filter['filter_type']
-    notch.inputs.fc_RR_min = cfg.motion_estimate_filter['breathing_rate_min']
-    notch.inputs.fc_RR_max = cfg.motion_estimate_filter['breathing_rate_max']
-    notch.inputs.center_freq = cfg.motion_estimate_filter['center_frequency']
-    notch.inputs.freq_bw = cfg.motion_estimate_filter['filter_bandwidth']
-    notch.inputs.lowpass_cutoff = cfg.motion_estimate_filter['lowpass_cutoff']
-    notch.inputs.filter_order = cfg.motion_estimate_filter['filter_order']
+    notch.inputs.filter_type = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_type']
+    notch.inputs.fc_RR_min = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_min']
+    notch.inputs.fc_RR_max = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_max']
+    notch.inputs.center_freq = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['center_frequency']
+    notch.inputs.freq_bw = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_bandwidth']
+    notch.inputs.lowpass_cutoff = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['lowpass_cutoff']
+    notch.inputs.filter_order = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_order']
 
     node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, notch, 'motion_params')
