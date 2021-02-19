@@ -1021,7 +1021,7 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
+def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimate_filter",
      "config": ["functional_preproc", "motion_estimates_and_correction",
