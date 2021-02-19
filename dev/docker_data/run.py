@@ -512,20 +512,29 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # Preference: n_cpus if given, override if present, else from config if
     # present, else n_cpus=3
-    if args.n_cpus == 0:
+    if int(args.n_cpus) == 0:
         c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(c['pipeline_setup']['system_config'].get('max_cores_per_participant', 3))
         args.n_cpus = 3
     else:
         c['pipeline_setup']['system_config']['max_cores_per_participant'] = args.n_cpus
+
     c['pipeline_setup']['system_config']['num_participants_at_once'] = int(c['pipeline_setup']['system_config'].get('num_participants_at_once', 1))
-    # Reduce cores per participant if cores times particiapants is more than
+    # Reduce cores per participant if cores times participants is more than
     # available CPUS. n_cpus is a hard upper limit.
-    if (c['pipeline_setup']['system_config']['max_cores_per_participant']  * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
+    if (c['pipeline_setup']['system_config']['max_cores_per_participant'] * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
         args.n_cpus
     ):
-        c['pipeline_setup']['system_config']['max_cores_per_participant']  = int(
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(
             args.n_cpus
         ) // c['pipeline_setup']['system_config']['num_participants_at_once']
+        if c['pipeline_setup']['system_config'][
+            'max_cores_per_participant'
+        ] == 0:
+            c['pipeline_setup']['system_config'][
+                'max_cores_per_participant'] = args.n_cpus
+            c['pipeline_setup']['system_config'][
+                'num_participants_at_once'] = 1
+
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
