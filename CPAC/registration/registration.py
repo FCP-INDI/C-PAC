@@ -131,14 +131,12 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
     elif reg_tool == 'fsl':
 
         if multi_input:
-            apply_warp = pe.MapNode(interface=fsl.FLIRT(),
+            apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                                     name=f'fsl_apply_warp',
                                     iterfield=['in_file'])
         else:
-            apply_warp = pe.Node(interface=fsl.FLIRT(),
+            apply_warp = pe.Node(interface=fsl.ApplyWarp(),
                                  name='fsl_apply_warp')
-
-        apply_warp.inputs.apply_xfm = True
 
         interp_string = pe.Node(util.Function(input_names=['interpolation',
                                                            'reg_tool'],
@@ -151,8 +149,12 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         wf.connect(interp_string, 'interpolation', apply_warp, 'interp')
 
         # mni to t1
-        wf.connect(inputNode, 'reference', apply_warp, 'reference')
-        wf.connect(inputNode, 'transform', apply_warp, 'in_matrix_file')
+        wf.connect(inputNode, 'reference', apply_warp, 'ref_file')
+
+        # NOTE: C-PAC now converts all FSL xfm's to .nii, so even if the
+        #       inputNode 'transform' is a linear xfm, it's a .nii and must
+        #       go in as a warpfield file
+        wf.connect(inputNode, 'transform', apply_warp, 'field_file')
 
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
@@ -994,7 +996,8 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         )
 
         # Input registration parameters
-        wf.connect(inputNode, 'interpolation', flirt_reg_anat_mni, 'inputspec.interp')
+        wf.connect(inputNode, 'interpolation',
+                   flirt_reg_anat_mni, 'inputspec.interp')
 
         wf.connect(inputNode, 'input_brain',
                    flirt_reg_anat_mni, 'inputspec.input_brain')
@@ -1002,15 +1005,34 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         wf.connect(inputNode, 'reference_brain', flirt_reg_anat_mni,
                    'inputspec.reference_brain')
 
+        write_lin_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
+                                          name=f'fsl_lin-warp_to_nii{symm}')
+
+        wf.connect(inputNode, 'reference_brain',
+                   write_lin_composite_xfm, 'reference')
+
+        wf.connect(flirt_reg_anat_mni, 'outputspec.linear_xfm',
+                   write_lin_composite_xfm, 'premat')
+
+        write_invlin_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
+                                             name=f'fsl_invlin-warp_to_'
+                                                  f'nii{symm}')
+
+        wf.connect(inputNode, 'reference_brain',
+                   write_invlin_composite_xfm, 'reference')
+
+        wf.connect(flirt_reg_anat_mni, 'outputspec.invlinear_xfm',
+                   write_invlin_composite_xfm, 'premat')
+
         outputs = {
             f'space-{sym}template_desc-brain_{orig}': (
                 flirt_reg_anat_mni, 'outputspec.output_brain'),
             f'from-{orig}_to-{sym}template_mode-image_desc-linear_xfm': (
-                flirt_reg_anat_mni, 'outputspec.linear_xfm'),
+                write_lin_composite_xfm, 'out_file'),
             f'from-{sym}template_to-{orig}_mode-image_desc-linear_xfm': (
-                flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
+                write_invlin_composite_xfm, 'out_file'),
             f'from-{orig}_to-{sym}template_mode-image_xfm': (
-                flirt_reg_anat_mni, 'outputspec.linear_xfm')
+                write_lin_composite_xfm, 'out_file')
         }
 
     if opt == 'FSL':
@@ -1041,26 +1063,12 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         wf.connect(inputNode, 'fnirt_config',
                    fnirt_reg_anat_mni, 'inputspec.fnirt_config')
 
-        write_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
-                                      name=f'combine_fsl_warps{symm}')
-
-        wf.connect(inputNode, 'reference_head',
-                   write_composite_xfm, 'reference')
-
-        wf.connect(flirt_reg_anat_mni, 'outputspec.linear_xfm',
-                   write_composite_xfm, 'premat')
-
-        wf.connect(fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm',
-                   write_composite_xfm, 'warp1')
-
         # NOTE: this is an UPDATE because of the opt block above
         added_outputs = {
             f'space-{sym}template_desc-brain_{orig}': (
                 fnirt_reg_anat_mni, 'outputspec.output_brain'),
-            f'from-{orig}_to-{sym}template_mode-image_desc-nonlinear_xfm': (
-                fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
             f'from-{orig}_to-{sym}template_mode-image_xfm': (
-                write_composite_xfm, 'out_file')
+                fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm')
         }
         outputs.update(added_outputs)
 
@@ -1505,7 +1513,6 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_desc-brain_T1w",
                  "from-T1w_to-template_mode-image_desc-linear_xfm",
                  "from-template_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-template_mode-image_desc-nonlinear_xfm",
                  "from-T1w_to-template_mode-image_xfm"]}
     '''
 
@@ -1556,7 +1563,6 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "outputs": ["space-symtemplate_desc-brain_T1w",
                  "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm",
                  "from-T1w_to-symtemplate_mode-image_xfm"]}
     '''
 
@@ -1610,8 +1616,6 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_desc-brain_bold",
                  "from-bold_to-template_mode-image_desc-linear_xfm",
                  "from-template_to-bold_mode-image_desc-linear_xfm",
-                 "from-bold_to-template_mode-image_desc-nonlinear_xfm",
-                 "from-template_to-bold_mode-image_desc-nonlinear_xfm",
                  "from-bold_to-template_mode-image_xfm"]}
     '''
 

@@ -7,9 +7,11 @@ def interpolation_string(interpolation, reg_tool):
     if reg_tool == 'ants':
         pass
     elif reg_tool == 'fsl':
-        # translate to British
-        interpolation = interpolation.replace('NearestNeighbor',
-                                              'nearestneighbour')
+        # translate to FSL
+        # warning: flirt requires 'nearestneighbour', but FSL applywarp uses
+        #          'nn', so this is designed for applywarp, as all FSL xfm's
+        #          in C-PAC are now converted to .nii.gz
+        interpolation = interpolation.replace('NearestNeighbor', 'nn')
     return interpolation
 
 
