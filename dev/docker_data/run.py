@@ -16,7 +16,7 @@ from CPAC import __version__
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 
 import yamlordereddictloader
 from warnings import simplefilter, warn
@@ -245,8 +245,13 @@ parser.add_argument('--data_config_file', help='Yaml file containing the locatio
 parser.add_argument('--preconfig', help='Name of the pre-configured pipeline to run.',
                     default=None)
 
-parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
-                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
+if '--pipeline_override' in sys.argv:  # secret option
+    parser.add_argument('--pipeline_override', type=parse_yaml,
+                        action='append', help='Override specific options from '
+                                              'the pipeline configuration. '
+                                              'E.g.: '
+                                              '"maximumMemoryPerParticipant: '
+                                              '10"')
 
 parser.add_argument('--aws_input_creds', help='Credentials for reading from S3.'
                                               ' If not provided and s3 paths are specified in the data config'
@@ -472,12 +477,13 @@ elif args.analysis_level in ["test_config", "participant"]:
         c = load_yaml_config(updated_config, args.aws_input_creds)
 
     overrides = {}
-    if args.pipeline_override:
-        overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
-        c.update(overrides)
+    if hasattr(args, 'pipeline_override') and args.pipeline_override:
+        overrides = {
+            k: v for d in args.pipeline_override for k, v in d.items()}
+        c = update_nested_dict(c, overrides)
 
     if args.anat_only:
-        c.update({'FROM': 'anat-only'})
+        c = update_nested_dict(c, {'FROM': 'anat-only'})
 
     c = Configuration(c)
 

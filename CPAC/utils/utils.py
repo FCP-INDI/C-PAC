@@ -2262,19 +2262,6 @@ def update_pipeline_values_1_8(d_old):
     except KeyError:
         pass
 
-    tse_key = ['timeseries_extraction', 'roi_tse_outputs']
-    try:
-        tse = lookup_nested_value(d, tse_key)
-        if isinstance(tse, list) and isinstance(tse[0], bool):
-            new_tse = []
-            if len(tse) and tse[0]:
-                new_tse.append('csv')
-            if len(tse) > 1 and tse[1]:
-                new_tse.append('numpy')
-            d = set_nested_value(d, tse_key, new_tse)
-    except KeyError:
-        pass
-
     if 'functional_registration' in d and isinstance(
         d['functional_registration'], dict
     ):
