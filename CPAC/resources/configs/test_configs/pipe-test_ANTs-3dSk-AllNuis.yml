@@ -49,8 +49,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.
@@ -157,6 +155,12 @@ registration_workflows:
           T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
 nuisance_corrections: 
+
+  1-ICA-AROMA: 
+
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
   2-nuisance_regression: 
 

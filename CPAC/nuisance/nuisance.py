@@ -2237,7 +2237,10 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('TR')
     wf.connect(node, out, regressors, 'inputspec.tr')
 
-    if True in cfg.nuisance_corrections['2-nuisance_regression']['run']:
+    runswitch = cfg.nuisance_corrections['2-nuisance_regression']['run']
+    if not isinstance(runswitch, list):
+        runswitch = [runswitch]
+    if True in runswitch:
         nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
                                                    f'_{opt["Name"]}_{pipe_num}')
 
