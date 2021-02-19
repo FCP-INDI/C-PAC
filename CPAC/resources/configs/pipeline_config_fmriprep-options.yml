@@ -45,8 +45,6 @@ pipeline_setup:
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
 
-      run: Off
-
       SGE: 
 
         # SGE Parallel Environment to use when running CPAC.
@@ -81,7 +79,7 @@ anatomical_preproc:
 
   brain_extraction: 
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [niworkflows-ants]
 
@@ -292,12 +290,6 @@ functional_preproc:
 
 nuisance_corrections: 
 
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
-
   2-nuisance_regression: 
 
     # this is a fork point
@@ -366,11 +358,6 @@ nuisance_corrections:
 
         # Erode WM binarized tissue mask.
         run: On
-
-      erode_gm: 
-
-        # Erode GM binarized tissue mask.
-        run: Off
 
 timeseries_extraction: 
 
