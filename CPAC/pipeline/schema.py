@@ -2,6 +2,7 @@ from itertools import chain, permutations
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import Maybe
+from CPAC import __version__
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -502,43 +503,46 @@ schema = Schema({
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # notch filter with breathing_rate_* set
-                    'run': forkable,
-                    'filter_type': 'notch',
-                    'filter_order': int,
-                    'breathing_rate_min': Number,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'notch',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Number,
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # notch filter with manual parameters set
-                    'run': forkable,
-                    'filter_type': 'notch',
-                    'filter_order': int,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'notch',
+                    Required('filter_order'): int,
                     'breathing_rate_min': None,
                     'breathing_rate_max': None,
-                    'center_frequency': Number,
-                    'filter_bandwidth': Number,
+                    Required('center_frequency'): Number,
+                    Required('filter_bandwidth'): Number,
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # lowpass filter with breathing_rate_min
-                    'run': forkable,
-                    'filter_type': 'lowpass',
-                    'filter_order': int,
-                    'breathing_rate_min': Number,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'lowpass',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # lowpass filter with lowpass_cutoff
-                    'run': forkable,
-                    'filter_type': 'lowpass',
-                    'filter_order': int,
-                    'breathing_rate_min': None,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'lowpass',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min', default=None): None,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Number,
+                    Required('lowpass_cutoff'): Number,
                 },),
-                msg='motion_estimate_filter configuration is invalid.'
+                msg='`motion_estimate_filter` configuration is invalid. '
+                    f'See https://fcp-indi.github.io/docs/v{__version__}/'
+                    'user/func#motion_estimate_filter_valid_options '
+                    'for details.'
             ),
         },
         'distortion_correction': {

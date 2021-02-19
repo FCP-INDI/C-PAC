@@ -16,7 +16,7 @@ from CPAC import __version__
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 
 import yamlordereddictloader
 from warnings import simplefilter, warn
@@ -245,8 +245,13 @@ parser.add_argument('--data_config_file', help='Yaml file containing the locatio
 parser.add_argument('--preconfig', help='Name of the pre-configured pipeline to run.',
                     default=None)
 
-parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
-                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
+if '--pipeline_override' in sys.argv:  # secret option
+    parser.add_argument('--pipeline_override', type=parse_yaml,
+                        action='append', help='Override specific options from '
+                                              'the pipeline configuration. '
+                                              'E.g.: '
+                                              '"maximumMemoryPerParticipant: '
+                                              '10"')
 
 parser.add_argument('--aws_input_creds', help='Credentials for reading from S3.'
                                               ' If not provided and s3 paths are specified in the data config'
@@ -472,12 +477,13 @@ elif args.analysis_level in ["test_config", "participant"]:
         c = load_yaml_config(updated_config, args.aws_input_creds)
 
     overrides = {}
-    if args.pipeline_override:
-        overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
-        c.update(overrides)
+    if hasattr(args, 'pipeline_override') and args.pipeline_override:
+        overrides = {
+            k: v for d in args.pipeline_override for k, v in d.items()}
+        c = update_nested_dict(c, overrides)
 
     if args.anat_only:
-        c.update({'FROM': 'anat-only'})
+        c = update_nested_dict(c, {'FROM': 'anat-only'})
 
     c = Configuration(c)
 
@@ -506,20 +512,29 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # Preference: n_cpus if given, override if present, else from config if
     # present, else n_cpus=3
-    if args.n_cpus == 0:
+    if int(args.n_cpus) == 0:
         c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(c['pipeline_setup']['system_config'].get('max_cores_per_participant', 3))
         args.n_cpus = 3
     else:
         c['pipeline_setup']['system_config']['max_cores_per_participant'] = args.n_cpus
+
     c['pipeline_setup']['system_config']['num_participants_at_once'] = int(c['pipeline_setup']['system_config'].get('num_participants_at_once', 1))
-    # Reduce cores per participant if cores times particiapants is more than
+    # Reduce cores per participant if cores times participants is more than
     # available CPUS. n_cpus is a hard upper limit.
-    if (c['pipeline_setup']['system_config']['max_cores_per_participant']  * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
+    if (c['pipeline_setup']['system_config']['max_cores_per_participant'] * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
         args.n_cpus
     ):
-        c['pipeline_setup']['system_config']['max_cores_per_participant']  = int(
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(
             args.n_cpus
         ) // c['pipeline_setup']['system_config']['num_participants_at_once']
+        if c['pipeline_setup']['system_config'][
+            'max_cores_per_participant'
+        ] == 0:
+            c['pipeline_setup']['system_config'][
+                'max_cores_per_participant'] = args.n_cpus
+            c['pipeline_setup']['system_config'][
+                'num_participants_at_once'] = 1
+
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
