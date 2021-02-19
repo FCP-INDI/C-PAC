@@ -894,7 +894,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # Functional Preprocessing, including motion correction and BOLD masking
     if True in cfg.functional_preproc['run'] and \
             (not rpool.check_rpool('desc-brain_bold') or
-             not rpool.check_rpool('space-bold_desc-brain_mask')):
+             not rpool.check_rpool('space-bold_desc-brain_mask') or
+             not rpool.check_rpool('movement-parameters')):
         func_init_blocks = [
             func_scaling,
             func_truncate

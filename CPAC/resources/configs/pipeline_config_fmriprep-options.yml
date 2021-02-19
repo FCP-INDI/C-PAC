@@ -85,11 +85,6 @@ anatomical_preproc:
     # this is a fork option
     using: [niworkflows-ants]
 
-    FSL-BET: 
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
-
 segmentation: 
 
   tissue_segmentation: 
@@ -278,11 +273,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  scaling: 
-
-    # Scale functional raw data, usually used in rodent pipeline
-    run: Off
-
   motion_estimates_and_correction: 
 
     # calculate motion statistics BEFORE slice-timing correction
@@ -293,12 +283,6 @@ functional_preproc:
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
       using: [mcflirt]
-
-      # option parameters
-      AFNI-3dvolreg: 
-
-        # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-        functional_volreg_twopass: On
 
   func_masking: 
 
@@ -390,32 +374,32 @@ nuisance_corrections:
 
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -443,7 +427,7 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
