@@ -301,6 +301,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(temporalReg, 'out_file', outputNode, 'temp_reg_map')
     wflow.connect(temporalReg, 'out_z', outputNode, 'temp_reg_map_z')
 
+    '''
     split = pe.Node(interface=fsl.Split(), name='split_raw_volumes')
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
@@ -374,6 +375,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
         wflow.connect(rename_maps_zstat, 'out_file',
                       outputNode, 'temp_reg_map_z_files')
+    '''
 
     return wflow
 
@@ -553,9 +555,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-DualReg_correlations':
-            (dr_temp_reg, 'outputspec.temp_reg_map_files'),
+            (dr_temp_reg, 'outputspec.temp_reg_map'),
         'desc-DualReg_statmap':
-            (dr_temp_reg, 'outputspec.temp_reg_map_z_files'),
+            (dr_temp_reg, 'outputspec.temp_reg_map_z'),
         'atlas_name':
             (spatial_map_dataflow_for_dr, 'select_spatial_map.out_name')
     }
@@ -656,9 +658,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-MultReg_correlations':
-            (sc_temp_reg, 'outputspec.temp_reg_map_files'),
+            (sc_temp_reg, 'outputspec.temp_reg_map'),
         'desc-MultReg_statmap':
-            (sc_temp_reg, 'outputspec.temp_reg_map_z_files'),
+            (sc_temp_reg, 'outputspec.temp_reg_map_z'),
         'atlas_name': (roi_dataflow_for_multreg, 'outputspec.out_name')
     }
 

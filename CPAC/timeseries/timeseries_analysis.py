@@ -821,14 +821,13 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
     ndmg_graph_imports = ['import os',
                           'from CPAC.utils.ndmg_utils import graph']
-    ndmg_graph = pe.MapNode(Function(
+    ndmg_graph = pe.Node(Function(
         input_names=['ts', 'labels'],
         output_names=['out_file'],
         function=ndmg_create_graphs,
         imports=ndmg_graph_imports,
         as_module=True
-    ), name=f'ndmg_graphs_{pipe_num}',
-        iterfield=['labels'])
+    ), name=f'ndmg_graphs_{pipe_num}')
 
     wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
     wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')

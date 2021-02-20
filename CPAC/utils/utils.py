@@ -118,7 +118,8 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None, atlas_id=None):
+def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
+                     fwhm=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -135,6 +136,15 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None):
         out_filename = f'{unique_id}_task-{scan_id}_{resource}'
     else:
         out_filename = f'{unique_id}_{resource}'
+        
+    if fwhm:
+        for tag in resource.split('_'):
+            if 'desc-' in tag and '-sm' in tag:
+                newtag = tag.replace('-sm', f'-sm{fwhm}')
+                out_filename = out_filename.replace(tag, newtag)
+                break
+        else:
+            raise Exception('\n[!] FWHM provided but no desc-sm?\n')
 
     return out_filename
 

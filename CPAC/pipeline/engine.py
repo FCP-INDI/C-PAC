@@ -70,8 +70,7 @@ class ResourcePool(object):
             self.smooth_opts = cfg.post_processing['spatial_smoothing'][
                 'smoothing_method']
 
-        self.xfm = ['alff', 'falff', 'reho', 'desc-MeanSCA_correlations',
-                    'desc-DualReg_correlations', 'desc-MultReg_correlations']
+        self.xfm = ['alff', 'falff', 'reho']
 
         self.smooth = ['alff', 'falff', 'reho',
                        'space-template_alff',
@@ -581,10 +580,10 @@ class ResourcePool(object):
                      outs):
 
         input_type = 'func_derivative'
-        if 'Centrality' in label:
+        if 'centrality' in label or 'lfcd' in label:
             input_type = 'func_derivative_multi'
 
-        if 'Centrality' in label:
+        if 'centrality' in label or 'lfcd' in label:
             mask = 'template_specification_file'
         elif 'space-template' in label:
             mask = 'space-template_res-derivative_desc-bold_mask'
@@ -610,13 +609,26 @@ class ResourcePool(object):
                     node, out = self.get_data(mask, pipe_idx=mask_idx)
                     wf.connect(node, out, sm, 'inputspec.mask')
 
-                    if 'space-template' in label:
-                        label = label.replace('space-template',
-                                              'space-template_desc-sm')
+                    if 'desc-' not in label:
+                        if 'space-' in label:
+                            for tag in label.split('_'):
+                                if 'space-' in tag:
+                                    label = label.replace(tag,
+                                                          f'{tag}_desc-sm')
+                                    break
+                        else:
+                            label = f'desc-sm_{label}'
                     else:
-                        label = f'desc-sm_{label}'
+                        for tag in label.split('_'):
+                            if 'desc-' in tag:
+                                newtag = f'{tag}-sm'
+                                label = label.replace(tag, newtag)
+                                break
 
                     self.set_data(label, sm, 'outputspec.out_file', json_info,
+                                  pipe_idx, f'spatial_smoothing_{smooth_opt}',
+                                  fork=True)
+                    self.set_data('fwhm', sm, 'outputspec.fwhm', json_info,
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
 
@@ -631,12 +643,9 @@ class ResourcePool(object):
             else:
                 for tag in label.split('_'):
                     if 'desc-' in tag:
-                        if 'desc-sm' in tag:
-                            new_tag = 'desc-SmZstd'
-                        else:
-                            new_tag = 'desc-zstd'
+                        newtag = f'{tag}-zstd'
+                        label = label.replace(tag, newtag)
                         break
-                new_label = label.replace(tag, new_tag)
 
             if label in self.zscore:
 
@@ -711,7 +720,8 @@ class ResourcePool(object):
         excl += non_sink
         excl += config_paths
         anat = ['T1w', 'probseg']
-        func = ['bold', 'timeseries', 'alff', 'falff', 'reho']
+        func = ['bold', 'timeseries', 'alff', 'falff', 'reho',
+                'correlations', 'statmap', 'centrality']
         motions = ['motion', 'movement', 'coordinate', 'displacement',
                    'dvars', 'power_params']
 
@@ -722,6 +732,10 @@ class ResourcePool(object):
             # TODO: cpac_outputs.csv etc
             if resource in excl:
                 continue
+                
+            if not all:
+                if 'symtemplate' in resource:
+                    continue
 
             if resource.split('_')[-1] in anat:
                 subdir = 'anat'
@@ -774,6 +788,10 @@ class ResourcePool(object):
             # TODO: cpac_outputs.csv etc
             if resource in excl:
                 continue
+                
+            if not all:
+                if 'symtemplate' in resource:
+                    continue
 
             num_variant = 0
             if len(self.rpool[resource]) == 1:
@@ -795,20 +813,27 @@ class ResourcePool(object):
 
                 unique_id = out_dct['unique_id']
 
-                for key in out_dct['filename'].split('_'):
-                    if 'desc-' in key:
-                        out_dct['filename'] = out_dct['filename'
-                        ].replace(key, f'{key}{num_variant}')
-                        resource_idx = resource.replace(key,
-                                                        f'{key}{num_variant}')
-                        break
-                    else:
-                        resource_idx = f'{resource}{num_variant}'
+                if num_variant:
+                    for key in out_dct['filename'].split('_'):
+                        if 'desc-' in key:
+                            out_dct['filename'] = out_dct['filename'
+                            ].replace(key, f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key,
+                                                            f'{key}-{num_variant}')
+                            break
+                        else:
+                            suff = resource.split('_')[-1]
+                            newdesc_suff = f'desc-{num_variant}_{suff}'
+                            resource_idx = resource.replace(suff,
+                                                            newdesc_suff)
+                else:
+                    resource_idx = resource
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
-                                                          'atlas_id'],
+                                                          'atlas_id',
+                                                          'fwhm'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -820,6 +845,14 @@ class ResourcePool(object):
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
+                    
+                # grab the FWHM if smoothed
+                for tag in resource.split('_'):
+                    if 'desc-' in tag and '-sm' in tag:
+                        fwhm_idx = pipe_idx.replace(f'{resource}:', 'fwhm:')
+                        node, out = self.rpool['fwhm'][fwhm_idx]['data']
+                        wf.connect(node, out, id_string, 'fwhm')
+                        break
 
                 '''
                 prov = json_info['CpacProvenance']
@@ -894,7 +927,7 @@ class ResourcePool(object):
                         id_string.inputs.atlas_id = atlas_id
                     else:
                         raise Exception("\n[!] No atlas ID found for "
-                                        f"{resource}.\n")
+                                        f"{out_dct['filename']}.\n")
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
@@ -1309,7 +1342,7 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
 
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
@@ -1359,6 +1392,7 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
         for tag in data_label.split('_'):
             if 'desc-' in tag:
                 desc_val = tag
+                break
         jsonpath = str(filepath)
         for ext in exts:
             jsonpath = jsonpath.replace(ext, '')
@@ -1373,14 +1407,25 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
             # it's a C-PAC output, let's check for pipe_idx/strat integer
             # suffixes in the desc- entries.
             only_desc = str(desc_val)
-            for idx in range(0, 3):
-                # let's stop at 3, please don't run >999 strategies okay?
-                if only_desc[-1].isdigit():
-                    only_desc = only_desc[:-1]
+            
+            if only_desc[-1].isdigit():
+                for idx in range(0, 3):
+                    # let's stop at 3, please don't run >999 strategies okay?
+                    if only_desc[-1].isdigit():
+                        only_desc = only_desc[:-1]
+            
+                if only_desc[-1] == '-':
+                    only_desc = only_desc.rstrip('-')
+                else:
+                    raise Exception('\n[!] Something went wrong with either '
+                                    'reading in the output directory or when '
+                                    'it was written out previously.\n\nGive '
+                                    'this to your friendly local C-PAC '
+                                    f'developer:\n\n{unique_data_label}\n')
 
-            # remove the integer at the end of the desc-* variant, we will get
-            # the unique pipe_idx from the CpacProvenance below
-            data_label = data_label.replace(desc_val, only_desc)
+                # remove the integer at the end of the desc-* variant, we will get
+                # the unique pipe_idx from the CpacProvenance below
+                data_label = data_label.replace(desc_val, only_desc)
 
             # preserve cpac provenance/pipe_idx
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])

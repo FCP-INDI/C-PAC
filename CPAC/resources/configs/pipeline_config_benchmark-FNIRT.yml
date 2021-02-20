@@ -260,7 +260,6 @@ seed_based_correlation_analysis:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
     s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 voxel_mirrored_homotopic_connectivity: 
 
