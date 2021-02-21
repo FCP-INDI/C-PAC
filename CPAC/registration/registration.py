@@ -1298,7 +1298,18 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_all_transforms, 'in4')
 
+    # check transform list to exclude Nonetype (missing) init/rig/affine
+    check_all_transform = pe.Node(
+        util.Function(input_names=['transform_list'],
+                      output_names=['checked_transform_list',
+                                    'list_length'],
+                      function=check_transforms),
+        name=f'check_all_transforms')
+
     wf.connect(collect_all_transforms, 'out',
+               check_all_transform, 'transform_list')
+
+    wf.connect(check_all_transform, 'checked_transform_list',
                write_composite_xfm, 'transforms')
 
     # combine ALL xfm's into one - makes it easier downstream
@@ -1340,7 +1351,18 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     wf.connect(ants_reg_anat_mni, 'outputspec.inverse_warp_field',
                collect_all_inv_transforms, 'in4')
 
+    # check transform list to exclude Nonetype (missing) init/rig/affine
+    check_all_inv_transform = pe.Node(
+        util.Function(input_names=['transform_list'],
+                      output_names=['checked_transform_list',
+                                    'list_length'],
+                      function=check_transforms),
+        name=f'check_all_inv_transforms')
+
     wf.connect(collect_all_inv_transforms, 'out',
+               check_all_inv_transform, 'transform_list')
+
+    wf.connect(check_all_inv_transform, 'checked_transform_list',
                write_composite_inv_xfm, 'transforms')
 
     outputs = {
