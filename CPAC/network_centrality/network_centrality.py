@@ -128,7 +128,7 @@ def create_centrality_wf(wf_name, method_option, weight_options,
         centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'thresh')
 
-    # Need to seprate sub-briks
+    # Need to separate sub-briks
     sep_subbriks_node = \
         pe.Node(util.Function(input_names=['nifti_file', 'out_names'],
                               output_names=['output_niftis'],

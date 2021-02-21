@@ -50,9 +50,8 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
     afni_centrality_wf = \
         create_centrality_wf(wf_name, method_option,
                              c.network_centrality[method_option][
-                                 'weight_options'
-                             ], threshold_option, threshold, num_threads,
-                             memory)
+                                 'weight_options'], threshold_option,
+                             threshold, num_threads, memory)
 
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')
@@ -78,7 +77,12 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-preproc_bold",
                  "space-template_bold"],
                 "template_specification_file"],
-     "outputs": ["centrality"]}
+     "outputs": ["desc-weighted_degree-centrality",
+                 "desc-binarized_degree-centrality",
+                 "desc-weighted_eigen-centrality",
+                 "desc-binarized_eigen-centrality",
+                 "desc-weighted_lfcd",
+                 "desc-binarized_lfcd"]}
     '''
 
     # Resample the functional mni to the centrality mask resolution
@@ -107,10 +111,15 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     merge_node = pe.Node(Function(input_names=['deg_list',
                                                'eig_list',
                                                'lfcd_list'],
-                                  output_names=['merged_list'],
+                                  output_names=['degree_weighted',
+                                                'degree_binarized',
+                                                'eigen_weighted',
+                                                'eigen_binarized',
+                                                'lfcd_weighted',
+                                                'lfcd_binarized'],
                                   function=merge_lists,
                                   as_module=True),
-                         name=f'merge_node_{pipe_num}')
+                         name=f'centrality_merge_node_{pipe_num}')
 
     [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
                                  node, out, merge_node,
@@ -119,7 +128,12 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      cfg.network_centrality[option]['weight_options']]
 
     outputs = {
-        'centrality': (merge_node, 'merged_list')
+        'desc-weighted_degree-centrality': (merge_node, 'degree_weighted'),
+        'desc-binarized_degree-centrality': (merge_node, 'degree_binarized'),
+        'desc-weighted_eigen-centrality': (merge_node, 'eigen_weighted'),
+        'desc-binarized_eigen-centrality': (merge_node, 'eigen_binarized'),
+        'desc-weighted_lfcd': (merge_node, 'lfcd_weighted'),
+        'desc-binarized_lfcd': (merge_node, 'lfcd_binarized')
     }
 
     return (wf, outputs)
