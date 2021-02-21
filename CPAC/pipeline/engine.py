@@ -720,10 +720,11 @@ class ResourcePool(object):
         excl += non_sink
         excl += config_paths
         anat = ['T1w', 'probseg']
-        func = ['bold', 'timeseries', 'alff', 'falff', 'reho',
-                'correlations', 'statmap', 'centrality']
+        func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
+                'correlations', 'statmap', 'regressors', 'degree-centrality',
+                'eigen-centrality', 'lfcd']
         motions = ['motion', 'movement', 'coordinate', 'displacement',
-                   'dvars', 'power_params']
+                   'dvars', 'power-params']
 
         if all:
             excl = non_sink
