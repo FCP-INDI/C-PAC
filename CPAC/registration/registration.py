@@ -2150,8 +2150,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
      "outputs": ["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"]}
     '''
 
@@ -2178,8 +2178,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
             'FNIRT_pipelines']['interpolation']
 
     connect, resource = strat_pool.get_data(["desc-cleaned_bold",
+                                             "desc-brain_bold",
                                              "desc-preproc_bold",
-                                             "desc-reorient_bold",
                                              "bold"],
                                             report_fetched=True)
 
@@ -2311,8 +2311,8 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-template_mode-image_xfm"),
                 "EPI_template"],
      "outputs": ["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"]}
     '''
 
@@ -2339,8 +2339,8 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
             'FNIRT_pipelines']['interpolation']
 
     connect, resource = strat_pool.get_data(["desc-cleaned_bold",
+                                             "desc-brain_bold",
                                              "desc-preproc_bold",
-                                             "desc-reorient_bold",
                                              "bold"],
                                             report_fetched=True)
     node, out = connect
