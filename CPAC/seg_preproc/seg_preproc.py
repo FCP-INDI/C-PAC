@@ -704,15 +704,18 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == 'ants'
 
-    csf_template2t1 = tissue_mask_template_to_t1('CSF', use_ants)
+    csf_template2t1 = tissue_mask_template_to_t1(f'CSF_{pipe_num}', 
+                                                 use_ants)
     csf_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['CSF']
 
-    gm_template2t1 = tissue_mask_template_to_t1('GM', use_ants)
+    gm_template2t1 = tissue_mask_template_to_t1(f'GM_{pipe_num}',
+                                                use_ants)
     gm_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['GRAY']
 
-    wm_template2t1 = tissue_mask_template_to_t1('WM', use_ants)
+    wm_template2t1 = tissue_mask_template_to_t1(f'WM_{pipe_num}',
+                                                use_ants)
     wm_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['WHITE']
 

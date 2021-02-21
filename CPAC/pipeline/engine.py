@@ -76,9 +76,9 @@ class ResourcePool(object):
                        'space-template_alff',
                        'space-template_falff',
                        'space-template_reho',
-                       'space-template_DegreeCentrality',
-                       'space-template_EigenCentrality',
-                       'space-template_lfcd']
+                       'degree-centrality',
+                       'eigen-centrality',
+                       'lfcd']
         self.zscore = self.smooth + ['desc-sm_alff',
                                      'desc-sm_falff',
                                      'desc-sm_reho',
