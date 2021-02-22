@@ -79,13 +79,21 @@ class ResourcePool(object):
                        'degree-centrality',
                        'eigen-centrality',
                        'lfcd']
-        self.zscore = self.smooth + ['desc-sm_alff',
+        self.zscore = self.smooth + ['alff', 'falff', 'reho',
+                                     'desc-sm_alff',
                                      'desc-sm_falff',
                                      'desc-sm_reho',
+                                     'space-template_alff',
+                                     'space-template_falff',
+                                     'space-template_reho',
+                                     'space-template_degree-centrality',
+                                     'space-template_eigen-centrality',
+                                     'space-template_lfcd'
                                      'space-template_desc-sm_alff',
                                      'space-template_desc-sm_falff',
-                                     'space-template_desc-sm_DegreeCentrality',
-                                     'space-template_desc-sm_EigenCentrality',
+                                     'space-template_desc-sm_reho',
+                                     'space-template_desc-sm_degree-centrality',
+                                     'space-template_desc-sm_eigen-centrality',
                                      'space-template_desc-sm_lfcd']
         self.fisher_zscore = ['desc-MeanSCA_correlations']
 
@@ -601,7 +609,8 @@ class ResourcePool(object):
             if label in self.smooth:
                 for smooth_opt in self.smooth_opts:
 
-                    sm = spatial_smoothing(f'{label}_smooth_{smooth_opt}_{pipe_x}',
+                    sm = spatial_smoothing(f'{label}_smooth_{smooth_opt}_'
+                                           f'{pipe_x}',
                                            self.fwhm, input_type, smooth_opt)
                     wf.connect(connection[0], connection[1],
                                sm, 'inputspec.in_file')
@@ -613,8 +622,8 @@ class ResourcePool(object):
                         if 'space-' in label:
                             for tag in label.split('_'):
                                 if 'space-' in tag:
-                                    label = label.replace(tag,
-                                                          f'{tag}_desc-sm')
+                                    smlabel = label.replace(tag,
+                                                            f'{tag}_desc-sm')
                                     break
                         else:
                             label = f'desc-sm_{label}'
@@ -622,11 +631,12 @@ class ResourcePool(object):
                         for tag in label.split('_'):
                             if 'desc-' in tag:
                                 newtag = f'{tag}-sm'
-                                label = label.replace(tag, newtag)
+                                smlabel = label.replace(tag, newtag)
                                 break
 
-                    self.set_data(label, sm, 'outputspec.out_file', json_info,
-                                  pipe_idx, f'spatial_smoothing_{smooth_opt}',
+                    self.set_data(smlabel, sm, 'outputspec.out_file',
+                                  json_info, pipe_idx,
+                                  f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
                     self.set_data('fwhm', sm, 'outputspec.fwhm', json_info,
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
@@ -644,7 +654,7 @@ class ResourcePool(object):
                 for tag in label.split('_'):
                     if 'desc-' in tag:
                         newtag = f'{tag}-zstd'
-                        label = label.replace(tag, newtag)
+                        new_label = label.replace(tag, newtag)
                         break
 
             if label in self.zscore:
