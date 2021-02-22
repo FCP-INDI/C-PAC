@@ -72,7 +72,7 @@ class ResourcePool(object):
 
         self.xfm = ['alff', 'falff', 'reho']
 
-        self.smooth = ['alff', 'falff', 'reho',
+        self.smooth = ['alff', 'falff', 'reho', 'vmhc',
                        'space-template_alff',
                        'space-template_falff',
                        'space-template_reho',
@@ -598,6 +598,7 @@ class ResourcePool(object):
                     break
 
         if self.run_smoothing:
+            print(f'sm label: {label}')
             if label in self.smooth:
                 for smooth_opt in self.smooth_opts:
 

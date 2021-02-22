@@ -67,15 +67,15 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
     for path in merged_list:
         if 'degree' in path and 'weighted' in path:
             degree_weighted = path
-        elif 'degree' in path and 'binarized' in path:
+        elif 'degree' in path and 'binarize' in path:
             degree_binarized = path
         elif 'eigen' in path and 'weighted' in path:
             eigen_weighted = path
-        elif 'eigen' in path and 'binarized' in path:
+        elif 'eigen' in path and 'binarize' in path:
             eigen_binarized = path
         elif 'lfcd' in path and 'weighted' in path:
             lfcd_weighted = path
-        elif 'lfcd' in path and 'binarized' in path:
+        elif 'lfcd' in path and 'binarize' in path:
             lfcd_binarized = path
 
     return (degree_weighted, degree_binarized, eigen_weighted,

@@ -77,12 +77,12 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-preproc_bold",
                  "space-template_bold"],
                 "template_specification_file"],
-     "outputs": ["desc-weighted_degree-centrality",
-                 "desc-binarized_degree-centrality",
-                 "desc-weighted_eigen-centrality",
-                 "desc-binarized_eigen-centrality",
-                 "desc-weighted_lfcd",
-                 "desc-binarized_lfcd"]}
+     "outputs": ["space-template_desc-weighted_degree-centrality",
+                 "space-template_desc-binarized_degree-centrality",
+                 "space-template_desc-weighted_eigen-centrality",
+                 "space-template_desc-binarized_eigen-centrality",
+                 "space-template_desc-weighted_lfcd",
+                 "space-template_desc-binarized_lfcd"]}
     '''
 
     # Resample the functional mni to the centrality mask resolution
@@ -128,12 +128,18 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      cfg.network_centrality[option]['weight_options']]
 
     outputs = {
-        'desc-weighted_degree-centrality': (merge_node, 'degree_weighted'),
-        'desc-binarized_degree-centrality': (merge_node, 'degree_binarized'),
-        'desc-weighted_eigen-centrality': (merge_node, 'eigen_weighted'),
-        'desc-binarized_eigen-centrality': (merge_node, 'eigen_binarized'),
-        'desc-weighted_lfcd': (merge_node, 'lfcd_weighted'),
-        'desc-binarized_lfcd': (merge_node, 'lfcd_binarized')
+        'space-template_desc-weighted_degree-centrality': 
+            (merge_node, 'degree_weighted'),
+        'space-template_desc-binarized_degree-centrality':
+            (merge_node, 'degree_binarized'),
+        'space-template_desc-weighted_eigen-centrality': 
+            (merge_node, 'eigen_weighted'),
+        'space-template_desc-binarized_eigen-centrality': 
+            (merge_node, 'eigen_binarized'),
+        'space-template_desc-weighted_lfcd': 
+            (merge_node, 'lfcd_weighted'),
+        'space-template_desc-binarized_lfcd': 
+            (merge_node, 'lfcd_binarized')
     }
 
     return (wf, outputs)
