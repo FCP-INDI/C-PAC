@@ -1862,7 +1862,7 @@ def erode_mask_CSF(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["label-CSF_desc-preproc_mask",
-                 "label-CSF_mask"],
+                  "label-CSF_mask"],
                  "space-T1w_desc-brain_mask")],
      "outputs": ["label-CSF_desc-eroded_mask"]}
     '''
@@ -1917,6 +1917,13 @@ def erode_mask_GM(wf, cfg, strat_pool, pipe_num, opt=None):
         '2-nuisance_regression']['regressor_masks']['erode_gm'][
         'gm_erosion_prop']
 
+    erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
+    erode.inputs.inputspec.mask_erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
+
     node, out = strat_pool.get_data(['label-GM_desc-preproc_mask',
                                      'label-GM_mask'])
     wf.connect(node, out, erode, 'inputspec.mask')
@@ -1936,8 +1943,9 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["label-WM_desc-preproc_mask",
-                 "label-WM_mask"]],
+     "inputs": [(["label-WM_desc-preproc_mask",
+                  "label-WM_mask"],
+                 "space-T1w_desc-brain_mask")],
      "outputs": ["label-WM_desc-eroded_mask"]}
     '''
 
@@ -1952,6 +1960,9 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data(['label-WM_desc-preproc_mask',
                                      'label-WM_mask'])
     wf.connect(node, out, erode, 'inputspec.mask')
+    
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, erode, 'inputspec.brain_mask')
 
     outputs = {
         'label-WM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
