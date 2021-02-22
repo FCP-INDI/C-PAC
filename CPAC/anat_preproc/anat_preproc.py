@@ -427,7 +427,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('unet_model')
     wf.connect(node, out, unet_mask, 'model_path')
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, unet_mask, 'cimg_in')
 
@@ -439,7 +439,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                 name=f'unet_masked_brain_{pipe_num}')
     unet_masked_brain.inputs.op_string = "-mul %s"
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, unet_masked_brain, 'in_file')
     wf.connect(unet_mask, 'out_path', unet_masked_brain, 'operand_files')
@@ -464,7 +464,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                 f'head_{pipe_num}')
     native_head_to_template_head.inputs.apply_xfm = True
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, native_head_to_template_head, 'in_file')
 
