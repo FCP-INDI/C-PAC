@@ -320,7 +320,9 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
                 "epi_2",
                 "epi_2_scan_params",
                 "pe_direction"],
-     "outputs": []}
+     "outputs": ["blip-warp",
+                 "desc-mean_bold",
+                 "space-bold_desc-brain_mask"]}
     '''
 
     match_epi_imports = ['import json']
@@ -428,8 +430,8 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
                                 interface, wf, cfg, strat_pool, pipe_num, opt)
 
     outputs = {
-        'blip_warp': (convert_afni_warp, 'ants_warp'),
-        'blip_warp_inverse': None,  # TODO
+        'blip-warp': (convert_afni_warp, 'ants_warp'),
+        #'inv-blip-warp': None,  # TODO
         'desc-mean_bold': (undistort_func_mean, 'output_image'),
         'space-bold_desc-brain_mask':
             strat_pool.get_data('space-bold_desc-brain_mask')
