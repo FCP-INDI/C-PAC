@@ -1332,8 +1332,6 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
 
     write_composite_inv_xfm.inputs.input_image_type = 0
     write_composite_inv_xfm.inputs.dimension = 3
-    write_composite_inv_xfm.inputs.invert_transform_flags = [True, True,
-                                                             True, False]
 
     collect_all_inv_transforms = pe.Node(util.Merge(4),
                                          name=f'collect_all_inv_transforms'
@@ -2181,8 +2179,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
-     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
-                  "desc-reorient_bold", "bold"],
+     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
+                  "desc-preproc_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
      "outputs": ["space-template_desc-cleaned_bold",
@@ -2342,8 +2340,8 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["target_template", "using"],
      "option_val": "EPI_template",
-     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
-                  "desc-reorient_bold", "bold"],
+     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
+                  "desc-preproc_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),
                 "EPI_template"],
      "outputs": ["space-template_desc-cleaned_bold",
