@@ -807,7 +807,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             previous_nb_str = (
-                f"after node block '{previous_nb.get_name()}':"
+                f"after node block '{previous_nb.get_name()}': "
             ) if previous_nb else 'at beginning:'
             # Alert user to block that raises error
             e.args = (
