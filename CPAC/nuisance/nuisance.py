@@ -1998,8 +1998,10 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "label-GM_mask"])
     wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
 
-    node, out = strat_pool.get_data('lateral_ventricles_mask')
-    wf.connect(node, out, regressors, 'inputspec.lat_ventricles_mask_file_path')
+    if ventricle:
+        node, out = strat_pool.get_data('lateral_ventricles_mask')
+        wf.connect(node, out,
+                   regressors, 'inputspec.lat_ventricles_mask_file_path')
 
     node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
     wf.connect(node, out, regressors, 'inputspec.func_to_anat_linear_xfm_file_path')
