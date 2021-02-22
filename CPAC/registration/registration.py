@@ -1365,6 +1365,20 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     wf.connect(check_all_inv_transform, 'checked_transform_list',
                write_composite_inv_xfm, 'transforms')
 
+    # generate inverse transform flags, which depends on the
+    # number of transforms
+    inverse_all_transform_flags = pe.Node(
+        util.Function(input_names=['transform_list'],
+                      output_names=['inverse_transform_flags'],
+                      function=generate_inverse_transform_flags),
+        name=f'inverse_all_transform_flags')
+
+    wf.connect(check_all_inv_transform, 'checked_transform_list',
+               inverse_all_transform_flags, 'transform_list')
+
+    wf.connect(inverse_all_transform_flags, 'inverse_transform_flags',
+               write_composite_inv_xfm, 'invert_transform_flags')
+
     outputs = {
         f'space-{sym}template_desc-brain_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
