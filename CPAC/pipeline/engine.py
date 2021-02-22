@@ -628,7 +628,7 @@ class ResourcePool(object):
                                                             f'{tag}_desc-sm')
                                     break
                         else:
-                            label = f'desc-sm_{label}'
+                            smlabel = f'desc-sm_{label}'
                     else:
                         for tag in label.split('_'):
                             if 'desc-' in tag:
