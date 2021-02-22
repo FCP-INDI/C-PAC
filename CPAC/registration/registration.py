@@ -1937,7 +1937,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["bold_coreg_input",
-                "desc-brain_T1w",
+                ("desc-brain_T1w",
+                 "T1w",
+                 ["label-WM_probseg", "label-WM_mask"]),
                 "diffphase_dwell",
                 "diffphase_pedir",
                 ("despiked_fieldmap",
@@ -1983,6 +1985,53 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         'from-bold_to-T1w_mode-image_desc-linear_xfm':
             (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
     }
+
+    if cfg.registration_workflows['functional_registration'][
+        'coregistration']["boundary_based_registration"]["run"]:
+
+        func_to_anat_bbreg = create_bbregister_func_to_anat(diff_complete,
+                                                            f'func_to_anat_'
+                                                            f'bbreg_'
+                                                            f'{pipe_num}')
+        func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
+            cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration'][
+                'bbr_schedule']
+
+        node, out = strat_pool.get_data('bold_coreg_input')
+        wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
+
+        node, out = strat_pool.get_data('T1w')
+        wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat_skull')
+
+        wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
+                   func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
+
+        node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+        wf.connect(node, out,
+                   func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+
+        if diff_complete:
+            node, out = strat_pool.get_data('diffphase_dwell')
+            wf.connect(node, out,
+                       func_to_anat_bbreg, 'echospacing_input.echospacing')
+
+            node, out = strat_pool.get_data('diffphase_pedir')
+            wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
+
+            node, out = strat_pool.get_data("despiked_fieldmap")
+            wf.connect(node, out, func_to_anat_bbreg, 'inputspec.fieldmap')
+
+            node, out = strat_pool.get_data("fieldmap_mask")
+            wf.connect(node, out,
+                       func_to_anat_bbreg, 'inputspec.fieldmapmask')
+
+        outputs = {
+            'space-T1w_desc-mean_bold':
+                (func_to_anat_bbreg, 'outputspec.anat_func'),
+            'from-bold_to-T1w_mode-image_desc-linear_xfm':
+                (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
+        }
 
     return (wf, outputs)
 

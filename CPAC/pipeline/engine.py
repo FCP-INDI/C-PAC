@@ -855,63 +855,9 @@ class ResourcePool(object):
                         wf.connect(node, out, id_string, 'fwhm')
                         break
 
-                '''
-                prov = json_info['CpacProvenance']
-                self.get_strat_info(prov, label=resource)
-
-                atlas_idxs = self.get_pipe_idxs('atlas_name')
-                for i, atlas_idx in enumerate(atlas_idxs):
-                    resource_dct = self.get('atlas_name', atlas_idx)
-                    self.get_strat_info(resource_dct['json']['CpacProvenance'],
-                                        label=f'atlas_name_{i}')
-                '''
-
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 if resource.split('_')[-1] in atlas_suffixes:
-                    '''
-                    atlas_idx_to_match = pipe_idx.replace(resource,
-                                                          'atlas_name')
-                    atlas_idxs = self.get_pipe_idxs('atlas_name')
-
-                    for idx in atlas_idxs:
-                        to_match = atlas_idx_to_match
-                        while idx != atlas_idx_to_match:
-                            to_match = to_match[:-1]
-                            if not to_match:
-                                break
-                        if to_match:
-                            atlas_idx = idx
-                            break
-                    '''
-                    # TODO: hold this stuff below
-                    '''
-                    if 'space-template' in resource:
-                        # get the pipe_idx from the native-space version
-                        temp_rsc = resource.replace('space-template_', '')
-
-                        # prov of the space-template version, we want to make
-                        # sure we are getting the correct ancestor pipe_idx
-                        prov = self.get(resource, pipe_idx)['json']['CpacProvenance']
-
-                        temp_rsc_idx = None
-                        for spot, entry in enumerate(prov):
-                            if isinstance(entry, list):
-                                if entry[-1].split(':')[0] == temp_rsc:
-                                    temp_rsc_prov = entry
-                                    temp_rsc_idx = self.generate_prov_string(temp_rsc_prov)[1]
-                                    break
-                            elif isinstance(entry, str):
-                                if entry.split(':')[0] == temp_rsc:
-                                    temp_rsc_prov = prov[spot-1]
-                                    temp_rsc_idx = self.generate_prov_string(temp_rsc_prov)[1]
-                                    break
-                        new_idx = temp_rsc_idx
-                    else:
-                        temp_rsc = resource
-                        new_idx = pipe_idx
-                    '''
-
                     atlas_idx = pipe_idx.replace(resource, 'atlas_name')
 
                     # need the single quote and the colon inside the double
@@ -919,7 +865,8 @@ class ResourcePool(object):
                     #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
                     #                            "'atlas_name:")
                     if atlas_idx in self.rpool['atlas_name']:
-                        node, out = self.rpool['atlas_name'][atlas_idx]['data']
+                        node, out = self.rpool['atlas_name'][atlas_idx][
+                            'data']
                         wf.connect(node, out, id_string, 'atlas_id')
                     elif 'atlas-' in resource:
                         for tag in resource.split('_'):
@@ -954,11 +901,14 @@ class ResourcePool(object):
                                               f'{pipe_x}')
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct['out_dir']
-                ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup['Amazon-AWS']['s3_encryption']
+                ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup[
+                    'Amazon-AWS']['s3_encryption']
                 ds.inputs.container = out_dct['container']
 
-                if cfg.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
-                    ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']
+                if cfg.pipeline_setup['Amazon-AWS'][
+                    'aws_output_bucket_credentials']:
+                    ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
+                        'aws_output_bucket_credentials']
 
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')

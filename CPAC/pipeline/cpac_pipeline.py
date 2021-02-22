@@ -955,8 +955,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
             [coregistration_prep_vol, coregistration_prep_mean],
-            coregistration,
-            bbr_coregistration
+            coregistration
         ]
         pipeline_blocks += coreg_blocks
 
