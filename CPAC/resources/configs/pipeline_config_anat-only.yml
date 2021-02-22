@@ -148,6 +148,8 @@ registration_workflows:
 
     coregistration: 
 
+      run: Off
+
       boundary_based_registration: 
 
         # this is a fork point
@@ -169,6 +171,8 @@ registration_workflows:
         identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     func_registration_to_template: 
+
+      run: Off
 
       target_template: 
 
