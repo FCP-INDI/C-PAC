@@ -69,8 +69,7 @@ def erode_mask(name):
     wf.connect(inputspec, 'brain_mask', eroded_mask, 'skullstrip_mask')
     wf.connect(inputspec, 'mask', eroded_mask, 'roi_mask')
 
-    wf.connect(inputspec, ('mask_erode_prop', form_mask_erosion_prop),
-                    eroded_mask, 'mask_erosion_prop')
+    wf.connect(inputspec, 'mask_erode_prop', eroded_mask, 'mask_erosion_prop')
     wf.connect(inputspec, 'mask_erode_mm', eroded_mask,
                     'mask_erosion_mm')
 
@@ -85,8 +84,7 @@ def erode_mask(name):
 
     wf.connect(eroded_mask, 'output_roi_mask', erosion_segmentmap, 'roi_mask')
 
-    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop),
-               erosion_segmentmap, 'erosion_prop')
+    wf.connect(inputspec, 'erode_prop', erosion_segmentmap, 'erosion_prop')
     wf.connect(inputspec, 'erode_mm', erosion_segmentmap, 'erosion_mm')
 
     wf.connect(erosion_segmentmap, 'eroded_roi_mask',
