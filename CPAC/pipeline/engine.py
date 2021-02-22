@@ -598,6 +598,7 @@ class ResourcePool(object):
         else:
             mask = 'space-bold_desc-brain_mask'
 
+        mask_idx = None
         for entry in json_info['CpacProvenance']:
             if isinstance(entry, list):
                 if entry[-1].split(':')[0] == mask:
