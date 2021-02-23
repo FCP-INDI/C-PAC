@@ -748,7 +748,7 @@ class ResourcePool(object):
             if not all:
                 if 'symtemplate' in resource:
                     continue
-
+            subdir = 'other'
             if resource.split('_')[-1] in anat:
                 subdir = 'anat'
                 #TODO: get acq- etc.
@@ -769,7 +769,6 @@ class ResourcePool(object):
                 if 'from-bold' in resource:
                     subdir = 'func'
             else:
-                subdir = 'other'
                 for tag in motions:
                     if tag in resource:
                         subdir = 'func'
