@@ -607,7 +607,6 @@ class ResourcePool(object):
                     break
 
         if self.run_smoothing:
-            print(f'sm label: {label}')
             if label in self.smooth:
                 for smooth_opt in self.smooth_opts:
 
@@ -616,8 +615,8 @@ class ResourcePool(object):
                                            self.fwhm, input_type, smooth_opt)
                     wf.connect(connection[0], connection[1],
                                sm, 'inputspec.in_file')
-
-                    node, out = self.get_data(mask, pipe_idx=mask_idx)
+                    node, out = self.get_data(mask, pipe_idx=mask_idx,
+                                              quick_single=mask_idx is None)
                     wf.connect(node, out, sm, 'inputspec.mask')
 
                     if 'desc-' not in label:
