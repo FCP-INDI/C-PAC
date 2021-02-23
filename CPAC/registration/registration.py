@@ -1077,6 +1077,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
             func_to_anat = create_register_func_to_anat(diff_complete,
                                                         f'func_to_anat_FLIRT_{num_strat}')
 
+            # TODO open interp option
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
 

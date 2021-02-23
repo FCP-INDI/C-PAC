@@ -1039,7 +1039,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         n4_before_acpc = pe.Node(interface = ants.N4BiasFieldCorrection(), name='anat_n4_before_acpc')
         n4_before_acpc.inputs.dimension = 3
         preproc.connect(denoise_before_acpc, 'output_image', n4_before_acpc, 'input_image')
-        preproc.connect(n4_before_acpc, 'output_image', outputnode, 'outputspec.anat_skull_n4')
+        preproc.connect(n4_before_acpc, 'output_image', outputnode, 'anat_skull_n4')
 
     if not config.acpc_align:
         preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
