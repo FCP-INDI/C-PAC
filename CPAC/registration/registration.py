@@ -1936,7 +1936,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["bold_coreg_input",
+     "inputs": [("bold_coreg_input",
+                 "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
                  "T1w",
                  ["label-WM_probseg", "label-WM_mask"]),
@@ -2007,9 +2008,14 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
                    func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
-        node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
-        wf.connect(node, out,
-                   func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+        if strat_pool.check_rpool('space-bold_label-WM_mask'):
+            node, out = strat_pool.get_data(["space-bold_label-WM_mask"])
+            wf.connect(node, out,
+                       func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+        else: 
+            node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+            wf.connect(node, out,
+                       func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
             node, out = strat_pool.get_data('diffphase_dwell')
@@ -2045,7 +2051,8 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("bold_coreg_input",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "space-bold_label-WM_mask"),
                 ("T1w",
                  ["label-WM_probseg", "label-WM_mask"]),
                 "diffphase_dwell",
@@ -2080,9 +2087,14 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
-    node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
-    wf.connect(node, out,
-               func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+    if strat_pool.check_rpool('space-bold_label-WM_mask'):
+        node, out = strat_pool.get_data(["space-bold_label-WM_mask"])
+        wf.connect(node, out,
+                   func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+    else: 
+        node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+        wf.connect(node, out,
+                   func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
     if diff_complete:
         node, out = strat_pool.get_data('diffphase_dwell')
