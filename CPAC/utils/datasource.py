@@ -4,7 +4,6 @@ import nipype.interfaces.utility as util
 from nipype import logging
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
-from warnings import warn
 
 logger = logging.getLogger('workflow')
 
@@ -902,15 +901,14 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                 ][0]
 
             if base_name in mask_dict:
-                warn(str(ValueError(
-                    'File with same name already exists in resource pool.'
-                    'Using existing file %s for %s' % (
+                raise ValueError(
+                    'Files with same name not allowed: %s %s' % (
                         mask_file,
                         mask_dict[base_name]
                     )
-                )))
-            else:
-                mask_dict[base_name] = mask_file
+                )
+
+            mask_dict[base_name] = mask_file
 
         except IndexError as e:
             raise Exception('Error in spatial_map_dataflow: '
@@ -983,15 +981,14 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
                 ][0]
 
             if base_name in spatial_map_dict:
-                warn(str(ValueError(
-                    'File with same name already exists in resource pool.'
-                    'Using existing file %s for %s' % (
+                raise ValueError(
+                    'Files with same name not allowed: %s %s' % (
                         spatial_map_file,
                         spatial_map_dict[base_name]
                     )
-                )))
-            else:
-                spatial_map_dict[base_name] = spatial_map_file
+                )
+
+            spatial_map_dict[base_name] = spatial_map_file
 
         except IndexError as e:
             raise Exception('Error in spatial_map_dataflow: '
