@@ -870,7 +870,6 @@ class ResourcePool(object):
                 # grab the iterable atlas ID
                 if resource.split('_')[-1] in atlas_suffixes:
                     atlas_idx = pipe_idx.replace(resource, 'atlas_name')
-
                     # need the single quote and the colon inside the double
                     # quotes - it's the encoded pipe_idx
                     #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
@@ -885,8 +884,9 @@ class ResourcePool(object):
                                 atlas_id = tag.replace('atlas-', '')
                         id_string.inputs.atlas_id = atlas_id
                     else:
-                        raise Exception("\n[!] No atlas ID found for "
-                                        f"{out_dct['filename']}.\n")
+                        warnings.warn(str(
+                            LookupError("\n[!] No atlas ID found for "
+                                        f"{out_dct['filename']}.\n")))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
