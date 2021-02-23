@@ -4,18 +4,18 @@ from pathlib import Path
 from spython.main import Client
 
 
-def test_AFNI_libraries():
-    SINGULARITY_IMAGE_PATH = '/home/circleci/project/C-PAC-CI.simg'
-    if not os.path.exists(SINGULARITY_IMAGE_PATH):
+def test_AFNI_libraries(singularity_image_path):
+    if not os.path.exists(singularity_image_path):
         try:
-            SINGULARITY_IMAGE_PATH = [d for d in os.listdir(
+            singularity_image_path = [d for d in os.listdir(
                 str(Path(__file__).parent.parent.parent)
             ) if (d.endswith('.simg') or d.endswith('.sif'))][0]
-        except:
-            raise Exception("Singularity image not in expected location.")
-    if os.path.exists(SINGULARITY_IMAGE_PATH):
+        except Exception:
+            raise FileNotFoundError(
+                "Singularity image not in expected location.")
+    if os.path.exists(singularity_image_path):
         afni_libraries = Client.execute(
-            Client.instance(SINGULARITY_IMAGE_PATH),
+            Client.instance(singularity_image_path),
             ['./dev/circleci_data/AFNI_libraries.sh']
         )
         assert "not found" not in afni_libraries, '\n'.join([

@@ -2,11 +2,22 @@ version: 2.1
 
 commands:
   check-for-built-images:
+    parameters:
+      variant:
+        type: string
+        default: ""
     steps:
       - run:
           name: "Checking for locally built images"
           command: |
-            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            VARIANT=<< parameters.variant >>
+            if [[ ! $VARIANT = "" ]]
+            then
+              VARIANT="-$VARIANT"
+            else
+              VARIANT=""
+            fi
+            if [[ ! -f cpac-docker-image${VARIANT}.tar.gz || ! -f cpac-singularity-image${VARIANT}.simg ]]
             then
               circleci step halt
             fi
@@ -40,6 +51,9 @@ commands:
       variant:
         type: string
         default: ""
+      first-build:
+        type: boolean
+        default: false
     steps:
       - run:
           name: "Setting up variant"
@@ -47,7 +61,10 @@ commands:
             DOCKER_TARBALL="cpac-docker-image"
             if [[ -n "<< parameters.variant >>" ]]
             then
-              docker load < ${DOCKER_TARBALL}.tar.gz
+              if [[ -f ${DOCKER_TARBALL}.tar.gz ]]
+              then
+                docker load < ${DOCKER_TARBALL}.tar.gz
+              fi
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
               sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
@@ -69,7 +86,7 @@ commands:
       - install-singularity-requirements
       - when:
           condition:
-            equal: [ "", "<< parameters.variant >>" ]
+            equal: [ true, "<< parameters.first-build >>" ]
           steps:
             - run: 
                 name: "Cloning Singularity 2.5.2"
@@ -124,12 +141,37 @@ jobs:
       - store_artifacts:
           path: htmlcov
           no_output_timeout: 5h
-  pytest-singularity:
+  pytest-docker-ABCD-HCP:
     machine:
       image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - check-for-built-images:
+          variant: ABCD-HCP
+      - set-python-version
+      - run:
+          name: Getting Sample BIDS Data
+          command: git clone https://github.com/bids-standard/bids-examples.git
+      - run:
+          name: Running pytest on Docker image
+          command: |
+            docker load < cpac-docker-image-ABCD-HCP.tar.gz
+            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-ABCD-HCP
+            docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
+          no_output_timeout: 5h
+  pytest-singularity:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
           at: /home/circleci/
       - check-for-built-images
       - set-python-version
@@ -140,7 +182,84 @@ jobs:
           command: |
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
+  pytest-singularity-ABCD-HCP:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - check-for-built-images:
+          variant: ABCD-HCP
+      - set-python-version
+      - install-singularity-requirements
+      - set-up-singularity
+      - run:
+          name: Testing Singularity installation
+          command: |
+            pip install -r dev/circleci_data/requirements.txt
+            coverage run -m pytest --singularity_image=/home/circleci/project/C-PAC-CI-ABCD-HCP.simg --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - set-python-version
+      - run:
+          name: "Checking if version needs updated"
+          # update version if version needs updated, otherwise just move on
+          command: |
+            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
+            then
+              cd $HOME/project/CPAC
+              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+              cd ..
+              echo "v${VERSION}" > version
+              sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
+              find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+              git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+              then
+                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
+                circleci step halt
+              fi
+              cd ..
+            fi
+      - build-images:
+          first-build: true
+      - store_artifacts:
+          path: cpac-docker-image.tar.gz
+      - store_artifacts:
+          path: cpac-singularity-image.simg
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - cpac-docker-image.tar.gz
+            - cpac-singularity-image.simg
+            - project
+  build-ABCD-HCP:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - set-python-version
+      - build-images:
+          variant: ABCD-HCP
+          first-build: true
+      - store_artifacts:
+          path: cpac-docker-image-ABCD-HCP.tar.gz
+      - store_artifacts:
+          path: cpac-singularity-image-ABCD-HCP.simg
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - cpac-docker-image-ABCD-HCP.tar.gz
+            - cpac-singularity-image-ABCD-HCP.simg
+            - project
+  check-version:
     machine:
       image: ubuntu-2004:202010-01
     steps:
@@ -169,26 +288,31 @@ jobs:
               fi
               cd ..
             fi
-      - build-images
-      - store_artifacts:
-          path: cpac-docker-image.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - cpac-docker-image.tar.gz
-            - cpac-singularity-image.simg
             - project
 
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - build
+      - check-version
+      - build:
+          requires:
+            - check-version
+      - build-ABCD-HCP:
+          requires:
+            - check-version
       - pytest-docker:
           requires:
             - build
+      - pytest-docker-ABCD-HCP:
+          requires:
+            - build-ABCD-HCP
       - pytest-singularity:
           requires:
             - build
+      - pytest-singularity-ABCD-HCP:
+          requires:
+            - build-ABCD-HCP
