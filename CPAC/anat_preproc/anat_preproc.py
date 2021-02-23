@@ -52,7 +52,8 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
                         name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['acpc_aligned_head',
-                                                         'acpc_brain_mask']),
+                                                         'acpc_brain_mask',
+                                                         'aff_to_rig_xfm']),
                          name='outputspec')
 
     robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
@@ -121,6 +122,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
     aff_to_rig.inputs.out_name = 'acpc.mat'
 
     preproc.connect(concat_xfm, 'out_file', aff_to_rig, 'in_xfm')
+    preproc.connect(aff_to_rig, 'out_mat', output_node, 'aff_to_rig_xfm')
 
     apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
                         name='anat_acpc_6_applywarp')
@@ -793,7 +795,8 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
                          name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['anat_restore',
-                                                        'anat_brain_restore']),
+                                                        'anat_brain_restore',
+                                                        'bias_field']),
                         name='outputspec')
 
     # fast -b -B -o ${T1wFolder}/T1w_fast -t 1 ${T1wFolder}/T1w_acpc_dc_brain.nii.gz
@@ -808,6 +811,9 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
 
     preproc.connect(fast_bias_field_correction, 'restored_image',
                     outputnode, 'anat_brain_restore')
+
+    preproc.connect(fast_bias_field_correction, 'bias_field',
+                    outputnode, 'bias_field')
 
     # FAST does not output a non-brain extracted image so create an inverse mask, 
     # apply it to T1w_acpc_dc.nii.gz, insert the T1w_fast_restore to the skull of 
@@ -983,6 +989,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                         'skullstrip',
                                                         'brain',
                                                         'brain_mask',
+                                                        'anat_skull_n4',
                                                         'anat_skull_leaf',
                                                         'anat_skull_restore',
                                                         'anat_brain_restore',
@@ -998,7 +1005,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                         'sulc',
                                                         'thickness',
                                                         'volume',
-                                                        'white']),
+                                                        'white',
+                                                        'acpc_aff_to_rig_xfm',
+                                                        'anat_fast_bias_field']),
                         name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
@@ -1030,7 +1039,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         n4_before_acpc = pe.Node(interface = ants.N4BiasFieldCorrection(), name='anat_n4_before_acpc')
         n4_before_acpc.inputs.dimension = 3
         preproc.connect(denoise_before_acpc, 'output_image', n4_before_acpc, 'input_image')
-    
+        preproc.connect(n4_before_acpc, 'output_image', outputnode, 'outputspec.anat_skull_n4')
+
     if not config.acpc_align:
         preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
 
@@ -1047,6 +1057,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(inputnode, 'template_brain_only_for_acpc', acpc_align, 'inputspec.template_brain_for_acpc')
         preproc.connect(inputnode, 'template_skull_for_acpc', acpc_align, 'inputspec.template_head_for_acpc')
         preproc.connect(acpc_align, 'outputspec.acpc_aligned_head', anat_leaf, 'anat_data')
+        preproc.connect(acpc_align, 'outputspec.aff_to_rig_xfm', outputnode, 'acpc_aff_to_rig_xfm')
+
         if method == 'unet':
             preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align, 'inputspec.template_brain_only_for_anat')
             preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_skull_for_anat')
@@ -1244,6 +1256,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
                             outputnode, 'anat_brain_restore')
             
+            preproc.connect(fast_correction, 'outputspec.bias_field',
+                            outputnode, 'anat_fast_bias_field')
+
             ### ABCD Harmonization ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
@@ -1376,3 +1391,131 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     return preproc
 
+
+def correct_anat_brain_intensity(workflow, num_strat, strat, config=None):
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
+    merge_t1_acpc_to_list = pe.Node(util.Merge(3),
+                            name='merge_t1_acpc_to_list')
+
+    node, out_file = strat['anatomical_skull_leaf']
+    workflow.connect(node, out_file,
+        merge_t1_acpc_to_list, 'in1')
+    workflow.connect(node, out_file,
+        merge_t1_acpc_to_list, 'in2')
+    workflow.connect(node, out_file,
+        merge_t1_acpc_to_list, 'in3')
+
+
+    merge_t1_acpc = pe.Node(interface=fsl.Merge(),
+                    name='merge_t1_acpc')
+
+    merge_t1_acpc.inputs.dimension = 't'
+    workflow.connect(merge_t1_acpc_to_list, 'out',
+        merge_t1_acpc, 'in_files')
+
+
+    mul_zero = pe.Node(interface=fsl.ImageMaths(),
+                name='mul_t1_acpc_with_zero')
+    
+    mul_zero.inputs.op_string = '-mul 0'
+    workflow.connect(merge_t1_acpc, 'merged_file', 
+        mul_zero, 'in_file')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
+    convertwarp_origt1_to_t1 = pe.Node(interface=fsl.ConvertWarp(), 
+                                name='convertwarp_origt1_to_t1')
+
+    convertwarp_origt1_to_t1.inputs.out_relwarp = True
+    convertwarp_origt1_to_t1.inputs.relwarp = True
+
+    node, out_file = strat['anatomical_brain_mask']
+    workflow.connect(node, out_file,
+        convertwarp_origt1_to_t1, 'reference')
+
+    node, out_file = strat['acpc_aff_to_rig_xfm']
+    workflow.connect(node, out_file,
+        convertwarp_origt1_to_t1, 'premat')
+    workflow.connect(mul_zero, 'out_file',
+        convertwarp_origt1_to_t1, 'warp1')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
+    applywarp_biasfield = pe.Node(interface=fsl.ApplyWarp(), 
+                            name='applywarp_biasfield')
+
+    applywarp_biasfield.inputs.relwarp = True
+    applywarp_biasfield.inputs.interp = 'spline'
+
+    node, out_file = strat['anatomical_fast_bias_field']
+    workflow.connect(node, out_file,
+        applywarp_biasfield, 'in_file')
+
+    node, out_file = strat['anatomical_brain_mask']
+    workflow.connect(node, out_file,
+        applywarp_biasfield, 'ref_file')
+
+    node, out_file = strat['anatomical_to_standard_xfm']
+    workflow.connect(node, out_file,
+        applywarp_biasfield, 'field_file')
+
+
+    threshold_biasfield = pe.Node(interface=fsl.ImageMaths(),
+                            name='threshold_biasfield')
+
+    threshold_biasfield.inputs.op_string = '-thr 0.1'
+    workflow.connect(applywarp_biasfield, 'out_file', 
+        threshold_biasfield, 'in_file')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
+    applywarp_t1 = pe.Node(interface=fsl.ApplyWarp(), 
+                            name='applywarp_t1')
+    
+    applywarp_t1.inputs.relwarp = True
+    applywarp_t1.inputs.interp = 'spline'
+    
+    node, out_file = strat['anatomical_skull_n4']
+    workflow.connect(node, out_file,
+        applywarp_t1, 'in_file')
+    
+    node, out_file = strat['anatomical_brain_mask']
+    workflow.connect(node, out_file,
+        applywarp_t1, 'ref_file')
+    
+    workflow.connect(convertwarp_origt1_to_t1, 'out_file',
+        applywarp_t1, 'field_file')
+
+    
+    cal_abs_t1 = pe.Node(interface=fsl.ImageMaths(),
+                name='cal_abs_t1')
+    
+    cal_abs_t1.inputs.op_string = '-abs'
+    workflow.connect(applywarp_t1, 'out_file', 
+        cal_abs_t1, 'in_file')
+
+
+    div_t1_by_biasfield = pe.Node(interface=fsl.ImageMaths(),
+                name='div_t1_by_biasfield')
+    
+    div_t1_by_biasfield.inputs.op_string = '-div'
+
+    workflow.connect(cal_abs_t1, 'out_file', 
+        div_t1_by_biasfield, 'in_file')
+    
+    node, out_file = strat['anatomical_fast_bias_field']
+    workflow.connect(node, out_file,
+        div_t1_by_biasfield, 'in_file2')
+
+
+    apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
+                             name='get_brain_restored_corrected')
+
+    workflow.connect(div_t1_by_biasfield, 'out_file',
+                    apply_mask, 'in_file')
+
+    node, out_file = strat['anatomical_brain_mask']
+    workflow.connect(node, out_file,
+                    apply_mask, 'mask_file')
+
+    strat.update_resource_pool({
+        'anatomical_brain_restore': (apply_mask, 'out_file'),
+    }, override=True)

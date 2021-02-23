@@ -1133,5 +1133,6 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     
     strat.update_resource_pool({
         'anatomical_to_standard': (fslmaths_mask, 'out_file'),
-        'anatomical_brain_mask_to_standard': (apply_warp_brain_mask, 'out_file')
+        'anatomical_brain_mask_to_standard': (apply_warp_brain_mask, 'out_file'),
+        'anatomical_to_standard_xfm': (merge_xfms, 'merged_file'),
     }, override=True)

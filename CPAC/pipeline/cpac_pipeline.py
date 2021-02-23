@@ -35,7 +35,10 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 
-from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.anat_preproc.anat_preproc import (
+    create_anat_preproc, 
+    correct_anat_brain_intensity
+)
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 
@@ -1202,6 +1205,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'anatomical_skull_restore': (anat_preproc, 'outputspec.anat_skull_restore'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                         'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
+                        'acpc_aff_to_rig_xfm': (anat_preproc, 'outputspec.acpc_aff_to_rig_xfm'),
+                        'anatomical_skull_n4': (anat_preproc, 'outputspec.anat_skull_n4'),
+                        'anatomical_fast_bias_field': (anat_preproc, 'outputspec.anat_fast_bias_field'),
                     })
 
                     new_strat_list += [new_strat]
@@ -1484,6 +1490,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # perform ABCD style registration
                 anat_brain_to_standard_abcd(workflow, num_strat, strat, config=c)
+
+                # correct intensity to replicate ABCD result
+                # node, out_file = strat['acpc_aff_to_rig_xfm']
+                correct_anat_brain_intensity(workflow, num_strat, strat, config=c)
 
                 # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
                 func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=c)
