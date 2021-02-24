@@ -652,7 +652,7 @@ CPAC run error:
                     run_finish=strftime("%Y-%m-%d %H:%M:%S")
                 ))
 
-                resource_report(c.pipeline_setup['log_directory']['path'],
+                resource_report(cb_log_filename,
                                 num_cores_per_sub, logger)
 
                 # Remove working directory when done
