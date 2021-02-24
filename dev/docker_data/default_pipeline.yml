@@ -814,6 +814,15 @@ fmap_distcorr_threshold :  0.6
 runRegisterFuncToAnat :  [1]
 
 
+func_to_anat_registration_interpolation: trilinear
+
+
+func_to_anat_registration_with_skull: False
+
+
+func_to_anat_registration_using: ['FSL']
+
+
 functional_registration:
 
   1-coregistration:
@@ -823,7 +832,7 @@ functional_registration:
 
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
-      run: [On]
+      run: [Off]
 
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
       # It is not necessary to change this path unless you intend to use non-standard MNI registration.
@@ -831,12 +840,12 @@ functional_registration:
 
 
 # Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+# runBBReg :  [1]
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+# boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
 
 # Interpolation method for writing out transformed anatomical images.

@@ -1037,7 +1037,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     return calc_ants_warp_wf
 
-
+# TODO remove func_reg_skull and check config func_to_anat_registration_with_skull directly
 def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False, override=True):
 
     new_strat_list = []
@@ -1077,9 +1077,8 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
             func_to_anat = create_register_func_to_anat(diff_complete,
                                                         f'func_to_anat_FLIRT_{num_strat}')
 
-            # TODO open interp option
             # Input registration parameters
-            func_to_anat.inputs.inputspec.interp = 'trilinear'
+            func_to_anat.inputs.inputspec.interp = c.func_to_anat_registration_interpolation
 
             if 'Mean Functional' in c.func_reg_input:
                 # Input functional image (mean functional)
@@ -1126,9 +1125,14 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
                                         func_to_anat, 'inputspec.func')
 
             # Input skull-stripped anatomical
-            node, out_file = strat['anatomical_brain']
-            workflow.connect(node, out_file,
-                                func_to_anat, 'inputspec.anat')
+            if 'FSL' in c.func_to_anat_registration_using:
+                node, out_file = strat['anatomical_brain']
+                workflow.connect(node, out_file,
+                                    func_to_anat, 'inputspec.anat')
+            elif 'ABCD' in c.func_to_anat_registration_using:
+                node, out_file = strat['anatomical_brain_restore']
+                workflow.connect(node, out_file,
+                                    func_to_anat, 'inputspec.anat')
 
             if diff_complete:
                 # apply field map distortion correction outputs to

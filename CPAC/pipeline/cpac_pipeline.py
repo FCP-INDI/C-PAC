@@ -1813,7 +1813,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Depending on configuration, either passes output matrix to
         # Func -> Template ApplyWarp, or feeds into linear reg of BBReg operation
         # (if BBReg is enabled)
-        workflow, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow, strat_list, c)
+        workflow, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=c.func_to_anat_registration_with_skull)
 
         # Func -> T1 Registration (BBREG)
         # Outputs 'functional_to_anat_linear_xfm', a matrix file of the

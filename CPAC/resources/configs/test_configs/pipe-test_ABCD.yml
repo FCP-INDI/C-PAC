@@ -818,6 +818,15 @@ fmap_distcorr_threshold :  0.6
 runRegisterFuncToAnat :  [1]
 
 
+func_to_anat_registration_interpolation: spline
+
+
+func_to_anat_registration_with_skull: True
+
+
+func_to_anat_registration_using: ['ABCD']
+
+
 functional_registration:
 
   1-coregistration:
@@ -827,7 +836,7 @@ functional_registration:
 
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
-      run: [On]
+      run: [Off]
 
       # this is a fork point
       #   using: ['FSL', 'FreeSurfer']
