@@ -398,6 +398,7 @@ def create_register_func_to_anat(phase_diff_distcor=False,
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
                                                        'anat',
+                                                       'dof',
                                                        'interp',
                                                        'fieldmap',
                                                        'fieldmapmask']),
@@ -417,7 +418,6 @@ def create_register_func_to_anat(phase_diff_distcor=False,
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_func_to_anat')
     linear_reg.inputs.cost = 'corratio'
-    linear_reg.inputs.dof = 6
     
     #if fieldmap_distortion:
 
@@ -450,6 +450,8 @@ def create_register_func_to_anat(phase_diff_distcor=False,
     
     register_func_to_anat.connect(inputspec, 'anat', linear_reg, 'reference')
     
+    register_func_to_anat.connect(inputspec, 'dof', linear_reg, 'dof')
+
     register_func_to_anat.connect(inputspec, 'interp', linear_reg, 'interp')
 
     register_func_to_anat.connect(linear_reg, 'out_matrix_file',
@@ -1078,6 +1080,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
                                                         f'func_to_anat_FLIRT_{num_strat}')
 
             # Input registration parameters
+            func_to_anat.inputs.inputspec.dof = c.func_to_anat_registration_dof
             func_to_anat.inputs.inputspec.interp = c.func_to_anat_registration_interpolation
 
             if 'Mean Functional' in c.func_reg_input:

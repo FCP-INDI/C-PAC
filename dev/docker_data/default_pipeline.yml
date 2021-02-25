@@ -814,6 +814,9 @@ fmap_distcorr_threshold :  0.6
 runRegisterFuncToAnat :  [1]
 
 
+func_to_anat_registration_dof: 6
+
+
 func_to_anat_registration_interpolation: trilinear
 
 
