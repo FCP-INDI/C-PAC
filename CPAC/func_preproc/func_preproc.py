@@ -177,6 +177,15 @@ def normalize_motion_parameters(in_file):
     return out_file
 
 
+def get_mcflirt_rms_abs(rms_files):
+    for path in rms_files:
+        if 'abs.rms' in path:
+            abs_file = path
+        if 'rel.rms' in path:
+            rels_file = path
+    return (abs_file, rels_file)
+
+
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
     """Workflow to scale func data.
     Parameters
@@ -545,7 +554,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(out_split_func, 'out_file',
                    func_motion_correct_A, 'in_file')
 
-        node, out = strat_pool.get_data('motion_basefile')
+        node, out = strat_pool.get_data('motion-basefile')
         wf.connect(node, out, func_motion_correct_A, 'basefile')
 
         if cfg:
@@ -675,9 +684,9 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
 
         outputs = {
             'desc-motion_bold': (out_motion_A, 'out_file'),
-            'max_displacement': (out_md1d, 'out_file'),
-            'movement_parameters': (out_oned, 'out_file'),
-            'coordinate_transformation': (out_oned_matrix, 'out_file')
+            'max-displacement': (out_md1d, 'out_file'),
+            'movement-parameters': (out_oned, 'out_file'),
+            'coordinate-transformation': (out_oned_matrix, 'out_file')
         }
 
     elif opt == 'mcflirt':
@@ -692,7 +701,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
         wf.connect(node, out, func_motion_correct_A, 'in_file')
 
-        node, out = strat_pool.get_data('motion_basefile')
+        node, out = strat_pool.get_data('motion-basefile')
         wf.connect(node, out, func_motion_correct_A, 'ref_file')
 
         normalize_motion_params = pe.Node(Function(input_names=['in_file'],
@@ -703,11 +712,20 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(func_motion_correct_A, 'par_file',
                    normalize_motion_params, 'in_file')
 
+        get_rms_abs = pe.Node(Function(input_names=['rms_files'],
+                                       output_names=['abs_file',
+                                                     'rels_file'],
+                                       function=get_mcflirt_rms_abs),
+                              name=f'get_mcflirt_rms_abs_{pipe_num}')
+
+        wf.connect(func_motion_correct_A, 'rms_files',
+                   get_rms_abs, 'rms_files')
+
         outputs = {
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
-            'max_displacement': (func_motion_correct_A, 'rms_files'),
-            'movement_parameters': (normalize_motion_params, 'out_file'),
-            'coordinate_transformation': (func_motion_correct_A, 'mat_file')
+            'max-displacement': (get_rms_abs, 'abs_file'),
+            'rels-displacement': (get_rms_abs, 'rels_file'),
+            'movement-parameters': (normalize_motion_params, 'out_file'),
         }
 
     return (wf, outputs)
@@ -874,7 +892,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "motion_correction_reference",
      "option_val": ["mean", "median", "selected_volume"],
      "inputs": [["desc-preproc_bold", "bold"]],
-     "outputs": ["motion_basefile"]}
+     "outputs": ["motion-basefile"]}
     '''
 
     if opt != 'mean' and opt != 'median' and opt != 'selected_volume':
@@ -917,7 +935,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, func_get_RPI, 'in_file_a')
 
     outputs = {
-        'motion_basefile': (func_get_RPI, 'out_file')
+        'motion-basefile': (func_get_RPI, 'out_file')
     }
 
     return (wf, outputs)
@@ -932,11 +950,12 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
-                 "motion_basefile")],
+                 "motion-basefile")],
      "outputs": ["desc-motion_bold",
-                 "max_displacement",
-                 "movement_parameters",
-                 "coordinate_transformation"]}
+                 "max-displacement",
+                 "rels-displacement",
+                 "movement-parameters",
+                 "coordinate-transformation"]}
     '''
 
     wf, outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
@@ -954,20 +973,27 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
-                 "motion_basefile")],
-     "outputs": ["max_displacement",
-                 "movement_parameters",
-                 "coordinate_transformation"]}
+                 "motion-basefile")],
+     "outputs": ["max-displacement",
+                 "rels-displacement",
+                 "movement-parameters",
+                 "coordinate-transformation"]}
     '''
 
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
 
     outputs = {
-        'max_displacement': wf_outputs['max_displacement'],
-        'movement_parameters': wf_outputs['movement_parameters'],
-        'coordinate_transformation': wf_outputs['coordinate_transformation']
+        'max-displacement': wf_outputs['max-displacement'],
+        'movement-parameters': wf_outputs['movement-parameters']
     }
+
+    if 'coordinate-transformation' in wf_outputs:
+        outputs['coordinate-transformation'] = \
+            wf_outputs['coordinate-transformation']
+
+    if 'rels-displacement' in wf_outputs:
+        outputs['rels-displacement'] = wf_outputs['rels-displacement']
 
     return (wf, outputs)
 
@@ -981,7 +1007,7 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
-                 "motion_basefile")],
+                 "motion-basefile")],
      "outputs": ["desc-motion_bold"]}
     '''
 
@@ -995,7 +1021,7 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
+def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimate_filter",
      "config": ["functional_preproc", "motion_estimates_and_correction",
@@ -1003,17 +1029,17 @@ def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
      "switch": ["run"],
      "option_key": "filter_type",
      "option_val": ["notch", "lowpass"],
-     "inputs": ["movement_parameters",
-                "tr"],
-     "outputs": ["movement_parameters",
-                 "motion_filter_info",
-                 "motion_filter_plot"]}
+     "inputs": ["movement-parameters",
+                "TR"],
+     "outputs": ["movement-parameters",
+                 "motion-filter-info",
+                 "motion-filter-plot"]}
     '''
 
     notch_imports = ['import os', 'import numpy as np',
                      'from scipy.signal import iirnotch, lfilter, firwin, freqz',
                      'from matplotlib import pyplot as plt',
-                     'from CPAC.func_wf.utils import degrees_to_mm, mm_to_degrees']
+                     'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
     notch = pe.Node(Function(input_names=['motion_params',
                                           'filter_type',
                                           'TR',
@@ -1029,26 +1055,40 @@ def motion_estimate_filter(wf, cfg, strat_pool, opt=None):
                                  'filter_plot'],
                              function=notch_filter_motion,
                              imports=notch_imports),
-                    name='filter_motion_params')
+                    name=f'filter_motion_params_{pipe_num}')
 
-    notch.inputs.filter_type = cfg.motion_estimate_filter['filter_type']
-    notch.inputs.fc_RR_min = cfg.motion_estimate_filter['breathing_rate_min']
-    notch.inputs.fc_RR_max = cfg.motion_estimate_filter['breathing_rate_max']
-    notch.inputs.center_freq = cfg.motion_estimate_filter['center_frequency']
-    notch.inputs.freq_bw = cfg.motion_estimate_filter['filter_bandwidth']
-    notch.inputs.lowpass_cutoff = cfg.motion_estimate_filter['lowpass_cutoff']
-    notch.inputs.filter_order = cfg.motion_estimate_filter['filter_order']
+    notch.inputs.filter_type = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_type']
+    notch.inputs.fc_RR_min = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_min']
+    notch.inputs.fc_RR_max = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['breathing_rate_max']
+    notch.inputs.center_freq = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['center_frequency']
+    notch.inputs.freq_bw = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_bandwidth']
+    notch.inputs.lowpass_cutoff = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['lowpass_cutoff']
+    notch.inputs.filter_order = cfg.functional_preproc[
+        "motion_estimates_and_correction"][
+        "motion_estimate_filter"]['filter_order']
 
-    node, out = strat_pool.get_data('movement_parameters')
+    node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, notch, 'motion_params')
 
-    node, out = strat_pool.get_data('tr')
+    node, out = strat_pool.get_data('TR')
     wf.connect(node, out, notch, 'TR')
 
     outputs = {
-        'motion_filter_info': (notch, 'filter_info'),
-        'motion_filter_plot': (notch, 'filter_plot'),
-        'movement_parameters': (notch, 'filtered_motion_params')
+        'motion-filter-info': (notch, 'filter_info'),
+        'motion-filter-plot': (notch, 'filter_plot'),
+        'movement-parameters': (notch, 'filtered_motion_params')
     }
 
     return (wf, outputs)
@@ -1063,19 +1103,20 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-motion_bold",
                  "space-bold_desc-brain_mask",
-                 "movement_parameters",
-                 "max_displacement",
-                 "coordinate_transformation"),
+                 "movement-parameters",
+                 "max-displacement",
+                 "rels-displacement",
+                 "coordinate-transformation"),
                 "subject",
                 "scan"],
-     "outputs": ["framewise_displacement_power",
-                 "framewise_displacement_jenkinson",
+     "outputs": ["framewise-displacement-power",
+                 "framewise-displacement-jenkinson",
                  "dvars",
-                 "power_params",
-                 "motion_params"]}
+                 "power-params",
+                 "motion-params"]}
     '''
 
-    motion_prov = strat_pool.get_cpac_provenance('movement_parameters')
+    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
 
     gen_motion_stats = motion_power_statistics(
@@ -1100,29 +1141,34 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.mask')
 
-    node, out_file = strat_pool.get_data('movement_parameters')
+    node, out_file = strat_pool.get_data('movement-parameters')
     wf.connect(node, out_file,
                gen_motion_stats,
                'inputspec.movement_parameters')
 
-    node, out_file = strat_pool.get_data('max_displacement')
+    node, out_file = strat_pool.get_data('max-displacement')
     wf.connect(node, out_file,
                gen_motion_stats,
                'inputspec.max_displacement')
 
-    node, out_file = strat_pool.get_data('coordinate_transformation')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.transformations')
+    if strat_pool.check_rpool('rels-displacement'):
+        node, out_file = strat_pool.get_data('rels-displacement')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.rels_displacement')
+
+    if strat_pool.check_rpool('coordinate-transformation'):
+        node, out_file = strat_pool.get_data('coordinate-transformation')
+        wf.connect(node, out_file, gen_motion_stats,
+                   'inputspec.transformations')
 
     outputs = {
-        'framewise_displacement_power':
+        'framewise-displacement-power':
             (gen_motion_stats, 'outputspec.FDP_1D'),
-        'framewise_displacement_jenkinson':
+        'framewise-displacement-jenkinson':
             (gen_motion_stats, 'outputspec.FDJ_1D'),
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-        'power_params': (gen_motion_stats, 'outputspec.power_params'),
-        'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+        'power-params': (gen_motion_stats, 'outputspec.power_params'),
+        'motion-params': (gen_motion_stats, 'outputspec.motion_params')
     }
 
     return (wf, outputs)
@@ -1338,7 +1384,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # binarize anat mask, in case of it is not a binary mask.
     anat_brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                                  name='anat_brain_mask_bin')
+                                  name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
@@ -1346,7 +1392,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fill holes of anat mask
     anat_mask_filled = pe.Node(interface=afni.MaskTool(),
-                               name='anat_brain_mask_filled')
+                               name=f'anat_brain_mask_filled_{pipe_num}')
     anat_mask_filled.inputs.fill_holes = True
     anat_mask_filled.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1355,17 +1401,17 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # init_bold_mask : input raw func
     init_bold_mask = anat_refined_mask(init_bold_mask=True,
-                                       wf_name='init_bold_mask')
+                                       wf_name=f'init_bold_mask_{pipe_num}')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name='raw_func_deoblique')
+                             name=f'raw_func_deoblique_{pipe_num}')
     func_deoblique.inputs.deoblique = True
 
     node, out = strat_pool.get_data('bold')
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name='raw_func_reorient')
+                            name=f'raw_func_reorient_{pipe_num}')
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1384,7 +1430,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # dilate init func brain mask
     func_tmp_brain_mask = pe.Node(interface=fsl.ImageMaths(),
-                                  name='func_tmp_brain_mask_dil')
+                                  name=f'func_tmp_brain_mask_dil_{pipe_num}')
     func_tmp_brain_mask.inputs.op_string = '-dilM'
 
     wf.connect(init_bold_mask, 'outputspec.func_brain_mask',
@@ -1392,7 +1438,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # refined_bold_mask : input motion corrected func
     refined_bold_mask = anat_refined_mask(init_bold_mask=False,
-                                          wf_name='refined_bold_mask')
+                                          wf_name='refined_bold_mask'
+                                                  f'_{pipe_num}')
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
@@ -1408,7 +1455,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg.functional_preproc['func_masking']['Anatomical_Refined'][
         'anatomical_mask_dilation']:
         anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
-                                   name='anat_mask_dilate')
+                                   name=f'anat_mask_dilate_{pipe_num}')
         anat_mask_dilate.inputs.dilate_inputs = '1'
         anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1423,7 +1470,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # get final func mask
     func_mask_final = pe.Node(interface=fsl.MultiImageMaths(),
-                              name='func_mask_final')
+                              name=f'func_mask_final_{pipe_num}')
     func_mask_final.inputs.op_string = "-mul %s"
 
     wf.connect(func_tmp_brain_mask, 'out_file',

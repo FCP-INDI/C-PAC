@@ -30,6 +30,13 @@ with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
     default_config = yaml.safe_load(dp_fp)
 
 
+class ConfigurationDictUpdateConflation(SyntaxError):
+    def __init__(self):
+        self.msg = (
+            '`Configuration().update` requires a key and a value. '
+            'Perhaps you meant `Configuration().dict().update`?')
+
+
 class Configuration(object):
     """Class to set dictionary keys as map attributes.
 
@@ -87,17 +94,22 @@ class Configuration(object):
             except OptionError:
                 base_config = base_config
             from_config = yaml.safe_load(open(base_config, 'r'))
-            config_map = update_nested_dict(from_config, config_map)
+            config_map = update_nested_dict(
+                Configuration(from_config).dict(), config_map)
 
         # base everything on default pipeline
-        config_map = update_nested_dict(default_config, config_map)
+        config_map = _enforce_forkability(
+            update_nested_dict(default_config, config_map))
 
         config_map = self.nonestr_to_None(config_map)
 
-        regressors = lookup_nested_value(
-            config_map,
-            ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
-        )
+        try:
+            regressors = lookup_nested_value(
+                config_map,
+                ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
+            )
+        except KeyError:
+            regressors = []
         if isinstance(regressors, list):
             for i, regressor in enumerate(regressors):
                 # set Regressor 'Name's if not provided
@@ -105,7 +117,6 @@ class Configuration(object):
                     regressor['Name'] = f'Regressor-{str(i + 1)}'
                 # replace spaces with hyphens in Regressor 'Name's
                 regressor['Name'] = regressor['Name'].replace(' ', '-')
-
         config_map = schema(config_map)
 
         # remove 'FROM' before setting attributes now that it's imported
@@ -255,7 +266,9 @@ class Configuration(object):
 
     __update_attr = update_attr
 
-    def update(self, key, val):
+    def update(self, key, val=ConfigurationDictUpdateConflation):
+        if isinstance(key, dict):
+            raise ConfigurationDictUpdateConflation
         setattr(self, key, val)
 
     def get_nested(self, d, keys):
@@ -284,6 +297,76 @@ class Configuration(object):
                 f'`{str(key)}`',
                 'was given.'
             ]))
+
+
+def collect_key_list(config_dict):
+    '''Function to return a list of lists of keys for a nested dictionary
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    Returns
+    -------
+    key_list : list
+
+    Examples
+    --------
+    >>> collect_key_list({'test': {'nested': 1, 'dict': 2}})
+    [['test', 'nested'], ['test', 'dict']]
+    '''
+    key_list = []
+    for key in config_dict:
+        if isinstance(config_dict[key], dict):
+            for inner_key_list in collect_key_list(config_dict[key]):
+                key_list.append([key, *inner_key_list])
+        else:
+            key_list.append([key])
+    return key_list
+
+
+def _enforce_forkability(config_dict):
+    '''Function to set forkable booleans as lists of booleans.
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    Returns
+    -------
+    config_dict : dict
+
+    Examples
+    --------
+    >>> c = Configuration().dict()
+    >>> c['functional_preproc']['run']
+    [True]
+    >>> c['functional_preproc']['run'] = True
+    >>> c['functional_preproc']['run']
+    True
+    >>> _enforce_forkability(c)['functional_preproc']['run']
+    [True]
+    '''
+    from CPAC.pipeline.schema import schema
+    from CPAC.utils.utils import lookup_nested_value, set_nested_value
+
+    key_list_list = collect_key_list(config_dict)
+    for key_list in key_list_list:
+        try:
+            schema_check = lookup_nested_value(schema.schema, key_list)
+        except KeyError:
+            continue
+        if hasattr(schema_check, 'validators'):
+            schema_check = schema_check.validators
+            if bool in schema_check and [bool] in schema_check:
+                try:
+                    value = lookup_nested_value(config_dict, key_list)
+                except KeyError:
+                    continue
+                if isinstance(value, bool):
+                    config_dict = set_nested_value(
+                        config_dict, key_list, [value])
+    return config_dict
 
 
 def set_from_ENV(conf):

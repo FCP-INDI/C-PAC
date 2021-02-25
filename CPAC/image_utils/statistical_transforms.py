@@ -1,15 +1,9 @@
-import nipype.interfaces.fsl as fsl
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
-from CPAC.registration import create_fsl_fnirt_nonlinear_reg, \
-    create_register_func_to_anat, \
-    create_bbregister_func_to_anat, \
-    create_wf_calculate_ants_warp
 
-from CPAC.utils import Configuration, function, find_files
+from CPAC.utils import function
 from CPAC.utils.utils import (
-    get_scan_params,
     extract_output_mean,
     get_zscore,
     get_fisher_zscore

@@ -23,19 +23,21 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
                     "smoothing_method"],
      "option_val": ["AFNI", "FSL"],
      "inputs": [["desc-cleaned_bold",
+                 "desc-brain_bold",
                  "desc-preproc_bold",
-                 "desc-reorient_bold",
                  "bold"],
                 "space-bold_desc-brain_mask"],
      "outputs": ["desc-sm_bold",
                  "fwhm"]}
     '''
+    fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
 
-    smooth = spatial_smoothing(f'smooth_symmetric_{pipe_num}', cfg, opt=opt)
+    smooth = spatial_smoothing(f'smooth_symmetric_{pipe_num}',
+                               fwhm, opt=opt)
 
     node, out = strat_pool.get_data(["desc-cleaned_bold",
+                                     "desc-brain_bold",
                                      "desc-preproc_bold",
-                                     "desc-reorient_bold",
                                      "bold"])
     wf.connect(node, out, smooth, 'inputspec.in_file')
 
@@ -59,7 +61,10 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-sm_bold",
+     "inputs": [["desc-cleaned-sm_bold",
+                 "desc-brain-sm_bold",
+                 "desc-preproc-sm_bold",
+                 "desc-sm_bold"],
                 "from-bold_to-symtemplate_mode-image_xfm",
                 "T1w_brain_template_symmetric"],
      "outputs": ["space-symtemplate_desc-sm_bold"]}
@@ -88,7 +93,10 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
             'FNIRT_pipelines']['interpolation']
 
     # smoothed BOLD
-    connect, resource = strat_pool.get_data("desc-sm_bold",
+    connect, resource = strat_pool.get_data(["desc-cleaned-sm_bold",
+                                             "desc-brain-sm_bold",
+                                             "desc-preproc-sm_bold",
+                                             "desc-sm_bold"],
                                             report_fetched=True)
     node, out = connect
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
@@ -120,7 +128,10 @@ def vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-symtemplate_desc-sm_bold"],
+     "inputs": [["space-symtemplate_desc-cleaned-sm_bold",
+                 "space-symtemplate_desc-brain-sm_bold",
+                 "space-symtemplate_desc-preproc-sm_bold",
+                 "space-symtemplate_desc-sm_bold"]],
      "outputs": ["vmhc"]}
     '''
 
@@ -132,7 +143,10 @@ def vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
-    node, out = strat_pool.get_data('space-symtemplate_desc-sm_bold')
+    node, out = strat_pool.get_data(["space-symtemplate_desc-cleaned-sm_bold",
+                                     "space-symtemplate_desc-brain-sm_bold",
+                                     "space-symtemplate_desc-preproc-sm_bold",
+                                     "space-symtemplate_desc-sm_bold"])
     wf.connect(node, out, copy_and_L_R_swap, 'in_file')
 
     # calculate correlation between original and swapped images

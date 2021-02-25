@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/anat/working
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/anat/log
@@ -71,16 +75,20 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  run: [On]
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: Off
 
   # N4 bias field correction via ANTs
   n4_bias_field_correction: On
 
-segmentation: 
+  brain_extraction: 
 
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: [On]
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
+
+segmentation: 
 
   tissue_segmentation: 
 
@@ -95,6 +103,12 @@ segmentation:
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
+
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -120,6 +134,9 @@ registration_workflows:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
+
     registration: 
 
       FSL-FNIRT: 
@@ -131,9 +148,7 @@ registration_workflows:
 
     coregistration: 
 
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
+      run: Off
 
       boundary_based_registration: 
 
@@ -143,6 +158,12 @@ registration_workflows:
 
     EPI_registration: 
 
+      ANTs: 
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
+
       FSL-FNIRT: 
 
         # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
@@ -150,6 +171,8 @@ registration_workflows:
         identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     func_registration_to_template: 
+
+      run: Off
 
       target_template: 
 
@@ -166,7 +189,7 @@ registration_workflows:
 
 functional_preproc: 
 
-  run: [Off]
+  run: Off
 
   motion_estimates_and_correction: 
 
@@ -178,13 +201,17 @@ functional_preproc:
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: On
 
+  distortion_correction: 
+
+    # using: ['PhaseDiff', 'Blip']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   NOTE:
+    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
+    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    using: []
+
 nuisance_corrections: 
-
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
 
   2-nuisance_regression: 
 
@@ -192,38 +219,41 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+    # Select which nuisance signal corrections to apply
+    Regressors: 
+
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -242,7 +272,7 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
@@ -275,9 +305,6 @@ network_centrality:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
 
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

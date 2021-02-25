@@ -72,20 +72,19 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
                         name='outputspec')
 
     timeseries_voxel = pe.Node(util.Function(input_names=['data_file',
-                                                         'template',
-                                                         'output_type'],
-                                            output_names=['out_file'],
+                                                          'template'],
+                                            output_names=['oneD_file'],
                                             function=gen_voxel_timeseries),
                               name='timeseries_voxel')
 
     wflow.connect(inputNode, 'rest',
                   timeseries_voxel, 'data_file')
-    wflow.connect(inputNode, 'output_type',
-                  timeseries_voxel, 'output_type')
+    #wflow.connect(inputNode, 'output_type',
+    #              timeseries_voxel, 'output_type')
     wflow.connect(inputNode_mask, 'mask',
                   timeseries_voxel, 'template')
 
-    wflow.connect(timeseries_voxel, 'out_file',
+    wflow.connect(timeseries_voxel, 'oneD_file',
                   outputNode, 'mask_outputs')
 
     return wflow
@@ -144,11 +143,11 @@ def clean_roi_csv(roi_csv):
         with open(edited_roi_csv, 'wt') as f:
             for line in edited_lines:
                 f.write(line)
-        edited_roi_csv = [edited_roi_csv]
+        edited_roi_csv = edited_roi_csv
     else:
-        edited_roi_csv = [roi_csv]
+        edited_roi_csv = roi_csv
 
-    data = pd.read_csv(edited_roi_csv[0], sep=',', header=1)
+    data = pd.read_csv(edited_roi_csv, sep=',', header=1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
@@ -225,15 +224,14 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['rest',
-                                                       'output_type']),
+    inputNode = pe.Node(util.IdentityInterface(fields=['rest']),
                         name='inputspec')
 
     inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
                             name='input_roi')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts',
-                                                        'roi_outputs']),
+                                                        'roi_csv']),
                          name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
@@ -259,18 +257,19 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                         name='clean_roi_csv')
 
     wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
-
-    write_npz_imports = ['import os', 'import numpy as np',
-                         'from numpy import genfromtxt']
-    write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
-                                      output_names=['roi_output_npz'],
-                                      function=write_roi_npz,
-                                      imports=write_npz_imports),
-                        name='write_roi_npz')
-    wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
-    wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
     wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_ts')
-    wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
+    wflow.connect(clean_csv, 'edited_roi_csv', outputNode, 'roi_csv')
+
+    #write_npz_imports = ['import os', 'import numpy as np',
+    #                     'from numpy import genfromtxt']
+    #write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
+    #                                  output_names=['roi_output_npz'],
+    #                                  function=write_roi_npz,
+    #                                  imports=write_npz_imports),
+    #                    name='write_roi_npz')
+    #wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
+    #wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
+    #wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
 
     return wflow
 
@@ -585,6 +584,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     out_list.append(txt_file)
 
     # if csv is required
+    '''
     if output_type[0]:
         print("writing csv file..")
         f = open(csv_file, 'wt')
@@ -602,9 +602,12 @@ def gen_roi_timeseries(data_file, template, output_type):
         out_list.append(numpy_file)
 
     return out_list
+    '''
+
+    return oneD_file
 
 
-def gen_voxel_timeseries(data_file, template, output_type):
+def gen_voxel_timeseries(data_file, template):
     """
     Method to extract timeseries for each voxel
     in the data that is present in the input mask
@@ -671,33 +674,30 @@ def gen_voxel_timeseries(data_file, template, output_type):
         sorted_list.append(val)
 
     f.close()
-    out_list.append(oneD_file)
 
-    if output_type[0]:
-        csv_file = os.path.abspath('mask_' + tmp_file + '.csv')
-        f = open(csv_file, 'wt')
-        writer = csv.writer(f, delimiter=str(','),
-                            quoting=csv.QUOTE_MINIMAL)
-        one = np.array([1])
-        headers = ['volume/xyz']
-        cordinates = np.argwhere(unit_data != 0)
-        for val in range(np.alen(cordinates)):
-            ijk_mat = np.concatenate([cordinates[val], one])
-            ijk_mat = ijk_mat.T
-            product = np.dot(qform, ijk_mat)
-            val = tuple(product.tolist()[0:3])
-            headers.append(val)
-        writer.writerow(headers)
-        writer.writerows(sorted_list)
-        f.close()
-        out_list.append(csv_file)
+    csv_file = os.path.abspath('mask_' + tmp_file + '.csv')
+    f = open(csv_file, 'wt')
+    writer = csv.writer(f, delimiter=str(','),
+                        quoting=csv.QUOTE_MINIMAL)
+    one = np.array([1])
+    headers = ['volume/xyz']
+    cordinates = np.argwhere(unit_data != 0)
+    for val in range(np.alen(cordinates)):
+        ijk_mat = np.concatenate([cordinates[val], one])
+        ijk_mat = ijk_mat.T
+        product = np.dot(qform, ijk_mat)
+        val = tuple(product.tolist()[0:3])
+        headers.append(val)
+    writer.writerow(headers)
+    writer.writerows(sorted_list)
+    f.close()
 
-    if output_type[1]:
-        numpy_file = os.path.abspath('mask_' + tmp_file + '.npz')
-        np.savez(numpy_file, **dict(vol_dict))
-        out_list.append(numpy_file)
+    #if output_type[1]:
+    #    numpy_file = os.path.abspath('mask_' + tmp_file + '.npz')
+    #    np.savez(numpy_file, **dict(vol_dict))
+    #    out_list.append(numpy_file)
 
-    return out_list
+    return oneD_file
 
 
 def gen_vertices_timeseries(rh_surface_file,
@@ -761,8 +761,9 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"]],
      "outputs": ["desc-Mean_timeseries",
                  "desc-ndmg_correlations",
@@ -796,12 +797,13 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     roi_timeseries = get_roi_timeseries(f'roi_timeseries_{pipe_num}')
-    roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
-        'roi_tse_outputs']
+    #roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
+    #    'roi_tse_outputs']
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     wf.connect(node, out, resample_functional_roi, 'in_func')
 
@@ -819,19 +821,21 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     # create the graphs
     from CPAC.utils.ndmg_utils import ndmg_create_graphs
 
-    ndmg_graph = pe.MapNode(Function(
+    ndmg_graph_imports = ['import os',
+                          'from CPAC.utils.ndmg_utils import graph']
+    ndmg_graph = pe.Node(Function(
         input_names=['ts', 'labels'],
         output_names=['out_file'],
         function=ndmg_create_graphs,
+        imports=ndmg_graph_imports,
         as_module=True
-    ), name=f'ndmg_graphs_{pipe_num}',
-        iterfield=['labels'])
+    ), name=f'ndmg_graphs_{pipe_num}')
 
     wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
     wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
 
     outputs = {
-        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_csv'),
         'desc-ndmg_correlations': (ndmg_graph, 'out_file'),
         'atlas_name': (roi_dataflow, 'outputspec.out_name')
     }
@@ -847,8 +851,9 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"]],
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
@@ -877,13 +882,14 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
 
     voxel_timeseries = get_voxel_timeseries(
         f'voxel_timeseries_{pipe_num}')
-    voxel_timeseries.inputs.inputspec.output_type = c.timeseries_extraction[
-        'roi_tse_outputs']
+    #voxel_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
+    #    'roi_tse_outputs']
 
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     # resample the input functional file to mask
     wf.connect(node, out,
@@ -921,8 +927,9 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["space-template_desc-cleaned_bold",
+                  "space-template_desc-brain_bold",
+                  "space-template_desc-motion_bold",
                   "space-template_desc-preproc_bold",
-                  "space-template_desc-reorient_bold",
                   "space-template_bold"],
                  "space-template_desc-bold_mask")],
      "outputs": ["desc-SpatReg_timeseries",
@@ -951,10 +958,11 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     spatial_map_timeseries = get_spatial_map_timeseries(
         f'spatial_map_timeseries_{pipe_num}')
     spatial_map_timeseries.inputs.inputspec.demean = True
-    print(strat_pool.get_entire_rpool())
+
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
 
     # resample the input functional file and functional mask

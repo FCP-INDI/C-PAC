@@ -1355,8 +1355,8 @@ def find_other_res_template(template_path, new_resolution):
         template_parts[0] = str(new_resolution).join(template_parts[0].rsplit(template_parts[0][-1], 1))
         ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
 
-    elif "${resolution_for_func_preproc}" in template_path:
-        ref_file = template_path.replace("${resolution_for_func_preproc}",
+    elif "${func_resolution}" in template_path:
+        ref_file = template_path.replace("${func_resolution}",
                                          "{0}mm".format(new_resolution))
 
     if ref_file:

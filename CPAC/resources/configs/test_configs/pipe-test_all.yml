@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/work
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/log
@@ -64,11 +68,16 @@ pipeline_setup:
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
     FSLDIR: FSLDIR
 
-segmentation: 
+anatomical_preproc: 
 
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: [On]
+  brain_extraction: 
+
+    FSL-BET: 
+
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: Off
+
+segmentation: 
 
   tissue_segmentation: 
 
@@ -94,6 +103,9 @@ registration_workflows:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: Off
+
     registration: 
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
@@ -109,10 +121,6 @@ registration_workflows:
   functional_registration: 
 
     coregistration: 
-
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
 
       boundary_based_registration: 
 
@@ -151,11 +159,13 @@ registration_workflows:
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
-functional_preproc: 
-
-  run: [On]
-
 nuisance_corrections: 
+
+  1-ICA-AROMA: 
+
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
   2-nuisance_regression: 
 
@@ -165,24 +175,24 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 1
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -204,24 +214,24 @@ nuisance_corrections:
           - type: FD_J
             value: 0.2
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-2
         PolyOrt:
           degree: 1
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -243,24 +253,24 @@ nuisance_corrections:
           - type: FD_J
             value: 0.2
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         GreyMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-3
         PolyOrt:
           degree: 1
         WhiteMatter:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         aCompCor:
@@ -276,68 +286,26 @@ nuisance_corrections:
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
-
-  spatial_smoothing: 
-
-    # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
-    #
-    # Options:
-    #     ['smoothed', 'nonsmoothed']
-    output: [smoothed, nonsmoothed]
-
-  z-scoring: 
-
-    # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
-    #
-    # Options:
-    #     ['z-scored', 'raw']
-    output: [z-scored, raw]
-
 timeseries_extraction: 
-
-  run: [On]
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
 
 seed_based_correlation_analysis: 
 
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [On]
-
-  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
-
-amplitude_low_frequency_fluctuation: 
-
-  # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [On]
-
-regional_homogeneity: 
-
-  # ReHo
-  # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [On]
+    s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 voxel_mirrored_homotopic_connectivity: 
-
-  # VMHC
-  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [On]
 
   symmetric_registration: 
 

@@ -85,9 +85,11 @@ def spatial_smoothing(wf_name, fwhm, input_image_type='func_derivative',
         wf.connect(inputnode_fwhm, 'fwhm', output_smooth, 'fwhm')
         wf.connect(inputnode, 'mask', output_smooth, 'mask')
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                        'fwhm']),
                          name='outputspec')
 
     wf.connect(output_smooth, 'out_file', outputnode, 'out_file')
+    wf.connect(inputnode_fwhm, 'fwhm', outputnode, 'fwhm')
 
     return wf

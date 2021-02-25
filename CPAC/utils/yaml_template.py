@@ -8,7 +8,9 @@ from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
     update_config_dict, update_pipeline_values_1_8
 
 
-def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
+def create_yaml_from_template(
+    d, template=DEFAULT_PIPELINE_FILE, include_all=False
+):
     """Save dictionary to a YAML file, keeping the structure
     (such as first level comments and ordering) from the template
 
@@ -21,6 +23,9 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
     template : str
         path to template
+
+    include_all : bool
+        include every key, even those that are unchanged
 
     Examples
     --------
@@ -66,8 +71,11 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
         Examples
         --------
-        >>> _create_import_dict({'anatomical_preproc': {'brain_extraction': {'extraction': {'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
-        {'anatomical_preproc': {'brain_extraction': {'extraction': {'using': ['niworkflows-ants']}}}}
+        >>> _create_import_dict({'anatomical_preproc': {
+        ...     'brain_extraction': {'extraction': {
+        ...         'run': ([True], False),
+        ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
+        {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
         '''  # noqa
         if isinstance(diff, tuple) and len(diff) == 2:
             return diff[1]
@@ -75,10 +83,12 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
             i = {}
             for k in diff:
                 try:
-                    i[k] = _create_import_dict(diff[k])
+                    j = _create_import_dict(diff[k])
+                    if j != {}:
+                        i[k] = j
                 except KeyError:
                     continue
-            return {k: i[k] for k in i if i[k]}
+            return i
         return diff
 
     def _format_key(key, level):
@@ -131,7 +141,9 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         # list long or complex lists on lines with indented '-' lead-ins
         indent = " " * (2 * line_level + 2)
         return '\n' + '\n'.join([
-            f'{indent}{li}' for li in yaml.dump(l).split('\n')
+            f'{indent}{li}' for li in yaml.dump(
+                yaml_bool(l)
+            ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
         ]).rstrip()
 
     # set starting values
@@ -144,6 +156,8 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
     list_level = 0
     line_level = 0
     template_name = template
+    if isinstance(d, Configuration):
+        d = d.dict()
     try:
         template = load_preconfig(template)
     except OptionError:
@@ -164,9 +178,14 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         template_name = 'default'
 
     # update values
-    d = _create_import_dict(dct_diff(d_default, d))
+    if include_all:
+        d_default.update(d)
+        d = _create_import_dict(dct_diff({}, d_default))
+    else:
+        d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
+    template_dict = yaml.safe_load(open(template, 'r'))
     with open(template, 'r') as f:
         for line in f:
 
@@ -196,7 +215,8 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                 else:
                     # extract dict key
                     key_group = re.match(
-                        r'^\s*([a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
+                        r'^\s*(([a-z0-9A-Z_]+://){0,1}'
+                        r'[a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
                     if key_group:
                         if not template_included:
                             # prepend comment from template
@@ -240,23 +260,33 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                             ) for orig_item in orig_value])
                             )):
                                 value = yaml_bool(value)
-                            if value:
-                                # prepend comment from template
-                                if len(comment.strip()):
-                                    output += comment
-                                else:
-                                    output += '\n'
-
-                                # write YAML
-                                output += _format_key(key, line_level)
-                                if isinstance(value, list):
-                                    output += _format_list_items(
-                                        value, line_level)
-                                elif not isinstance(value, dict):
-                                    output += str(value)
+                            # prepend comment from template
+                            if len(comment.strip()):
+                                output += comment
                             else:
-                                # clear comment for unchanged key
-                                comment = '\n'
+                                output += '\n'
+
+                            # write YAML
+                            output += _format_key(key, line_level)
+                            if isinstance(value, list):
+                                output += _format_list_items(
+                                    value, line_level)
+                            elif isinstance(value, dict):
+                                for k in value.keys():
+                                    try:
+                                        lookup_nested_value(template_dict, nest + [k])
+                                    # include keys not in template
+                                    except KeyError:
+                                        output += _format_key(
+                                            k, line_level + 1)
+                                        output += _format_list_items(
+                                            value[k],
+                                            line_level + 1
+                                        ) if isinstance(
+                                            value[k], list) else yaml_bool(
+                                                value[k])
+                            else:
+                                output += str(value)
                         except KeyError:
                             # clear comment for excluded key
                             comment = '\n'
@@ -266,7 +296,6 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         level = line_level
             elif len(comment) > 1 and comment[-2] != '\n':
                 comment += '\n'
-
     return output.lstrip('\n')
 
 
@@ -292,12 +321,13 @@ def yaml_bool(value):
         True: 'On', 'True': 'On', 1: 'On',
         False: 'Off', 'False': 'Off', 0: 'Off'}
     if (
-        isinstance(value, bool) or isinstance(value, str) or
-        isinstance(value, int)
+        isinstance(value, bool) or isinstance(value, str)
     ) and value in yaml_lookup:
         return yaml_lookup[value]
     elif isinstance(value, list):
         return [yaml_bool(item) for item in value]
+    elif isinstance(value, dict):
+        return {k: yaml_bool(value[k]) for k in value}
     return value
 
 

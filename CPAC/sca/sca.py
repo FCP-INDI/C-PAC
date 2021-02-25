@@ -92,8 +92,7 @@ def create_sca(name_sca='sca'):
 
     sca = pe.Workflow(name=name_sca)
     inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
-                                                'functional_file',
-                                                ]),
+                                                       'functional_file',]),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
@@ -101,7 +100,7 @@ def create_sca(name_sca='sca'):
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
-                        name='outputspec')
+                         name='outputspec')
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
@@ -124,35 +123,33 @@ def create_sca(name_sca='sca'):
     concat.inputs.outputtype = 'NIFTI_GZ'
 
     # also write out volumes as individual files
-    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-    split.inputs.dimension = 't'
-    split.inputs.out_base_name = 'sca_'
+    #split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+    #split.inputs.dimension = 't'
+    #split.inputs.out_base_name = 'sca_'
 
-    get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
-                                                          'prefix'],
-                                             output_names=['roi_list'],
-                                             function=get_roi_num_list),
-                               name='get_roi_num_list')
-    get_roi_num_list.inputs.prefix = "sca"
+    #get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
+    #                                                      'prefix'],
+    #                                         output_names=['roi_list'],
+    #                                         function=get_roi_num_list),
+    #                           name='get_roi_num_list')
+    #get_roi_num_list.inputs.prefix = "sca"
 
-    rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                             iterfield=['in_file', 'format_string'])
-    rename_rois.inputs.keep_ext = True
+    #sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
+    #            'timeseries_file')
+
+    #rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
+    #                         iterfield=['in_file', 'format_string'])
+    #rename_rois.inputs.keep_ext = True
+
+    #sca.connect(split, 'out_files', rename_rois, 'in_file')
+    #sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
 
     sca.connect(corr, 'out_file', concat, 'in_files')
-    sca.connect(concat, 'out_file', split, 'in_file')
+    #sca.connect(concat, 'out_file', split, 'in_file')
     sca.connect(concat, 'out_file',
                 outputNode, 'correlation_stack')
-
-    sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-                'timeseries_file')
-
-    sca.connect(split, 'out_files', rename_rois, 'in_file')
-
-    sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
-    sca.connect(rename_rois, 'out_file', outputNode,
-                'correlation_files')
+    #sca.connect(rename_rois, 'out_file', outputNode,
+    #            'correlation_files')
 
     return sca
 
@@ -304,6 +301,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(temporalReg, 'out_file', outputNode, 'temp_reg_map')
     wflow.connect(temporalReg, 'out_z', outputNode, 'temp_reg_map_z')
 
+    '''
     split = pe.Node(interface=fsl.Split(), name='split_raw_volumes')
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
@@ -377,6 +375,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
         wflow.connect(rename_maps_zstat, 'out_file',
                       outputNode, 'temp_reg_map_z_files')
+    '''
 
     return wflow
 
@@ -391,8 +390,9 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"]],
      "outputs": ["desc-MeanSCA_timeseries",
                  "desc-MeanSCA_correlations",
@@ -431,8 +431,9 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
         f'roi_timeseries_for_sca_{pipe_num}')
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     # resample the input functional file to roi
     wf.connect(node, out,
@@ -449,21 +450,23 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     sca_roi = create_sca(f'sca_roi_{pipe_num}')
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     wf.connect(node, out, sca_roi, 'inputspec.functional_file')
 
-    wf.connect(roi_timeseries_for_sca,
-               ('outputspec.roi_outputs', extract_one_d),
+    wf.connect(roi_timeseries_for_sca, 'outputspec.roi_csv',
+               #('outputspec.roi_outputs', extract_one_d),
                sca_roi, 'inputspec.timeseries_one_d')
 
     outputs = {
-        'desc-MeanSCA_timeseries': (roi_timeseries_for_sca,
-                                    ('outputspec.roi_outputs',
-                                     extract_one_d)),
+        'desc-MeanSCA_timeseries':
+            (roi_timeseries_for_sca, 'outputspec.roi_csv'),
+                                    #('outputspec.roi_outputs',
+                                    # extract_one_d)),
         'desc-MeanSCA_correlations':
-            (sca_roi, 'outputspec.correlation_files'),
+            (sca_roi, 'outputspec.correlation_stack'),
         'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
     }
 
@@ -480,8 +483,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"],
                 "space-template_desc-bold_mask"],
      "outputs": ["desc-DualReg_correlations",
@@ -520,8 +524,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # resample the input functional file and functional mask
     # to spatial map
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     wf.connect(node, out,
                resample_spatial_map_to_native_space_for_dr, 'reference')
@@ -545,8 +550,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                dr_temp_reg, 'inputspec.subject_timeseries')
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     wf.connect(node, out, dr_temp_reg, 'inputspec.subject_rest')
 
@@ -555,9 +561,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-DualReg_correlations':
-            (dr_temp_reg, 'outputspec.temp_reg_map_files'),
+            (dr_temp_reg, 'outputspec.temp_reg_map'),
         'desc-DualReg_statmap':
-            (dr_temp_reg, 'outputspec.temp_reg_map_z_files'),
+            (dr_temp_reg, 'outputspec.temp_reg_map_z'),
         'atlas_name':
             (spatial_map_dataflow_for_dr, 'select_spatial_map.out_name')
     }
@@ -575,8 +581,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
                  "space-template_bold"],
                 "space-template_desc-bold_mask"],
      "outputs": ["desc-MultReg_correlations",
@@ -616,8 +623,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
         f'roi_timeseries_for_mult_reg_{pipe_num}')
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     # resample the input functional file to roi
     wf.connect(node, out, resample_functional_roi_for_multreg, 'in_func')
@@ -644,13 +652,14 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     sc_temp_reg.inputs.inputspec.demean = True
 
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-motion_bold",
                                      "space-template_desc-preproc_bold",
-                                     "space-template_desc-reorient_bold",
                                      "space-template_bold"])
     wf.connect(node, out, sc_temp_reg, 'inputspec.subject_rest')
 
-    wf.connect(roi_timeseries_for_multreg, ('outputspec.roi_outputs',
-                                            extract_one_d),
+    wf.connect(roi_timeseries_for_multreg, 'outputspec.roi_csv',
+                     #('outputspec.roi_outputs', extract_one_d),
                      sc_temp_reg, 'inputspec.subject_timeseries')
 
     node, out = strat_pool.get_data('space-template_desc-bold_mask')
@@ -658,9 +667,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-MultReg_correlations':
-            (sc_temp_reg, 'outputspec.temp_reg_map_files'),
+            (sc_temp_reg, 'outputspec.temp_reg_map'),
         'desc-MultReg_statmap':
-            (sc_temp_reg, 'outputspec.temp_reg_map_z_files'),
+            (sc_temp_reg, 'outputspec.temp_reg_map_z'),
         'atlas_name': (roi_dataflow_for_multreg, 'outputspec.out_name')
     }
 

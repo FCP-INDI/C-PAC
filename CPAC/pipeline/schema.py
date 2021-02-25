@@ -1,6 +1,8 @@
 from itertools import chain, permutations
-from voluptuous import All, Any, In, Length, Match, Range, Required, Schema
+from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
+                       Range, Required, Schema
 from voluptuous.validators import Maybe
+from CPAC import __version__
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -32,21 +34,43 @@ valid_options = {
                              'Correlation threshold'],
        'weight_options': ['Binarized', 'Weighted']
     },
+    'sca': {
+        'roi_paths': {'Avg', 'DualReg', 'MultReg'},
+    },
     'segmentation': {
         'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
-        'template': ['EPI_Template', 'T1_Template']
+        'template': ['EPI_Template', 'T1_Template'],
+    },
+    'timeseries': {
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
+                      'PartialCorr'},
     },
     'Regressors': {
+        'CompCor': {
+            'degree': int,
+            'erode_mask_mm': bool,
+            'summary': {
+                'method': str,
+                'components': int,
+                'filter': str,
+            },
+            'threshold': str,
+            'tissues': [str],
+            'extraction_resolution': int
+        },
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
                 int, float, All(str, Match(resolution_regex))
             ),
+            'include_delayed': bool,
+            'include_delayed_squared': bool,
+            'include_squared': bool,
             'summary': Any(
                 str, {'components': int, 'method': str}
             ),
         },
-    },
+    }
 }
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
@@ -120,6 +144,33 @@ ANTs_parameters = [Any(
     }, dict  # TODO: specify other valid ANTs parameters
 )]
 
+
+def permutation_message(key, options):
+    '''Function to give a clean, human-readable error message for keys that accept permutation values
+
+    Parameters
+    ----------
+    key: str
+
+    options: list or set
+
+    Returns
+    -------
+    msg: str'''  # noqa E501
+    return f'''
+
+\'{key}\' takes a dictionary with paths to region-of-interest (ROI)
+ NIFTI files (.nii or .nii.gz) as keys and a comma separated string
+ of analyses to run. For example, if you wish to run Avg and
+ MultReg, you would enter:
+
+    '/path/to/ROI.nii.gz': Avg, MultReg
+
+Available analyses for \'{key}\' are {options}
+
+'''
+
+
 schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
@@ -147,7 +198,7 @@ schema = Schema({
         'system_config': {
             'FSLDIR': Maybe(str),
             'on_grid': {
-                'run': forkable,
+                'run': bool,
                 'resource_manager': Maybe(str),
                 'SGE': {
                     'parallel_environment': Maybe(str),
@@ -169,20 +220,27 @@ schema = Schema({
         },
     },
     'anatomical_preproc': {
-        'run': forkable,
+        'run': bool,
         'non_local_means_filtering': forkable,
         'n4_bias_field_correction': forkable,
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
-                'run': forkable,
+                'run': False,
+                'run_before_preproc': Maybe(bool),
+                'brain_size': Maybe(int),
+                'acpc_target': Maybe(In(valid_options['acpc']['target'])),
+                'T1w_ACPC_template': Maybe(str),
+                'T1w_brain_ACPC_template': Maybe(str),
+            }, {
+                'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
             }, {
-                'run': forkable,
+                'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
                 'acpc_target': valid_options['acpc']['target'][0],
@@ -190,10 +248,9 @@ schema = Schema({
                 'T1w_brain_ACPC_template': str,
             },),
             msg='\'brain\' requires \'T1w_brain_ACPC_template\' to '
-                'be populated',
+                'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
-            'already_skullstripped': bool,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
@@ -249,7 +306,7 @@ schema = Schema({
         },
     },
     'segmentation': {
-        'run': forkable,
+        'run': bool,
         'tissue_segmentation': {
             'using': [In(
                 {'FSL-FAST', 'FreeSurfer', 'ANTs_Prior_Based',
@@ -265,7 +322,7 @@ schema = Schema({
                     },
                 },
                 'use_priors': {
-                    'run': forkable,
+                    'run': bool,
                     'priors_path': str,
                     'WM_path': str,
                     'GM_path': str,
@@ -274,7 +331,7 @@ schema = Schema({
             },
             'Freesurfer': Maybe(dict),
             'ANTs_Prior_Based': {
-                'run': Maybe([bool]),
+                'run': forkable,
                 'template_brain_list': [str],
                 'template_segmentation_list': [str],
                 'CSF_label': int,
@@ -296,7 +353,7 @@ schema = Schema({
     },
     'registration_workflows': {
         'anatomical_registration': {
-            'run': forkable,
+            'run': bool,
             'resolution_for_anat': All(str, Match(resolution_regex)),
             'T1w_brain_template': str,
             'T1w_template': str,
@@ -323,7 +380,7 @@ schema = Schema({
         },
         'functional_registration': {
             'coregistration': {
-                'run': forkable,
+                'run': bool,
                 'func_input_prep': {
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'
@@ -344,7 +401,7 @@ schema = Schema({
                 },
             },
             'EPI_registration': {
-                'run': forkable,
+                'run': bool,
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'EPI_template': str,
                 'EPI_template_mask': Maybe(str),
@@ -361,7 +418,7 @@ schema = Schema({
                 },
             },
             'func_registration_to_template': {
-                'run': forkable,
+                'run': bool,
                 'output_resolution': {
                     'func_preproc_outputs': All(
                         str, Match(resolution_regex)),
@@ -398,7 +455,7 @@ schema = Schema({
         'run_freesurfer': bool,
     },
     'longitudinal_template_generation': {
-        'run': forkable,
+        'run': bool,
         'average_method': In({'median', 'mean', 'std'}),
         'dof': In({12, 9, 7, 6}),
         'interp': In({'trilinear', 'nearestneighbour', 'sinc', 'spline'}),
@@ -409,13 +466,13 @@ schema = Schema({
         'convergence_threshold': Number,
     },
     'functional_preproc': {
-        'run': forkable,
+        'run': bool,
         'truncation': {
             'start_tr': int,
             'stop_tr': Maybe(Any(int, 'End'))
         },
         'scaling': {
-            'run': forkable,
+            'run': bool,
             'scaling_factor': Number
         },
         'despiking': {
@@ -446,43 +503,46 @@ schema = Schema({
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # notch filter with breathing_rate_* set
-                    'run': forkable,
-                    'filter_type': 'notch',
-                    'filter_order': int,
-                    'breathing_rate_min': Number,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'notch',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Number,
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # notch filter with manual parameters set
-                    'run': forkable,
-                    'filter_type': 'notch',
-                    'filter_order': int,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'notch',
+                    Required('filter_order'): int,
                     'breathing_rate_min': None,
                     'breathing_rate_max': None,
-                    'center_frequency': Number,
-                    'filter_bandwidth': Number,
+                    Required('center_frequency'): Number,
+                    Required('filter_bandwidth'): Number,
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # lowpass filter with breathing_rate_min
-                    'run': forkable,
-                    'filter_type': 'lowpass',
-                    'filter_order': int,
-                    'breathing_rate_min': Number,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'lowpass',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
                 }, {  # lowpass filter with lowpass_cutoff
-                    'run': forkable,
-                    'filter_type': 'lowpass',
-                    'filter_order': int,
-                    'breathing_rate_min': None,
+                    Required('run'): forkable,
+                    Required('filter_type'): 'lowpass',
+                    Required('filter_order'): int,
+                    Required('breathing_rate_min', default=None): None,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Number,
+                    Required('lowpass_cutoff'): Number,
                 },),
-                msg='motion_estimate_filter configuration is invalid.'
+                msg='`motion_estimate_filter` configuration is invalid. '
+                    f'See https://fcp-indi.github.io/docs/v{__version__}/'
+                    'user/func#motion_estimate_filter_valid_options '
+                    'for details.'
             ),
         },
         'distortion_correction': {
@@ -532,8 +592,8 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'Regressors': Maybe([{
-                Required('Name'): str,
+            'Regressors': Maybe([Schema({
+                'Name': Required(str),
                 'Censor': {
                     'method': str,
                     'thresholds': [{
@@ -548,30 +608,8 @@ schema = Schema({
                     'include_squared': bool,
                     'include_delayed_squared': bool
                 },
-                'aCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
-                'tCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
+                'aCompCor': valid_options['Regressors']['CompCor'],
+                'tCompCor': valid_options['Regressors']['CompCor'],
                 'CerebrospinalFluid': valid_options[
                     'Regressors'
                 ]['segmentation'],
@@ -588,31 +626,31 @@ schema = Schema({
                     'top_frequency': float,
                     'method': str,
                 }  # how to check if [0] is > than [1]?
-            }]),
+            }, extra=ALLOW_EXTRA)]),
             'lateral_ventricles_mask': Maybe(str),
             'bandpass_filtering_order': Maybe(
                 In({'After', 'Before'})),
             'regressor_masks': {
                 'erode_anatomical_brain_mask': {
-                    'run': forkable,
+                    'run': bool,
                     'brain_mask_erosion_prop': Number,
                     'brain_mask_erosion_mm': Number,
                     'brain_erosion_mm': Number
                 },
                 'erode_csf': {
-                    'run': forkable,
+                    'run': bool,
                     'csf_erosion_prop': Number,
                     'csf_mask_erosion_mm': Number,
                     'csf_erosion_mm': Number,
                 },
                 'erode_wm': {
-                    'run': forkable,
+                    'run': bool,
                     'wm_erosion_prop': Number,
                     'wm_mask_erosion_mm': Number,
                     'wm_erosion_mm': Number,
                 },
                 'erode_gm': {
-                    'run': forkable,
+                    'run': bool,
                     'gm_erosion_prop': Number,
                     'gm_mask_erosion_mm': Number,
                     'gm_erosion_mm': Number,
@@ -621,12 +659,12 @@ schema = Schema({
         },
     },
     'amplitude_low_frequency_fluctuation': {
-        'run': forkable,
+        'run': bool,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
     'voxel_mirrored_homotopic_connectivity': {
-        'run': forkable,
+        'run': bool,
         'symmetric_registration': {
             'T1w_brain_template_symmetric': str,
             'T1w_brain_template_symmetric_for_resample': str,
@@ -637,7 +675,7 @@ schema = Schema({
         },
     },
     'regional_homogeneity': {
-        'run': forkable,
+        'run': bool,
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
@@ -651,32 +689,39 @@ schema = Schema({
         },
     },
     'timeseries_extraction': {
-        'run': forkable,
-        'tse_roi_paths': Maybe({
-            str: In({', '.join([
-                option for option in options
-            ]) for options in list(chain.from_iterable([list(
-                permutations({'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
-                              'PartialCorr'}, number_of)
-            ) for number_of in range(1, 6)]))}),
-        }),
+        'run': bool,
+        'tse_roi_paths': Optional(
+            Maybe({
+                str: In({', '.join([
+                    option for option in options
+                ]) for options in list(chain.from_iterable([list(
+                    permutations(valid_options['timeseries']['roi_paths'],
+                                 number_of)
+                ) for number_of in range(1, 6)]))}),
+            }),
+            msg=permutation_message(
+                'tse_roi_paths', valid_options['timeseries']['roi_paths'])
+        ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
-        'roi_tse_outputs': Maybe([In({None, 'csv', 'numpy'})]),
     },
 
     'seed_based_correlation_analysis': {
-        'run': forkable,
-        'sca_roi_paths': Maybe({
-            str: In({', '.join([
-                option for option in options
-            ]) for options in list(chain.from_iterable([list(
-                permutations({'Avg', 'DualReg', 'MultReg'}, number_of)
-            ) for number_of in range(1, 4)]))})
-        }),
+        'run': bool,
+        'sca_roi_paths': Optional(
+            Maybe({
+                str: In({', '.join([
+                    option for option in options
+                ]) for options in list(chain.from_iterable([list(
+                    permutations(valid_options['sca']['roi_paths'], number_of)
+                ) for number_of in range(1, 4)]))})
+            }),
+            msg=permutation_message(
+                'sca_roi_paths', valid_options['sca']['roi_paths'])
+        ),
         'norm_timeseries_for_DR': bool,
     },
     'network_centrality': {
-        'run': forkable,
+        'run': bool,
         'memory_allocation': Number,
         'template_specification_file': str,
         'degree_centrality': {
@@ -708,7 +753,7 @@ schema = Schema({
         },
     },
     'PyPEER': {
-        'run': forkable,
+        'run': bool,
         'eye_scan_names': [str],
         'data_scan_names': [str],
         'eye_mask_path': str,

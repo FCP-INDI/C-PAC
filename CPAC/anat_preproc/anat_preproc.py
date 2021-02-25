@@ -682,12 +682,12 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     unet_mask = pe.Node(util.Function(input_names=['model_path', 'cimg_in'],
                                       output_names=['out_path'],
                                       function=predict_volumes),
-                        name='unet_mask')
+                        name=f'unet_mask_{pipe_num}')
 
     node, out = strat_pool.get_data('unet_model')
     wf.connect(node, out, unet_mask, 'model_path')
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, unet_mask, 'cimg_in')
 
@@ -696,10 +696,10 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     """
     # fslmaths <whole head> -mul <mask> brain.nii.gz
     unet_masked_brain = pe.Node(interface=fsl.MultiImageMaths(),
-                                name='unet_masked_brain')
+                                name=f'unet_masked_brain_{pipe_num}')
     unet_masked_brain.inputs.op_string = "-mul %s"
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, unet_masked_brain, 'in_file')
     wf.connect(unet_mask, 'out_path', unet_masked_brain, 'operand_files')
@@ -707,7 +707,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
     # TODO: antsRegistration -z 0 -d 3 -r [NMT_SS_0.5mm.nii.gz,brain.nii.gz,0] -o [transform,brain_rot2atl.nii.gz,brain_inv_rot2atl.nii.gz] -t Rigid[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1 -t Affine[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1
     native_brain_to_template_brain = pe.Node(interface=fsl.FLIRT(),
-                                             name='native_brain_to_template_brain')
+                                             name=f'native_brain_to_template_'
+                                                  f'brain_{pipe_num}')
     native_brain_to_template_brain.inputs.dof = 6
     native_brain_to_template_brain.inputs.interp = 'sinc'
     wf.connect(unet_masked_brain, 'out_file',
@@ -719,10 +720,11 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
     # TODO: antsApplyTransforms -d 3 -i head.nii.gz -r NMT_0.5mm.nii.gz -n Linear -o head_rot2atl.nii.gz -v -t transform1Rigid.mat -t transform2Affine.mat -t transform0DerivedInitialMovingTranslation.mat
     native_head_to_template_head = pe.Node(interface=fsl.FLIRT(),
-                                           name='native_head_to_template_head')
+                                           name=f'native_head_to_template_'
+                                                f'head_{pipe_num}')
     native_head_to_template_head.inputs.apply_xfm = True
 
-    node, out = strat_pool.get_data(['desc-wf_T1w', 'desc-reorient_T1w',
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
     wf.connect(node, out, native_head_to_template_head, 'in_file')
 
@@ -734,7 +736,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
     template_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                  name='template_brain_mask')
+                                  name=f'template_brain_mask_{pipe_num}')
     template_brain_mask.inputs.args = '-bin'
 
     node, out = strat_pool.get_data('T1w_brain_template')
@@ -742,7 +744,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
     ants_template_head_to_template = pe.Node(interface=ants.Registration(),
-                                             name='template_head_to_template')
+                                             name=f'template_head_to_'
+                                                  f'template_{pipe_num}')
     ants_template_head_to_template.inputs.metric = ['CC']
     ants_template_head_to_template.inputs.metric_weight = [1, 5]
     ants_template_head_to_template.inputs.transforms = ['SyN']
@@ -763,7 +766,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     template_head_transform_to_template = pe.Node(
         interface=ants.ApplyTransforms(),
-        name='template_head_transform_to_template')
+        name=f'template_head_transform_to_template_{pipe_num}')
     template_head_transform_to_template.inputs.dimension = 3
 
     wf.connect(template_brain_mask, 'out_file',
@@ -783,7 +786,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # flirt -in brain_rot2atl_mask.nii.gz -ref brain.nii.gz -o brain_mask.nii.gz -applyxfm -init brain_rot2native.mat
     template_brain_to_native_brain = pe.Node(interface=fsl.FLIRT(),
-                                             name='template_brain_to_native_brain')
+                                             name=f'template_brain_to_native_'
+                                                  f'brain_{pipe_num}')
     template_brain_to_native_brain.inputs.apply_xfm = True
     wf.connect(template_head_transform_to_template, 'output_image',
                template_brain_to_native_brain, 'in_file')
@@ -793,7 +797,8 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                'in_matrix_file')
 
     # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
-    refined_mask = pe.Node(interface=fsl.Threshold(), name='refined_mask')
+    refined_mask = pe.Node(interface=fsl.Threshold(), name=f'refined_mask'
+                                                           f'_{pipe_num}')
     refined_mask.inputs.thresh = 0.5
     refined_mask.inputs.args = '-bin'
     wf.connect(template_brain_to_native_brain, 'out_file', refined_mask,
@@ -1233,7 +1238,8 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template"],
+                "T1w_template",
+                "unet_model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -1251,7 +1257,8 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template"],
+                "T1w_template",
+                "unet_model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 
@@ -1361,9 +1368,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run_freesurfer"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_template",
-                "T1w_template"],
+     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-T1w_desc-brain_mask",
                  "freesurfer_subject_dir",
                  "label-CSF_mask",
@@ -1376,19 +1381,20 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "sulcal_depth_surface_maps",
                  "cortical_thickness_surface_maps",
                  "cortical_volume_surface_maps",
-                 "white_matter_surface_mesh"]}
+                 "white_matter_surface_mesh",
+                 "raw_average"]}
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
 
-    freesurfer_subject_dir = os.path.join(
-        cfg.pipeline_setup['working_directory'],
+    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup[
+                                              'working_directory']['path'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
 
     if not os.path.exists(freesurfer_subject_dir):
-        os.mkdirs(freesurfer_subject_dir)
+        os.makedirs(freesurfer_subject_dir)
 
     reconall.inputs.directive = 'all'
     reconall.inputs.subjects_dir = freesurfer_subject_dir
@@ -1399,7 +1405,40 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "T1w"])
     wf.connect(node, out, reconall, 'T1_files')
 
-    ### segmentation output ###
+    # register FS brain mask to native space
+    fs_brain_mask_to_native = pe.Node(
+        interface=freesurfer.ApplyVolTransform(),
+        name='fs_brain_mask_to_native')
+    fs_brain_mask_to_native.inputs.reg_header = True
+
+    wf.connect(reconall, 'brainmask', fs_brain_mask_to_native, 'source_file')
+    wf.connect(reconall, 'rawavg', fs_brain_mask_to_native, 'target_file')
+    wf.connect(reconall, 'subjects_dir',
+               fs_brain_mask_to_native, 'subjects_dir')
+
+    # convert brain mask file from .mgz to .nii.gz
+    fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+                                                   output_names=['out_file'],
+                                                   function=mri_convert),
+                                     name='fs_brainmask_to_nifti')
+    wf.connect(fs_brain_mask_to_native, 'transformed_file',
+               fs_brain_mask_to_nifti, 'in_file')
+
+    # binarize the brain mask
+    binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                                     name='binarize_fs_brainmask')
+    binarize_fs_brain_mask.inputs.args = '-bin'
+    wf.connect(fs_brain_mask_to_nifti, 'out_file',
+               binarize_fs_brain_mask, 'in_file')
+
+    # fill holes
+    fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
+                                 name='fill_fs_brainmask')
+    fill_fs_brain_mask.inputs.fill_holes = True
+    fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+    wf.connect(binarize_fs_brain_mask, 'out_file',
+               fill_fs_brain_mask, 'in_file')
+
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                                 name='fs_aseg_to_native')
@@ -1430,6 +1469,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
     outputs = {
+        'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer_subject_dir': (reconall, 'subjects_dir'),
         'label-CSF_mask': (pick_tissue, 'csf_mask'),
         'label-WM_mask': (pick_tissue, 'wm_mask'),

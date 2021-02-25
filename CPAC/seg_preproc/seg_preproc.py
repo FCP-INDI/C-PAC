@@ -477,10 +477,11 @@ def create_seg_preproc_freesurfer(config=None,
                         name='anat_autorecon2')
 
     reconall2.inputs.directive = 'autorecon2'
-    reconall2.inputs.openmp = config.num_omp_threads  # TODO: update nested
+    reconall2.inputs.openmp = config.pipeline_setup['system_config'][
+        'num_omp_threads']
 
-    if config.autorecon2_args is not None:  # TODO: update nested
-        reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
+    #if config.autorecon2_args is not None:  # TODO: update nested
+    #    reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
 
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
@@ -554,6 +555,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask",
+                 "label-CSF_desc-preproc_mask",
+                 "label-GM_desc-preproc_mask",
+                 "label-WM_desc-preproc_mask",
                  "label-CSF_probseg",
                  "label-GM_probseg",
                  "label-WM_probseg"]}
@@ -588,10 +592,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, segment, 'in_files')
 
     use_custom_threshold = cfg['segmentation']['tissue_segmentation'][
-                               'FSL-FAST']['thresholding'] == 'Custom'
+                               'FSL-FAST']['thresholding'][
+                               'use'] == 'Custom'
 
-    use_priors = cfg['segmentation']['tissue_segmentation']['FSL-FAST'][
-        'use_priors']['run']
+    use_priors = cfg['segmentation']['tissue_segmentation'][
+        'FSL-FAST']['use_priors']['run']
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-template_to-T1w_mode-image_desc-linear_xfm')
@@ -669,9 +674,13 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         'label-CSF_probseg': (get_csf, 'filename'),
         'label-GM_probseg': (segment, ('probability_maps', pick_wm_prob_1)),
         'label-WM_probseg': (segment, ('probability_maps', pick_wm_prob_2)),
-        'label-CSF_mask': (process_csf, 'outputspec.segment_mask'),
-        'label-GM_mask': (process_gm, 'outputspec.segment_mask'),
-        'label-WM_mask': (process_wm, 'outputspec.segment_mask')
+        'label-CSF_mask': (segment, ('tissue_class_files', pick_wm_class_0)),
+        'label-GM_mask': (segment, ('tissue_class_files', pick_wm_class_1)),
+        'label-WM_mask': (segment, ('tissue_class_files', pick_wm_class_2)),
+        'label-CSF_desc-preproc_mask':
+            (process_csf, 'outputspec.segment_mask'),
+        'label-GM_desc-preproc_mask': (process_gm, 'outputspec.segment_mask'),
+        'label-WM_desc-preproc_mask': (process_wm, 'outputspec.segment_mask')
     }
 
     return (wf, outputs)
@@ -696,15 +705,18 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == 'ants'
 
-    csf_template2t1 = tissue_mask_template_to_t1('CSF', use_ants)
+    csf_template2t1 = tissue_mask_template_to_t1(f'CSF_{pipe_num}', 
+                                                 use_ants)
     csf_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['CSF']
 
-    gm_template2t1 = tissue_mask_template_to_t1('GM', use_ants)
+    gm_template2t1 = tissue_mask_template_to_t1(f'GM_{pipe_num}',
+                                                use_ants)
     gm_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['GRAY']
 
-    wm_template2t1 = tissue_mask_template_to_t1('WM', use_ants)
+    wm_template2t1 = tissue_mask_template_to_t1(f'WM_{pipe_num}',
+                                                use_ants)
     wm_template2t1.inputs.inputspec.tissue_mask_template = cfg[
         'segmentation']['tissue_segmentation']['Template_Based']['WHITE']
 
@@ -851,3 +863,31 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
+def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "tissue_seg_freesurfer",
+     "config": ["segmentation"],
+     "switch": ["run"],
+     "option_key": ["tissue_segmentation", "using"],
+     "option_val": "FreeSurfer",
+     "inputs": ["freesurfer_subject_dir"],
+     "outputs": ["label-CSF_mask",
+                 "label-GM_mask",
+                 "label-WM_mask"]}
+    '''
+
+    fs_seg = create_seg_preproc_freesurfer(config=cfg,
+                                           wf_name='seg_preproc_freesurfer'
+                                                   f'_{pipe_num}')
+
+    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
+
+    outputs = {
+        'label-CSF_mask': (fs_seg, 'outputspec.csf_mask'),
+        'label-GM_mask': (fs_seg, 'outputspec.gm_mask'),
+        'label-WM_mask': (fs_seg, 'outputspec.wm_mask')
+    }
+
+    return (wf, outputs)

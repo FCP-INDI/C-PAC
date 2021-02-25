@@ -35,6 +35,10 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: ./cpac_runs/preproc/working
 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
   log_directory: 
 
     path: ./cpac_runs/preproc/log
@@ -71,13 +75,13 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  run: [On]
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: Off
+
+  # N4 bias field correction via ANTs
+  n4_bias_field_correction: Off
 
 segmentation: 
-
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: [On]
 
   tissue_segmentation: 
 
@@ -92,6 +96,12 @@ segmentation:
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
+
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: []
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -109,15 +119,15 @@ registration_workflows:
 
   functional_registration: 
 
-    coregistration: 
+    EPI_registration: 
 
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
+      ANTs: 
 
-      run: [On]
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters: 
 
 functional_preproc: 
-
-  run: [On]
 
   motion_estimates_and_correction: 
 
@@ -131,12 +141,6 @@ functional_preproc:
 
 nuisance_corrections: 
 
-  1-ICA-AROMA: 
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
-
   2-nuisance_regression: 
 
     # Select which nuisance signal corrections to apply
@@ -145,15 +149,15 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         GlobalSignal:
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-1
         PolyOrt:
           degree: 2
@@ -169,13 +173,13 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
-          erode_mask: true
+          erode_mask: On
           extraction_resolution: 2
           summary: Mean
         Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
         Name: Regressor-2
         PolyOrt:
           degree: 2
@@ -194,32 +198,32 @@ nuisance_corrections:
 
 timeseries_extraction: 
 
-  run: [Off]
+  run: Off
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [Off]
+  run: Off
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [Off]
+  run: Off
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [Off]
+  run: Off
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [Off]
+  run: Off
 
   symmetric_registration: 
 
@@ -247,14 +251,11 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: [Off]
+  run: Off
 
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
 
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
