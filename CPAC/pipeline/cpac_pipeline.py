@@ -632,15 +632,6 @@ CPAC run error:
 
         finally:
 
-            if c.pipeline_setup['output_directory'][
-                'generate_quality_control_images']:
-                pipeline_base = os.path.join(
-                    c.pipeline_setup['output_directory']['path'], 'cpac')
-
-                sub_output_dir = os.path.join(pipeline_base, subject_id)
-                qc_dir = os.path.join(sub_output_dir, 'qc')
-                generate_qc_pages(qc_dir)
-
             if workflow:
 
                 logger.info(execution_info.format(

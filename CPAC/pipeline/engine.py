@@ -745,7 +745,7 @@ class ResourcePool(object):
         if add_excl:
             excl += add_excl
 
-        anat = ['T1w', 'probseg']
+        anat = ['T1w', 'probseg', 'T1w-template']
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
                 'correlations', 'statmap', 'regressors', 'degree-centrality',
                 'eigen-centrality', 'lfcd']
