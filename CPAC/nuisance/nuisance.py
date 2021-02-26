@@ -37,7 +37,7 @@ from .bandpass import (bandpass_voxels, afni_1dBandpass)
 from CPAC.utils.utils import check_prov_for_regtool
 
 
-def erode_mask(name):
+def erode_mask(name, segmentmap=True):
 
     wf = pe.Workflow(name=name)
 
@@ -45,8 +45,7 @@ def erode_mask(name):
                                                        'erode_mm',
                                                        'erode_prop',
                                                        'brain_mask',
-                                                       'mask_erode_mm',
-                                                       'mask_erode_prop']),
+                                                       'mask_erode_mm']),
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['eroded_mask']),
@@ -69,26 +68,28 @@ def erode_mask(name):
     wf.connect(inputspec, 'brain_mask', eroded_mask, 'skullstrip_mask')
     wf.connect(inputspec, 'mask', eroded_mask, 'roi_mask')
 
-    wf.connect(inputspec, 'mask_erode_prop', eroded_mask, 'mask_erosion_prop')
-    wf.connect(inputspec, 'mask_erode_mm', eroded_mask,
-                    'mask_erosion_mm')
+    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop), eroded_mask, 'mask_erosion_prop')
+    wf.connect(inputspec, 'mask_erode_mm', eroded_mask, 'mask_erosion_mm')
 
-    erosion_segmentmap = pe.Node(util.Function(input_names=['roi_mask',
-                                                            'erosion_mm',
-                                                            'erosion_prop'],
-                                               output_names=[
-                                                   'eroded_roi_mask'],
-                                               function=erosion,
-                                               imports=ero_imports),
-                                 name='erode_mask')
+    if not segmentmap:
+        wf.connect(eroded_mask, 'output_roi_mask', outputspec, 'eroded_mask')
+    if segmentmap:
+        erosion_segmentmap = pe.Node(util.Function(input_names=['roi_mask',
+                                                                'erosion_mm',
+                                                                'erosion_prop'],
+                                                   output_names=[
+                                                       'eroded_roi_mask'],
+                                                   function=erosion,
+                                                   imports=ero_imports),
+                                     name='erode_mask')
 
-    wf.connect(eroded_mask, 'output_roi_mask', erosion_segmentmap, 'roi_mask')
+        wf.connect(eroded_mask, 'output_roi_mask', erosion_segmentmap, 'roi_mask')
 
-    wf.connect(inputspec, 'erode_prop', erosion_segmentmap, 'erosion_prop')
-    wf.connect(inputspec, 'erode_mm', erosion_segmentmap, 'erosion_mm')
+        wf.connect(inputspec, 'erode_prop', erosion_segmentmap, 'erosion_prop')
+        wf.connect(inputspec, 'erode_mm', erosion_segmentmap, 'erosion_mm')
 
-    wf.connect(erosion_segmentmap, 'eroded_roi_mask',
-               outputspec, 'eroded_mask')
+        wf.connect(erosion_segmentmap, 'eroded_roi_mask',
+                   outputspec, 'eroded_mask')
 
     return wf
 
@@ -1831,20 +1832,21 @@ def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-T1w_desc-brain_mask"],
+     "inputs": [("space-T1w_desc-brain_mask",
+                 "label-CSF_probseg")],
      "outputs": ["space-T1w_desc-eroded_mask"]}
     '''
 
-    erode = erode_mask(f'erode_T1w_mask_{pipe_num}')
-    erode.inputs.inputspec.erode_mm = cfg.nuisance_corrections[
+    erode = erode_mask(f'erode_T1w_mask_{pipe_num}', segmentmap=False)
+    erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
         '2-nuisance_regression']['regressor_masks'][
         'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
-    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
-        '2-nuisance_regression']['regressor_masks'][
-        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
+    erode.inputs.inputspec.erode_prop = 0
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
-    wf.connect(node, out, erode, 'inputspec.mask')
+    wf.connect(node, out, erode, 'inputspec.brain_mask')
+    
+    node, out = strat_pool.get_data('label-CSF_probseg')
 
     outputs = {
         'space-T1w_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
@@ -1862,7 +1864,7 @@ def erode_mask_CSF(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["label-CSF_desc-preproc_mask",
-                 "label-CSF_mask"],
+                  "label-CSF_mask"],
                  "space-T1w_desc-brain_mask")],
      "outputs": ["label-CSF_desc-eroded_mask"]}
     '''
@@ -1876,11 +1878,8 @@ def erode_mask_CSF(wf, cfg, strat_pool, pipe_num, opt=None):
         'csf_erosion_prop']
 
     erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
-        '2-nuisance_regression']['regressor_masks'][
-        'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
-    erode.inputs.inputspec.mask_erode_prop = cfg.nuisance_corrections[
-        '2-nuisance_regression']['regressor_masks'][
-        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
+        '2-nuisance_regression']['regressor_masks']['erode_csf'][
+        'csf_mask_erosion_mm']
 
     node, out = strat_pool.get_data(['label-CSF_desc-preproc_mask',
                                      'label-CSF_mask'])
@@ -1917,6 +1916,10 @@ def erode_mask_GM(wf, cfg, strat_pool, pipe_num, opt=None):
         '2-nuisance_regression']['regressor_masks']['erode_gm'][
         'gm_erosion_prop']
 
+    erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_gm'][
+        'gm_mask_erosion_mm']
+
     node, out = strat_pool.get_data(['label-GM_desc-preproc_mask',
                                      'label-GM_mask'])
     wf.connect(node, out, erode, 'inputspec.mask')
@@ -1936,8 +1939,9 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["label-WM_desc-preproc_mask",
-                 "label-WM_mask"]],
+     "inputs": [(["label-WM_desc-preproc_mask",
+                  "label-WM_mask"],
+                 "space-T1w_desc-brain_mask")],
      "outputs": ["label-WM_desc-eroded_mask"]}
     '''
 
@@ -1948,10 +1952,17 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
         '2-nuisance_regression']['regressor_masks']['erode_wm'][
         'wm_erosion_prop']
+        
+    erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_wm'][
+        'wm_mask_erosion_mm']
 
     node, out = strat_pool.get_data(['label-WM_desc-preproc_mask',
                                      'label-WM_mask'])
     wf.connect(node, out, erode, 'inputspec.mask')
+    
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, erode, 'inputspec.brain_mask')
 
     outputs = {
         'label-WM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')

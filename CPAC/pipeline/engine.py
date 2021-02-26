@@ -610,6 +610,7 @@ class ResourcePool(object):
         else:
             mask = 'space-bold_desc-brain_mask'
 
+        mask_idx = None
         for entry in json_info['CpacProvenance']:
             if isinstance(entry, list):
                 if entry[-1].split(':')[0] == mask:
@@ -626,8 +627,8 @@ class ResourcePool(object):
                                            self.fwhm, input_type, smooth_opt)
                     wf.connect(connection[0], connection[1],
                                sm, 'inputspec.in_file')
-
-                    node, out = self.get_data(mask, pipe_idx=mask_idx)
+                    node, out = self.get_data(mask, pipe_idx=mask_idx,
+                                              quick_single=mask_idx is None)
                     wf.connect(node, out, sm, 'inputspec.mask')
 
                     if 'desc-' not in label:
@@ -638,7 +639,7 @@ class ResourcePool(object):
                                                             f'{tag}_desc-sm')
                                     break
                         else:
-                            label = f'desc-sm_{label}'
+                            smlabel = f'desc-sm_{label}'
                     else:
                         for tag in label.split('_'):
                             if 'desc-' in tag:
@@ -778,7 +779,7 @@ class ResourcePool(object):
             # TODO: cpac_outputs.csv etc
             if resource in excl:
                 continue
-
+            subdir = 'other'
             if resource.split('_')[-1] in anat:
                 subdir = 'anat'
                 #TODO: get acq- etc.
@@ -799,7 +800,6 @@ class ResourcePool(object):
                 if 'from-bold' in resource:
                     subdir = 'func'
             else:
-                subdir = 'other'
                 for tag in motions:
                     if tag in resource:
                         subdir = 'func'
@@ -901,7 +901,6 @@ class ResourcePool(object):
                 # grab the iterable atlas ID
                 if resource.split('_')[-1] in atlas_suffixes:
                     atlas_idx = pipe_idx.replace(resource, 'atlas_name')
-
                     # need the single quote and the colon inside the double
                     # quotes - it's the encoded pipe_idx
                     #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
@@ -916,8 +915,9 @@ class ResourcePool(object):
                                 atlas_id = tag.replace('atlas-', '')
                         id_string.inputs.atlas_id = atlas_id
                     else:
-                        raise Exception("\n[!] No atlas ID found for "
-                                        f"{out_dct['filename']}.\n")
+                        warnings.warn(str(
+                            LookupError("\n[!] No atlas ID found for "
+                                        f"{out_dct['filename']}.\n")))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')

@@ -99,6 +99,26 @@ segmentation:
         # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
         # It is not necessary to change this path unless you intend to use non-standard priors.
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
+        
+      thresholding:
+
+        # thresholding of the tissue segmentation probability maps
+        # options: 'Auto', 'Custom'
+        use: 'Custom'
+
+        Custom:
+          # Set the threshold value for the segmentation probability masks (CSF, White Matter, and Gray Matter)
+          # The values remaining will become the binary tissue masks.
+          # A good starting point is 0.95.
+
+          # CSF (cerebrospinal fluid) threshold.
+          CSF_threshold_value : 0.95
+
+          # White matter threshold.
+          WM_threshold_value : 0.95
+
+          # Gray matter threshold.
+          GM_threshold_value : 0.95
 
     Template_Based: 
 

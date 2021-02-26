@@ -118,9 +118,11 @@ segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
   # and CSF based on prior probability maps.
-  run: Off
+  run: On
 
   tissue_segmentation: 
+
+    using: ['ANTs_Prior_Based']
 
     # option parameters
     FSL-FAST: 
