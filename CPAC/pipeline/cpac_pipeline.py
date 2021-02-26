@@ -203,9 +203,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'log_directory': log_dir,
             'log_to_file': bool(getattr(c.pipeline_setup['log_directory'],
                                         'run_logging', True))
-        },
-        'execution': {
-            'crashfile_format': 'txt'
         }
     })
 
@@ -674,7 +671,8 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
     wf.config['execution'] = {
         'hash_method': 'timestamp',
         'crashdump_dir': os.path.abspath(cfg.pipeline_setup['log_directory'][
-                                         'path'])
+                                         'path']),
+        'crashfile_format': 'txt'
     }
 
     return wf
