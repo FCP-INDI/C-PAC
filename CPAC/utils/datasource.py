@@ -634,11 +634,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
         if not os.path.exists(local_dir):
-            try:
-                os.makedirs(local_dir)
-            except OSError as e:
-                if e.errno != os.errno.EEXIST:
-                    raise e
+            os.makedirs(local_dir, exist_ok=True)
 
         if os.path.exists(local_path):
             print("{0} already exists- skipping download.".format(local_path))
