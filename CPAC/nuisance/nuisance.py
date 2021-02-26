@@ -1841,6 +1841,7 @@ def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
         '2-nuisance_regression']['regressor_masks'][
         'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
+    erode.inputs.inputspec.erode_prop = 0
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, erode, 'inputspec.brain_mask')

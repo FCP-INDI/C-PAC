@@ -990,7 +990,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if cfg.nuisance_corrections['2-nuisance_regression'][
                 'Regressors']:
             nuisance_blocks = [
-                #erode_mask_T1w,
+                erode_mask_T1w,
                 erode_mask_CSF,
                 erode_mask_GM,
                 erode_mask_WM,
