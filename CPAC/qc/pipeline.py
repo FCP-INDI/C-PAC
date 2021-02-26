@@ -31,285 +31,437 @@ for pallete in palletes:
     )
 
 
-def create_qc_workflow(workflow, c, strategies, qc_outputs):
+def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_snr_plot",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [(["desc-brain_bold", "desc-motion_bold", "desc-preproc_bold"],
+                 "space-bold_desc-brain_mask"),
+                "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                "desc-brain_T1w",
+                "space-T1w_desc-mean_bold"],
+     "outputs": ["bold-snr-axial-qc",
+                 "bold-snr-sagittal-qc",
+                 "bold-snr-hist-qc",
+                 "bold-snr-qc"]}
+    '''
+
+    # make SNR plot
+    qc_workflow = create_qc_snr(f'qc_snr_{pipe_num}')
+
+    node, out = strat_pool.get_data(["desc-brain_bold",
+                                     "desc-motion_bold",
+                                     "desc-preproc_bold"])
+    wf.connect(node, out, qc_workflow, 'inputspec.functional_preprocessed')
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, qc_workflow, 'inputspec.functional_brain_mask')
+
+    node, out = \
+        strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out,
+               qc_workflow, 'inputspec.functional_to_anat_linear_xfm')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, qc_workflow, 'inputspec.anatomical_brain')
+
+    node, out = strat_pool.get_data('space-T1w_desc-mean_bold')
+    wf.connect(node, out, qc_workflow, 'inputspec.mean_functional_in_anat')
+
+    outputs = {
+        'bold-snr-axial-qc': (qc_workflow, 'outputspec.snr_axial_image'),
+        'bold-snr-sagittal-qc':
+            (qc_workflow, 'outputspec.snr_sagittal_image'),
+        'bold-snr-hist-qc': (
+            qc_workflow, 'outputspec.snr_histogram_image'),
+        'bold-snr-qc': (qc_workflow, 'outputspec.snr_mean')
+    }
+
+    return (wf, outputs)
+
+
+def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_motion_plot",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["movement-parameters"],
+     "outputs": ["movement-parameters-trans-qc",
+                 "movement-parameters-rot-qc"]}
+    '''
+
+    # make motion parameters plot
+    qc_workflow = create_qc_motion(f'qc_motion_{pipe_num}')
+
+    node, out = strat_pool.get_data("movement-parameters")
+    wf.connect(node, out, qc_workflow, 'inputspec.motion_parameters')
+
+    outputs = {
+        'movement-parameters-trans-qc': (
+            qc_workflow, 'outputspec.motion_translation_plot'),
+        'movement-parameters-rot-qc': (
+            qc_workflow, 'outputspec.motion_rotation_plot')
+    }
+
+    return (wf, outputs)
+
+
+def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_fd_plot",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["framewise-displacement-jenkinson"],
+     "outputs": ["framewise-displacement-jenkinson-plot-qc"]}
+    '''
+
+    qc_workflow = create_qc_fd(f'qc_fd_{pipe_num}')
+
+    node, out = strat_pool.get_data('framewise-displacement-jenkinson')
+    wf.connect(node, out, qc_workflow, 'inputspec.fd')
+
+    outputs = {
+        'framewise-displacement-jenkinson-plot-qc':
+            (qc_workflow, 'outputspec.fd_histogram_plot')
+    }
+
+    return (wf, outputs)
+
+
+def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_brain_extraction",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["desc-brain_T1w",
+                "desc-reorient_T1w"],
+     "outputs": ["desc-brain_T1w-axial-qc",
+                 "desc-brain_T1w-sagittal-qc"]}
+    '''
+
+    # make QC montages for Skull Stripping Visualization
+    qc_workflow = create_qc_skullstrip(
+        f'qc_skullstrip_{pipe_num}'
+    )
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, qc_workflow, 'inputspec.anatomical_brain')
+
+    node, out = strat_pool.get_data('desc-reorient_T1w')
+    wf.connect(node, out, qc_workflow, 'inputspec.anatomical_reorient')
+
+    outputs = {
+        'desc-brain_T1w-axial-qc': (qc_workflow, 'outputspec.axial_image'),
+        'desc-brain_T1w-sagittal-qc':
+            (qc_workflow, 'outputspec.sagittal_image')
+    }
+
+    return (wf, outputs)
+
+
+def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_brain_extraction",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-template_desc-brain_T1w",
+                "T1w_brain_template"],
+     "outputs": ["space-template_desc-brain_T1w-axial-qc",
+                 "space-template_desc-brain_T1w-sagittal-qc"]}
+    '''
+
+    # make QC montages for mni normalized anatomical image
+    montage_mni_anat = create_montage(f'montage_mni_anat_{pipe_num}',
+                                      'red', 'mni_anat')
+
+    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    wf.connect(node, out, montage_mni_anat, 'inputspec.underlay')
+
+    anat_template_edge = pe.Node(Function(input_names=['in_file'],
+                                          output_names=['out_file'],
+                                          function=afni_Edge3,
+                                          as_module=True),
+                                 name=f'anat_template_edge_{pipe_num}')
+
+    node, out = strat_pool.get_data('T1w_brain_template')
+    wf.connect(node, out, anat_template_edge, 'in_file')
+
+    wf.connect(anat_template_edge, 'out_file',
+               montage_mni_anat, 'inputspec.overlay')
+
+    outputs = {
+        'space-template_desc-brain_T1w-axial-qc':
+            (montage_mni_anat, 'outputspec.axial_png'),
+        'space-template_desc-brain_T1w-sagittal-qc':
+            (montage_mni_anat, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
+
+
+def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_segmentation",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-brain_T1w",
+                 ["label-CSF_desc-preproc_mask",
+                  "label-CSF_mask"],
+                 ["label-WM_desc-preproc_mask",
+                  "label-WM_mask"],
+                 ["label-GM_desc-preproc_mask",
+                  "label-GM_mask"])],
+     "outputs": ["dseg-axial-qc",
+                 "dseg-sagittal-qc"]}
+    '''
+
+    # make QC montages for CSF WM GM
+    montage_csf_gm_wm = create_montage_gm_wm_csf(
+        f'montage_csf_gm_wm_{pipe_num}', 'montage_csf_gm_wm')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.underlay')
+
+    node, out = strat_pool.get_data(['label-CSF_desc-preproc_mask',
+                                     'label-CSF_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_csf')
+
+    node, out = strat_pool.get_data(['label-WM_desc-preproc_mask',
+                                     'label-WM_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_wm')
+
+    node, out = strat_pool.get_data(['label-GM_desc-preproc_mask',
+                                     'label-GM_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_gm')
+
+    outputs = {
+        'dseg-axial-qc': (montage_csf_gm_wm, 'outputspec.axial_png'),
+        'dseg-sagittal-qc': (montage_csf_gm_wm, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
+
+
+def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_carpet_plot",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [(["space-template_desc-cleaned_bold",
+                  "space-template_desc-brain_bold",
+                  "space-template_desc-preproc_bold",
+                  "space-template_bold"],
+                 "space-template_desc-mean_bold"),
+                "GM_path",
+                "WM_path",
+                "CSF_path"],
+     "outputs": ["space-template_desc-cleaned_bold-carpet-qc",
+                 "space-template_desc-brain_bold-carpet-qc",
+                 "space-template_desc-preproc_bold-carpet-qc",
+                 "space-template_bold-carpet-qc"]}
+    '''
+
+    # make QC Carpet plot
+    carpet_seg = create_qc_carpet(f'carpet_seg_{pipe_num}', 'carpet_seg')
+
+    connection, resource = \
+        strat_pool.get_data(["space-template_desc-cleaned_bold",
+                             "space-template_desc-brain_bold",
+                             "space-template_desc-preproc_bold",
+                             "space-template_bold"],
+                            report_fetched=True)
+    node, out = connection
+    wf.connect(node, out, carpet_seg, 'inputspec.functional_to_standard')
+
+    node, out = strat_pool.get_data("space-template_desc-mean_bold")
+    wf.connect(node, out, carpet_seg, 'inputspec.mean_functional_to_standard')
+
+    node, out = strat_pool.get_data("GM_path")
+    wf.connect(node, out, carpet_seg, 'inputspec.anatomical_gm_mask')
+
+    node, out = strat_pool.get_data("WM_path")
+    wf.connect(node, out, carpet_seg, 'inputspec.anatomical_wm_mask')
+
+    node, out = strat_pool.get_data("CSF_path")
+    wf.connect(node, out, carpet_seg, 'inputspec.anatomical_csf_mask')
+
+    outputs = {
+        f'{resource}-carpet-qc': (carpet_seg, 'outputspec.carpet_plot'),
+    }
+
+    return (wf, outputs)
+
+
+def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_coregistration",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-brain_T1w",
+                 "space-T1w_desc-mean_bold")],
+     "outputs": ["space-T1w_desc-mean_bold-axial-qc",
+                 "space-T1w_desc-mean_bold-sagittal-qc"]}
+    '''
+
+    # make QC montage for Mean Functional in T1 with T1 edge
+    anat_edge = pe.Node(Function(input_names=['in_file'],
+                                 output_names=['out_file'],
+                                 function=afni_Edge3,
+                                 as_module=True),
+                        name=f'anat_edge_{pipe_num}')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, anat_edge, 'in_file')
+
+    montage_anat = create_montage(f'montage_anat_{pipe_num}', 'red',
+                                  't1_edge_on_mean_func_in_t1')
+
+    wf.connect(anat_edge, 'out_file', montage_anat, 'inputspec.overlay')
+
+    node, out = strat_pool.get_data('space-T1w_desc-mean_bold')
+    wf.connect(node, out, montage_anat, 'inputspec.underlay')
+
+    outputs = {
+        'space-T1w_desc-mean_bold-axial-qc':
+            (montage_anat, 'outputspec.axial_png'),
+        'space-T1w_desc-mean_bold-sagittal-qc':
+            (montage_anat, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
+
+
+def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_bold_registration",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-template_desc-mean_bold",
+                "T1w_brain_template_funcreg"],
+     "outputs": ["space-template_desc-mean_bold-axial-qc",
+                 "space-template_desc-mean_bold-sagittal-qc"]}
+    '''
+
+    # make QC montage for Mean Functional in MNI with MNI edge
+    montage_mfi = create_montage(f'montage_mfi_{pipe_num}', 'red',
+                                 'MNI_edge_on_mean_func_mni')
+
+    node, out = strat_pool.get_data('space-template_desc-mean_bold')
+    wf.connect(node, out,  montage_mfi, 'inputspec.underlay')
+
+    func_template_edge = pe.Node(Function(input_names=['in_file'],
+                                          output_names=['out_file'],
+                                          function=afni_Edge3,
+                                          as_module=True),
+                                 name=f'func_template_edge_{pipe_num}')
+
+    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    wf.connect(node, out, func_template_edge, 'in_file')
+
+    wf.connect(func_template_edge, 'out_file',
+               montage_mfi, 'inputspec.overlay')
+
+    outputs = {
+        'space-template_desc-mean_bold-axial-qc':
+            (montage_mfi, 'outputspec.axial_png'),
+        'space-template_desc-mean_bold-sagittal-qc':
+            (montage_mfi, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
+
+
+def create_qc_workflow(cfg):
     qc_montage_id_a = {}
     qc_montage_id_s = {}
     qc_plot_id = {}
     qc_hist_id = {}
 
-    for num_strat, strat in enumerate(strategies):
+    qc_stack = []
 
-        nodes = strat.get_nodes_names()
+    if cfg.functional_preproc['run'] and cfg.registration_workflows[
+        'functional_registration']['coregistration']['run']:
 
-        if 'functional_preprocessed' in strat:
+        qc_stack += [qc_snr_plot, qc_coregistration]
 
-            preproc, out_file = strat['functional_preprocessed']
-            brain_mask, mask_file = strat['functional_brain_mask']
-            func_to_anat_xfm, xfm_file = strat[
-                'functional_to_anat_linear_xfm']
-            anat_ref, ref_file = strat['anatomical_brain']
-            mfa, mfa_file = strat['mean_functional_in_anat']
+        if not 0 in qc_montage_id_a:
+            qc_montage_id_a[0] = 'snr_a'
+            qc_montage_id_s[0] = 'snr_s'
+            qc_hist_id[0] = 'snr_hist'
 
-            # make SNR plot
-            qc_workflow = create_qc_snr('qc_snr_{0}'.format(num_strat))
-            workflow.connect(preproc, out_file, qc_workflow,
-                             'inputspec.functional_preprocessed')
-            workflow.connect(brain_mask, mask_file, qc_workflow,
-                             'inputspec.functional_brain_mask')
-            workflow.connect(func_to_anat_xfm, xfm_file, qc_workflow,
-                             'inputspec.functional_to_anat_linear_xfm')
-            workflow.connect(anat_ref, ref_file, qc_workflow,
-                             'inputspec.anatomical_brain')
-            workflow.connect(mfa, mfa_file, qc_workflow,
-                             'inputspec.mean_functional_in_anat')
+        if not 9 in qc_montage_id_a:
+            qc_montage_id_a[9] = 'mean_func_with_t1_edge_a'
+            qc_montage_id_s[9] = 'mean_func_with_t1_edge_s'
 
-            strat.update_resource_pool({
-                'qc___snr_a': (qc_workflow, 'outputspec.snr_axial_image'),
-                'qc___snr_s': (qc_workflow, 'outputspec.snr_sagittal_image'),
-                'qc___snr_hist': (
-                qc_workflow, 'outputspec.snr_histogram_image'),
-                'qc___snr_val': (qc_workflow, 'outputspec.snr_mean')
-            })
+    if cfg.functional_preproc['run']:
 
-            if not 0 in qc_montage_id_a:
-                qc_montage_id_a[0] = 'snr_a'
-                qc_montage_id_s[0] = 'snr_s'
-                qc_hist_id[0] = 'snr_hist'
+        qc_stack += [qc_motion_plot, qc_fd_plot]
 
-            # make motion parameters plot
-            mov_param, out_file = strat['movement_parameters']
+        if not 1 in qc_plot_id:
+            qc_plot_id[1] = 'movement_trans_plot'
+        if not 2 in qc_plot_id:
+            qc_plot_id[2] = 'movement_rot_plot'
+        if not 3 in qc_plot_id:
+            qc_plot_id[3] = 'fd_plot'
 
-            qc_workflow = create_qc_motion('qc_motion_{0}'.format(num_strat))
-            workflow.connect(mov_param, out_file, qc_workflow,
-                             'inputspec.motion_parameters')
+    if cfg.anatomical_preproc['run']:
 
-            strat.update_resource_pool({
-                'qc___movement_trans_plot': (
-                qc_workflow, 'outputspec.motion_translation_plot'),
-                'qc___movement_rot_plot': (
-                qc_workflow, 'outputspec.motion_rotation_plot')
-            })
-
-            if not 1 in qc_plot_id:
-                qc_plot_id[1] = 'movement_trans_plot'
-
-            if not 2 in qc_plot_id:
-                qc_plot_id[2] = 'movement_rot_plot'
-
-            # make FD plot and volumes removed
-            if ('gen_motion_stats' in nodes or 'gen_motion_stats_before_stc' in nodes) and 1 in c.runNuisance:
-                fd, out_file = strat['frame_wise_displacement_jenkinson']
-
-                qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
-
-                workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
-
-                strat.update_resource_pool({
-                    'qc___fd_plot': (
-                    qc_workflow, 'outputspec.fd_histogram_plot')
-                })
-
-                if not 3 in qc_plot_id:
-                    qc_plot_id[3] = 'fd_plot'
-
-        # make QC montages for Skull Stripping Visualization
-        anat_underlay, out_file = strat['anatomical_brain']
-        skull, out_file_s = strat['anatomical_skull_leaf']
-
-        qc_workflow = create_qc_skullstrip(
-            'qc_skullstrip_{0}'.format(num_strat)
-        )
-        workflow.connect(anat_underlay, out_file,
-                         qc_workflow, 'inputspec.anatomical_brain')
-        workflow.connect(skull, out_file_s,
-                         qc_workflow, 'inputspec.anatomical_reorient')
-
-        strat.update_resource_pool({
-            'qc___skullstrip_vis_a': (qc_workflow, 'outputspec.axial_image'),
-            'qc___skullstrip_vis_s': (
-            qc_workflow, 'outputspec.sagittal_image')
-        })
+        qc_stack.append(qc_brain_extraction)
 
         if not 4 in qc_montage_id_a:
             qc_montage_id_a[4] = 'skullstrip_vis_a'
             qc_montage_id_s[4] = 'skullstrip_vis_s'
 
-        if 'anatomical_to_standard' in strat:
+    if cfg.registration_workflows['anatomical_registration']['run']:
 
-            # make QC montages for mni normalized anatomical image
-            mni_anat_underlay, out_file = strat['anatomical_to_standard']
+        qc_stack.append(qc_T1w_standard)
 
-            montage_mni_anat = create_montage(
-                'montage_mni_anat_{0}'.format(num_strat),
-                'red',
-                'mni_anat')
+        if not 5 in qc_montage_id_a:
+            qc_montage_id_a[5] = 'mni_normalized_anatomical_a'
+            qc_montage_id_s[5] = 'mni_normalized_anatomical_s'
 
-            workflow.connect(mni_anat_underlay, out_file,
-                             montage_mni_anat, 'inputspec.underlay')
+    if cfg.anatomical_preproc['run'] and cfg.segmentation['run']:
 
-            template_brain_for_anat, out_file = strat['template_brain_for_anat']
-            anat_template_edge = pe.Node(Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                         function=afni_Edge3,
-                                         as_module=True),
-                                name='anat_template_edge_{0}'.format(num_strat))
+        qc_stack.append(qc_segmentation)
 
-            workflow.connect(template_brain_for_anat, out_file, anat_template_edge, 'in_file')
-            workflow.connect(anat_template_edge, 'out_file',
-                             montage_mni_anat, 'inputspec.overlay')
+        if not 7 in qc_montage_id_a:
+            qc_montage_id_a[7] = 'csf_gm_wm_a'
+            qc_montage_id_s[7] = 'csf_gm_wm_s'
 
-            strat.update_resource_pool({'qc___mni_normalized_anatomical_a': (
-            montage_mni_anat, 'outputspec.axial_png'),
-                                        'qc___mni_normalized_anatomical_s': (
-                                        montage_mni_anat,
-                                        'outputspec.sagittal_png')})
+        if cfg.registration_workflows['functional_registration'][
+            'func_registration_to_template']['run']:
 
-            if not 5 in qc_montage_id_a:
-                qc_montage_id_a[5] = 'mni_normalized_anatomical_a'
-                qc_montage_id_s[5] = 'mni_normalized_anatomical_s'
+            qc_stack.append(qc_carpet_plot)
 
-        # make QC montages for CSF WM GM
-        if 'seg_preproc' in nodes:
+            if not 8 in qc_plot_id:
+                qc_plot_id[8] = 'carpet'
 
-            anat_underlay, out_file_anat = strat['anatomical_brain']
-            csf_overlay, out_file_csf = strat['anatomical_csf_mask']
-            wm_overlay, out_file_wm = strat['anatomical_wm_mask']
-            gm_overlay, out_file_gm = strat['anatomical_gm_mask']
+    if cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['run']:
 
-            montage_csf_gm_wm = create_montage_gm_wm_csf(
-                'montage_csf_gm_wm_%d' % num_strat,
-                'montage_csf_gm_wm')
+        qc_stack.append(qc_bold_registration)
 
-            workflow.connect(anat_underlay, out_file_anat,
-                             montage_csf_gm_wm, 'inputspec.underlay')
-            workflow.connect(csf_overlay, out_file_csf,
-                             montage_csf_gm_wm, 'inputspec.overlay_csf')
-            workflow.connect(wm_overlay, out_file_wm,
-                             montage_csf_gm_wm, 'inputspec.overlay_wm')
-            workflow.connect(gm_overlay, out_file_gm,
-                             montage_csf_gm_wm, 'inputspec.overlay_gm')
+        if not 10 in qc_montage_id_a:
+            qc_montage_id_a[10] = 'mean_func_with_mni_edge_a'
+            qc_montage_id_s[10] = 'mean_func_with_mni_edge_s'
 
-            strat.update_resource_pool({
-                'qc___csf_gm_wm_a': (
-                montage_csf_gm_wm, 'outputspec.axial_png'),
-                'qc___csf_gm_wm_s': (
-                montage_csf_gm_wm, 'outputspec.sagittal_png')
-            })
-
-            if not 7 in qc_montage_id_a:
-                qc_montage_id_a[7] = 'csf_gm_wm_a'
-                qc_montage_id_s[7] = 'csf_gm_wm_s'
-
-            if 'functional_preprocessed' in strat:
-                preproc, out_file_preproc = strat['functional_to_standard']
-                mean_preproc, out_file_mean_preproc = strat[
-                    'mean_functional_to_standard']
-
-                # make QC Carpet plot
-                carpet_seg = create_qc_carpet('carpet_seg_%d' % num_strat,
-                                              'carpet_seg')
-
-                workflow.connect(
-                    preproc, out_file_preproc,
-                    carpet_seg, 'inputspec.functional_to_standard'
-                )
-                workflow.connect(
-                    mean_preproc, out_file_mean_preproc,
-                    carpet_seg, 'inputspec.mean_functional_to_standard'
-                )
-
-                workflow.connect(
-                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['GM_path'], 'local_path',
-                    carpet_seg, 'inputspec.anatomical_gm_mask'
-                )
-                workflow.connect(
-                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['WM_path'], 'local_path',
-                    carpet_seg, 'inputspec.anatomical_wm_mask'
-                )
-                workflow.connect(
-                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['CSF_path'], 'local_path',
-                    carpet_seg, 'inputspec.anatomical_csf_mask'
-                )
-
-                strat.update_resource_pool({
-                    'qc___carpet': (carpet_seg, 'outputspec.carpet_plot'),
-                })
-
-                if not 8 in qc_plot_id:
-                    qc_plot_id[8] = 'carpet'
-
-        if 'functional_preprocessed' in strat:
-
-            # make QC montage for Mean Functional in T1 with T1 edge
-            anat, out_file = strat['anatomical_brain']
-            m_f_a, out_file_mfa = strat['mean_functional_in_anat']
-
-            anat_edge = pe.Node(Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                         function=afni_Edge3,
-                                         as_module=True),
-                                name='anat_edge_%d' % num_strat)
-
-            montage_anat = create_montage(
-                'montage_anat_%d' % num_strat, 'red',
-                't1_edge_on_mean_func_in_t1')
-
-            workflow.connect(anat, out_file, anat_edge, 'in_file')
-            workflow.connect(anat_edge, 'out_file',
-                             montage_anat, 'inputspec.overlay')
-            workflow.connect(m_f_a, out_file_mfa,
-                             montage_anat, 'inputspec.underlay')
-
-            strat.update_resource_pool({
-                'qc___mean_func_with_t1_edge_a': (
-                montage_anat, 'outputspec.axial_png'),
-                'qc___mean_func_with_t1_edge_s': (
-                montage_anat, 'outputspec.sagittal_png')
-            })
-
-            if not 9 in qc_montage_id_a:
-                qc_montage_id_a[9] = 'mean_func_with_t1_edge_a'
-                qc_montage_id_s[9] = 'mean_func_with_t1_edge_s'
-
-            # make QC montage for Mean Functional in MNI with MNI edge
-            m_f_i, out_file = strat['mean_functional_to_standard']
-
-            montage_mfi = create_montage(
-                'montage_mfi_%d' % num_strat, 'red',
-                'MNI_edge_on_mean_func_mni')
-            workflow.connect(m_f_i, out_file, montage_mfi,
-                             'inputspec.underlay')
-
-            template_brain_for_func, out_file = strat['template_brain_for_func_preproc']
-            func_template_edge = pe.Node(Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                         function=afni_Edge3,
-                                         as_module=True),
-                                name='func_template_edge_{0}'.format(num_strat))
-
-            workflow.connect(template_brain_for_func, out_file, func_template_edge, 'in_file')
-            workflow.connect(func_template_edge, 'out_file',
-                             montage_mfi, 'inputspec.overlay')
-
-            strat.update_resource_pool({'qc___mean_func_with_mni_edge_a': (
-            montage_mfi, 'outputspec.axial_png'),
-                                        'qc___mean_func_with_mni_edge_s': (
-                                        montage_mfi,
-                                        'outputspec.sagittal_png')})
-
-            if not 10 in qc_montage_id_a:
-                qc_montage_id_a[10] = 'mean_func_with_mni_edge_a'
-                qc_montage_id_s[10] = 'mean_func_with_mni_edge_s'
-
-        # Link all the derivatives to the QC pages
-        idx = 11
-        rp = strat.get_resource_pool()
-        for key in sorted(rp.keys()):
-            # qc_outputs is from the outputs CSV
-            if key in qc_outputs:
-                qa_montages(workflow, c, strat, num_strat,
-                            qc_montage_id_a, qc_montage_id_s, qc_hist_id,
-                            key, idx)
-                idx += 1
-
-    return qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id
+    return qc_stack, qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id

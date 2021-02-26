@@ -51,11 +51,11 @@ from CPAC.registration.registration import (
     coregistration_prep_vol,
     coregistration_prep_mean,
     coregistration,
-    bbr_coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
     warp_timeseries_to_T1template,
     warp_timeseries_to_EPItemplate,
+    warp_bold_mean_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template
 )
@@ -799,6 +799,58 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
+def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
+
+    if not pipeline_blocks:
+        pipeline_blocks = []
+
+    reg_blocks = []
+    if not rpool.check_rpool('space-template_desc-brain_T1w'):
+        reg_blocks = [
+            [register_ANTs_anat_to_template, register_FSL_anat_to_template]
+        ]
+    if cfg.voxel_mirrored_homotopic_connectivity['run']:
+        if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
+            reg_blocks.append([register_symmetric_ANTs_anat_to_template,
+                               register_symmetric_FSL_anat_to_template])
+    pipeline_blocks += reg_blocks
+
+    return pipeline_blocks
+
+
+def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
+
+    if not pipeline_blocks:
+        pipeline_blocks = []
+
+    if not rpool.check_rpool('label-CSF_mask') or \
+            not rpool.check_rpool('label-WM_mask'):
+        seg_blocks = [
+            [tissue_seg_fsl_fast,
+             tissue_seg_ants_prior]
+             #tissue_seg_freesurfer
+        ]
+        if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
+            'Template_Based']['template_for_segmentation']:
+            seg_blocks = [
+                [tissue_seg_fsl_fast,
+                 tissue_seg_ants_prior,
+                 tissue_seg_T1_template_based]
+                # tissue_seg_freesurfer
+            ]
+        if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
+            'Template_Based']['template_for_segmentation']:
+            seg_blocks = [
+                [tissue_seg_fsl_fast,
+                 tissue_seg_ants_prior,
+                 tissue_seg_EPI_template_based]
+                # tissue_seg_freesurfer
+            ]
+        pipeline_blocks += seg_blocks
+
+    return pipeline_blocks
+
+
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
 
     for block in pipeline_blocks:
@@ -854,42 +906,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
     # Anatomical to T1 template registration
-    reg_blocks = []
-    if not rpool.check_rpool('space-template_desc-brain_T1w'):
-        reg_blocks = [
-            [register_ANTs_anat_to_template, register_FSL_anat_to_template]
-        ]
-    if cfg.voxel_mirrored_homotopic_connectivity['run']:
-        if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
-            reg_blocks.append([register_symmetric_ANTs_anat_to_template,
-                               register_symmetric_FSL_anat_to_template])
-    pipeline_blocks += reg_blocks
+    pipeline_blocks = build_T1w_registration_stack(rpool, cfg,
+                                                   pipeline_blocks)
 
     # Anatomical tissue segmentation
-    if not rpool.check_rpool('label-CSF_mask') or \
-            not rpool.check_rpool('label-WM_mask'):
-        seg_blocks = [
-            [tissue_seg_fsl_fast,
-             tissue_seg_ants_prior]
-             #tissue_seg_freesurfer
-        ]
-        if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
-            'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_T1_template_based]
-                # tissue_seg_freesurfer
-            ]
-        if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
-            'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_EPI_template_based]
-                # tissue_seg_freesurfer
-            ]
-        pipeline_blocks += seg_blocks
+    pipeline_blocks = build_segmentation_stack(rpool, cfg, pipeline_blocks)
 
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc['run'] and \
@@ -1016,6 +1037,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_EPItemplate],
+                            warp_bold_mean_to_T1template,
                             warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
@@ -1062,6 +1084,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('centrality') and \
             any([cfg.network_centrality[option]['weight_options'] for option in valid_options['centrality']['method_options']]):
         pipeline_blocks += [network_centrality]
+
+    if cfg.pipeline_setup['output_directory'][
+        'generate_quality_control_images']:
+        qc_stack, qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
+            create_qc_workflow(cfg)
+        pipeline_blocks += qc_stack
 
     # Connect the entire pipeline!
     wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)

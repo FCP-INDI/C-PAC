@@ -546,21 +546,27 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FSL-FAST",
-     "inputs": ["desc-brain_T1w",
-                "space-T1w_desc-brain_mask",
-                "from-template_to-T1w_mode-image_desc-linear_xfm",
+     "inputs": [(["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+                 ["space-T1w_desc-brain_mask",
+                  "space-longitudinal_desc-brain_mask"],
+                 ["from-template_to-T1w_mode-image_desc-linear_xfm",
+                  "from-template_to-longitudinal_mode-image_desc-linear_xfm"]),
                 "CSF_path",
                 "GM_path",
                 "WM_path"],
-     "outputs": ["label-CSF_mask",
-                 "label-GM_mask",
-                 "label-WM_mask",
-                 "label-CSF_desc-preproc_mask",
-                 "label-GM_desc-preproc_mask",
+     "outputs": ["label-CSF_mask", "label-GM_mask", "label-WM_mask",
+                 "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
                  "label-WM_desc-preproc_mask",
-                 "label-CSF_probseg",
-                 "label-GM_probseg",
-                 "label-WM_probseg"]}
+                 "label-CSF_probseg", "label-GM_probseg", "label-WM_probseg",
+                 "space-longitudinal_label-CSF_mask",
+                 "space-longitudinal_label-GM_mask",
+                 "space-longitudinal_label-WM_mask",
+                 "space-longitudinal_label-CSF_desc-preproc_mask",
+                 "space-longitudinal_label-GM_desc-preproc_mask",
+                 "space-longitudinal_label-WM_desc-preproc_mask",
+                 "space-longitudinal_label-CSF_probseg",
+                 "space-longitudinal_label-GM_probseg",
+                 "space-longitudinal_label-WM_probseg"]}
     '''
 
     # FSL-FAST
@@ -588,8 +594,18 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         function=check_if_file_is_empty, input_names=['in_file'],
         output_names=['out_file']))
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    connect, resource = \
+        strat_pool.get_data(["desc-brain_T1w",
+                             "space-longitudinal_desc-brain_T1w"],
+                            report_fetched=True)
+    node, out = connect
     wf.connect(node, out, segment, 'in_files')
+
+    long = ''
+    xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
+    if 'space-longitudinal' in resource:
+        long = 'space-longitudinal_'
+        xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
 
     use_custom_threshold = cfg['segmentation']['tissue_segmentation'][
                                'FSL-FAST']['thresholding'] == 'Custom'
@@ -597,8 +613,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     use_priors = cfg['segmentation']['tissue_segmentation'][
         'FSL-FAST']['use_priors']['run']
 
-    xfm_prov = strat_pool.get_cpac_provenance(
-        'from-template_to-T1w_mode-image_desc-linear_xfm')
+    xfm_prov = strat_pool.get_cpac_provenance(xfm)
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     process_csf = process_segment_map(f'CSF_{pipe_num}', use_priors,
@@ -631,18 +646,19 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('WM_path')
         wf.connect(node, out, process_wm, 'inputspec.tissue_prior')
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    node, out = strat_pool.get_data(["desc-brain_T1w",
+                                     "space-longitudinal_desc-brain_T1w"])
     wf.connect(node, out, process_csf, 'inputspec.brain')
     wf.connect(node, out, process_gm, 'inputspec.brain')
     wf.connect(node, out, process_wm, 'inputspec.brain')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
+                                     "space-longitudinal_desc-brain_mask"])
     wf.connect(node, out, process_csf, 'inputspec.brain_mask')
     wf.connect(node, out, process_gm, 'inputspec.brain_mask')
     wf.connect(node, out, process_wm, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data(
-        'from-template_to-T1w_mode-image_desc-linear_xfm')
+    node, out = strat_pool.get_data(xfm)
     wf.connect(node, out, process_csf, 'inputspec.template_to_T1_xfm')
     wf.connect(node, out, process_gm, 'inputspec.template_to_T1_xfm')
     wf.connect(node, out, process_wm, 'inputspec.template_to_T1_xfm')
@@ -670,16 +686,23 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(segment, 'probability_maps', get_csf, 'probability_maps')
 
     outputs = {
-        'label-CSF_probseg': (get_csf, 'filename'),
-        'label-GM_probseg': (segment, ('probability_maps', pick_wm_prob_1)),
-        'label-WM_probseg': (segment, ('probability_maps', pick_wm_prob_2)),
-        'label-CSF_mask': (segment, ('tissue_class_files', pick_wm_class_0)),
-        'label-GM_mask': (segment, ('tissue_class_files', pick_wm_class_1)),
-        'label-WM_mask': (segment, ('tissue_class_files', pick_wm_class_2)),
-        'label-CSF_desc-preproc_mask':
+        f'{long}label-CSF_probseg': (get_csf, 'filename'),
+        f'{long}label-GM_probseg':
+            (segment, ('probability_maps', pick_wm_prob_1)),
+        f'{long}label-WM_probseg':
+            (segment, ('probability_maps', pick_wm_prob_2)),
+        f'{long}label-CSF_mask':
+            (segment, ('tissue_class_files', pick_wm_class_0)),
+        f'{long}label-GM_mask':
+            (segment, ('tissue_class_files', pick_wm_class_1)),
+        f'{long}label-WM_mask':
+            (segment, ('tissue_class_files', pick_wm_class_2)),
+        f'{long}label-CSF_desc-preproc_mask':
             (process_csf, 'outputspec.segment_mask'),
-        'label-GM_desc-preproc_mask': (process_gm, 'outputspec.segment_mask'),
-        'label-WM_desc-preproc_mask': (process_wm, 'outputspec.segment_mask')
+        f'{long}label-GM_desc-preproc_mask':
+            (process_gm, 'outputspec.segment_mask'),
+        f'{long}label-WM_desc-preproc_mask':
+            (process_wm, 'outputspec.segment_mask')
     }
 
     return (wf, outputs)
@@ -692,8 +715,8 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "Template_Based",
-     "inputs": ["desc-brain_T1w",
-                "from-template_to-T1w_mode-image_desc-linear_xfm"],
+     "inputs": [("desc-brain_T1w",
+                 "from-template_to-T1w_mode-image_desc-linear_xfm")],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -750,8 +773,8 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "Template_Based",
-     "inputs": ["desc-mean_bold",
-                "from-template_to-bold_mode-image_desc-linear_xfm"],
+     "inputs": [("desc-mean_bold",
+                 "from-template_to-bold_mode-image_desc-linear_xfm")],
      "outputs": ["space-bold_label-CSF_mask",
                  "space-bold_label-GM_mask",
                  "space-bold_label-WM_mask"]}
@@ -808,8 +831,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "ANTs_Prior_Based",
-     "inputs": ["desc-brain_T1w",
-                "space-T1w_desc-brain_mask"],
+     "inputs": [("desc-brain_T1w",
+                 "space-T1w_desc-brain_mask")],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -829,21 +852,21 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
 
     seg_preproc_ants_prior_based.inputs.inputspec.csf_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'ANTs_prior_seg_CSF_label']
+        'CSF_label']
 
     seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'ANTs_prior_seg_left_GM_label']
+        'left_GM_label']
     seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'ANTs_prior_seg_right_GM_label']
+        'right_GM_label']
 
     seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'ANTs_prior_seg_left_WM_label']
+        'left_WM_label']
     seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'ANTs_prior_seg_right_WM_label']
+        'right_WM_label']
 
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out,

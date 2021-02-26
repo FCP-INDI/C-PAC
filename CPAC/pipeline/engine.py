@@ -34,16 +34,22 @@ logger = logging.getLogger('workflow')
 
 
 class ResourcePool(object):
-    def __init__(self, rpool=None, name=None, cfg=None):
+    def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
         if not rpool:
             self.rpool = {}
         else:
             self.rpool = rpool
-        self.pipe_list = []
+
+        if not pipe_list:
+            self.pipe_list = []
+        else:
+            self.pipe_list = pipe_list
+
         self.name = name
 
         if cfg:
+            self.cfg = cfg
             self.logdir = cfg.pipeline_setup['log_directory']['path']
 
             self.num_cpus = cfg.pipeline_setup['system_config'][
@@ -116,6 +122,12 @@ class ResourcePool(object):
 
     def get_resources(self):
         return self.rpool.keys()
+
+    def copy_rpool(self):
+        return ResourcePool(rpool=copy.deepcopy(self.get_entire_rpool()),
+                            name=self.name,
+                            cfg=self.cfg,
+                            pipe_list=copy.deepcopy(self.pipe_list))
 
     def get_raw_label(self, resource):
         # remove desc-* label
@@ -606,7 +618,6 @@ class ResourcePool(object):
                     break
 
         if self.run_smoothing:
-            print(f'sm label: {label}')
             if label in self.smooth:
                 for smooth_opt in self.smooth_opts:
 
@@ -695,7 +706,7 @@ class ResourcePool(object):
 
         return wf
 
-    def gather_pipes(self, wf, cfg, all=False):
+    def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         # TODO: cpac_outputs.csv etc
         # TODO: might be better to do an inclusion instead
         non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
@@ -730,12 +741,35 @@ class ResourcePool(object):
                         'T1w_template_for_resample']
         excl += non_sink
         excl += config_paths
+
+        if add_excl:
+            excl += add_excl
+
         anat = ['T1w', 'probseg']
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
                 'correlations', 'statmap', 'regressors', 'degree-centrality',
                 'eigen-centrality', 'lfcd']
+
         motions = ['motion', 'movement', 'coordinate', 'displacement',
                    'dvars', 'power-params']
+
+        qc_anat = ['T1w-axial-qc',
+                   'T1w-sagittal-qc',
+                   'dseg-axial-qc',
+                   'dseg-sagittal-qc']
+        anat += qc_anat
+
+        qc_func = ['bold-axial-qc',
+                   'bold-sagittal-qc',
+                   'bold-carpet-qc',
+                   'framewise-displacement-jenkinson-plot-qc',
+                   'movement-parameters-trans-qc',
+                   'movement-parameters-rot-qc',
+                   'bold-snr-axial-qc',
+                   'bold-snr-sagittal-qc',
+                   'bold-snr-hist-qc',
+                   'bold-snr-qc']
+        func += qc_func
 
         if all:
             excl = non_sink
@@ -744,10 +778,6 @@ class ResourcePool(object):
             # TODO: cpac_outputs.csv etc
             if resource in excl:
                 continue
-                
-            if not all:
-                if 'symtemplate' in resource:
-                    continue
 
             if resource.split('_')[-1] in anat:
                 subdir = 'anat'
@@ -778,7 +808,8 @@ class ResourcePool(object):
                 unique_id = self.get_name()
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
-                container = os.path.join('cpac', unique_id)
+                pipe_name = cfg.pipeline_setup['pipeline_name']
+                container = os.path.join(f'cpac_{pipe_name}', unique_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -1258,12 +1289,12 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 
     wf, rpool, diff, blip, fmap_rp_list = \
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
-                              data_paths['creds_path'])
+                              data_paths['creds_path'], ses_id)
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
-def ingress_output_dir(cfg, rpool, data_paths, unique_id):
+def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
 
@@ -1300,7 +1331,9 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
 
     print(f"\nPulling outputs from {out_dir}.\n")
 
-    cpac_dir = os.path.join(out_dir, 'cpac', unique_id)
+    cpac_dir = os.path.join(out_dir,
+                            f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+                            unique_id)
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
@@ -1402,7 +1435,7 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
         ingress.inputs.inputnode.set(
             unique_id=unique_id,
             data=filepath,
-            creds_path=data_paths['creds_path'],
+            creds_path=creds_path,
             dl_dir=cfg.pipeline_setup['working_directory']['path']
         )
         rpool.set_data(resource, ingress, 'outputspec.data', json_info,
@@ -1411,7 +1444,7 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
     return rpool
 
 
-def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
+def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: pull this from some external list instead
     # TODO: nah, even better: just loop through the config for .nii's
@@ -1553,7 +1586,7 @@ def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
             config_ingress.inputs.inputnode.set(
                 unique_id=unique_id,
                 data=val,
-                creds_path=data_paths['creds_path'],
+                creds_path=creds_path,
                 dl_dir=cfg.pipeline_setup['working_directory']['path']
             )
             rpool.set_data(key, config_ingress, 'outputspec.data', {}, "",
@@ -1646,7 +1679,7 @@ def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
     return rpool
 
 
-def initiate_rpool(wf, cfg, data_paths):
+def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     '''
 
     data_paths format:
@@ -1668,31 +1701,33 @@ def initiate_rpool(wf, cfg, data_paths):
     # TODO: used for BIDS-Derivatives (below), and possible refactoring of
     # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
 
-    part_id = data_paths['subject_id']
-    ses_id = data_paths['unique_id']
-    if 'creds_path' not in data_paths:
-        data_paths['creds_path'] = None
-
-    unique_id = f'{part_id}_{ses_id}'
+    if data_paths:
+        part_id = data_paths['subject_id']
+        ses_id = data_paths['unique_id']
+        if 'creds_path' not in data_paths:
+            creds_path = None
+        else:
+            creds_path = data_paths['creds_path']
+        unique_id = f'{part_id}_{ses_id}'
+    elif part_id:
+        unique_id = part_id
+        creds_path = None
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
+    if data_paths:
+        rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
+                                      part_id, ses_id)
+
+        wf, rpool, diff, blip, fmap_rp_list = \
+            ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
                                   part_id, ses_id)
 
-    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_func_data(wf,
-                                                                rpool,
-                                                                cfg,
-                                                                data_paths,
-                                                                unique_id,
-                                                                part_id,
-                                                                ses_id)
-
     # grab already-processed data from the output directory
-    rpool = ingress_output_dir(cfg, rpool, data_paths, unique_id)
+    rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id)
+    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     return (wf, rpool)
 

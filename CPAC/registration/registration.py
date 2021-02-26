@@ -1539,15 +1539,19 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "desc-brain_T1w"),
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"],
+                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"]),
                 "T1w_template",
                 "T1w_brain_template",
                 "template_ref_mask"],
      "outputs": ["space-template_desc-brain_T1w",
                  "from-T1w_to-template_mode-image_desc-linear_xfm",
                  "from-template_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-template_mode-image_xfm"]}
+                 "from-T1w_to-template_mode-image_xfm",
+                 "from-longitudinal_to-template_mode-image_desc-linear_xfm",
+                 "from-template_to-longitudinal_mode-image_desc-linear_xfm",
+                 "from-longitudinal_to-template_mode-image_xfm"]}
     '''
 
     fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
@@ -1562,14 +1566,19 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'fnirt_config']
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    connect, brain = \
+        strat_pool.get_data(['desc-brain_T1w',
+                             'space-longitudinal_desc-brain_T1w'],
+                            report_fetched=True)
+    node, out = connect
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('T1w_brain_template')
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w",
-                                     "desc-reorient_T1w", "T1w"])
+                                     "desc-reorient_T1w", "T1w",
+                                     "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('T1w_template')
@@ -1577,6 +1586,17 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data('template_ref_mask')
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
+
+    if 'space-longitudinal' in brain:
+        for key in outputs.keys():
+            if 'from-T1w' in key:
+                new_key = key.replace('from-T1w', 'from-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
+            if 'to-T1w' in key:
+                new_key = key.replace('to-T1w', 'to-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
 
     return (wf, outputs)
 
@@ -1589,15 +1609,19 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "desc-brain_T1w"),
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"],
+                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"]),
                 "T1w_template_symmetric",
                 "T1w_brain_template_symmetric",
                 "template_dilated_symmetric_brain_mask"],
      "outputs": ["space-symtemplate_desc-brain_T1w",
                  "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-symtemplate_mode-image_xfm"]}
+                 "from-T1w_to-symtemplate_mode-image_xfm",
+                 "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm",
+                 "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm",
+                 "from-longitudinal_to-symtemplate_mode-image_xfm"]}
     '''
 
     fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
@@ -1613,14 +1637,19 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
         'anatomical_registration']['registration']['FSL-FNIRT'][
         'fnirt_config']
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    connect, brain = \
+        strat_pool.get_data(['desc-brain_T1w',
+                             'space-longitudinal_desc-brain_T1w'],
+                            report_fetched=True)
+    node, out = connect
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('T1w_brain_template_symmetric')
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w",
-                                     "desc-reorient_T1w", "T1w"])
+                                     "desc-reorient_T1w", "T1w",
+                                     "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('T1w_template_symmetric')
@@ -1628,6 +1657,17 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
 
     node, out = strat_pool.get_data('template_dilated_symmetric_brain_mask')
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
+
+    if 'space-longitudinal' in brain:
+        for key in outputs.keys():
+            if 'from-T1w' in key:
+                new_key = key.replace('from-T1w', 'from-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
+            if 'to-T1w' in key:
+                new_key = key.replace('to-T1w', 'to-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
 
     return (wf, outputs)
 
@@ -1690,9 +1730,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": "ANTS",
-     "inputs": [("desc-brain_T1w",
-                 "space-T1w_desc-brain_mask",
-                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]),
+     "inputs": [(["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+                 ["space-T1w_desc-brain_mask",
+                  "space-longitudinal_desc-brain_mask"],
+                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"]),
                 "T1w_template",
                 "T1w_brain_template",
                 "T1w_brain_template_mask",
@@ -1703,7 +1745,13 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_desc-nonlinear_xfm",
                  "from-template_to-T1w_mode-image_desc-nonlinear_xfm",
                  "from-T1w_to-template_mode-image_xfm",
-                 "from-template_to-T1w_mode-image_xfm"]}
+                 "from-template_to-T1w_mode-image_xfm",
+                 "from-longitudinal_to-template_mode-image_desc-linear_xfm",
+                 "from-template_to-longitudinal_mode-image_desc-linear_xfm",
+                 "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm",
+                 "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm",
+                 "from-longitudinal_to-template_mode-image_xfm",
+                 "from-template_to-longitudinal_mode-image_xfm"]}
     '''
 
     params = cfg.registration_workflows['anatomical_registration'][
@@ -1716,20 +1764,26 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    connect, brain = \
+        strat_pool.get_data(['desc-brain_T1w',
+                             'space-longitudinal_desc-brain_T1w'],
+                            report_fetched=True)
+    node, out = connect
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('T1w_brain_template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
-                                     "T1w"])
+    node, out = strat_pool.get_data(["desc-preproc_T1w",
+                                     "desc-reorient_T1w", "T1w",
+                                     "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data(f'T1w_template')
     wf.connect(node, out, ants, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
+                                     "space-longitudinal_desc-brain_mask"])
     wf.connect(node, out, ants, 'inputspec.input_mask')
 
     node, out = strat_pool.get_data('T1w_brain_template_mask')
@@ -1738,6 +1792,17 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
         wf.connect(node, out, ants, 'inputspec.lesion_mask')
+
+    if 'space-longitudinal' in brain:
+        for key in outputs.keys():
+            if 'from-T1w' in key:
+                new_key = key.replace('from-T1w', 'from-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
+            if 'to-T1w' in key:
+                new_key = key.replace('to-T1w', 'to-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
 
     return (wf, outputs)
 
@@ -1750,9 +1815,11 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": "ANTS",
-     "inputs": [("desc-brain_T1w",
-                 "space-T1w_desc-brain_mask",
-                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]),
+     "inputs": [(["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+                 ["space-T1w_desc-brain_mask",
+                  "space-longitudinal_desc-brain_mask"],
+                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"]),
                 "T1w_template_symmetric",
                 "T1w_brain_template_symmetric",
                 "dilated_symmetric_brain_mask",
@@ -1763,7 +1830,13 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
                  "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm",
                  "from-T1w_to-symtemplate_mode-image_xfm",
-                 "from-symtemplate_to-T1w_mode-image_xfm"]}
+                 "from-symtemplate_to-T1w_mode-image_xfm",
+                 "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm",
+                 "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm",
+                 "from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm",
+                 "from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm",
+                 "from-longitudinal_to-symtemplate_mode-image_xfm",
+                 "from-symtemplate_to-longitudinal_mode-image_xfm"]}
     '''
 
     params = cfg.registration_workflows['anatomical_registration'][
@@ -1776,20 +1849,26 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
     ants.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    connect, brain = \
+        strat_pool.get_data(['desc-brain_T1w',
+                             'space-longitudinal_desc-brain_T1w'],
+                            report_fetched=True)
+    node, out = connect
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('T1w_brain_template_symmetric')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
-                                     "T1w"])
+    node, out = strat_pool.get_data(["desc-preproc_T1w",
+                                     "desc-reorient_T1w", "T1w",
+                                     "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('T1w_template_symmetric')
     wf.connect(node, out, ants, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
+                                     "space-longitudinal_desc-brain_mask"])
     wf.connect(node, out, ants, 'inputspec.input_mask')
 
     node, out = strat_pool.get_data('dilated_symmetric_brain_mask')
@@ -1798,6 +1877,17 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
         wf.connect(node, out, ants, 'inputspec.lesion_mask')
+
+    if 'space-longitudinal' in brain:
+        for key in outputs.keys():
+            if 'from-T1w' in key:
+                new_key = key.replace('from-T1w', 'from-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
+            if 'to-T1w' in key:
+                new_key = key.replace('to-T1w', 'to-longitudinal')
+                outputs[new_key] = outputs[key]
+                del outputs[key]
 
     return (wf, outputs)
 
@@ -2036,79 +2126,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "bbr_coregistration",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration", "boundary_based_registration"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("bold_coreg_input",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
-                ("T1w",
-                 ["label-WM_probseg", "label-WM_mask"]),
-                "diffphase_dwell",
-                "diffphase_pedir",
-                ("despiked_fieldmap",
-                 "fieldmap_mask")],
-     "outputs": ["space-T1w_desc-mean_bold",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm"]}
-    '''
-
-    diff_complete = False
-    if strat_pool.check_rpool("despiked_fieldmap") and \
-            strat_pool.check_rpool("fieldmap_mask"):
-        diff_complete = True
-
-    func_to_anat_bbreg = create_bbregister_func_to_anat(diff_complete,
-                                                        f'func_to_anat_'
-                                                        f'bbreg_'
-                                                        f'{pipe_num}')
-    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
-        cfg.registration_workflows['functional_registration'][
-            'coregistration']['boundary_based_registration']['bbr_schedule']
-
-    node, out = strat_pool.get_data('bold_coreg_input')
-    wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
-
-    node, out = strat_pool.get_data('T1w')
-    wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat_skull')
-
-    node, out = strat_pool.get_data(
-        'from-bold_to-T1w_mode-image_desc-linear_xfm')
-    wf.connect(node, out,
-               func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
-
-    node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
-    wf.connect(node, out,
-               func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
-
-    if diff_complete:
-        node, out = strat_pool.get_data('diffphase_dwell')
-        wf.connect(node, out,
-                   func_to_anat_bbreg, 'echospacing_input.echospacing')
-
-        node, out = strat_pool.get_data('diffphase_pedir')
-        wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
-
-        node, out = strat_pool.get_data("despiked_fieldmap")
-        wf.connect(node, out, func_to_anat_bbreg, 'inputspec.fieldmap')
-
-        node, out = strat_pool.get_data("fieldmap_mask")
-        wf.connect(node, out,
-                   func_to_anat_bbreg, 'inputspec.fieldmapmask')
-
-    outputs = {
-        'space-T1w_desc-mean_bold':
-            (func_to_anat_bbreg, 'outputspec.anat_func'),
-        'from-bold_to-T1w_mode-image_desc-linear_xfm':
-            (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
-    }
-
-    return (wf, outputs)
-
-
 def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Condense the BOLD-to-T1 coregistration transform and the T1-to-template
     transform into one transform matrix.
@@ -2277,6 +2294,61 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_bold_mean_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-mean_bold",
+                 "from-bold_to-template_mode-image_xfm"),
+                "T1w_brain_template_funcreg"],
+     "outputs": ["space-template_desc-mean_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_bold_mask_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    node, out = strat_pool.get_data("desc-mean_bold")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_desc-mean_bold':
+            (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)

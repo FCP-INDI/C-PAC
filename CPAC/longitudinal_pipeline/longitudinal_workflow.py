@@ -22,18 +22,17 @@ from CPAC.utils.interfaces.function import Function
 import CPAC
 
 from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf, \
-    connect_pipeline, build_anat_preproc_stack
-from CPAC.pipeline.engine import initiate_rpool
+    connect_pipeline, build_anat_preproc_stack, build_T1w_registration_stack,\
+    build_segmentation_stack
+from CPAC.pipeline.engine import initiate_rpool, ingress_output_dir
 
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
     create_fsl_fnirt_nonlinear_reg,
-    create_register_func_to_anat,
-    create_bbregister_func_to_anat,
     create_wf_calculate_ants_warp
 )
 
-from CPAC.registration.utils import run_ants_apply_warp
+from CPAC.registration.registration import apply_transform
 
 from CPAC.utils.datasource import (
     resolve_resolution,
@@ -46,6 +45,7 @@ from CPAC.longitudinal_pipeline.longitudinal_preproc import (
 )
 
 from CPAC.utils import Strategy, find_files, function, Outputs
+from CPAC.utils.utils import check_prov_for_regtool
 
 from CPAC.utils.utils import (
     check_config_resources,
@@ -222,6 +222,167 @@ def pick_map(file_list, index, file_type):
     return None
 
 
+def select_session(session, output_brains, warps):
+    brain_path = None
+    warp_path = None
+    for brain_path in output_brains:
+        if f'{session}_' in brain_path:
+            break
+    for warp_path in warps:
+        if f'{session}_' in warp_path:
+            break
+    return (brain_path, warp_path)
+
+
+def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "mask_longitudinal_T1w_brain",
+     "config": ["longitudinal_template_generation"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-longitudinal_desc-brain_T1w"],
+     "outputs": ["space-longitudinal_desc-brain_mask"]}
+    '''
+
+    brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                         name=f'longitudinal_T1w_brain_mask_{pipe_num}')
+    brain_mask.inputs.args = '-bin'
+
+    node, out = strat_pool.get_data("space-longitudinal_desc-brain_T1w")
+    wf.connect(node, out, brain_mask, 'in_file')
+
+    outputs = {
+        'space-longitudinal_desc-brain_mask': (brain_mask, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num,
+                                      opt=None):
+    '''
+    {"name": "warp_longitudinal_T1w_to_template",
+     "config": ["longitudinal_template_generation"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("space-longitudinal_desc-brain_T1w",
+                 "from-longitudinal_to-template_mode-image_xfm")],
+     "outputs": ["space-template_desc-brain_T1w"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-longitudinal_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_longitudinal_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'anatomical_registration']['registration']['ANTs'][
+            'interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'anatomical_registration']['registration']['FSL-FNIRT'][
+            'interpolation']
+
+    node, out = strat_pool.get_data("space-longitudinal_desc-brain_T1w")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w_brain_template")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = \
+        strat_pool.get_data("from-longitudinal_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_desc-brain_T1w':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "warp_longitudinal_seg_to_T1w",
+     "config": ["longitudinal_template_generation"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("from-longitudinal_to-T1w_mode-image_desc-linear_xfm",
+                 "space-longitudinal_label-CSF_mask",
+                 "space-longitudinal_label-GM_mask",
+                 "space-longitudinal_label-WM_mask",
+                 "space-longitudinal_label-CSF_desc-preproc_mask",
+                 "space-longitudinal_label-GM_desc-preproc_mask",
+                 "space-longitudinal_label-WM_desc-preproc_mask",
+                 "space-longitudinal_label-CSF_probseg",
+                 "space-longitudinal_label-GM_probseg",
+                 "space-longitudinal_label-WM_probseg")],
+     "outputs": ["label-CSF_mask", "label-GM_mask", "label-WM_mask",
+                 "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
+                 "label-WM_desc-preproc_mask",
+                 "label-CSF_probseg", "label-GM_probseg", "label-WM_probseg"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-longitudinal_to-T1w_mode-image_desc-linear_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    outputs = {}
+
+    labels = [
+        'CSF_mask', 'CSF_desc-preproc_mask', 'CSF_probseg',
+        'GM_mask', 'GM_desc-preproc_mask', 'GM_probseg',
+        'WM_mask', 'WM_desc-preproc_mask', 'WM_probseg',
+    ]
+
+    for label in labels:
+        apply_xfm = apply_transform(f'warp_longitudinal_seg_to_T1w_{label}_'
+                                    f'{pipe_num}', reg_tool,
+                                    time_series=False,  num_cpus=num_cpus,
+                                    num_ants_cores=num_ants_cores)
+
+        if reg_tool == 'ants':
+            apply_xfm.inputs.inputspec.interpolation = \
+                cfg.registration_workflows['anatomical_registration'][
+                    'registration']['ANTs']['interpolation']
+        elif reg_tool == 'fsl':
+            apply_xfm.inputs.inputspec.interpolation = \
+                cfg.registration_workflows['anatomical_registration'][
+                    'registration']['FSL-FNIRT']['interpolation']
+
+        node, out = strat_pool.get_data("space-longitudinal_desc-brain_T1w")
+        wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+        node, out = strat_pool.get_data("T1w_brain_template")
+        wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+        node, out = \
+            strat_pool.get_data("from-longitudinal_to-template_mode-image_xfm")
+        wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+        outputs[f'label-{label}'] = (apply_xfm, 'outputspec.output_image')
+
+    return (wf, outputs)
+
+
 def anat_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
@@ -242,6 +403,11 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     # list of lists for every strategy
     session_id_list = []
     session_wfs = {}
+
+    cpac_dirs = []
+    out_dir = config.pipeline_setup['output_directory']['path']
+
+    orig_pipe_name = config.pipeline_setup['pipeline_name']
 
     # Loop over the sessions to create the input for the longitudinal
     # algorithm
@@ -268,64 +434,60 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         workflow = initialize_nipype_wf(config, sub_list[0],
                                         # just grab the first one for the name
-                                        name="anat_longitudinal_template")
+                                        name="anat_longitudinal_pre-preproc")
 
         workflow, rpool = initiate_rpool(workflow, config, session)
         pipeline_blocks = build_anat_preproc_stack(rpool, config)
         workflow = connect_pipeline(workflow, config, rpool, pipeline_blocks)
 
-        session_wfs[unique_id] = (workflow, rpool)
+        session_wfs[unique_id] = rpool
 
         rpool.gather_pipes(workflow, config)
 
         workflow.run()
 
-    # Here we have all the anat_preproc set up for every session
+        cpac_dir = os.path.join(out_dir, f'cpac_{orig_pipe_name}',
+                                f'{subject_id}_{unique_id}')
+        cpac_dirs.append(os.path.join(cpac_dir, 'anat'))
+
+    # Now we have all the anat_preproc set up for every session
     # loop over the different anat preproc strategies
+    strats_brain_dct = {}
+    strats_head_dct = {}
+    for cpac_dir in cpac_dirs:
+        if os.path.isdir(cpac_dir):
+            for filename in os.listdir(cpac_dir):
+                if 'T1w.nii' in filename:
+                    for tag in filename.split('_'):
+                        if 'desc-' in tag and 'brain' in tag:
+                            if tag not in strats_brain_dct:
+                                strats_brain_dct[tag] = []
+                            strats_brain_dct[tag].append(os.path.join(cpac_dir,
+                                                                      filename))
+                            if tag not in strats_head_dct:
+                                strats_head_dct[tag] = []
+                            head_file = filename.replace(tag, 'desc-reorient')
+                            strats_head_dct[tag].append(os.path.join(cpac_dir,
+                                                                     head_file))
 
-    # - ingress output dir for this one subject id
-    # - merge nodes to get the desc-brain and desc-preprocs into one node
-    #   as a list
-    # - run flirt to create the 'template' (orig space tho)
-    # - register this image to template (use node blocks now?)
-    #    and also run segmentation! I guess on the long-temp
-    # - put the xfm's into each session's output dir, and the tissue segs
-    #   too
-    #
-    # now we're back to one sub at a time
-    # - warp the preprocced stuff to template space, but using the
-    #   xfm's from the long-temp-to-standard reg!
-    # - warp the tissue segs to native space
-    # - put all back into output dir
+    for strat in strats_brain_dct.keys():
 
-    '''
-    # just grab one rpool, they should all have the same pipe_idx's/strats
-    strats = rpool.get_pipe_idxs('desc-brain_T1w')
+        wf = initialize_nipype_wf(config, sub_list[0],
+                                  # just grab the first one for the name
+                                  name=f"template_node_{strat}")
 
-    for strat in strats: #strat_name, strat_nodes_list in strat_nodes_list_list.items():
+        config.pipeline_setup[
+            'pipeline_name'] = f'longitudinal_{orig_pipe_name}'
 
-        pipe_num = rpool.get_pipe_number(strat)
+        template_node_name = f'longitudinal_anat_template_{strat}'
 
-        strat_nodes_list = []
-        for unique_id, entry in session_wfs.items():
-            session_rpool = entry[1]
-            strat_nodes_list.append(session_rpool[strat])
-
-        # Merge node to feed the anat_preproc outputs to the longitudinal
-        # template generation
-        brain_merge_node = pe.Node(
-            interface=Merge(len(strat_nodes_list)),
-            name="anat_longitudinal_brain_merge_" + pipe_num)
-
-        skull_merge_node = pe.Node(
-            interface=Merge(len(strat_nodes_list)),
-            name="anat_longitudinal_skull_merge_" + pipe_num)
-
-        # This node will generate the longitudinal template (the functions are in longitudinal_preproc)
-        # Later other algorithms could be added to calculate it, like the multivariate template from ANTS
+        # This node will generate the longitudinal template (the functions are
+        # in longitudinal_preproc)
+        # Later other algorithms could be added to calculate it, like the
+        # multivariate template from ANTS
         # It would just require to change it here.
         template_node = subject_specific_template(
-            workflow_name='subject_specific_anat_template_' + pipe_num
+            workflow_name=template_node_name
         )
 
         template_node.inputs.set(
@@ -338,203 +500,149 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 'convergence_threshold'],
             thread_pool=config.longitudinal_template_generation[
                 'thread_pool'],
-            unique_id_list=session_wfs.keys()
+            unique_id_list=list(session_wfs.keys())
         )
 
-        workflow.connect(brain_merge_node, 'out', template_node,
-                         'input_brain_list')
-        workflow.connect(skull_merge_node, 'out', template_node,
-                         'input_skull_list')
+        template_node.inputs.input_brain_list = strats_brain_dct[strat]
+        template_node.inputs.input_skull_list = strats_head_dct[strat]
 
-        reg_strat_list = register_anat_longitudinal_template_to_standard(
-            template_node, config, workflow, strat_init, strat_name)
+        long_id = f'longitudinal_{subject_id}_strat-{strat}'
 
-        # Register T1 to the standard template
-        # TODO add session information in node name
-        for num_reg_strat, reg_strat in enumerate(reg_strat_list):
+        wf, rpool = initiate_rpool(wf, config, part_id=long_id)
 
-            if reg_strat.get('registration_method') == 'FSL':
+        rpool.set_data("space-longitudinal_desc-brain_T1w",
+                       template_node, 'brain_template', {},
+                       "", template_node_name)
 
-                fsl_apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                            name='fsl_apply_warp_anat_longitudinal_to_standard_{0}_'.format(
-                                                strat_name),
-                                            iterfield=['in_file'])
+        rpool.set_data("space-longitudinal_desc-brain_T1w-template",
+                       template_node, 'brain_template', {},
+                       "", template_node_name)
 
-                workflow.connect(template_node, "output_brain_list",
-                                 fsl_apply_warp, 'in_file')
+        rpool.set_data("space-longitudinal_desc-reorient_T1w",
+                       template_node, 'skull_template', {},
+                       "", template_node_name)
 
-                node, out_file = reg_strat['template_brain_for_anat']
-                workflow.connect(node, out_file,
-                                 fsl_apply_warp, 'ref_file')
+        rpool.set_data("space-longitudinal_desc-reorient_T1w-template",
+                       template_node, 'skull_template', {},
+                       "", template_node_name)
 
-                # TODO how to include linear xfm?
-                # node, out_file = reg_strat['anatomical_to_mni_linear_xfm']
-                # workflow.connect(node, out_file, fsl_apply_warp, 'premat')
+        pipeline_blocks = [mask_longitudinal_T1w_brain]
 
-                node, out_file = reg_strat['anatomical_to_mni_nonlinear_xfm']
-                workflow.connect(node, out_file,
-                                 fsl_apply_warp, 'field_file')
+        pipeline_blocks = build_T1w_registration_stack(rpool, config,
+                                                       pipeline_blocks)
 
-                reg_strat.update_resource_pool({
-                    'anatomical_to_standard': (fsl_apply_warp, 'out_file')
-                })
+        pipeline_blocks = build_segmentation_stack(rpool, config,
+                                                   pipeline_blocks)
 
-            elif reg_strat.get('registration_method') == 'ANTS':
+        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
 
-                ants_apply_warp = pe.MapNode(
-                    util.Function(input_names=['moving_image',
-                                               'reference',
-                                               'initial',
-                                               'rigid',
-                                               'affine',
-                                               'nonlinear',
-                                               'interp'],
-                                  output_names=['out_image'],
-                                  function=run_ants_apply_warp),
-                    name='ants_apply_warp_anat_longitudinal_to_standard_{0}_'.format(
-                        strat_name),
-                    iterfield=['moving_image'])
+        excl = ['space-longitudinal_desc-brain_T1w',
+                'space-longitudinal_desc-reorient_T1w',
+                'space-longitudinal_desc-brain_mask']
+        rpool.gather_pipes(wf, config, add_excl=excl)
 
-                workflow.connect(template_node, "output_brain_list",
-                                 ants_apply_warp, 'moving_image')
+        # this is going to run multiple times!
+        # once for every strategy!
+        wf.run()
 
-                node, out_file = reg_strat['template_brain_for_anat']
-                workflow.connect(node, out_file, ants_apply_warp, 'reference')
+        # now, just write out a copy of the above to each session
+        config.pipeline_setup['pipeline_name'] = orig_pipe_name
+        for session in sub_list:
 
-                node, out_file = reg_strat['ants_initial_xfm']
-                workflow.connect(node, out_file, ants_apply_warp, 'initial')
+            unique_id = session['unique_id']
 
-                node, out_file = reg_strat['ants_rigid_xfm']
-                workflow.connect(node, out_file, ants_apply_warp, 'rigid')
-
-                node, out_file = reg_strat['ants_affine_xfm']
-                workflow.connect(node, out_file, ants_apply_warp, 'affine')
-
-                node, out_file = reg_strat['anatomical_to_mni_nonlinear_xfm']
-                workflow.connect(node, out_file, ants_apply_warp, 'nonlinear')
-
-                ants_apply_warp.inputs.interp = config.anatRegANTSinterpolation
-
-                reg_strat.update_resource_pool({
-                    'anatomical_to_standard': (ants_apply_warp, 'out_image')
-                })
-
-        # Register tissue segmentation from longitudinal template space to native space
-        fsl_convert_xfm = pe.MapNode(interface=fsl.ConvertXFM(),
-                                     name=f'fsl_xfm_longitudinal_to_native_{strat_name}',
-                                     iterfield=['in_file'])
-
-        fsl_convert_xfm.inputs.invert_xfm = True
-
-        workflow.connect(template_node, "warp_list",
-                         fsl_convert_xfm, 'in_file')
-
-        def seg_apply_warp(strat_name, resource, type='str', file_type=None):
-
-            if type == 'str':
-
-                fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                           name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{strat_name}',
-                                           iterfield=['reference',
-                                                      'in_matrix_file'])
-
-                fsl_apply_xfm.inputs.interp = 'nearestneighbour'
-
-                node, out_file = reg_strat[resource]
-                workflow.connect(node, out_file,
-                                 fsl_apply_xfm, 'in_file')
-
-                workflow.connect(brain_merge_node, 'out',
-                                 fsl_apply_xfm, 'reference')
-
-                workflow.connect(fsl_convert_xfm, "out_file",
-                                 fsl_apply_xfm, 'in_matrix_file')
-
-                reg_strat.update_resource_pool({
-                    resource: (fsl_apply_xfm, 'out_file')
-                }, override=True)
-
-            elif type == 'list':
-
-                for index in range(3):
-
-                    fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                               name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{index}_{strat_name}',
-                                               iterfield=['reference',
-                                                          'in_matrix_file'])
-
-                    fsl_apply_xfm.inputs.interp = 'nearestneighbour'
-
-                    pick_seg_map = pe.Node(Function(
-                        input_names=['file_list', 'index', 'file_type'],
-                        output_names=['file_name'],
-                        function=pick_map),
-                                           name=f'pick_{file_type}_{index}_{strat_name}')
-
-                    node, out_file = reg_strat[resource]
-
-                    workflow.connect(node, out_file,
-                                     pick_seg_map, 'file_list')
-
-                    pick_seg_map.inputs.index = index
-                    pick_seg_map.inputs.file_type = file_type
-
-                    workflow.connect(pick_seg_map, 'file_name',
-                                     fsl_apply_xfm, 'in_file')
-
-                    workflow.connect(brain_merge_node, 'out',
-                                     fsl_apply_xfm, 'reference')
-
-                    workflow.connect(fsl_convert_xfm, 'out_file',
-                                     fsl_apply_xfm, 'in_matrix_file')
-
-                    concat_seg_map = pe.Node(
-                        Function(input_names=['in_list1', 'in_list2'],
-                                 output_names=['out_list'],
-                                 function=concat_list),
-                        name=f'concat_{file_type}_{index}_{strat_name}')
-
-                    if index == 0:
-                        workflow.connect(fsl_apply_xfm, 'out_file',
-                                         concat_seg_map, 'in_list1')
-
-                        reg_strat.update_resource_pool({
-                            f'temporary_{resource}_list': (
-                            concat_seg_map, 'out_list')
-                        })
-
+            try:
+                creds_path = session['creds_path']
+                if creds_path and 'none' not in creds_path.lower():
+                    if os.path.exists(creds_path):
+                        input_creds_path = os.path.abspath(creds_path)
                     else:
-                        workflow.connect(fsl_apply_xfm, 'out_file',
-                                         concat_seg_map, 'in_list2')
+                        err_msg = 'Credentials path: "%s" for subject "%s" ' \
+                                  'session "%s" was not found. Check this path ' \
+                                  'and try again.' % (creds_path, subject_id,
+                                                      unique_id)
+                        raise Exception(err_msg)
+                else:
+                    input_creds_path = None
+            except KeyError:
+                input_creds_path = None
 
-                        node, out_file = reg_strat[
-                            f'temporary_{resource}_list']
+            wf = initialize_nipype_wf(config, sub_list[0])
 
-                        workflow.connect(node, out_file,
-                                         concat_seg_map, 'in_list1')
+            wf, rpool = initiate_rpool(wf, config, session)
 
-                        reg_strat.update_resource_pool({
-                            f'temporary_{resource}_list': (
-                            concat_seg_map, 'out_list')
-                        }, override=True)
+            config.pipeline_setup[
+                'pipeline_name'] = f'longitudinal_{orig_pipe_name}'
+            rpool = ingress_output_dir(config, rpool, long_id,
+                                       creds_path=input_creds_path)
 
-                reg_strat.update_resource_pool({
-                    resource: (concat_seg_map, 'out_list')
-                }, override=True)
+            select_node_name = f'select_{unique_id}'
+            select_sess = pe.Node(Function(input_names=['session',
+                                                        'output_brains',
+                                                        'warps'],
+                                           output_names=['brain_path',
+                                                         'warp_path'],
+                                           function=select_session),
+                                  name=select_node_name)
+            select_sess.inputs.session = unique_id
 
-        for seg in ['anatomical_gm_mask', 'anatomical_csf_mask',
-                    'anatomical_wm_mask',
-                    'seg_mixeltype', 'seg_partial_volume_map']:
-            seg_apply_warp(strat_name=strat_name, resource=seg)
+            wf.connect(template_node, 'output_brain_list', select_sess,
+                       'output_brains')
+            wf.connect(template_node, 'warp_list', select_sess, 'warps')
 
-        # apply warp on list
-        seg_apply_warp(strat_name=strat_name, resource='seg_probability_maps',
-                       type='list', file_type='prob')
+            rpool.set_data("space-longitudinal_desc-brain_T1w",
+                           select_sess, 'brain_path', {}, "",
+                           select_node_name)
 
-        seg_apply_warp(strat_name=strat_name,
-                       resource='seg_partial_volume_files', type='list',
-                       file_type='pve')
-    '''
+            rpool.set_data("from-T1w_to-longitudinal_mode-image_"
+                           "desc-linear_xfm",
+                           select_sess, 'warp_path', {}, "",
+                           select_node_name)
+
+            config.pipeline_setup['pipeline_name'] = orig_pipe_name
+            excl = ['space-template_desc-brain_T1w',
+                    'space-T1w_desc-brain_mask']
+
+            rpool.gather_pipes(wf, config, add_excl=excl)
+            wf.run()
+
+    # begin single-session stuff again
+    for session in sub_list:
+
+        unique_id = session['unique_id']
+
+        try:
+            creds_path = session['creds_path']
+            if creds_path and 'none' not in creds_path.lower():
+                if os.path.exists(creds_path):
+                    input_creds_path = os.path.abspath(creds_path)
+                else:
+                    err_msg = 'Credentials path: "%s" for subject "%s" ' \
+                              'session "%s" was not found. Check this path ' \
+                              'and try again.' % (creds_path, subject_id,
+                                                  unique_id)
+                    raise Exception(err_msg)
+            else:
+                input_creds_path = None
+        except KeyError:
+            input_creds_path = None
+
+        wf = initialize_nipype_wf(config, sub_list[0])
+
+        wf, rpool = initiate_rpool(wf, config, session)
+
+        pipeline_blocks = [warp_longitudinal_T1w_to_template,
+                           warp_longitudinal_seg_to_T1w]
+
+        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
+
+        rpool.gather_pipes(wf, config)
+
+        # this is going to run multiple times!
+        # once for every strategy!
+        wf.run()
+
+
 
 
 # TODO check:

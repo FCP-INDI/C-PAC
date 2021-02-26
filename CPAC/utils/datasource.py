@@ -492,7 +492,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                           'pe_direction'],
             function=get_scan_params,
             imports=scan_params_imports
-        ), name="bold_scan_params")
+        ), name=f"bold_scan_params_{subject_id}_{unique_id}")
     scan_params.inputs.subject_id = subject_id
     scan_params.inputs.set(
         pipeconfig_start_indx=cfg.functional_preproc['truncation'][
