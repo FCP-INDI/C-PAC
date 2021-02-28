@@ -1833,7 +1833,8 @@ def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("space-T1w_desc-brain_mask",
-                 "label-CSF_probseg")],
+                 ["label-CSF_desc-preproc_mask",
+                  "label-CSF_mask"])],
      "outputs": ["space-T1w_desc-eroded_mask"]}
     '''
 
@@ -1846,7 +1847,9 @@ def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, erode, 'inputspec.brain_mask')
     
-    node, out = strat_pool.get_data('label-CSF_probseg')
+    node, out = strat_pool.get_data(['label-CSF_desc-preproc_mask',
+                                     'label-CSF_mask'])
+    wf.connect(node, out, erode, 'inputspec.mask')
 
     outputs = {
         'space-T1w_desc-eroded_mask': (erode, 'outputspec.eroded_mask')

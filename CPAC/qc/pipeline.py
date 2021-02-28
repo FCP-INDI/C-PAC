@@ -183,7 +183,8 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # make QC montages for mni normalized anatomical image
     montage_mni_anat = create_montage(f'montage_mni_anat_{pipe_num}',
-                                      'red', 'mni_anat')
+                                      'red', 'mni_anat',
+                                      mapnode=False)
 
     node, out = strat_pool.get_data('space-template_desc-brain_T1w')
     wf.connect(node, out, montage_mni_anat, 'inputspec.underlay')
@@ -331,7 +332,8 @@ def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, anat_edge, 'in_file')
 
     montage_anat = create_montage(f'montage_anat_{pipe_num}', 'red',
-                                  't1_edge_on_mean_func_in_t1')
+                                  't1_edge_on_mean_func_in_t1', 
+                                  mapnode=False)
 
     wf.connect(anat_edge, 'out_file', montage_anat, 'inputspec.overlay')
 
@@ -363,7 +365,8 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # make QC montage for Mean Functional in MNI with MNI edge
     montage_mfi = create_montage(f'montage_mfi_{pipe_num}', 'red',
-                                 'MNI_edge_on_mean_func_mni')
+                                 'MNI_edge_on_mean_func_mni',
+                                 mapnode=False)
 
     node, out = strat_pool.get_data('space-template_desc-mean_bold')
     wf.connect(node, out,  montage_mfi, 'inputspec.underlay')
