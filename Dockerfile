@@ -125,7 +125,10 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     cd /opt/afni/src && \
     sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
     make vastness && make cleanest && \
-    cd /opt/afni && rm -rf src && apt-get remove -y libglw1-mesa-dev && \
+    cd /opt/afni && \
+    # filter down to required packages
+    comm -2 -3 <(ls) <(sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort) | tail +2 | xargs rm -rf && \
+    apt-get remove -y libglw1-mesa-dev && \
     ldconfig
 
 # set up AFNI
