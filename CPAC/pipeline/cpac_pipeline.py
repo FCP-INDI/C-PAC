@@ -650,12 +650,11 @@ CPAC run error:
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
                     try:
-                        raise Exception('not happenin')
                         if os.path.exists(working_dir):
                             logger.info("Removing working dir: %s",
                                         working_dir)
                             shutil.rmtree(working_dir)
-                    except:
+                    except (FileNotFoundError, PermissionError):
                         logger.warn('Could not remove working directory %s',
                                     working_dir)
 
