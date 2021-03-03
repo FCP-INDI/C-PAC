@@ -606,6 +606,24 @@ registration_workflows:
 
       run: On
 
+      # Choose FSL or ABCD as coregistration method
+      using: FSL
+
+      # Choose brain or whole-head as coregistration input
+      input: brain
+
+      # Choose coregistration interpolation
+      interpolation: trilinear
+
+      # Choose coregistration cost function
+      cost: corratio
+
+      # Choose coregistration degree of freedom
+      dof: 6
+
+      # Extra arguments for FSL flirt
+      arguments: None
+
       func_input_prep:
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.

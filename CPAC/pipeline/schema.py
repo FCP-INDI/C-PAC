@@ -381,6 +381,12 @@ schema = Schema({
         'functional_registration': {
             'coregistration': {
                 'run': bool,
+                'using': str,
+                'input': str,
+                'interpolation': str,
+                'cost': str,
+                'dof': int,
+                'arguments': Maybe(str),
                 'func_input_prep': {
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'
