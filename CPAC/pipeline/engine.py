@@ -360,13 +360,13 @@ class ResourcePool(object):
         # TODO: (and it doesn't have to be)
 
         import itertools
-
+        
         linked_resources = []
-        linked = []
         resource_list = []
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
+                linked = []
                 for label in list(resource):
                     #if isinstance(label, list):
                     rp_dct, fetched_resource = self.get(label,
@@ -396,9 +396,7 @@ class ResourcePool(object):
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
                 sub_pool.append(cpac_prov)
-
             total_pool.append(sub_pool)
-
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -432,22 +430,54 @@ class ResourcePool(object):
                 drop = False
                 if linked_resources:
                     for linked in linked_resources:  # <--- 'linked' is each tuple
-                        for label in linked:
-                            xjson = json_dct[label]
+                        for xlabel in linked:
+                            if drop:
+                                break
+                            xjson = json_dct[xlabel]
                             for ylabel in linked:
-                                if label == ylabel:
+                                if xlabel == ylabel:
                                     continue
                                 yjson = json_dct[ylabel]
 
                                 if 'CpacVariant' not in xjson and 'CpacVariant' in yjson:
-                                    raw_label = self.get_raw_label(label)
-                                    if raw_label in yjson['CpacVariant']:
+                                    raw_xlabel = self.get_raw_label(xlabel)
+                                    if raw_xlabel in yjson['CpacVariant']:
                                         drop = True
+                                        #print(f'xlabel: {xlabel}')
+                                        #print(f'ylabel: {ylabel}')
+                                        #print('yjson had cpacvariant and xjson didnt, but something in xjson exists in the yjson variant list')
+                                        break
+                                    for entry in self.get_resource_strats_from_prov(xjson['CpacProvenance']):
+                                        raw_label = self.get_raw_label(entry)
+                                        if raw_label in yjson['CpacVariant']:
+                                            drop = True
+                                            break
+                                        else:
+                                            for sub_entry in self.get_resource_strats_from_prov(entry):
+                                                raw_sub_entry = self.get_raw_label(sub_entry)
+                                                if raw_sub_entry in yjson['CpacVariant']:
+                                                    drop = True
+                                                    break
 
                                 elif 'CpacVariant' not in yjson and 'CpacVariant' in xjson:
                                     raw_ylabel = self.get_raw_label(ylabel)
                                     if raw_ylabel in xjson['CpacVariant']:
                                         drop = True
+                                        #print(f'xlabel: {xlabel}')
+                                        #print(f'ylabel: {ylabel}')
+                                        #print('xjson had cpacvariant and yjson didnt, but something in yjson exists in the xjson variant list')
+                                        break
+                                    for entry in self.get_resource_strats_from_prov(yjson['CpacProvenance']):
+                                        raw_label = self.get_raw_label(entry)
+                                        if raw_label in xjson['CpacVariant']:
+                                            drop = True
+                                            break
+                                        else:
+                                            for sub_entry in self.get_resource_strats_from_prov(entry):
+                                                raw_sub_entry = self.get_raw_label(sub_entry)
+                                                if raw_sub_entry in xjson['CpacVariant']:
+                                                    drop = True
+                                                    break
 
                                 elif 'CpacVariant' not in xjson and 'CpacVariant' not in yjson:
                                     continue
@@ -477,6 +507,7 @@ class ResourcePool(object):
                                                 for variant in variant_list:
                                                     if f'{younger_resource}:{variant}' not in flat_raw_yprov:
                                                         drop = True
+                                                        break
 
                                     for younger_resource in yjson['CpacVariant']:
                                         if younger_resource in xjson['CpacVariant']:
@@ -502,6 +533,7 @@ class ResourcePool(object):
                                                 for variant in variant_list:
                                                     if f'{younger_resource}:{variant}' not in flat_raw_xprov:
                                                         drop = True
+                                                        break
                 if drop:
                     continue
 

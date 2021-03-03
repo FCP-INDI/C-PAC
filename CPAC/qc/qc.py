@@ -325,7 +325,7 @@ def create_qc_snr(wf_name='qc_snr'):
 
     montage_snr = create_montage('montage_snr',
                                  'red_to_blue',
-                                 'snr')
+                                 'snr', mapnode=False)
 
     wf.connect(snr_drop_percent, 'modified_measure_file', montage_snr, 'inputspec.overlay')
     wf.connect(input_node, 'anatomical_brain', montage_snr, 'inputspec.underlay')
