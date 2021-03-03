@@ -1,4 +1,7 @@
-#using neurodebian runtime as parent image
+# we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min 
+FROM freesurfer/freesurfer:6.0
+
+# using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -246,6 +249,9 @@ COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 COPY dev/docker_data /code/docker_data
 RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run-with-freesurfer.sh
+
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
 
 COPY . /code
 RUN pip install -e /code
