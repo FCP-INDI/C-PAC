@@ -499,7 +499,7 @@ def resource_overusage_report(cblog):
         > node.get('num_threads', 1) else None
     ] for node in [node for node in cb_dict_list if (
         node.get('runtime_memory_gb', 0) > node.get('estimated_memory_gb', 1)
-        or node.get('runtime_threads', 0) - 1 > node.get('num_threads', 1)
+        # or node.get('runtime_threads', 0) - 1 > node.get('num_threads', 1)
     )]}
     text_report = ''
     if excessive:
@@ -514,10 +514,12 @@ def resource_overusage_report(cblog):
                                '        runtime > estimated\n' \
                                f'        {excessive[node][0]} ' \
                                f'> {excessive[node][1]}\n'
-            if excessive[node][2]:
-                text_report += '      **threads**\n        runtime > limit\n' \
-                               f'        {excessive[node][2]} ' \
-                               f'> {excessive[node][3]}\n'
+            # JC: I'm not convinced 'runtime_threads' and 'threads' are
+            # comparable in nipype ~1.5.1
+            # if excessive[node][2]:
+            #     text_report += '      **threads**\n        runtime > limit\n' \
+            #                    f'        {excessive[node][2]} ' \
+            #                    f'> {excessive[node][3]}\n'
         text_report += dotted_line
     return text_report, excessive
 
