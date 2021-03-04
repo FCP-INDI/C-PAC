@@ -129,8 +129,7 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     # filter down to required packages
     ls > full_ls && \
     sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
-    comm -2 -3 full_ls required_ls | xargs rm -rf && \
-    rm -rf required_ls && \
+    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
     apt-get remove -y libglw1-mesa-dev && \
     ldconfig
 
