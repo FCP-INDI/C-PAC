@@ -1683,7 +1683,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [("bold_coreg_input",
+     "inputs": [(["desc-reginput_bold', 'desc-mean_bold"],
                  "space-bold_desc-brain_mask"),
                 "EPI_template",
                 "EPI_template_mask"],
@@ -1705,13 +1705,13 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['FSL-FNIRT'][
         'fnirt_config']
 
-    node, out = strat_pool.get_data('bold_coreg_input')
+    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI_template')
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data('bold_coreg_input')
+    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI_template')
@@ -1903,7 +1903,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "ANTS",
-     "inputs": [("bold_coreg_input",
+     "inputs": [(["desc-reginput_bold', 'desc-mean_bold"],
                  "space-bold_desc-brain_mask"),
                 "EPI_template",
                 "EPI_template_mask"],
@@ -1927,13 +1927,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['ANTs'][
         'interpolation']
 
-    node, out = strat_pool.get_data('bold_coreg_input')
+    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI_template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data('bold_coreg_input')
+    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI_template')
@@ -1957,7 +1957,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "input",
      "option_val": "Selected_Functional_Volume",
      "inputs": ["desc-brain_bold"],
-     "outputs": ["bold_coreg_input"]}
+     "outputs": ["desc-reginput_bold"]}
     '''
 
     get_func_volume = pe.Node(interface=afni.Calc(),
@@ -1974,7 +1974,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     coreg_input = (get_func_volume, 'out_file')
 
     outputs = {
-        'bold_coreg_input': coreg_input
+        'desc-reginput_bold': coreg_input
     }
 
     return (wf, outputs)
@@ -1989,7 +1989,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "input",
      "option_val": "Mean_Functional",
      "inputs": ["desc-mean_bold"],
-     "outputs": ["bold_coreg_input"]}
+     "outputs": ["desc-reginput_bold"]}
     '''
 
     coreg_input = strat_pool.get_data("desc-mean_bold")
@@ -2012,7 +2012,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
         coreg_input = (n4_correct_func, 'output_image')
 
     outputs = {
-        'bold_coreg_input': coreg_input
+        'desc-reginput_bold': coreg_input
     }
 
     return (wf, outputs)
@@ -2026,11 +2026,11 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("bold_coreg_input",
+     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
-                 "T1w",
                  ["label-WM_probseg", "label-WM_mask"]),
+                "T1w",
                 "diffphase_dwell",
                 "diffphase_pedir",
                 ("despiked_fieldmap",
@@ -2051,7 +2051,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                                                 f'{pipe_num}')
     func_to_anat.inputs.inputspec.interp = 'trilinear'
 
-    node, out = strat_pool.get_data('bold_coreg_input')
+    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, func_to_anat, 'inputspec.func')
 
     node, out = strat_pool.get_data('desc-brain_T1w')
@@ -2089,7 +2089,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'bbr_schedule']
 
-        node, out = strat_pool.get_data('bold_coreg_input')
+        node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
 
         node, out = strat_pool.get_data('T1w')
@@ -2252,7 +2252,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
-                  "desc-preproc_bold", "bold"],
+                  "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
      "outputs": ["space-template_desc-cleaned_bold",
@@ -2285,6 +2285,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     connect, resource = strat_pool.get_data(["desc-cleaned_bold",
                                              "desc-brain_bold",
+                                             "desc-motion_bold",
                                              "desc-preproc_bold",
                                              "bold"],
                                             report_fetched=True)
