@@ -1,7 +1,7 @@
 from itertools import chain, permutations
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
-from voluptuous.validators import Maybe
+from voluptuous.validators import ExactSequence, Maybe
 from CPAC import __version__
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -143,6 +143,8 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
+_url_version = 'nightly' if __version__.endswith(
+    '-dev') else f'v{__version__.lstrip("v")}'
 
 
 def permutation_message(key, options):
@@ -494,7 +496,8 @@ schema = Schema({
             },
             'motion_estimate_filter': Required(
                 Any({  # no motion estimate filter
-                    'run': Maybe(Any([False], False)),
+                    'run': Maybe(Any(
+                        ExactSequence([False]), ExactSequence([]), False)),
                     'filter_type': Maybe(In({'notch', 'lowpass'})),
                     'filter_order': Maybe(int),
                     'breathing_rate_min': Maybe(Number),
@@ -539,10 +542,9 @@ schema = Schema({
                     'filter_bandwidth': Maybe(Number),
                     Required('lowpass_cutoff'): Number,
                 },),
-                msg='`motion_estimate_filter` configuration is invalid. '
-                    f'See https://fcp-indi.github.io/docs/v{__version__}/'
-                    'user/func#motion_estimate_filter_valid_options '
-                    'for details.'
+                msg='`motion_estimate_filter` configuration is invalid. See '
+                    f'https://fcp-indi.github.io/docs/{_url_version}/user/'
+                    'func#motion_estimate_filter_valid_options for details.\n',
             ),
         },
         'distortion_correction': {
