@@ -86,7 +86,13 @@ def check_prov_for_motion_tool(prov):
     elif 'mcflirt' in last_node.lower():
         return 'mcflirt'
     else:
-        return None
+        # check entire prov
+        if '3dvolreg' in str(prov):
+            return '3dvolreg'
+        elif 'mcflirt' in str(prov):
+            return 'mcflirt'
+        else:
+            return None
 
 
 def get_flag(in_flag):
