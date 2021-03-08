@@ -1016,8 +1016,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'coregistration']['run']
     template_funcs = [
         'space-template_desc-cleaned_bold',
+        'space-template_desc-brain_bold',
+        'space-template_desc-motion_bold',
         'space-template_desc-preproc_bold',
-        'space-template_desc-reorient_bold',
         'space-template_bold'
     ]
     for func in template_funcs:
