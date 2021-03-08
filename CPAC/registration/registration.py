@@ -2029,8 +2029,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
-                 ["label-WM_probseg", "label-WM_mask"]),
-                "T1w",
+                 ["label-WM_probseg", "label-WM_mask"],
+                 "T1w"),
                 "diffphase_dwell",
                 "diffphase_pedir",
                 ("despiked_fieldmap",
@@ -2077,7 +2077,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
     }
 
-    if cfg.registration_workflows['functional_registration'][
+    if True in cfg.registration_workflows['functional_registration'][
         'coregistration']["boundary_based_registration"]["run"]:
 
         func_to_anat_bbreg = create_bbregister_func_to_anat(diff_complete,
@@ -2289,7 +2289,6 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                                              "desc-preproc_bold",
                                              "bold"],
                                             report_fetched=True)
-
     node, out = connect
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
