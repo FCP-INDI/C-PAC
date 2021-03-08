@@ -1296,15 +1296,26 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
-    anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
+    anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
     anat_flow.inputs.inputnode.set(
         subject=part_id,
-        anat=data_paths['anat'],
+        anat=data_paths['anat']['T1w'],
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'],
         img_type='anat'
     )
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
+                   "", "anat_ingress")
+
+    anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
+    anat_flow_T2.inputs.inputnode.set(
+        subject=part_id,
+        anat=data_paths['anat']['T2w'],
+        creds_path=data_paths['creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path'],
+        img_type='anat'
+    )
+    rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                    "", "anat_ingress")
 
     return rpool
@@ -1728,7 +1739,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     '''
 
     data_paths format:
-      {'anat': '{T1w path}',
+      {'anat': {
+            'T1w':{T1w path}',
+            'T2w':{T2w path}'
+        },
        'creds_path': {None OR path to credentials CSV},
        'func': {
            '{scan ID}':

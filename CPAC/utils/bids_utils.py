@@ -415,8 +415,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "site_id": "-".join(["site", f_dict["site"]]),
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
-
-            if "T1w" in f_dict["scantype"]:
+            if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"] :
                 if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
                             subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -430,11 +429,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                               (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
                 elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
-                        task_info["scan"] if config_dict else task_info
+                    subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = {}
+                    if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["anat"]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]] = \
+                            task_info["scan"] if config_dict else task_info
+                elif "anat" in subdict[f_dict["sub"]][f_dict["ses"]]:
+                    if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["anat"]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]] = \
+                            task_info["scan"] if config_dict else task_info
                 else:
                     print("Anatomical file (%s) already found" %
-                          (subdict[f_dict["sub"]][f_dict["ses"]]["anat"]) +
+                          (subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]]) +
                           " for (%s:%s) discarding %s" % (f_dict["sub"],
                                                           f_dict["ses"],
                                                           p))
@@ -522,7 +527,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
+    suffixes = ['T1w', 'T2w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
                 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
@@ -620,7 +625,7 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 def create_cpac_data_config(bids_dir, participant_label=None,
                             aws_input_creds=None, skip_bids_validator=False):
-    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+    from CPAC.utils.bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     print("Parsing {0}..".format(bids_dir))
 
