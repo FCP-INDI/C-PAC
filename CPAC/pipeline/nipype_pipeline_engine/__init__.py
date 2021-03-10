@@ -4,9 +4,9 @@ for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.'''  # noqa E501
 from nipype.pipeline import engine as pe
-# import __all__ from nipype.pipeline.engine
+# import everything in nipype.pipeline.engine.__all__
 from nipype.pipeline.engine import *  # noqa F401
-# import DEFAULT_MEM_GB and override Node, MapNode
+# import our DEFAULT_MEM_GB and override Node, MapNode
 from .engine import DEFAULT_MEM_GB, Node, MapNode
 
 __all__ = [
