@@ -1903,7 +1903,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "ANTS",
-     "inputs": [(["desc-reginput_bold', 'desc-mean_bold"],
+     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_desc-brain_mask"),
                 "EPI_template",
                 "EPI_template_mask"],
@@ -1927,13 +1927,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['ANTs'][
         'interpolation']
 
-    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
+    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI_template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
+    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI_template')
@@ -1942,8 +1942,9 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
     wf.connect(node, out, ants, 'inputspec.input_mask')
 
-    node, out = strat_pool.get_data('EPI_template_mask')
-    wf.connect(node, out, ants, 'inputspec.reference_mask')
+    if strat_pool.check_rpool('EPI_template_mask'):
+        node, out = strat_pool.get_data('EPI_template_mask')
+        wf.connect(node, out, ants, 'inputspec.reference_mask')
 
     return (wf, outputs)
 
@@ -2515,6 +2516,159 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+    
+    
+def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_bold_mean_to_EPItemplate",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-mean_bold",
+                 "from-bold_to-template_mode-image_xfm"),
+                "EPI_template"],
+     "outputs": ["space-template_desc-mean_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_bold_mask_to_EPItemplate_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    node, out = strat_pool.get_data("desc-mean_bold")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("EPI_template")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_desc-mean_bold':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_bold_mask_to_EPItemplate",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("space-bold_desc-brain_mask",
+                 "from-bold_to-template_mode-image_xfm"),
+                "EPI_template"],
+     "outputs": ["space-template_desc-bold_mask"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_bold_mask_to_EPItemplate_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("EPI_template")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Transform the BOLD mask to template space and to the resolution set for
+    the derivative outputs.
+
+    Node Block:
+    {"name": "transform_bold_mask_to_EPItemplate",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("space-bold_desc-brain_mask",
+                 "from-bold_to-template_mode-image_xfm"),
+                "EPI_template"],
+     "outputs": ["space-template_res-derivative_desc-bold_mask"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_deriv_mask_to_EPItemplate_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("EPI_template")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'space-template_res-derivative_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)

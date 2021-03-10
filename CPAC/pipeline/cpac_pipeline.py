@@ -54,10 +54,13 @@ from CPAC.registration.registration import (
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
     warp_timeseries_to_T1template,
-    warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_T1template,
     warp_bold_mask_to_T1template,
-    warp_deriv_mask_to_T1template
+    warp_deriv_mask_to_T1template,
+    warp_timeseries_to_EPItemplate,
+    warp_bold_mean_to_EPItemplate,
+    warp_bold_mask_to_EPItemplate,
+    warp_deriv_mask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -103,7 +106,12 @@ from CPAC.nuisance.nuisance import (
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
-    erode_mask_WM
+    erode_mask_WM,
+    nuisance_regression_EPItemplate,
+    erode_mask_bold,
+    erode_mask_boldCSF,
+    erode_mask_boldGM,
+    erode_mask_boldWM
 )
 
 from CPAC.timeseries.timeseries_analysis import (
@@ -914,7 +922,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         func_preproc_blocks = [
             func_despike,
             func_slice_time,
-            func_reorient,
+            func_reorient
         ]
         func_prep_blocks = [
             [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
@@ -972,10 +980,18 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # BOLD to EPI-template registration (no T1w involved)
     if not rpool.check_rpool('space-template_desc-brain_bold'):
+        if coregistration not in pipeline_blocks:
+            pipeline_blocks += [coregistration_prep_vol, coregistration_prep_mean]
         EPI_reg_blocks = [
             [register_ANTs_EPI_to_template, register_FSL_EPI_to_template]
         ]
         pipeline_blocks += EPI_reg_blocks
+        
+    if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
+        'Template_Based']['template_for_segmentation']:
+        if not rpool.check_rpool('space-bold_label-CSF_mask') or \
+                not rpool.check_rpool('space-bold_label-WM_mask'):
+            pipeline_blocks += [tissue_seg_EPI_template_based]
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
@@ -991,7 +1007,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Nuisance Correction
     if not rpool.check_rpool('desc-cleaned_bold'):
-        nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg]
+        nuisance = []
+        if 'T1_template' in \
+                cfg.registration_workflows['functional_registration'][
+                    'func_registration_to_template']['target_template'][
+                    'using']:
+            nuisance += [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg]
         if 'EPI_template' in \
                 cfg.registration_workflows['functional_registration'][
                     'func_registration_to_template']['target_template'][
@@ -1000,20 +1021,39 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         if cfg.nuisance_corrections['2-nuisance_regression'][
                 'Regressors']:
-            nuisance_blocks = [
-                erode_mask_T1w,
-                erode_mask_CSF,
-                erode_mask_GM,
-                erode_mask_WM,
-                nuisance_regression_complete]
-
-            nuisance += nuisance_blocks
+            if 'T1_template' in \
+                cfg.registration_workflows['functional_registration'][
+                    'func_registration_to_template']['target_template'][
+                    'using']:
+                nuisance_blocks = [
+                    erode_mask_T1w,
+                    erode_mask_CSF,
+                    erode_mask_GM,
+                    erode_mask_WM,
+                    nuisance_regression_complete
+                ]
+                nuisance += nuisance_blocks
+                
+            if 'EPI_template' in \
+                cfg.registration_workflows['functional_registration'][
+                    'func_registration_to_template']['target_template'][
+                    'using']:
+                epi_nuisance_blocks = [
+                    erode_mask_bold,
+                    erode_mask_boldCSF,
+                    erode_mask_boldGM,
+                    erode_mask_boldWM,
+                    nuisance_regression_EPItemplate
+                ]
+                nuisance += epi_nuisance_blocks
 
         pipeline_blocks += nuisance
 
     # Warp the functional time series to template space
     apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'coregistration']['run']
+        'coregistration']['run'] or 'EPI_template' in cfg.registration_workflows[
+        'functional_registration']['func_registration_to_template'][
+        'target_template']['using']
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1030,7 +1070,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                              warp_timeseries_to_EPItemplate],
                             warp_bold_mean_to_T1template,
                             warp_bold_mask_to_T1template,
-                            warp_deriv_mask_to_T1template]
+                            warp_deriv_mask_to_T1template,
+                            warp_bold_mean_to_EPItemplate,
+                            warp_bold_mask_to_EPItemplate,
+                            warp_deriv_mask_to_EPItemplate]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

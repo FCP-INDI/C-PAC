@@ -254,6 +254,51 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+    
+    
+def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_epi_segmentation",
+     "config": ["pipeline_setup", "output_directory"],
+     "switch": ["generate_quality_control_images"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-brain_bold",
+                 ["space-bold_label-CSF_desc-preproc_mask",
+                  "space-bold_label-CSF_mask"],
+                 ["space-bold_label-WM_desc-preproc_mask",
+                  "space-bold_label-WM_mask"],
+                 ["space-bold_label-GM_desc-preproc_mask",
+                  "space-bold_label-GM_mask"])],
+     "outputs": ["epi-dseg-axial-qc",
+                 "epi-dseg-sagittal-qc"]}
+    '''
+
+    # make QC montages for CSF WM GM
+    montage_csf_gm_wm = create_montage_gm_wm_csf(
+        f'montage_csf_gm_wm_{pipe_num}', 'montage_csf_gm_wm')
+
+    node, out = strat_pool.get_data('desc-brain_bold')
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.underlay')
+
+    node, out = strat_pool.get_data(['space-bold_label-CSF_desc-preproc_mask',
+                                     'space-bold_label-CSF_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_csf')
+
+    node, out = strat_pool.get_data(['space-bold_label-WM_desc-preproc_mask',
+                                     'space-bold_label-WM_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_wm')
+
+    node, out = strat_pool.get_data(['space-bold_label-GM_desc-preproc_mask',
+                                     'space-bold_label-GM_mask'])
+    wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_gm')
+
+    outputs = {
+        'epi-dseg-axial-qc': (montage_csf_gm_wm, 'outputspec.axial_png'),
+        'epi-dseg-sagittal-qc': (montage_csf_gm_wm, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
 
 
 def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -444,7 +489,13 @@ def create_qc_workflow(cfg):
 
     if cfg.anatomical_preproc['run'] and cfg.segmentation['run']:
 
-        qc_stack.append(qc_segmentation)
+        if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
+            'Template_Based']['template_for_segmentation']:
+            qc_stack.append(qc_segmentation)
+
+        if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
+            'Template_Based']['template_for_segmentation']:
+            qc_stack.append(qc_epi_segmentation)
 
         if not 7 in qc_montage_id_a:
             qc_montage_id_a[7] = 'csf_gm_wm_a'

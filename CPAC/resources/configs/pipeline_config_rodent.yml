@@ -182,7 +182,27 @@ registration_workflows:
 
   functional_registration: 
 
-    coregistration: 
+    coregistration:
+    
+      run: Off
+    
+      func_input_prep:
+
+        # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        input: ['Mean_Functional']
+
+        Mean Functional:
+
+          # Run ANTs\u2019 N4 Bias Field Correction on the input BOLD (EPI)
+          # this can increase tissue contrast which may improve registration quality in some data
+          n4_correct_func: False
+
+        Selected Functional Volume:
+
+          # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
+          #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+          func_reg_input_volume: 0
 
       boundary_based_registration: 
 
@@ -190,7 +210,9 @@ registration_workflows:
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [Off]
 
-    EPI_registration: 
+    EPI_registration:
+    
+      run: On
 
       ANTs: 
 
@@ -244,6 +266,8 @@ registration_workflows:
         func_derivative_outputs: 2.3mmx2.3mmx6mm
 
       target_template: 
+      
+        using: [EPI_template]
 
         # option parameters
         T1_template: 
@@ -261,6 +285,9 @@ registration_workflows:
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
           EPI_template_funcreg: /template/study_based_functional_template_sk.nii.gz
+          
+          # EPI template mask.
+          EPI_template_mask_funcreg: None
 
       ANTs_pipelines: 
 
