@@ -17,7 +17,7 @@ from pkg_resources import resource_filename as pkgr_fn
 from packaging.version import parse as parseversion, Version
 
 # nipype
-from nipype.pipeline import engine as pe
+from CPAC.pipeline.nipype_pipeline_engine import engine as pe
 from nipype.interfaces import utility as niu
 from nipype.interfaces.fsl.maths import ApplyMask
 from nipype.interfaces.ants import N4BiasFieldCorrection, Atropos, MultiplyImages
