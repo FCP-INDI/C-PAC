@@ -359,7 +359,7 @@ schema = Schema({
             'resolution_for_anat': All(str, Match(resolution_regex)),
             'T1w_brain_template': str,
             'T1w_template': str,
-            'T1w_brain_template_mask': str,
+            'T1w_brain_template_mask': Maybe(str),
             'reg_with_skull': bool,
             'registration': {
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
@@ -372,7 +372,7 @@ schema = Schema({
                 },
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
-                    'ref_mask': str,
+                    'ref_mask': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),

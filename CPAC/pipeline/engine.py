@@ -78,7 +78,7 @@ class ResourcePool(object):
 
         self.xfm = ['alff', 'falff', 'reho']
 
-        self.smooth = ['alff', 'falff', 'reho', 'vmhc',
+        self.smooth = ['alff', 'falff', 'reho',
                        'space-template_alff',
                        'space-template_falff',
                        'space-template_reho',
@@ -818,7 +818,11 @@ class ResourcePool(object):
             elif resource.split('_')[-1] == 'xfm':
                 if 'from-T1w' in resource:
                     subdir = 'anat'
+                if 'template_to-T1w' in resource:
+                    subdir = 'anat'
                 if 'from-bold' in resource:
+                    subdir = 'func'
+                if 'template_to-bold' in resource:
                     subdir = 'func'
             else:
                 for tag in motions:
@@ -1499,6 +1503,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     # update resampled template to resource pool
     for resolution, template, template_name, tag in templates_for_resampling:
+
+        if not template:
+            continue
 
         if '$FSLDIR' in template:
             template = template.replace('$FSLDIR', cfg.pipeline_setup[

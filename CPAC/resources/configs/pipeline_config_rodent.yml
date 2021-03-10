@@ -141,6 +141,10 @@ registration_workflows:
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: /template/study_based_functional_template.nii.gz
+    
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    T1w_brain_template_mask: None
 
     registration: 
 
@@ -179,6 +183,15 @@ registration_workflows:
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
+        
+      FSL-FNIRT: 
+
+        # Configuration file to be used by FSL to set FNIRT parameters.
+        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        fnirt_config: T1_2_MNI152_2mm
+
+        # Reference mask for FSL registration.
+        ref_mask: None
 
   functional_registration: 
 
@@ -279,6 +292,13 @@ registration_workflows:
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /template/study_based_functional_template.nii.gz
+          
+          # Template to be used during registration.
+          # It is not necessary to change this path unless you intend to use a non-standard template.
+          T1w_brain_template_mask_funcreg: None
+
+          # a standard template for resampling if using float resolution
+          T1w_template_for_resample: None
 
         EPI_template: 
 
@@ -288,6 +308,9 @@ registration_workflows:
           
           # EPI template mask.
           EPI_template_mask_funcreg: None
+          
+          # a standard template for resampling if using float resolution
+          EPI_template_for_resample: None
 
       ANTs_pipelines: 
 

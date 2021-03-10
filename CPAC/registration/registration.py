@@ -1786,8 +1786,9 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-longitudinal_desc-brain_mask"])
     wf.connect(node, out, ants, 'inputspec.input_mask')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask')
-    wf.connect(node, out, ants, 'inputspec.reference_mask')
+    if strat_pool.check_rpool('T1w_brain_template_mask'):
+        node, out = strat_pool.get_data('T1w_brain_template_mask')
+        wf.connect(node, out, ants, 'inputspec.reference_mask')
 
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
