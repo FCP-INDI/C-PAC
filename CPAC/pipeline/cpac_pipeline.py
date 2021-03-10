@@ -203,6 +203,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'log_directory': log_dir,
             'log_to_file': bool(getattr(c.pipeline_setup['log_directory'],
                                         'run_logging', True))
+        },
+        'execution': {
+            'crashfile_format': 'txt'
         }
     })
 
@@ -664,7 +667,7 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
     if name:
         name = f'_{name}'
 
-    workflow_name = f'cpac{name}_{sub_data_dct["subject_id"]}'
+    workflow_name = f'cpac{name}_{sub_data_dct["subject_id"]}_{sub_data_dct["unique_id"]}'
     wf = pe.Workflow(name=workflow_name)
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
