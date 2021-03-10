@@ -1164,6 +1164,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
             strat.append_name(func_to_anat.name)
 
             strat.update_resource_pool({
+                # TODO update RP name, ABCD uses first func volume
                 'mean_functional_in_anat': (func_to_anat, 'outputspec.anat_func_nobbreg'),
                 'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
             }, override=override)

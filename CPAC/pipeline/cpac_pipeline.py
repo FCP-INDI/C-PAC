@@ -77,6 +77,7 @@ from CPAC.registration import (
     connect_func_to_anat_bbreg,
     connect_func_to_template_reg,
     output_func_to_standard,
+    output_func_to_standard_abcd,
     anat_brain_to_standard_abcd,
     func_brain_mask_to_standard_abcd
 )
@@ -1979,6 +1980,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):
+
+            # TODO where to add?
+            # Inserting ABCD-style Apply Warp Workflow
+            output_func_to_standard_abcd(workflow, num_strat, strat, config=c)
 
             if 1 in c.runICA:
 

@@ -834,6 +834,7 @@ def func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=None, ov
                     applywarp_brain_mask_to_func_res, 'ref_file')
     
     strat.update_resource_pool({
+        'anatomical_brain_in_functional_resolution_abcd': (anat_brain_mni_to_func_res, 'out_file'),
         'functional_brain_mask_to_standard_abcd': (applywarp_brain_mask_to_func_res, 'out_file')
     }, override=override)
 
@@ -843,6 +844,245 @@ def func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=None, ov
     return workflow
 
 
+def output_func_to_standard_abcd(workflow, num_strat, strat, config=None):
+    
+    """
+    Apply motion correction, coreg, anat2std transforms on raw functional timeseries using ABCD-style registration
+
+    Parameters
+    ----------    
+    workflow : Nipype workflow object
+        the workflow containing the resources involved
+
+    config : configuration
+        Pipeline configuration object
+    
+    num_strat : int
+        the number of strategy objects
+
+    strat : C-PAC Strategy object
+        a strategy with one or more resource pools
+
+    Returns
+    -------
+    workflow : nipype.pipeline.engine.Workflow
+
+    Reference
+    ---------
+    DCAN-HCP GitHub : https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
+    """
+    
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
+    # convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
+    convert_func_to_anat_linear_warp = pe.Node(interface=fsl.ConvertWarp(),
+        name=f'convert_func_to_anat_linear_warp_{num_strat}')
+    
+    convert_func_to_anat_linear_warp.inputs.out_relwarp = True
+    convert_func_to_anat_linear_warp.inputs.relwarp = True
+    
+    node, out_file = strat['functional_to_anat_linear_xfm']
+    workflow.connect(node, out_file, 
+        convert_func_to_anat_linear_warp, 'premat')
+    
+    node, out_file = strat['anatomical_skull_leaf']
+    workflow.connect(node, out_file, 
+        convert_func_to_anat_linear_warp, 'reference')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L140
+    # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
+    convert_func_to_standard_warp = pe.Node(interface=fsl.ConvertWarp(),
+        name=f'convert_func_to_standard_warp_{num_strat}')
+    
+    convert_func_to_standard_warp.inputs.out_relwarp = True
+    convert_func_to_standard_warp.inputs.relwarp = True
+
+    workflow.connect(convert_func_to_anat_linear_warp, 'out_file', 
+        convert_func_to_standard_warp, 'warp1')
+    
+    node, out_file = strat['anatomical_to_standard_xfm']
+    workflow.connect(node, out_file, 
+        convert_func_to_standard_warp, 'warp2')
+    
+    node, out_file = strat['anatomical_brain_in_functional_resolution_abcd']
+    workflow.connect(node, out_file, 
+        convert_func_to_standard_warp, 'reference')
+
+    # TODO add condition: if no gradient distortion
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L283-L284
+    # fslroi "$fMRIFolder"/"$NameOffMRI"_gdc "$fMRIFolder"/"$NameOffMRI"_gdc_warp 0 3
+    extract_func_roi = pe.Node(interface=fsl.ExtractROI(),
+        name=f'extract_func_roi_{num_strat}')
+    
+    extract_func_roi.inputs.t_min = 0
+    extract_func_roi.inputs.t_size = 3
+
+    node, out_file = strat['raw_functional']
+    workflow.connect(node, out_file, 
+        extract_func_roi, 'in_file')
+
+    # fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
+    multiply_func_roi_by_zero = pe.Node(interface=fsl.maths.MathsCommand(),
+                          name=f'multiply_func_roi_by_zero_{num_strat}')
+
+    multiply_func_roi_by_zero.inputs.args = '-mul 0'
+
+    workflow.connect(extract_func_roi, 'roi_file', 
+        multiply_func_roi_by_zero, 'in_file')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
+    # fslsplit ${InputfMRI} ${WD}/prevols/vol -t
+    split_func = pe.Node(interface=fsl.Split(),
+        name=f'split_func_{num_strat}')
+
+    split_func.inputs.dimension = 't'
+
+    node, out_file = strat['raw_functional']
+    workflow.connect(node, out_file, 
+        split_func, 'in_file')
+
+    ### Loop starts! ###
+    # convertwarp --relout --rel --ref=${WD}/prevols/vol${vnum}.nii.gz --warp1=${GradientDistortionField} --postmat=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum} --out=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_gdc_warp.nii.gz
+    convert_motion_distortion_warp = pe.MapNode(interface=fsl.ConvertWarp(),
+        name=f'convert_motion_distortion_warp_{num_strat}',
+        iterfield=['reference', 'postmat'])
+
+    convert_motion_distortion_warp.inputs.out_relwarp = True
+    convert_motion_distortion_warp.inputs.relwarp = True
+
+    workflow.connect(multiply_func_roi_by_zero, 'out_file', 
+        convert_motion_distortion_warp, 'warp1')
+    
+    workflow.connect(split_func, 'out_files', 
+        convert_motion_distortion_warp, 'reference')
+
+    node, out_file = strat['coordinate_transformation']
+    workflow.connect(node, out_file,
+        convert_motion_distortion_warp, 'postmat')
+    
+    # convertwarp --relout --rel --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --warp1=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_gdc_warp.nii.gz --warp2=${OutputTransform} --out=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz
+    convert_registration_warp = pe.MapNode(interface=fsl.ConvertWarp(),
+        name=f'convert_registration_warp_{num_strat}',
+        iterfield=['warp1'])
+
+    convert_registration_warp.inputs.out_relwarp = True
+    convert_registration_warp.inputs.relwarp = True
+    
+    node, out_file = strat['anatomical_brain_in_functional_resolution_abcd']
+    workflow.connect(node, out_file,
+        convert_registration_warp, 'reference')
+    
+    workflow.connect(convert_motion_distortion_warp, 'out_file', 
+        convert_registration_warp, 'warp1')
+
+    workflow.connect(convert_func_to_standard_warp, 'out_file',
+        convert_registration_warp, 'warp2')
+
+    # TODO come up with a more meaningful name
+    # fslmaths ${WD}/prevols/vol${vnum}.nii.gz -mul 0 -add 1 ${WD}/prevols/vol${vnum}_mask.nii.gz
+    generate_mask = pe.MapNode(interface=fsl.maths.MathsCommand(),
+                        name=f'generate_mask_{num_strat}',
+                        iterfield=['in_file'])
+
+    generate_mask.inputs.args = '-mul 0 -add 1'
+
+    workflow.connect(split_func, 'out_files',
+        generate_mask, 'in_file')
+
+    # applywarp --rel --interp=spline --in=${WD}/prevols/vol${vnum}.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}.nii.gz
+    applywarp_func_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
+                                    name=f'applywarp_func_to_standard_{num_strat}',
+                                    iterfield=['in_file', 'field_file'])
+
+    applywarp_func_to_standard.inputs.relwarp = True
+    applywarp_func_to_standard.inputs.interp = 'spline'
+
+    workflow.connect(split_func, 'out_files',
+        applywarp_func_to_standard, 'in_file')
+    
+    workflow.connect(convert_registration_warp, 'out_file',
+        applywarp_func_to_standard, 'field_file')
+
+    node, out_file = strat['anatomical_brain_in_functional_resolution_abcd']
+    workflow.connect(node, out_file,
+        applywarp_func_to_standard, 'ref_file')
+
+    # applywarp --rel --interp=nn --in=${WD}/prevols/vol${vnum}_mask.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}_mask.nii.gz
+    applywarp_func_mask_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
+                                    name=f'applywarp_func_mask_to_standard_{num_strat}',
+                                    iterfield=['in_file', 'field_file'])
+
+    applywarp_func_mask_to_standard.inputs.relwarp = True
+    applywarp_func_mask_to_standard.inputs.interp = 'nn'
+
+    workflow.connect(generate_mask, 'out_file',
+        applywarp_func_mask_to_standard, 'in_file')
+    
+    workflow.connect(convert_registration_warp, 'out_file',
+        applywarp_func_mask_to_standard, 'field_file')
+
+    node, out_file = strat['anatomical_brain_in_functional_resolution_abcd']
+    workflow.connect(node, out_file,
+        applywarp_func_mask_to_standard, 'ref_file')
+
+    ### Loop ends! ###
+    
+    # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
+    merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
+                         name='merge_func_to_standard')
+
+    merge_func_to_standard.inputs.dimension = 't'
+
+    workflow.connect(applywarp_func_to_standard, 'out_file',
+        merge_func_to_standard, 'in_files')
+
+    # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
+    merge_func_mask_to_standard = pe.Node(interface=fsl.Merge(), 
+                         name='merge_func_mask_to_standard')
+
+    merge_func_mask_to_standard.inputs.dimension = 't'
+
+    workflow.connect(applywarp_func_mask_to_standard, 'out_file',
+        merge_func_mask_to_standard, 'in_files')
+
+    # fslmaths ${OutputfMRI}_mask -Tmin ${OutputfMRI}_mask
+    find_min_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                        name=f'find_min_mask_{num_strat}')
+
+    find_min_mask.inputs.args = '-Tmin'
+
+    workflow.connect(merge_func_mask_to_standard, 'merged_file',
+        find_min_mask, 'in_file')
+
+    # fslmaths ${OutputfMRI} -mas ${BrainMask} -mas ${OutputfMRI}_mask -thr 0 -ing 10000 task-rest01_nonlin_norm -odt float
+    merge_func_mask = pe.Node(util.Merge(2), 
+                                name='merge_func_mask')
+
+    node, out_file = strat['functional_brain_mask_to_standard_abcd']
+
+    workflow.connect(node, out_file,
+        merge_func_mask, 'in1')
+
+    workflow.connect(find_min_mask, 'out_file',
+        merge_func_mask, 'in2')
+
+
+    extract_func_brain = pe.Node(interface=fsl.MultiImageMaths(),
+                        name=f'extract_func_brain_{num_strat}')
+
+    extract_func_brain.inputs.op_string = '-mas %s -mas %s -thr 0 -ing 10000 -odt float'
+
+    workflow.connect(merge_func_to_standard, 'merged_file',
+        extract_func_brain, 'in_file')
+
+    workflow.connect(merge_func_mask, 'out',
+        extract_func_brain, 'operand_files')
+
+    strat.update_resource_pool({
+        'functional_to_standard_abcd': (extract_func_brain, 'out_file')
+    })
+
+
+# TODO move it to anat registration
 def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     
     """
