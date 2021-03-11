@@ -24,7 +24,7 @@ from CPAC.utils.utils import check_prov_for_regtool
 
 
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
-                    num_cpus=1, num_ants_cores=1):
+                    num_cpus=1, num_ants_cores=1, mem_gb=2.5):
 
     if not reg_tool:
         raise Exception("\n[!] Developer info: the 'reg_tool' parameter sent "
@@ -55,10 +55,12 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         if multi_input:
             apply_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                                     name=f'apply_warp_{wf_name}',
-                                    iterfield=['input_image'])
+                                    iterfield=['input_image'],
+                                    mem_gb=mem_gb)
         else:
             apply_warp = pe.Node(interface=ants.ApplyTransforms(),
-                                 name=f'apply_warp_{wf_name}')
+                                 name=f'apply_warp_{wf_name}',
+                                 mem_gb=mem_gb)
 
         apply_warp.inputs.dimension = 3
         apply_warp.interface.num_threads = int(num_ants_cores)
@@ -72,7 +74,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                                            'reg_tool'],
                                               output_names=['interpolation'],
                                               function=interpolation_string),
-                                name=f'interp_string')
+                                name=f'interp_string',
+                                mem_gb=mem_gb)
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
@@ -83,7 +86,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             pe.Node(util.Function(input_names=['transform'],
                                   output_names=['transform_list'],
                                   function=single_ants_xfm_to_list),
-                    name=f'single_ants_xfm_to_list')
+                    name=f'single_ants_xfm_to_list',
+                    mem_gb=mem_gb)
 
         wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
         wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
@@ -98,7 +102,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
-                            name=f'chunk_{wf_name}')
+                            name=f'chunk_{wf_name}',
+                            mem_gb=mem_gb)
 
             chunk.inputs.n_cpus = int(num_cpus)
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
@@ -109,7 +114,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),
-                            name=f'split_{wf_name}')
+                            name=f'split_{wf_name}',
+                            mem_gb=mem_gb)
 
             wf.connect(inputNode, 'input_image', split, 'func_file')
             wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -117,7 +123,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             wf.connect(split, 'split_funcs', apply_warp, 'input_image')
 
             func_concat = pe.Node(interface=afni_utils.TCat(),
-                                  name=f'func_concat_{wf_name}')
+                                  name=f'func_concat_{wf_name}',
+                                  mem_gb=mem_gb)
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
             wf.connect(apply_warp, 'output_image', func_concat, 'in_files')
@@ -133,16 +140,19 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         if multi_input:
             apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                                     name=f'fsl_apply_warp',
-                                    iterfield=['in_file'])
+                                    iterfield=['in_file'],
+                                    mem_gb=mem_gb)
         else:
             apply_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                 name='fsl_apply_warp')
+                                 name='fsl_apply_warp',
+                                 mem_gb=mem_gb)
 
         interp_string = pe.Node(util.Function(input_names=['interpolation',
                                                            'reg_tool'],
                                               output_names=['interpolation'],
                                               function=interpolation_string),
-                                name=f'interp_string')
+                                name=f'interp_string',
+                                mem_gb=mem_gb)
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
@@ -166,7 +176,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
-                            name=f'chunk_{wf_name}')
+                            name=f'chunk_{wf_name}',
+                            mem_gb=mem_gb)
 
             chunk.inputs.n_cpus = int(num_cpus)
 
@@ -178,7 +189,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),
-                            name=f'split_{wf_name}')
+                            name=f'split_{wf_name}',
+                            mem_gb=mem_gb)
 
             wf.connect(inputNode, 'input_image', split, 'func_file')
             wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
