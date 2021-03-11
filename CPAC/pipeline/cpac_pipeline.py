@@ -645,6 +645,9 @@ CPAC run error:
 
             if workflow:
 
+                resource_report(cb_log_filename,
+                                num_cores_per_sub, logger)
+
                 logger.info(execution_info.format(
                     workflow=workflow.name,
                     pipeline=c.pipeline_setup['pipeline_name'],
@@ -653,9 +656,6 @@ CPAC run error:
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S")
                 ))
-
-                resource_report(cb_log_filename,
-                                num_cores_per_sub, logger)
 
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
