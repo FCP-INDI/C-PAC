@@ -81,7 +81,8 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     apply_xfm = apply_transform(f'warp_ts_to_sym_template_{pipe_num}',
                                 reg_tool, time_series=True, num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
+                                num_ants_cores=num_ants_cores,
+                                mem_gb=5.0)
 
     if reg_tool == 'ants':
         apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
