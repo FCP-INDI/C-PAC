@@ -1069,7 +1069,8 @@ def output_func_to_standard_abcd(workflow, num_strat, strat, config=None):
     extract_func_brain = pe.Node(interface=fsl.MultiImageMaths(),
                         name=f'extract_func_brain_{num_strat}')
 
-    extract_func_brain.inputs.op_string = '-mas %s -mas %s -thr 0 -ing 10000 -odt float'
+    extract_func_brain.inputs.op_string = '-mas %s -mas %s -thr 0 -ing 10000'
+    extract_func_brain.inputs.output_datatype = 'float'
 
     workflow.connect(merge_func_to_standard, 'merged_file',
         extract_func_brain, 'in_file')
