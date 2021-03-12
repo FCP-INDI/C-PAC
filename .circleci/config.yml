@@ -47,7 +47,6 @@ commands:
             DOCKER_TARBALL="cpac-docker-image"
             if [[ -n "<< parameters.variant >>" ]]
             then
-              docker load < ${DOCKER_TARBALL}.tar.gz
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
               sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
@@ -180,12 +179,25 @@ jobs:
             - cpac-docker-image.tar.gz
             - cpac-singularity-image.simg
             - project
+  build-lite:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - set-python-version
+      - build-images:
+          variant: lite
+      - store_artifacts:
+          path: cpac-docker-image-lite.tar.gz
+      - store_artifacts:
+          path: cpac-singularity-image-lite.simg
 
 workflows:
   version: 2
   build-and-test:
     jobs:
       - build
+      - build-lite
       - pytest-docker:
           requires:
             - build
