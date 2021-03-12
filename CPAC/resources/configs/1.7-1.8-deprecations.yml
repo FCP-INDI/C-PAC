@@ -1,0 +1,25 @@
+- crashLogDirectory
+- output_tree
+- TR
+- fdCalc
+- reGenerateOutputs
+- runMedianAngleCorrection
+- slice_timing_pattern
+- targetAngleDeg
+- runSymbolicLinks
+- configFileTwomm
+- ref_mask_2mm
+- template_skull_for_anat_2mm
+- surface_reconstruction
+# See :ref:`Regressors specification <nuisance-no-gui>` to manually update any of the following keys:
+- nComponents
+- nuisanceBandpassFreq
+- numRemovePrecedingFrames
+- numRemoveSubsequentFrames
+- runFrequencyFiltering
+- runFristonModel
+- runMotionSpike
+- spikeThreshold
+- smoothing_order
+- already_skullstripped
+- roiTSOutputs
