@@ -1072,9 +1072,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_EPItemplate],
                             warp_bold_mean_to_T1template,
-                            warp_bold_mask_to_T1template,
+                            warp_bold_mean_to_EPItemplate]
+                            
+    if not rpool.check_rpool('space-template_desc-bold_mask'):
+        pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template,
-                            warp_bold_mean_to_EPItemplate,
                             warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
 

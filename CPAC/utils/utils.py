@@ -138,6 +138,9 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
             atlas_id = atlas_id.replace("_", "")
         resource = f'atlas-{atlas_id}_{resource}'
 
+    if 'sub-' not in unique_id:
+        unique_id = f'sub-{unique_id}'
+
     if scan_id:
         out_filename = f'{unique_id}_task-{scan_id}_{resource}'
     else:

@@ -734,10 +734,12 @@ class ResourcePool(object):
         non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
                     'pe_direction', 'subject', 'atlas_name', 'scan_params',
                     'deltaTE', 'diff_phase_dwell', 'dwell_asym_ratio',
-                    'diffphase_scan_params', 'diffmag_scan_params',
-                    'motion-basefile']
-        excl = ['T1w', 'bold', 'motion_basefile', 'bold_coreg_input',
+                    'diffphase_scan_params', 'diffmag_scan_params']
+        excl = ['T1w', 'bold', 'motion-basefile',
                 'diffphase', 'diffmag', 'epi']
+        substring_excl = []
+        bold_descs = ['desc-cleaned', 'desc-brain', 'desc-motion', 
+                      'desc-preproc']
         config_paths = ['T1w_ACPC_template', 'T1w_brain_ACPC_template',
                         'unet_model', 'T1w_brain_template', 'T1w_template',
                         'T1w_brain_template_mask',
@@ -766,6 +768,26 @@ class ResourcePool(object):
 
         if add_excl:
             excl += add_excl
+
+        if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
+            excl.append('motion-basefile')
+            substring_excl.append(['desc-reginput', 'bold'])
+            
+        if not cfg.pipeline_setup['output_directory']['write_func_outputs']:
+            avail_bolds = []
+            for resource in self.rpool.keys():
+                if resource.split('_')[-1] != 'bold':
+                    continue
+                for bold_desc in bold_descs:
+                    if bold_desc in resource:
+                        if bold_desc not in avail_bolds:
+                            avail_bolds.append(bold_desc)
+            for bold in bold_descs:
+                if bold in avail_bolds:
+                    bold_descs.remove(bold)
+                    break
+            for bold in bold_descs:
+                substring_excl.append([bold, 'bold'])                  
 
         anat = ['T1w', 'probseg', 'T1w-template']
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
@@ -800,6 +822,23 @@ class ResourcePool(object):
             # TODO: cpac_outputs.csv etc
             if resource in excl:
                 continue
+            drop = False
+            for substring_list in substring_excl:
+                bool_list = []
+                for substring in substring_list:
+                    if substring in resource:
+                        bool_list.append(True)
+                    else:
+                        bool_list.append(False)
+                for item in bool_list:
+                    if not item:
+                        break
+                    drop = True
+                if drop:
+                    break
+            if drop:
+                continue
+                
             subdir = 'other'
             if resource.split('_')[-1] in anat:
                 subdir = 'anat'
@@ -855,6 +894,22 @@ class ResourcePool(object):
         for resource in self.rpool.keys():
             # TODO: cpac_outputs.csv etc
             if resource in excl:
+                continue
+            drop = False
+            for substring_list in substring_excl:
+                bool_list = []
+                for substring in substring_list:
+                    if substring in resource:
+                        bool_list.append(True)
+                    else:
+                        bool_list.append(False)
+                for item in bool_list:
+                    if not item:
+                        break
+                    drop = True
+                if drop:
+                    break
+            if drop:
                 continue
                 
             if not all:
