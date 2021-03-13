@@ -154,6 +154,85 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
 
     return wf
 
+def anat_based_mask(wf_name='bold_mask'):
+# reference DCAN lab BOLD mask
+# https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+    wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['func',
+                                                        'anat_brain',
+                                                        'anat_head']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
+                         name='outputspec')
+
+    # 0. Take single volume of func 
+    func_single_volume = pe.Node(interface=afni.Calc(),
+                            name='func_single_volume')
+
+    func_single_volume.inputs.set(
+        expr='a',
+        single_idx=1,
+        outputtype='NIFTI_GZ'
+    )
+
+    wf.connect(input_node, 'func',
+                func_single_volume, 'in_file_a')
+
+    # 1. Register func head to anat head to get func2anat matrix
+    linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                        name='func_to_anat_linear_reg')
+    linear_reg_func_to_anat.inputs.dof = 6
+    linear_reg_func_to_anat.inputs.interp = 'spline'
+    linear_reg_func_to_anat.inputs.searchr_x = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
+
+    wf.connect(func_single_volume, 'out_file', 
+                linear_reg_func_to_anat, 'in_file')
+
+    wf.connect(input_node, 'anat_head', 
+                linear_reg_func_to_anat, 'reference')
+
+    # 2. Inverse func to anat affine, to get anat-to-func transform 
+    inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                            name='inv_func2anat_affine')
+    inv_func_to_anat_affine.inputs.invert_xfm = True
+
+    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
+                inv_func_to_anat_affine, 'in_file')
+
+    # 3. get BOLD mask
+    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space 
+    reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
+                            name='reg_anat_brain_to_func')
+    reg_anat_brain_to_func.inputs.interp = 'nn'
+    reg_anat_brain_to_func.inputs.relwarp = True
+
+    wf.connect(input_node, 'anat_brain', 
+                reg_anat_brain_to_func, 'in_file')
+
+    wf.connect(input_node, 'func', 
+                reg_anat_brain_to_func, 'ref_file')
+
+    wf.connect(inv_func_to_anat_affine, 'out_file', 
+                reg_anat_brain_to_func, 'premat')
+
+    # 3.2 Binarize transfered image and fill holes to get BOLD mask. 
+    # Binarize
+    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
+                                name='func_mask')
+    func_mask_bin.inputs.op_string = '-bin'
+
+    wf.connect(reg_anat_brain_to_func, 'out_file', 
+                func_mask_bin, 'in_file')
+
+    wf.connect(func_mask_bin, 'out_file', 
+                output_node, 'func_brain_mask')
+
+    return wf
+
 
 def normalize_motion_parameters(in_file):
     """
@@ -1488,7 +1567,6 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Generate the BOLD mask by basing it off of the anatomical brain mask.
-
     Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
         https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
 
@@ -1678,3 +1756,4 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+
