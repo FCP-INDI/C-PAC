@@ -1,7 +1,7 @@
 import os
 
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 from CPAC.utils.configuration import Configuration
 
@@ -12,7 +12,7 @@ def prep_cwas_workflow(c, subject_infos):
     print('Subjects', s_ids)
 
     wf = pe.Workflow(name='cwas_workflow')
-    wf.base_dir = c.workingDirectory
+    wf.base_dir = c.pipeline_setup['working_directory']['path']
 
     from CPAC.cwas import create_cwas
     import numpy as np

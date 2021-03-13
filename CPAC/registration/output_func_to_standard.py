@@ -1,5 +1,5 @@
 import nipype.interfaces.fsl as fsl
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
@@ -33,35 +33,35 @@ def fsl_apply_transform_func_to_mni(
 
     Parameters
     ----------
-    workflow: Nipype workflow object
+    workflow : Nipype workflow object
         the workflow containing the resources involved
-    output_name: str
+    output_name : str
         what the name of the warped functional should be when written to the
         resource pool
-    func_key: string
+    func_key : string
         resource pool key correspoding to the node containing the 3D or 4D
         functional file to be written into MNI space, use 'leaf' for a
         leaf node
-    ref_key: string
+    ref_key : string
         resource pool key correspoding to the file path to the template brain
         used for functional-to-template registration
-    num_strat: int
+    num_strat : int
         the number of strategy objects
-    strat: C-PAC Strategy object
+    strat : C-PAC Strategy object
         a strategy with one or more resource pools
-    interpolation_method: str
+    interpolation_method : str
         which interpolation to use when applying the warps
-    distcor: boolean
+    distcor : boolean
         indicates whether a distortion correction transformation should be
         added to the transforms, this of course requires that a distortion
         correction map exist in the resource pool
-    map_node: boolean
+    map_node : boolean
         indicates whether a mapnode should be used, if TRUE func_key is
         expected to correspond to a list of resources that should each
         be written into standard space with the other parameters
-    func_ts: boolean
+    func_ts : boolean
         indicates whether the input image is a 4D time series
-    num_cpus: int
+    num_cpus : int
         the number of CPUs dedicated to each participant workflow - this
         is used to determine how to parallelize the warp application step
 
@@ -563,12 +563,12 @@ def ants_apply_warps_func_mni(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
-                iterfield=['input_image'], mem_gb=1.5)
+                iterfield=['input_image'], mem_gb=10.0)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+                    inverse_string, registration_template, num_strat), mem_gb=10.0)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
@@ -597,7 +597,7 @@ def ants_apply_warps_func_mni(
         write_composite_xfm = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+                    inverse_string, registration_template, num_strat), mem_gb=8.0)
         write_composite_xfm.inputs.print_out_composite_warp_file = True
         write_composite_xfm.inputs.output_image = "func_to_standard_xfm.nii.gz"
 
@@ -720,7 +720,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
     distcor = True if 'epi_distcorr' in nodes or \
             'blip_correct' in nodes else False
 
-    num_cpus = pipeline_config_obj.maxCoresPerParticipant
+    num_cpus = pipeline_config_obj.pipeline_setup['system_config']['max_cores_per_participant']
 
     if 'anat_mni_fnirt_register' in nodes or \
         'anat_mni_flirt_register' in nodes or \
@@ -729,7 +729,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
         else:
-            interp = pipeline_config_obj.funcRegFSLinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
         func_ts = True if input_image_type == 'func_4d' else False
 
@@ -737,12 +737,14 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 ref_key, num_strat, strat, interp, distcor=distcor,
                 map_node=map_node, func_ts=func_ts, num_cpus=num_cpus)
 
-    elif 'ANTS' in pipeline_config_obj.regOption:
+    elif 'ANTS' in pipeline_config_obj.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']:
 
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'NearestNeighbor'
         else:
-            interp = pipeline_config_obj.funcRegANTSinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation']
 
         image_type = 3 if input_image_type == 'func_4d' else 0
 
@@ -750,7 +752,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads, 
+                num_ants_cores=pipeline_config_obj.pipeline_setup['system_config']['num_ants_threads'], 
                 registration_template=registration_template, 
                 func_type=func_type)
 

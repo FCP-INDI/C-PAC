@@ -11,13 +11,13 @@ from CPAC.qc.utils import (
     gen_carpet_plt
 )
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni
 import nipype.interfaces.fsl as fsl
 
 
-def create_montage(wf_name, cbar_name, png_name):
+def create_montage(wf_name, cbar_name, png_name, mapnode=True):
 
     wf = pe.Workflow(name=wf_name)
 
@@ -52,32 +52,51 @@ def create_montage(wf_name, cbar_name, png_name):
     wf.connect(resample_o, 'new_fname', outputnode,'resampled_overlay')
 
     # node for axial montages
-    montage_a = pe.MapNode(Function(input_names=['overlay',
-                                                 'underlay',
-                                                 'png_name',
-                                                 'cbar_name'],
-                                    output_names=['png_name'],
-                                    function=montage_axial,
-                                    as_module=True),
-                           name='montage_a',
-                           iterfield=['overlay'])
+    if mapnode:
+        montage_a = pe.MapNode(Function(input_names=['overlay',
+                                                     'underlay',
+                                                     'png_name',
+                                                     'cbar_name'],
+                                        output_names=['png_name'],
+                                        function=montage_axial,
+                                        as_module=True),
+                               name='montage_a',
+                               iterfield=['overlay'])
+    else:
+        montage_a = pe.Node(Function(input_names=['overlay',
+                                                  'underlay',
+                                                  'png_name',
+                                                  'cbar_name'],
+                                     output_names=['png_name'],
+                                     function=montage_axial,
+                                     as_module=True),
+                            name='montage_a')
     montage_a.inputs.cbar_name = cbar_name
     montage_a.inputs.png_name = png_name + '_a.png'
 
     wf.connect(resample_u, 'new_fname', montage_a, 'underlay')
-
     wf.connect(resample_o, 'new_fname', montage_a, 'overlay')
 
     # node for sagittal montages
-    montage_s = pe.MapNode(Function(input_names=['overlay',
-                                                 'underlay',
-                                                 'png_name',
-                                                 'cbar_name'],
-                                    output_names=['png_name'],
-                                    function=montage_sagittal,
-                                    as_module=True),
-                           name='montage_s',
-                           iterfield=['overlay'])
+    if mapnode:
+        montage_s = pe.MapNode(Function(input_names=['overlay',
+                                                     'underlay',
+                                                     'png_name',
+                                                     'cbar_name'],
+                                        output_names=['png_name'],
+                                        function=montage_sagittal,
+                                        as_module=True),
+                               name='montage_s',
+                               iterfield=['overlay'])
+    else:
+        montage_s = pe.Node(Function(input_names=['overlay',
+                                                  'underlay',
+                                                  'png_name',
+                                                  'cbar_name'],
+                                     output_names=['png_name'],
+                                     function=montage_sagittal,
+                                     as_module=True),
+                            name='montage_s')
     montage_s.inputs.cbar_name = cbar_name
     montage_s.inputs.png_name = png_name + '_s.png'
 
@@ -190,7 +209,7 @@ def qa_montages(workflow, c, strat, num_strat,
 
         montage = create_montage('montage_%s_%d' % (measure, num_strat),
                                  'cyan_to_yellow', measure)
-        # montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+        
         node, out_file_template = strat['template_brain_for_func_derivative']
         workflow.connect(node, out_file_template, 
                         montage, 'inputspec.underlay')
@@ -306,7 +325,7 @@ def create_qc_snr(wf_name='qc_snr'):
 
     montage_snr = create_montage('montage_snr',
                                  'red_to_blue',
-                                 'snr')
+                                 'snr', mapnode=False)
 
     wf.connect(snr_drop_percent, 'modified_measure_file', montage_snr, 'inputspec.overlay')
     wf.connect(input_node, 'anatomical_brain', montage_snr, 'inputspec.underlay')
@@ -429,7 +448,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
                                    output_names=['carpet_plot'],
                                    function=gen_carpet_plt,
                                    as_module=True),
-                          name='carpet_plot')
+                          name='carpet_plot', mem_gb=4.0)
 
     carpet_plot.inputs.output = output_image
     wf.connect(gm_mask, 'out_file', carpet_plot, 'gm_mask')
@@ -469,7 +488,8 @@ def create_qc_skullstrip(wf_name='qc_skullstrip'):
                                   as_module=True),
                          name='skull_edge')
 
-    montage_skull = create_montage('montage_skull', 'red', 'skull_vis')
+    montage_skull = create_montage('montage_skull', 'red', 'skull_vis',
+                                   mapnode=False)
 
     wf.connect(input_node, 'anatomical_reorient', skull_edge, 'in_file')
     wf.connect(input_node, 'anatomical_brain', montage_skull, 'inputspec.underlay')

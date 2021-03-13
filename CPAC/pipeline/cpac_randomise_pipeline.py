@@ -1,7 +1,7 @@
 import os
 
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 from CPAC.pipeline.cpac_group_runner import load_config_yml
 
@@ -35,7 +35,7 @@ def prep_randomise_workflow(c, subject_infos):
     print('Subjects', s_ids)
 
     wf = pe.Workflow(name='randomise_workflow')
-    wf.base_dir = c.workingDirectory
+    wf.base_dir = c.pipeline_setup['working_directory']['path']
 
     from CPAC.randomise import create_randomise
 

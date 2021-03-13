@@ -1,6 +1,8 @@
-#using neurodebian runtime as parent image
+# we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
+FROM freesurfer/freesurfer:6.0
+
+# using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
-MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -23,6 +25,8 @@ ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
       build-essential \
+      bzip2 \
+      ca-certificates \
       cmake \
       git \
       graphviz \
@@ -47,6 +51,7 @@ RUN apt-get install -y \
       libxmu-dev \
       libxpm-dev \
       libxslt1-dev \
+      locales \
       m4 \
       make \
       mesa-common-dev \
@@ -63,6 +68,7 @@ RUN apt-get install -y \
 
 # Install 16.04 dependencies
 RUN apt-get install -y \
+      connectome-workbench \
       dh-autoreconf \
       libgsl-dev \
       libmotif-dev \
@@ -110,8 +116,24 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     fi && \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
-    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
-    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
+    # curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
+    # tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
+    # pin to 20.0.04: "3dROIstats in [newer versions] is VERY slowww!"
+    apt-get update && apt-get install -y libglw1-mesa-dev && \
+    AFNI_VERSION="20.0.04" && \
+    curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
+    mkdir /opt/afni && \
+    tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
+    rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
+    cd /opt/afni/src && \
+    sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
+    make vastness && make cleanest && \
+    cd /opt/afni && \
+    # filter down to required packages
+    ls > full_ls && \
+    sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
+    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
+    apt-get remove -y libglw1-mesa-dev && \
     ldconfig
 
 # set up AFNI
@@ -143,18 +165,28 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# install ANTs from Neurodocker
+ENV LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
+    ANTSPATH="/usr/lib/ants" \
+    PATH="/usr/lib/ants:$PATH"
+
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && dpkg-reconfigure --frontend=noninteractive locales \
+    && update-locale LANG="en_US.UTF-8" \
+    && chmod 777 /opt && chmod a+s /opt
+
+RUN echo "Downloading ANTs ..." \
+    && mkdir -p /usr/lib/ants \
+    && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
+    | tar -xz -C /usr/lib/ants --strip-components 1
+
 # download OASIS templates for niworkflows-ants skullstripping
 RUN mkdir /ants_template && \
     curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
     unzip /tmp/Oasis.zip -d /tmp &&\
     mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
     rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
-
-# install ANTs
-ENV PATH=/usr/lib/ants:$PATH
-RUN apt-get install -y ants
-# RUN export ANTSPATH=/usr/lib/ants
-ENV ANTSPATH=/usr/lib/ants/
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
@@ -174,6 +206,7 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 RUN conda update conda -y && \
     conda install -y  \
         blas \
+        cython \
         matplotlib==3.1.3 \
         networkx==2.4 \
         nose==1.3.7 \
@@ -216,6 +249,25 @@ RUN mkdir -p /ndmg_atlases/label && \
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
+# install FreeSurfer
+# set shell to BASH
+RUN mkdir -p /usr/lib/freesurfer
+ENV FREESURFER_HOME="/usr/lib/freesurfer" \
+    PATH="/usr/lib/freesurfer/bin:$PATH"
+SHELL ["/bin/bash", "-c"]
+RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
+    | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
+    source $FREESURFER_HOME/SetUpFreeSurfer.sh
+RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
+# restore shell to default (sh)
+SHELL ["/bin/sh", "-c"]
+COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
+
+COPY dev/docker_data /code/docker_data
+RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run-with-freesurfer.sh
+
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
 
 COPY . /code
 RUN pip install -e /code
@@ -223,7 +275,7 @@ RUN pip install -e /code
 COPY dev/docker_data /code/docker_data
 RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run.py
 
-ENTRYPOINT ["/code/run.py"]
+ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
 RUN ldconfig

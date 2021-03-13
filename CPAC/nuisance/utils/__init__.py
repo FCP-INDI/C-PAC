@@ -5,13 +5,14 @@ from collections import OrderedDict
 import nipype.interfaces.ants as ants
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
                                fd_j_threshold=None, fd_p_threshold=None, dvars_threshold=None,
@@ -221,7 +222,6 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
         wf.connect(mapper_list, 'out', mapper, 'out_file')
         wf.connect(mask_mapper_list, 'out', mapper, 'mask_file')
 
-
     if threshold_method is "PCT":
         threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_pct'],
                                              output_names=['threshold'],
@@ -319,7 +319,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'resolution':
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
-                                       .format(node_mask_key))
+                                       .format(node_mask_key),
+                                  mem_gb=8.0)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -332,7 +333,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     (mask_to_epi, 'reference')
                 ))
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] + 
+                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
                     (mask_to_epi, 'in_matrix_file')
                 ))
 
@@ -380,7 +381,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pipeline_resource_pool[mask_key] = \
                 (erode_mask_node, 'out_file')
 
-
     return pipeline_resource_pool, full_mask_key
 
 
@@ -414,30 +414,21 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     # perform the transform using ANTS
                     collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
 
-                    nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
-                    nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
-                    nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
-
-                    # check transform list to exclude Nonetype (missing) init/rig/affine
-                    check_transform = pe.Node(util.Function(input_names=['transform_list'],
-                                                            output_names=['checked_transform_list', 'list_length'],
-                                                            function=check_transforms), name='{0}_check_transforms'.format(ventricles_key))
-
-                    nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (collect_linear_transforms, 'in1')))
 
                     # generate inverse transform flags, which depends on the number of transforms
                     inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'],
                                                                     output_names=['inverse_transform_flags'],
                                                                     function=generate_inverse_transform_flags),
                                                                     name='{0}_inverse_transform_flags'.format(ventricles_key))
-                    nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
+                    nuisance_wf.connect(collect_linear_transforms, 'out', inverse_transform_flags, 'transform_list')
 
                     lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
                     nuisance_wf.connect(inverse_transform_flags, 'inverse_transform_flags', lat_ven_mni_to_anat, 'invert_transform_flags')
-                    nuisance_wf.connect(check_transform, 'checked_transform_list', lat_ven_mni_to_anat, 'transforms')
+                    nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
@@ -446,12 +437,13 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                 else:
                     # perform the transform using FLIRT
-                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
-                    lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
+                    lat_ven_mni_to_anat = pe.Node(interface=fsl.ApplyWarp(),
+                                                  name='{}_fsl_applywarp'.format(ventricles_key))
+                    lat_ven_mni_to_anat.inputs.interp = 'nn'
 
-                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
+                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'field_file')))
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
-                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'ref_file')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
 
@@ -474,7 +466,7 @@ class NuisanceRegressor(object):
         if 'Bandpass' in self.selector:
             s = self.selector['Bandpass']
             if type(s) is not dict or \
-               (not s.get('bottom_frequency') and \
+               (not s.get('bottom_frequency') and
                 not s.get('top_frequency')):
 
                 del self.selector['Bandpass']

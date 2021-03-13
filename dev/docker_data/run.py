@@ -9,13 +9,17 @@ import time
 import shutil
 import yaml
 from base64 import b64decode
+from urllib import request
+from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.utils.yaml_template import create_yaml_from_template
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.configuration import Configuration
+from CPAC.utils.yaml_template import create_yaml_from_template, \
+                                     upgrade_pipeline_to_1_8
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 
 import yamlordereddictloader
-from warnings import simplefilter
+from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
@@ -116,6 +120,79 @@ def resolve_aws_credential(source):
             .format(source)
         )
 
+
+def create_cpac_data_config(bids_dir, participant_label=None,
+                            aws_input_creds=None, skip_bids_validator=False):
+    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+
+    print("Parsing {0}..".format(bids_dir))
+
+    (file_paths, config) = collect_bids_files_configs(bids_dir,
+                                                      aws_input_creds)
+
+    if participant_label:
+        file_paths = [
+            file_path
+            for file_path in file_paths
+            if any(
+                participant_label in file_path
+                for participant_label in participant_labels
+            )
+            ]
+
+    if not file_paths:
+        print("Did not find data for {0}".format(
+            ", ".join(participant_label)
+        ))
+        sys.exit(1)
+
+    raise_error = not skip_bids_validator
+
+    sub_list = bids_gen_cpac_sublist(
+        bids_dir,
+        file_paths,
+        config,
+        aws_input_creds,
+        raise_error=raise_error
+    )
+
+    if not sub_list:
+        print("Did not find data in {0}".format(bids_dir))
+        sys.exit(1)
+
+    return sub_list
+
+
+def load_cpac_data_config(data_config_file, participant_label,
+                          aws_input_creds):
+    # load the file as a check to make sure it is available and readable
+    sub_list = load_yaml_config(data_config_file, aws_input_creds)
+
+    if participant_label:
+
+        sub_list = [
+            d
+            for d in sub_list
+            if (
+                d["subject_id"]
+                if d["subject_id"].startswith('sub-')
+                else 'sub-' + d["subject_id"]
+            ) in participant_labels
+        ]
+
+        if not sub_list:
+            print("Did not find data for {0} in {1}".format(
+                ", ".join(participant_label),
+                (
+                    data_config_file
+                    if not data_config_file.startswith("data:")
+                    else "data URI"
+                )
+            ))
+            sys.exit(1)
+
+    return sub_list
+
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -167,8 +244,13 @@ parser.add_argument('--data_config_file', help='Yaml file containing the locatio
 parser.add_argument('--preconfig', help='Name of the pre-configured pipeline to run.',
                     default=None)
 
-parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
-                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
+if '--pipeline_override' in sys.argv:  # secret option
+    parser.add_argument('--pipeline_override', type=parse_yaml,
+                        action='append', help='Override specific options from '
+                                              'the pipeline configuration. '
+                                              'E.g.: '
+                                              '"maximumMemoryPerParticipant: '
+                                              '10"')
 
 parser.add_argument('--aws_input_creds', help='Credentials for reading from S3.'
                                               ' If not provided and s3 paths are specified in the data config'
@@ -316,6 +398,7 @@ elif args.analysis_level == "group":
         sys.exit(0)
 
 elif args.analysis_level in ["test_config", "participant"]:
+
     # check to make sure that the input directory exists
     if not args.data_config_file and \
         not args.bids_dir.lower().startswith("s3://") and \
@@ -360,68 +443,111 @@ elif args.analysis_level in ["test_config", "participant"]:
     # begin by conforming the configuration
     c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
+    if 'pipeline_setup' not in c:
+        url_version = f'v{__version__}'
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+        try:
+            request.urlopen(_url)
+
+        except HTTPError:
+            if 'dev' in url_version:
+                url_version = 'nightly'
+            else:
+                url_version = 'latest'
+
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+
+        warn('\nC-PAC changed its pipeline configuration format in v1.8.0.\n'
+             f'See {_url} for details.\n',
+             category=DeprecationWarning)
+
+        updated_config = os.path.join(
+            args.output_dir,
+            'updated_config',
+            os.path.basename(args.pipeline_file)
+        )
+        os.makedirs(
+            os.path.join(args.output_dir, 'updated_config'), exist_ok=True)
+
+        open(updated_config, 'w').write(yaml.dump(c))
+
+        upgrade_pipeline_to_1_8(updated_config)
+        c = load_yaml_config(updated_config, args.aws_input_creds)
+
     overrides = {}
-    if args.pipeline_override:
-        overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
-        c.update(overrides)
+    if hasattr(args, 'pipeline_override') and args.pipeline_override:
+        overrides = {
+            k: v for d in args.pipeline_override for k, v in d.items()}
+        c = update_nested_dict(c, overrides)
 
     if args.anat_only:
-        c.update({"runFunctional": [0]})
+        c = update_nested_dict(c, {'FROM': 'anat-only'})
+
+    c = Configuration(c)
 
     # get the aws_input_credentials, if any are specified
     if args.aws_input_creds:
         c['awsCredentialsFile'] = resolve_aws_credential(args.aws_input_creds)
 
     if args.aws_output_creds:
-        c['awsOutputBucketCredentials'] = resolve_aws_credential(
+        c['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials'] = resolve_aws_credential(
             args.aws_output_creds
         )
 
-    c['outputDirectory'] = os.path.join(args.output_dir, "output")
+    c['pipeline_setup']['output_directory']['path'] = os.path.join(args.output_dir, "output")
 
     if "s3://" not in args.output_dir.lower():
-        c['crashLogDirectory'] = os.path.join(args.output_dir, "crash")
-        c['logDirectory'] = os.path.join(args.output_dir, "log")
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(args.output_dir, "log")
     else:
-        c['crashLogDirectory'] = os.path.join(DEFAULT_TMP_DIR, "crash")
-        c['logDirectory'] = os.path.join(DEFAULT_TMP_DIR, "log")
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
-        c['maximumMemoryPerParticipant'] = float(args.mem_gb)
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_gb)
     elif args.mem_mb:
-        c['maximumMemoryPerParticipant'] = float(args.mem_mb) / 1024.0
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_mb) / 1024.0
     else:
-        c['maximumMemoryPerParticipant'] = 6.0
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = 6.0
 
     # Preference: n_cpus if given, override if present, else from config if
     # present, else n_cpus=3
-    if args.n_cpus == 0:
-        c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant', 3))
+    if int(args.n_cpus) == 0:
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(c['pipeline_setup']['system_config'].get('max_cores_per_participant', 3))
         args.n_cpus = 3
     else:
-        c['maxCoresPerParticipant'] = args.n_cpus
-    c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
-    # Reduce cores per participant if cores times particiapants is more than
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = args.n_cpus
+
+    c['pipeline_setup']['system_config']['num_participants_at_once'] = int(c['pipeline_setup']['system_config'].get('num_participants_at_once', 1))
+    # Reduce cores per participant if cores times participants is more than
     # available CPUS. n_cpus is a hard upper limit.
-    if (c['maxCoresPerParticipant'] * c['numParticipantsAtOnce']) > int(
+    if (c['pipeline_setup']['system_config']['max_cores_per_participant'] * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
         args.n_cpus
     ):
-        c['maxCoresPerParticipant'] = int(
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(
             args.n_cpus
-        ) // c['numParticipantsAtOnce']
-    c['num_ants_threads'] = min(
-        c['maxCoresPerParticipant'], int(c['num_ants_threads'])
+        ) // c['pipeline_setup']['system_config']['num_participants_at_once']
+        if c['pipeline_setup']['system_config'][
+            'max_cores_per_participant'
+        ] == 0:
+            c['pipeline_setup']['system_config'][
+                'max_cores_per_participant'] = args.n_cpus
+            c['pipeline_setup']['system_config'][
+                'num_participants_at_once'] = 1
+
+    c['pipeline_setup']['system_config']['num_ants_threads'] = min(
+        c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
 
     c['disable_log'] = args.disable_file_logging
 
     if args.save_working_dir is not False:
-        c['removeWorkingDir'] = False
+        c['pipeline_setup']['working_directory']['remove_working_dir'] = False
         if args.save_working_dir is not None:
-            c['workingDirectory'] = \
+            c['pipeline_setup']['working_directory']['path'] = \
                 os.path.abspath(args.save_working_dir)
         elif "s3://" not in args.output_dir.lower():
-            c['workingDirectory'] = \
+            c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(args.output_dir, "working")
         else:
             print('Cannot write working directory to S3 bucket.'
@@ -438,19 +564,18 @@ elif args.analysis_level in ["test_config", "participant"]:
         print("#### Running C-PAC")
 
     print("Number of participants to run in parallel: {0}"
-          .format(c['numParticipantsAtOnce']))
+          .format(c['pipeline_setup']['system_config']['num_participants_at_once']))
 
     if not args.data_config_file:
         print("Input directory: {0}".format(args.bids_dir))
 
-    print("Output directory: {0}".format(c['outputDirectory']))
-    print("Working directory: {0}".format(c['workingDirectory']))
-    print("Crash directory: {0}".format(c['crashLogDirectory']))
-    print("Log directory: {0}".format(c['logDirectory']))
-    print("Remove working directory: {0}".format(c['removeWorkingDir']))
-    print("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
-    print("Available threads: {0}".format(c['maxCoresPerParticipant']))
-    print("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
+    print("Output directory: {0}".format(c['pipeline_setup']['output_directory']['path']))
+    print("Working directory: {0}".format(c['pipeline_setup']['working_directory']['path']))
+    print("Log directory: {0}".format(c['pipeline_setup']['log_directory']['path']))
+    print("Remove working directory: {0}".format(c['pipeline_setup']['working_directory']['remove_working_dir']))
+    print("Available memory: {0} (GB)".format(c['pipeline_setup']['system_config']['maximum_memory_per_participant']))
+    print("Available threads: {0}".format(c['pipeline_setup']['system_config']['max_cores_per_participant']))
+    print("Number of threads for ANTs: {0}".format(c['pipeline_setup']['system_config']['num_ants_threads']))
 
     # create a timestamp for writing config files
     st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
@@ -465,8 +590,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
         )
 
-    with open(pipeline_config_file, 'w') as f:
-        f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
+    open(pipeline_config_file, 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+    open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
     participant_labels = []
     if args.participant_label:
@@ -477,70 +604,14 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # otherwise we move on to conforming the data configuration
     if not args.data_config_file:
-
-        from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
-
-        print("Parsing {0}..".format(args.bids_dir))
-
-        (file_paths, config) = collect_bids_files_configs(
-            args.bids_dir, args.aws_input_creds)
-
-        if args.participant_label:
-            file_paths = [
-                file_path
-                for file_path in file_paths
-                if any(
-                    participant_label in file_path
-                    for participant_label in participant_labels
-                )
-            ]
-
-        if not file_paths:
-            print("Did not find data for {0}".format(
-                ", ".join(args.participant_label)
-            ))
-            sys.exit(1)
-
-        raise_error = not args.skip_bids_validator
-
-        sub_list = bids_gen_cpac_sublist(
-            args.bids_dir,
-            file_paths,
-            config,
-            args.aws_input_creds,
-            raise_error=raise_error
-        )
-
-        if not sub_list:
-            print("Did not find data in {0}".format(args.bids_dir))
-            sys.exit(1)
-
+        sub_list = create_cpac_data_config(args.bids_dir,
+                                           args.participant_label,
+                                           args.aws_input_creds,
+                                           args.skip_bids_validator)
     else:
-        # load the file as a check to make sure it is available and readable
-        sub_list = load_yaml_config(args.data_config_file, args.aws_input_creds)
-
-        if args.participant_label:
-
-            sub_list = [
-                d
-                for d in sub_list
-                if (
-                    d["subject_id"]
-                    if d["subject_id"].startswith('sub-')
-                    else 'sub-' + d["subject_id"]
-                ) in participant_labels
-            ]
-
-            if not sub_list:
-                print("Did not find data for {0} in {1}".format(
-                    ", ".join(args.participant_label),
-                    (
-                        args.data_config_file
-                        if not args.data_config_file.startswith("data:")
-                        else "data URI"
-                    )
-                ))
-                sys.exit(1)
+        sub_list = load_cpac_data_config(args.data_config_file,
+                                         args.participant_label,
+                                         args.aws_input_creds)
 
     if args.participant_ndx:
 
@@ -585,15 +656,15 @@ elif args.analysis_level in ["test_config", "participant"]:
         if args.monitoring:
             try:
                 monitoring = monitor_server(
-                    c['pipelineName'],
-                    c['logDirectory']
+                    c['pipeline_setup']['pipeline_name'],
+                    c['pipeline_setup']['log_directory']['path']
                 )
             except:
                 pass
 
         plugin_args = {
-            'n_procs': int(c['maxCoresPerParticipant']),
-            'memory_gb': int(c['maximumMemoryPerParticipant']),
+            'n_procs': int(c['pipeline_setup']['system_config']['max_cores_per_participant']),
+            'memory_gb': int(c['pipeline_setup']['system_config']['maximum_memory_per_participant']),
         }
 
         print ("Starting participant level processing")

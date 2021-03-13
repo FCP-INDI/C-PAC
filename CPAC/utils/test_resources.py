@@ -7,7 +7,7 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
 
     import os
     import shutil
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.datasource import check_for_s3
     from CPAC.utils.interfaces.datasink import DataSink
 

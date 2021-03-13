@@ -19,7 +19,7 @@ from matplotlib import gridspec as mgs
 from matplotlib.colors import ListedColormap
 
 from nipype.interfaces import afni
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 
 
@@ -1254,7 +1254,7 @@ def gen_motion_plt(motion_parameters):
     Parameters
     ----------
 
-    motion_parameters: string
+    motion_parameters : string
                     Motion Parameters file
 
     Returns
@@ -2319,16 +2319,16 @@ def jc(input1, input2):
 
     Parameters
     ----------
-    input1: array_like
+    input1 : array_like
             Input data containing objects. Can be any type but will be converted
             into binary: background where 0, object everywhere else.
-    input2: array_like
+    input2 : array_like
             Input data containing objects. Can be any type but will be converted
             into binary: background where 0, object everywhere else.
 
     Returns
     -------
-    jc: float
+    jc : float
         The Jaccard coefficient between the object(s) in `input1` and the
         object(s) in `input2`. It ranges from 0 (no overlap) to 1 (perfect overlap).
 

@@ -1,11 +1,11 @@
 # coding: utf-8
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.reho.utils import *
 
 
-def create_reho():
+def create_reho(wf_name):
 
     """
     Regional Homogeneity(ReHo) approach to fMRI data analysis
@@ -52,15 +52,22 @@ def create_reho():
     1. Generate ReHo map from the input EPI 4D volume, EPI mask and cluster_size
     2. Compute Z score of the ReHo map by subtracting mean and dividing by standard deviation
 
+    .. exec::
+        from CPAC.reho import create_reho
+        wf = create_reho()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/reho.dot'
+        )
 
     Workflow Graph:
 
-    .. image:: ../images/reho.dot.png
+    .. image:: ../../images/generated/reho.png
         :width: 500
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/reho_detailed.dot.png
+    .. image:: ../../images/generated/reho_detailed.png
         :width: 500
 
     References
@@ -77,7 +84,7 @@ def create_reho():
     >>> wf.run()
     """
 
-    reHo = pe.Workflow(name='reHo')
+    reHo = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['cluster_size',
                                                        'rest_res_filt',
                                                        'rest_mask']),
@@ -94,7 +101,7 @@ def create_reho():
                                          output_names=['out_file'],
                                          function=compute_reho,
                                          imports=reho_imports),
-                           name='reho_map')
+                           name='reho_map', mem_gb=6.0)
 
     reHo.connect(inputNode, 'rest_res_filt', raw_reho_map, 'in_file')
     reHo.connect(inputNode, 'rest_mask', raw_reho_map, 'mask_file')
@@ -102,3 +109,43 @@ def create_reho():
     reHo.connect(raw_reho_map, 'out_file', outputNode, 'raw_reho_map')
 
     return reHo
+
+
+def reho(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "ReHo",
+     "config": ["regional_homogeneity"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-cleaned_bold", "desc-brain_bold",
+                 "desc-preproc_bold", "bold"],
+                "space-bold_desc-brain_mask"],
+     "outputs": ["reho"]}
+    '''
+
+    cluster_size = cfg.regional_homogeneity['cluster_size']
+
+    # Check the cluster size is supported
+    if cluster_size not in [7, 19, 27]:
+        err_msg = 'Cluster size specified: %d, is not ' \
+                  'supported. Change to 7, 19, or 27 and try ' \
+                  'again' % cluster_size
+        raise Exception(err_msg)
+
+    reho = create_reho(f'reho_{pipe_num}')
+    reho.inputs.inputspec.cluster_size = cluster_size
+
+
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-brain_bold",
+                                     "desc-preproc_bold", "bold"])
+    wf.connect(node, out, reho, 'inputspec.rest_res_filt')
+
+    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out_file, reho, 'inputspec.rest_mask')
+
+    outputs = {
+        'reho': (reho, 'outputspec.raw_reho_map')
+    }
+
+    return (wf, outputs)

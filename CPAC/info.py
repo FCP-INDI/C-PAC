@@ -9,8 +9,8 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 7
-_version_micro = 2
+_version_minor = 8
+_version_micro = 0
 _version_extra = ''
 
 
@@ -146,12 +146,12 @@ REQUIREMENTS        = [
     "networkx==2.4",
     "nibabel==2.3.3",
     "nilearn==0.4.1",
-    "nipype==1.1.2",
+    "nipype==1.5.1",
     "nose==1.3.7",
     "numpy==1.16.4",
     "pandas==0.23.4",
     "patsy==0.5.0",
-    "prov==1.5.0",
+    "prov==1.5.2",
     "psutil==5.4.6",
     "pygraphviz==1.3.1",
     "python-dateutil==2.7.3",
@@ -162,4 +162,5 @@ REQUIREMENTS        = [
     "traits==4.6.0",
     "PyBASC==0.4.5",
     "pathlib==1.0.1",
+    "voluptuous>=0.12.0",
 ]
