@@ -129,29 +129,17 @@ commands:
 
 jobs:
   pytest-docker:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - attach_workspace:
-          at: /home/circleci/
-      - check-for-built-images
-      - set-python-version
-      - get-sample-bids-data
-      - run-pytest-docker
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
-      - store_artifacts:
-          path: htmlcov
-  pytest-docker-lite:
+    parameters:
+      variant:
+        type: string
+        default: ""
     machine:
       image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           at: /home/circleci/
       - set-up-variant:
-          variant: lite
+          variant: "<< parameters.variant >>"
       - check-for-built-images
       - set-python-version
       - get-sample-bids-data
@@ -233,17 +221,24 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - build
-      - build-lite
+      - build:
+          name: "Build images"
+      - build-lite:
+          name: "Build lite variant images"
       - pytest-docker:
+          name: "Test in Docker"
           requires:
-            - build
-      - pytest-docker-lite:
+            - "Build images"
+      - pytest-docker:
+          name: "Test lite variant in Docker"
           requires:
-            - build-lite
+            - "Build lite variant images"
+          variant: lite
       - pytest-singularity:
+          name: "Test in Singularity"
           requires:
-            - build
+            - "Build images"
       - pytest-singularity:
+          name: "Test lite variant in Singularity"
           requires:
-            - build-lite
+            - "Build lite variant images"
