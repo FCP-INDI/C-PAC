@@ -110,7 +110,10 @@ commands:
             if [[ -n "<< parameters.variant >>" ]]
             then
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
-              sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
+              if [[ -f ${DOCKERFILE} ]]
+              then
+                sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
+              fi
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"
               echo "export DOCKERFILE=\"-f ${DOCKERFILE}\"" >> $BASH_ENV
