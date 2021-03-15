@@ -68,7 +68,9 @@ commands:
       - install-singularity-requirements
       - when:
           condition:
-            equal: [ "", "<< parameters.variant >>" ]
+            or:
+            - equal: [ "", "<< parameters.variant >>" ]
+            - equal: [ "lite", "<< parameters.variant >>" ]
           steps:
             - run: 
                 name: "Cloning Singularity 2.5.2"
