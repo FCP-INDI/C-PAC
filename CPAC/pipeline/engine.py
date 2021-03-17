@@ -789,7 +789,7 @@ class ResourcePool(object):
             for bold in bold_descs:
                 substring_excl.append([bold, 'bold'])                  
 
-        anat = ['T1w', 'probseg', 'T1w-template']
+        anat = ['T1w', 'probseg', 'T1w-template', 'T2w', 'T2w-template']
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
                 'correlations', 'statmap', 'regressors', 'degree-centrality',
                 'eigen-centrality', 'lfcd']

@@ -56,7 +56,7 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_fsl_T2,
     brain_mask_acpc_niworkflows_ants_T2,
     brain_mask_acpc_unet_T2,
-    brain_mask_acpc_freesurfer_T2,
+    # brain_mask_acpc_freesurfer_T2,
     brain_extraction_T2
 )
 

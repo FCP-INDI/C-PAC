@@ -225,6 +225,16 @@ schema = Schema({
         'run': bool,
         'non_local_means_filtering': forkable,
         'n4_bias_field_correction': forkable,
+        't1t2_bias_field_correction': Required(
+            # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            Any({
+                'run': False,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            }, {
+                'run': True,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            },),
+        ),
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
