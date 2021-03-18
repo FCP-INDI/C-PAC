@@ -372,11 +372,13 @@ schema = Schema({
                 },
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
-                    'ref_mask': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
+                    'ref_mask': Maybe(str),
+                    'ref_mask_res-2': str,
+                    'T1w_template_res-2': str
                 },
             },
         },

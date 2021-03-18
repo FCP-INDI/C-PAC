@@ -21,6 +21,7 @@ import CPAC
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
+    freesurfer_abcd_preproc,
     anatomical_init,
     acpc_align_head,
     acpc_align_head_with_mask,
@@ -33,11 +34,13 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_niworkflows_ants,
     brain_mask_unet,
     brain_mask_freesurfer,
+    brain_mask_freesurfer_abcd,
     brain_mask_acpc_afni,
     brain_mask_acpc_fsl,
     brain_mask_acpc_niworkflows_ants,
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
+    brain_mask_acpc_freesurfer_abcd,
     brain_extraction
 )
 
@@ -731,6 +734,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
+    pipeline_blocks += [freesurfer_abcd_preproc]
+
     pipeline_blocks += [freesurfer_preproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
@@ -749,7 +754,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
                      brain_mask_acpc_niworkflows_ants,
-                     brain_mask_acpc_unet],
+                     brain_mask_acpc_unet,
+                     brain_mask_acpc_freesurfer_abcd],
                        #brain_mask_acpc_freesurfer
                     # we don't want these masks to be used later
                     brain_extraction,
@@ -786,7 +792,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             [brain_mask_afni,
              brain_mask_fsl,
              brain_mask_niworkflows_ants,
-             brain_mask_unet]
+             brain_mask_unet,
+             brain_mask_freesurfer_abcd]
                #brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
