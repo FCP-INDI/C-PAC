@@ -1260,11 +1260,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                             outputnode, 'anat_fast_bias_field')
 
             ### ABCD Harmonization ###
-            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
+            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
             # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
             resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
                             name='resample_anat_head_1mm')
+            resample_head_1mm.inputs.interp = 'spline'
             resample_head_1mm.inputs.apply_isoxfm = 1
 
             preproc.connect(anat_leaf2, 'anat_data',
@@ -1307,7 +1308,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
                             average_brain, 'in_file')
-
+    
             # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
             normalize_head = pe.Node(util.Function(input_names=['in_file', 'number', 'out_file_suffix'],
                                                     output_names=['out_file'],

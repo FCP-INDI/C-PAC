@@ -1493,7 +1493,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 anat_brain_to_standard_abcd(workflow, num_strat, strat, config=c)
 
                 # correct intensity to replicate ABCD result
-                # node, out_file = strat['acpc_aff_to_rig_xfm']
                 correct_anat_brain_intensity(workflow, num_strat, strat, config=c)
 
                 # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
