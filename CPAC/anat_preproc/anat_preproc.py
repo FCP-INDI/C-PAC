@@ -1008,7 +1008,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "T1w_brain_ACPC_template")],
-     "outputs": ["desc-preproc_T1w"]}
+     "outputs": ["desc-preproc_T1w", "desc-temporal_T1w"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -1042,7 +1042,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "space-T1w_desc-brain_mask"),
                 "T1w_brain_ACPC_template"],
-     "outputs": ["desc-preproc_T1w",
+     "outputs": ["desc-preproc_T1w", "desc-temporal_T1w",
                  "space-T1w_desc-brain_mask"]}
     '''
 
@@ -1549,7 +1549,7 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                  "space-T2w_desc-brain_mask"),
                 "T2w_brain_ACPC_template"],
-     "outputs": ["desc-preproc_T2w",
+     "outputs": ["desc-preproc_T2w", "desc-temporal_T2w"
                  "space-T2w_desc-brain_mask"]}
     '''
 
