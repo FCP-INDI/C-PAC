@@ -108,14 +108,14 @@ def test_build_anat_preproc_stack(pipe_config, bids_dir, test_dir):
 
     wf = initialize_nipype_wf(cfg, sub_data_dct)
 
-    part_id = sub_data_dct['subject_id']
-    ses_id = sub_data_dct['unique_id']
+    # part_id = sub_data_dct['subject_id']
+    # ses_id = sub_data_dct['unique_id']
 
-    unique_id = f'{part_id}_{ses_id}'
+    # unique_id = f'{part_id}_{ses_id}'
 
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
+    # rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    # wf, rpool = initiate_rpool(wf, cfg, sub_data_dct)
+    wf, rpool = initiate_rpool(wf, cfg, sub_data_dct)
 
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
     wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
