@@ -1661,6 +1661,59 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
+    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
+
+    Node Block:
+    {"name": "bold_mask_abcd",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "ABCD",
+     "inputs": ["T1w_template_funcreg",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-brain_mask_T1w"],
+     "outputs": ["space-template_res-bold_desc-brain_T1w",
+                 "space-template_res-bold_desc-brain_mask_T1w"]}
+    '''
+
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+                                     name=f'resample_anat_brain_in_standard_{pipe_num}')
+    
+    anat_brain_to_func_res.inputs.interp = 'spline'
+    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    wf.connect(node, out, anat_brain_to_func_res, 'in_file')
+
+    node, out = strat_pool.get_data('T1w_template_funcreg')
+    wf.connect(node, out, anat_brain_to_func_res, 'ref_file')
+
+    # Create brain masks in this space from the FreeSurfer output (changing resolution)
+    # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
+    anat_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
+                                          name=f'resample_anat_brain_mask_in_standard_{pipe_num}')
+    
+    anat_brain_mask_to_func_res.inputs.interp = 'nn'
+    anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-brain_mask_T1w')
+    wf.connect(node, out_file, anat_brain_mask_to_func_res, 'in_file')
+
+    wf.connect(anat_brain_to_func_res, 'out_file',
+        anat_brain_mask_to_func_res, 'ref_file')
+
+    outputs = {
+        'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
+        'space-template_res-bold_desc-brain_mask_T1w': (anat_brain_mask_to_func_res, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "bold_masking",

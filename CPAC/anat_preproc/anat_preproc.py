@@ -1507,8 +1507,8 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "T1w_brain_template_mask",
                  "ref_mask_res-2",
                  "T1w_template_res-2"],
-     "outputs": ["desc-fast_T1w",
-                 "desc-fast-brain_T1w",
+     "outputs": ["desc-restore_T1w",
+                 "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
                  "wmparc",
                  "freesurfer_subject_dir"]}
@@ -1626,11 +1626,150 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                reconall, 'T1_files')
 
     outputs = {
-        'desc-fast_T1w': (fast_correction, 'outputspec.anat_restore'),
-        'desc-fast-brain_T1w': (fast_correction, 'outputspec.anat_brain_restore'),
+        'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
+        'desc-restore-brain_T1w': (fast_correction, 'outputspec.anat_brain_restore'),
         'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
         'wmparc': (reconall, 'wmparc'),
         'freesurfer_subject_dir': (reconall, 'subjects_dir'),
+    }
+
+    return (wf, outputs)
+
+
+def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+    # TODO check docstring? function name?
+    '''
+    {"name": "correct_restore_brain_intensity_abcd",
+     "config": ["anatomical_preproc", "brain_extraction"],
+     "switch": "None",
+     "option_key": "using",
+     "option_val": "FreeSurfer-ABCD",
+     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 "desc-n4_T1w",
+                 "space-T1w_desc-brain_mask",
+                 "desc-fast_biasfield",
+                 "from-affine_to-rigid_mode-image_xfm",
+                 "from-T1w_to-template_mode-image_xfm"],
+     "outputs": ["desc-restore-brain_T1w"]}
+    '''
+
+    ### ABCD Harmonization - Myelin Map ###
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
+    # fslmerge -t ${T1wFolder}/xfms/${T1wImage}_dc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc
+    merge_t1_acpc_to_list = pe.Node(util.Merge(3),
+                                    name=f'merge_t1_acpc_to_list_{pipe_num}')
+
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, merge_t1_acpc_to_list, 'in1')
+    wf.connect(node, out, merge_t1_acpc_to_list, 'in2')
+    wf.connect(node, out, merge_t1_acpc_to_list, 'in3')
+
+    merge_t1_acpc = pe.Node(interface=fsl.Merge(),
+                            name='merge_t1_acpc')
+
+    merge_t1_acpc.inputs.dimension = 't'
+
+    wf.connect(merge_t1_acpc_to_list, 'out',
+        merge_t1_acpc, 'in_files')
+
+    # fslmaths ${T1wFolder}/xfms/${T1wImage}_dc -mul 0 ${T1wFolder}/xfms/${T1wImage}_dc
+    multiply_t1_acpc_by_zero = pe.Node(interface=fsl.ImageMaths(),
+                                       name='multiply_t1_acpc_by_zero')
+    
+    multiply_t1_acpc_by_zero.inputs.op_string = '-mul 0'
+
+    wf.connect(merge_t1_acpc, 'merged_file', 
+        multiply_t1_acpc_by_zero, 'in_file')
+
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
+    # convertwarp --relout --rel --ref="$T1wFolder"/"$T1wImageBrainMask" --premat="$T1wFolder"/xfms/"$InitialT1wTransform" \
+    # --warp1="$T1wFolder"/xfms/"$dcT1wTransform" --out="$T1wFolder"/xfms/"$OutputOrigT1wToT1w"
+    convertwarp_orig_t1_to_t1 = pe.Node(interface=fsl.ConvertWarp(), 
+                                        name='convertwarp_orig_t1_to_t1')
+
+    convertwarp_orig_t1_to_t1.inputs.out_relwarp = True
+    convertwarp_orig_t1_to_t1.inputs.relwarp = True
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, convertwarp_orig_t1_to_t1, 'reference')
+
+    node, out = strat_pool.get_data('from-affine_to-rigid_mode-image_xfm')
+    wf.connect(node, out, convertwarp_orig_t1_to_t1, 'premat')
+    wf.connect(multiply_t1_acpc_by_zero, 'out_file',
+        convertwarp_orig_t1_to_t1, 'warp1')
+
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
+    # applywarp --rel --interp=spline -i "$BiasField" -r "$T1wImageBrain" -w "$AtlasTransform" -o "$BiasFieldOutput"
+    applywarp_biasfield = pe.Node(interface=fsl.ApplyWarp(), 
+                                  name='applywarp_biasfield')
+
+    applywarp_biasfield.inputs.relwarp = True
+    applywarp_biasfield.inputs.interp = 'spline'
+
+    node, out = strat_pool.get_data('desc-fast_biasfield')
+    wf.connect(node, out, applywarp_biasfield, 'in_file')
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, applywarp_biasfield, 'ref_file')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, applywarp_biasfield, 'field_file')
+
+    # fslmaths "$BiasFieldOutput" -thr 0.1 "$BiasFieldOutput"
+    threshold_biasfield = pe.Node(interface=fsl.ImageMaths(),
+                                  name='threshold_biasfield')
+
+    threshold_biasfield.inputs.op_string = '-thr 0.1'
+    wf.connect(applywarp_biasfield, 'out_file', 
+        threshold_biasfield, 'in_file')
+
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
+    # applywarp --rel --interp=spline -i "$OrginalT1wImage" -r "$T1wImageBrain" -w "$OutputOrigT1wToT1w" -o "$OutputT1wImage"
+    applywarp_t1 = pe.Node(interface=fsl.ApplyWarp(), 
+                           name='applywarp_t1')
+    
+    applywarp_t1.inputs.relwarp = True
+    applywarp_t1.inputs.interp = 'spline'
+    
+    node, out = strat_pool.get_data('desc-n4_T1w')
+    wf.connect(node, out, applywarp_t1, 'in_file')
+    
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, applywarp_t1, 'ref_file')
+    
+    wf.connect(convertwarp_orig_t1_to_t1, 'out_file',
+        applywarp_t1, 'field_file')
+
+    # fslmaths "$OutputT1wImage" -abs "$OutputT1wImage" -odt float
+    abs_t1 = pe.Node(interface=fsl.ImageMaths(),
+                     name='abs_t1')
+
+    abs_t1.inputs.op_string = '-abs'
+    wf.connect(applywarp_t1, 'out_file', abs_t1, 'in_file')
+
+    # fslmaths "$OutputT1wImage" -div "$BiasField" "$OutputT1wImageRestore"
+    div_t1_by_biasfield = pe.Node(interface=fsl.ImageMaths(),
+                name='div_t1_by_biasfield')
+    
+    div_t1_by_biasfield.inputs.op_string = '-div'
+
+    wf.connect(abs_t1, 'out_file', div_t1_by_biasfield, 'in_file')
+
+    node, out = strat_pool.get_data('desc-fast_biasfield')
+    wf.connect(node, out, div_t1_by_biasfield, 'in_file2')
+
+    # fslmaths "$OutputT1wImageRestore" -mas "$T1wImageBrain" "$OutputT1wImageRestoreBrain"
+    apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
+                         name='get_restored_corrected_brain')
+
+    wf.connect(div_t1_by_biasfield, 'out_file',
+        apply_mask, 'in_file')
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, apply_mask, 'mask_file')
+
+    outputs = {
+        'desc-restore-brain_T1w': (apply_mask, 'out_file')
     }
 
     return (wf, outputs)

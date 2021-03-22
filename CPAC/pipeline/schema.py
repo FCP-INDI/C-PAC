@@ -381,11 +381,18 @@ schema = Schema({
                     'T1w_template_res-2': str
                 },
             },
+            'applywarp': {
+                'using': In({'ANTS', 'FSL'}),
+            },
         },
         'functional_registration': {
             'coregistration': {
                 'run': bool,
+                'reference': In({'brain', 'restore-brain'}),
+                'interpolation': In({'trilinear', 'sinc', 'spline'}),
+                'dof': int,
                 'func_input_prep': {
+                    'reg_with_skull': bool,
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'
                     })],
@@ -452,6 +459,9 @@ schema = Schema({
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
                 },
+                'ABCD-options_pipelines': {
+                    'run': bool,
+                }
             },
         },
     },
@@ -561,7 +571,7 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based']
+                 'Anatomical_Based', 'ABCD']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-

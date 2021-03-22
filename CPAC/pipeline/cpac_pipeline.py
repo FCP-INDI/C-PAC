@@ -41,11 +41,13 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
     brain_mask_acpc_freesurfer_abcd,
-    brain_extraction
+    brain_extraction,
+    correct_restore_brain_intensity_abcd
 )
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
+    register_ANTs_anat_to_template_FSLapplywarp,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -63,7 +65,8 @@ from CPAC.registration.registration import (
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
-    warp_deriv_mask_to_EPItemplate
+    warp_deriv_mask_to_EPItemplate,
+    warp_timeseries_to_T1template_abcd
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -85,6 +88,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_fsl_afni,
     bold_mask_anatomical_refined,
     bold_mask_anatomical_based,
+    bold_mask_abcd,
     bold_masking,
     func_mean,
     func_normalize,
@@ -817,6 +821,14 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template]
         ]
+
+    # ABCD-options pipeline
+    if 'ANTS' in cfg.registration_workflows['anatomical_registration'][
+        'registration']['using'] and cfg.registration_workflows[
+            'anatomical_registration']['applywarp']['using'] == 'FSL':
+        reg_blocks.append(register_ANTs_anat_to_template_FSLapplywarp)
+        reg_blocks.append(correct_restore_brain_intensity_abcd)
+
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
@@ -936,7 +948,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         func_prep_blocks = [
             [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based],
+             bold_mask_anatomical_refined, bold_mask_anatomical_based,
+             bold_mask_abcd],
             bold_masking,
             calc_motion_stats,
             func_mean,
@@ -1077,7 +1090,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
-                             warp_timeseries_to_EPItemplate],
+                             warp_timeseries_to_EPItemplate,
+                             warp_timeseries_to_T1template_abcd],
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
                             

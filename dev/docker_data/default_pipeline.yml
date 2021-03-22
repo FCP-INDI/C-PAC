@@ -506,7 +506,7 @@ registration_workflows:
 
     registration:
 
-      # using: ['ANTS', 'FSL', 'FSL-linear', 'ANTS-ABCD']
+      # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: ['ANTS']
@@ -605,6 +605,10 @@ registration_workflows:
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
         T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
 
+    applywarp:
+
+      # using: ANTS or FSL. Choose the applywarp tool regardless of which tool to calculate transforms
+      using: ANTS
 
   functional_registration:
 
@@ -613,7 +617,20 @@ registration_workflows:
 
       run: On
 
+      # reference: 'brain' or 'restore-brain'
+      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
+      reference: brain
+
+      # interpolation for coregistration
+			interpolation: trilinear
+
+      # degree of freedom for coregistration
+      dof: 6
+
       func_input_prep:
+
+        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
+        reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean Functional', 'Selected_Functional_Volume']
@@ -818,6 +835,11 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
+      ABCD-options_pipelines:
+
+        # Apply motion correction, func-to-anat, anat-to-template transforms on raw functional timeseries in ABCD-options pipeline.
+        run: Off
+
 
 functional_preproc:
 
@@ -973,7 +995,7 @@ functional_preproc:
 
   func_masking:
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'ABCD']
     # this is a fork point
     using: ['AFNI']
 
