@@ -25,7 +25,7 @@ valid_options = {
     },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
-                  'FreeSurfer-ABCD']
+                  'FreeSurfer-BET', 'FreeSurfer-ABCD']
     },
     'centrality': {
        'method_options': ['degree_centrality', 'eigenvector_centrality',

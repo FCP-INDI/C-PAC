@@ -227,7 +227,7 @@ anatomical_preproc:
 
   brain_extraction:
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-BET', 'FreeSurfer-ABCD']
     # this is a fork option
     using: ['3dSkullStrip']
 

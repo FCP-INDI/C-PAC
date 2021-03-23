@@ -629,6 +629,27 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
+    '''
+    {"name": "brain_mask_freesurfer_fsl",
+     "config": ["anatomical_preproc", "brain_extraction"],
+     "switch": "None",
+     "option_key": "using",
+     "option_val": "FreeSurfer-BET",
+     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
+     "outputs": ["space-T1w_desc-brain_mask"]}
+    '''
+
+    # Run BET brain extraction first
+    wf, wf_outputs = fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
+
+    outputs = {
+        'space-T1w_desc-betbrain_mask':
+            wf_outputs['space-T1w_desc-brain_mask']
+    }
+
+    return (wf, outputs)
+
 def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_head",
