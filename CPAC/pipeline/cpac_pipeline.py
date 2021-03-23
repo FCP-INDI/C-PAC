@@ -26,6 +26,7 @@ from CPAC.anat_preproc.anat_preproc import (
     acpc_align_head_with_mask,
     acpc_align_brain,
     acpc_align_brain_with_mask,
+    registration_T2w_to_T1w,
     non_local_means,
     n4_bias_correction,
     t1t2_bias_correction,
@@ -864,6 +865,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     ]
 
             anat_preproc_blocks_T2 = [
+                registration_T2w_to_T1w, 
                 non_local_means_T2,
                 n4_bias_correction_T2,
                 t1t2_bias_correction
