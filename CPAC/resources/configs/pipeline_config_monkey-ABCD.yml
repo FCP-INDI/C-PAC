@@ -99,6 +99,11 @@ anatomical_preproc:
     # Default: 150mm for human data.
     brain_size: 150
 
+    # Choose a tool to crop the FOV in ACPC alignment. 
+    # Using FSL's robustfov or flirt command. 
+    # Default: robustfov for human data, flirt for monkey data. 
+    FOV_crop: flirt
+
     # ACPC Target
     # options: 'brain' or 'whole-head'
     #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
@@ -252,6 +257,15 @@ registration_workflows:
   functional_registration: 
 
     coregistration: 
+      
+      # Choose coregistration interpolation
+      interpolation: spline
+
+      # Choose coregistration cost function
+      cost: mutualinfo
+      
+      # Extra arguments for FSL flirt
+      arguments: '-searchrx -30 30 -searchry -30 30 -searchrz -30 30'
 
       func_input_prep:
 

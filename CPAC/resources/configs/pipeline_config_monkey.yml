@@ -94,6 +94,11 @@ anatomical_preproc:
     # Default: 150mm for human data.
     brain_size: 70
 
+    # Choose a tool to crop the FOV in ACPC alignment. 
+    # Using FSL's robustfov or flirt command. 
+    # Default: robustfov for human data, flirt for monkey data. 
+    FOV_crop: flirt
+
     # ACPC aligned template
     T1w_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm.nii.gz
 

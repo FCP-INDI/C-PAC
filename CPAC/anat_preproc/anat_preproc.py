@@ -44,7 +44,6 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
                                                        'anat_brain',
                                                        'brain_mask',
                                                        'template_brain_only_for_anat',
-                                                       'template_skull_for_anat',
                                                        'template_brain_for_acpc',
                                                        'template_head_for_acpc']),
                         name='inputspec')
@@ -53,26 +52,46 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
                                                          'acpc_aligned_brain',
                                                          'acpc_brain_mask']),
                           name='outputspec')
+    if config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'robustfov':
+        robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
+                            name='anat_acpc_1_robustfov')
+        robust_fov.inputs.brainsize = config.anatomical_preproc['acpc_alignment']['brain_size']
+        robust_fov.inputs.out_transform = 'fov_xfm.mat'
 
-    robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
-                         name='anat_acpc_1_robustfov')
-    robust_fov.inputs.brainsize = config.anatomical_preproc['acpc_alignment'][
-        'brain_size']
-    robust_fov.inputs.out_transform = 'fov_xfm.mat'
+        fov, in_file = (robust_fov, 'in_file')
+        fov, fov_mtx = (robust_fov, 'out_transform')
+        fov, fov_outfile = (robust_fov, 'out_roi')
+    
+    elif config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'flirt':
+        # robustfov doesn't work on some monkey data. prefer using flirt.
+        # ${FSLDIR}/bin/flirt -in "${Input}" -applyxfm -ref "${Input}" -omat "$WD"/roi2full.mat -out "$WD"/robustroi.nii.gz
+        # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
+        flirt_fov = pe.Node(interface=fsl.FLIRT(),
+                                name='anat_acpc_1_fov')
+        flirt_fov.inputs.args = '-applyxfm'
+
+        fov, in_file = (flirt_fov, 'in_file')
+        fov, ref_file = (flirt_fov, 'reference')
+        fov, fov_mtx = (flirt_fov, 'out_matrix_file')
+        fov, fov_outfile = (flirt_fov, 'out_file')
 
     # align head-to-head to get acpc.mat (for human)
     if acpc_target == 'whole-head':
-        preproc.connect(inputnode, 'anat_leaf', robust_fov, 'in_file')
+        preproc.connect(inputnode, 'anat_leaf', fov, in_file)
+        if config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'flirt':
+            preproc.connect(inputnode, 'anat_leaf', fov, ref_file)
 
     # align brain-to-brain to get acpc.mat (for monkey)
     if acpc_target == 'brain':
-        preproc.connect(inputnode, 'anat_brain', robust_fov, 'in_file')
+        preproc.connect(inputnode, 'anat_brain', fov, in_file)
+        if config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'flirt':
+            preproc.connect(inputnode, 'anat_brain', fov, ref_file)
 
     convert_fov_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
                               name='anat_acpc_2_fov_convertxfm')
     convert_fov_xfm.inputs.invert_xfm = True
 
-    preproc.connect(robust_fov, 'out_transform',
+    preproc.connect(fov, fov_mtx,
                     convert_fov_xfm, 'in_file')
 
     align = pe.Node(interface=fsl.FLIRT(),
@@ -82,7 +101,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
     align.inputs.searchr_y = [30, 30]
     align.inputs.searchr_z = [30, 30]
 
-    preproc.connect(robust_fov, 'out_roi', align, 'in_file')
+    preproc.connect(fov, fov_outfile, align, 'in_file')
 
     # align head-to-head to get acpc.mat (for human)
     if acpc_target == 'whole-head':
