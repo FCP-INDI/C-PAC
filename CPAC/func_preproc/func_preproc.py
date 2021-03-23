@@ -805,6 +805,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
+            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
@@ -1684,7 +1685,8 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                                      name=f'resample_anat_brain_in_standard_{pipe_num}')
     
     anat_brain_to_func_res.inputs.interp = 'spline'
-    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
 
     node, out = strat_pool.get_data('space-template_desc-brain_T1w')
     wf.connect(node, out, anat_brain_to_func_res, 'in_file')
@@ -1698,10 +1700,11 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                                           name=f'resample_anat_brain_mask_in_standard_{pipe_num}')
     
     anat_brain_mask_to_func_res.inputs.interp = 'nn'
-    anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+    anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
 
     node, out = strat_pool.get_data('space-template_desc-T1w_mask')
-    wf.connect(node, out_file, anat_brain_mask_to_func_res, 'in_file')
+    wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
 
     wf.connect(anat_brain_to_func_res, 'out_file',
         anat_brain_mask_to_func_res, 'ref_file')

@@ -1,5 +1,6 @@
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
+import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 
@@ -1856,7 +1857,6 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
     # -o [${WD}/xfms/ANTs_CombinedWarp.nii.gz,1]
     ants_apply_warp_t1_to_template = pe.Node(interface=ants.ApplyTransforms(),
                                              name=f'ANTS-ABCD_T1_to_template_{pipe_num}')
-    
     ants_apply_warp_t1_to_template.inputs.dimension = 3
 
     node, out = strat_pool.get_data('desc-restore_T1w')
@@ -1877,15 +1877,14 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
                                                               'output3'],
                                                 function=run_c4d),
                                   name=f'split_combined_warp_{pipe_num}')
-
     split_combined_warp.inputs.output_name = 'e'
+
     wf.connect(ants_apply_warp_t1_to_template, 'output_image', 
         split_combined_warp, 'input')
 
     # fslmaths ${WD}/xfms/e2.nii.gz -mul -1 ${WD}/xfms/e-2.nii.gz
     change_e2_sign = pe.Node(interface=fsl.maths.MathsCommand(),
                           name=f'change_e2_sign_{pipe_num}')
-
     change_e2_sign.inputs.args = '-mul -1'
 
     wf.connect(split_combined_warp, 'output2',
@@ -1904,7 +1903,6 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
 
     merge_xfms = pe.Node(interface=fsl.Merge(), 
                          name=f'merge_t1_to_template_xfms_{pipe_num}')
-
     merge_xfms.inputs.dimension = 't'
 
     wf.connect(merge_xfms_to_list, 'out',
@@ -1913,10 +1911,9 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
     # applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
     fsl_apply_warp_t1_to_template = pe.Node(interface=fsl.ApplyWarp(),
                                             name=f'FSL-ABCD_T1_to_template_{pipe_num}')
-    
     fsl_apply_warp_t1_to_template.inputs.relwarp = True
     fsl_apply_warp_t1_to_template.inputs.interp = 'spline'
-    
+
     node, out = strat_pool.get_data('desc-restore_T1w')
     wf.connect(node, out, fsl_apply_warp_t1_to_template, 'in_file')
 
@@ -1929,7 +1926,6 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
     # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
     fsl_apply_warp_t1_brain_to_template = pe.Node(interface=fsl.ApplyWarp(),
                                                   name=f'FSL-ABCD_T1_brain_to_template_{pipe_num}')
-
     fsl_apply_warp_t1_brain_to_template.inputs.relwarp = True
     fsl_apply_warp_t1_brain_to_template.inputs.interp = 'nn'
 
@@ -1945,7 +1941,6 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
 
     fsl_apply_warp_t1_brain_mask_to_template = pe.Node(interface=fsl.ApplyWarp(),
                                                        name=f'FSL-ABCD_T1_brain_mask_to_template_{pipe_num}')
-
     fsl_apply_warp_t1_brain_mask_to_template.inputs.relwarp = True
     fsl_apply_warp_t1_brain_mask_to_template.inputs.interp = 'nn'
 
@@ -1973,6 +1968,8 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
         'space-template_desc-T1w_mask': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
         'from-T1w_to-template_mode-image_xfm': (merge_xfms, 'merged_file')
     }
+
+    return (wf, outputs)
 
 
 def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
@@ -2135,7 +2132,8 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     get_func_volume.inputs.set(
         expr='a',
-        single_idx=cfg.func_reg_input_volume,
+        single_idx=cfg.registration_workflows['functional_registration']['coregistration'][
+            'func_input_prep']['Selected Functional Volume']['func_reg_input_volume'],
         outputtype='NIFTI_GZ'
     )
 
@@ -2198,6 +2196,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
+    # TODO check how to connect desc-restore-brain_T1w?
     '''
     {"name": "coregistration",
      "config": ["registration_workflows", "functional_registration",
@@ -2208,6 +2207,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
+                 "desc-restore-brain_T1w",
                  ["label-WM_probseg", "label-WM_mask"],
                  "T1w"),
                 "diffphase_dwell",
@@ -2497,16 +2497,16 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     # TODO check what should be in tuple?
     # TODO update docstring
-
     """
     {"name": "transform_timeseries_to_T1template_abcd",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template", "ABCD-options_pipelines"],
+          "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
      "switch": ["run"],
-     "option_key": None,
-     "option_val": None,
+     "option_key": ["target_template", "using"],
+     "option_val": "ABCD",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
+                 "bold",
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
@@ -2515,10 +2515,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-template_res-bold_desc-brain_T1w",
                 "space-template_res-bold_desc-brain_mask_T1w",
                 "T1w_brain_template_funcreg"],
-     "outputs": ["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"]}
+     "outputs": ["space-template_desc-brain_bold"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries using ABCD-style registration
@@ -2671,7 +2668,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     
     # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
     merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name='merge_func_to_standard')
+                         name=f'merge_func_to_standard_{pipe_num}')
 
     merge_func_to_standard.inputs.dimension = 't'
 
@@ -2680,7 +2677,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
     merge_func_mask_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name='merge_func_mask_to_standard')
+                         name=f'merge_func_mask_to_standard_{pipe_num}')
 
     merge_func_mask_to_standard.inputs.dimension = 't'
 
@@ -2699,7 +2696,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslmaths ${OutputfMRI} -mas ${BrainMask} -mas ${OutputfMRI}_mask -thr 0 -ing 10000 task-rest01_nonlin_norm -odt float
     merge_func_mask = pe.Node(util.Merge(2), 
-                                name='merge_func_mask')
+                                name=f'merge_func_mask_{pipe_num}')
 
     node, out = strat_pool.get_data('space-template_res-bold_desc-brain_mask_T1w')
     wf.connect(node, out, merge_func_mask, 'in1')
@@ -2722,6 +2719,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         'space-template_desc-brain_bold': (extract_func_brain, 'out_file')
     }
 
+    return (wf, outputs)
 
 def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''

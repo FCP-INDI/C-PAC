@@ -782,11 +782,13 @@ registration_workflows:
 
       target_template:
 
-        # using: ['T1_template', 'EPI_template']
+        # using: ['T1_template', 'EPI_template', 'ABCD']
         # this is a fork point
         # NOTE:
         #   this will determine which registration transform to use to warp the functional
-        #   outputs and derivatives to template space
+        #   outputs and derivatives to template space.
+        #   if using 'ABCD', apply motion correction, func-to-anat, anat-to-template transforms 
+        #   on each of raw functional volume same as ABCD-options pipeline.
         using: ['T1_template']
 
         # option parameters
@@ -834,11 +836,6 @@ registration_workflows:
         # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
-      ABCD-options_pipelines:
-
-        # Apply motion correction, func-to-anat, anat-to-template transforms on raw functional timeseries in ABCD-options pipeline.
-        run: Off
 
 
 functional_preproc:

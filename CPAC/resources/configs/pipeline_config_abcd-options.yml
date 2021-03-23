@@ -15,6 +15,11 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_abcd-options
 
+  output_directory:
+
+    # Generate quality control pages containing preprocessing and derivative outputs.
+    generate_quality_control_images: False
+
   log_directory: 
 
     path: /tmp
@@ -185,7 +190,7 @@ registration_workflows:
 
       reference: restore-brain
 
-			interpolation: spline
+      interpolation: spline
 
       dof: 12
       
@@ -218,6 +223,17 @@ registration_workflows:
         parameters: 
 
     func_registration_to_template: 
+
+      target_template:
+
+        # using: ['T1_template', 'EPI_template', 'ABCD']
+        # this is a fork point
+        # NOTE:
+        #   this will determine which registration transform to use to warp the functional
+        #   outputs and derivatives to template space.
+        #   if using 'ABCD', apply motion correction, func-to-anat, anat-to-template transforms 
+        #   on each of raw functional volume same as ABCD-options pipeline.
+        using: ['ABCD']
 
       output_resolution: 
 
@@ -258,16 +274,14 @@ registration_workflows:
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
-      
-      ABCD-options_pipelines:
-
-        # Apply motion correction, func-to-anat, anat-to-template transforms on raw functional timeseries in ABCD-options pipeline.
-        run: On
 
 
 functional_preproc: 
 
   motion_estimates_and_correction: 
+
+    # calculate motion statistics BEFORE slice-timing correction
+    calculate_motion_first: On
 
     motion_correction: 
 

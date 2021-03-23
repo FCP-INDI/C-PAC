@@ -438,7 +438,7 @@ schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template'})],
+                    'using': [In({'T1_template', 'EPI_template', 'ABCD'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
@@ -459,9 +459,6 @@ schema = Schema({
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
                 },
-                'ABCD-options_pipelines': {
-                    'run': bool,
-                }
             },
         },
     },
