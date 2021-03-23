@@ -123,13 +123,14 @@ def test_build_anat_preproc_stack(pipe_config, bids_dir, test_dir):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+    
 # cfg = "/code/default_pipeline.yml"
 # bids_dir = "/Users/steven.giavasis/data/HBN-SI_dataset/rawdata"
 # test_dir = "/test_dir"
 
-cfg = "/Users/hecheng.jin/GitHub/DevBranch/CPAC/resources/configs/pipeline_config_monkey-ABCD.yml"
+# cfg = "/Users/hecheng.jin/GitHub/DevBranch/CPAC/resources/configs/pipeline_config_monkey-ABCD.yml"
+cfg = "/Users/hecheng.jin/GitHub/pipeline_config_monkey-ABCDlocal.yml"
 bids_dir = '/Users/hecheng.jin/Monkey/monkey_data_oxford/site-ucdavis'
-# test_dir = "/Users/hecheng.jin/GitHub/Test/T2ingress_preconfig"
 test_dir = "/Users/hecheng.jin/GitHub/Test/T2preproc"
 
 # test_ingress_func_raw_data(cfg, bids_dir, test_dir)
