@@ -1342,17 +1342,18 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     )
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
                    "", "anat_ingress")
-
-    anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
-    anat_flow_T2.inputs.inputnode.set(
-        subject=part_id,
-        anat=data_paths['anat']['T2w'],
-        creds_path=data_paths['creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path'],
-        img_type='anat'
-    )
-    rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
-                   "", "anat_ingress")
+    
+    if 'T2w' in data_paths['anat']: 
+        anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
+        anat_flow_T2.inputs.inputnode.set(
+            subject=part_id,
+            anat=data_paths['anat']['T2w'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'],
+            img_type='anat'
+        )
+        rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
+                    "", "anat_ingress")
 
     return rpool
 

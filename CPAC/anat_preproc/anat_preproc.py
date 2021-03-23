@@ -17,8 +17,6 @@ from CPAC.unet.function import predict_volumes
 
 from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
 
-from CPAC.pipeline.engine import wrap_block
-
 def patch_cmass_output(lst, index=0):
     """
     Parameters
@@ -400,17 +398,6 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
 
 
 def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
-    
-    '''
-    {"name": "brain_mask_afni_connector",
-     "config": ["anatomical_preproc", "brain_extraction", "AFNI-3dSkullStrip"],
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-brain_mask"]}
-    '''
-
     # Skull-stripping using AFNI 3dSkullStrip
     inputnode_afni = pe.Node(
         util.IdentityInterface(fields=['mask_vol',
@@ -545,10 +532,19 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
                               name=f'anat_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+    
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, anat_skullstrip, 'in_file')
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, anat_skullstrip, 'in_file')
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'): 
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, anat_skullstrip, 'in_file')
+
     wf.connect(skullstrip_args, 'expr', anat_skullstrip, 'args')
 
     # Generate anatomical brain mask
@@ -561,24 +557,24 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(anat_skullstrip, 'out_file',
                anat_brain_mask, 'in_file_a')
 
-    outputs = {
-        'space-T1w_desc-brain_mask': (anat_brain_mask, 'out_file')
-    }
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        outputs = {
+            'space-T1w_desc-brain_mask': (anat_brain_mask, 'out_file')
+        }
+
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        outputs = {
+            'space-T2w_desc-brain_mask': (anat_brain_mask, 'out_file')
+        }
 
     return (wf, outputs)
 
 
 def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
-    '''
-    {"name": "brain_mask_fsl_connector",
-     "config": ["anatomical_preproc", "brain_extraction", "FSL-BET"],
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-brain_mask"]}
-    '''
-
     inputnode_bet = pe.Node(
         util.IdentityInterface(fields=['frac',
                                        'mask_boolean',
@@ -633,9 +629,17 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
             'FSL-BET']['vertical_gradient'],
     )
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, anat_skullstrip, 'in_file')
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, anat_skullstrip, 'in_file')
+
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, anat_skullstrip, 'in_file')
 
     wf.connect([
         (inputnode_bet, anat_skullstrip, [
@@ -655,23 +659,24 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         ])
     ])
 
-    outputs = {
-        'space-T1w_desc-brain_mask': (anat_skullstrip, 'mask_file')
-    }
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        outputs = {
+            'space-T1w_desc-brain_mask': (anat_skullstrip, 'mask_file')
+        }
+
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        outputs = {
+            'space-T2w_desc-brain_mask': (anat_skullstrip, 'mask_file')
+        }
 
     return (wf, outputs)
 
 
 def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
-    '''
-    {"name": "brain_mask_niworkflows_ants_connector",
-     "config": ["anatomical_preproc", "brain_extraction", "niworkflows-ants"],
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-brain_mask"]}
-    '''
     # Skull-stripping using niworkflows-ants
     anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=
                                                     cfg.anatomical_preproc[
@@ -690,28 +695,36 @@ def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                         'regmask_path'],
                                                     name='anat_skullstrip_ants')
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, anat_skullstrip_ants, 'inputnode.in_files')
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, anat_skullstrip_ants, 'inputnode.in_files')
 
-    outputs = {
-        'space-T1w_desc-brain_mask':
-            (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask')
-    }
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, anat_skullstrip_ants, 'inputnode.in_files')
+    
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'): 
+        outputs = {
+            'space-T1w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask')
+        }
+
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        outputs = {
+            'space-T2w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask')
+        }
 
     return (wf, outputs)
 
 
 def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
-    '''
-    {"name": "brain_mask_unet_connector",
-     "config": ["anatomical_preproc", "brain_extraction", "UNet"],
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-brain_mask"]}
-    '''
     """
     UNet
     options (following numbers are default):
@@ -729,9 +742,17 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('unet_model')
     wf.connect(node, out, unet_mask, 'model_path')
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, unet_mask, 'cimg_in')
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'):
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, unet_mask, 'cimg_in')
+
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, unet_mask, 'cimg_in')
 
     """
     Revised mask with ANTs
@@ -741,9 +762,18 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                 name=f'unet_masked_brain_{pipe_num}')
     unet_masked_brain.inputs.op_string = "-mul %s"
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, unet_masked_brain, 'in_file')
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'):
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, unet_masked_brain, 'in_file')
+        
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, unet_masked_brain, 'in_file')
+
     wf.connect(unet_mask, 'out_path', unet_masked_brain, 'operand_files')
 
     # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
@@ -766,9 +796,17 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                 f'head_{pipe_num}')
     native_head_to_template_head.inputs.apply_xfm = True
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
-    wf.connect(node, out, native_head_to_template_head, 'in_file')
+    if strat_pool.check_rpool('desc-preproc_T1w') or \
+        strat_pool.check_rpool('desc-reorient_T1w') or \
+            strat_pool.check_rpool('T1w'):
+        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect(node, out, native_head_to_template_head, 'in_file')
+        
+    elif strat_pool.check_rpool('desc-preproc_T2w') or \
+        strat_pool.check_rpool('desc-reorient_T2w') or \
+            strat_pool.check_rpool('T2w'):
+        node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w','T2w'])
+        wf.connect(node, out, native_head_to_template_head, 'in_file')
 
     wf.connect(native_brain_to_template_brain, 'out_matrix_file',
                native_head_to_template_head, 'in_matrix_file')
@@ -1642,11 +1680,7 @@ def brain_mask_afni_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
     
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-brain_mask': 'space-T2w_desc-brain_mask'}
-    
-    wf, outputs = wrap_block([afni_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, outputs = afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
 
@@ -1662,11 +1696,7 @@ def brain_mask_acpc_afni_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-acpcbrain_mask': 'space-T2w_desc-acpcbrain_mask'}
-    
-    wf, wf_outputs = wrap_block([afni_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, wf_outputs = afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     outputs = {
         'space-T2w_desc-acpcbrain_mask':
@@ -1687,11 +1717,7 @@ def brain_mask_fsl_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-acpcbrain_mask': 'space-T2w_desc-acpcbrain_mask'}
-    
-    wf, outputs = wrap_block([fsl_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, outputs = fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
 
@@ -1706,11 +1732,8 @@ def brain_mask_acpc_fsl_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"]],
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-acpcbrain_mask': 'space-T2w_desc-acpcbrain_mask'}
 
-    wf, wf_outputs = wrap_block([fsl_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, wf_outputs = fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     outputs = {
         'space-T2w_desc-acpcbrain_mask':
@@ -1731,11 +1754,8 @@ def brain_mask_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-brain_mask': 'space-T2w_desc-brain_mask'}
-    
-    wf, outputs = wrap_block([niworkflows_ants_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, outputs = niworkflows_ants_brain_connector(wf, cfg, strat_pool,
+                                                   pipe_num, opt)
 
     return (wf, outputs)
 
@@ -1751,11 +1771,9 @@ def brain_mask_acpc_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None)
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-brain_mask': 'space-T2w_desc-brain_mask'}
-    
-    wf, wf_outputs = wrap_block([niworkflows_ants_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+
+    wf, wf_outputs = niworkflows_ants_brain_connector(wf, cfg, strat_pool,
+                                                      pipe_num, opt)
 
     outputs = {
         'space-T1w_desc-acpcbrain_mask':
@@ -1779,11 +1797,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-brain_mask': 'space-T2w_desc-brain_mask'}
-    
-    wf, outputs = wrap_block([unet_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, outputs = unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
 
@@ -1802,11 +1816,7 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
 
-    interface = {'T1w': (strat_pool.get_data(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"])),
-                 'space-T1w_desc-brain_mask': 'space-T2w_desc-brain_mask'}
-    
-    wf, wf_outputs = wrap_block([unet_brain_connector],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    wf, wf_outputs = unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     outputs = {
         'space-T2w_desc-acpcbrain_mask':
