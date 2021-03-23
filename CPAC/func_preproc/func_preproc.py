@@ -1674,7 +1674,7 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "ABCD",
      "inputs": ["T1w_template_funcreg",
                 "space-template_desc-brain_T1w",
-                "space-template_desc-brain_mask_T1w"],
+                "space-template_desc-T1w_mask"],
      "outputs": ["space-template_res-bold_desc-brain_T1w",
                  "space-template_res-bold_desc-brain_mask_T1w"]}
     '''
@@ -1700,7 +1700,7 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     anat_brain_mask_to_func_res.inputs.interp = 'nn'
     anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
 
-    node, out = strat_pool.get_data('space-template_desc-brain_mask_T1w')
+    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
     wf.connect(node, out_file, anat_brain_mask_to_func_res, 'in_file')
 
     wf.connect(anat_brain_to_func_res, 'out_file',

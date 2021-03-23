@@ -1832,14 +1832,15 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
     {"name": "register_ANTs_anat_to_template_FSLapplywarp",
      "config": ["registration_workflows", "anatomical_registration"],
      "switch": ["run"],
-     "option_key": ["applywarp"],
+     "option_key": ["applywarp", "using"],
      "option_val": "FSL",
-     "inputs": [(["desc-restore-brain_T1w", "desc-brain_T1w"],
-                 "space-T1w_desc-brain_mask",
-                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"]),
-                "T1w_template"],
+     "inputs": [["desc-restore-brain_T1w", "desc-brain_T1w"],
+                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                "space-T1w_desc-brain_mask",
+                "T1w_template",
+                "from-T1w_to-template_mode-image_xfm"],
      "outputs": ["space-template_desc-brain_T1w",
-                 "space-template_desc-brain_mask_T1w",
+                 "space-template_desc-T1w_mask",
                  "from-T1w_to-template_mode-image_xfm"]}
     '''
 
@@ -1969,7 +1970,7 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
 
     outputs = {
         'space-template_desc-brain_T1w': (apply_mask, 'out_file'),
-        'space-template_desc-brain_mask_T1w': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
+        'space-template_desc-T1w_mask': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
         'from-T1w_to-template_mode-image_xfm': (merge_xfms, 'merged_file')
     }
 
