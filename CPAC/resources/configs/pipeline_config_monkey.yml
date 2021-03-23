@@ -206,6 +206,15 @@ registration_workflows:
   functional_registration: 
 
     coregistration: 
+      
+      # Choose coregistration interpolation
+      interpolation: spline
+
+      # Choose coregistration cost function
+      cost: mutualinfo
+      
+      # Extra arguments for FSL flirt
+      arguments: '-searchrx -30 30 -searchry -30 30 -searchrz -30 30'
 
       func_input_prep: 
 
