@@ -1,3 +1,6 @@
+# we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
+FROM freesurfer/freesurfer:6.0
+
 # Matching software package versions in https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile
 
 # using neurodebian runtime as parent image
@@ -261,6 +264,9 @@ COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 COPY dev/docker_data /code/docker_data
 RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run-with-freesurfer.sh
+
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
+COPY --from=0 opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
 
 COPY . /code
 RUN pip install -e /code
