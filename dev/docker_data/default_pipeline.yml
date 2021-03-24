@@ -223,6 +223,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+
     T1w_brain_ACPC_template: None
 
   brain_extraction:
