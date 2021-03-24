@@ -54,8 +54,10 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
         blip = False
         fmap_rp_list = []
         fmap_TE_list = []
+
         if "fmap" in sub_dict:
             for key in sub_dict["fmap"]:
+
                 gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                      "fmap_gather_"
                                                      "{0}".format(key))
@@ -102,7 +104,7 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                     })
                     fmap_TE_list.append("{}_TE".format(key))
 
-                if key == "epi_AP" or key == "epi_PA":
+                if "epi_" in key:
                     blip = True
 
             if diff:

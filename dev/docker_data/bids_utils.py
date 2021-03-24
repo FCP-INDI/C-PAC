@@ -267,9 +267,6 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     top_keys = list(set(key_list) - set(func_keys))
     bot_keys = list(set(key_list).intersection(func_keys))
 
-    print(top_keys)
-    print(bot_keys)
-
     subjdict = {}
 
     if not base_path.endswith('/'):
@@ -524,7 +521,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
+    suffixes = ['T1w', 'bold', '_epi', 'phasediff', 'magnitude',
                 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
@@ -568,9 +565,12 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                             file_paths += [os.path.join(root, f).replace(bids_dir,'')
                                    .lstrip('/')]
                         if f.endswith('json') and suf in f:
-                            config_dict.update(
-                                {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
-                                     json.load(open(os.path.join(root, f), 'r'))})
+                            try:
+                                config_dict.update(
+                                    {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
+                                         json.load(open(os.path.join(root, f), 'r'))})
+                            except UnicodeDecodeError:
+                                raise Exception("Could not decode {0}".format(os.path.join(root, f)))
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "

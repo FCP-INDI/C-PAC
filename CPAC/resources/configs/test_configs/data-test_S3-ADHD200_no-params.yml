@@ -1,5 +1,9 @@
 # CPAC Data Configuration File
-# Version 1.8.0.dev
+<<<<<<< HEAD
+# Version 1.8.0
+=======
+# Version 1.8.0
+>>>>>>> master
 #
 # http://fcp-indi.github.io for more info.
 #
