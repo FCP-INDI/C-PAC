@@ -388,40 +388,30 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask,
     return multiatlas_Intensity, multiatlas_Labels
 
 
-def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
-                                 left_gm_label=3, left_wm_label=2,
-                                 right_gm_label=42, right_wm_label=41,
-                                 include_ventricles=False):
+def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
+                                 gm_label=[3,42], wm_label=[2,41]):
     """Pick tissue mask from multiatlas labels file
     based off of FreeSurferColorLUT https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
     or user provided label value
 
     Parameters
     ----------
-
     multiatlas_Labels : string (nifti file)
 
-    csf_label : integer
-        label value corresponding to CSF in multiatlas file
+    csf_label : list
+        a list of integer label values corresponding to CSF in multiatlas file
 
-    left_gm_label : integer
-        label value corresponding to Left Gray Matter in multiatlas file
+    gm_label : list
+        a list of integer label value corresponding to Left Gray Matter in multiatlas file
 
-    left_wm_label : integer
-        label value corresponding to Left White Matter in multiatlas file
-
-    right_gm_label : integer
-        label value corresponding to Right Gray Matter in multiatlas file
-
-    right_wm_label : integer
-        label value corresponding to Right White Matter in multiatlas file
+    wm_label : list
+        a list of integer label value corresponding to Left White Matter in multiatlas file
 
     include_ventricles : boolean
         whether include labels of ventricles in CSF or not
 
     Returns
     -------
-
     csf_mask : string (nifti file)
 
     gm_mask : string (nifti file)
@@ -442,26 +432,21 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     # FreeSurfer Ventricle Labels:
     # Left-Lateral-Ventricle 4, 3rd-Ventricle 14, 4th-Ventricle 15, Right-Lateral-Ventricle 43
 
-    csf = data.copy()
-    if include_ventricles:
-        csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
-        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] = 1
-    else:
-        csf[csf != csf_label] = 0
-        csf[csf == csf_label] = 1
+    csf = np.zeros(np.size(data))
+    csf[np.where(np.in1d(data, np.array(csf_label)))] = 1
+    csf = csf.reshape(data.shape)
 
-    gm = data.copy()
+    gm = np.zeros(np.size(data))
+    gm[np.where(np.in1d(data, np.array(gm_label)))] = 1
+    gm = gm.reshape(data.shape)
 
-    gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0
-    gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
+    wm = np.zeros(np.size(data))
+    wm[np.where(np.in1d(data, np.array(wm_label)))] = 1
+    wm = wm.reshape(data.shape)
 
-    wm = data.copy()
-    wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
-    wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
-
-    save_img_csf = nb.Nifti1Image(csf, header=img.get_header(), affine=img.get_affine())
-    save_img_gm = nb.Nifti1Image(gm, header=img.get_header(), affine=img.get_affine())
-    save_img_wm = nb.Nifti1Image(wm, header=img.get_header(), affine=img.get_affine())
+    save_img_csf = nb.Nifti1Image(csf, header=img.header, affine=img.affine)
+    save_img_gm = nb.Nifti1Image(gm, header=img.header, affine=img.affine)
+    save_img_wm = nb.Nifti1Image(wm, header=img.header, affine=img.affine)
 
     save_img_csf.to_filename('csf_mask.nii.gz')
     save_img_gm.to_filename('gm_mask.nii.gz')
