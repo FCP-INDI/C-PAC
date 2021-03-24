@@ -19,15 +19,6 @@ commands:
           name: "Starting local registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - install-singularity-requirements
-      - when:
-          condition:
-            or:
-            - equal: [ "", "<< parameters.variant >>" ]
-            - equal: [ "lite", "<< parameters.variant >>" ]
-          steps:
-            - run: 
-                name: "Cloning Singularity 2.5.2"
-                command: git clone -b 2.5.2 https://github.com/sylabs/singularity
       - set-up-singularity
       - run:
           name: "Building Singularity image from Docker image"
@@ -104,12 +95,12 @@ commands:
       - run:
          name: "Setting up Singularity"
          command: |
-           cd singularity
+           cd /home/circleci/singularity
            ./autogen.sh
            ./configure --prefix=/usr/local --sysconfdir=/etc
            make
            sudo make install
-           cd ..
+           cd /home/circleci/project
   set-up-variant:
     parameters:
       variant:
@@ -147,6 +138,8 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
+      - attach_workspace:
+          at: /home/circleci/
       - checkout
       - set-python-version
       - configure-git-user
@@ -188,6 +181,8 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
+      - attach_workspace:
+          at: /home/circleci/
       - checkout
       - set-python-version
       - build-images:
@@ -201,6 +196,8 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
+      - attach_workspace:
+          at: /home/circleci/
       - checkout
       - set-python-version
       - build-images:
@@ -243,6 +240,18 @@ jobs:
           root: /home/circleci/
           paths:
             - project
+
+  get-singularity:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - run:
+          name: "Cloning Singularity 2.5.2"
+          command: git clone -b 2.5.2 https://github.com/sylabs/singularity /home/circleci/singularity
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths: 
+            - singularity
 
   pytest-docker:
     parameters:
@@ -289,17 +298,21 @@ workflows:
       - build:
           name: "Build images"
           requires:
-            - "Check version"
+            - "Get Singularity"
       - build-ABCD-HCP:
           name: "Build ABCD-HCP variant images"
           requires:
-            - "Check version"
+            - "Get Singularity"
       - build-lite:
           name: "Build lite variant images"
           requires:
-            - "Check version"
+            - "Get Singularity"
       - check-version:
           name: "Check version"
+      - get-singularity:
+          name: "Get Singularity"
+          requires:
+            - "Check version"
       - pytest-docker:
           name: "Test in Docker"
           requires:
