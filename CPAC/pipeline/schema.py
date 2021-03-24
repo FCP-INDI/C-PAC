@@ -305,6 +305,10 @@ schema = Schema({
                 'mask_path': str,
                 'regmask_path': str,
             },
+            'FreeSurfer-BET': {
+                'T1w_brain_template_mask_ccs': str,
+                'mask_type': [In({'tight', 'loose'})],
+            },
         },
     },
     'segmentation': {

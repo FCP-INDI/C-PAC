@@ -357,6 +357,13 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+    FreeSurfer-BET:
+
+      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+
+      # mask_type: ['tight', 'loose']
+      # this is a fork option
+      mask_type: ['tight']
 
 segmentation:
 
