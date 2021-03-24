@@ -407,9 +407,6 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
     wm_label : list
         a list of integer label value corresponding to Left White Matter in multiatlas file
 
-    include_ventricles : boolean
-        whether include labels of ventricles in CSF or not
-
     Returns
     -------
     csf_mask : string (nifti file)
