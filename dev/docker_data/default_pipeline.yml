@@ -622,7 +622,7 @@ registration_workflows:
       reference: brain
 
       # interpolation for coregistration
-			interpolation: trilinear
+      interpolation: trilinear
 
       # degree of freedom for coregistration
       dof: 6
