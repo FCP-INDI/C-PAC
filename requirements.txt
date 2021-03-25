@@ -16,7 +16,7 @@ patsy==0.5.0
 prov==1.5.2
 psutil==5.6.6
 python-dateutil==2.7.3
-pyyaml==5.3
+pyyaml==5.4
 yamlordereddictloader==0.4.0
 requests==2.21.0
 scipy==1.4.1
