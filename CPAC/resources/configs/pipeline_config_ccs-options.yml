@@ -70,6 +70,26 @@ anatomical_preproc:
     # this is a fork option
     using: ['FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
 
+segmentation:
+
+  # Automatically segment anatomical images into white matter, gray matter,
+  # and CSF based on prior probability maps.
+  run: On
+
+  tissue_segmentation:
+
+    FreeSurfer:
+
+      # Label values corresponding to CSF in multiatlas file
+      CSF_label : [4, 5, 43, 44, 31, 63]
+
+      # Label values corresponding to Gray Matter in multiatlas file
+      GM_label : [3, 42]
+
+      # Label values corresponding to White Matter in multiatlas file
+      WM_label : [2, 41, 7, 46, 251, 252, 253, 254, 255]
+
+
 registration_workflows: 
 
   anatomical_registration: 

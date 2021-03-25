@@ -1329,7 +1329,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     # register FS brain mask to native space
     fs_brain_mask_to_native = pe.Node(
         interface=freesurfer.ApplyVolTransform(),
-        name='fs_brain_mask_to_native')
+        name=f'fs_brain_mask_to_native_{pipe_num}')
     fs_brain_mask_to_native.inputs.reg_header = True
 
     wf.connect(reconall, 'brainmask', fs_brain_mask_to_native, 'source_file')
@@ -1341,20 +1341,20 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                                    output_names=['out_file'],
                                                    function=mri_convert),
-                                     name='fs_brainmask_to_nifti')
+                                     name=f'fs_brainmask_to_nifti_{pipe_num}')
     wf.connect(fs_brain_mask_to_native, 'transformed_file',
                fs_brain_mask_to_nifti, 'in_file')
 
     # binarize the brain mask
     binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                     name='binarize_fs_brainmask')
+                                     name=f'binarize_fs_brainmask_{pipe_num}')
     binarize_fs_brain_mask.inputs.args = '-bin'
     wf.connect(fs_brain_mask_to_nifti, 'out_file',
                binarize_fs_brain_mask, 'in_file')
 
     # fill holes
     fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
-                                 name='fill_fs_brainmask')
+                                 name=f'fill_fs_brainmask_{pipe_num}')
     fill_fs_brain_mask.inputs.fill_holes = True
     fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(binarize_fs_brain_mask, 'out_file',
@@ -1362,7 +1362,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                                name='fs_aseg_to_native')
+                                name=f'fs_aseg_to_native_{pipe_num}')
     fs_aseg_to_native.inputs.reg_header = True
     fs_aseg_to_native.inputs.interp = 'nearest'
     fs_aseg_to_native.inputs.subjects_dir = freesurfer_subject_dir
@@ -1374,17 +1374,27 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                              output_names=['out_file'],
                                              function=mri_convert),
-                               name='fs_aseg_to_nifti')
+                               name=f'fs_aseg_to_nifti_{pipe_num}')
     fs_aseg_to_nifti.inputs.args = '-rt nearest'
 
     wf.connect(fs_aseg_to_native, 'transformed_file',
                fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'],
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
+                                                     'csf_label',
+                                                     'gm_label',
+                                                     'wm_label'],
                                         output_names=['csf_mask', 'gm_mask',
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
-                          name=f'anat_preproc_freesurfer_tissue_mask')
+                          name=f'anat_preproc_freesurfer_tissue_mask_{pipe_num}')
+
+    pick_tissue.inputs.csf_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['CSF_label']
+    pick_tissue.inputs.gm_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['GM_label']
+    pick_tissue.inputs.wm_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['WM_label']
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 

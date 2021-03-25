@@ -335,7 +335,11 @@ schema = Schema({
                     'CSF_path': str
                 },
             },
-            'Freesurfer': Maybe(dict),
+            'FreeSurfer': {
+                'CSF_label': [int],
+                'GM_label': [int],
+                'WM_label': [int],                
+            }
             'ANTs_Prior_Based': {
                 'run': forkable,
                 'template_brain_list': [str],

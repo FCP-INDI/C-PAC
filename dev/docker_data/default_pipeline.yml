@@ -371,7 +371,7 @@ segmentation:
 
   tissue_segmentation:
 
-    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
+    # using: ['FSL-FAST', 'Template_Based', 'ANTs_Prior_Based', 'FreeSurfer']
     # this is a fork point
     using: ['FSL-FAST']
 
@@ -475,6 +475,17 @@ segmentation:
       GM_label : [3, 42]
 
       # Label values corresponding to White Matter in multiatlas file
+      WM_label : [2, 41]
+
+    FreeSurfer:
+
+      # Label values corresponding to CSF in FreeSurfer aseg segmentation file
+      CSF_label : [24]
+
+      # Label values corresponding to Gray Matter in FreeSurfer aseg segmentation file
+      GM_label : [3, 42]
+
+      # Label values corresponding to White Matter in FreeSurfer aseg segmentation file
       WM_label : [2, 41]
 
 
