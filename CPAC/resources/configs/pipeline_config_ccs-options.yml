@@ -66,10 +66,9 @@ anatomical_preproc:
 
   brain_extraction:
 
-    FreeSurfer-BET:
-
-      # mask_type: ['tight', 'loose']
-      mask_type: ['tight', 'loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # this is a fork option
+    using: ['FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
 
 registration_workflows: 
 

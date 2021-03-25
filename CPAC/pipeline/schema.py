@@ -25,7 +25,8 @@ valid_options = {
     },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
-                  'FreeSurfer-BET', 'FreeSurfer-ABCD']
+                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
+                  'FreeSurfer-ABCD']
     },
     'centrality': {
        'method_options': ['degree_centrality', 'eigenvector_centrality',
@@ -306,8 +307,7 @@ schema = Schema({
                 'regmask_path': str,
             },
             'FreeSurfer-BET': {
-                'T1w_brain_template_mask_ccs': str,
-                'mask_type': [In({'tight', 'loose'})],
+                'T1w_brain_template_mask_ccs': str
             },
         },
     },

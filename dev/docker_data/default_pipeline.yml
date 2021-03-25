@@ -227,7 +227,7 @@ anatomical_preproc:
 
   brain_extraction:
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-BET', 'FreeSurfer-ABCD']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
     # this is a fork option
     using: ['3dSkullStrip']
 
@@ -359,11 +359,9 @@ anatomical_preproc:
 
     FreeSurfer-BET:
 
+      # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
-      # mask_type: ['tight', 'loose']
-      # this is a fork option
-      mask_type: ['tight']
 
 segmentation:
 
