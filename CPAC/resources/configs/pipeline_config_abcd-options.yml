@@ -38,10 +38,6 @@ pipeline_setup:
     # - This can be written to '/tmp' if you do not intend to save your working directory.
     path: /outputs/working
 
-    # Deletes the contents of the Working Directory after running.
-    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
-    remove_working_dir: Off
-
   log_directory: 
 
     path: /outputs/log
