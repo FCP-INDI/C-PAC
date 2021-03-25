@@ -1360,7 +1360,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
                           name=f'anat_preproc_freesurfer_tissue_mask')
-    pick_tissue.inputs.include_ventricles = True
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 

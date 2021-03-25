@@ -470,20 +470,14 @@ segmentation:
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
       # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
 
-      # Label value corresponding to CSF in multiatlas file
-      CSF_label : 24
+      # Label values corresponding to CSF in multiatlas file
+      CSF_label : [24]
 
-      # Label value corresponding to Left Gray Matter in multiatlas file
-      left_GM_label : 3
+      # Label values corresponding to Gray Matter in multiatlas file
+      GM_label : [3, 42]
 
-      # Label value corresponding to Right Gray Matter in multiatlas file
-      right_GM_label : 42
-
-      # Label value corresponding to Left White Matter in multiatlas file
-      left_WM_label : 2
-
-      # Label value corresponding to Right White Matter in multiatlas file
-      right_WM_label : 41
+      # Label values corresponding to White Matter in multiatlas file
+      WM_label : [2, 41]
 
 
 registration_workflows:
