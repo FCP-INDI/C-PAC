@@ -749,9 +749,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
                 ]
                 if 'FreeSurfer-BET-Tight' in cfg.anatomical_preproc[
-                    'anatomical_preproc']['brain_extraction']['using'] or \ 
-                    'FreeSurfer-BET-Loose' in cfg.anatomical_preproc[
-                    'anatomical_preproc']['brain_extraction']['using']:
+                    'anatomical_preproc']['brain_extraction']['using'] or 'FreeSurfer-BET-Loose' \
+                        in cfg.anatomical_preproc['anatomical_preproc']['brain_extraction']['using']:
                     acpc_blocks.append(
                         [brain_mask_acpc_freesurfer_fsl_tight,
                          brain_mask_acpc_freesurfer_fsl_loose]
@@ -804,9 +803,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_brain_mask_blocks
     elif cfg.surface_analysis['run_freesurfer'] and \
         'FreeSurfer-BET-Tight' in cfg.anatomical_preproc[
-            'anatomical_preproc']['brain_extraction']['using'] or \ 
-                'FreeSurfer-BET-Loose' in cfg.anatomical_preproc[
-                    'anatomical_preproc']['brain_extraction']['using']:
+            'anatomical_preproc']['brain_extraction']['using'] or 'FreeSurfer-BET-Loose' \
+                in cfg.anatomical_preproc['anatomical_preproc']['brain_extraction']['using']:
         anat_brain_mask_blocks = [
             [brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
