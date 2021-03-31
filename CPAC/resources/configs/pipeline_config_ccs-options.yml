@@ -147,26 +147,23 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors: 
-      - Bandpass:
-          bottom_frequency: 0.01
-          top_frequency: 0.1
-        CerebrospinalFluid:
-          erode_mask: Off
-          extraction_resolution: 2
-          summary: Mean
-        GlobalSignal:
-          summary: Mean
+      - Name: Regressor-1
         Motion:
           include_delayed: On
           include_delayed_squared: On
           include_squared: On
-        Name: Regressor-1
-        PolyOrt:
-          degree: 2
+        GlobalSignal:
+          summary: Mean
+        CerebrospinalFluid:
+          erode_mask: Off
+          extraction_resolution: 2
+          summary: Mean
         WhiteMatter:
           erode_mask: Off
           extraction_resolution: 2
           summary: Mean
+        PolyOrt:
+          degree: 2
 
 timeseries_extraction: 
 
