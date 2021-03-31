@@ -284,6 +284,13 @@ workflows:
           name: "Build images"
       - build-lite:
           name: "Build lite variant images"
+      - combine-coverage:
+          name: "Combine coverage"
+          requires:
+            - "Test in Docker"
+            - "Test in Singularity"
+            - "Test lite variant in Docker"
+            - "Test lite variant in Singularity"
       - pytest-docker:
           name: "Test in Docker"
           requires:
