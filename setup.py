@@ -15,7 +15,6 @@ def configuration(parent_package='', top_path=None):
         if os.path.isfile(os.path.join(root, '__init__.py')):
             config.add_subpackage(root)
 
-    config.add_data_dir('CPAC/GUI/resources')
     config.add_data_dir('CPAC/resources')
 
     config.add_define_macros([

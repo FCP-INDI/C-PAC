@@ -42,12 +42,6 @@ def version():
 
 
 @main.command()
-def gui():
-    import CPAC.GUI
-    CPAC.GUI.run()
-
-
-@main.command()
 @click.argument('data_config')
 @click.option('--pipe_config')
 @click.option('--num_cores')
