@@ -978,7 +978,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt != 'mean' and opt != 'median' and opt != 'selected_volume':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'motion_correction_reference' workflow must be either "
-                        "'mean' or 'median' or 'selected volume'.\n\nTool input: "
+                        "'mean' or 'median' or 'selected_volume'.\n\nTool input: "
                         "{0}\n\n".format(opt))
 
     if opt == 'mean':
@@ -1007,7 +1007,8 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
         func_get_RPI.inputs.set(
             expr='a',
-            single_idx=cfg.motion_correction_reference_volume,
+            single_idx=cfg.functional_preproc['motion_estimates_and_correction'][
+                'motion_correction']['motion_correction_reference_volume'],
             outputtype='NIFTI_GZ'
         )
 

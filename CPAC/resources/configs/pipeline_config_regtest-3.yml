@@ -194,7 +194,7 @@ functional_preproc:
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: Off
 
-      # Choose motion correction reference. Options: mean, median, selected volume
+      # Choose motion correction reference. Options: mean, median, selected_volume
       motion_correction_reference: [median]
 
   func_masking: 
