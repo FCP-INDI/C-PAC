@@ -132,8 +132,27 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
-# install FSL
-RUN echo "Downloading FSL ..." \
+# install FSL from Neurodocker
+RUN apt-get install -y \
+    bc \
+    dc \
+    file \
+    libfontconfig1 \
+    libfreetype6 \
+    libgl1-mesa-dri \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libgomp1 \
+    libice6 \
+    libxcursor1 \
+    libxft2 \
+    libxinerama1 \
+    libxrandr2 \
+    libxrender1 \
+    libxt6 \
+    wget \
+    sudo && \
+    echo "Downloading FSL ..." \
     && mkdir -p /usr/share/fsl/5.0 \
     && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz \
     | tar zx -C /usr/share/fsl/5.0 --strip-components=1 \
@@ -175,7 +194,14 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && update-locale LANG="en_US.UTF-8" \
     && chmod 777 /opt && chmod a+s /opt
 
-RUN echo "Downloading ANTs ..." \
+RUN apt-get install -y \
+    cmake \
+    g++ \
+    gcc \
+    git \
+    make \
+    zlib1g-dev && \
+    echo "Downloading ANTs ..." \
     && mkdir -p /usr/lib/ants \
     && curl -fsSL --retry 5 https://dl.dropbox.com/s/2f4sui1z6lcgyek/ANTs-Linux-centos5_x86_64-v2.2.0-0740f91.tar.gz \
     | tar -xz -C /usr/lib/ants --strip-components 1
@@ -254,7 +280,14 @@ RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH"
 SHELL ["/bin/bash", "-c"]
-RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
+RUN apt-get install -y \
+    bc \
+    libgomp1 \
+    libxmu6 \
+    libxt6 \
+    tcsh \
+    perl && \
+    curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
     | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
     source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
