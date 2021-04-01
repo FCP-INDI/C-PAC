@@ -555,14 +555,14 @@ def calculate_DVARS(func_brain, mask):
         path to file containing array of DVARS calculation for each voxel
     """
 
-    rest_data = nb.load(func_brain).get_data().astype(np.float32)
+    data = nb.load(func_brain).get_data().astype(np.float32)
     mask_data = nb.load(mask).get_data().astype('bool')
-
-    # square of relative intensity value for each voxel across every timepoint
-    data = np.square(np.diff(rest_data, axis=3))
 
     # applying mask, getting the data in the brain only
     data = data[mask_data]
+
+    # square of relative intensity value for each voxel across every timepoint
+    data = np.square(np.diff(data, axis=1))
 
     # square root and mean across all timepoints inside mask
     dvars = np.sqrt(np.mean(data, axis=0))
