@@ -1609,6 +1609,8 @@ def dct_diff(dct1, dct2):
                 except AttributeError:
                     raise TypeError(f'{dct2} is not a dict.')
             diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+            if diff[key] == {}:
+                del diff[key]
         else:
             dct1_val = dct1.get(key)
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
