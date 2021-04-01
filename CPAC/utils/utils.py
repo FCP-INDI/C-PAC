@@ -2320,8 +2320,8 @@ def update_values_from_list(d_old, last_exception=None):
     >>> update_values_from_list({'pipeline_setup': {
     ...     'pipeline_name': ['one_string']}})
     {'pipeline_setup': {'pipeline_name': 'one_string'}}
-    >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
-    {'regional_homogeneity': {'run': [False]}}
+    >>> update_values_from_list({'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}})
+    {'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}}
     '''  # noqa
     from CPAC.pipeline.schema import schema
 

@@ -339,12 +339,12 @@ def _enforce_forkability(config_dict):
     Examples
     --------
     >>> c = Configuration().dict()
-    >>> c['functional_preproc']['run']
-    [True]
-    >>> c['functional_preproc']['run'] = True
-    >>> c['functional_preproc']['run']
+    >>> c['functional_preproc']['despiking']['run']
+    [False]
+    >>> c['functional_preproc']['despiking']['run'] = True
+    >>> c['functional_preproc']['despiking']['run']
     True
-    >>> _enforce_forkability(c)['functional_preproc']['run']
+    >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
     [True]
     '''
     from CPAC.pipeline.schema import schema
