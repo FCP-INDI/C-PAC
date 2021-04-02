@@ -2,8 +2,8 @@
 import os
 from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf, \
     load_cpac_pipe_config
-from CPAC.pipeline.engine import ResourcePool, ingress_raw_data, \
-    ingress_pipeconfig_paths
+from CPAC.pipeline.engine import ResourcePool, ingress_raw_anat_data, \
+    ingress_raw_func_data, ingress_pipeconfig_paths
 
 from CPAC.utils.bids_utils import create_cpac_data_config
 
