@@ -1859,6 +1859,7 @@ def register_ANTs_anat_to_template_FSLapplywarp(wf, cfg, strat_pool, pipe_num, o
                                              name=f'ANTS-ABCD_T1_to_template_{pipe_num}')
     ants_apply_warp_t1_to_template.inputs.dimension = 3
     ants_apply_warp_t1_to_template.inputs.print_out_composite_warp_file = True
+    ants_apply_warp_t1_to_template.inputs.output_image = 'ANTs_CombinedWarp.nii.gz'
 
     node, out = strat_pool.get_data('desc-restore_T1w')
     wf.connect(node, out, ants_apply_warp_t1_to_template, 'input_image')
