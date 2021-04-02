@@ -1780,8 +1780,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     data_paths format:
       {'anat': {
-            'T1w':{T1w path}',
-            'T2w':{T2w path}'
+            'T1w':'{T1w path}',
+            'T2w':'{T2w path}'
         },
        'creds_path': {None OR path to credentials CSV},
        'func': {
