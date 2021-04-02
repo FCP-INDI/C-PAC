@@ -1303,7 +1303,9 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "cortical_thickness_surface_maps",
                  "cortical_volume_surface_maps",
                  "white_matter_surface_mesh",
-                 "raw_average"]}
+                 "raw_average",
+                 "brainmask",
+                 "T1"]}
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),

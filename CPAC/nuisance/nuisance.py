@@ -1079,7 +1079,7 @@ def create_regressor_workflow(nuisance_selectors,
                 regressor_mask_file_resource_keys += \
                     [regressor_mask_file_resource_key]
 
-            # Keep tissus ordered, to avoid duplicates
+            # Keep tissues ordered, to avoid duplicates
             regressor_mask_file_resource_keys = \
                 list(sorted(regressor_mask_file_resource_keys))
 

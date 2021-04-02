@@ -137,6 +137,12 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+  func_masking:
+
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'ABCD']
+    # this is a fork point
+    using: ['Anatomical_Refined']
+
 nuisance_corrections: 
 
   2-nuisance_regression: 
