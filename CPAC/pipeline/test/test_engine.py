@@ -40,6 +40,7 @@ def test_ingress_raw_data(pipe_config, bids_dir, test_dir):
     wf.run()
 
 
+@pytest.mark.skip(reason='not a pytest test')
 def test_ingress_pipeconfig_data(pipe_config, bids_dir, test_dir):
 
     sub_data_dct = create_cpac_data_config(bids_dir,
