@@ -216,7 +216,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     >>> wf = t.get_roi_timeseries()
     >>> wf.inputs.inputspec.rest = '/home/data/rest.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.input_roi.roi = '/usr/local/fsl/data/atlases/HarvardOxford/HarvardOxford-cort-maxprob-thr0-2mm.nii.gz'  # doctest: +SKIP
-    >>> wf.inputs.inputspec.output_type = [True,True]
+    >>> wf.inputs.inputspec.output_type = [True,True]  # doctest: +SKIP
     >>> wf.base_dir = './'
     >>> wf.run()  # doctest: +SKIP
 
