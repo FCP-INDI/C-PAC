@@ -34,9 +34,9 @@ commands:
           name: "Building Singularity image from Docker image"
           command: |
             docker load < ${DOCKER_TARBALL}.tar.gz
-            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
-            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
-            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
+            docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+            docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
           no_output_timeout: 5h
   check-for-built-images:
     steps:
@@ -78,7 +78,7 @@ commands:
       - load-docker-image
       - run:
           name: "Creating Docker container"
-          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\\//_}"
+          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${DOCKER_TAG}"
   get-sample-bids-data:
     steps:
       - run:
