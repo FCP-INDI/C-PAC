@@ -1,5 +1,8 @@
 import os
+import pytest
 
+
+@pytest.mark.skip(reason='possibly deprecated')
 def test_mdmr():
 
     from CPAC.cwas.mdmr import mdmr
