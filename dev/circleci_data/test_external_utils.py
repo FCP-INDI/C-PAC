@@ -7,7 +7,7 @@ CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
 DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 
-from CPAC.__main__ import utils as CPAC_main_utils
+from CPAC.__main__ import utils as CPAC_main_utils  # noqa E402
 
 
 def test_build_data_config(cli_runner):
@@ -21,7 +21,7 @@ def test_build_data_config(cli_runner):
         ]
     )
 
-    assert result.exit_code==0
+    assert result.exit_code == 0
     assert result.output.startswith(
         "\nGenerated a default data_settings YAML file for editing"
     )
@@ -49,9 +49,10 @@ def test_new_settings_template(cli_runner):
     )
 
     participant_yaml = os.path.join(DATA_DIR, "data_config_ds051.yml")
-    group_yaml = os.path.join(DATA_DIR, "group_analysis_participants_ds051.txt")
+    group_yaml = os.path.join(DATA_DIR,
+                              "group_analysis_participants_ds051.txt")
 
-    assert result.exit_code==0
+    assert result.exit_code == 0
     assert result.output.startswith("\nGenerating data configuration file..")
     assert os.path.exists(participant_yaml)
     assert os.path.exists(group_yaml)
@@ -69,17 +70,17 @@ def test_repickle(cli_runner):
         [DATA_DIR]
     )
 
-    assert result.exit_code==0
+    assert result.exit_code == 0
     assert (
-        f'Converted pickle {fn} from a Python 2 pickle to a Python 3 pickle.' in
-        result.output
+        f'Converted pickle {fn} from a Python 2 pickle to a Python 3 '
+        'pickle.' in result.output
     )
 
     result = cli_runner.invoke(
         CPAC_main_utils.commands['repickle'],
         [DATA_DIR]
     )
-    assert result.exit_code==0
+    assert result.exit_code == 0
     assert f'Pickle {fn} is a Python 3 pickle.' in result.output
 
     [backup.restore() for backup in backups]
@@ -104,8 +105,6 @@ def _delete_test_yaml(test_yaml):
 def _test_repickle(pickle_path, gzipped=False):
     backup = _Backup(pickle_path)
     if gzipped:
-        import gzip
-
+        import gzip  # noqa F401
 
     backup.restore()
-

@@ -1,13 +1,15 @@
-
 import os
+import pytest
 from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf, \
     load_cpac_pipe_config
 from CPAC.pipeline.engine import ResourcePool, ingress_raw_anat_data, \
-    ingress_raw_func_data, ingress_pipeconfig_paths
+    ingress_raw_func_data, ingress_pipeconfig_paths  # noqa F401
 
 from CPAC.utils.bids_utils import create_cpac_data_config
 
 
+@pytest.mark.skip(reason='needs refactoring (ingress_raw_data split into '
+                  'anat and func)')
 def test_ingress_raw_data(pipe_config, bids_dir, test_dir):
 
     sub_data_dct = create_cpac_data_config(bids_dir,
@@ -28,7 +30,7 @@ def test_ingress_raw_data(pipe_config, bids_dir, test_dir):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,
+    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,   # noqa F821
                                                            sub_data_dct,
                                                            unique_id,
                                                            part_id, ses_id)
@@ -69,5 +71,7 @@ cfg = "/code/default_pipeline.yml"
 bids_dir = "/Users/steven.giavasis/data/HBN-SI_dataset/rawdata"
 test_dir = "/test_dir"
 
-#test_ingress_raw_data(cfg, bids_dir, test_dir)
-test_ingress_pipeconfig_data(cfg, bids_dir, test_dir)
+
+if __name__ == '__main__':
+    # test_ingress_raw_data(cfg, bids_dir, test_dir)
+    test_ingress_pipeconfig_data(cfg, bids_dir, test_dir)

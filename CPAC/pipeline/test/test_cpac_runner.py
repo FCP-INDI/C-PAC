@@ -26,4 +26,5 @@ bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
 test_dir = "/test_dir"
 part_id = "0025427"
 
-test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)
+if __name__ == '__main__':
+    test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)
