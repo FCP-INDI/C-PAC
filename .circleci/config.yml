@@ -251,8 +251,6 @@ jobs:
       - run-pytest-docker
       - store_test_results:
           path: test-results
-      - store_artifacts:
-          path: test-results
       - persist_to_workspace:
           paths:
             - project/.coverage*
