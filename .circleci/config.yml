@@ -19,17 +19,7 @@ commands:
       - run:
           name: "Starting local registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - install-singularity-requirements
-      - when:
-          condition:
-            or:
-            - equal: [ "", "<< parameters.variant >>" ]
-            - equal: [ "lite", "<< parameters.variant >>" ]
-          steps:
-            - run: 
-                name: "Cloning Singularity 3.7.2"
-                command: git clone -b v3.7.2 https://github.com/sylabs/singularity
-      - set-up-singularity
+      - get-singularity
       - run:
           name: "Building Singularity image from Docker image"
           command: |
@@ -89,10 +79,31 @@ commands:
       version:
         description: "Version of Singularity to clone"
         type: string
+        default: v3.7.2
     steps:
+      - install-singularity-requirements
+      - restore_cache:
+          keys:
+            - singularity-<< parameters.version >>
       - run:
           name: "Cloning Singularity << parameters.version >>"
-          command: git clone -b << parameters.version >> https://github.com/sylabs/singularity singularity-<< parameters.version >>
+          command: |
+            if [[ ! -d singularity-<< parameters.version >> ]]
+            then
+              git clone -b << parameters.version >> https://github.com/sylabs/singularity singularity-<< parameters.version >>
+            fi
+      - save_cache:
+          key: singularity-<< parameters.version >>
+          paths:
+            - singularity-<< parameters.version >>
+      - run:
+         name: "Setting up Singularity"
+         command: |
+           cd singularity-<< parameters.version >>
+           ./mconfig
+           make -C builddir
+           sudo make -C builddir install
+           cd ..
   install-singularity-requirements:
     steps:
       - run:
@@ -119,17 +130,16 @@ commands:
             cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
             pyenv install -v 3.7.9
             pyenv global 3.7.9
-            pip install -r dev/circleci_data/requirements.txt
-  set-up-singularity:
-    steps:
+      - restore_cache:
+          keys:
+            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
       - run:
-         name: "Setting up Singularity"
-         command: |
-           cd singularity
-           ./mconfig
-           make -C builddir
-           sudo make -C builddir install
-           cd ..
+          name: "Installing CI dependencies"
+          command: pip install -r dev/circleci_data/requirements.txt
+      - save_cache:
+          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
+          paths: 
+            - /opt/circleci/.pyenv/versions/3.7.9
   set-up-variant:
     parameters:
       variant:
@@ -200,9 +210,8 @@ jobs:
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - cpac-docker-image.tar.gz
-            - cpac-singularity-image.simg
-            - project
+            - project/cpac-docker-image.tar.gz
+            - project/cpac-singularity-image.simg
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
@@ -218,9 +227,8 @@ jobs:
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - cpac-docker-image-lite.tar.gz
-            - cpac-singularity-image-lite.simg
-            - project
+            - project/cpac-docker-image-lite.tar.gz
+            - project/cpac-singularity-image-lite.simg
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
@@ -269,8 +277,7 @@ jobs:
           variant: "<< parameters.variant >>"
       - check-for-built-images
       - set-python-version
-      - install-singularity-requirements
-      - set-up-singularity
+      - get-singularity
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
