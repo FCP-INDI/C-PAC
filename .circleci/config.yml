@@ -238,8 +238,6 @@ jobs:
           at: /home/circleci
       - set-python-version
       - combine-coverage
-      - store_test_results:
-          path: test-results
       - store_artifacts:
           path: htmlcov
   pytest-docker:
@@ -263,7 +261,7 @@ jobs:
           path: test-results
       - persist_to_workspace:
           paths:
-            - project/.coverage*
+            - project/.coverage.docker*
           root: /home/circleci/
   pytest-singularity:
     parameters:
@@ -289,7 +287,7 @@ jobs:
           path: test-results
       - persist_to_workspace:
           paths:
-            - project/.coverage*
+            - project/.coverage.singularity*
           root: /home/circleci/
 workflows:
   version: 2
