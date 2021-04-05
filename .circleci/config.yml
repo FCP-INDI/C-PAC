@@ -43,7 +43,7 @@ commands:
           name: "Combining and reporting coverage"
           command: |
               coverage combine
-              coverage html
+              coverage html --ignore-errors
   configure-git-user:
     steps:
       - add_ssh_keys:
