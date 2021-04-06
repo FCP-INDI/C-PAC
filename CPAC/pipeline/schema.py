@@ -20,9 +20,6 @@ valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
     },
-    'boundary_based_registration': {
-        'using': ['FSL', 'FreeSurfer']
-    },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
                   'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
@@ -401,9 +398,9 @@ schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'using': Maybe(In(
-                        valid_options['boundary_based_registration']['using']
-                    )),
+                    'using': [In({
+                        'FSL', 'FreeSurfer'
+                    })],
                     'run': forkable,
                     'bbr_schedule': str
                 },

@@ -112,6 +112,16 @@ registration_workflows:
 
   functional_registration: 
 
+    coregistration:
+      # functional (BOLD/EPI) registration to anatomical (structural/T1)
+
+      boundary_based_registration:
+
+        # using: ['FSL', 'FreeSurfer']
+        # this is a fork point
+        # ex. selecting both ['FSL', 'FreeSurfer'] will run both and fork the pipeline
+        using: ['FreeSurfer']
+
     func_registration_to_template: 
 
       FNIRT_pipelines:
