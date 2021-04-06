@@ -1549,7 +1549,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
     resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
-                                name='resample_anat_head_1mm')
+                                name=f'resample_anat_head_1mm_{pipe_num}')
     resample_head_1mm.inputs.interp = 'spline'
     resample_head_1mm.inputs.apply_isoxfm = 1
 
@@ -1560,7 +1560,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
     applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
-                                         name='applywarp_head_to_head_1mm')
+                                         name=f'applywarp_head_to_head_1mm_{pipe_num}')
     applywarp_head_to_head_1mm.inputs.relwarp = True
     applywarp_head_to_head_1mm.inputs.interp = 'spline'
     applywarp_head_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
@@ -1572,7 +1572,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
     applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
-                name='applywarp_brain_to_head_1mm')
+                name=f'applywarp_brain_to_head_1mm_{pipe_num}')
     applywarp_brain_to_head_1mm.inputs.relwarp = True
     applywarp_brain_to_head_1mm.inputs.interp = 'nn'
     applywarp_brain_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
@@ -1585,7 +1585,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslstats $T1wImageBrain -M
     average_brain = pe.Node(interface=fsl.ImageStats(),
-                name='average_brain')
+                name=f'average_brain_{pipe_num}')
     average_brain.inputs.op_string = '-M'
     average_brain.inputs.output_type = 'NIFTI_GZ'
 
@@ -1596,7 +1596,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     normalize_head = pe.Node(util.Function(input_names=['in_file', 'number', 'out_file_suffix'],
                                            output_names=['out_file'],
                                            function=fslmaths_command),
-                             name='normalize_head')
+                             name=f'normalize_head_{pipe_num}')
     normalize_head.inputs.out_file_suffix = '_norm'
 
     wf.connect(applywarp_head_to_head_1mm, 'out_file', 
@@ -1607,7 +1607,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     ### recon-all -all step ###
     reconall = pe.Node(interface=freesurfer.ReconAll(),
-                name='anat_freesurfer')
+                name=f'anat_freesurfer_{pipe_num}')
 
     sub_dir = cfg.pipeline_setup['working_directory']['path']
     freesurfer_subject_dir = os.path.join(sub_dir,
