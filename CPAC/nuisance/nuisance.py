@@ -1263,10 +1263,10 @@ def create_regressor_workflow(nuisance_selectors,
 
                         nuisance_wf.connect(
                             union_masks_paths, 'out_file',
-                            mean_node, 'mask'
+                            mean_node, 'mask_file'
                         )
 
-                        summary_method_input = (mean_node, 'stats')
+                        summary_method_input = (mean_node, 'out_file')
 
                     if 'PC' in summary_method:
 
