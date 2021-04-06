@@ -65,6 +65,10 @@ anatomical_preproc:
 
     run: On
 
+    # Run ACPC alignment before non-local means filtering or N4 bias
+    # correction
+    run_before_preproc: False
+
   brain_extraction: 
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD']

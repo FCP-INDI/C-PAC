@@ -549,20 +549,20 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                                    output_names=['out_file'],
                                                    function=mri_convert),
-                                     name='fs_brainmask_to_nifti')
+                                     name=f'fs_brainmask_to_nifti_{pipe_num}')
     wf.connect(fs_brain_mask_to_native, 'transformed_file',
                fs_brain_mask_to_nifti, 'in_file')
 
     # binarize the brain mask
     binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                     name='binarize_fs_brainmask')
+                                     name=f'binarize_fs_brainmask_{pipe_num}')
     binarize_fs_brain_mask.inputs.args = '-bin'
     wf.connect(fs_brain_mask_to_nifti, 'out_file',
                binarize_fs_brain_mask, 'in_file')
 
     # fill holes
     fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
-                                 name='fill_fs_brainmask')
+                                 name=f'fill_fs_brainmask_{pipe_num}')
     fill_fs_brain_mask.inputs.fill_holes = True
     fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(binarize_fs_brain_mask, 'out_file',
@@ -585,7 +585,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                          'args'],
                                             output_names=['out_file'],
                                             function=mri_convert),
-                              name='wmparc_to_nifti')
+                              name=f'wmparc_to_nifti_{pipe_num}')
     wmparc_to_nifti.inputs.args = '-rt nearest'
 
     node, out = strat_pool.get_data('wmparc')
@@ -595,7 +595,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, wmparc_to_nifti, 'reslice_like')
 
     binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
-                          name='binarize_wmparc')
+                          name=f'binarize_wmparc_{pipe_num}')
     binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
 
     wf.connect(wmparc_to_nifti, 'out_file', binary_mask, 'in_file')
@@ -603,19 +603,19 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file'],
                                                   output_names=['out_file'],
                                                   function=wb_command),
-                                    name='wb_command_fill_holes')
+                                    name=f'wb_command_fill_holes_{pipe_num}')
 
     wf.connect(binary_mask, 'out_file', wb_command_fill_holes, 'in_file')
 
     binary_filled_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                 name='binarize_filled_wmparc')
+                                 name=f'binarize_filled_wmparc_{pipe_num}')
     binary_filled_mask.inputs.args = '-bin'
 
     wf.connect(wb_command_fill_holes, 'out_file',
                binary_filled_mask, 'in_file')
 
     brain_mask_to_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
-                                       name='brain_mask_to_t1_restore')
+                                       name=f'brain_mask_to_t1_restore_{pipe_num}')
     brain_mask_to_t1_restore.inputs.interp = 'nn'
     brain_mask_to_t1_restore.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
 
