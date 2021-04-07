@@ -5,6 +5,8 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
+from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
+from nipype.interfaces.base import (TraitedSpec, traits, isdefined, File)
 
 def motion_power_statistics(name='motion_stats',
                             motion_correct_tool='3dvolreg'):
@@ -188,16 +190,19 @@ def motion_power_statistics(name='motion_stats',
                                                          'motion_params']),
                           name='outputspec')
 
-    cal_DVARS = pe.Node(Function(input_names=['func_brain', 'mask'],
-                                 output_names=['out_file'],
-                                 function=calculate_DVARS,
-                                 as_module=True),
-                        name='cal_DVARS', mem_gb=3.5)
+    cal_DVARS = pe.Node(ImageTo1D(method='dvars'), name='cal_DVARS', mem_gb=3.5)
+
+    cal_DVARS_strip = pe.Node(Function(input_names=['file_1D'],
+                                       output_names=['out_file'],
+                                       function=DVARS_strip_t0,
+                                       as_module=True),
+                        name='cal_DVARS_strip')
 
     # calculate mean DVARS
-    wf.connect(input_node, 'motion_correct', cal_DVARS, 'func_brain')
+    wf.connect(input_node, 'motion_correct', cal_DVARS, 'in_file')
     wf.connect(input_node, 'mask', cal_DVARS, 'mask')
-    wf.connect(cal_DVARS, 'out_file', output_node, 'DVARS_1D')
+    wf.connect(cal_DVARS, 'out_file', cal_DVARS_strip, 'file_1D')
+    wf.connect(cal_DVARS_strip, 'out_file', output_node, 'DVARS_1D')
 
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(Function(input_names=['in_file'],
@@ -536,6 +541,52 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
         f.write('\n')
 
     return out_file
+
+
+def DVARS_strip_t0(file_1D):
+    x = np.loadtxt(file_1D)
+    x = x[1:]
+    np.savetxt('dvars_strip.1D', x)
+    return os.path.abs('dvars_strip.1D')
+
+
+class ImageTo1DInputSpec(AFNICommandInputSpec):
+    in_file = File(desc='input file to 3dTto1D',
+                   argstr='-input %s',
+                   position=1,
+                   mandatory=True,
+                   exists=True,
+                   copyfile=False)
+
+    mask = File(desc='-mask dset = use dset as mask to include/exclude voxels',
+                argstr='-mask %s',
+                position=2,
+                exists=True)
+                
+    out_file = File(name_template="%s_3DtoT1.1D", desc='output 1D file name',
+                    argstr='-prefix %s', name_source="in_file", keep_extension=True)
+
+    _methods = [
+        'enorm', 'dvars',
+        'rms', 'srms', 's_srms',
+        'mdiff', 'smdiff',
+        '4095_count', '4095_frac', '4095_warn',
+    ]
+
+    method = traits.Enum(
+        *_methods,
+        argstr='-method %s'
+    )
+
+
+class ImageTo1DOutputSpec(TraitedSpec):
+    out_file = File(desc='output 1D file name')
+
+
+class ImageTo1D(AFNICommand):
+    _cmd = '3dTto1D'
+    input_spec = ImageTo1DInputSpec
+    output_spec = ImageTo1DOutputSpec
 
 
 def calculate_DVARS(func_brain, mask):

@@ -516,7 +516,7 @@ runMotionStatisticsFirst : [0]
 motion_correction : ['3dvolreg']
 
 
-# Choose motion correction reference. Options: mean, median, selected volume 
+# Choose motion correction reference. Options: mean, median, selected_volume 
 motion_correction_reference: ['mean']
 
 
