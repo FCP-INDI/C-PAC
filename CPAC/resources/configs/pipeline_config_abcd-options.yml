@@ -56,10 +56,19 @@ pipeline_setup:
 anatomical_preproc: 
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: [On]
+  non_local_means_filtering:
+
+    # this is a fork option
+    run: [On]
+
+    # options: 'Gaussian' or 'Rician'
+    noise_model: 'Rician'
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: [On]
+  n4_bias_field_correction:
+
+    # this is a fork option
+    run: [On]
 
   acpc_alignment: 
 

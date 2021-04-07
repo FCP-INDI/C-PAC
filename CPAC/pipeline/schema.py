@@ -223,8 +223,13 @@ schema = Schema({
     },
     'anatomical_preproc': {
         'run': bool,
-        'non_local_means_filtering': forkable,
-        'n4_bias_field_correction': forkable,
+        'non_local_means_filtering': {
+            'run': forkable,
+            'noise_model': Maybe(str),
+        },
+        'n4_bias_field_correction': {
+            'run': forkable,
+        },
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({

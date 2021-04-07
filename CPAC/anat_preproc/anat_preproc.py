@@ -826,8 +826,8 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "nlm_filtering",
-     "config": ["anatomical_preproc"],
-     "switch": ["non_local_means_filtering"],
+     "config": ["anatomical_preproc", "non_local_means_filtering"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -836,6 +836,8 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
 
     denoise = pe.Node(interface=ants.DenoiseImage(),
                       name=f'anat_denoise_{pipe_num}')
+
+    denoise.inputs.noise_model = cfg.anatomical_preproc['non_local_means_filtering']['noise_model']
 
     node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
@@ -851,8 +853,8 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
 def n4_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "n4_bias_correction",
-     "config": ["anatomical_preproc"],
-     "switch": ["n4_bias_field_correction"],
+     "config": ["anatomical_preproc", "n4_bias_field_correction"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],

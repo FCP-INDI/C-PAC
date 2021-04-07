@@ -199,10 +199,19 @@ anatomical_preproc:
   run: On
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: False
+  non_local_means_filtering: 
+
+    # this is a fork option
+    run: [Off]
+
+    # options: 'Gaussian' or 'Rician'
+    noise_model: 'Gaussian'
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: False
+  n4_bias_field_correction:
+
+    # this is a fork option
+    run: [Off]
 
   acpc_alignment:
 
