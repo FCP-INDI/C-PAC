@@ -201,6 +201,7 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
 RUN conda update conda -y && \
+    conda install nomkl && \
     conda install -y  \
         blas \
         cython \
