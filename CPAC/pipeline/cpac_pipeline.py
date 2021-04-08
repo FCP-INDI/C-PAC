@@ -792,22 +792,15 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-            cfg.surface_analysis['run_freesurfer']:
+        cfg.surface_analysis['run_freesurfer']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
              brain_mask_niworkflows_ants,
-             brain_mask_unet]
-            #  brain_mask_freesurfer
-        ]
-        pipeline_blocks += anat_brain_mask_blocks
-    elif cfg.surface_analysis['run_freesurfer'] and \
-        'FreeSurfer-BET-Tight' in cfg.anatomical_preproc[
-            'anatomical_preproc']['brain_extraction']['using'] or 'FreeSurfer-BET-Loose' \
-                in cfg.anatomical_preproc['anatomical_preproc']['brain_extraction']['using']:
-        anat_brain_mask_blocks = [
-            [brain_mask_freesurfer_fsl_tight,
+             brain_mask_unet,
+             brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
+            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 

@@ -629,7 +629,8 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     binarize_fs_brain = pe.Node(interface=fsl.maths.MathsCommand(),
                                      name=f'binarize_fs_brain_{pipe_num}')
     binarize_fs_brain.inputs.args = '-abs -bin'
-    wf.connect(fs_brain_mask_to_nifti, 'out_file',
+
+    wf.connect(reorient_fs_brainmask, 'out_file',
                binarize_fs_brain, 'in_file')
 
     # 3dresample -orient RPI -inset T1.nii.gz -prefix head_fs.nii.gz
@@ -672,7 +673,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     skullstrip = pe.Node(interface=fsl.BET(), 
                          name=f'anat_BET_skullstrip_{pipe_num}')
     skullstrip.inputs.output_type = 'NIFTI_GZ'
-    skullstrip.inputs.mask_boolean=True
+    skullstrip.inputs.mask=True
 
     if opt == 'FreeSurfer-BET-Tight':
         skullstrip.inputs.frac=0.3
@@ -697,7 +698,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     convert_template_mask_to_native = pe.Node(interface=fsl.FLIRT(),
                                               name=f'convert_template_mask_to_native_{pipe_num}')
     convert_template_mask_to_native.inputs.apply_xfm = True
-    convert_template_mask_to_native.inputs.padding_size = 0.0
+    convert_template_mask_to_native.inputs.padding_size = 0
     convert_template_mask_to_native.inputs.interp = 'nearestneighbour'
 
     wf.connect(apply_mask, 'out_file',
@@ -1166,7 +1167,7 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["brainmask",
                 "T1",
                 "T1w_brain_template_mask_ccs"],
-     "outputs": [["space-T1w_desc-tight_brain_mask"]]}
+     "outputs": ["space-T1w_desc-tight_brain_mask"]}
     '''
 
     wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
@@ -1184,7 +1185,7 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["brainmask",
                 "T1",
                 "T1w_brain_template_mask_ccs"],
-     "outputs": [["space-T1w_desc-loose_brain_mask"]]}
+     "outputs": ["space-T1w_desc-loose_brain_mask"]}
     '''
 
     wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
@@ -1202,7 +1203,7 @@ def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None
      "inputs": ["brainmask",
                 "T1",
                 "T1w_brain_template_mask_ccs"],
-     "outputs": [["space-T1w_desc-tight_acpcbrain_mask"]]}
+     "outputs": ["space-T1w_desc-tight_acpcbrain_mask"]}
     '''
 
     wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
@@ -1223,7 +1224,7 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
      "inputs": ["brainmask",
                 "T1",
                 "T1w_brain_template_mask_ccs"],
-     "outputs": [["space-T1w_desc-loose_acpcbrain_mask"]]}
+     "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
     '''
 
     wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
