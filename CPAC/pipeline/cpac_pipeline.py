@@ -738,8 +738,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    pipeline_blocks += [freesurfer_abcd_preproc]
-
     pipeline_blocks += [freesurfer_preproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
@@ -788,6 +786,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anat_blocks = anat_preproc_blocks + acpc_blocks
 
         pipeline_blocks += anat_blocks
+
+        pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
