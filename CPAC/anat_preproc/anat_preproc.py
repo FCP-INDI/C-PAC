@@ -598,11 +598,14 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 
 def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
+
+    node_id = f'{opt.lower()}_{pipe_num}'
+
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/brainmask.mgz -ot nii brainmask.nii.gz
     convert_fs_brainmask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                                    output_names=['out_file'],
                                                    function=mri_convert),
-                                            name=f'convert_fs_brainmask_to_nifti_{opt.lower()}_{pipe_num}')
+                                            name=f'convert_fs_brainmask_to_nifti_{node_id}')
 
     node, out = strat_pool.get_data('brainmask')
     wf.connect(node, out, convert_fs_brainmask_to_nifti, 'in_file')
@@ -611,14 +614,14 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     convert_fs_T1_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                                    output_names=['out_file'],
                                                    function=mri_convert),
-                                     name=f'convert_fs_T1_to_nifti_{opt.lower()}_{pipe_num}')
+                                     name=f'convert_fs_T1_to_nifti_{node_id}')
 
     node, out = strat_pool.get_data('T1')
     wf.connect(node, out, convert_fs_T1_to_nifti, 'in_file')
 
     # 3dresample -orient RPI -inset brainmask.nii.gz -prefix brain_fs.nii.gz
     reorient_fs_brainmask = pe.Node(interface=afni.Resample(),
-                                    name=f'reorient_fs_brainmask_{opt.lower()}_{pipe_num}')
+                                    name=f'reorient_fs_brainmask_{node_id}')
     reorient_fs_brainmask.inputs.orientation = 'RPI'
     reorient_fs_brainmask.inputs.outputtype = 'NIFTI_GZ'
 
@@ -627,7 +630,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # fslmaths brain_fs.nii.gz -abs -bin brain_fs_mask.nii.gz
     binarize_fs_brain = pe.Node(interface=fsl.maths.MathsCommand(),
-                                     name=f'binarize_fs_brain_{opt.lower()}_{pipe_num}')
+                                     name=f'binarize_fs_brain_{node_id}')
     binarize_fs_brain.inputs.args = '-abs -bin'
 
     wf.connect(reorient_fs_brainmask, 'out_file',
@@ -635,7 +638,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # 3dresample -orient RPI -inset T1.nii.gz -prefix head_fs.nii.gz
     reorient_fs_T1 = pe.Node(interface=afni.Resample(),
-                                    name=f'reorient_fs_T1_{opt.lower()}_{pipe_num}')
+                                    name=f'reorient_fs_T1_{node_id}')
     reorient_fs_T1.inputs.orientation = 'RPI'
     reorient_fs_T1.inputs.outputtype = 'NIFTI_GZ'
 
@@ -646,7 +649,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # -out tmp_head_fs2standard.nii.gz -omat tmp_head_fs2standard.mat -bins 256 -cost corratio \
     # -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear
     convert_head_to_template = pe.Node(interface=fsl.FLIRT(),
-                                       name=f'convert_head_to_template_{opt.lower()}_{pipe_num}')
+                                       name=f'convert_head_to_template_{node_id}')
     convert_head_to_template.inputs.cost = 'corratio'
     convert_head_to_template.inputs.interp = 'trilinear'
     convert_head_to_template.inputs.bins = 256
@@ -663,7 +666,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # convert_xfm -omat tmp_standard2head_fs.mat -inverse tmp_head_fs2standard.mat
     convert_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
-                              name=f'convert_xfm_{opt.lower()}_{pipe_num}')
+                              name=f'convert_xfm_{node_id}')
     convert_xfm.inputs.invert_xfm = True
 
     wf.connect(convert_head_to_template, 'out_matrix_file',
@@ -671,7 +674,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # bet tmp_head_fs2standard.nii.gz tmp.nii.gz -f ${bet_thr_tight} -m
     skullstrip = pe.Node(interface=fsl.BET(), 
-                         name=f'anat_BET_skullstrip_{opt.lower()}_{pipe_num}')
+                         name=f'anat_BET_skullstrip_{node_id}')
     skullstrip.inputs.output_type = 'NIFTI_GZ'
     skullstrip.inputs.mask=True
 
@@ -685,7 +688,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     
     # fslmaths tmp_mask.nii.gz -mas ${CCSDIR}/templates/MNI152_T1_1mm_first_brain_mask.nii.gz tmp_mask.nii.gz
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
-                         name=f'apply_mask_{opt.lower()}_{pipe_num}')
+                         name=f'apply_mask_{node_id}')
 
     wf.connect(skullstrip, 'out_file',
         apply_mask, 'in_file')
@@ -696,7 +699,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # flirt -in tmp_mask.nii.gz -applyxfm -init tmp_standard2head_fs.mat -out brain_fsl_mask_tight.nii.gz \
     # -paddingsize 0.0 -interp nearestneighbour -ref head_fs.nii.gz
     convert_template_mask_to_native = pe.Node(interface=fsl.FLIRT(),
-                                              name=f'convert_template_mask_to_native_{opt.lower()}_{pipe_num}')
+                                              name=f'convert_template_mask_to_native_{node_id}')
     convert_template_mask_to_native.inputs.apply_xfm = True
     convert_template_mask_to_native.inputs.padding_size = 0
     convert_template_mask_to_native.inputs.interp = 'nearestneighbour'
@@ -712,7 +715,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # fslmaths brain_fs_mask.nii.gz -add brain_fsl_mask_tight.nii.gz -bin brain_mask_tight.nii.gz
     combine_mask = pe.Node(interface=fsl.BinaryMaths(),
-                           name=f'combine_mask_{opt.lower()}_{pipe_num}')
+                           name=f'combine_mask_{node_id}')
 
     if opt == 'FreeSurfer-BET-Tight':
         combine_mask.inputs.operation = 'add'
