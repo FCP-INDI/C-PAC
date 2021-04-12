@@ -137,21 +137,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  truncation: 
-
-    # First timepoint to include in analysis.
-    # Default is 0 (beginning of timeseries).
-    # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
-    # Note: the selection here applies to all scans of all participants.
-    start_tr: 1
-
-  despiking: 
-
-    # Run AFNI 3dDespike
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
-
   func_masking:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'ABCD']
@@ -185,6 +170,10 @@ nuisance_corrections:
           summary: Mean
         PolyOrt:
           degree: 2
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+          method: default #TODO check to use 'default' or 'AFNI' (3dBandpass), CCS uses 3dFourier
 
 timeseries_extraction: 
 

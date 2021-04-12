@@ -728,13 +728,28 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(convert_template_mask_to_native, 'out_file',
         combine_mask, 'operand_file')
 
+    # CCS brain mask is in FS space, transfer it back to native T1 space
+    fs_fsl_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                                      name=f'fs_fsl_brain_mask_to_native_{node_id}')
+    fs_fsl_brain_mask_to_native.inputs.reg_header = True
+    fs_fsl_brain_mask_to_native.inputs.interp = 'nearest'
+
+    wf.connect(combine_mask, 'out_file', 
+        fs_fsl_brain_mask_to_native, 'source_file')
+
+    node, out = strat_pool.get_data('raw_average')
+    wf.connect(node, out, fs_fsl_brain_mask_to_native, 'target_file')
+
+    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    wf.connect(node, out, fs_fsl_brain_mask_to_native, 'subjects_dir')
+
     if opt == 'FreeSurfer-BET-Tight':
         outputs = {
-            'space-T1w_desc-tight_brain_mask': (combine_mask, 'out_file')
+            'space-T1w_desc-tight_brain_mask': (fs_fsl_brain_mask_to_native, 'transformed_file')
         }
     elif opt == 'FreeSurfer-BET-Loose':
         outputs = {
-            'space-T1w_desc-loose_brain_mask': (combine_mask, 'out_file')
+            'space-T1w_desc-loose_brain_mask': (fs_fsl_brain_mask_to_native, 'transformed_file')
         }
 
     return (wf, outputs)
@@ -1169,6 +1184,8 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-BET-Tight",
      "inputs": ["brainmask",
                 "T1",
+                "raw_average",
+                "freesurfer_subject_dir",
                 "T1w_brain_template_mask_ccs"],
      "outputs": ["space-T1w_desc-tight_brain_mask"]}
     '''
@@ -1187,6 +1204,8 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["brainmask",
                 "T1",
+                "raw_average",
+                "freesurfer_subject_dir",
                 "T1w_brain_template_mask_ccs"],
      "outputs": ["space-T1w_desc-loose_brain_mask"]}
     '''

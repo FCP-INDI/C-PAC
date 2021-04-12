@@ -26,6 +26,7 @@ def collect_arguments(*args):
 
 
 def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
+
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(util.IdentityInterface(fields=['func',
@@ -41,6 +42,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
     func_single_volume = pe.Node(interface=afni.Calc(),
                                  name='func_single_volume')
 
+    # TODO add an option to select volume
     func_single_volume.inputs.set(
         expr='a',
         single_idx=1,
@@ -1530,7 +1532,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(func_tmp_brain_mask, 'out_file',
                refined_bold_mask, 'inputspec.init_func_brain_mask')
 
-    # Dialate anatomical mask
+    # dilate anatomical mask
     if cfg.functional_preproc['func_masking']['Anatomical_Refined'][
         'anatomical_mask_dilation']:
         anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
