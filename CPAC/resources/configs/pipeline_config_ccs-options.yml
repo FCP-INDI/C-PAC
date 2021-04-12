@@ -70,6 +70,11 @@ anatomical_preproc:
     # this is a fork option
     using: ['FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
 
+    FreeSurfer-BET:
+
+      # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
+      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+
 segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
