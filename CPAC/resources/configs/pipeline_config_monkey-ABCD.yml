@@ -112,6 +112,8 @@ anatomical_preproc:
     # ACPC aligned template
     T1w_ACPC_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_0.5mm.nii.gz
     T1w_brain_ACPC_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz
+    T2w_ACPC_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T2w_0.5mm.nii.gz
+    T2w_brain_ACPC_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T2w_0.5mm_brain.nii.gz
 
   brain_extraction: 
 
