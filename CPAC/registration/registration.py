@@ -1882,9 +1882,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, ants_apply_warp_t1_mask_to_template, 'transforms')
 
         outputs = {
-            'space-template_desc-brain_T1w': (ants_apply_warp_t1_brain_to_template, 'output_image'),
-            # 'space-template_desc-T1w_mask': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
-            # 'from-T1w_to-template_mode-image_xfm': (node, out)
+            'space-template_desc-brain_T1w': (ants_apply_warp_t1_brain_to_template, 'output_image')
         }
 
     elif opt.lower() == 'fsl' and reg_tool.lower() == 'ants':
@@ -2545,7 +2543,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     # TODO update docstring
     """
     {"name": "transform_timeseries_to_T1template_abcd",
-          "config": ["registration_workflows", "functional_registration",
+     "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
@@ -2556,11 +2554,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "from-bold_to-template_mode-image_xfm"),
-                "desc-preproc_T1w",
-                "space-template_res-bold_desc-brain_T1w",
-                "space-template_res-bold_desc-T1brain_mask",
-                "T1w_brain_template_funcreg"],
+                 "from-bold_to-template_mode-image_xfm",
+                 "desc-preproc_T1w",
+                 "space-template_res-bold_desc-brain_T1w",
+                 "space-template_res-bold_desc-T1brain_mask",
+                 "T1w_brain_template_funcreg")],
      "outputs": ["space-template_desc-brain_bold"]}
     """
 
@@ -2711,7 +2709,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         applywarp_func_mask_to_standard, 'ref_file')
 
     ### Loop ends! ###
-    
+
     # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
     merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
                          name=f'merge_func_to_standard_{pipe_num}')
