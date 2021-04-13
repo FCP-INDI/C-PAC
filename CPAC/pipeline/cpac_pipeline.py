@@ -47,7 +47,7 @@ from CPAC.anat_preproc.anat_preproc import (
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
-    register_ANTs_anat_to_template_FSLapplywarp,
+    applywarp_anat_to_template,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -817,17 +817,12 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks = []
 
     reg_blocks = []
-    if not rpool.check_rpool('space-template_desc-brain_T1w'):
+    if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
-            [register_ANTs_anat_to_template, register_FSL_anat_to_template]
+            [register_ANTs_anat_to_template, register_FSL_anat_to_template],
+            applywarp_anat_to_template, # ABCD-options pipeline
+            correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
-
-    # ABCD-options pipeline
-    if 'ANTS' in cfg.registration_workflows['anatomical_registration'][
-        'registration']['using'] and cfg.registration_workflows[
-            'anatomical_registration']['applywarp']['using'] == 'FSL':
-        reg_blocks.append(register_ANTs_anat_to_template_FSLapplywarp)
-        reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):

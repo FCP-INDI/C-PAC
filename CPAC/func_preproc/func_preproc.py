@@ -1678,7 +1678,7 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-template_desc-brain_T1w",
                 "space-template_desc-T1w_mask"],
      "outputs": ["space-template_res-bold_desc-brain_T1w",
-                 "space-template_res-bold_desc-brain_mask_T1w"]}
+                 "space-template_res-bold_desc-T1brain_mask"]}
     '''
 
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
@@ -1712,7 +1712,7 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
-        'space-template_res-bold_desc-brain_mask_T1w': (anat_brain_mask_to_func_res, 'out_file')
+        'space-template_res-bold_desc-T1brain_mask': (anat_brain_mask_to_func_res, 'out_file')
     }
 
     return (wf, outputs)
