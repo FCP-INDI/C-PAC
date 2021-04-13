@@ -1974,7 +1974,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         fsl_apply_warp_t1_brain_to_template.inputs.interp = 'nn'
 
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
-        node, out = strat_pool.get_data('desc-restore-brain_T1w')
+        node, out = strat_pool.get_data('desc-brain_T1w')
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, 'in_file')
 
         node, out = strat_pool.get_data('T1w_template')
@@ -2728,6 +2728,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(applywarp_func_mask_to_standard, 'out_file',
         merge_func_mask_to_standard, 'in_files')
 
+    # TODO check why it's different
     # TODO move masking to another function
     # fslmaths ${OutputfMRI}_mask -Tmin ${OutputfMRI}_mask
     find_min_mask = pe.Node(interface=fsl.maths.MathsCommand(),
