@@ -981,7 +981,7 @@ functional_preproc:
 
   func_masking:
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'CCS']
     # this is a fork point
     using: ['AFNI']
 

@@ -86,6 +86,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_fsl_afni,
     bold_mask_anatomical_refined,
     bold_mask_anatomical_based,
+    bold_mask_ccs,
     bold_masking,
     func_mean,
     func_normalize,
@@ -942,7 +943,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         func_prep_blocks = [
             [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based],
+             bold_mask_anatomical_refined, bold_mask_anatomical_based,
+             bold_mask_ccs],
             bold_masking,
             calc_motion_stats,
             func_mean,

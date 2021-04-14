@@ -562,7 +562,7 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based']
+                 'Anatomical_Based', 'CCS']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-
