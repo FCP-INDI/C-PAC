@@ -137,6 +137,13 @@ registration_workflows:
 
 functional_preproc: 
 
+  despiking:
+
+    # Run AFNI 3dDespike
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
   func_masking:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'CCS']
