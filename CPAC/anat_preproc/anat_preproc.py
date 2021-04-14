@@ -863,9 +863,9 @@ def n4_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     n4 = pe.Node(interface=ants.N4BiasFieldCorrection(dimension=3,
-                                                      shrink_factor=2,
                                                       copy_header=True),
                  name=f'anat_n4_{pipe_num}')
+    n4.inputs.shrink_factor = cfg.anatomical_preproc['n4_bias_field_correction']['shrink_factor']
 
     node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
                                      'T1w'])
@@ -1676,7 +1676,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # fslmaths ${T1wFolder}/xfms/${T1wImage}_dc -mul 0 ${T1wFolder}/xfms/${T1wImage}_dc
     multiply_t1_acpc_by_zero = pe.Node(interface=fsl.ImageMaths(),
-                                       name='multiply_t1_acpc_by_zero')
+                                       name=f'multiply_t1_acpc_by_zero_{pipe_num}')
     
     multiply_t1_acpc_by_zero.inputs.op_string = '-mul 0'
 
@@ -1687,7 +1687,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     # convertwarp --relout --rel --ref="$T1wFolder"/"$T1wImageBrainMask" --premat="$T1wFolder"/xfms/"$InitialT1wTransform" \
     # --warp1="$T1wFolder"/xfms/"$dcT1wTransform" --out="$T1wFolder"/xfms/"$OutputOrigT1wToT1w"
     convertwarp_orig_t1_to_t1 = pe.Node(interface=fsl.ConvertWarp(), 
-                                        name='convertwarp_orig_t1_to_t1')
+                                        name=f'convertwarp_orig_t1_to_t1_{pipe_num}')
 
     convertwarp_orig_t1_to_t1.inputs.out_relwarp = True
     convertwarp_orig_t1_to_t1.inputs.relwarp = True
@@ -1703,7 +1703,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
     # applywarp --rel --interp=spline -i "$BiasField" -r "$T1wImageBrain" -w "$AtlasTransform" -o "$BiasFieldOutput"
     applywarp_biasfield = pe.Node(interface=fsl.ApplyWarp(), 
-                                  name='applywarp_biasfield')
+                                  name=f'applywarp_biasfield_{pipe_num}')
 
     applywarp_biasfield.inputs.relwarp = True
     applywarp_biasfield.inputs.interp = 'spline'
@@ -1719,7 +1719,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # fslmaths "$BiasFieldOutput" -thr 0.1 "$BiasFieldOutput"
     threshold_biasfield = pe.Node(interface=fsl.ImageMaths(),
-                                  name='threshold_biasfield')
+                                  name=f'threshold_biasfield_{pipe_num}')
 
     threshold_biasfield.inputs.op_string = '-thr 0.1'
     wf.connect(applywarp_biasfield, 'out_file', 
@@ -1728,7 +1728,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
     # applywarp --rel --interp=spline -i "$OrginalT1wImage" -r "$T1wImageBrain" -w "$OutputOrigT1wToT1w" -o "$OutputT1wImage"
     applywarp_t1 = pe.Node(interface=fsl.ApplyWarp(), 
-                           name='applywarp_t1')
+                           name=f'applywarp_t1_{pipe_num}')
     
     applywarp_t1.inputs.relwarp = True
     applywarp_t1.inputs.interp = 'spline'
@@ -1744,15 +1744,15 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # fslmaths "$OutputT1wImage" -abs "$OutputT1wImage" -odt float
     abs_t1 = pe.Node(interface=fsl.ImageMaths(),
-                     name='abs_t1')
+                     name=f'abs_t1_{pipe_num}')
 
     abs_t1.inputs.op_string = '-abs'
     wf.connect(applywarp_t1, 'out_file', abs_t1, 'in_file')
 
     # fslmaths "$OutputT1wImage" -div "$BiasField" "$OutputT1wImageRestore"
     div_t1_by_biasfield = pe.Node(interface=fsl.ImageMaths(),
-                name='div_t1_by_biasfield')
-    
+                                  name=f'div_t1_by_biasfield_{pipe_num}')
+
     div_t1_by_biasfield.inputs.op_string = '-div'
 
     wf.connect(abs_t1, 'out_file', div_t1_by_biasfield, 'in_file')
@@ -1762,7 +1762,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # fslmaths "$OutputT1wImageRestore" -mas "$T1wImageBrain" "$OutputT1wImageRestoreBrain"
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
-                         name='get_restored_corrected_brain')
+                         name=f'get_restored_corrected_brain_{pipe_num}')
 
     wf.connect(div_t1_by_biasfield, 'out_file',
         apply_mask, 'in_file')

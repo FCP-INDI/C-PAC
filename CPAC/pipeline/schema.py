@@ -229,6 +229,7 @@ schema = Schema({
         },
         'n4_bias_field_correction': {
             'run': forkable,
+            'shrink_factor': int,
         },
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'

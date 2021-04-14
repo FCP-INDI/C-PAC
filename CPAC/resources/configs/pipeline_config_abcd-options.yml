@@ -70,6 +70,9 @@ anatomical_preproc:
     # this is a fork option
     run: [On]
 
+    # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
+    shrink_factor: 4
+
   acpc_alignment: 
 
     run: On
