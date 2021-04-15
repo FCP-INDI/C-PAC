@@ -268,7 +268,7 @@ schema = Schema({
                 'T2w_ACPC_template': str,
                 'T2w_brain_ACPC_template': str,
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T1w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
