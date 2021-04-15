@@ -1676,7 +1676,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
                 "desc-brain_T1w",
                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-bold_desc-brain_mask"]}
+     "outputs": ["space-bold_desc-brain_mask",
+                "desc-ROIbrain_bold"]}
     '''
 
     # Run 3dAutomask to generate func initial mask
@@ -1786,8 +1787,20 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(merge_func_mask, 'out', 
                intersect_mask, 'operand_files')
 
+    # this is the func input for coreg in ccs
+    # TODO evaluate if it's necessary to use this brain
+    example_func_brain = pe.Node(interface=fsl.maths.ApplyMask(),
+                                 name=f'get_example_func_brain_{pipe_num}')
+
+    wf.connect(func_roi, 'roi_file',
+               example_func_brain, 'in_file')
+
+    wf.connect(intersect_mask, 'out_file',
+               example_func_brain, 'mask_file')
+
     outputs = {
-        'space-bold_desc-brain_mask': (intersect_mask, 'out_file')
+        'space-bold_desc-brain_mask': (intersect_mask, 'out_file'),
+        'desc-ROIbrain_bold': (example_func_brain, 'out_file')
     }
 
     return (wf, outputs)

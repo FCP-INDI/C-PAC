@@ -120,6 +120,18 @@ registration_workflows:
     coregistration:
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
 
+      func_input_prep:
+
+        # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        input: ['Selected_Functional_Volume']
+
+        Selected Functional Volume:
+
+          # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
+          #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+          func_reg_input_volume: 7
+
       boundary_based_registration:
 
         # using: ['FSL', 'FreeSurfer']
