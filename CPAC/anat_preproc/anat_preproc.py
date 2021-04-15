@@ -3,11 +3,11 @@ import os
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
+from nipype.interfaces import freesurfer
+import nipype.interfaces.utility as util
 from nipype.interfaces.fsl import utils as fsl_utils
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
-from nipype.interfaces import freesurfer
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fsl_aff_to_rigid, \
     mri_convert
@@ -1412,7 +1412,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                         output_names=['csf_mask', 'gm_mask',
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
-                          name=f'anat_preproc_freesurfer_tissue_mask_{pipe_num}')
+                          name=f'select_fs_tissue_{pipe_num}')
 
     pick_tissue.inputs.csf_label = cfg['segmentation'][
         'tissue_segmentation']['FreeSurfer']['CSF_label']
@@ -1423,12 +1423,35 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
+    # TODO refactor code to achieve DRY
+    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
+        erode_csf = pe.Node(interface=freesurfer.model.Binarize(),
+                            name=f'erode_csf_{pipe_num}')
+        erode_csf.inputs.match = [1]
+        erode_csf.inputs.erode = cfg['segmentation'][
+            'tissue_segmentation']['FreeSurfer']['erode']
+
+        wf.connect(pick_tissue, 'csf_mask', erode_csf, 'in_file')
+
+        erode_wm = pe.Node(interface=freesurfer.model.Binarize(),
+                           name=f'erode_wm_{pipe_num}')
+        erode_wm.inputs.match = [1]
+        erode_wm.inputs.erode = cfg['segmentation'][
+            'tissue_segmentation']['FreeSurfer']['erode']
+
+        wf.connect(pick_tissue, 'wm_mask', erode_wm, 'in_file')
+
+        erode_gm = pe.Node(interface=freesurfer.model.Binarize(),
+                           name=f'erode_gm_{pipe_num}')
+        erode_gm.inputs.match = [1]
+        erode_gm.inputs.erode = cfg['segmentation'][
+            'tissue_segmentation']['FreeSurfer']['erode']
+
+        wf.connect(pick_tissue, 'gm_mask', erode_gm, 'in_file')
+
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer_subject_dir': (reconall, 'subjects_dir'),
-        'label-CSF_mask': (pick_tissue, 'csf_mask'),
-        'label-WM_mask': (pick_tissue, 'wm_mask'),
-        'label-GM_mask': (pick_tissue, 'gm_mask'),
         'surface_curvature': (reconall, 'curv'),
         'pial_surface_mesh': (reconall, 'pial'),
         'smoothed_surface_mesh': (reconall, 'smoothwm'),
@@ -1441,5 +1464,14 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
     }
+
+    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
+        outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
+        outputs['label-WM_mask'] = (erode_wm, 'binary_file')
+        outputs['label-GM_mask'] = (erode_gm, 'binary_file')
+    else:
+        outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
+        outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
+        outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
 
     return (wf, outputs)

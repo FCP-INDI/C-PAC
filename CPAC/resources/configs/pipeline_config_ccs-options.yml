@@ -85,6 +85,9 @@ segmentation:
 
     FreeSurfer:
 
+      # Use mri_binarize --erode option to erode segmentation masks
+      erode: 1
+
       # Label values corresponding to CSF in multiatlas file
       CSF_label : [4, 5, 43, 44, 31, 63]
 

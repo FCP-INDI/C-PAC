@@ -479,6 +479,9 @@ segmentation:
 
     FreeSurfer:
 
+      # Use mri_binarize --erode option to erode segmentation masks
+      erode: 0
+
       # Label values corresponding to CSF in FreeSurfer aseg segmentation file
       CSF_label : [24]
 

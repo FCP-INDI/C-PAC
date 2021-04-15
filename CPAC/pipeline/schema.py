@@ -333,6 +333,7 @@ schema = Schema({
                 },
             },
             'FreeSurfer': {
+                'erode': int,
                 'CSF_label': [int],
                 'GM_label': [int],
                 'WM_label': [int],                
