@@ -236,7 +236,7 @@ schema = Schema({
             },),
         ),
         'acpc_alignment': Required(
-            # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
@@ -245,6 +245,8 @@ schema = Schema({
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': Maybe(str),
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
@@ -253,6 +255,8 @@ schema = Schema({
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
@@ -261,8 +265,10 @@ schema = Schema({
                 'acpc_target': valid_options['acpc']['target'][0],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': str,
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T1w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {

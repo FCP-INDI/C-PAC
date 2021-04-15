@@ -1067,7 +1067,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-brain_T1w",
                  "T1w_ACPC_template",
                  "T1w_brain_ACPC_template")],
-     "outputs": ["desc-preproc_T1w", "desc-temporal_T1w"]}
+     "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -1091,7 +1091,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-temporal_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
     }
 
     return (wf, outputs)
@@ -1108,7 +1108,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-brain_T1w", "space-T1w_desc-brain_mask"),
                  "T1w_ACPC_template",
                  "T1w_brain_ACPC_template"],
-     "outputs": ["desc-preproc_T1w", "desc-temporal_T1w",
+     "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w",
                  "space-T1w_desc-brain_mask"]}
     '''
 
@@ -1136,7 +1136,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-temporal_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
         'space-T1w_desc-brain_mask': (
         acpc_align, 'outputspec.acpc_brain_mask')
     }
@@ -1152,8 +1152,8 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 ['desc-brain_T1w','desc-temporal_T1w'],
-                 ['desc-brain_T2w','desc-temporal_T2w'])],
+                 ['desc-brain_T1w','desc-acpcbrain_T1w'],
+                 ['desc-brain_T2w','desc-acpcbrain_T2w'])],
      "outputs": ["desc-preproc_T2w"]}
     '''
 
@@ -1167,10 +1167,10 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data(['desc-brain_T1w','desc-temporal_T1w'])
+    node, out = strat_pool.get_data(['desc-brain_T1w','desc-acpcbrain_T1w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T1w_brain')
 
-    node, out = strat_pool.get_data(['desc-brain_T2w','desc-temporal_T2w'])
+    node, out = strat_pool.get_data(['desc-brain_T2w','desc-acpcbrain_T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w_brain')
 
     outputs = {
@@ -1241,8 +1241,8 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                "desc-temporal_T1w"],
-     "outputs": ["desc-preproc_T1w", "desc-temporal_T1w", "desc-preproc_T2w", "desc-temporal_T2w"]}
+                ["desc-brain_T1w", "desc-acpcbrain_T1w"]],
+     "outputs": ["desc-preproc_T1w", "desc-correctedbrain_T1w", "desc-preproc_T2w", "desc-correctedbrain_T2w"]}
     '''
 
     t1t2_bias_correction = BiasFieldCorrection_sqrtT1wXT1w(config=cfg, wf_name=f't1t2_bias_correction_{pipe_num}')
@@ -1255,14 +1255,14 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data("desc-temporal_T1w")
+    node, out = strat_pool.get_data(["desc-brain_T1w", "desc-acpcbrain_T1w"])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T1w_brain')
 
     outputs = {
         'desc-preproc_T1w': (t1t2_bias_correction, 'outputspec.T1w_biascorrected'),
-        'desc-temporal_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
+        'desc-correctedbrain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
         'desc-preproc_T2w': (t1t2_bias_correction, 'outputspec.T2w_biascorrected'),
-        'desc-temporal_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-correctedbrain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
     }
 
     return (wf, outputs)
@@ -1553,7 +1553,7 @@ def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                "T1w_ACPC_template"], 
+                "T2w_ACPC_template"], 
      "outputs": ["desc-preproc_T1w"]}
     '''
 
@@ -1567,7 +1567,7 @@ def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') #note: use T1w template for now. 
+    node, out = strat_pool.get_data('T2w_ACPC_template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1601,7 +1601,7 @@ def acpc_align_head_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') #note: use T1w template for now.
+    node, out = strat_pool.get_data('T2w_ACPC_template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1622,10 +1622,10 @@ def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                  "desc-brain_T2w",
-                 "T1w_ACPC_template",
-                 "T1w_brain_ACPC_template")],
+                 "T2w_ACPC_template",
+                 "T2w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T2w", 
-                 "desc-temporal_T2w"]}
+                 "desc-acpcbrain_T2w"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -1641,15 +1641,15 @@ def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-brain_T2w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') #note: use T1w template for now.
+    node, out = strat_pool.get_data('T2w_ACPC_template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
-    node, out = strat_pool.get_data('T1w_brain_ACPC_template') #note: use T1w template for now. 
+    node, out = strat_pool.get_data('T2w_brain_ACPC_template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
 
     outputs = {
         'desc-preproc_T2w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-temporal_T2w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-acpcbrain_T2w': (acpc_align, 'outputspec.acpc_aligned_brain'),
     }
 
     return (wf, outputs)
@@ -1664,9 +1664,9 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                  "desc-brain_T2w", "space-T2w_desc-brain_mask"),
-                 "T1w_ACPC_template",
-                 "T1w_brain_ACPC_template"],
-     "outputs": ["desc-preproc_T2w", "desc-temporal_T2w",
+                 "T2w_ACPC_template",
+                 "T2w_brain_ACPC_template"],
+     "outputs": ["desc-preproc_T2w", "desc-acpcbrain_T2w",
                  "space-T2w_desc-brain_mask"]}
     '''
 
@@ -1686,15 +1686,15 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-T2w_desc-brain_mask')
     wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') #note: use T1w template for now.
+    node, out = strat_pool.get_data('T2w_ACPC_template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
-    node, out = strat_pool.get_data('T1w_brain_ACPC_template')  #note: use T1w template for now. 
+    node, out = strat_pool.get_data('T2w_brain_ACPC_template')  
     wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
 
     outputs = {
         'desc-preproc_T2w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-temporal_T2w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-acpcbrain_T2w': (acpc_align, 'outputspec.acpc_aligned_brain'),
         'space-T2w_desc-brain_mask': (
         acpc_align, 'outputspec.acpc_brain_mask')
     }

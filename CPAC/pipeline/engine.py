@@ -741,6 +741,7 @@ class ResourcePool(object):
         bold_descs = ['desc-cleaned', 'desc-brain', 'desc-motion', 
                       'desc-preproc']
         config_paths = ['T1w_ACPC_template', 'T1w_brain_ACPC_template',
+                        'T2w_ACPC_template', 'T2w_brain_ACPC_template',
                         'unet_model', 'T1w_brain_template', 'T1w_template',
                         'T1w_brain_template_mask',
                         'T1w_brain_template_symmetric',
@@ -1618,6 +1619,8 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         ('GM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['GM_path']),
         ('T1w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_ACPC_template']),
         ('T1w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_brain_ACPC_template']),
+        ('T2w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T2w_ACPC_template']),
+        ('T2w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T2w_brain_ACPC_template']),
         ('unet_model', cfg.anatomical_preproc['brain_extraction']['UNet']['unet_model']),
         ('T1w_brain_template', cfg.registration_workflows['anatomical_registration']['T1w_brain_template']),
         ('T1w_template', cfg.registration_workflows['anatomical_registration']['T1w_template']),
@@ -1710,7 +1713,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         ("anat",
          ["segmentation", "tissue_segmentation", "Template_Based", "WHITE"]),
         ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_ACPC_template"]),
-        ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_brain_ACPC_template"])]
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_brain_ACPC_template"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T2w_ACPC_template"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T2w_brain_ACPC_template"])]
 
     def get_nested_attr(c, template_key):
         attr = getattr(c, template_key[0])
