@@ -1193,8 +1193,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
 
-    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup[
-                                              'working_directory']['path'],
+    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup['working_directory']['path'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
 

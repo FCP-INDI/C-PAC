@@ -81,6 +81,9 @@ anatomical_preproc:
     # correction
     run_before_preproc: False
 
+    # ACPC aligned template
+    T1w_ACPC_template: /ABCD_template/MNI152_T1_1mm.nii.gz
+
   brain_extraction: 
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD']
@@ -94,6 +97,14 @@ registration_workflows:
     # The resolution to which anatomical images should be transformed during registration.
     # This is the resolution at which processed anatomical files will be output.
     resolution_for_anat: 1mm
+
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    T1w_brain_template: /ABCD_template/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    T1w_brain_template_mask: /ABCD_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     registration: 
 
@@ -165,6 +176,18 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
+      FSL-FNIRT:
+
+        # Configuration file to be used by FSL to set FNIRT parameters.
+        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        fnirt_config: /ABCD_config/T1_2_MNI152_2mm.cnf
+
+        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        ref_mask_res-2: /ABCD_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        T1w_template_res-2: /ABCD_template/MNI152_T1_2mm.nii.gz
+
     applywarp: 
 
       # using: ANTS or FSL. Choose the applywarp tool regardless of which tool to calculate transforms
@@ -228,6 +251,21 @@ registration_workflows:
         #   if using 'ABCD', apply motion correction, func-to-anat, anat-to-template transforms 
         #   on each of raw functional volume same as ABCD-options pipeline.
         using: [ABCD]
+
+        # option parameters
+        T1_template:
+
+          # Standard Skull Stripped Template. Used as a reference image for functional registration.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_brain_template_funcreg: /ABCD_template/MNI152_T1_${func_resolution}_brain.nii.gz
+
+          # Standard Anatomical Brain Image with Skull.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_template_funcreg: /ABCD_template/MNI152_T1_${func_resolution}.nii.gz
+
+          # Template to be used during registration.
+          # It is not necessary to change this path unless you intend to use a non-standard template.
+          T1w_brain_template_mask_funcreg: /ABCD_template/MNI152_T1_${func_resolution}_brain_mask.nii.gz
 
       ANTs_pipelines: 
 
