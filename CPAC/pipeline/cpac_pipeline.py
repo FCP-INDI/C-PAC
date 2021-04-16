@@ -203,6 +203,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
 
+    c['subject_id'] = subject_id
+
     log_dir = os.path.join(c.pipeline_setup['log_directory']['path'],
                            f'pipeline_{c.pipeline_setup["pipeline_name"]}',
                            subject_id)

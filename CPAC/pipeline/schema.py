@@ -459,6 +459,7 @@ schema = Schema({
     },
     'surface_analysis': {
         'run_freesurfer': bool,
+        'reconall_args': Maybe(str),
     },
     'longitudinal_template_generation': {
         'run': bool,

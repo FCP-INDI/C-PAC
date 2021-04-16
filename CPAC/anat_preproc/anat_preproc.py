@@ -1334,8 +1334,8 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
 
-    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup[
-                                              'working_directory']['path'],
+    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+        'cpac_'+cfg['subject_id'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
 
@@ -1346,6 +1346,9 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall.inputs.subjects_dir = freesurfer_subject_dir
     reconall.inputs.openmp = cfg.pipeline_setup['system_config'][
         'num_OMP_threads']
+
+    if cfg.surface_analysis['reconall_args'] is not None:
+        reconall.inputs.args = cfg.surface_analysis['reconall_args']
 
     node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
                                      "T1w"])

@@ -158,6 +158,9 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   run_freesurfer: Off
 
+  # Add extra arguments to recon-all command
+  reconall_args: None
+
 
 longitudinal_template_generation:
 
@@ -223,6 +226,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+
     T1w_brain_ACPC_template: None
 
   brain_extraction:

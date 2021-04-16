@@ -59,6 +59,9 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   run_freesurfer: On
 
+  # Add extra arguments to recon-all command
+  reconall_args: '-clean-bm -gcut'
+
 anatomical_preproc: 
 
   # Non-local means filtering via ANTs DenoiseImage
