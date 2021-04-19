@@ -1350,7 +1350,7 @@ network_centrality:
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
-  memory_allocation:  1.0
+  memory_allocation:  5.0  # until https://mattermost.brainhack.org/brainhack/pl/djw9xca1bpdh5cdzgsrp33ihpa is published in AFNI
 
   # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
   template_specification_file:  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
