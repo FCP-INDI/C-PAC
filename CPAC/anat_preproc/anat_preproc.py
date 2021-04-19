@@ -630,7 +630,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # fslmaths brain_fs.nii.gz -abs -bin brain_fs_mask.nii.gz
     binarize_fs_brain = pe.Node(interface=fsl.maths.MathsCommand(),
-                                     name=f'binarize_fs_brain_{node_id}')
+                                name=f'binarize_fs_brain_{node_id}')
     binarize_fs_brain.inputs.args = '-abs -bin'
 
     wf.connect(reorient_fs_brainmask, 'out_file',
@@ -638,7 +638,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # 3dresample -orient RPI -inset T1.nii.gz -prefix head_fs.nii.gz
     reorient_fs_T1 = pe.Node(interface=afni.Resample(),
-                                    name=f'reorient_fs_T1_{node_id}')
+                             name=f'reorient_fs_T1_{node_id}')
     reorient_fs_T1.inputs.orientation = 'RPI'
     reorient_fs_T1.inputs.outputtype = 'NIFTI_GZ'
 
@@ -661,7 +661,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(reorient_fs_T1, 'out_file',
         convert_head_to_template, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask_ccs')
+    node, out = strat_pool.get_data('T1w_ACPC_template')
     wf.connect(node, out, convert_head_to_template, 'reference')
 
     # convert_xfm -omat tmp_standard2head_fs.mat -inverse tmp_head_fs2standard.mat
@@ -714,6 +714,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         convert_template_mask_to_native, 'reference')
 
     # fslmaths brain_fs_mask.nii.gz -add brain_fsl_mask_tight.nii.gz -bin brain_mask_tight.nii.gz
+    # BinaryMaths doesn't use -bin! 
     combine_mask = pe.Node(interface=fsl.BinaryMaths(),
                            name=f'combine_mask_{node_id}')
 
@@ -728,13 +729,20 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(convert_template_mask_to_native, 'out_file',
         combine_mask, 'operand_file')
 
+    binarize_combined_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                                     name=f'binarize_combined_mask_{node_id}')
+    binarize_combined_mask.inputs.args = '-bin'
+
+    wf.connect(combine_mask, 'out_file',
+               binarize_combined_mask, 'in_file')
+
     # CCS brain mask is in FS space, transfer it back to native T1 space
     fs_fsl_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                                       name=f'fs_fsl_brain_mask_to_native_{node_id}')
     fs_fsl_brain_mask_to_native.inputs.reg_header = True
     fs_fsl_brain_mask_to_native.inputs.interp = 'nearest'
 
-    wf.connect(combine_mask, 'out_file', 
+    wf.connect(binarize_combined_mask, 'out_file', 
         fs_fsl_brain_mask_to_native, 'source_file')
 
     node, out = strat_pool.get_data('raw_average')
