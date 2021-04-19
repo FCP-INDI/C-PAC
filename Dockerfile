@@ -1,6 +1,8 @@
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0
 
+#------------------------------------------------------------------------------
+
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
@@ -116,24 +118,8 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     fi && \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
-    # curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
-    # tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
-    # pin to 20.0.04: "3dROIstats in [newer versions] is VERY slowww!"
-    apt-get update && apt-get install -y libglw1-mesa-dev && \
-    AFNI_VERSION="20.0.04" && \
-    curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
-    mkdir /opt/afni && \
-    tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
-    rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
-    cd /opt/afni/src && \
-    sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
-    make vastness && make cleanest && \
-    cd /opt/afni && \
-    # filter down to required packages
-    ls > full_ls && \
-    sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
-    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
-    apt-get remove -y libglw1-mesa-dev && \
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
+    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
     ldconfig
 
 # set up AFNI
