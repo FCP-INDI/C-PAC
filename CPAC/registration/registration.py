@@ -1751,7 +1751,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                  ["space-T1w_desc-brain_mask",
                   "space-longitudinal_desc-brain_mask"],
-                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]),
                 "T1w_template",
                 "T1w_brain_template",
@@ -1791,7 +1791,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w_brain_template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w",
+    # TODO check the order of T1w
+    node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
                                      "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')

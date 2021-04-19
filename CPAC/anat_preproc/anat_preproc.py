@@ -637,7 +637,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     outputs = {
         'space-T1w_desc-brain_mask': (brain_mask_to_t1_restore, 'out_file')
-        # 'space-T1w_desc-brain': (fs_brain, 'out_file')
+        # 'desc-brain_T1w': (fs_brain, 'out_file')
     }
 
     return (wf, outputs)
@@ -1536,7 +1536,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fast bias field correction
     fast_correction = fast_bias_field_correction(config=cfg,
-                                                wf_name=f'fast_bias_field_correction_{pipe_num}')
+                                                 wf_name=f'fast_bias_field_correction_{pipe_num}')
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, fast_correction, 'inputspec.anat_data')
