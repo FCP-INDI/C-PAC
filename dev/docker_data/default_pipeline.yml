@@ -1372,7 +1372,7 @@ network_centrality:
     # P-value for Significance Threshold
     # Sparsity value (percent; 0 ≤ value ≤ 100) for Sparsity Threshold
     # Pearson's r value for Correlation Threshold
-    correlation_threshold: 0.001
+    correlation_threshold: 0.1
 
   eigenvector_centrality:
 
@@ -1391,7 +1391,7 @@ network_centrality:
     # P-value for Significance Threshold
     # Sparsity value (percent; 0 ≤ value ≤ 100) for Sparsity Threshold
     # Pearson's r value for Correlation Threshold
-    correlation_threshold: 0.001
+    correlation_threshold: 0.1
 
   local_functional_connectivity_density:
 
