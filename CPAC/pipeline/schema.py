@@ -251,6 +251,7 @@ schema = Schema({
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
+            'run': bool,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
@@ -496,7 +497,7 @@ schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected volume'})],
+                    'mean', 'median', 'selected_volume'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
@@ -599,6 +600,7 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
+            'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
