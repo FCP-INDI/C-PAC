@@ -73,6 +73,16 @@ valid_options = {
     }
 }
 
+valid_options['centrality']['non-sparsity'] = {
+    'weight_options': [In(
+        valid_options['centrality']['weight_options']
+    )],
+    'correlation_threshold_option': In([
+        o for o in valid_options['centrality']['threshold_options'] if
+        o != 'Sparsity threshold'
+    ]),
+    'correlation_threshold': Range(min=-1, max=1)
+}
 valid_options['centrality']['config'] = Optional(
     Any(
         {
@@ -82,16 +92,7 @@ valid_options['centrality']['config'] = Optional(
             'correlation_threshold_option': 'Sparsity threshold',
             'correlation_threshold': Range(min=0, max=100)
         },
-        {
-            'weight_options': [In(
-                valid_options['centrality']['weight_options']
-            )],
-            'correlation_threshold_option': In([
-                o for o in valid_options['centrality']['threshold_options'] if
-                o != 'Sparsity threshold'
-            ]),
-            'correlation_threshold': Range(min=-1, max=1)
-        }
+        valid_options['centrality']['non-sparsity'],
     ), msg='\'correlation_threshold\' must be in the range [0, 100] for '
            '\'correlation_threshold_option: Sparsity threshold\' or [-1, 1] '
            'otherwise',)
@@ -752,16 +753,8 @@ schema = Schema({
         'template_specification_file': str,
         'degree_centrality': valid_options['centrality']['config'],
         'eigenvector_centrality': valid_options['centrality']['config'],
-        'local_functional_connectivity_density': {
-            'weight_options': [In(
-                valid_options['centrality']['weight_options']
-            )],
-            'correlation_threshold_option': In([
-                o for o in valid_options['centrality']['threshold_options'] if
-                o != 'Sparsity threshold'
-            ]),
-            'correlation_threshold': Range(min=-1, max=1)
-        },
+        'local_functional_connectivity_density': valid_options['centrality'][
+            'non-sparsity'],
     },
     'PyPEER': {
         'run': bool,
