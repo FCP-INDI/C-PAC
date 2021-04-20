@@ -32,7 +32,7 @@ valid_options = {
                           'local_functional_connectivity_density'],
        'threshold_options': ['Significance threshold', 'Sparsity threshold',
                              'Correlation threshold'],
-       'weight_options': ['Binarized', 'Weighted']
+       'weight_options': ['Binarized', 'Weighted'],
     },
     'sca': {
         'roi_paths': {'Avg', 'DualReg', 'MultReg'},
@@ -72,6 +72,30 @@ valid_options = {
         },
     }
 }
+
+valid_options['centrality']['config'] = Optional(
+    Any(
+        {
+            'weight_options': [In(
+                valid_options['centrality']['weight_options']
+            )],
+            'correlation_threshold_option': 'Sparsity threshold',
+            'correlation_threshold': Range(min=0, max=100)
+        },
+        {
+            'weight_options': [In(
+                valid_options['centrality']['weight_options']
+            )],
+            'correlation_threshold_option': In([
+                o for o in valid_options['centrality']['threshold_options'] if
+                o != 'Sparsity threshold'
+            ]),
+            'correlation_threshold': Range(min=-1, max=1)
+        }
+    ), msg='\'correlation_threshold\' must be in the range [0, 100] for '
+           '\'correlation_threshold_option: Sparsity threshold\' or [-1, 1] '
+           'otherwise',)
+
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
         # exactly zero or one of each of the following can be True for FSL-BET
@@ -726,23 +750,8 @@ schema = Schema({
         'run': bool,
         'memory_allocation': Number,
         'template_specification_file': str,
-        'degree_centrality': {
-            'weight_options': [In(
-                valid_options['centrality']['weight_options']
-            )],
-            'correlation_threshold_option': In(
-                valid_options['centrality']['threshold_options']),
-            'correlation_threshold': Range(min=-1, max=1)
-        },
-        'eigenvector_centrality': {
-            'weight_options': [In(
-                valid_options['centrality']['weight_options']
-            )],
-            'correlation_threshold_option': In(
-                valid_options['centrality']['threshold_options']
-            ),
-            'correlation_threshold': Range(min=-1, max=1)
-        },
+        'degree_centrality': valid_options['centrality']['config'],
+        'eigenvector_centrality': valid_options['centrality']['config'],
         'local_functional_connectivity_density': {
             'weight_options': [In(
                 valid_options['centrality']['weight_options']
