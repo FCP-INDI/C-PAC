@@ -253,6 +253,7 @@ schema = Schema({
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
+            'run': bool,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
@@ -594,6 +595,7 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
+            'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
