@@ -239,6 +239,8 @@ anatomical_preproc:
     T1w_brain_ACPC_template: None
 
   brain_extraction:
+  
+    run: On
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD']
     # this is a fork option
@@ -1076,6 +1078,9 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
+    
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: On
 
     # Select which nuisance signal corrections to apply
     Regressors:
