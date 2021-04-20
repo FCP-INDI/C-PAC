@@ -1152,8 +1152,8 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 ['desc-brain_T1w','desc-acpcbrain_T1w'],
-                 ['desc-brain_T2w','desc-acpcbrain_T2w'])],
+                 ['desc-acpcbrain_T1w','desc-brain_T1w'],
+                 ['desc-acpcbrain_T2w','desc-brain_T2w'])],
      "outputs": ["desc-preproc_T2w"]}
     '''
 
@@ -1167,10 +1167,10 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data(['desc-brain_T1w','desc-acpcbrain_T1w'])
+    node, out = strat_pool.get_data(['desc-acpcbrain_T1w','desc-brain_T1w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T1w_brain')
 
-    node, out = strat_pool.get_data(['desc-brain_T2w','desc-acpcbrain_T2w'])
+    node, out = strat_pool.get_data(['desc-acpcbrain_T2w','desc-brain_T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w_brain')
 
     outputs = {
