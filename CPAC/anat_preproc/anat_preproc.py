@@ -1064,7 +1064,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "desc-brain_T1w",
+                 "desc-tempbrain_T1w",
                  "T1w_ACPC_template",
                  "T1w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w"]}
@@ -1080,7 +1080,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    node, out = strat_pool.get_data('desc-tempbrain_T1w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
     node, out = strat_pool.get_data('T1w_ACPC_template') 
@@ -1105,7 +1105,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "desc-brain_T1w", "space-T1w_desc-brain_mask"),
+                 "desc-tempbrain_T1w", "space-T1w_desc-brain_mask"),
                  "T1w_ACPC_template",
                  "T1w_brain_ACPC_template"],
      "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w",
@@ -1122,7 +1122,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
+    node, out = strat_pool.get_data('desc-tempbrain_T1w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
@@ -1241,7 +1241,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                ["desc-brain_T1w", "desc-acpcbrain_T1w"]],
+                ["desc-acpcbrain_T1w", "desc-brain_T1w"]],
      "outputs": ["desc-preproc_T1w", "desc-correctedbrain_T1w", "desc-preproc_T2w", "desc-correctedbrain_T2w"]}
     '''
 
@@ -1255,7 +1255,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data(["desc-brain_T1w", "desc-acpcbrain_T1w"])
+    node, out = strat_pool.get_data(["desc-acpcbrain_T1w", "desc-brain_T1w"])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T1w_brain')
 
     outputs = {
@@ -1512,6 +1512,36 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "brain_extraction_temp",
+     "config": "None",
+     "switch": "None",
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 ["space-T1w_desc-brain_mask"])],
+     "outputs": ["desc-tempbrain_T1w"]}
+    '''
+
+    anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                       name=f'brain_extraction_temp_{pipe_num}')
+
+    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
+                                     'T1w'])
+    wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_a')
+
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
+    wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_b')
+
+    outputs = {
+        'desc-tempbrain_T1w': (anat_skullstrip_orig_vol, 'out_file')
+    }
+
+    return (wf, outputs)
 
 def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -1621,7 +1651,7 @@ def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 "desc-brain_T2w",
+                 "desc-tempbrain_T2w",
                  "T2w_ACPC_template",
                  "T2w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T2w", 
@@ -1638,7 +1668,7 @@ def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('desc-brain_T2w')
+    node, out = strat_pool.get_data('desc-tempbrain_T2w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
     node, out = strat_pool.get_data('T2w_ACPC_template') 
@@ -1663,7 +1693,7 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 "desc-brain_T2w", "space-T2w_desc-brain_mask"),
+                 "desc-tempbrain_T2w", "space-T2w_desc-brain_mask"),
                  "T2w_ACPC_template",
                  "T2w_brain_ACPC_template"],
      "outputs": ["desc-preproc_T2w", "desc-acpcbrain_T2w",
@@ -1680,7 +1710,7 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('desc-brain_T2w')
+    node, out = strat_pool.get_data('desc-tempbrain_T2w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
     node, out = strat_pool.get_data('space-T2w_desc-brain_mask')
@@ -1939,6 +1969,38 @@ def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-brain_T2w': (anat_skullstrip_orig_vol, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "brain_extraction_temp_T2",
+     "config": "None",
+     "switch": "None",
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
+                 ["space-T2w_desc-brain_mask"])],
+     "outputs": ["desc-tempbrain_T2w"]}
+    '''
+
+    anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                       name=f'brain_extraction_temp_T2_{pipe_num}')
+
+    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+    node, out = strat_pool.get_data(['desc-preproc_T2w', 'desc-reorient_T2w',
+                                     'T2w'])
+    wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_a')
+
+    node, out = strat_pool.get_data(['space-T2w_desc-brain_mask'])
+    wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_b')
+
+    outputs = {
+        'desc-tempbrain_T2w': (anat_skullstrip_orig_vol, 'out_file')
     }
 
     return (wf, outputs)
