@@ -106,6 +106,9 @@ registration_workflows:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_brain_template_mask: /ABCD_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: True
+
     registration: 
 
       # option parameters

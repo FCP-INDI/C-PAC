@@ -845,7 +845,8 @@ def create_wf_calculate_ants_warp(
                                                      'moving_mask',
                                                      'ants_para',
                                                      'fixed_image_mask',
-                                                     'interp'],
+                                                     'interp',
+                                                     'reg_with_skull'],
                                         output_names=['warp_list',
                                                       'warped_image'],
                                         function=hardcoded_reg,
@@ -897,7 +898,7 @@ def create_wf_calculate_ants_warp(
         inputspec, 'reference_brain',
         calculate_ants_warp, 'reference_brain')
 
-    if reg_ants_skull == 1 and not reg_ants_skull == 0:
+    if reg_ants_skull == 1:
 
         calculate_ants_warp.inputs.reg_with_skull = 1
 
