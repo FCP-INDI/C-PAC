@@ -1979,7 +1979,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     Node Block:
     {"name": "nuisance_regression",
      "config": ["nuisance_corrections", "2-nuisance_regression"],
-     "switch": "create_regressors",
+     "switch": ["create_regressors"],
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold", "desc-motion_bold",
