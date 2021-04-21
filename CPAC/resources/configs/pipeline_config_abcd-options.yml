@@ -183,7 +183,7 @@ registration_workflows:
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-        fnirt_config: /ABCD_config/T1_2_MNI152_2mm.cnf
+        fnirt_config: T1_2_MNI152_2mm
 
         # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
         ref_mask_res-2: /ABCD_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
