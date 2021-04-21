@@ -547,7 +547,7 @@ def DVARS_strip_t0(file_1D):
     x = np.loadtxt(file_1D)
     x = x[1:]
     np.savetxt('dvars_strip.1D', x)
-    return os.path.abs('dvars_strip.1D')
+    return os.path.abspath('dvars_strip.1D')
 
 
 class ImageTo1DInputSpec(AFNICommandInputSpec):

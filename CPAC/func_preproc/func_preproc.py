@@ -932,8 +932,8 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_reorient",
-     "config": "None",
-     "switch": "None",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],

@@ -1966,9 +1966,9 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_vol",
      "config": ["registration_workflows", "functional_registration",
-                "coregistration", "func_input_prep"],
-     "switch": "None",
-     "option_key": "input",
+                "coregistration"],
+     "switch": ["run"],
+     "option_key": ["func_input_prep", "input"],
      "option_val": "Selected_Functional_Volume",
      "inputs": ["desc-brain_bold"],
      "outputs": ["desc-reginput_bold"]}
@@ -1998,9 +1998,9 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_mean",
      "config": ["registration_workflows", "functional_registration",
-                "coregistration", "func_input_prep"],
-     "switch": "None",
-     "option_key": "input",
+                "coregistration"],
+     "switch": ["run"],
+     "option_key": ["func_input_prep", "input"],
      "option_val": "Mean_Functional",
      "inputs": ["desc-mean_bold"],
      "outputs": ["desc-reginput_bold"]}
