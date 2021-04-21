@@ -323,6 +323,8 @@ workflows:
             - "Test in Singularity"
             - "Test lite variant in Docker"
             - "Test lite variant in Singularity"
+            - "Test ABCD-HCP variant in Docker"
+            - "Test ABCD-HCP variant in Singularity"
       - pytest-docker:
           name: "Test in Docker"
           requires:
@@ -346,3 +348,8 @@ workflows:
           requires:
             - "Build lite variant images"
           variant: lite
+      - pytest-singularity:
+          name: "Test ABCD-HCP variant in Singularity"
+          requires:
+            - "Build ABCD-HCP variant images"
+          variant: ABCD-HCP
