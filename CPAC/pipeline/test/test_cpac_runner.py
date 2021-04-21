@@ -1,11 +1,13 @@
 
 import os
+import pytest
 
 from CPAC.pipeline.cpac_runner import run_T1w_longitudinal
 from CPAC.pipeline.cpac_pipeline import load_cpac_pipe_config
 from CPAC.utils.bids_utils import create_cpac_data_config
 
 
+@pytest.mark.skip(reason='not a pytest test')
 def test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id):
 
     sub_data_list = create_cpac_data_config(bids_dir,
@@ -26,4 +28,5 @@ bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
 test_dir = "/test_dir"
 part_id = "0025427"
 
-test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)
+if __name__ == '__main__':
+    test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)

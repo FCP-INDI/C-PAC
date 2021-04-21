@@ -70,10 +70,10 @@ class BrickStat(AFNICommandBase):
 
     >>> from nipype.interfaces import afni
     >>> brickstat = afni.BrickStat()
-    >>> brickstat.inputs.in_file = 'functional.nii'
-    >>> brickstat.inputs.mask = 'skeleton_mask.nii.gz'
+    >>> brickstat.inputs.in_file = 'functional.nii'  # doctest: +SKIP
+    >>> brickstat.inputs.mask = 'skeleton_mask.nii.gz'  # doctest: +SKIP
     >>> brickstat.inputs.min = True
-    >>> brickstat.cmdline
+    >>> brickstat.cmdline  # doctest: +SKIP
     '3dBrickStat -min -mask skeleton_mask.nii.gz functional.nii'
     >>> res = brickstat.run()  # doctest: +SKIP
 

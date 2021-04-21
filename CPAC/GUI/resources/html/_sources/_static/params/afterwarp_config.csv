@@ -1,2 +1,0 @@
-fwhm,Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.,"A list of numerical values (e.g.,[2.5,6])."
-runZScoring,"Determines format of outputs. 0 will produce non-z-scored outputs, 1 will produce z-scores of outputs.","A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."

@@ -1609,6 +1609,8 @@ def dct_diff(dct1, dct2):
                 except AttributeError:
                     raise TypeError(f'{dct2} is not a dict.')
             diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+            if diff[key] == {}:
+                del diff[key]
         else:
             dct1_val = dct1.get(key)
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
@@ -2320,8 +2322,8 @@ def update_values_from_list(d_old, last_exception=None):
     >>> update_values_from_list({'pipeline_setup': {
     ...     'pipeline_name': ['one_string']}})
     {'pipeline_setup': {'pipeline_name': 'one_string'}}
-    >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
-    {'regional_homogeneity': {'run': [False]}}
+    >>> update_values_from_list({'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}})
+    {'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}}
     '''  # noqa
     from CPAC.pipeline.schema import schema
 

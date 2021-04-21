@@ -1,10 +1,12 @@
-import yaml
+import pytest
 import tempfile
+import yaml
 import yamlordereddictloader
 
 from CPAC.utils.yaml_template import create_yaml_from_template
 
 
+@pytest.mark.skip(reason='needs refactored')
 def test_yaml_template():
 
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]

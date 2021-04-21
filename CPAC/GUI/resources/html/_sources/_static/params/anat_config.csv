@@ -1,8 +1,0 @@
-resolution_for_anat,The resolution to which anatomical images should be transformed during registration.,"1mm,2mm,3mm,4mm"
-template_brain_only_for_anat,Template to be used during registration. Normally the default value (seen in the example YAML) is fine.,"A path (e.g., $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz)."
-template_skull_for_anat,Template to be used during registration. Normally the default value (seen in the example YAML) is fine.,"A path (e.g., $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz)."
-regOption,Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.,"A list containing ‘ANTS’, ‘FSL’, or both (e.g., [‘FSL’])."
-fnirtConfig,Configuration file to be used by FSL to set FNIRT parameters.,"A template name (e.g., ‘T1_2_MNI152_2mm’)."
-ref_mask,Configuration file to be used by FSL to set FNIRT parameters.,"A path (e.g., $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz)."
-regWithSkull,Register skull-on anatomical image to a template.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-already_skullstripped,Disables skull-stripping on the anatomical inputs if they are already skull-stripped.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."

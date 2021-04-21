@@ -620,7 +620,6 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 def create_cpac_data_config(bids_dir, participant_label=None,
                             aws_input_creds=None, skip_bids_validator=False):
-    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     print("Parsing {0}..".format(bids_dir))
 

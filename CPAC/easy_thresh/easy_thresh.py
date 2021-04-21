@@ -158,14 +158,14 @@ def easy_thresh(wf_name):
     Examples
     --------
     
-    >>> import easy_thresh
-    >>> preproc = easy_thresh.easy_thresh("new_workflow")
+    >>> from CPAC.easy_thresh import easy_thresh
+    >>> preproc = easy_thresh("new_workflow")
     >>> preproc.inputs.inputspec.z_stats= 'flameo/stats/zstat1.nii.gz'
     >>> preproc.inputs.inputspec.merge_mask = 'merge_mask/alff_Z_fn2standard_merged_mask.nii.gz'
     >>> preproc.inputs.inputspec.z_threshold = 2.3
     >>> preproc.inputs.inputspec.p_threshold = 0.05
     >>> preproc.inputs.inputspec.parameters = ('/usr/local/fsl/', 'MNI152')
-    >>> preporc.run()  -- SKIP doctest
+    >>> preporc.run()  # doctest: +SKIP
     
     """
 
