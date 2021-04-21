@@ -404,7 +404,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     return preproc
 
 
-def slice_timing_wf(name='slice_timing'):
+def slice_timing_wf(name='slice_timing', tpattern=None, tzero=None):
     # allocate a workflow object
     wf = pe.Workflow(name=name)
 
@@ -424,6 +424,9 @@ def slice_timing_wf(name='slice_timing'):
                                            name='slice_timing')
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
 
+    if tzero is not None:
+        func_slice_timing_correction.inputs.tzero = tzero
+
     wf.connect([
         (
             inputNode,
@@ -433,14 +436,14 @@ def slice_timing_wf(name='slice_timing'):
                     'func_ts',
                     'in_file'
                 ),
-                (
-                    # add the @ prefix to the tpattern file going into
-                    # AFNI 3dTshift - needed this so the tpattern file
-                    # output from get_scan_params would be tied downstream
-                    # via a connection (to avoid poofing)
-                    ('tpattern', nullify, add_afni_prefix),
-                    'tpattern'
-                ),
+                # (
+                #     # add the @ prefix to the tpattern file going into
+                #     # AFNI 3dTshift - needed this so the tpattern file
+                #     # output from get_scan_params would be tied downstream
+                #     # via a connection (to avoid poofing)
+                #     ('tpattern', nullify, add_afni_prefix),
+                #     'tpattern'
+                # ),
                 (
                     ('tr', nullify),
                     'tr'
@@ -448,6 +451,12 @@ def slice_timing_wf(name='slice_timing'):
             ]
         ),
     ])
+
+    if tpattern is not None:
+        func_slice_timing_correction.inputs.tpattern = tpattern
+    else:
+        wf.connect(inputNode, ('tpattern', nullify, add_afni_prefix),
+               func_slice_timing_correction, 'tpattern')
 
     wf.connect(func_slice_timing_correction, 'out_file',
                outputNode, 'slice_time_corrected')
@@ -913,7 +922,11 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     slice_time = slice_timing_wf(name='func_slice_timing_correction_'
-                                      f'{pipe_num}')
+                                 f'{pipe_num}',
+                                 tpattern=cfg.functional_preproc[
+                                 'slice_timing_correction']['tpattern'],
+                                 tzero=cfg.functional_preproc[
+                                 'slice_timing_correction']['tzero'])
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, slice_time, 'inputspec.func_ts')

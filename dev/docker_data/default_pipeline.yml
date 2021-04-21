@@ -876,6 +876,13 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+    # use specified slice time pattern rather than one in header
+    tpattern: None
+
+    # align each slice to given time offset
+    # The default alignment time is the average of the 'tpattern' values (either from the dataset header or from the tpattern option).
+    tzero: None
+
   motion_estimates_and_correction:
 
     # calculate motion statistics BEFORE slice-timing correction

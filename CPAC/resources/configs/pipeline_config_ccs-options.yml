@@ -162,6 +162,20 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+  slice_timing_correction:
+
+    # Interpolate voxel time courses so they are sampled at the same time points.
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
+    # use specified slice time pattern rather than one in header
+    tpattern: 'alt+z'
+
+    # align each slice to given time offset
+    # The default alignment time is the average of the 'tpattern' values (either from the dataset header or from the tpattern option).
+    tzero: 0
+
   func_masking:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'CCS']
@@ -194,7 +208,7 @@ nuisance_corrections:
           extraction_resolution: 2
           summary: Mean
         PolyOrt:
-          degree: 2
+          degree: 1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1

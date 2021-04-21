@@ -487,7 +487,9 @@ schema = Schema({
             'run': forkable
         },
         'slice_timing_correction': {
-            'run': forkable
+            'run': forkable,
+            'tpattern': Maybe(str),
+            'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
             'calculate_motion_first': bool,
