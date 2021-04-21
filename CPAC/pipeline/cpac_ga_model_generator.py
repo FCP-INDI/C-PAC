@@ -1038,8 +1038,8 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
           '\nScan: {2}\nPreprocessing strategy:\n    {3}\n\nModel directory:' \
           '\n{4}\n\nGroup configuration file:\n{5}\n\nContrasts template CSV:' \
           '\n{6}\n\nDefine your contrasts in this contrasts template CSV and ' \
-          'save your changes, then run FSL-FEAT either using the GUI ' \
-          'interface or through the command-line like so:\n\n    cpac group ' \
+          'save your changes, then run FSL-FEAT ' \
+          'through the command-line like so:\n\n    cpac group ' \
           'feat run <path to group config.yml>' \
            '\n'.format(resource_id, session_id, series_or_repeated_label,
                        preproc_strat, model_path, group_config_file,

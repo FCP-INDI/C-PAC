@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
@@ -18,6 +19,7 @@ def file_node(path):
     return input_node, 'file'
 
 
+@pytest.mark.skip(reason='needs refactoring')
 def test_qc():
 
     outputs = Outputs()
