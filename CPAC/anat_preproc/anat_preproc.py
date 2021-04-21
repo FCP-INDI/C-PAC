@@ -1194,7 +1194,8 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs"],
+                "T1w_brain_template_mask_ccs",
+                "T1w_ACPC_template"],
      "outputs": ["space-T1w_desc-tight_brain_mask"]}
     '''
 
@@ -1214,7 +1215,8 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs"],
+                "T1w_brain_template_mask_ccs",
+                "T1w_ACPC_template"],
      "outputs": ["space-T1w_desc-loose_brain_mask"]}
     '''
 
@@ -1232,7 +1234,8 @@ def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Tight",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs"],
+                "T1w_brain_template_mask_ccs",
+                "T1w_ACPC_template"],
      "outputs": ["space-T1w_desc-tight_acpcbrain_mask"]}
     '''
 
@@ -1253,7 +1256,8 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs"],
+                "T1w_brain_template_mask_ccs",
+                "T1w_ACPC_template"],
      "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
     '''
 
