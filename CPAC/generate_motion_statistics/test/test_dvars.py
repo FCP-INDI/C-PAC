@@ -1,9 +1,10 @@
-
 import os
+import nibabel as nb
 import numpy as np
 from CPAC.generate_motion_statistics import ImageTo1D, calculate_DVARS
 
 np.random.seed(10)
+
 
 def test_dvars():
 
@@ -27,4 +28,4 @@ def test_dvars():
     afni_result = np.loadtxt('dvars_data_3DtoT1.1D')[1:]
     python_result = np.loadtxt('DVARS.txt')
 
-    assert np.close(afni_result, python_result, 1e-4)
+    assert all(np.isclose(afni_result, python_result, 1e-4))
