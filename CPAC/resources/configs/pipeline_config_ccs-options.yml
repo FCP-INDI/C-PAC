@@ -23,6 +23,9 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: /outputs/output
 
+    # Include extra versions and intermediate steps of functional preprocessing in the output directory.
+    write_func_outputs: True
+
   working_directory: 
 
     # Directory where C-PAC should store temporary and intermediate files.
@@ -188,7 +191,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+    run: [On, Off]
 
     # Select which nuisance signal corrections to apply
     Regressors: 
@@ -212,7 +215,26 @@ nuisance_corrections:
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
-          method: default #TODO check to use 'default' or 'AFNI' (3dBandpass), CCS uses 3dFourier
+          method: AFNI
+      - Name: Regressor-2
+        Motion:
+          include_delayed: On
+          include_delayed_squared: On
+          include_squared: On
+        CerebrospinalFluid:
+          erode_mask: Off
+          extraction_resolution: 2
+          summary: Mean
+        WhiteMatter:
+          erode_mask: Off
+          extraction_resolution: 2
+          summary: Mean
+        PolyOrt:
+          degree: 1
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+          method: AFNI
 
 timeseries_extraction: 
 
