@@ -31,7 +31,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
 
     output_node = pe.Node(util.IdentityInterface(fields=['acpc_aligned_head',
                                                          'acpc_brain_mask',
-                                                         'from-affine_to-rigid_mode-image_xfm']),
+                                                         'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm']),
                           name='outputspec')
 
     robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
@@ -90,7 +90,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
     aff_to_rig.inputs.out_name = 'acpc.mat'
 
     preproc.connect(concat_xfm, 'out_file', aff_to_rig, 'in_xfm')
-    preproc.connect(aff_to_rig, 'out_mat', output_node, 'from-affine_to-rigid_mode-image_xfm')
+    preproc.connect(aff_to_rig, 'out_mat', output_node, 'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
 
     apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
                         name='anat_acpc_6_applywarp')
@@ -685,7 +685,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_ACPC_template"],
      "outputs": ["desc-preproc_T1w",
-                 "from-affine_to-rigid_mode-image_xfm"]}
+                 "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -703,8 +703,8 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'from-affine_to-rigid_mode-image_xfm': (
-            acpc_align, 'outputspec.from-affine_to-rigid_mode-image_xfm')
+        'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm': (
+            acpc_align, 'outputspec.from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
     }
 
     return (wf, outputs)
@@ -722,7 +722,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1w_ACPC_template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask",
-                 "from-affine_to-rigid_mode-image_xfm"]}
+                 "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -742,8 +742,8 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'space-T1w_desc-brain_mask': (
             acpc_align, 'outputspec.acpc_brain_mask'),
-        'from-affine_to-rigid_mode-image_xfm': (
-            acpc_align, 'outputspec.from-affine_to-rigid_mode-image_xfm')
+        'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm': (
+            acpc_align, 'outputspec.from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
     }
 
     return (wf, outputs)
@@ -759,7 +759,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "T1w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T1w",
-                 "from-affine_to-rigid_mode-image_xfm"]}
+                 "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -777,8 +777,8 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'from-affine_to-rigid_mode-image_xfm': (
-            acpc_align, 'outputspec.from-affine_to-rigid_mode-image_xfm')
+        'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm': (
+            acpc_align, 'outputspec.from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
     }
 
     return (wf, outputs)
@@ -1638,7 +1638,6 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    # TODO check docstring? function name?
     '''
     {"name": "correct_restore_brain_intensity_abcd",
      "config": ["anatomical_preproc", "brain_extraction"],
@@ -1650,7 +1649,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
                  "desc-restore-brain_T1w",
                  "space-T1w_desc-brain_mask",
                  "desc-fast_biasfield",
-                 "from-affine_to-rigid_mode-image_xfm",
+                 "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm",
                  "from-T1w_to-template_mode-image_xfm")],
      "outputs": ["desc-restore-brain_T1w"]}
     '''
@@ -1695,7 +1694,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, convertwarp_orig_t1_to_t1, 'reference')
 
-    node, out = strat_pool.get_data('from-affine_to-rigid_mode-image_xfm')
+    node, out = strat_pool.get_data('from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
     wf.connect(node, out, convertwarp_orig_t1_to_t1, 'premat')
     wf.connect(multiply_t1_acpc_by_zero, 'out_file',
         convertwarp_orig_t1_to_t1, 'warp1')
