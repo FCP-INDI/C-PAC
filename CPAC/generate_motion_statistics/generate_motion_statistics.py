@@ -4,6 +4,7 @@ import nibabel as nb
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
+from CPAC.vmhc.utils import get_img_nvols
 
 from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
 from nipype.interfaces.base import (TraitedSpec, traits, isdefined, File)
@@ -190,7 +191,13 @@ def motion_power_statistics(name='motion_stats',
                                                          'motion_params']),
                           name='outputspec')
 
-    cal_DVARS = pe.Node(ImageTo1D(method='dvars'), name='cal_DVARS', mem_gb=3.5)
+    dvars_ImageTo1D = ImageTo1D(method='dvars')
+
+    cal_DVARS = pe.Node(dvars_ImageTo1D,
+                        name='cal_DVARS')
+    cal_DVARS.inputs.mem_gb = 0.004 * get_img_nvols(
+        dvars_ImageTo1D.inputs.in_file
+    ) + 0.5
 
     cal_DVARS_strip = pe.Node(Function(input_names=['file_1D'],
                                        output_names=['out_file'],
