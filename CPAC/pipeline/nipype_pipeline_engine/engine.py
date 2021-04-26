@@ -3,8 +3,10 @@ See https://fcp-indi.github.com/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.'''  # noqa E501
-from nipype.pipeline import engine as pe
+import re
 from functools import partialmethod
+from inspect import Parameter, Signature, signature
+from nipype.pipeline import engine as pe
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -17,13 +19,13 @@ def _doctest_skiplines(docstring, lines_to_skip):
 
     Parameters
     ----------
-    docstring: str
+    docstring : str
 
-    lines_to_skip: set or list
+    lines_to_skip : set or list
 
     Returns
     -------
-    docstring: str
+    docstring : str
 
     Examples
     --------
@@ -49,14 +51,69 @@ class Node(pe.Node):
         {"    >>> realign.inputs.in_files = 'functional.nii'"}
     )
 
-    __init__ = partialmethod(pe.Node.__init__, mem_gb=DEFAULT_MEM_GB)
+    def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+        super().__init__(*args, mem_gb=DEFAULT_MEM_GB, **kwargs)
+
+    __init__.__signature__ = Signature(parameters=[
+        p[1] if p[0] != 'mem_gb' else (
+            'mem_gb',
+            Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
+                      default=DEFAULT_MEM_GB)
+        )[1] for p in signature(pe.Node).parameters.items()])
+
+    __init__.__doc__ = re.sub(r'(?<!\s):', ' :', '\n'.join([
+        pe.Node.__init__.__doc__.rstrip(),
+        '''
+        mem_gb : int or float
+            Estimate (in GB) of constant memory to allocate for this node.
+
+        mem_x : tuple
+            (int or float, str)
+            Multiplier for memory allocation such that
+            `mem_x[0]` times
+            the number of timepoints in file at `mem+x[1]` plus
+            `mem_gb` equals
+            the total memory allocation for the node.
+            (TEMPORARY: will replace number of timepoints with
+            spatial dimensions times timepoints)''']))
+
+    @property
+    def mem_gb(self):
+        """Get estimated memory (GB)"""
+        if hasattr(self._interface, "estimated_memory_gb"):
+            from nipype import logging
+            logger = logging.getLogger("nipype.workflow")
+            self._mem_gb = self._interface.estimated_memory_gb
+            logger.warning(
+                'Setting "estimated_memory_gb" on Interfaces has been '
+                "deprecated as of nipype 1.0, please use Node.mem_gb."
+            )
+
+        if hasattr(self, '_mem_x'):
+            from CPAC.vmhc.utils import get_img_nvols
+            if callable(self._mem_x[1]):
+                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                    self._mem_x[1]())
+            else:
+                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                    self._mem_x[1])
+            del self._mem_x
+
+        return self._mem_gb
 
 
-class MapNode(pe.MapNode):
+class MapNode(Node, pe.MapNode):
     __doc__ = _doctest_skiplines(
-        f'mem_gb={DEFAULT_MEM_GB}\n\nn_procs=1\n\n{pe.MapNode.__doc__}',
+        pe.MapNode.__doc__,
         {"    ...                           'functional3.nii']"}
     )
 
-    __init__ = partialmethod(pe.MapNode.__init__, mem_gb=DEFAULT_MEM_GB,
-                             n_procs=1)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    __init__.__signature__ = Signature(parameters=[
+        p[1] if p[0] != 'mem_gb' else (
+            'mem_gb',
+            Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
+                      default=DEFAULT_MEM_GB)
+        )[1] for p in signature(pe.Node).parameters.items()])

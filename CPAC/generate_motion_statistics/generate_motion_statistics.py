@@ -194,10 +194,9 @@ def motion_power_statistics(name='motion_stats',
     dvars_ImageTo1D = ImageTo1D(method='dvars')
 
     cal_DVARS = pe.Node(dvars_ImageTo1D,
-                        name='cal_DVARS')
-    cal_DVARS.inputs.mem_gb = 0.004 * get_img_nvols(
-        dvars_ImageTo1D.inputs.in_file
-    ) + 0.5
+                        name='cal_DVARS',
+                        mem_gb=0.4,
+                        mem_x=(0.0033, lambda **kwargs: kwargs['in_file']))
 
     cal_DVARS_strip = pe.Node(Function(input_names=['file_1D'],
                                        output_names=['out_file'],
