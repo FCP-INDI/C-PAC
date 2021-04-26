@@ -480,9 +480,6 @@ def create_seg_preproc_freesurfer(config=None,
     reconall2.inputs.openmp = config.pipeline_setup['system_config'][
         'num_omp_threads']
 
-    #if config.autorecon2_args is not None:  # TODO: update nested
-    #    reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
-
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
 

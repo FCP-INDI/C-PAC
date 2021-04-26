@@ -625,19 +625,8 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, brain_mask_to_t1_restore, 'ref_file')
 
-    # TODO check if it's necessary
-    # fs_brain = pe.Node(interface=fsl.MultiImageMaths(), name='fs_brain')
-    # fs_brain.inputs.op_string = "-mul %s"
-
-    # wf.connect(brain_mask_to_t1_restore, 'out_file', 
-    #            fs_brain, 'in_file')
-
-    # node, out = strat_pool.get_data('desc-preproc_T1w')
-    # wf.connect(node, out, fs_brain, 'operand_files')
-
     outputs = {
         'space-T1w_desc-brain_mask': (brain_mask_to_t1_restore, 'out_file')
-        # 'desc-brain_T1w': (fs_brain, 'out_file')
     }
 
     return (wf, outputs)

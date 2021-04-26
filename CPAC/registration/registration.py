@@ -2242,7 +2242,6 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
-    # TODO check how to connect desc-restore-brain_T1w?
     '''
     {"name": "coregistration",
      "config": ["registration_workflows", "functional_registration",
@@ -2541,8 +2540,6 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    # TODO check what should be in tuple?
-    # TODO update docstring
     """
     {"name": "transform_timeseries_to_T1template_abcd",
      "config": ["registration_workflows", "functional_registration",
@@ -2730,8 +2727,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(applywarp_func_mask_to_standard, 'out_file',
         merge_func_mask_to_standard, 'in_files')
 
-    # TODO check why it's different
-    # TODO move masking to another function
     # fslmaths ${OutputfMRI}_mask -Tmin ${OutputfMRI}_mask
     find_min_mask = pe.Node(interface=fsl.maths.MathsCommand(),
                         name=f'find_min_mask_{pipe_num}')
