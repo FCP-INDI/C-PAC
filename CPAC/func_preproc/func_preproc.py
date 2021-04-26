@@ -1408,21 +1408,31 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
         name=f'skullstrip_first_pass_{pipe_num}')
+
     bet_dilate = pe.Node(
         fsl.DilateImage(operation='max', kernel_shape='sphere',
                         kernel_size=6.0, internal_datatype='char'),
         name=f'skullstrip_first_dilate_{pipe_num}')
+    
     bet_mask = pe.Node(fsl.ApplyMask(), name=f'skullstrip_first_mask_'
                                              f'{pipe_num}')
+
     unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ',
                                          args='-clfrac 0.2 -rbt 18.3 65.0 90.0',
                                          out_file="uni.nii.gz"),
                       name=f'unifize_{pipe_num}')
+
     skullstrip_second_pass = pe.Node(
         preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'),
         name=f'skullstrip_second_pass_{pipe_num}')
+
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
+
+    fill_mask = pe.Node(interface=afni.MaskTool(),
+                               name=f'fill_func_brain_mask_{pipe_num}')
+    fill_mask.inputs.fill_holes = True
+    fill_mask.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
@@ -1439,10 +1449,12 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                 (skullstrip_first_pass, combine_masks,
                  [('mask_file', 'in_file')]),
                 (skullstrip_second_pass, combine_masks,
-                 [('out_file', 'operand_file')])])
+                 [('out_file', 'operand_file')]),
+                (combine_masks, fill_mask,
+                 [('out_file', 'in_file')])])
 
     outputs = {
-        'space-bold_desc-brain_mask': (combine_masks, 'out_file')
+        'space-bold_desc-brain_mask': (fill_mask, 'out_file')
     }
 
     return (wf, outputs)

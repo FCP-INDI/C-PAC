@@ -635,6 +635,10 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: whole-head
+
     EPI_registration:
 
       # directly register the mean functional to an EPI template

@@ -400,7 +400,8 @@ schema = Schema({
                         valid_options['boundary_based_registration']['using']
                     )),
                     'run': forkable,
-                    'bbr_schedule': str
+                    'bbr_schedule': str,
+                    'reference': In({'whole-head', 'brain'})
                 },
             },
             'EPI_registration': {

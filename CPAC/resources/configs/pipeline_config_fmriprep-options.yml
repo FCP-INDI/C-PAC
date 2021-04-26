@@ -248,6 +248,10 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
 
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: brain
+
     EPI_registration: 
 
       ANTs: 
