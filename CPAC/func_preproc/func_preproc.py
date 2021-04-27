@@ -1405,6 +1405,13 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     func_skull_mean.inputs.options = '-mean'
     func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
 
+    func_skull_n4 = pe.Node(
+        interface=ants.N4BiasFieldCorrection(dimension=3,
+                                             bspline_fitting_distance=200,
+                                             args='-r',
+                                             copy_header=True),
+        name=f'func_skull_n4_{pipe_num}')
+
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
         name=f'skullstrip_first_pass_{pipe_num}')
@@ -1438,8 +1445,10 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "bold"])
     wf.connect(node, out, func_skull_mean, 'in_file')
 
-    wf.connect([(func_skull_mean, skullstrip_first_pass,
-                 [('out_file', 'in_file')]),
+    wf.connect([(func_skull_mean, func_skull_n4,
+                 [('out_file', 'input_image')]),
+                (func_skull_n4, skullstrip_first_pass,
+                 [('output_image', 'in_file')]),
                 (skullstrip_first_pass, bet_dilate,
                  [('mask_file', 'in_file')]),
                 (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
