@@ -4,7 +4,6 @@ for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.'''  # noqa E501
 import re
-from functools import partialmethod
 from inspect import Parameter, Signature, signature
 from nipype.pipeline import engine as pe
 
@@ -52,7 +51,9 @@ class Node(pe.Node):
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
-        super().__init__(*args, mem_gb=DEFAULT_MEM_GB, **kwargs)
+        super().__init__(*args, mem_gb=mem_gb, **kwargs)
+        if 'mem_x' in kwargs:
+            setattr(self, '_mem_x', kwargs['mem_x'])
 
     __init__.__signature__ = Signature(parameters=[
         p[1] if p[0] != 'mem_gb' else (
@@ -88,15 +89,10 @@ class Node(pe.Node):
                 'Setting "estimated_memory_gb" on Interfaces has been '
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
-
         if hasattr(self, '_mem_x'):
             from CPAC.vmhc.utils import get_img_nvols
-            if callable(self._mem_x[1]):
-                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                    self._mem_x[1]())
-            else:
-                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                    self._mem_x[1])
+            self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                getattr(self.inputs, self._mem_x[1]))
             del self._mem_x
 
         return self._mem_gb
