@@ -291,8 +291,6 @@ jobs:
           paths: 
             - .coverage.docker
             - .coverage.docker-<< parameters.variant >>
-            - .coverage.docker-lite
-            - .coverage.docker-ABCD-HCP
   pytest-singularity:
     parameters:
       variant:
@@ -320,8 +318,6 @@ jobs:
           paths: 
             - .coverage.singularity
             - .coverage.singularity-<<parameters.variant >>
-            - .coverage.singularity-lite
-            - .covergae.singularity-ABCD-HCP
 workflows:
   version: 2
   build-and-test:
