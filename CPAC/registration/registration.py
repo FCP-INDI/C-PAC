@@ -2116,7 +2116,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'reference'] == 'brain':
             node, out = strat_pool.get_data('desc-brain_T1w')
-            wf.connect(node, out, func_to_anat, 'inputspec.anat')
+            wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
 
         wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
                    func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
