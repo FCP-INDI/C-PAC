@@ -568,7 +568,9 @@ def ants_apply_warps_func_mni(
                 name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(
                     output_name, inverse_string, registration_template,
                     num_strat),
-                iterfield=['input_image'])
+                iterfield=['input_image'],
+                mem_gb=1,
+                mem_x=(0.4, 'input_image'))
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
@@ -576,7 +578,7 @@ def ants_apply_warps_func_mni(
                     output_name, inverse_string, registration_template,
                     num_strat),
                 mem_gb=1,
-                mem_x=(0.4, lambda **kwargs: kwargs['input_image']))
+                mem_x=(0.4, 'input_image'))
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)

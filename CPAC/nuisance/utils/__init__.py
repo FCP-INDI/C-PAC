@@ -320,7 +320,9 @@ def generate_summarize_tissue_mask(nuisance_wf,
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
                                        .format(node_mask_key),
-                                  mem_gb=8.0)
+                        mem_gb=3.63,
+                        mem_x=(0.0021, 'in_file')
+                                  )
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -423,7 +425,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                                     name='{0}_inverse_transform_flags'.format(ventricles_key))
                     nuisance_wf.connect(collect_linear_transforms, 'out', inverse_transform_flags, 'transform_list')
 
-                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=ants.ApplyTransforms(),
+                        name='{}_ants'.format(ventricles_key),
+                        mem_gb=0.683,
+                        mem_x=(0.0085, 'input_image'))
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 

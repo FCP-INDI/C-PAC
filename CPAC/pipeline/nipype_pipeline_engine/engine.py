@@ -90,10 +90,12 @@ class Node(pe.Node):
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
         if hasattr(self, '_mem_x'):
-            from CPAC.vmhc.utils import get_img_nvols
-            self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                getattr(self.inputs, self._mem_x[1]))
-            del self._mem_x
+            import os
+            if os.path.exists(self._mem_x[1]):
+                from CPAC.vmhc.utils import get_img_nvols
+                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                    getattr(self.inputs, self._mem_x[1]))
+                del self._mem_x
 
         return self._mem_gb
 

@@ -235,7 +235,9 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                          name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
-                             name='3dROIstats', mem_gb=3.0)
+                             name='3dROIstats',
+                             mem_gb=0.4,
+                             mem_x=(0.0135, 'in_file'))
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
     # TODO: add -mask_f2short for float parcellation mask
@@ -340,7 +342,9 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                          name='outputspec')
 
     spatialReg = pe.Node(interface=fsl.GLM(),
-                         name='spatial_regression', mem_gb=4.5)
+                         name='spatial_regression',
+                         mem_gb=0.2,
+                         mem_x=(0.02, 'in_file'))
 
     spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
@@ -829,7 +833,9 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
         function=ndmg_create_graphs,
         imports=ndmg_graph_imports,
         as_module=True
-    ), name=f'ndmg_graphs_{pipe_num}')
+    ), name=f'ndmg_graphs_{pipe_num}',
+       mem_gb=0.664,
+       mem_x=(0.0043, 'ts'))
 
     wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
     wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
@@ -938,7 +944,9 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     resample_spatial_map_to_native_space = pe.Node(
         interface=fsl.FLIRT(),
-        name=f'resample_spatial_map_to_native_space_{pipe_num}')
+        name=f'resample_spatial_map_to_native_space_{pipe_num}',
+        mem_gb=3.4,
+        mem_x=(0.003, 'in_file'))
 
     resample_spatial_map_to_native_space.inputs.set(
         interp='nearestneighbour',
