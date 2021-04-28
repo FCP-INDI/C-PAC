@@ -91,11 +91,20 @@ class Node(pe.Node):
             )
         if hasattr(self, '_mem_x'):
             import os
-            if os.path.exists(self._mem_x[1]):
+            from traits.trait_base import Undefined
+            try:
+                mem_x_path = getattr(self.inputs, self._mem_x[1])
+            except AttributeError as e:
+                raise AttributeError(
+                    f'{e.args[0]} in Node \'{self.name}\'') from e
+            if mem_x_path is not Undefined and os.path.exists(mem_x_path):
+                # constant + mem_x[0] * t
                 from CPAC.vmhc.utils import get_img_nvols
                 self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                    getattr(self.inputs, self._mem_x[1]))
+                    getattr(mem_x_path))
                 del self._mem_x
+            else:  # constant + mem_x[0] * 300
+                return self._mem_gb + self._mem_x[0] * 300
 
         return self._mem_gb
 
