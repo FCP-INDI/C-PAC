@@ -1213,8 +1213,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
                                     'list_length'],
                       function=check_transforms),
         name=f'check_transforms',
-        mem_gb=0.8,
-        mem_x=(0.0047, 'in1'))
+        mem_gb=6)
 
     wf.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
