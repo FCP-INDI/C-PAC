@@ -251,8 +251,18 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci
+      - restore_cache:
+          key: coverage-docker--{{ .Revision }}
+      - restore_cache:
+          key: coverage-singularity--{{ .Revision }}
+      - restore_cache:
+          key: coverage-docker-ABCD-HCP-{{ .Revision }}
+      - restore_cache:
+          key: coverage-singularity-ABCD-HCP-{{ .Revision }}
+      - restore_cache:
+          key: coverage-docker-lite-{{ .Revision }}
+      - restore_cache:
+          key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
       - store_artifacts:
@@ -276,10 +286,11 @@ jobs:
       - run-pytest-docker
       - store_test_results:
           path: test-results
-      - persist_to_workspace:
-          paths:
-            - project/.coverage.docker*
-          root: /home/circleci/
+      - save_cache:
+          key: coverage-docker-<< parameters.variant >>-{{ .Revision }}
+          paths: 
+            - .coverage.docker
+            - .coverage.docker-<< parameters.variant >>
   pytest-singularity:
     parameters:
       variant:
@@ -302,10 +313,11 @@ jobs:
           name: "Running unit tests in Singularity image"
       - store_test_results:
           path: test-results
-      - persist_to_workspace:
-          paths:
-            - project/.coverage.singularity*
-          root: /home/circleci/
+      - save_cache:
+          key: coverage-singularity-<< parameters.variant >>-{{ .Revision }}
+          paths: 
+            - .coverage.singularity
+            - .coverage.singularity-<<parameters.variant >>
 workflows:
   version: 2
   build-and-test:
@@ -323,6 +335,8 @@ workflows:
             - "Test in Singularity"
             - "Test lite variant in Docker"
             - "Test lite variant in Singularity"
+            - "Test ABCD-HCP variant in Docker"
+            - "Test ABCD-HCP variant in Singularity"
       - pytest-docker:
           name: "Test in Docker"
           requires:
@@ -346,3 +360,8 @@ workflows:
           requires:
             - "Build lite variant images"
           variant: lite
+      - pytest-singularity:
+          name: "Test ABCD-HCP variant in Singularity"
+          requires:
+            - "Build ABCD-HCP variant images"
+          variant: ABCD-HCP
