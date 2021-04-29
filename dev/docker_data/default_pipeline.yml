@@ -776,7 +776,12 @@ registration_workflows:
 
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
+      
+      # apply the functional-to-template (T1 template) registration transform to the functional data
       run: On
+      
+      # apply the functional-to-template (EPI template) registration transform to the functional data
+      run_EPI: Off
 
       output_resolution:
 
@@ -796,17 +801,11 @@ registration_workflows:
         func_derivative_outputs: 3mm
 
       target_template:
-
-        # using: ['T1_template', 'EPI_template', 'ABCD']
-        # this is a fork point
-        # NOTE:
-        #   this will determine which registration transform to use to warp the functional
-        #   outputs and derivatives to template space.
-        #   if using 'ABCD', apply motion correction, func-to-anat, anat-to-template transforms 
-        #   on each of raw functional volume same as ABCD-options pipeline.
+      
+        # choose which template space to transform derivatives towards
+        # options: ['T1_template', 'EPI_template']
         using: ['T1_template']
 
-        # option parameters
         T1_template:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
