@@ -382,7 +382,9 @@ def create_wf_edit_func(wf_name="edit_func"):
 
     # allocate a node to edit the functional file
     func_drop_trs = pe.Node(interface=afni_utils.Calc(),
-                            name='func_drop_trs')
+                            name='func_drop_trs',
+                            mem_gb=0.37,
+                            mem_x=(0.0033, 'in_file_a'))
 
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
@@ -947,7 +949,9 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name=f'func_deoblique_{pipe_num}')
+                             name=f'func_deoblique_{pipe_num}',
+                             mem_gb=0.68,
+                             mem_x=(0.0026, 'in_file'))
     func_deoblique.inputs.deoblique = True
 
     node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
@@ -990,7 +994,9 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
     if opt == 'mean':
         func_get_RPI = pe.Node(interface=afni_utils.TStat(),
-                               name=f'func_get_mean_RPI_{pipe_num}')
+                               name=f'func_get_mean_RPI_{pipe_num}',
+                               mem_gb=0.48,
+                               mem_x=(0.0032, 'in_file'))
 
         func_get_RPI.inputs.options = '-mean'
         func_get_RPI.inputs.outputtype = 'NIFTI_GZ'

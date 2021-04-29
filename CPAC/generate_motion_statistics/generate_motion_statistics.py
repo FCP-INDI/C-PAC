@@ -191,9 +191,7 @@ def motion_power_statistics(name='motion_stats',
                                                          'motion_params']),
                           name='outputspec')
 
-    dvars_ImageTo1D = ImageTo1D(method='dvars')
-
-    cal_DVARS = pe.Node(dvars_ImageTo1D,
+    cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
                         name='cal_DVARS',
                         mem_gb=0.4,
                         mem_x=(0.0033, 'in_file'))

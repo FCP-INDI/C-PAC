@@ -183,7 +183,8 @@ def init_brain_extraction_wf(tpl_target_path,
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_file', 'out_mask', 'bias_corrected', 'bias_image']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
+        name='copy_xform', run_without_submitting=True,
+        mem_gb=1.3, mem_x=(0.0085, 'hdr_file'))
 
     trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity', op2='0.01 0.999 256'),
                        name='truncate_images', iterfield=['op1'])
@@ -232,7 +233,8 @@ def init_brain_extraction_wf(tpl_target_path,
         'CPAC.anat_preproc', 'data/'+settings_file % normalization_quality)),
         name='norm',
         n_procs=omp_nthreads,
-        mem_gb=mem_gb)
+        mem_gb=1.7,
+        mem_x=(0.0055, 'moving_image'))
     norm.inputs.float = use_float
     fixed_mask_trait = 'fixed_image_mask'
     if _ants_version and parseversion(_ants_version) >= Version('2.2.0'):
@@ -240,8 +242,7 @@ def init_brain_extraction_wf(tpl_target_path,
 
     map_brainmask = pe.Node(
         ApplyTransforms(interpolation='Gaussian', float=True),
-        name='map_brainmask',
-        mem_gb=1
+        name='map_brainmask'
     )
     map_brainmask.inputs.input_image = str(tpl_mask_path)
 
@@ -332,8 +333,11 @@ def init_brain_extraction_wf(tpl_target_path,
             mem_gb=mem_gb,
             in_segmentation_model=atropos_model,
         )
-        sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1), name='sel_wm',
-                         run_without_submitting=True)
+        sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1),
+                         name='sel_wm',
+                         run_without_submitting=True,
+                         mem_gb=0.1,
+                         mem_x=(0.0115, 'inlist'))
 
         wf.disconnect([
             (get_brainmask, apply_mask, [('output_image', 'mask_file')]),
@@ -417,7 +421,8 @@ def init_atropos_wf(name='atropos_wf',
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_mask', 'out_segm', 'out_tpms']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
+        name='copy_xform', run_without_submitting=True,
+        mem_gb=1.3, mem_x=(0.0085, 'hdr_file'))
 
     # Run atropos (core node)
     atropos = pe.Node(Atropos(

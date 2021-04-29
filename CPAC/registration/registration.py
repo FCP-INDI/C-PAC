@@ -1337,7 +1337,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     write_composite_inv_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f'write_composite_inv_{symm}xfm',
-        mem_gb=1.5)
+        mem_gb=0.3,
+        mem_x=(0.007, 'input_image'))
     write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
     write_composite_inv_xfm.inputs.output_image = \
         "from-template_to-T1w_mode-image_xfm.nii.gz"
