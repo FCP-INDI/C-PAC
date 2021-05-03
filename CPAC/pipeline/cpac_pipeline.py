@@ -1009,7 +1009,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             [register_ANTs_EPI_to_template, register_FSL_EPI_to_template]
         ]
         pipeline_blocks += EPI_reg_blocks
-        
+
     if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
         'Template_Based']['template_for_segmentation']:
         if not rpool.check_rpool('space-bold_label-CSF_mask') or \

@@ -1710,7 +1710,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-reginput_bold', 'desc-mean_bold"],
+     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_desc-brain_mask"),
                 "EPI_template",
                 "EPI_template_mask"],
@@ -1733,13 +1733,13 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['FSL-FNIRT'][
         'fnirt_config']
 
-    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
+    node, out = strat_pool.get_data(["desc-reginput_bold", "desc-mean_bold"])
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI_template')
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-reginput_bold', 'desc-mean_bold"])
+    node, out = strat_pool.get_data(["desc-reginput_bold", "desc-mean_bold"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI_template')
