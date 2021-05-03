@@ -1136,6 +1136,8 @@ class NodeBlock(object):
                     for option in option_val:
                         if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                             opts.append(option)
+                if opts == None:
+                    opts = [opts]
             else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
@@ -1185,13 +1187,33 @@ class NodeBlock(object):
                         raise Exception("\n\n[!] Developer info: Docstring error "
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
+                    switch = self.grab_tiered_dct(cfg, key_list)
                 else:
-                    key_list = switch
-                switch = self.grab_tiered_dct(cfg, key_list)
+                    if isinstance(switch[0], list):
+                        # we have multiple switches, which is designed to only work if
+                        # config is set to "None"
+                        switch_list = []
+                        for key_list in switch:
+                            val = self.grab_tiered_dct(cfg, key_list)
+                            if isinstance(val, list):
+                                # fork switches
+                                if True in val:
+                                    switch_list.append(True)
+                                else:
+                                    switch_list.append(False)
+                            else:
+                                switch_list.append(val)
+                        if False in switch_list:
+                            switch = [False]
+                        else:
+                            switch = [True]
+                    else:
+                        # if config is set to "None"
+                        key_list = switch
+                        switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
 
-            #print(f'switch and opts for {name}: {switch} --- {opts}')
             if True in switch:
                 print(f"Connecting {name}...\n")
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}

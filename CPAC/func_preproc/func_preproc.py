@@ -1178,8 +1178,8 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "calc_motion_stats",
-     "config": "None",
-     "switch": "None",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-motion_bold",
@@ -1754,7 +1754,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_mean",
      "config": ["functional_preproc"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-brain_bold"],
@@ -1781,7 +1781,7 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_normalize",
      "config": ["functional_preproc"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-brain_bold",

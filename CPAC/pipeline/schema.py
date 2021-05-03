@@ -389,7 +389,7 @@ schema = Schema({
                 },
             },
             'applywarp': {
-                'using': In({'ANTS', 'FSL'}),
+                'using': In({'ANTS', 'FSL', 'ABCD-FSL'}),
             },
         },
         'functional_registration': {
@@ -437,6 +437,7 @@ schema = Schema({
             },
             'func_registration_to_template': {
                 'run': bool,
+                'run_EPI': bool,
                 'output_resolution': {
                     'func_preproc_outputs': All(
                         str, Match(resolution_regex)),

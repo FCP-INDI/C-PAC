@@ -193,8 +193,9 @@ registration_workflows:
 
     applywarp: 
 
-      # using: ANTS or FSL. Choose the applywarp tool regardless of which tool to calculate transforms
-      using: FSL
+      # Choose the applywarp tool regardless of which tool to calculate transform
+      # using: 'ANTS', 'FSL' or 'ABCD-FSL'
+      using: ABCD-FSL
 
   functional_registration: 
 
