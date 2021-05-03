@@ -1721,7 +1721,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     fsl, outputs = FSL_registration_connector('register_FSL_EPI_to_'
-                                              f'template_{pipe_idx}', cfg,
+                                              f'template_{pipe_num}', cfg,
                                               orig='bold', opt=opt,
                                               template='EPI')
 
@@ -1985,7 +1985,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": ["registration_workflows", "anatomical_registration"],
      "switch": ["run"],
      "option_key": ["applywarp", "using"],
-     "option_val": ["ANTS","FSL"],
+     "option_val": ["ANTS", "FSL", "ABCD-FSL"],
      "inputs": ["desc-restore-brain_T1w", 
                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -2004,42 +2004,66 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     if opt.lower() == 'ants' and reg_tool.lower() == 'ants':
 
-        ants_apply_warp_t1_brain_to_template = pe.Node(interface=ants.ApplyTransforms(),
-                                                 name=f'ANTS_T1brain_to_template_{pipe_num}')
-        ants_apply_warp_t1_brain_to_template.inputs.dimension = 3
+        ants_t1_brain_to_template = pe.Node(interface=ants.ApplyTransforms(),
+                                            name=f'ANTS_T1brain_to_template_{pipe_num}')
+        ants_t1_brain_to_template.inputs.dimension = 3
 
         connect, brain = \
             strat_pool.get_data(['desc-brain_T1w',
                                 'space-longitudinal_desc-brain_T1w'],
                                 report_fetched=True)
-        node, out = connect        
-        wf.connect(node, out, ants_apply_warp_t1_brain_to_template, 'input_image')
+        node, out = connect
+        wf.connect(node, out, ants_t1_brain_to_template, 'input_image')
 
         node, out = strat_pool.get_data('T1w_template')
-        wf.connect(node, out, ants_apply_warp_t1_brain_to_template, 'reference_image')
+        wf.connect(node, out, ants_t1_brain_to_template, 'reference_image')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
-        wf.connect(node, out, ants_apply_warp_t1_brain_to_template, 'transforms')
+        wf.connect(node, out, ants_t1_brain_to_template, 'transforms')
 
-        ants_apply_warp_t1_mask_to_template = pe.Node(interface=ants.ApplyTransforms(),
-                                                 name=f'ANTS_T1mask_to_template_{pipe_num}')
-        ants_apply_warp_t1_mask_to_template.inputs.dimension = 3
-        ants_apply_warp_t1_mask_to_template.inputs.interpolation = 'NearestNeighbor'
+        ants_t1_mask_to_template = pe.Node(interface=ants.ApplyTransforms(),
+                                           name=f'ANTS_T1mask_to_template_{pipe_num}')
+        ants_t1_mask_to_template.inputs.dimension = 3
+        ants_t1_mask_to_template.inputs.interpolation = 'NearestNeighbor'
 
         node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
-        wf.connect(node, out, ants_apply_warp_t1_mask_to_template, 'input_image')
+        wf.connect(node, out, ants_t1_mask_to_template, 'input_image')
 
         node, out = strat_pool.get_data('T1w_template')
-        wf.connect(node, out, ants_apply_warp_t1_mask_to_template, 'reference_image')
+        wf.connect(node, out, ants_t1_mask_to_template, 'reference_image')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
-        wf.connect(node, out, ants_apply_warp_t1_mask_to_template, 'transforms')
+        wf.connect(node, out, ants_t1_mask_to_template, 'transforms')
 
         outputs = {
-            'space-template_desc-brain_T1w': (ants_apply_warp_t1_brain_to_template, 'output_image')
+            'space-template_desc-brain_T1w': (ants_t1_brain_to_template, 'output_image')
         }
 
-    elif opt.lower() == 'fsl' and reg_tool.lower() == 'ants':
+    elif opt.lower() == 'fsl' and reg_tool.lower() == 'fsl':
+
+        fsl_t1_brain_to_template = pe.Node(interface=fsl.ApplyWarp(),
+                                           name=f'FSL_T1brain_to_template_{pipe_num}')
+        fsl_t1_brain_to_template.inputs.relwarp = True
+        fsl_t1_brain_to_template.inputs.interp = 'spline'
+
+        connect, brain = \
+            strat_pool.get_data(['desc-brain_T1w',
+                                'space-longitudinal_desc-brain_T1w'],
+                                report_fetched=True)
+        node, out = connect
+        wf.connect(node, out, fsl_t1_brain_to_template, 'in_file')
+
+        node, out = strat_pool.get_data('T1w_template')
+        wf.connect(node, out, fsl_t1_brain_to_template, 'ref_file')
+
+        node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+        wf.connect(node, out, fsl_t1_brain_to_template, 'field_file')
+
+        outputs = {
+            'space-template_desc-brain_T1w': (fsl_t1_brain_to_template, 'out_file')
+        }
+
+    elif opt.lower() == 'abcd-fsl' and reg_tool.lower() == 'ants':
 
         # Apply head-to-head transforms on brain using ABCD-style registration
         # Convert ANTs warps to FSL warps to be consistent with the functional registration
@@ -2090,7 +2114,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
         # fslmerge -t ${OutputTransform} ${WD}/xfms/e1.nii.gz ${WD}/xfms/e-2.nii.gz ${WD}/xfms/e3.nii.gz
         merge_xfms_to_list = pe.Node(util.Merge(3), 
-                                    name=f'merge_t1_to_template_xfms_to_list_{pipe_num}')
+                                     name=f'merge_t1_to_template_xfms_to_list_{pipe_num}')
 
         wf.connect(split_combined_warp, 'output1',
             merge_xfms_to_list, 'in1')
@@ -2100,7 +2124,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             merge_xfms_to_list, 'in3')
 
         merge_xfms = pe.Node(interface=fsl.Merge(), 
-                            name=f'merge_t1_to_template_xfms_{pipe_num}')
+                             name=f'merge_t1_to_template_xfms_{pipe_num}')
         merge_xfms.inputs.dimension = 't'
 
         wf.connect(merge_xfms_to_list, 'out',
@@ -2123,7 +2147,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
         # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
         fsl_apply_warp_t1_brain_to_template = pe.Node(interface=fsl.ApplyWarp(),
-                                                    name=f'FSL-ABCD_T1_brain_to_template_{pipe_num}')
+                                                      name=f'FSL-ABCD_T1_brain_to_template_{pipe_num}')
         fsl_apply_warp_t1_brain_to_template.inputs.relwarp = True
         fsl_apply_warp_t1_brain_to_template.inputs.interp = 'nn'
 

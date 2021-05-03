@@ -389,7 +389,7 @@ schema = Schema({
                 },
             },
             'applywarp': {
-                'using': In({'ANTS', 'FSL'}),
+                'using': In({'ANTS', 'FSL', 'ABCD-FSL'}),
             },
         },
         'functional_registration': {
