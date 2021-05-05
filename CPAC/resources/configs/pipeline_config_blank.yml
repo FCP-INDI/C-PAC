@@ -613,10 +613,12 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
-    applywarp:
+    apply_transform:
 
-      # using: ANTS or FSL. Choose the applywarp tool regardless of which tool to calculate transforms
-      using: ANTS
+      # Choose the tool to apply transform regardless of which tool to calculate transform
+      # 'default' will use the same tool as registration
+      # using: 'default', 'ANTS', 'FSL'
+      using: default
 
   functional_registration:
 

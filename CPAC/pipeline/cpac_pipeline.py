@@ -47,7 +47,7 @@ from CPAC.anat_preproc.anat_preproc import (
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
-    applywarp_anat_to_template,
+    apply_transform_anat_to_template,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -821,7 +821,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-            applywarp_anat_to_template, # ABCD-options pipeline
+            apply_transform_anat_to_template,
             correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 

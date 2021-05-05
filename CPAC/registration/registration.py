@@ -1979,13 +1979,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
     
     
-def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "applywarp_anat_to_template",
+    {"name": "apply_transform_anat_to_template",
      "config": ["registration_workflows", "anatomical_registration"],
      "switch": ["run"],
-     "option_key": ["applywarp", "using"],
-     "option_val": ["ANTS", "FSL", "ABCD-FSL"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": ["default", "ANTS", "FSL"],
      "inputs": ["desc-restore-brain_T1w", 
                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -2002,7 +2002,13 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     reg_tool = check_prov_for_regtool(xfm_prov)
 
-    if opt.lower() == 'ants' and reg_tool.lower() == 'ants':
+    if (opt.lower() == 'ants') and reg_tool.lower() == 'fsl':
+        err = "\n\n[!] CPAC says: We currently don't support the combination of " \
+              "FSL to calculate transform and ANTs to apply transform. " \
+              "Please check the 'registration' and 'apply_transform' tool in your pipeline configuration.\n\n"
+        raise Exception(err)
+
+    if (opt.lower() == 'ants' or opt.lower() == 'default') and reg_tool.lower() == 'ants':
 
         ants_t1_brain_to_template = pe.Node(interface=ants.ApplyTransforms(),
                                             name=f'ANTS_T1brain_to_template_{pipe_num}')
@@ -2039,7 +2045,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             'space-template_desc-brain_T1w': (ants_t1_brain_to_template, 'output_image')
         }
 
-    elif opt.lower() == 'fsl' and reg_tool.lower() == 'fsl':
+    if (opt.lower() == 'fsl' or opt.lower() == 'default') and reg_tool.lower() == 'fsl':
 
         fsl_t1_brain_to_template = pe.Node(interface=fsl.ApplyWarp(),
                                            name=f'FSL_T1brain_to_template_{pipe_num}')
@@ -2063,7 +2069,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             'space-template_desc-brain_T1w': (fsl_t1_brain_to_template, 'out_file')
         }
 
-    elif opt.lower() == 'abcd-fsl' and reg_tool.lower() == 'ants':
+    if opt.lower() == 'fsl' and reg_tool.lower() == 'ants':
 
         # Apply head-to-head transforms on brain using ABCD-style registration
         # Convert ANTs warps to FSL warps to be consistent with the functional registration
@@ -2081,7 +2087,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         ants_apply_warp_t1_to_template.inputs.print_out_composite_warp_file = True
         ants_apply_warp_t1_to_template.inputs.output_image = 'ANTs_CombinedWarp.nii.gz'
 
-        node, out = strat_pool.get_data('desc-restore_T1w')
+        node, out = strat_pool.get_data(['desc-restore_T1w', 'desc-preproc_T1w', 'desc-reorient_T1w', 'T1w'])
         wf.connect(node, out, ants_apply_warp_t1_to_template, 'input_image')
 
         node, out = strat_pool.get_data('T1w_template')
@@ -2136,7 +2142,7 @@ def applywarp_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         fsl_apply_warp_t1_to_template.inputs.relwarp = True
         fsl_apply_warp_t1_to_template.inputs.interp = 'spline'
 
-        node, out = strat_pool.get_data('desc-restore_T1w')
+        node, out = strat_pool.get_data(['desc-restore_T1w', 'desc-preproc_T1w', 'desc-reorient_T1w', 'T1w'])
         wf.connect(node, out, fsl_apply_warp_t1_to_template, 'in_file')
 
         node, out = strat_pool.get_data('T1w_template')

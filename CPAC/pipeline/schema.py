@@ -388,8 +388,8 @@ schema = Schema({
                     'T1w_template_res-2': str
                 },
             },
-            'applywarp': {
-                'using': In({'ANTS', 'FSL', 'ABCD-FSL'}),
+            'apply_transform': {
+                'using': In({'default', 'ANTS', 'FSL'}),
             },
         },
         'functional_registration': {
