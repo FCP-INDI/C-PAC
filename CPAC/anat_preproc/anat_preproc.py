@@ -956,6 +956,70 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     return (wf, outputs)
 
 
+def mask_T2(wf_name='mask_T2'):
+    # create T2 mask based on T1 mask
+    # reference https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreliminaryMasking/macaque_masking.py
+    
+    preproc = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['T1w',
+                                                       'T1w_mask',
+                                                       'T2w']),
+                        name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['T1w_brain',
+                                                        'T2w_mask',
+                                                       'T2w_brain']),
+                          name='outputspec')
+
+    # mask_t1w = 'fslmaths {t1w} -mas {t1w_mask_edit} {t1w_brain}'.format(**kwargs)
+    mask_t1w = pe.Node(interface=fsl.MultiImageMaths(),
+                                  name='mask_t1w')
+    mask_t1w.inputs.op_string = "-mas %s "
+
+    preproc.connect(inputnode, 'T1w', mask_t1w, 'in_file')
+    preproc.connect(inputnode, 'T1w_mask', mask_t1w, 'operand_files')
+
+
+    # t1w2t2w_rigid = 'flirt -dof 6 -cost mutualinfo -in {t1w} -ref {t2w} ' \
+    #                     '-omat {t1w2t2w}'.format(**kwargs)
+
+    t1w2t2w_rigid = pe.Node(interface=fsl.FLIRT(),
+                            name='t1w2t2w_rigid')
+
+    t1w2t2w_rigid.inputs.dof = 6
+    t1w2t2w_rigid.inputs.cost = 'mutualinfo'
+    preproc.connect(inputnode, 'T1w', t1w2t2w_rigid, 'in_file')
+    preproc.connect(inputnode, 'T2w', t1w2t2w_rigid, 'reference')
+
+    # t1w2t2w_mask = 'flirt -in {t1w_mask_edit} -interp nearestneighbour -ref {' \
+    #                 't2w} -o {t2w_brain_mask} -applyxfm -init {' \
+    #                 't1w2t2w}'.format(**kwargs)
+    t1w2t2w_mask = pe.Node(interface=fsl.FLIRT(),
+                                    name='t1w2t2w_mask')
+    t1w2t2w_mask.inputs.apply_xfm = True
+    t1w2t2w_mask.inputs.interp = 'nearestneighbour'
+
+    preproc.connect(inputnode, 'T1w_mask', t1w2t2w_mask, 'in_file')
+    preproc.connect(inputnode, 'T2w', t1w2t2w_mask, 'reference')
+    preproc.connect(t1w2t2w_rigid, 'out_matrix_file', t1w2t2w_mask, 'in_matrix_file')
+
+    # mask_t2w = 'fslmaths {t2w} -mas {t2w_brain_mask} ' \
+    #         '{t2w_brain}'.format(**kwargs)
+    mask_t2w = pe.Node(interface=fsl.MultiImageMaths(),
+                                  name='mask_t2w')
+    mask_t2w.inputs.op_string = "-mas %s "
+
+    preproc.connect(inputnode, 'T2w', mask_t2w, 'in_file')
+    preproc.connect(t1w2t2w_mask, 'out_file', mask_t2w, 'operand_files')
+
+    preproc.connect(mask_t1w, 'out_file', outputnode, 'T1w_brain')
+    preproc.connect(mask_t2w, 'out_file', outputnode, 'T2w_brain')
+    preproc.connect(t1w2t2w_mask, 'out_file', outputnode, 'T2w_mask')
+
+    return preproc
+
+
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "anatomical_init",
@@ -1143,6 +1207,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "registration_T2w_to_T1w",
@@ -1152,8 +1217,8 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 ['desc-acpcbrain_T1w','desc-brain_T1w'],
-                 ['desc-acpcbrain_T2w','desc-brain_T2w'])],
+                 'desc-acpcbrain_T1w',
+                 'desc-acpcbrain_T2w')],
      "outputs": ["desc-preproc_T2w"]}
     '''
 
@@ -1167,10 +1232,10 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data(['desc-acpcbrain_T1w','desc-brain_T1w'])
+    node, out = strat_pool.get_data(['desc-acpcbrain_T1w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T1w_brain')
 
-    node, out = strat_pool.get_data(['desc-acpcbrain_T2w','desc-brain_T2w'])
+    node, out = strat_pool.get_data(['desc-acpcbrain_T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w_brain')
 
     outputs = {
@@ -1241,7 +1306,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                ["desc-acpcbrain_T1w", "desc-brain_T1w"]],
+                ["desc-acpcbrain_T1w"]],
      "outputs": ["desc-preproc_T1w", "desc-correctedbrain_T1w", "desc-preproc_T2w", "desc-correctedbrain_T2w"]}
     '''
 
@@ -1255,7 +1320,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data(["desc-acpcbrain_T1w", "desc-brain_T1w"])
+    node, out = strat_pool.get_data(["desc-acpcbrain_T1w"])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T1w_brain')
 
     outputs = {
@@ -1512,6 +1577,7 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_extraction_temp",
@@ -1520,7 +1586,7 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 ["space-T1w_desc-brain_mask"])],
+                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["desc-tempbrain_T1w"]}
     '''
 
@@ -1534,7 +1600,8 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_a')
 
-    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_b')
 
     outputs = {
@@ -1542,6 +1609,7 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+
 
 def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -1941,6 +2009,74 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "brain_mask_T2",
+     "config": "None",
+     "switch": "None",
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-reorient_T1w", "T1w"], 
+                ["desc-reorient_T2w", "T2w"],
+                "space-T1w_desc-brain_mask",
+                "space-T2w_desc-acpcbrain_mask"],
+     "outputs": ["space-T2w_desc-brain_mask"]}
+    '''
+
+    brain_mask_T2 = mask_T2(wf_name=f'brain_mask_T2_{pipe_num}')
+
+    node, out = strat_pool.get_data(['desc-reorient_T1w','T1w'])
+    wf.connect(node, out, brain_mask_T2, 'inputspec.T1w')
+
+    node, out = strat_pool.get_data(['desc-reorient_T2w',
+                                     'T2w'])
+    wf.connect(node, out, brain_mask_T2, 'inputspec.T2w')
+
+    if not cfg.anatomical_preproc['acpc_alignment']['run']:
+        node, out = strat_pool.get_data(["space-T1w_desc-brain_mask"])
+        wf.connect(node, out, brain_mask_T2, 'inputspec.T1w_mask')
+        outputs = {
+            'space-T2w_desc-brain_mask': (brain_mask_T2, 'outputspec.T2w_mask')
+        }
+    elif cfg.anatomical_preproc['acpc_alignment']['run']:
+        outputs = {
+            'space-T2w_desc-brain_mask': (strat_pool.get_data(["space-T2w_desc-acpcbrain_mask"]))
+        }
+    return (wf, outputs)
+ 
+
+def brain_mask_acpc_T2(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "brain_mask_acpc_T2",
+     "config": "None",
+     "switch": "None",
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-reorient_T1w", "T1w"], 
+                ["desc-reorient_T2w", "T2w"],
+                ["space-T1w_desc-acpcbrain_mask", "space-T1w_desc-brain_mask"]],
+     "outputs": ["space-T2w_desc-acpcbrain_mask"]}
+    '''
+
+    brain_mask_T2 = mask_T2(wf_name=f'brain_mask_T2_{pipe_num}')
+
+    node, out = strat_pool.get_data(['desc-reorient_T1w','T1w'])
+    wf.connect(node, out, brain_mask_T2, 'inputspec.T1w')
+
+    node, out = strat_pool.get_data(['desc-reorient_T2w',
+                                     'T2w'])
+    wf.connect(node, out, brain_mask_T2, 'inputspec.T2w')
+
+    node, out = strat_pool.get_data(["space-T1w_desc-acpcbrain_mask", "space-T1w_desc-brain_mask"])
+    wf.connect(node, out, brain_mask_T2, 'inputspec.T1w_mask')
+
+    outputs = {
+        'space-T2w_desc-acpcbrain_mask': (brain_mask_T2, 'outputspec.T2w_mask')
+    }
+
+    return (wf, outputs)
+
+
 def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_extraction_T2",
@@ -1982,7 +2118,7 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                 ["space-T2w_desc-brain_mask"])],
+                 ["space-T2w_desc-brain_mask", "space-T2w_desc-acpcbrain_mask"])],
      "outputs": ["desc-tempbrain_T2w"]}
     '''
 
@@ -1996,7 +2132,8 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_a')
 
-    node, out = strat_pool.get_data(['space-T2w_desc-brain_mask'])
+    node, out = strat_pool.get_data(['space-T2w_desc-brain_mask',
+                                     'space-T2w_desc-acpcbrain_mask'])
     wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_b')
 
     outputs = {
