@@ -3,9 +3,11 @@ See https://fcp-indi.github.com/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.'''  # noqa E501
+import os
 import re
 from inspect import Parameter, Signature, signature
 from nipype.pipeline import engine as pe
+from traits.trait_base import Undefined
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -90,23 +92,49 @@ class Node(pe.Node):
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
         if hasattr(self, '_mem_x'):
-            import os
-            from traits.trait_base import Undefined
             try:
                 mem_x_path = getattr(self.inputs, self._mem_x[1])
             except AttributeError as e:
                 raise AttributeError(
                     f'{e.args[0]} in Node \'{self.name}\'') from e
-            if mem_x_path is not Undefined and os.path.exists(mem_x_path):
+            if self._check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
-                from CPAC.vmhc.utils import get_img_nvols
-                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                    getattr(mem_x_path))
-                del self._mem_x
-            else:  # constant + mem_x[0] * 300
-                return self._mem_gb + self._mem_x[0] * 300
+                return self._apply_mem_x(mem_x_path)
+            else:
+                mem_x_path = self.input_source[self._mem_x[1]]
+                if self._check_mem_x_path(mem_x_path):
+                    # constant + mem_x[0] * t
+                    return self._apply_mem_x(mem_x_path)
+                else:
+                    # constant + mem_x[0] * 300
+                    return self._mem_gb + self._mem_x[0] * 300
 
         return self._mem_gb
+
+    def _check_mem_x_path(self, mem_x_path):
+        if isinstance(mem_x_path, list):
+            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
+        try:
+            return mem_x_path is not Undefined and os.path.exists(
+                mem_x_path)
+        except TypeError:
+            return False
+
+    def _apply_mem_x(self, mem_x_path):
+        from CPAC.vmhc.utils import get_img_nvols
+        print(f'mem_x_path: {mem_x_path}')
+        if os.path.exists(mem_x_path):
+            self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                mem_x_path)
+            del self._mem_x
+        return self._mem_gb
+
+    @property
+    def mem_x(self):
+        """Get memory multiplier"""
+        if hasattr(self, '_mem_x'):
+            return self._mem_x
+        return None
 
 
 class MapNode(Node, pe.MapNode):
@@ -124,3 +152,24 @@ class MapNode(Node, pe.MapNode):
             Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
                       default=DEFAULT_MEM_GB)
         )[1] for p in signature(pe.Node).parameters.items()])
+
+
+class Workflow(pe.Workflow):
+    def _configure_exec_nodes(self, graph):
+        """Ensure that each node knows where to get inputs from"""
+        for node in graph.nodes():
+            node.input_source = {}
+            for edge in graph.in_edges(node):
+                data = graph.get_edge_data(*edge)
+                for sourceinfo, field in data["connect"]:
+                    node.input_source[field] = (
+                        os.path.join(edge[0].output_dir(),
+                                     "result_%s.pklz" % edge[0].name),
+                        sourceinfo,
+                    )
+                    if node and hasattr(
+                        node, 'mem_x'
+                    ) and isinstance(
+                        node.mem_x, tuple
+                    ) and node.mem_x[1] == field:
+                        node._apply_mem_x(node.input_source[field][0])
