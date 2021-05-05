@@ -191,7 +191,7 @@ registration_workflows:
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
         T1w_template_res-2: /ABCD_template/MNI152_T1_2mm.nii.gz
 
-    applywarp: 
+    apply_transform: 
 
       # Choose the tool to apply transform regardless of which tool to calculate transform
       # 'default' will use the same tool as registration
