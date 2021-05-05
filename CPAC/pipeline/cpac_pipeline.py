@@ -838,7 +838,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 if rpool.check_rpool('space-T2w_desc-brain_mask'):
                     acpc_blocks_T2 = [
                         acpc_align_head_with_mask_T2
-                        # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
+                        # outputs space-T2w_desc-brain_mask for later - keep the mask (the user provided)
                     ]
                 else:
                     acpc_blocks_T2 = [
