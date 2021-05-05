@@ -2023,16 +2023,16 @@ def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
 
-    brain_mask_T2 = mask_T2(wf_name=f'brain_mask_T2_{pipe_num}')
-
-    node, out = strat_pool.get_data(['desc-reorient_T1w','T1w'])
-    wf.connect(node, out, brain_mask_T2, 'inputspec.T1w')
-
-    node, out = strat_pool.get_data(['desc-reorient_T2w',
-                                     'T2w'])
-    wf.connect(node, out, brain_mask_T2, 'inputspec.T2w')
-
     if not cfg.anatomical_preproc['acpc_alignment']['run']:
+        brain_mask_T2 = mask_T2(wf_name=f'brain_mask_T2_{pipe_num}')
+
+        node, out = strat_pool.get_data(['desc-reorient_T1w','T1w'])
+        wf.connect(node, out, brain_mask_T2, 'inputspec.T1w')
+
+        node, out = strat_pool.get_data(['desc-reorient_T2w',
+                                        'T2w'])
+        wf.connect(node, out, brain_mask_T2, 'inputspec.T2w')
+
         node, out = strat_pool.get_data(["space-T1w_desc-brain_mask"])
         wf.connect(node, out, brain_mask_T2, 'inputspec.T1w_mask')
         outputs = {
