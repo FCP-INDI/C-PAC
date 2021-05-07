@@ -248,15 +248,6 @@ registration_workflows:
 
       target_template: 
 
-        # using: ['T1_template', 'EPI_template', 'ABCD']
-        # this is a fork point
-        # NOTE:
-        #   this will determine which registration transform to use to warp the functional
-        #   outputs and derivatives to template space.
-        #   if using 'ABCD', apply motion correction, func-to-anat, anat-to-template transforms 
-        #   on each of raw functional volume same as ABCD-options pipeline.
-        using: [ABCD]
-
         # option parameters
         T1_template:
 
@@ -278,6 +269,12 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
+      # apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+      apply_transform_on_preproc_func: Off
+
+      # apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
+      apply_transform_on_raw_func: On
+
 functional_preproc: 
 
   slice_timing_correction: 
@@ -289,8 +286,13 @@ functional_preproc:
 
   motion_estimates_and_correction: 
 
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: On
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: On
+
+      # calculate motion statistics AFTER motion correction
+      calculate_motion_after: Off
 
     motion_correction: 
 
@@ -309,6 +311,20 @@ functional_preproc:
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'ABCD']
     # this is a fork point
     using: [ABCD]
+
+    # Apply functional mask in native space
+    apply_func_mask_in_native_space: Off
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: Off
+
+  normalize_func:
+
+    # Normalize functional image
+    run: Off
+
 
 nuisance_corrections: 
 

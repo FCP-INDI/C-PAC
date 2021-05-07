@@ -853,6 +853,12 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
+      # apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+      apply_transform_on_preproc_func: On
+
+      # apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
+      apply_transform_on_raw_func: Off
+
 
 functional_preproc:
 
@@ -896,8 +902,13 @@ functional_preproc:
 
   motion_estimates_and_correction:
 
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: Off
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: On
+
+      # calculate motion statistics AFTER motion correction
+      calculate_motion_after: Off
 
     motion_correction:
 
@@ -1059,6 +1070,19 @@ functional_preproc:
 
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: False
+
+    # Apply functional mask in native space
+    apply_func_mask_in_native_space: On
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: On
 
 
 nuisance_corrections:

@@ -970,7 +970,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_prep_blocks += distcor_blocks
 
         if cfg['functional_preproc']['motion_estimates_and_correction'][
-            'calculate_motion_first']:
+            'motion_estimates']['calculate_motion_first']:
             func_motion_blocks = [
                 get_motion_ref,
                 func_motion_estimates,
@@ -1022,7 +1022,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'coregistration']['run'
     ] and 'T1_template' in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
-            'target_template']['using']:
+            'target_template']['using'] and cfg.registration_workflows[
+        'functional_registration']['func_registration_to_template'][
+            'apply_transform_on_preproc_func']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
@@ -1076,11 +1078,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_T1template_abcd],
                             warp_bold_mean_to_T1template]
-                            
+
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
-                            
+
     apply_func_warp = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['run_EPI']
     template_funcs = [

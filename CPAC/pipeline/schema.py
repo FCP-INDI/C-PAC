@@ -446,7 +446,7 @@ schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template', 'ABCD'})],
+                    'using': [In({'T1_template', 'EPI_template'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
@@ -467,6 +467,8 @@ schema = Schema({
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
                 },
+                'apply_transform_on_preproc_func': bool,
+                'apply_transform_on_raw_func': bool,
             },
         },
     },
@@ -501,7 +503,10 @@ schema = Schema({
             'run': forkable
         },
         'motion_estimates_and_correction': {
-            'calculate_motion_first': bool,
+            'motion_estimates': {
+                'calculate_motion_first': bool,
+                'calculate_motion_after': bool,
+            },
             'motion_correction': {
                 'using': [In({'3dvolreg', 'mcflirt'})],
                 'AFNI-3dvolreg': {
@@ -602,6 +607,13 @@ schema = Schema({
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },
+            'apply_func_mask_in_native_space': bool,
+        },
+        'generate_func_mean': {
+            'run': bool,
+        },
+        'normalize_func': {
+            'run': bool,
         },
     },
     'nuisance_corrections': {

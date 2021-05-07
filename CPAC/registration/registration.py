@@ -2417,7 +2417,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
-     "inputs": [("desc-mean_bold",
+     "inputs": [(["desc-mean_bold", "desc-reginput_bold"],
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("from-T1w_to-template_mode-image_xfm",
                  "from-template_to-T1w_mode-image_xfm",
@@ -2443,7 +2443,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out, xfm, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('desc-mean_bold')
+    node, out = strat_pool.get_data(['desc-mean_bold', 'desc-reginput_bold'])
     wf.connect(node, out, xfm, 'inputspec.mean_bold')
 
     node, out = strat_pool.get_data('T1w_brain_template_funcreg')
@@ -2520,9 +2520,11 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_timeseries_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["registration_workflows", "functional_registration",
+                "func_registration_to_template", "apply_transform_on_preproc_func"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
@@ -2532,6 +2534,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_desc-cleaned_bold",
                  "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold",
+                 "space-template_desc-motion_bold",
                  "space-template_bold"]}
     '''
 
@@ -2582,11 +2585,13 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     """
     {"name": "transform_timeseries_to_T1template_abcd",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["target_template", "using"],
-     "option_val": "ABCD",
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["registration_workflows", "functional_registration",
+                "func_registration_to_template", "apply_transform_on_raw_func"]],
+     "option_key": "None",
+     "option_val": "None",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "bold",
@@ -2808,9 +2813,10 @@ def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_bold_mean_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["functional_preproc", "generate_func_mean", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-mean_bold",
@@ -2863,9 +2869,11 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_bold_mask_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["registration_workflows", "functional_registration",
+                "func_registration_to_template", "apply_transform_on_preproc_func"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("space-bold_desc-brain_mask",
@@ -2913,9 +2921,11 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     Node Block:
     {"name": "transform_bold_mask_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["registration_workflows", "functional_registration",
+                "func_registration_to_template", "apply_transform_on_preproc_func"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("space-bold_desc-brain_mask",

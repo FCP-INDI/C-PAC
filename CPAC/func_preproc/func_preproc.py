@@ -1178,8 +1178,10 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "calc_motion_stats",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["functional_preproc", "run"], 
+                ["functional_preproc", "motion_estimates_and_correction", 
+                "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-motion_bold",
@@ -1721,8 +1723,9 @@ def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "bold_masking",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": None,
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "func_masking", "apply_func_mask_in_native_space"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-motion_bold", "desc-preproc_bold", "bold"],
@@ -1753,8 +1756,9 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_mean",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "generate_func_mean", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-brain_bold"],
@@ -1780,8 +1784,9 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_normalize",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "normalize_func", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-brain_bold",
