@@ -26,6 +26,7 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node,
     resolve_resolution
 )
+from CPAC.vmhc.utils import get_img_nvols
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
@@ -1373,6 +1374,11 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     wf, rpool, diff, blip, fmap_rp_list = \
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
+
+    # Largest (x * y * z * t) functional image size
+    wf._largest_func = max([get_img_nvols(
+        func_paths_dct[scan]['scan']
+    ) for scan in func_paths_dct.keys()])
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 

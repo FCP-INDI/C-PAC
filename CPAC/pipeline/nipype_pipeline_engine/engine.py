@@ -6,8 +6,10 @@ for Nipype's documentation.'''  # noqa E501
 import os
 import re
 from inspect import Parameter, Signature, signature
+from nibabel.filebasedimages import ImageFileError
 from nipype.pipeline import engine as pe
 from traits.trait_base import Undefined
+from traits.trait_handlers import TraitListObject
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -106,27 +108,35 @@ class Node(pe.Node):
                     # constant + mem_x[0] * t
                     return self._apply_mem_x(mem_x_path)
                 else:
-                    # constant + mem_x[0] * 300
-                    return self._mem_gb + self._mem_x[0] * 300
+                    # constant + mem_x[0] * 600
+                    return self._mem_gb + self._mem_x[0] * 600
 
         return self._mem_gb
 
     def _check_mem_x_path(self, mem_x_path):
-        if isinstance(mem_x_path, list):
-            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
+        mem_x_path = self._grab_first_path(mem_x_path)
         try:
             return mem_x_path is not Undefined and os.path.exists(
                 mem_x_path)
         except TypeError:
             return False
 
+    def _grab_first_path(self, mem_x_path):
+        if isinstance(mem_x_path, list) or \
+        isinstance(mem_x_path, TraitListObject) or \
+        isinstance(mem_x_path, tuple):
+            return mem_x_path[0] if len(mem_x_path) else Undefined
+
     def _apply_mem_x(self, mem_x_path):
         from CPAC.vmhc.utils import get_img_nvols
-        print(f'mem_x_path: {mem_x_path}')
-        if os.path.exists(mem_x_path):
-            self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
-                mem_x_path)
-            del self._mem_x
+        mem_x_path = self._grab_first_path(mem_x_path)
+        if mem_x_path is not None and os.path.exists(mem_x_path):
+            try:
+                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                    mem_x_path)
+                del self._mem_x
+            except ImageFileError:
+                pass  # could be a pickle or _unfinshed file, for example
         return self._mem_gb
 
     @property
@@ -167,9 +177,10 @@ class Workflow(pe.Workflow):
                                      "result_%s.pklz" % edge[0].name),
                         sourceinfo,
                     )
-                    if node and hasattr(
-                        node, 'mem_x'
-                    ) and isinstance(
-                        node.mem_x, tuple
-                    ) and node.mem_x[1] == field:
-                        node._apply_mem_x(node.input_source[field][0])
+                    if node and hasattr(node, 'mem_x'):
+                        if hasattr(self, '_largest_func'):
+                            node._apply_mem_x(self._largest_func)
+                        elif isinstance(
+                            node.mem_x, tuple
+                        ) and node.mem_x[1] == field:
+                            node._apply_mem_x(node.input_source[field][0])
