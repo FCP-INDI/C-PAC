@@ -231,7 +231,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         c)
 
     if not plugin:
-        plugin = 'MultiProc'
+        plugin = 'LegacyMultiProc'
 
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb

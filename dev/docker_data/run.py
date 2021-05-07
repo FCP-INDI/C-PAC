@@ -663,7 +663,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin='MultiProc' if plugin_args['n_procs'] > 1 else 'Linear',
+            plugin='LegacyMultiProc' if plugin_args[
+                'n_procs'
+            ] > 1 else 'Linear',
             plugin_args=plugin_args,
             tracking=not args.tracking_opt_out,
             test_config = 1 if args.analysis_level == "test_config" else 0
