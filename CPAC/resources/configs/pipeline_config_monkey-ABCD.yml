@@ -370,6 +370,20 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+  motion_estimates_and_correction:
+
+    motion_correction:
+
+      # using: ['3dvolreg', 'mcflirt']
+      # this is a fork point
+      using: ['mcflirt']
+
+      # Choose motion correction reference. Options: mean, median, selected volume
+      motion_correction_reference: ['selected volume']
+
+      # Choose motion correction reference volume
+      motion_correction_reference_volume: 0
+
   distortion_correction: 
 
     # this is a fork point
