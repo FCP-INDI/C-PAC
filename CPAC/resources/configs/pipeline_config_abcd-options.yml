@@ -334,6 +334,9 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: Off
+
     # Select which nuisance signal corrections to apply
     Regressors: 
       - Bandpass:
