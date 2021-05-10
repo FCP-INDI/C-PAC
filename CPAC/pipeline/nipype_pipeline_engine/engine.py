@@ -2,12 +2,15 @@
 See https://fcp-indi.github.com/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
-for Nipype's documentation.'''  # noqa E501
+for Nipype's documentation.
+'''  # noqa E501
 import os
 import re
 from inspect import Parameter, Signature, signature
+from nibabel import load
 from nibabel.filebasedimages import ImageFileError
 from nipype.pipeline import engine as pe
+from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
 
@@ -108,8 +111,8 @@ class Node(pe.Node):
                     # constant + mem_x[0] * t
                     return self._apply_mem_x(mem_x_path)
                 else:
-                    # constant + mem_x[0] * 600
-                    return self._mem_gb + self._mem_x[0] * 600
+                    # constant + mem_x[0] * 1200
+                    return self._mem_gb + self._mem_x[0] * 1200
 
         return self._mem_gb
 
@@ -122,21 +125,24 @@ class Node(pe.Node):
             return False
 
     def _grab_first_path(self, mem_x_path):
-        if isinstance(mem_x_path, list) or \
-        isinstance(mem_x_path, TraitListObject) or \
-        isinstance(mem_x_path, tuple):
-            return mem_x_path[0] if len(mem_x_path) else Undefined
+        if (
+            isinstance(mem_x_path, list) or
+            isinstance(mem_x_path, TraitListObject) or
+            isinstance(mem_x_path, tuple)
+        ):
+            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
+        return mem_x_path
 
     def _apply_mem_x(self, mem_x_path):
-        from CPAC.vmhc.utils import get_img_nvols
         mem_x_path = self._grab_first_path(mem_x_path)
         if mem_x_path is not None and os.path.exists(mem_x_path):
             try:
-                self._mem_gb = self._mem_gb + self._mem_x[0] * get_img_nvols(
+                self._mem_gb = self._mem_gb + self._mem_x[0] * get_data_size(
                     mem_x_path)
                 del self._mem_x
-            except ImageFileError:
-                pass  # could be a pickle or _unfinshed file, for example
+            except ImageFileError:  # e.g., a pickle or _unfinshed file
+                # TODO: get from elsewhere? set in node init?
+                return max(self._mem_gb, DEFAULT_MEM_GB)
         return self._mem_gb
 
     @property
@@ -184,3 +190,31 @@ class Workflow(pe.Workflow):
                             node.mem_x, tuple
                         ) and node.mem_x[1] == field:
                             node._apply_mem_x(node.input_source[field][0])
+
+
+def get_data_size(filepath):
+    """Function to return the size of a functional image (x * y * z * t)
+
+    # !!!
+    # Temporarily returns just the time dimension, defaulting to 1200.
+    # !!!
+
+    Parameters
+    ----------
+    filepath : str or path
+
+    Returns
+    -------
+    int
+    """
+    # !!!
+    # Begin temporary block
+    # !!!
+    try:
+        return load(filepath).shape[3]
+    except Exception:
+        return 1200
+    # !!!
+    # End temporary block
+    # !!!
+    return prod(load(filepath).shape)
