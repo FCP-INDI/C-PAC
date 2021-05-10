@@ -573,6 +573,20 @@ def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
             # run_ants_apply_warp()
 
 
+def run_c3d(reference_file, source_file, transform_file):
+
+    import os
+    import subprocess
+
+    itk_transform = os.path.join(os.getcwd(), 'affine.txt')
+
+    cmd = ['c3d_affine_tool', '-ref', reference_file, '-src',
+            source_file, transform_file, '-fsl2ras', '-oitk', itk_transform]
+    retcode = subprocess.check_output(cmd)
+
+    return itk_transform
+
+
 def run_c4d(input, output_name):
     
     import os

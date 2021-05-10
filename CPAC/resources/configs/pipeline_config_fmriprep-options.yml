@@ -294,6 +294,14 @@ registration_workflows:
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
+      apply_transform:
+
+        # options: 'default', 'abcd', 'single_step_resampling'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        using: 'single_step_resampling'
+
 functional_preproc: 
 
   motion_estimates_and_correction: 

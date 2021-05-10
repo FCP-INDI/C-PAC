@@ -21,6 +21,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     change_itk_transform_type, \
                                     hardcoded_reg, \
                                     run_ants_apply_warp, \
+                                    run_c3d, \
                                     run_c4d
 
 from CPAC.utils.utils import check_prov_for_regtool
@@ -2805,16 +2806,134 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """
+    {"name": "single_step_resample_timeseries_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": "single_step_resampling",
+     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
+                  "desc-motion_bold", "desc-preproc_bold", "bold"],
+                 ['desc-reginput_bold', 'desc-mean_bold'],
+                 "bold",
+                 "motion-basefile",
+                 "coordinate-transformation",
+                 "from-T1w_to-template_mode-image_xfm",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "from-bold_to-template_mode-image_xfm",
+                 ["T1w", "desc-preproc_T1w"],
+                 "space-template_res-bold_desc-brain_T1w",
+                 "space-template_res-bold_desc-T1brain_mask",
+                 "T1w_brain_template_funcreg")],
+     "outputs": ["space-template_desc-brain_bold"]}
+    """
+
+    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
+    # Ref: https://github.com/nipreps/fmriprep/blob/master/fmriprep/workflows/bold/resampling.py#L159-L419
+
+    bbr2itk = pe.Node(util.Function(input_names=['reference_file',
+                                                 'source_file',
+                                                 'transform_file'],
+                                    output_names=['itk_transform'],
+                                    function=run_c3d),
+                      name=f'convert_bbr2itk_{pipe_num}')
+
+    node, out = strat_pool.get_data(['T1w', 'desc-preproc_T1w'])
+    wf.connect(node, out, bbr2itk, 'reference_file')
+
+    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
+    wf.connect(node, out, bbr2itk, 'source_file')
+
+    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, bbr2itk, 'transform_file')
+
+    split_func = pe.Node(interface=fsl.Split(),
+        name=f'split_func_{pipe_num}')
+
+    split_func.inputs.dimension = 't'
+
+    node, out = strat_pool.get_data('bold')
+    wf.connect(node, out, split_func, 'in_file')
+
+    ### Loop starts! ###
+    # c3d_affine_tool
+    motionxfm2itk = pe.MapNode(util.Function(
+        input_names=['reference_file',
+                     'source_file',
+                     'transform_file'],
+        output_names=['itk_transform'],
+        function=run_c3d),
+        name=f'convert_motionxfm2itk_{pipe_num}',
+        iterfield=['reference_file', 'source_file', 'transform_file'])
+
+    node, out = strat_pool.get_data('motion-basefile')
+    wf.connect(node, out, motionxfm2itk, 'reference_file')
+    wf.connect(node, out, motionxfm2itk, 'source_file')
+
+    node, out = strat_pool.get_data('coordinate-transformation')
+    wf.connect(node, out, motionxfm2itk, 'transform_file')
+
+    collectxfm = pe.MapNode(util.Merge(4),
+                            name=f'collectxfm_func_to_standard_{pipe_num}',
+                            iterfield=['in4'])
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, collectxfm, 'in1')
+
+    wf.connect(bbr2itk, 'itk_transform',
+               collectxfm, 'in2')
+
+    collectxfm.inputs.in3 = 'identity'
+
+    wf.connect(motionxfm2itk, 'itk_transform',
+               collectxfm, 'in4')
+
+    # antsApplyTransforms
+    applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
+                                           name=f'applyxfm_func_to_standard_{pipe_num}',
+                                           iterfield=['input_image', 'transforms'])
+
+    applyxfm_func_to_standard.inputs.float = True
+    applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
+
+    wf.connect(split_func, 'out_files',
+               applyxfm_func_to_standard, 'input_image')
+
+    node, out = strat_pool.get_data('T1w_brain_template_funcreg')
+    wf.connect(node, out, applyxfm_func_to_standard, 'reference_image')
+
+    wf.connect(collectxfm, 'out',
+               applyxfm_func_to_standard, 'transforms')
+
+    ### Loop ends! ###
+
+    # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
+    merge_func_to_standard = pe.Node(interface=fsl.Merge(),
+                                     name=f'merge_func_to_standard_{pipe_num}')
+
+    merge_func_to_standard.inputs.dimension = 't'
+
+    wf.connect(applyxfm_func_to_standard, 'output_image',
+        merge_func_to_standard, 'in_files')
+
+    outputs = {
+        'space-template_desc-brain_bold': (merge_func_to_standard, 'merged_file')
+    }
+
+    return (wf, outputs)
+
+
 def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_bold_mean_to_T1template",
-     "config": "None",
-     "switch": [["registration_workflows", "functional_registration",
-                "func_registration_to_template", "run"],
-                ["functional_preproc", "generate_func_mean", "run"]],
-     "option_key": "None",
-     "option_val": "None",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": "default",
      "inputs": [("desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],

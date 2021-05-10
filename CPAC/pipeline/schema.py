@@ -468,7 +468,7 @@ schema = Schema({
                     'identity_matrix': str,
                 },
                 'apply_transform': {
-                    'using': In({'default', 'abcd'}),
+                    'using': In({'default', 'abcd', 'single_step_resampling'}),
                 },
             },
         },
