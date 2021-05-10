@@ -467,8 +467,9 @@ schema = Schema({
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
                 },
-                'apply_transform_on_preproc_func': bool,
-                'apply_transform_on_raw_func': bool,
+                'apply_transform': {
+                    'using': In({'default', 'abcd'}),
+                },
             },
         },
     },

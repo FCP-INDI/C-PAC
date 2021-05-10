@@ -853,11 +853,12 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
-      # apply func-to-anat and anat-to-template transforms on motion corrected functional image.
-      apply_transform_on_preproc_func: On
+      apply_transform:
 
-      # apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
-      apply_transform_on_raw_func: Off
+        # options: 'default', 'abcd'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
+        using: 'default'
 
 
 functional_preproc:

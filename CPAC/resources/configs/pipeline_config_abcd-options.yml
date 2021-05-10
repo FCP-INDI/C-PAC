@@ -269,11 +269,12 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
-      # apply func-to-anat and anat-to-template transforms on motion corrected functional image.
-      apply_transform_on_preproc_func: Off
+      apply_transform:
 
-      # apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
-      apply_transform_on_raw_func: On
+        # options: 'default', 'abcd'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
+        using: 'abcd'
 
 functional_preproc: 
 

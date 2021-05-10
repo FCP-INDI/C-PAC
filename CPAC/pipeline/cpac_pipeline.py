@@ -1024,7 +1024,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'functional_registration']['func_registration_to_template'][
             'target_template']['using'] and cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
-            'apply_transform_on_preproc_func']:
+            'apply_transform']['using'] == 'default':
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
