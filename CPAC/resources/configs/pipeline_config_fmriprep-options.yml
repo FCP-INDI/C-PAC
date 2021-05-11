@@ -23,6 +23,9 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: /outputs/output
 
+    # Generate quality control pages containing preprocessing and derivative outputs.
+    generate_quality_control_images: False
+
   working_directory: 
 
     # Directory where C-PAC should store temporary and intermediate files.
@@ -71,11 +74,14 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
-
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: On
+  n4_bias_field_correction:
+
+    # this is a fork option
+    run: [On]
+
+    # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
+    shrink_factor: 2
 
   brain_extraction: 
 
@@ -330,6 +336,9 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
+
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: Off
 
     # Select which nuisance signal corrections to apply
     Regressors: 

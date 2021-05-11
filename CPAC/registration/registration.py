@@ -2866,7 +2866,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
         output_names=['itk_transform'],
         function=run_c3d),
         name=f'convert_motionxfm2itk_{pipe_num}',
-        iterfield=['reference_file', 'source_file', 'transform_file'])
+        iterfield=['transform_file'])
 
     node, out = strat_pool.get_data('motion-basefile')
     wf.connect(node, out, motionxfm2itk, 'reference_file')
