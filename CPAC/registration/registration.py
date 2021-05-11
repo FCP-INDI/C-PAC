@@ -2948,7 +2948,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
         apply_mask, 'mask_file')
 
     outputs = {
-        'space-template_bold': (merge_func_to_standard, 'merged_file'),
+        'space-template_desc-preproc_bold': (merge_func_to_standard, 'merged_file'),
         'space-template_desc-brain_bold': (apply_mask, 'out_file')
     }
 
