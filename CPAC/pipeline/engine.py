@@ -735,9 +735,8 @@ class ResourcePool(object):
                     'pe_direction', 'subject', 'atlas_name', 'scan_params',
                     'deltaTE', 'diff_phase_dwell', 'dwell_asym_ratio',
                     'diffphase_scan_params', 'diffmag_scan_params']
-        excl = ['T1w', 'bold', 'motion-basefile',
-                'diffphase', 'diffmag', 'epi',
-                'coordinate-transformation']
+        excl = ['T1w', 'bold', 'diffphase', 'diffmag', 
+                'epi', 'coordinate-transformation']
         substring_excl = []
         bold_descs = ['desc-cleaned', 'desc-brain', 'desc-motion', 
                       'desc-preproc']
