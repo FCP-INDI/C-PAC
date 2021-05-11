@@ -240,7 +240,7 @@ registration_workflows:
 
           # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
           # this can increase tissue contrast which may improve registration quality in some data
-          n4_correct_func: Off
+          n4_correct_func: On
 
       boundary_based_registration: 
 
