@@ -2858,7 +2858,6 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
-    # c3d_affine_tool
     motionxfm2itk = pe.MapNode(util.Function(
         input_names=['reference_file',
                      'source_file',
@@ -2890,7 +2889,6 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(motionxfm2itk, 'itk_transform',
                collectxfm, 'in4')
 
-    # antsApplyTransforms
     applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
                                            name=f'applyxfm_func_to_standard_{pipe_num}',
                                            iterfield=['input_image', 'transforms'])
@@ -2909,7 +2907,6 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
 
     ### Loop ends! ###
 
-    # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
     merge_func_to_standard = pe.Node(interface=fsl.Merge(),
                                      name=f'merge_func_to_standard_{pipe_num}')
 
@@ -2918,14 +2915,37 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(applyxfm_func_to_standard, 'output_image',
         merge_func_to_standard, 'in_files')
 
+    applyxfm_func_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
+                                             name=f'applyxfm_func_mask_to_standard_{pipe_num}')
+
+    applyxfm_func_mask_to_standard.inputs.interpolation = 'MultiLabel'
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, applyxfm_func_mask_to_standard, 'input_image')
+
+    node, out = strat_pool.get_data('T1w_brain_template_funcreg')
+    wf.connect(node, out, applyxfm_func_mask_to_standard, 'reference_image')
+
+    collectxfm_mask = pe.Node(util.Merge(2),
+                              name=f'collectxfm_func_mask_to_standard_{pipe_num}')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, collectxfm_mask, 'in1')
+
+    wf.connect(bbr2itk, 'itk_transform',
+        collectxfm_mask, 'in2')
+
+    wf.connect(collectxfm_mask, 'out',
+        applyxfm_func_mask_to_standard, 'transforms')
+
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
                          name=f'get_func_brain_to_standard_{pipe_num}')
 
     wf.connect(merge_func_to_standard, 'merged_file',
         apply_mask, 'in_file')
 
-    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
-    wf.connect(node, out, apply_mask, 'mask_file')
+    wf.connect(applyxfm_func_mask_to_standard, 'output_image', 
+        apply_mask, 'mask_file')
 
     outputs = {
         'space-template_bold': (merge_func_to_standard, 'merged_file'),
