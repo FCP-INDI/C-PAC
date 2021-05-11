@@ -8,8 +8,8 @@ import os
 import re
 from inspect import Parameter, Signature, signature
 from nibabel import load
-from nibabel.filebasedimages import ImageFileError
 from nipype.pipeline import engine as pe
+from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -73,17 +73,29 @@ class Node(pe.Node):
         pe.Node.__init__.__doc__.rstrip(),
         '''
         mem_gb : int or float
-            Estimate (in GB) of constant memory to allocate for this node.
+            Estimate (in GB) of constant memory to allocate for this
+            node.
 
-        mem_x : tuple
-            (int or float, str)
-            Multiplier for memory allocation such that
-            `mem_x[0]` times
-            the number of timepoints in file at `mem+x[1]` plus
-            `mem_gb` equals
-            the total memory allocation for the node.
-            (TEMPORARY: will replace number of timepoints with
-            spatial dimensions times timepoints)''']))
+        mem_x : tuple or number
+
+            tuple (len 2)
+                (multiplier, path)
+                (int or float, str)
+
+                Multiplier for memory allocation such that `multiplier`
+                times x * y * z * t of 4-D file at `path` plus
+                `self._mem_gb` equals the total memory allocation for
+                the node.
+
+            tuple (len 1) or number
+                (multiplier, ) or multiplier
+                (number, ) or number
+                Multiplier for memory allocation such that `multiplier`
+                times `wf._largest_func` (x * y * z * t of the largest
+                functional file in `wf` where `wf` is the Workflow
+                containing this Node, if this Node is in a Workflow and
+                `wf` has the attribute `_largest_func`)
+            ''']))
 
     @property
     def mem_gb(self):
@@ -97,6 +109,10 @@ class Node(pe.Node):
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
         if hasattr(self, '_mem_x'):
+            if not isinstance(self._mem_x, tuple):
+                self._mem_x = (self._mem_x, )
+            if len(self._mem_x) == 1:
+                return self._apply_mem_x()
             try:
                 mem_x_path = getattr(self.inputs, self._mem_x[1])
             except AttributeError as e:
@@ -105,26 +121,42 @@ class Node(pe.Node):
             if self._check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
                 return self._apply_mem_x(mem_x_path)
-            else:
-                mem_x_path = self.input_source[self._mem_x[1]]
-                if self._check_mem_x_path(mem_x_path):
-                    # constant + mem_x[0] * t
-                    return self._apply_mem_x(mem_x_path)
-                else:
-                    # constant + mem_x[0] * 1200
-                    return self._mem_gb + self._mem_x[0] * 1200
-
+            raise FileNotFoundError(2, 'The memory estimate for Node '
+                                    f"'{self.name}' depends on the input "
+                                    f"'{self._mem_x[1]}' but no such file or "
+                                    'directory', mem_x_path)
         return self._mem_gb
 
     def _check_mem_x_path(self, mem_x_path):
+        '''Method to check if a supplied multiplicand path exists.
+
+        Parameters
+        ----------
+        mem_x_path : str, iterable, Undefined or None
+
+        Returns
+        -------
+        bool
+        '''
         mem_x_path = self._grab_first_path(mem_x_path)
         try:
             return mem_x_path is not Undefined and os.path.exists(
                 mem_x_path)
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
     def _grab_first_path(self, mem_x_path):
+        '''Method to grab the first path if multiple paths for given
+        multiplicand input
+
+        Parameters
+        ----------
+        mem_x_path : str, iterable, Undefined or None
+
+        Returns
+        -------
+        str, Undefined or None
+        '''
         if (
             isinstance(mem_x_path, list) or
             isinstance(mem_x_path, TraitListObject) or
@@ -133,16 +165,26 @@ class Node(pe.Node):
             mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
         return mem_x_path
 
-    def _apply_mem_x(self, mem_x_path):
-        mem_x_path = self._grab_first_path(mem_x_path)
-        if mem_x_path is not None and os.path.exists(mem_x_path):
-            try:
-                self._mem_gb = self._mem_gb + self._mem_x[0] * get_data_size(
-                    mem_x_path)
-                del self._mem_x
-            except ImageFileError:  # e.g., a pickle or _unfinshed file
-                # TODO: get from elsewhere? set in node init?
-                return max(self._mem_gb, DEFAULT_MEM_GB)
+    def _apply_mem_x(self, multiplicand=None):
+        '''Method to calculate and memoize a Node's estimated memory
+        footprint.
+
+        Parameters
+        ----------
+        multiplicand : str, int or None
+
+        Returns
+        -------
+        number
+            estimated memory usage (GB)
+        '''
+        if hasattr(self, '_mem_x'):
+            if not isinstance(multiplicand, int):
+                if self._check_mem_x_path(multiplicand):
+                    multiplicand = get_data_size(
+                        self._grab_first_path(multiplicand))
+            self._mem_gb = self._mem_gb + self._mem_x[0] * multiplicand
+            del self._mem_x
         return self._mem_gb
 
     @property
@@ -178,18 +220,33 @@ class Workflow(pe.Workflow):
             for edge in graph.in_edges(node):
                 data = graph.get_edge_data(*edge)
                 for sourceinfo, field in data["connect"]:
+                    print(f'dir(node): {dir(node)}')
+                    print(f'dir(edge): {dir(edge)}')
                     node.input_source[field] = (
                         os.path.join(edge[0].output_dir(),
                                      "result_%s.pklz" % edge[0].name),
                         sourceinfo,
                     )
+                    print()
                     if node and hasattr(node, 'mem_x'):
                         if hasattr(self, '_largest_func'):
                             node._apply_mem_x(self._largest_func)
                         elif isinstance(
                             node.mem_x, tuple
                         ) and node.mem_x[1] == field:
-                            node._apply_mem_x(node.input_source[field][0])
+                            input_resultfile = node.input_source.get(field)
+                            if len(input_resultfile):
+                                multiplicand_path = _load_resultfile(
+                                    input_resultfile
+                                ).inputs['in_file']
+                                try:
+                                    # memoize node._mem_gb if path
+                                    # already exists
+                                    node._apply_mem_x(multiplicand_path)
+                                except FileNotFoundError:
+                                    # store the path otherwise
+                                    node._mem_x = (node._mem_x[0],
+                                                   multiplicand_path)
 
 
 def get_data_size(filepath):
@@ -207,14 +264,4 @@ def get_data_size(filepath):
     -------
     int
     """
-    # !!!
-    # Begin temporary block
-    # !!!
-    try:
-        return load(filepath).shape[3]
-    except Exception:
-        return 1200
-    # !!!
-    # End temporary block
-    # !!!
     return prod(load(filepath).shape)

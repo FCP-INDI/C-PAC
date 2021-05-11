@@ -26,10 +26,10 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node,
     resolve_resolution
 )
-from CPAC.vmhc.utils import get_img_nvols
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
+from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
 logger = logging.getLogger('workflow')
 
@@ -1375,10 +1375,13 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
-    # Largest (x * y * z * t) functional image size
-    wf._largest_func = max([get_img_nvols(
+    # Memoize largest (x * y * z * t) functional image size in workflow
+    functional_scan_sizes = [get_data_size(
         func_paths_dct[scan]['scan']
-    ) for scan in func_paths_dct.keys()])
+    ) for scan in func_paths_dct.keys()]
+    if functional_scan_sizes:
+        wf._largest_func = max(functional_scan_sizes)
+    del functional_scan_sizes
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 
