@@ -2826,7 +2826,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  "from-bold_to-template_mode-image_xfm",
                  ["T1w", "desc-preproc_T1w"],
                  "T1w_brain_template_funcreg")],
-     "outputs": ["space-template_bold",
+     "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold"]}
     """
 
