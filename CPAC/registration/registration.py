@@ -2819,15 +2819,15 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  ['desc-reginput_bold', 'desc-mean_bold'],
                  "bold",
                  "motion-basefile",
+                 "space-bold_desc-brain_mask",
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
                  ["T1w", "desc-preproc_T1w"],
-                 "space-template_res-bold_desc-brain_T1w",
-                 "space-template_res-bold_desc-T1brain_mask",
                  "T1w_brain_template_funcreg")],
-     "outputs": ["space-template_desc-brain_bold"]}
+     "outputs": ["space-template_bold",
+                 "space-template_desc-brain_bold"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
@@ -2918,8 +2918,18 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(applyxfm_func_to_standard, 'output_image',
         merge_func_to_standard, 'in_files')
 
+    apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
+                         name=f'get_func_brain_to_standard_{pipe_num}')
+
+    wf.connect(merge_func_to_standard, 'merged_file',
+        apply_mask, 'in_file')
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, apply_mask, 'mask_file')
+
     outputs = {
-        'space-template_desc-brain_bold': (merge_func_to_standard, 'merged_file')
+        'space-template_bold': (merge_func_to_standard, 'merged_file'),
+        'space-template_desc-brain_bold': (apply_mask, 'out_file')
     }
 
     return (wf, outputs)
