@@ -2833,7 +2833,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
-                 ["T1w", "desc-preproc_T1w"],
+                 "T1w",
+                 "desc-brain_T1w",
                  "T1w_brain_template_funcreg")],
      "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold"]}
@@ -2849,8 +2850,17 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                                     function=run_c3d),
                       name=f'convert_bbr2itk_{pipe_num}')
 
-    node, out = strat_pool.get_data(['T1w', 'desc-preproc_T1w'])
-    wf.connect(node, out, bbr2itk, 'reference_file')
+    if cfg.registration_workflows['functional_registration'][
+            'coregistration']['boundary_based_registration'][
+            'reference'] == 'whole-head':
+        node, out = strat_pool.get_data('T1w')
+        wf.connect(node, out, bbr2itk, 'reference_file')
+
+    elif cfg.registration_workflows['functional_registration'][
+            'coregistration']['boundary_based_registration'][
+            'reference'] == 'brain':
+        node, out = strat_pool.get_data('desc-brain_T1w')
+        wf.connect(node, out, bbr2itk, 'reference_file')
 
     node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, bbr2itk, 'source_file')
