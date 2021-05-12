@@ -559,8 +559,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
 
         inputspec.func : string (nifti file)
             Input functional scan to be registered to MNI space
-        inputspec.anat_skull : string (nifti file)
-            Corresponding full-head scan of subject
+        inputspec.anat : string (nifti file)
+            Corresponding full-head or brain scan of subject
         inputspec.linear_reg_matrix : string (mat file)
             Affine matrix from linear functional to anatomical registration
         inputspec.anat_wm_segmentation : string (nifti file)
@@ -579,7 +579,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     register_bbregister_func_to_anat = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
-                                                       'anat_skull',
+                                                       'anat',
                                                        'linear_reg_matrix',
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule',
@@ -625,7 +625,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         bbreg_func_to_anat, 'in_file')
 
     register_bbregister_func_to_anat.connect(
-        inputspec, 'anat_skull',
+        inputspec, 'anat',
         bbreg_func_to_anat, 'reference')
 
     register_bbregister_func_to_anat.connect(
@@ -2367,8 +2367,17 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
 
-        node, out = strat_pool.get_data('T1w')
-        wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat_skull')
+        if cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration'][
+                'reference'] == 'whole-head':
+            node, out = strat_pool.get_data('T1w')
+            wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
+
+        elif cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration'][
+                'reference'] == 'brain':
+            node, out = strat_pool.get_data('desc-brain_T1w')
+            wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
 
         wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
                    func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
