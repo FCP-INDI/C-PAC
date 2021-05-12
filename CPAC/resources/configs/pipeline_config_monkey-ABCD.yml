@@ -250,7 +250,7 @@ registration_workflows:
       FSL-FNIRT: 
 
         # Reference mask for FSL registration.
-        ref_mask: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
+        ref_mask: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_0.5mm_brain_mask.nii.gz
         
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
@@ -286,6 +286,7 @@ registration_workflows:
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
+      
       boundary_based_registration: 
 
         # this is a fork point
@@ -332,7 +333,7 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+          T1w_brain_template_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.5mm_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
@@ -340,7 +341,7 @@ registration_workflows:
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
+          T1w_brain_template_mask_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.5mm_brain_mask.nii.gz
 
           # a standard template for resampling if using float resolution
           T1w_template_for_resample:  /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm.nii.gz
