@@ -379,8 +379,8 @@ functional_preproc:
       # this is a fork point
       using: ['mcflirt']
 
-      # Choose motion correction reference. Options: mean, median, selected volume
-      motion_correction_reference: ['selected volume']
+      # Choose motion correction reference. Options: mean, median, selected_volume
+      motion_correction_reference: ['selected_volume']
 
       # Choose motion correction reference volume
       motion_correction_reference_volume: 0
