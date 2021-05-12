@@ -570,7 +570,8 @@ def ants_apply_warps_func_mni(
                     num_strat),
                 iterfield=['input_image'],
                 mem_gb=1,
-                mem_x=(0.4, 'input_image'))
+                mem_x=(1401462037888665 / 2361183241434822606848,
+                       'input_image'))
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
@@ -578,7 +579,8 @@ def ants_apply_warps_func_mni(
                     output_name, inverse_string, registration_template,
                     num_strat),
                 mem_gb=1,
-                mem_x=(0.4, 'input_image'))
+                mem_x=(1401462037888665 / 2361183241434822606848,
+                       'input_image'))
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)

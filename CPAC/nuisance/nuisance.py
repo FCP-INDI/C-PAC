@@ -65,7 +65,8 @@ def erode_mask(name, segmentmap=True):
         imports=ero_imports),
                           name='erode_skullstrip_mask',
                           mem_gb=2.3,
-                          mem_x=(0.0013, 'roi_mask'))
+                          mem_x=(4664065662093477 / 2417851639229258349412352,
+                                 'roi_mask'))
 
     wf.connect(inputspec, 'brain_mask', eroded_mask, 'skullstrip_mask')
     wf.connect(inputspec, 'mask', eroded_mask, 'roi_mask')
@@ -1009,7 +1010,8 @@ def create_regressor_workflow(nuisance_selectors,
                         name='{}_flirt'
                              .format(anatomical_at_resolution_key),
                         mem_gb=3.63,
-                        mem_x=(0.0021, 'in_file')
+                        mem_x=(3767129957844731 / 1208925819614629174706176,
+                               'in_file')
                     )
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
@@ -1033,7 +1035,8 @@ def create_regressor_workflow(nuisance_selectors,
                         name='{}_flirt'
                              .format(functional_at_resolution_key),
                         mem_gb=0.521,
-                        mem_x=(0.0098, 'in_file')
+                        mem_x=(4394984950818853 / 302231454903657293676544,
+                               'in_file')
                     )
                     func_resample.inputs.apply_xfm = True
 
@@ -1119,7 +1122,8 @@ def create_regressor_workflow(nuisance_selectors,
                     MaskTool(outputtype='NIFTI_GZ'),
                     name='{}_union_masks'.format(regressor_type),
                     mem_gb=2.1,
-                    mem_x=(0.005, 'in_files')
+                    mem_x=(8969357042487455 / 1208925819614629174706176,
+                           'in_files')
                 )
 
                 nuisance_wf.connect(
@@ -1158,7 +1162,9 @@ def create_regressor_workflow(nuisance_selectors,
                                                     imports=compcor_imports),
                                            name='{}_DetrendPC'.format(regressor_type),
                                            mem_gb=0.4,
-                                           mem_x=(0.017, 'data_filename'))
+                                           mem_x=(3811976743057169 /
+                                                  151115727451828646838272,
+                                                  'data_filename'))
 
                     compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
@@ -1245,7 +1251,9 @@ def create_regressor_workflow(nuisance_selectors,
                             afni.Calc(expr='a/b', outputtype='NIFTI'),
                             name='{}_norm'.format(regressor_type),
                             mem_gb=1.7,
-                            mem_x=(0.0055, 'in_file_a')
+                            mem_x=(1233286593342025 /
+                                   151115727451828646838272,
+                                   'in_file_a')
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1515,7 +1523,8 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     nuisance_regression = pe.Node(interface=afni.TProject(),
                                   name='nuisance_regression',
                                   mem_gb=1.716,
-                                  mem_x=(0.007, 'in_file'))
+                                  mem_x=(6278549929741219 /
+                                         604462909807314587353088, 'in_file'))
 
     nuisance_regression.inputs.out_file = 'residuals.nii.gz'
     nuisance_regression.inputs.outputtype = 'NIFTI_GZ'
@@ -1612,7 +1621,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
                             as_module=True),
                     name='frequency_filter',
                     mem_gb=0.5,
-                    mem_x=(0.017, 'realigned_file')
+                    mem_x=(3811976743057169 / 151115727451828646838272,
+                           'realigned_file')
                 )
 
         frequency_filter.inputs.bandpass_freqs = [

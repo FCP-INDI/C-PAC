@@ -57,12 +57,16 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                     name=f'apply_warp_{wf_name}',
                                     iterfield=['input_image'],
                                     mem_gb=0.7,
-                                    mem_x=(0.04, 'input_image'))
+                                    mem_x=(8969357042487455 /
+                                           151115727451828646838272,
+                                           'input_image'))
         else:
             apply_warp = pe.Node(interface=ants.ApplyTransforms(),
                                  name=f'apply_warp_{wf_name}',
                                  mem_gb=0.7,
-                                 mem_x=(0.04, 'input_image'))
+                                 mem_x=(8969357042487455 /
+                                        151115727451828646838272,
+                                        'input_image'))
 
         apply_warp.inputs.dimension = 3
         apply_warp.interface.num_threads = int(num_ants_cores)
@@ -849,7 +853,8 @@ def create_wf_calculate_ants_warp(
                                         imports=reg_imports),
                 name='calc_ants_warp',
                 mem_gb=2.8,
-                mem_x=(0.01, 'moving_brain'))
+                mem_x=(8969357042487455 / 604462909807314587353088,
+                       'moving_brain'))
 
     calculate_ants_warp.interface.num_threads = num_threads
 
@@ -1175,7 +1180,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
         interface=ants.ApplyTransforms(),
         name=f'write_composite_linear{symm}_xfm',
         mem_gb=1.155,
-        mem_x=(0.005, 'input_image'))
+        mem_x=(8969357042487455 / 1208925819614629174706176, 'input_image'))
     write_composite_linear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_linear_xfm.inputs.output_image = \
         "from-T1w_to-template_mode-image_desc-linear_xfm.nii.gz"
@@ -1195,7 +1200,9 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
     collect_transforms = pe.Node(util.Merge(3),
                                  name=f'collect_transforms{symm}',
                                  mem_gb=0.8,
-                                 mem_x=(0.0047, 'in1'))
+                                 mem_x=(263474863123069 /
+                                        37778931862957161709568,
+                                        'in1'))
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_transforms, 'in1')
@@ -1225,7 +1232,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
         interface=ants.ApplyTransforms(),
         name=f'write_composite_invlinear{symm}_xfm',
         mem_gb=1.05,
-        mem_x=(0.0061, 'input_image'))
+        mem_x=(1367826948979337 / 151115727451828646838272, 'input_image'))
     write_composite_invlinear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_invlinear_xfm.inputs.output_image = \
         "from-template_to-T1w_mode-image_desc-linear_xfm.nii.gz"
@@ -1338,7 +1345,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
         interface=ants.ApplyTransforms(),
         name=f'write_composite_inv_{symm}xfm',
         mem_gb=0.3,
-        mem_x=(0.007, 'input_image'))
+        mem_x=(6278549929741219 / 604462909807314587353088, 'input_image'))
     write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
     write_composite_inv_xfm.inputs.output_image = \
         "from-template_to-T1w_mode-image_xfm.nii.gz"

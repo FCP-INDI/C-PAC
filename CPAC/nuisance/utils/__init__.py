@@ -321,8 +321,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                   name='{}_flirt'
                                        .format(node_mask_key),
                         mem_gb=3.63,
-                        mem_x=(0.0021, 'in_file')
-                                  )
+                        mem_x=(3767129957844731 / 1208925819614629174706176,
+                               'in_file'))
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -429,7 +429,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                         interface=ants.ApplyTransforms(),
                         name='{}_ants'.format(ventricles_key),
                         mem_gb=0.683,
-                        mem_x=(0.0085, 'input_image'))
+                        mem_x=(3811976743057169 / 302231454903657293676544,
+                               'input_image'))
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
