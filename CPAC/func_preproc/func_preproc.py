@@ -1538,7 +1538,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
                 (pre_dilate, n4_correct, [("out_file", "mask_image")]),
-                (func_skull_mean, n4_correct, [("in_file", "input_image")]), # TODO ref_bold
+                (func_skull_mean, n4_correct, [("out_file", "input_image")]), # TODO ref_bold
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
                 (skullstrip_first_pass, bet_dilate,
