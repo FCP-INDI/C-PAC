@@ -344,7 +344,7 @@ registration_workflows:
           T1w_brain_template_mask_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.5mm_brain_mask.nii.gz
 
           # a standard template for resampling if using float resolution
-          T1w_template_for_resample:  /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm.nii.gz
+          T1w_template_for_resample:  /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_0.5mm.nii.gz
       
       FNIRT_pipelines:
 
