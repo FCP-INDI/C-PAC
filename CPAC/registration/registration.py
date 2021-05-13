@@ -1299,7 +1299,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
         mem_gb=1.5)
     write_composite_xfm.inputs.print_out_composite_warp_file = True
     write_composite_xfm.inputs.output_image = \
-        "from-T1w_to-{sym}{tmpl}template_mode-image_xfm.nii.gz"
+        f"from-T1w_to-{sym}{tmpl}template_mode-image_xfm.nii.gz"
 
     wf.connect(inputNode, 'input_brain', write_composite_xfm, 'input_image')
 
@@ -2826,7 +2826,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  ['desc-reginput_bold', 'desc-mean_bold'],
-                 "bold",
+                 "desc-stc_bold",
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
                  "coordinate-transformation",
@@ -2873,7 +2873,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
 
     split_func.inputs.dimension = 't'
 
-    node, out = strat_pool.get_data('bold')
+    node, out = strat_pool.get_data('desc-stc_bold')
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
