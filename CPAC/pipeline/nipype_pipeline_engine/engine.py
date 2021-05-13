@@ -220,33 +220,33 @@ class Workflow(pe.Workflow):
             for edge in graph.in_edges(node):
                 data = graph.get_edge_data(*edge)
                 for sourceinfo, field in data["connect"]:
-                    print(f'dir(node): {dir(node)}')
-                    print(f'dir(edge): {dir(edge)}')
                     node.input_source[field] = (
                         os.path.join(edge[0].output_dir(),
                                      "result_%s.pklz" % edge[0].name),
                         sourceinfo,
                     )
-                    print()
                     if node and hasattr(node, 'mem_x'):
-                        if hasattr(self, '_largest_func'):
-                            node._apply_mem_x(self._largest_func)
-                        elif isinstance(
+                        if isinstance(
                             node.mem_x, tuple
                         ) and node.mem_x[1] == field:
                             input_resultfile = node.input_source.get(field)
-                            if len(input_resultfile):
-                                multiplicand_path = _load_resultfile(
-                                    input_resultfile
-                                ).inputs['in_file']
+                            if input_resultfile:
+                                if isinstance(input_resultfile, tuple):
+                                    input_resultfile = input_resultfile[0]
                                 try:
                                     # memoize node._mem_gb if path
                                     # already exists
+                                    multiplicand_path = _load_resultfile(
+                                        input_resultfile
+                                    ).inputs['in_file']
                                     node._apply_mem_x(multiplicand_path)
                                 except FileNotFoundError:
-                                    # store the path otherwise
-                                    node._mem_x = (node._mem_x[0],
-                                                   multiplicand_path)
+                                    if hasattr(self, '_largest_func'):
+                                        node._apply_mem_x(self._largest_func)
+                                    else:
+                                        # memoize the path otherwise
+                                        node._mem_x = (node._mem_x[0],
+                                                       multiplicand_path)
 
 
 def get_data_size(filepath):
