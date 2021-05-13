@@ -307,6 +307,9 @@ functional_preproc:
       # this is a fork point
       using: [mcflirt]
 
+      # Choose motion correction reference. Options: mean, median, selected_volume, robust_average
+      motion_correction_reference: ['robust_average']
+
   func_masking: 
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
