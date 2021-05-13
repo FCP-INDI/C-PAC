@@ -213,7 +213,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                         'run_logging', True))
         },
         'execution': {
-            'crashfile_format': 'txt'
+            'crashfile_format': 'txt',
+            'resource_monitor_frequency': 0.2
         }
     })
 
