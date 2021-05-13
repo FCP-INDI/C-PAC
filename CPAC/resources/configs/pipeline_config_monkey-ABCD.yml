@@ -337,7 +337,7 @@ registration_workflows:
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm.nii.gz
+          T1w_template_funcreg: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1_0.5mm.nii.gz
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
