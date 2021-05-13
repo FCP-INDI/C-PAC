@@ -235,6 +235,63 @@ def anat_based_mask(wf_name='bold_mask'):
 
     return wf
 
+def robust_average(in_file):
+
+    # Robustly estimate an average of the input
+    # Ref: https://github.com/nipreps/niworkflows/blob/master/niworkflows/interfaces/images.py#L220-L333
+
+    import os
+    import numpy as np
+    import nibabel as nb
+
+    mc_in_file = os.path.join(os.getcwd(), 'bold.nii.gz')
+    mc_out_file = os.path.join(os.getcwd(), 'bold_mc.nii.gz')
+    out_file = os.path.join(os.getcwd(), 'bold_ref.nii.gz')
+
+    img = nb.load(in_file)
+    img = nb.squeeze_image(img)
+    img_len = img.shape[3]
+    t_mask = ([True] * img_len)
+    sliced = nb.concat_images(
+        i for i, t in zip(nb.four_to_three(img), t_mask) if t
+    )
+
+    data = sliced.get_fdata(dtype="float32")
+    # Data can come with outliers showing very high numbers - preemptively prune
+    data = np.clip(
+        data,
+        a_min=0.0,
+        a_max=np.percentile(data, 99.8),
+    )
+
+    gs_drift = np.mean(data, axis=(0, 1, 2))
+    gs_drift /= gs_drift.max()
+
+    data /= gs_drift
+    data = np.clip(
+        data,
+        a_min=0.0,
+        a_max=data.max(),
+    )
+
+    out_img = nb.Nifti1Image(data, sliced.affine, sliced.header)
+    out_img.to_filename(mc_in_file)
+
+    cmd = '3dvolreg -Fourier -twopass -zpad 4 -prefix %s %s'%(mc_out_file, mc_in_file)
+    os.system(cmd)
+
+    data = nb.load(mc_out_file).get_fdata(dtype="float32")
+
+    data = np.clip(
+        data,
+        a_min=0.0,
+        a_max=data.max(),
+    )
+
+    out_img = nb.Nifti1Image(np.median(data, axis=3), sliced.affine, sliced.header)
+    out_img.to_filename(out_file)
+
+    return out_file
 
 def normalize_motion_parameters(in_file):
     """
@@ -971,15 +1028,15 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                 "motion_correction"],
      "switch": "None",
      "option_key": "motion_correction_reference",
-     "option_val": ["mean", "median", "selected_volume"],
+     "option_val": ["mean", "median", "selected_volume", "robust_average"],
      "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": ["motion-basefile"]}
     '''
 
-    if opt != 'mean' and opt != 'median' and opt != 'selected_volume':
+    if opt != 'mean' and opt != 'median' and opt != 'selected_volume' and opt != 'robust_average':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'motion_correction_reference' workflow must be either "
-                        "'mean' or 'median' or 'selected_volume'.\n\nTool input: "
+                        "'mean' or 'median' or 'selected_volume' or 'robust_average'.\n\nTool input: "
                         "{0}\n\n".format(opt))
 
     if opt == 'mean':
@@ -1015,6 +1072,15 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
         node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
         wf.connect(node, out, func_get_RPI, 'in_file_a')
+
+    elif opt == 'robust_average':
+        func_get_RPI = pe.Node(util.Function(input_names=['in_file'],
+                                             output_names=['out_file'],
+                                             function=robust_average),
+                           name=f'func_get_robust_average_{pipe_num}')
+
+        node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
+        wf.connect(node, out, func_get_RPI, 'in_file')
 
     outputs = {
         'motion-basefile': (func_get_RPI, 'out_file')
@@ -1398,21 +1464,13 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "FSL_AFNI",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+                 "motion-basefile"],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
     # fMRIPrep-style BOLD mask
     # Ref: https://github.com/nipreps/niworkflows/blob/master/niworkflows/func/util.py#L257-L525
-
-    func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                              name=f'func_mean_skull_{pipe_num}')
-    func_skull_mean.inputs.options = '-mean'
-    func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
-
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
-                                     "bold"])
-    wf.connect(node, out, func_skull_mean, 'in_file')
 
     # Initialize transforms with antsAI
     init_aff = pe.Node(
@@ -1527,9 +1585,11 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
 
-    wf.connect([(func_skull_mean, init_aff, [("out_file", "moving_image")]), # TODO ref_bold
-                (func_skull_mean, map_brainmask, [("out_file", "reference_image")]), # TODO ref_bold
-                (func_skull_mean, norm, [("out_file", "moving_image")]), # TODO ref_bold
+    node, out = strat_pool.get_data(["motion-basefile"])
+
+    wf.connect([(node, init_aff, [(out, "moving_image")]),
+                (node, map_brainmask, [(out, "reference_image")]),
+                (node, norm, [(out, "moving_image")]),
                 (init_aff, norm, [("output_transform", "initial_moving_transform")]),
                 (norm, map_brainmask, [
                     ("reverse_invert_flags", "invert_transform_flags"),
@@ -1538,7 +1598,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
                 (pre_dilate, n4_correct, [("out_file", "mask_image")]),
-                (func_skull_mean, n4_correct, [("out_file", "input_image")]), # TODO ref_bold
+                (node, n4_correct, [(out, "input_image")]),
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
                 (skullstrip_first_pass, bet_dilate,

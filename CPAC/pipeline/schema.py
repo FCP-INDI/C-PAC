@@ -492,7 +492,7 @@ schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume'})],
+                    'mean', 'median', 'selected_volume', 'robust_average'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
