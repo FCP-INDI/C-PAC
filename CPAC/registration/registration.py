@@ -2597,7 +2597,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-template_mode-image_xfm",
                  "desc-preproc_T1w",
                  "space-template_res-bold_desc-brain_T1w",
-                 "space-template_res-bold_desc-T1brain_mask",
+                 "space-template_desc-bold_mask",
                  "T1w_brain_template_funcreg")],
      "outputs": ["space-template_desc-brain_bold"]}
     """
@@ -2781,7 +2781,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     merge_func_mask = pe.Node(util.Merge(2), 
                                 name=f'merge_func_mask_{pipe_num}')
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-T1brain_mask')
+    node, out = strat_pool.get_data('space-template_desc-bold_mask')
     wf.connect(node, out, merge_func_mask, 'in1')
 
     wf.connect(find_min_mask, 'out_file', merge_func_mask, 'in2')
