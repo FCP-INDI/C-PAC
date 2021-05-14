@@ -370,10 +370,8 @@ def create_seg_preproc_antsJointLabel_method(
                                                        'template_segmentation'
                                                        '_list',
                                                        'csf_label',
-                                                       'left_gm_label',
-                                                       'left_wm_label',
-                                                       'right_gm_label',
-                                                       'right_wm_label']),
+                                                       'gm_label',
+                                                       'wm_label']),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
@@ -402,10 +400,8 @@ def create_seg_preproc_antsJointLabel_method(
 
     pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
                                                      'csf_label',
-                                                     'left_gm_label',
-                                                     'left_wm_label',
-                                                     'right_gm_label',
-                                                     'right_wm_label'],
+                                                     'gm_label',
+                                                     'wm_label'],
                                         output_names=['csf_mask', 'gm_mask',
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
@@ -415,14 +411,10 @@ def create_seg_preproc_antsJointLabel_method(
                     pick_tissue, 'multiatlas_Labels')
     preproc.connect(inputNode, 'csf_label',
                     pick_tissue, 'csf_label')
-    preproc.connect(inputNode, 'left_gm_label',
-                    pick_tissue, 'left_gm_label')
-    preproc.connect(inputNode, 'left_wm_label',
-                    pick_tissue, 'left_wm_label')
-    preproc.connect(inputNode, 'right_gm_label',
-                    pick_tissue, 'right_gm_label')
-    preproc.connect(inputNode, 'right_wm_label',
-                    pick_tissue, 'right_wm_label')
+    preproc.connect(inputNode, 'gm_label',
+                    pick_tissue, 'gm_label')
+    preproc.connect(inputNode, 'wm_label',
+                    pick_tissue, 'wm_label')
 
     preproc.connect(pick_tissue, 'csf_mask',
                     outputNode, 'csf_mask')
@@ -518,8 +510,6 @@ def create_seg_preproc_freesurfer(config=None,
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
                           name=f'{wf_name}_tissue_mask')
-
-    pick_tissue.inputs.include_ventricles = True
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')
@@ -851,19 +841,13 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
         'CSF_label']
 
-    seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = cfg[
+    seg_preproc_ants_prior_based.inputs.inputspec.gm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'left_GM_label']
-    seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = cfg[
-        'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'right_GM_label']
+        'GM_label']
 
-    seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = cfg[
+    seg_preproc_ants_prior_based.inputs.inputspec.wm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'left_WM_label']
-    seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = cfg[
-        'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'right_WM_label']
+        'WM_label']
 
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out,

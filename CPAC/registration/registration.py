@@ -3,7 +3,8 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
-from nipype.interfaces import afni
+import nipype.interfaces.afni as afni
+
 from nipype.interfaces.afni import utils as afni_utils
 
 import nipype.interfaces.c3 as c3
@@ -421,7 +422,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     return nonlinear_register
 
 
-def create_register_func_to_anat(phase_diff_distcor=False,
+def create_register_func_to_anat(config, phase_diff_distcor=False,
                                  name='register_func_to_anat'):
 
     """
@@ -430,6 +431,8 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
     Parameters
     ----------
+    config : configuration, mandatory
+        Pipeline configuration.
     fieldmap_distortion : bool, optional
         If field map-based distortion correction is being run, FLIRT should
         take in the appropriate field map-related inputs.
@@ -483,7 +486,12 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_func_to_anat')
-    linear_reg.inputs.cost = 'corratio'
+
+    linear_reg.inputs.interp = config.registration_workflows['functional_registration']['coregistration']['interpolation']
+    linear_reg.inputs.cost = config.registration_workflows['functional_registration']['coregistration']['cost']
+    linear_reg.inputs.dof = config.registration_workflows['functional_registration']['coregistration']['dof']
+    if config.registration_workflows['functional_registration']['coregistration']['arguments'] is not None:
+        linear_reg.inputs.args = config.registration_workflows['functional_registration']['coregistration']['arguments']
 
     # if fieldmap_distortion:
 
@@ -2310,7 +2318,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # if field map-based distortion correction is on, but BBR is off,
     # send in the distortion correction files here
-    func_to_anat = create_register_func_to_anat(diff_complete,
+    func_to_anat = create_register_func_to_anat(cfg, diff_complete,
                                                 f'func_to_anat_FLIRT_'
                                                 f'{pipe_num}')
 
@@ -2319,6 +2327,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_to_anat.inputs.inputspec.interp = cfg.registration_workflows[
         'functional_registration']['coregistration']['interpolation']
+
 
     node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, func_to_anat, 'inputspec.func')

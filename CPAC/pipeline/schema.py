@@ -20,11 +20,9 @@ valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
     },
-    'boundary_based_registration': {
-        'using': ['FSL', 'FreeSurfer']
-    },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
+                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
                   'FreeSurfer-ABCD']
     },
     'centrality': {
@@ -232,30 +230,50 @@ schema = Schema({
             'shrink_factor': int,
         },
         'acpc_alignment': Required(
+        't1t2_bias_field_correction': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            Any({
+                'run': False,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            }, {
+                'run': True,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            },),
+        ),
+        'acpc_alignment': Required(
+            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
                 'brain_size': Maybe(int),
+                'FOV_crop': Maybe(In({'robustfov', 'flirt'})),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': Maybe(str),
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
+                'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
+                'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][0],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': str,
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
@@ -312,6 +330,9 @@ schema = Schema({
                 'mask_path': str,
                 'regmask_path': str,
             },
+            'FreeSurfer-BET': {
+                'T1w_brain_template_mask_ccs': str
+            },
         },
     },
     'segmentation': {
@@ -338,16 +359,19 @@ schema = Schema({
                     'CSF_path': str
                 },
             },
-            'Freesurfer': Maybe(dict),
+            'FreeSurfer': {
+                'erode': int,
+                'CSF_label': [int],
+                'GM_label': [int],
+                'WM_label': [int],                
+            },
             'ANTs_Prior_Based': {
                 'run': forkable,
                 'template_brain_list': [str],
                 'template_segmentation_list': [str],
-                'CSF_label': int,
-                'left_GM_label': int,
-                'right_GM_label': int,
-                'left_WM_label': int,
-                'right_WM_label': int,
+                'CSF_label': [int],
+                'GM_label': [int],
+                'WM_label': [int],
             },
             'Template_Based': {
                 'run': forkable,
@@ -397,7 +421,12 @@ schema = Schema({
                 'run': bool,
                 'reference': In({'brain', 'restore-brain'}),
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
+                'using': str,
+                'input': str,
+                'interpolation': str,
+                'cost': str,
                 'dof': int,
+                'arguments': Maybe(str),
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
@@ -411,9 +440,9 @@ schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'using': Maybe(In(
-                        valid_options['boundary_based_registration']['using']
-                    )),
+                    'using': [In({
+                        'FSL', 'FreeSurfer'
+                    })],
                     'run': forkable,
                     'bbr_schedule': str
                 },
@@ -475,6 +504,7 @@ schema = Schema({
     },
     'surface_analysis': {
         'run_freesurfer': bool,
+        'reconall_args': Maybe(str),
     },
     'longitudinal_template_generation': {
         'run': bool,
@@ -501,7 +531,9 @@ schema = Schema({
             'run': forkable
         },
         'slice_timing_correction': {
-            'run': forkable
+            'run': forkable,
+            'tpattern': Maybe(str),
+            'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
             'motion_estimates': {
@@ -582,7 +614,7 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based', 'Anatomical_Resampled']
+                 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-

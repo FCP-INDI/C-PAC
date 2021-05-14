@@ -1079,7 +1079,7 @@ def create_regressor_workflow(nuisance_selectors,
                 regressor_mask_file_resource_keys += \
                     [regressor_mask_file_resource_key]
 
-            # Keep tissus ordered, to avoid duplicates
+            # Keep tissues ordered, to avoid duplicates
             regressor_mask_file_resource_keys = \
                 list(sorted(regressor_mask_file_resource_keys))
 
@@ -1255,6 +1255,7 @@ def create_regressor_workflow(nuisance_selectors,
                             name='{}_mean'.format(regressor_type),
                             mem_gb=5.0
                         )
+
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
                             mean_node, 'in_file'
