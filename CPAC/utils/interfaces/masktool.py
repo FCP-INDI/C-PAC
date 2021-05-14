@@ -83,9 +83,9 @@ class MaskTool(AFNICommand):
     ========
     >>> from nipype.interfaces import afni
     >>> masktool = afni.MaskTool()
-    >>> masktool.inputs.in_file = 'functional.nii'
+    >>> masktool.inputs.in_file = 'functional.nii'  # doctest: +SKIP
     >>> masktool.inputs.outputtype = 'NIFTI'
-    >>> masktool.cmdline
+    >>> masktool.cmdline  # doctest: +SKIP
     '3dmask_tool -prefix functional_mask.nii -input functional.nii'
     >>> res = automask.run()  # doctest: +SKIP
     """

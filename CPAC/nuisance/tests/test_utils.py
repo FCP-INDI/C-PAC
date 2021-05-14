@@ -1,7 +1,8 @@
-import os
-import tempfile
-import pkg_resources as p
 import numpy as np
+import os
+import pkg_resources as p
+import pytest
+import tempfile
 from CPAC.nuisance.utils import find_offending_time_points
 from CPAC.nuisance.utils import calc_compcor_components
 
@@ -16,6 +17,7 @@ mocked_outputs = \
     )
 
 
+@pytest.mark.skip(reason='needs refactoring')
 def test_find_offending_time_points():
 
     dl_dir = tempfile.mkdtemp()
@@ -34,6 +36,8 @@ def test_find_offending_time_points():
 
     assert set(np.where(np.logical_not(censored))[0].tolist()) == set([1, 3, 7])
 
+
+@pytest.mark.skip(reason='needs local files not included in package')
 def test_calc_compcor_components():
 
     data_filename = "/cc_dev/cpac_working/old_compcor/nuisance_0_0/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mm-DPC5_G-M_M-SDB_P-2_BP-B0.01-T0.1/Functional_2mm_flirt/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_maths_flirt.nii.gz"

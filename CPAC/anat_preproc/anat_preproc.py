@@ -1023,8 +1023,8 @@ def mask_T2(wf_name='mask_T2'):
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "anatomical_init",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["T1w"],
@@ -1337,7 +1337,7 @@ def brain_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_afni",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "3dSkullStrip",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1353,7 +1353,7 @@ def brain_mask_acpc_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_afni",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "3dSkullStrip",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1374,7 +1374,7 @@ def brain_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_fsl",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "BET",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1390,7 +1390,7 @@ def brain_mask_acpc_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_fsl",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "BET",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1411,7 +1411,7 @@ def brain_mask_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_niworkflows_ants",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "niworkflows-ants",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1428,7 +1428,7 @@ def brain_mask_acpc_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_niworkflows_ants",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "niworkflows-ants",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1450,7 +1450,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_unet",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1469,7 +1469,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_unet",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1493,7 +1493,7 @@ def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_freesurfer",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "Freesurfer",
      "inputs": ["space-T1w_desc-brain_mask",
@@ -1512,7 +1512,7 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_freesurfer",
      "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "using",
      "option_val": "Freesurfer",
      "inputs": ["space-T1w_desc-brain_mask",
@@ -1533,8 +1533,8 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_extraction",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc", "brain_extraction"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],

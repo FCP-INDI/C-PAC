@@ -1,3 +1,4 @@
+--- 
 version: 2.1
 
 commands:
@@ -18,34 +19,31 @@ commands:
       - run:
           name: "Starting local registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - install-singularity-requirements
-      - when:
-          condition:
-            or:
-            - equal: [ "", "<< parameters.variant >>" ]
-            - equal: [ "lite", "<< parameters.variant >>" ]
-          steps:
-            - run: 
-                name: "Cloning Singularity 2.5.2"
-                command: git clone -b 2.5.2 https://github.com/sylabs/singularity
-      - set-up-singularity
+      - get-singularity
       - run:
           name: "Building Singularity image from Docker image"
           command: |
             docker load < ${DOCKER_TARBALL}.tar.gz
-            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
-            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
-            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
+            docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+            docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
           no_output_timeout: 5h
   check-for-built-images:
     steps:
       - run:
           name: "Checking for locally built images"
           command: |
-            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            if [[ ! -f ${DOCKER_TARBALL}.tar.gz || ! -f cpac-singularity-image${VARIANT}.simg ]]
             then
               circleci step halt
             fi
+  combine-coverage:
+    steps:
+      - run:
+          name: "Combining and reporting coverage"
+          command: |
+              coverage combine
+              coverage html --ignore-errors
   configure-git-user:
     steps:
       - add_ssh_keys:
@@ -60,11 +58,70 @@ commands:
             sudo apt-get install git -y
             git config --global user.email "${CIRCLE_USERNAME}@users.noreply.github.com"
             git config --global user.name "${CIRCLE_USERNAME} @ CircleCI"
+  create-docker-test-container:
+    parameters:
+      coverage-file:
+        default: .coverage.docker
+        description: "Filename for coverage file"
+        type: string
+    steps:
+      - load-docker-image
+      - run:
+          name: "Creating Docker container"
+          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${DOCKER_TAG}"
   get-sample-bids-data:
     steps:
       - run:
           name: Getting Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
+  get-singularity:
+    parameters:
+      version:
+        description: "Version of Singularity to clone"
+        type: string
+        default: v3.7.2
+    steps:
+      - install-singularity-requirements
+      - restore_cache:
+          keys:
+            - singularity-<< parameters.version >>
+      - run:
+          name: "Cloning Singularity << parameters.version >>"
+          command: |
+            if [[ ! -d singularity-<< parameters.version >> ]]
+            then
+              git clone -b << parameters.version >> https://github.com/sylabs/singularity singularity-<< parameters.version >>
+            fi
+      - save_cache:
+          key: singularity-<< parameters.version >>
+          paths:
+            - singularity-<< parameters.version >>
+      - run:
+         name: "Setting up Singularity"
+         command: |
+           cd singularity-<< parameters.version >>
+           ./mconfig
+           make -C builddir
+           sudo make -C builddir install
+           cd ..
+  install-singularity-requirements:
+    steps:
+      - run:
+          name: "Installing Singularity requirements"
+          command: |
+           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
+  load-docker-image:
+    steps:
+      - run:
+          name: "Loading Docker image"
+          command: "docker load < cpac-docker-image${VARIANT}.tar.gz"
+  run-pytest-docker:
+    steps:
+      - create-docker-test-container:
+          coverage-file: .coverage.docker${VARIANT}
+      - run:
+          name: Running pytest in Docker image
+          command: docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
   set-python-version:
     steps:
       - run:
@@ -73,31 +130,16 @@ commands:
             cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
             pyenv install -v 3.7.9
             pyenv global 3.7.9
-  install-singularity-requirements:
-    steps:
+      - restore_cache:
+          keys:
+            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
       - run:
-          name: "Installing Singularity requirements"
-          command: |
-           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
-  run-pytest-docker:
-    steps:
-      - run:
-          name: Running pytest on Docker image
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${DOCKER_TAG}
-            docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
-  set-up-singularity:
-    steps:
-      - run:
-         name: "Setting up Singularity"
-         command: |
-           cd singularity
-           ./autogen.sh
-           ./configure --prefix=/usr/local --sysconfdir=/etc
-           make
-           sudo make install
-           cd ..
+          name: "Installing CI dependencies"
+          command: pip install -r dev/circleci_data/requirements.txt
+      - save_cache:
+          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
+          paths: 
+            - /opt/circleci/.pyenv/versions/3.7.9
   set-up-variant:
     parameters:
       variant:
@@ -131,42 +173,6 @@ commands:
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
 
 jobs:
-  pytest-docker:
-    parameters:
-      variant:
-        type: string
-        default: ""
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - attach_workspace:
-          at: /home/circleci/
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
-      - check-for-built-images
-      - set-python-version
-      - get-sample-bids-data
-      - run-pytest-docker
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
-      - store_artifacts:
-          path: htmlcov
-
-  pytest-singularity:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: /home/circleci/
-      - check-for-built-images
-      - set-python-version
-      - install-singularity-requirements
-      - set-up-singularity
-      - test-singularity-installation
-
   build:
     machine:
       image: ubuntu-2004:202010-01
@@ -204,9 +210,8 @@ jobs:
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - cpac-docker-image.tar.gz
-            - cpac-singularity-image.simg
-            - project
+            - project/cpac-docker-image.tar.gz
+            - project/cpac-singularity-image.simg
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
@@ -219,7 +224,71 @@ jobs:
           path: cpac-docker-image-lite.tar.gz
       - store_artifacts:
           path: cpac-singularity-image-lite.simg
-
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - project/cpac-docker-image-lite.tar.gz
+            - project/cpac-singularity-image-lite.simg
+  combine-coverage:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci
+      - set-python-version
+      - combine-coverage
+      - store_artifacts:
+          path: htmlcov
+  pytest-docker:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - check-for-built-images
+      - set-python-version
+      - get-sample-bids-data
+      - run-pytest-docker
+      - store_test_results:
+          path: test-results
+      - persist_to_workspace:
+          paths:
+            - project/.coverage.docker*
+          root: /home/circleci/
+  pytest-singularity:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - check-for-built-images
+      - set-python-version
+      - get-singularity
+      - test-singularity-installation
+      - run:
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
+          name: "Running unit tests in Singularity image"
+      - store_test_results:
+          path: test-results
+      - persist_to_workspace:
+          paths:
+            - project/.coverage.singularity*
+          root: /home/circleci/
 workflows:
   version: 2
   build-and-test:
@@ -228,6 +297,13 @@ workflows:
           name: "Build images"
       - build-lite:
           name: "Build lite variant images"
+      - combine-coverage:
+          name: "Combine coverage"
+          requires:
+            - "Test in Docker"
+            - "Test in Singularity"
+            - "Test lite variant in Docker"
+            - "Test lite variant in Singularity"
       - pytest-docker:
           name: "Test in Docker"
           requires:
@@ -245,3 +321,4 @@ workflows:
           name: "Test lite variant in Singularity"
           requires:
             - "Build lite variant images"
+          variant: lite

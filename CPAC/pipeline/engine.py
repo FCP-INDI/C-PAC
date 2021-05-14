@@ -773,7 +773,7 @@ class ResourcePool(object):
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
             excl.append('motion-basefile')
             substring_excl.append(['desc-reginput', 'bold'])
-            
+
         if not cfg.pipeline_setup['output_directory']['write_func_outputs']:
             avail_bolds = []
             for resource in self.rpool.keys():
@@ -834,6 +834,7 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
@@ -907,6 +908,7 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
@@ -1391,6 +1393,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
+    source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
@@ -1398,6 +1401,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                     out_dir = cfg.pipeline_setup['output_directory'][
                         'source_outputs_dir']
+                    source = True
                 else:
                     out_dir = cfg.pipeline_setup['output_directory']['path']
             else:
@@ -1406,28 +1410,40 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                 out_dir = cfg.pipeline_setup['output_directory'][
                     'source_outputs_dir']
+                source = True
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
             out_dir = cfg.pipeline_setup['output_directory'][
                 'source_outputs_dir']
+            source = True
         else:
             out_dir = cfg.pipeline_setup['output_directory']['path']
 
-    if os.path.isdir(out_dir):
-        if not os.listdir(out_dir):
+    if not source:
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                print(f"\nOutput directory {out_dir} does not exist yet, "
+                      f"initializing.")
+                return rpool
+        else:
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
+            
+        cpac_dir = os.path.join(out_dir,
+                                f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+                                unique_id)
     else:
-        print(f"\nOutput directory {out_dir} does not exist yet, "
-              f"initializing.")
-        return rpool
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                raise Exception(f"\nSource directory {out_dir} does not exist!")
+        
+        cpac_dir = os.path.join(out_dir,
+                                unique_id)
 
-    print(f"\nPulling outputs from {out_dir}.\n")
+    print(f"\nPulling outputs from {cpac_dir}.\n")
 
-    cpac_dir = os.path.join(out_dir,
-                            f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
-                            unique_id)
+
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
@@ -1478,6 +1494,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         #                    'session in this directory?\n\nDirectory: '
         #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
+        desc_val = None
         for tag in data_label.split('_'):
             if 'desc-' in tag:
                 desc_val = tag
@@ -1492,29 +1509,31 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                             f'{filepath}.\n\n')
 
         json_info = read_json(jsonpath)
-        if 'CpacProvenance' in json_info:
-            # it's a C-PAC output, let's check for pipe_idx/strat integer
-            # suffixes in the desc- entries.
-            only_desc = str(desc_val)
-            
-            if only_desc[-1].isdigit():
-                for idx in range(0, 3):
-                    # let's stop at 3, please don't run >999 strategies okay?
-                    if only_desc[-1].isdigit():
-                        only_desc = only_desc[:-1]
-            
-                if only_desc[-1] == '-':
-                    only_desc = only_desc.rstrip('-')
-                else:
-                    raise Exception('\n[!] Something went wrong with either '
-                                    'reading in the output directory or when '
-                                    'it was written out previously.\n\nGive '
-                                    'this to your friendly local C-PAC '
-                                    f'developer:\n\n{unique_data_label}\n')
 
-                # remove the integer at the end of the desc-* variant, we will get
-                # the unique pipe_idx from the CpacProvenance below
-                data_label = data_label.replace(desc_val, only_desc)
+        if 'CpacProvenance' in json_info:
+            if desc_val:
+                # it's a C-PAC output, let's check for pipe_idx/strat integer
+                # suffixes in the desc- entries.
+                only_desc = str(desc_val)
+            
+                if only_desc[-1].isdigit():
+                    for idx in range(0, 3):
+                        # let's stop at 3, please don't run >999 strategies okay?
+                        if only_desc[-1].isdigit():
+                            only_desc = only_desc[:-1]
+            
+                    if only_desc[-1] == '-':
+                        only_desc = only_desc.rstrip('-')
+                    else:
+                        raise Exception('\n[!] Something went wrong with either '
+                                        'reading in the output directory or when '
+                                        'it was written out previously.\n\nGive '
+                                        'this to your friendly local C-PAC '
+                                        f'developer:\n\n{unique_data_label}\n')
+
+                    # remove the integer at the end of the desc-* variant, we will get
+                    # the unique pipe_idx from the CpacProvenance below
+                    data_label = data_label.replace(desc_val, only_desc)
 
             # preserve cpac provenance/pipe_idx
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])

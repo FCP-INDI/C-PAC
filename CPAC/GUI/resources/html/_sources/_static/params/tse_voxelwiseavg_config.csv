@@ -1,4 +1,0 @@
-runVoxelTimeseries,Extract the time series of all voxels within one or more ROIs/seeds.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-maskSpecificationFile,"Full path to a text file containing a list of mask NifTIs. Each line in this file should be the path to a NIfTI file containing a single mask. If you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",A path or ‘None’.
-maskSpecificationFileForSCA,"Same as maskSpecificationFile, but used for seed-based correlation analysis.",A path or ‘None’.
-voxelTSOutputs,"Extracted time series are written as both a text file and a 1D file by default. With this option, you may also save them out as CSV files or Numpy arrays.","A two-element list, where the first element is a boolean (‘True’ or ‘False’) for whether or not to save out a CSV and the second element is a boolean for whether or not to save a Numpy array."

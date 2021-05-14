@@ -1,5 +1,0 @@
-runNuisance,Run Nuisance Signal Correction,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-lateral_ventricles_mask,Standard Lateral Ventricles Binary Mask.,"A path (e.g., $FSLDIR/data/atlases/HarvardOxford/ HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz)."
-Corrections,"The nuisance corrections you wish to apply. Corrections include compcor, wm, csf, gm, global, pc1, motion, linear, and quadratic.","Another mapping of key value pairs, where values are 0 for ‘Disable’ and 1 for ‘Enable’."
-nComponents,The number of principle components to calculate when running CompCor. We recommend 5 or 6.,"A list containing an integer representing the number of PCs (e.g., ‘[5]’)."
-runFristonModel,Use the Friston 24-Parameter Model during volume realignment.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."

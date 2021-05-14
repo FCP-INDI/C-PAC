@@ -1,5 +1,0 @@
-startIdx,First timepoint to include in analysis.,An integer.
-stopIdx,Last timepoint to include in analysis.,"An integer, or Stop or None to use the last possible timepoint."
-TR,The TR at which images were acquired.,"A number, or None if the TR is to be read from the NifTI header."
-slice_timing_correction,Interpolate voxel time courses so they are sampled at the same time points.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-slice_timing_pattern,Acquisition strategy for acquiring image slices.,"A list that can contain one of the following values: ‘Use NIFTI Header’,’alt+z’, ‘alt+z2’, ‘alt-z’, ‘alt-z2’, ‘seq+z’, ‘seq-z’"
