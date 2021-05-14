@@ -309,9 +309,9 @@ functional_preproc:
 
   func_masking: 
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'ABCD']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled']
     # this is a fork point
-    using: [ABCD]
+    using: [Anatomical_Resampled]
 
     # Apply functional mask in native space
     apply_func_mask_in_native_space: Off

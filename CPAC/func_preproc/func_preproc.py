@@ -1665,17 +1665,17 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def bold_mask_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
     Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
         https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
 
     Node Block:
-    {"name": "bold_mask_abcd",
+    {"name": "bold_mask_anatomical_resampled",
      "config": ["functional_preproc"],
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
-     "option_val": "ABCD",
+     "option_val": "Anatomical_Resampled",
      "inputs": ["T1w_template_funcreg",
                 "space-template_desc-brain_T1w",
                 "space-template_desc-T1w_mask"],
