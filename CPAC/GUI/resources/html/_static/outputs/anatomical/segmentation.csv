@@ -1,7 +1,0 @@
-natomical_csf_mask, The CSF mask(s) produced by segmentation.  NifTIs are contained within a subdirectory of the form _csf_threshold_<threshold>.
-anatomical_gm_mask, The gray matter mask(s) produced by segmentation.  NifTIs are contained within a subdirectory of the form _gm_threshold_<threshold>.
-anatomical_wm_mask, The white matter mask(s) produced by segmentation.  NifTIs are contained within a subdirectory of the form _gm_threshold_<threshold>.
-seg_mixeltype, A mixeltype volume file (an output from brain segmentation using FAST).
-seg_partial_volume_files, Partial volume estimate files (outputs from brain segmentation using FAST).
-seg_partial_volume_map, The partial volume file (an output from brain segmentation using FAST).
-seg_probability_maps, Individual probability maps (output from brain segmentation using FAST).

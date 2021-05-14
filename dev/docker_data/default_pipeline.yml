@@ -207,6 +207,13 @@ anatomical_preproc:
   # N4 bias field correction via ANTs
   n4_bias_field_correction: False
 
+  # Bias field correction based on square root of T1w * T2w
+  t1t2_bias_field_correction: 
+
+    run: Off 
+    
+    BiasFieldSmoothingSigma: 5
+    
   acpc_alignment:
 
     run: Off
@@ -219,6 +226,11 @@ anatomical_preproc:
     # Default: 150mm for human data.
     brain_size: 150
 
+    # Choose a tool to crop the FOV in ACPC alignment. 
+    # Using FSL's robustfov or flirt command. 
+    # Default: robustfov for human data, flirt for monkey data. 
+    FOV_crop: robustfov
+    
     # ACPC Target
     # options: 'brain' or 'whole-head'
     #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
@@ -228,6 +240,8 @@ anatomical_preproc:
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
 
     T1w_brain_ACPC_template: None
+    T2w_ACPC_template: None
+    T2w_brain_ACPC_template: None
 
   brain_extraction:
   
@@ -625,10 +639,28 @@ registration_workflows:
 
       run: On
 
+      # Choose FSL or ABCD as coregistration method
+      using: FSL
+
+      # Choose brain or whole-head as coregistration input
+      input: brain
+
+      # Choose coregistration interpolation
+      interpolation: trilinear
+
+      # Choose coregistration cost function
+      cost: corratio
+
+      # Choose coregistration degree of freedom
+      dof: 6
+
+      # Extra arguments for FSL flirt
+      arguments: None
+
       func_input_prep:
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        # input: ['Mean_Functional', 'Selected_Functional_Volume']
         input: ['Mean_Functional']
 
         Mean Functional:

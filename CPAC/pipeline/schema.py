@@ -223,31 +223,50 @@ schema = Schema({
         'run': bool,
         'non_local_means_filtering': forkable,
         'n4_bias_field_correction': forkable,
-        'acpc_alignment': Required(
+        't1t2_bias_field_correction': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            Any({
+                'run': False,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            }, {
+                'run': True,
+                'BiasFieldSmoothingSigma': Maybe(int),
+            },),
+        ),
+        'acpc_alignment': Required(
+            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
                 'brain_size': Maybe(int),
+                'FOV_crop': Maybe(In({'robustfov', 'flirt'})),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': Maybe(str),
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
+                'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
                 'run_before_preproc': bool,
                 'brain_size': int,
+                'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][0],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
+                'T2w_ACPC_template': str,
+                'T2w_brain_ACPC_template': str,
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
@@ -388,6 +407,12 @@ schema = Schema({
         'functional_registration': {
             'coregistration': {
                 'run': bool,
+                'using': str,
+                'input': str,
+                'interpolation': str,
+                'cost': str,
+                'dof': int,
+                'arguments': Maybe(str),
                 'func_input_prep': {
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'

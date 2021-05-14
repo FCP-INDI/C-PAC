@@ -58,6 +58,7 @@ def test_ants_apply_warp_func_mni():
 
     assert(test_utils.pearson_correlation(mean_functional, mean_functional_after_transform) > .99)
 
+
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_ants_apply_warps_func_mni_mapnode():
 
@@ -116,6 +117,8 @@ def test_ants_apply_warps_func_mni_mapnode():
 
     assert all(test_results)
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_ants_apply_warp_func_mni_symm():
 
     test_name = 'test_ants_apply_warps_func_mni_symm'
@@ -169,6 +172,8 @@ def test_ants_apply_warp_func_mni_symm():
 
     assert(test_utils.pearson_correlation(mean_functional, mean_functional_after_transform) > .93)
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_ants_apply_warps_func_mni_mapnode_symm():
 
     test_name = 'test_ants_apply_warps_func_mni_mapnode_symm'

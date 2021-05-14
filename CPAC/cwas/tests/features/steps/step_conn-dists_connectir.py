@@ -1,4 +1,5 @@
 from base_cwas import *
+from pytest_bdd import scenario, given, when, then
 
 @given('a connectir-based distance folder "{sdir}"')
 def step(context, sdir):

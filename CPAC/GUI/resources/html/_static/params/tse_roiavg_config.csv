@@ -1,4 +1,0 @@
-runROITimeseries,Extract the average time series of one or more ROIs/seeds. Must be enabled for seed-based correlation analysis.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-roiSpecificationFile,Full path to a text file containing a list of ROI NifTIs. Each line in this file should be the path to a NIfTI file containing one or more ROIs. All ROI mask values are converted to integers in C-PAC.,A path.
-roiSpecificationFileForSCA,"Same as roiSpecificationFile, but used for seed-based correlation analysis.",A path.
-roiTSOutputs,"Extracted time series are written as both a text file and a 1D file by default. With this option, you may also save them out as CSV files or Numpy arrays.","A two-element list, where the first element is a boolean (‘True’ or ‘False’) for whether or not to save out a CSV and the second element is a boolean for whether or not to save a Numpy array."
