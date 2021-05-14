@@ -18,7 +18,7 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block 
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     anatomical_init,
@@ -26,8 +26,10 @@ from CPAC.anat_preproc.anat_preproc import (
     acpc_align_head_with_mask,
     acpc_align_brain,
     acpc_align_brain_with_mask,
+    registration_T2w_to_T1w,
     non_local_means,
     n4_bias_correction,
+    t1t2_bias_correction,
     brain_mask_afni,
     brain_mask_fsl,
     brain_mask_niworkflows_ants,
@@ -38,7 +40,19 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_niworkflows_ants,
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
-    brain_extraction
+    brain_extraction_temp,
+    brain_extraction,
+    anatomical_init_T2,
+    acpc_align_head_T2,
+    acpc_align_head_with_mask_T2,
+    acpc_align_brain_T2,
+    acpc_align_brain_with_mask_T2,
+    non_local_means_T2,
+    n4_bias_correction_T2,
+    brain_mask_T2,
+    brain_mask_acpc_T2,
+    brain_extraction_temp_T2,
+    brain_extraction_T2
 )
 
 from CPAC.registration.registration import (
@@ -740,7 +754,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
                     cfg.surface_analysis['run_freesurfer']:
                 acpc_blocks = [
-                    brain_extraction,
+                    brain_extraction_temp,
                     acpc_align_brain_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
                 ]
@@ -752,7 +766,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                      brain_mask_acpc_unet],
                        #brain_mask_acpc_freesurfer
                     # we don't want these masks to be used later
-                    brain_extraction,
+                    brain_extraction_temp,
                     acpc_align_brain
                 ]
         elif cfg.anatomical_preproc['acpc_alignment'][
@@ -779,7 +793,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += anat_blocks
 
-    # Anatomical brain masking
+    # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
             cfg.surface_analysis['run_freesurfer']:
         anat_brain_mask_blocks = [
@@ -791,11 +805,78 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
+    # T2w Anatomical Preprocessing
+    if rpool.check_rpool('T2w'): 
+        if not rpool.check_rpool('desc-reorient_T2w'):
+            anat_init_blocks_T2 = [
+                anatomical_init_T2                    
+            ]
+            pipeline_blocks += anat_init_blocks_T2
+        
+        # TODO: T2 freesurfer_preproc? 
+        # pipeline_blocks += [freesurfer_preproc]
+
+        if not rpool.check_rpool('desc-preproc_T2w'):
+
+            # brain masking for ACPC alignment
+            if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
+                if rpool.check_rpool('space-T2w_desc-brain_mask'):
+                    acpc_blocks_T2 = [
+                        brain_extraction_temp_T2,
+                        acpc_align_brain_with_mask_T2
+                        # outputs space-T2w_desc-brain_mask for later - keep the mask (the user provided)
+                    ]
+                else:
+                    acpc_blocks_T2 = [
+                        brain_mask_acpc_T2,
+                        # we don't want these masks to be used later, only used in brain_extraction_temp_T2
+                        brain_extraction_temp_T2,
+                        acpc_align_brain_T2
+                    ]
+            elif cfg.anatomical_preproc['acpc_alignment'][
+                'acpc_target'] == 'whole-head':
+                if rpool.check_rpool('space-T2w_desc-brain_mask'):
+                    acpc_blocks_T2 = [
+                        acpc_align_head_with_mask_T2
+                        # outputs space-T2w_desc-brain_mask for later - keep the mask (the user provided)
+                    ]
+                else:
+                    acpc_blocks_T2 = [
+                        acpc_align_head_T2  # does not output nor generate a mask
+                    ]
+
+            anat_preproc_blocks_T2 = [
+                registration_T2w_to_T1w, 
+                non_local_means_T2,
+                n4_bias_correction_T2,
+                t1t2_bias_correction
+            ]
+            if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:
+                anat_blocks_T2 = acpc_blocks_T2 + anat_preproc_blocks_T2
+            else:
+                anat_blocks_T2 = anat_preproc_blocks_T2 + acpc_blocks_T2
+
+            pipeline_blocks += anat_blocks_T2
+    
+    # Anatomical T1 brain extraction
     if not rpool.check_rpool('desc-brain_T1w'):
         anat_brain_blocks = [
             brain_extraction
         ]
         pipeline_blocks += anat_brain_blocks
+
+    # T2 brain masking
+    if not rpool.check_rpool('space-T2w_desc-brain_mask'):
+        anat_brain_mask_blocks_T2 = [
+            brain_mask_T2
+        ]
+        pipeline_blocks += anat_brain_mask_blocks_T2
+
+    if not rpool.check_rpool('desc-brain_T2w'):
+        anat_brain_blocks_T2 = [
+            brain_extraction_T2
+        ]
+        pipeline_blocks += anat_brain_blocks_T2
 
     return pipeline_blocks
 
