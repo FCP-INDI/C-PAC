@@ -5,72 +5,65 @@ import pandas as pd
 class Outputs():
 
     # Settle some things about the resource pool reference and the output directory
-    reference_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    reference_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
 
     try:
-        reference = pd.read_csv(reference_csv)
+        reference = pd.read_csv(reference_csv, delimiter='\t', keep_default_na=False)
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
               "resource file:\n{0}\n\nError details {1}\n".format(reference_csv, e)
         raise Exception(err)
 
     # all outputs
     any = list(reference.Resource)
 
-    # outputs marked as optional in the matrix file, but we want them to be
-    # written out no matter what for a specific reason
-    override_optional = list(
-        reference[reference['Override optional'] == 'yes']['Resource'])
-
     # extra outputs that we don't write to the output directory, unless the
     # user selects to do so
     debugging = list(
-        reference[reference['Optional outputs: Debugging outputs'] == 'yes']['Resource'])
-
-    # outputs to write out if the user selects to write all the functional
-    # resources and files CPAC generates
-    extra_functional = list(
-        reference[reference['Optional outputs: Extra functionals'] == 'yes']['Resource'])
+        reference[reference['Optional: Debugging'] == 'Yes']['Resource']
+    )
 
     # functional data that are 4D time series, instead of derivatives
     functional_timeseries = list(
-        reference[reference['Functional timeseries'] == 'yes']['Resource']
+        reference[reference['4D Time Series'] == 'Yes']['Resource']
     )
+    
+    anat = list(reference[reference['Sub-Directory'] == 'anat']['Resource'])
+    func = list(reference[reference['Sub-Directory'] == 'func']['Resource'])
 
     # outputs to send into smoothing, if smoothing is enabled, and
     # outputs to write out if the user selects to write non-smoothed outputs
-    # "_mult" is for items requiring mapnodes
     _template_filter = reference['Space'] == 'template'
-    _native_filter = reference['Optional outputs: Native space'] == 'yes'
+    _epitemplate_filter = reference['Space'] == 'EPI template'
+    _symtemplate_filter = reference['Space'] == 'symmetric template'
+    _T1w_native_filter = reference['Space'] == 'T1w'
+    _bold_native_filter = reference['Space'] == 'functional'
+    _long_native_filter = reference['Space'] == 'longitudinal T1w'
+    _nonsmoothed_filter = reference['To Smooth'] == 'Yes'
+    
+    all_template_filter = _template_filter | _epitemplate_filter | _symtemplate_filter
+    all_native_filter = _T1w_native_filter | _bold_native_filter | _long_native_filter
 
-    _nonsmoothed_filter = reference['Optional outputs: Non-smoothed'] == 'yes'
-    _multiple_filter = reference['Multiple outputs'] == 'yes'
-    _derivative_filter = reference['Derivative'] == 'yes'
-
-    native_nonsmooth = list(reference[_native_filter & _nonsmoothed_filter & ~_multiple_filter]['Resource'])
-    native_nonsmooth_mult = list(reference[_native_filter & _nonsmoothed_filter & _multiple_filter]['Resource'])
-    template_nonsmooth = list(reference[_template_filter & _nonsmoothed_filter & ~_multiple_filter]['Resource'])
-    template_nonsmooth_mult = list(reference[_template_filter & _nonsmoothed_filter & _multiple_filter]['Resource'])
+    native_nonsmooth = list(reference[all_native_filter & _nonsmoothed_filter]['Resource'])
+    template_nonsmooth = list(reference[all_template_filter & _nonsmoothed_filter]['Resource'])
 
     # don't write these, unless the user selects to write native-space outputs
-    native_smooth = list(reference[~_template_filter & ~_nonsmoothed_filter & _derivative_filter]['Resource'])
+    native_smooth = list(reference[~all_template_filter & ~_nonsmoothed_filter]['Resource'])
 
     # ever used??? contains template-space, smoothed, both raw and z-scored
-    template_smooth = list(reference[_template_filter & ~_nonsmoothed_filter & _derivative_filter]['Resource'])
+    template_smooth = list(reference[all_template_filter & ~_nonsmoothed_filter]['Resource'])
+
+    _bold_filter = reference['Type'] == 'bold'
+    _ts_filter = reference['4D Time Series'] == 'Yes'
+    bold_ts = list(reference[_bold_filter & _bold_native_filter & _ts_filter]['Resource'])
 
     # outputs to send into z-scoring, if z-scoring is enabled, and
     # outputs to write out if user selects to write non-z-scored outputs
-    # "_mult" is for items requiring mapnodes
+    native_raw = list(
+        reference[all_native_filter &
+        (reference['To z-std'] == 'Yes')]['Resource'])
+
     template_raw = list(
-        reference[_template_filter & ~_multiple_filter & 
-        (reference['Optional outputs: Raw scores'] == 'yes')]['Resource'])
-    template_raw_mult = list(reference[_template_filter & _multiple_filter &
-        (reference['Optional outputs: Raw scores'] == 'yes')]['Resource'])
+        reference[all_template_filter &  
+        (reference['To z-std'] == 'Yes')]['Resource'])
 
-    # outputs to send into the average calculation nodes
-    # "_mult" is for items requiring mapnodes
-    average = list(reference[~_multiple_filter & (reference['Calculate averages'] == 'yes')]['Resource'])
-    average_mult = list(reference[_multiple_filter & (reference['Calculate averages'] == 'yes')]['Resource'])
-
-    # outputs to link for QC pages
-    qc = list(reference[_derivative_filter & _template_filter]['Resource'])

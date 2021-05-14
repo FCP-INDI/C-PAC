@@ -801,7 +801,11 @@ def n4_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["desc-preproc_T1w"]}
+     "outputs": {
+         "desc-preproc_T1w": {
+             "Description": "T1w image that has been N4-bias-field corrected 
+                             using ANTs N4BiasFieldCorrection."}}
+    }
     '''
 
     n4 = pe.Node(interface=ants.N4BiasFieldCorrection(dimension=3,
@@ -1026,7 +1030,12 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"])],
-     "outputs": ["desc-brain_T1w"]}
+     "outputs": {
+         "desc-brain_T1w": {
+             "Description": "Skull-stripped T1w brain.",
+             "SkullStripped": True
+         }}
+    }
     '''
 
     '''

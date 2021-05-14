@@ -2167,7 +2167,15 @@ def update_nested_dict(d_base, d_update):
         if isinstance(v, collections.abc.Mapping):
             d_base[k] = update_nested_dict(d_base.get(k, {}), v)
         else:
-            d_base[k] = v
+            try:
+                d_base[k] = v
+            except:
+                err = "\n[!] If you are seeing this error, it might be that "\
+                      "you are using a pipeline configuration nest level in "\
+                      "either your current pipeline configuration or an "\
+                      "imported one that is not compatible with the version "\
+                      "of C-PAC you are currently using.\n"
+                raise Exception(err)
     return d_base
 
 

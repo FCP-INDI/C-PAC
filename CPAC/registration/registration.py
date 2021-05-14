@@ -1751,19 +1751,34 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1w_brain_template",
                 "T1w_brain_template_mask",
                 "label-lesion_mask"],
-     "outputs": ["space-template_desc-brain_T1w",
-                 "from-T1w_to-template_mode-image_desc-linear_xfm",
-                 "from-template_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-template_mode-image_desc-nonlinear_xfm",
-                 "from-template_to-T1w_mode-image_desc-nonlinear_xfm",
-                 "from-T1w_to-template_mode-image_xfm",
-                 "from-template_to-T1w_mode-image_xfm",
-                 "from-longitudinal_to-template_mode-image_desc-linear_xfm",
-                 "from-template_to-longitudinal_mode-image_desc-linear_xfm",
-                 "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm",
-                 "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm",
-                 "from-longitudinal_to-template_mode-image_xfm",
-                 "from-template_to-longitudinal_mode-image_xfm"]}
+     "outputs": {"space-template_desc-brain_T1w": {
+                     "Description": "The preprocessed T1w brain transformed "
+                                    "to template space.",
+                     "Template": "T1w_template"},
+                 "from-T1w_to-template_mode-image_desc-linear_xfm": {
+                     "Description": ""},
+                 "from-template_to-T1w_mode-image_desc-linear_xfm": {
+                     "Description": ""},
+                 "from-T1w_to-template_mode-image_desc-nonlinear_xfm": {
+                     "Description": ""},
+                 "from-template_to-T1w_mode-image_desc-nonlinear_xfm": {
+                     "Description": ""},
+                 "from-T1w_to-template_mode-image_xfm": {
+                     "Description": ""},
+                 "from-template_to-T1w_mode-image_xfm": {
+                     "Description": ""},
+                 "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
+                     "Description": ""},
+                 "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
+                     "Description": ""},
+                 "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm": {
+                     "Description": ""},
+                 "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm": {
+                     "Description": ""},
+                 "from-longitudinal_to-template_mode-image_xfm": {
+                     "Description": ""},
+                 "from-template_to-longitudinal_mode-image_xfm": {
+                     "Description": ""}}}
     '''
 
     params = cfg.registration_workflows['anatomical_registration'][
@@ -1970,7 +1985,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "input",
      "option_val": "Selected_Functional_Volume",
-     "inputs": ["desc-brain_bold"],
+     "inputs": ["desc-brain_bold", "desc-preproc_bold", "bold"],
      "outputs": ["desc-reginput_bold"]}
     '''
 
@@ -1979,10 +1994,13 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     get_func_volume.inputs.set(
         expr='a',
-        single_idx=cfg.func_reg_input_volume,
+        single_idx=cfg.registration_workflows["functional_registration"][
+            "coregistration"]["func_input_prep"]["Selected Functional Volume"][
+            "func_reg_input_volume"],
         outputtype='NIFTI_GZ'
     )
-    node, out = strat_pool.get_data("desc-brain_bold")
+    node, out = strat_pool.get_data(["desc-brain_bold", 
+                                     "desc-preproc_bold", "bold"])
     wf.connect(node, out, get_func_volume, 'in_file_a')
 
     coreg_input = (get_func_volume, 'out_file')
@@ -2331,7 +2349,11 @@ def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
-     "outputs": ["space-template_desc-mean_bold"]}
+     "outputs": {
+         "space-template_desc-mean_bold":
+             "Description": "Single-volume mean of the BOLD time-series "
+                            "transformed to template space."
+             "Template": "T1w_brain_template_funcreg"}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(

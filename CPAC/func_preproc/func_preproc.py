@@ -844,7 +844,11 @@ def func_truncate(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": {
+         "desc-preproc_bold": {
+             "Description": "Truncated functional time-series BOLD data."
+         }}
+    }
     '''
 
     # if cfg.functional_preproc['truncation']['start_tr'] == 0 and \
@@ -880,7 +884,11 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": {
+         "desc-preproc_bold": {
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike."
+         }}
+    }
     '''
 
     despike = pe.Node(interface=preprocess.Despike(),
@@ -907,7 +915,11 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_bold", "bold"],
                 "TR",
                 "tpattern"],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": {
+         "desc-preproc_bold": {
+             "Description": "Slice-time corrected BOLD time-series via AFNI 3dTShift."
+         }}
+    }
     '''
 
     slice_time = slice_timing_wf(name='func_slice_timing_correction_'
@@ -1261,7 +1273,11 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["func_masking", "using"],
      "option_val": "AFNI",
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
-     "outputs": ["space-bold_desc-brain_mask"]}
+     "outputs": {
+         "space-bold_desc-brain_mask": {
+             "Description": "Binary brain mask of the BOLD functional time-series
+                             created by AFNI 3dAutomask."}}
+    }
     '''
 
     func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
@@ -1670,7 +1686,11 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-motion_bold", "desc-preproc_bold", "bold"],
                  "space-bold_desc-brain_mask")],
-     "outputs": ["desc-brain_bold"]}
+     "outputs": {
+         "desc-brain_bold": {
+             "Description": "The skull-stripped BOLD time-series.",
+             "SkullStripped": True}}
+    }
     '''
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
@@ -1701,7 +1721,8 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-brain_bold"],
-     "outputs": ["desc-mean_bold"]}
+     "outputs": ["desc-mean_bold"]
+    }
     '''
 
     func_mean = pe.Node(interface=afni_utils.TStat(),
@@ -1724,13 +1745,11 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_normalize",
      "config": ["functional_preproc"],
-     "switch": "None",
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-brain_bold",
-                 "space-bold_desc-brain_mask")],
-     "outputs": ["desc-brain_bold",
-                 "space-bold_desc-brain_mask"]}
+     "inputs": ["desc-brain_bold"],
+     "outputs": ["desc-brain_bold"]}
     '''
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
@@ -1742,16 +1761,34 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-brain_bold')
     wf.connect(node, out, func_normalize, 'in_file')
 
+    outputs = {
+        'desc-brain_bold': (func_normalize, 'out_file')
+    }
+
+    return (wf, outputs)
+    
+    
+def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "func_mask_normalize",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["desc-brain_bold"],
+     "outputs": ["space-bold_desc-brain_mask"]}
+    '''
+
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name=f'func_mask_normalize_{pipe_num}',
                                   mem_gb=3.0)
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 
-    wf.connect(func_normalize, 'out_file', func_mask_normalize, 'in_file')
+    node, out = strat_pool.get_data('desc-brain_bold')
+    wf.connect(node, out, func_mask_normalize, 'in_file')
 
     outputs = {
-        'desc-brain_bold': (func_normalize, 'out_file'),
         'space-bold_desc-brain_mask': (func_mask_normalize, 'out_file')
     }
 
