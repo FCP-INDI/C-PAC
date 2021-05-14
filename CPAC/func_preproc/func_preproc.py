@@ -1482,7 +1482,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
             convergence=(10, 1e-6, 10),
             verbose=True,
         ),
-        name="init_aff",
+        name=f"init_aff_{pipe_num}",
         n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
     )
 
@@ -1516,7 +1516,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
             use_histogram_matching=[True],
             use_estimate_learning_rate_once=[True]
         ),
-        name="norm",
+        name=f"norm_{pipe_num}",
         n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
     )
 
@@ -1528,7 +1528,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
             interpolation="BSpline",
             float=True,
         ),
-        name="map_brainmask",
+        name=f"map_brainmask_{pipe_num}",
     )
     
     # Use the higher resolution and probseg for numerical stability in rounding
@@ -1536,7 +1536,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         'func_masking']['FSL_AFNI']['brain_probseg']
 
     binarize_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                            name='binarize_fs_brainmask')
+                            name=f'binarize_mask_{pipe_num}')
     binarize_mask.inputs.args = '-thr 0.85 -bin'
 
     # Dilate pre_mask
@@ -1547,7 +1547,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
             kernel_size=3.0,
             internal_datatype="char",
         ),
-        name="pre_mask_dilate",
+        name=f"pre_mask_dilate_{pipe_num}",
     )
 
     # Run N4 normally, force num_threads=1 for stability (images are small, no need for >1)
@@ -1557,7 +1557,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         shrink_factor=2,
         rescale_intensities = True,
-        name="n4_correct",
+        name=f"n4_correct_{pipe_num}",
         n_procs=1,
     )
 
