@@ -1686,7 +1686,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": ["functional_preproc"],
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
-     "option_val": "CCS",
+     "option_val": "CCS_Anatomical_Refined",
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
                 "desc-brain_T1w",
                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -1705,7 +1705,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
 
-    # Extract 7th volume as func ROI
+    # Extract 8th volume as func ROI
     func_roi = pe.Node(interface=fsl.ExtractROI(),
                        name=f'extract_func_roi_{pipe_num}')
     func_roi.inputs.t_min = 7

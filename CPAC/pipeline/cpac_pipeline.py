@@ -751,13 +751,10 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     acpc_align_brain_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
                 ]
-                if 'FreeSurfer-BET-Tight' in cfg.anatomical_preproc[
-                    'anatomical_preproc']['brain_extraction']['using'] or 'FreeSurfer-BET-Loose' \
-                        in cfg.anatomical_preproc['anatomical_preproc']['brain_extraction']['using']:
-                    acpc_blocks.append(
-                        [brain_mask_acpc_freesurfer_fsl_tight,
-                         brain_mask_acpc_freesurfer_fsl_loose]
-                    )
+                acpc_blocks.append(
+                    [brain_mask_acpc_freesurfer_fsl_tight,
+                    brain_mask_acpc_freesurfer_fsl_loose]
+                )
             else:
                 acpc_blocks = [
                     [brain_mask_acpc_afni,
