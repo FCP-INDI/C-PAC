@@ -158,6 +158,9 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   run_freesurfer: Off
 
+  # Add extra arguments to recon-all command
+  reconall_args: None
+
 
 longitudinal_template_generation:
 
@@ -235,6 +238,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+
     T1w_brain_ACPC_template: None
     T2w_ACPC_template: None
     T2w_brain_ACPC_template: None
@@ -243,7 +247,7 @@ anatomical_preproc:
   
     run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
     # this is a fork option
     using: ['3dSkullStrip']
 
@@ -373,6 +377,11 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+    FreeSurfer-BET:
+
+      # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
+      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+
 
 segmentation:
 
@@ -382,7 +391,7 @@ segmentation:
 
   tissue_segmentation:
 
-    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
+    # using: ['FSL-FAST', 'Template_Based', 'ANTs_Prior_Based', 'FreeSurfer']
     # this is a fork point
     using: ['FSL-FAST']
 
@@ -479,20 +488,28 @@ segmentation:
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
       # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
 
-      # Label value corresponding to CSF in multiatlas file
-      CSF_label : 24
+      # Label values corresponding to CSF in multiatlas file
+      CSF_label : [24]
 
-      # Label value corresponding to Left Gray Matter in multiatlas file
-      left_GM_label : 3
+      # Label values corresponding to Gray Matter in multiatlas file
+      GM_label : [3, 42]
 
-      # Label value corresponding to Right Gray Matter in multiatlas file
-      right_GM_label : 42
+      # Label values corresponding to White Matter in multiatlas file
+      WM_label : [2, 41]
 
-      # Label value corresponding to Left White Matter in multiatlas file
-      left_WM_label : 2
+    FreeSurfer:
 
-      # Label value corresponding to Right White Matter in multiatlas file
-      right_WM_label : 41
+      # Use mri_binarize --erode option to erode segmentation masks
+      erode: 0
+
+      # Label values corresponding to CSF in FreeSurfer aseg segmentation file
+      CSF_label : [24]
+
+      # Label values corresponding to Gray Matter in FreeSurfer aseg segmentation file
+      GM_label : [3, 42]
+
+      # Label values corresponding to White Matter in FreeSurfer aseg segmentation file
+      WM_label : [2, 41]
 
 
 registration_workflows:
@@ -662,6 +679,11 @@ registration_workflows:
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
+
+        # using: ['FSL', 'FreeSurfer']
+        # this is a fork point
+        # ex. selecting both ['FSL', 'FreeSurfer'] will run both and fork the pipeline
+        using: ['FSL']
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
@@ -886,6 +908,13 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+    # use specified slice time pattern rather than one in header
+    tpattern: None
+
+    # align each slice to given time offset
+    # The default alignment time is the average of the 'tpattern' values (either from the dataset header or from the tpattern option).
+    tzero: None
+
   motion_estimates_and_correction:
 
     # calculate motion statistics BEFORE slice-timing correction
@@ -1000,7 +1029,7 @@ functional_preproc:
 
   func_masking:
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'CCS_Anatomical_Refined']
     # this is a fork point
     using: ['AFNI']
 

@@ -35,11 +35,16 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_niworkflows_ants,
     brain_mask_unet,
     brain_mask_freesurfer,
+    brain_mask_freesurfer_fsl_tight,
+    brain_mask_freesurfer_fsl_loose,
     brain_mask_acpc_afni,
     brain_mask_acpc_fsl,
     brain_mask_acpc_niworkflows_ants,
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
+    brain_mask_acpc_freesurfer_fsl_tight,
+    brain_mask_acpc_freesurfer_fsl_loose,
+    brain_extraction,
     brain_extraction_temp,
     brain_extraction,
     anatomical_init_T2,
@@ -96,6 +101,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_fsl_afni,
     bold_mask_anatomical_refined,
     bold_mask_anatomical_based,
+    bold_mask_ccs,
     bold_masking,
     func_mean,
     func_normalize,
@@ -211,6 +217,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     subject_id = sub_dict['subject_id']
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
+
+    c['subject_id'] = subject_id
 
     log_dir = os.path.join(c.pipeline_setup['log_directory']['path'],
                            f'pipeline_{c.pipeline_setup["pipeline_name"]}',
@@ -758,13 +766,17 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     acpc_align_brain_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
                 ]
+                acpc_blocks.append(
+                    [brain_mask_acpc_freesurfer_fsl_tight,
+                    brain_mask_acpc_freesurfer_fsl_loose]
+                )
             else:
                 acpc_blocks = [
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
                      brain_mask_acpc_niworkflows_ants,
                      brain_mask_acpc_unet],
-                       #brain_mask_acpc_freesurfer
+                    #  brain_mask_acpc_freesurfer
                     # we don't want these masks to be used later
                     brain_extraction_temp,
                     acpc_align_brain
@@ -795,13 +807,15 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-            cfg.surface_analysis['run_freesurfer']:
+        cfg.surface_analysis['run_freesurfer']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
              brain_mask_niworkflows_ants,
-             brain_mask_unet]
-               #brain_mask_freesurfer
+             brain_mask_unet,
+             brain_mask_freesurfer_fsl_tight,
+             brain_mask_freesurfer_fsl_loose]
+            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
@@ -1010,7 +1024,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         func_prep_blocks = [
             [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based],
+             bold_mask_anatomical_refined, bold_mask_anatomical_based,
+             bold_mask_ccs],
             bold_masking,
             calc_motion_stats,
             func_mean,

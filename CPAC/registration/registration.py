@@ -2,7 +2,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
-from nipype.interfaces import afni
+import nipype.interfaces.afni as afni
 
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -1985,8 +1985,8 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     get_func_volume.inputs.set(
         expr='a',
-        single_idx=cfg.registration_workflows['functional_registration'][
-            'coregistration']['func_input_prep']['Selected Functional Volume']['func_reg_input_volume'],
+        single_idx=cfg.registration_workflows['functional_registration']['coregistration'][
+            'func_input_prep']['Selected Functional Volume']['func_reg_input_volume'],
         outputtype='NIFTI_GZ'
     )
     node, out = strat_pool.get_data("desc-brain_bold")

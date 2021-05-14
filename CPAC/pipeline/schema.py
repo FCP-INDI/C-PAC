@@ -20,11 +20,9 @@ valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
     },
-    'boundary_based_registration': {
-        'using': ['FSL', 'FreeSurfer']
-    },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
+                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
                   'FreeSurfer-ABCD']
     },
     'centrality': {
@@ -325,6 +323,9 @@ schema = Schema({
                 'mask_path': str,
                 'regmask_path': str,
             },
+            'FreeSurfer-BET': {
+                'T1w_brain_template_mask_ccs': str
+            },
         },
     },
     'segmentation': {
@@ -351,16 +352,19 @@ schema = Schema({
                     'CSF_path': str
                 },
             },
-            'Freesurfer': Maybe(dict),
+            'FreeSurfer': {
+                'erode': int,
+                'CSF_label': [int],
+                'GM_label': [int],
+                'WM_label': [int],                
+            },
             'ANTs_Prior_Based': {
                 'run': forkable,
                 'template_brain_list': [str],
                 'template_segmentation_list': [str],
-                'CSF_label': int,
-                'left_GM_label': int,
-                'right_GM_label': int,
-                'left_WM_label': int,
-                'right_WM_label': int,
+                'CSF_label': [int],
+                'GM_label': [int],
+                'WM_label': [int],
             },
             'Template_Based': {
                 'run': forkable,
@@ -421,9 +425,9 @@ schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'using': Maybe(In(
-                        valid_options['boundary_based_registration']['using']
-                    )),
+                    'using': [In({
+                        'FSL', 'FreeSurfer'
+                    })],
                     'run': forkable,
                     'bbr_schedule': str
                 },
@@ -481,6 +485,7 @@ schema = Schema({
     },
     'surface_analysis': {
         'run_freesurfer': bool,
+        'reconall_args': Maybe(str),
     },
     'longitudinal_template_generation': {
         'run': bool,
@@ -507,7 +512,9 @@ schema = Schema({
             'run': forkable
         },
         'slice_timing_correction': {
-            'run': forkable
+            'run': forkable,
+            'tpattern': Maybe(str),
+            'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
             'calculate_motion_first': bool,
@@ -585,7 +592,7 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based']
+                 'Anatomical_Based', 'CCS_Anatomical_Refined']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-
