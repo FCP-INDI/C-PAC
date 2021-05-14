@@ -472,9 +472,6 @@ def create_seg_preproc_freesurfer(config=None,
     reconall2.inputs.openmp = config.pipeline_setup['system_config'][
         'num_omp_threads']
 
-    #if config.autorecon2_args is not None:  # TODO: update nested
-    #    reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
-
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
 
@@ -764,14 +761,14 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "Template_Based",
      "inputs": [("desc-mean_bold",
-                 "from-template_to-bold_mode-image_desc-linear_xfm")],
+                 "from-EPItemplate_to-bold_mode-image_desc-linear_xfm")],
      "outputs": ["space-bold_label-CSF_mask",
                  "space-bold_label-GM_mask",
                  "space-bold_label-WM_mask"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
-        'from-template_to-bold_mode-image_desc-linear_xfm')
+        'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == 'ants'
 
@@ -794,7 +791,7 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = \
         strat_pool.get_data(
-            'from-template_to-bold_mode-image_desc-linear_xfm')
+            'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
     wf.connect(node, out,
                csf_template2t1, 'inputspec.standard2highres_mat')
     wf.connect(node, out,

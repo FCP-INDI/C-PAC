@@ -816,6 +816,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
+            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
@@ -1193,7 +1194,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "calc_motion_stats",
      "config": "None",
-     "switch": "None",
+     "switch": [["functional_preproc", "run"], 
+                ["functional_preproc", "motion_estimates_and_correction", 
+                "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-motion_bold",
@@ -1677,6 +1680,58 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
+    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
+
+    Node Block:
+    {"name": "bold_mask_anatomical_resampled",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "Anatomical_Resampled",
+     "inputs": ["T1w_template_funcreg",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask"],
+     "outputs": ["space-template_res-bold_desc-brain_T1w",
+                 "space-template_desc-bold_mask"]}
+    '''
+
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+                                     name=f'resample_anat_brain_in_standard_{pipe_num}')
+    
+    anat_brain_to_func_res.inputs.interp = 'spline'
+    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    wf.connect(node, out, anat_brain_to_func_res, 'in_file')
+
+    node, out = strat_pool.get_data('T1w_template_funcreg')
+    wf.connect(node, out, anat_brain_to_func_res, 'ref_file')
+
+    # Create brain masks in this space from the FreeSurfer output (changing resolution)
+    # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
+    anat_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
+                                          name=f'resample_anat_brain_mask_in_standard_{pipe_num}')
+    
+    anat_brain_mask_to_func_res.inputs.interp = 'nn'
+    anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
+    wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
+
+    wf.connect(anat_brain_to_func_res, 'out_file',
+        anat_brain_mask_to_func_res, 'ref_file')
+
+    outputs = {
+        'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
+        'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file')
+
+
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Generate the BOLD mask by basing it off of the anatomical brain.
     Adapted from the BOLD mask method from the CCS pipeline.
@@ -1823,8 +1878,9 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "bold_masking",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": None,
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "func_masking", "apply_func_mask_in_native_space"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-motion_bold", "desc-preproc_bold", "bold"],
@@ -1855,8 +1911,9 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_mean",
-     "config": ["functional_preproc"],
-     "switch": "None",
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "generate_func_mean", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-brain_bold"],
@@ -1882,8 +1939,9 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_normalize",
-     "config": ["functional_preproc"],
-     "switch": "None",
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "normalize_func", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-brain_bold",

@@ -221,8 +221,15 @@ schema = Schema({
     },
     'anatomical_preproc': {
         'run': bool,
-        'non_local_means_filtering': forkable,
-        'n4_bias_field_correction': forkable,
+        'non_local_means_filtering': {
+            'run': forkable,
+            'noise_model': Maybe(str),
+        },
+        'n4_bias_field_correction': {
+            'run': forkable,
+            'shrink_factor': int,
+        },
+        'acpc_alignment': Required(
         't1t2_bias_field_correction': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
@@ -396,17 +403,24 @@ schema = Schema({
                 },
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
-                    'ref_mask': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
+                    'ref_mask': Maybe(str),
+                    'ref_mask_res-2': str,
+                    'T1w_template_res-2': str
                 },
+            },
+            'apply_transform': {
+                'using': In({'default', 'ANTS', 'FSL'}),
             },
         },
         'functional_registration': {
             'coregistration': {
                 'run': bool,
+                'reference': In({'brain', 'restore-brain'}),
+                'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'using': str,
                 'input': str,
                 'interpolation': str,
@@ -414,6 +428,7 @@ schema = Schema({
                 'dof': int,
                 'arguments': Maybe(str),
                 'func_input_prep': {
+                    'reg_with_skull': bool,
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume'
                     })],
@@ -451,6 +466,7 @@ schema = Schema({
             },
             'func_registration_to_template': {
                 'run': bool,
+                'run_EPI': bool,
                 'output_resolution': {
                     'func_preproc_outputs': All(
                         str, Match(resolution_regex)),
@@ -479,6 +495,9 @@ schema = Schema({
                 'FNIRT_pipelines': {
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
+                },
+                'apply_transform': {
+                    'using': In({'default', 'abcd'}),
                 },
             },
         },
@@ -517,7 +536,10 @@ schema = Schema({
             'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
-            'calculate_motion_first': bool,
+            'motion_estimates': {
+                'calculate_motion_first': bool,
+                'calculate_motion_after': bool,
+            },
             'motion_correction': {
                 'using': [In({'3dvolreg', 'mcflirt'})],
                 'AFNI-3dvolreg': {
@@ -592,7 +614,7 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based', 'CCS_Anatomical_Refined']
+                 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-
@@ -618,6 +640,13 @@ schema = Schema({
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },
+            'apply_func_mask_in_native_space': bool,
+        },
+        'generate_func_mean': {
+            'run': bool,
+        },
+        'normalize_func': {
+            'run': bool,
         },
     },
     'nuisance_corrections': {
