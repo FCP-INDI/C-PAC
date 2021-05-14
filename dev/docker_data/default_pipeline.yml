@@ -721,6 +721,10 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: whole-head
+
     EPI_registration:
 
       # directly register the mean functional to an EPI template
@@ -902,9 +906,10 @@ registration_workflows:
 
       apply_transform:
 
-        # options: 'default', 'abcd'
+        # options: 'default', 'abcd', 'single_step_resampling'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
-        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume same as ABCD-HCP pipeline.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
         using: 'default'
 
 

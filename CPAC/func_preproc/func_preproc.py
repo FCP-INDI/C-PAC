@@ -919,7 +919,8 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_bold", "bold"],
                 "TR",
                 "tpattern"],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": ["desc-preproc_bold", 
+                 "desc-stc_bold"]}
     '''
 
     slice_time = slice_timing_wf(name='func_slice_timing_correction_'
@@ -939,7 +940,8 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, slice_time, 'inputspec.tpattern')
 
     outputs = {
-        'desc-preproc_bold': (slice_time, 'outputspec.slice_time_corrected')
+        'desc-preproc_bold': (slice_time, 'outputspec.slice_time_corrected'),
+        'desc-stc_bold': (slice_time, 'outputspec.slice_time_corrected')
     }
 
     return (wf, outputs)

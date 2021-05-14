@@ -86,7 +86,8 @@ from CPAC.registration.registration import (
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
     warp_deriv_mask_to_EPItemplate,
-    warp_timeseries_to_T1template_abcd
+    warp_timeseries_to_T1template_abcd,
+    single_step_resample_timeseries_to_T1template
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -1180,7 +1181,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
-                             warp_timeseries_to_T1template_abcd],
+                             warp_timeseries_to_T1template_abcd,
+                             single_step_resample_timeseries_to_T1template],
                             warp_bold_mean_to_T1template]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):

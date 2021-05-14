@@ -444,7 +444,8 @@ schema = Schema({
                         'FSL', 'FreeSurfer'
                     })],
                     'run': forkable,
-                    'bbr_schedule': str
+                    'bbr_schedule': str,
+                    'reference': In({'whole-head', 'brain'})
                 },
             },
             'EPI_registration': {
@@ -497,7 +498,7 @@ schema = Schema({
                     'identity_matrix': str,
                 },
                 'apply_transform': {
-                    'using': In({'default', 'abcd'}),
+                    'using': In({'default', 'abcd', 'single_step_resampling'}),
                 },
             },
         },
