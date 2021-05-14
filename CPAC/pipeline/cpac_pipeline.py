@@ -11,6 +11,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -232,7 +233,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         c)
 
     if not plugin:
-        plugin = 'LegacyMultiProc'
+        plugin = LegacyMultiProcPlugin()
 
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb
