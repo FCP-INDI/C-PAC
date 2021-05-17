@@ -1425,8 +1425,8 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "registration_T2w_to_T1w",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -2355,8 +2355,8 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_T2",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-reorient_T1w", "T1w", "desc-preproc_T1w"], 
@@ -2393,8 +2393,8 @@ def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_mask_acpc_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_acpc_T2",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-reorient_T1w", "T1w"], 
@@ -2425,8 +2425,8 @@ def brain_mask_acpc_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_extraction_T2",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-acpcbrain_T2w",
@@ -2462,8 +2462,8 @@ def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_extraction_temp_T2",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],

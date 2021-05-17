@@ -221,6 +221,7 @@ schema = Schema({
     },
     'anatomical_preproc': {
         'run': bool,
+        'run_t2': bool,
         'non_local_means_filtering': {
             'run': forkable,
             'noise_model': Maybe(str),

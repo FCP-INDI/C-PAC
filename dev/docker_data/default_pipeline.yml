@@ -201,6 +201,8 @@ anatomical_preproc:
 
   run: On
 
+  run_t2: Off
+
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering: 
 
