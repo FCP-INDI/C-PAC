@@ -62,12 +62,17 @@ class Node(pe.Node):
         if 'mem_x' in kwargs:
             setattr(self, '_mem_x', kwargs['mem_x'])
 
+    orig_sig_params = list(signature(pe.Node).parameters.items())
+
     __init__.__signature__ = Signature(parameters=[
         p[1] if p[0] != 'mem_gb' else (
             'mem_gb',
             Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
                       default=DEFAULT_MEM_GB)
-        )[1] for p in signature(pe.Node).parameters.items()])
+        )[1] for p in orig_sig_params[:-1]] + [
+            Parameter('mem_x', Parameter.KEYWORD_ONLY),
+            orig_sig_params[-1][1]
+        ])
 
     __init__.__doc__ = re.sub(r'(?<!\s):', ' :', '\n'.join([
         pe.Node.__init__.__doc__.rstrip(),
