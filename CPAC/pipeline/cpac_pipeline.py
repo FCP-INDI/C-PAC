@@ -232,14 +232,14 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
         c)
 
-    if not plugin:
-        plugin = LegacyMultiProcPlugin()
-
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+
+    if not plugin:
+        plugin = LegacyMultiProcPlugin(plugin_args)
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly

@@ -5,6 +5,9 @@ from nipype.pipeline.plugins.legacymultiproc import (
 
 
 class LegacyMultiProcPlugin(LegacyMultiProc):
+    def __init__(self, plugin_args=None):
+        super().__init__(plugin_args)
+
     def _prerun_check(self, graph):
         """Check if any node exeeds the available resources"""
         tasks_mem_gb = []
