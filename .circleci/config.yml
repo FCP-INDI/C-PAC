@@ -16,18 +16,23 @@ commands:
             docker build -t fcpindi/c-pac:${DOCKER_TAG} . ${DOCKERFILE}
             docker save fcpindi/c-pac:${DOCKER_TAG} | gzip > ${DOCKER_TARBALL}.tar.gz
           no_output_timeout: 5h
-      - run:
-          name: "Starting local registry"
-          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - get-singularity
-      - run:
-          name: "Building Singularity image from Docker image"
-          command: |
-            docker load < ${DOCKER_TARBALL}.tar.gz
-            docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-            docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-          no_output_timeout: 5h
+      - when:
+          condition:
+            not:
+              equal: [<< parameters.variant >>, fMRIPrep-LTS]
+          steps:
+          - run:
+              name: "Starting local registry"
+              command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+          - get-singularity
+          - run:
+              name: "Building Singularity image from Docker image"
+              command: |
+                docker load < ${DOCKER_TARBALL}.tar.gz
+                docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+                docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+                SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+              no_output_timeout: 5h
   check-for-built-images:
     steps:
       - run:
@@ -357,7 +362,6 @@ workflows:
             - "Test ABCD-HCP variant in Docker"
             - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
-            - "Test fMRIPrep-LTS variant in Singularity"
       - pytest-docker:
           name: "Test in Docker"
           requires:
@@ -386,11 +390,6 @@ workflows:
           requires:
             - "Build ABCD-HCP variant images"
           variant: ABCD-HCP
-      - pytest-singularity:
-          name: "Test fMRIPrep-LTS variant in Singularity"
-          requires:
-            - "Build fMRIPrep-LTS variant images"
-          variant: fMRIPrep-LTS
       - pytest-singularity:
           name: "Test lite variant in Singularity"
           requires:
