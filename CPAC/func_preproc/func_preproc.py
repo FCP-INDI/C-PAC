@@ -1732,6 +1732,9 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
         'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file')
+    }
+
+    return (wf, outputs)
 
 
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):

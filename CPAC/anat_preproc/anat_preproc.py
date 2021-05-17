@@ -33,7 +33,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
 
     output_node = pe.Node(util.IdentityInterface(fields=['acpc_aligned_head',
                                                          'acpc_brain_mask',
-                                                         'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm']),
+                                                         'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm',
                                                          'acpc_aligned_brain',
                                                          'acpc_brain_mask']),
                           name='outputspec')
