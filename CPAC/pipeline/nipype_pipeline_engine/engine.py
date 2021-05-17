@@ -90,16 +90,8 @@ class Node(pe.Node):
                 Multiplier for memory allocation such that `multiplier`
                 times x * y * z * t of 4-D file at `path` plus
                 `self._mem_gb` equals the total memory allocation for
-                the node.
-
-            tuple (len 1) or number
-                (multiplier, ) or multiplier
-                (number, ) or number
-                Multiplier for memory allocation such that `multiplier`
-                times `wf._largest_func` (x * y * z * t of the largest
-                functional file in `wf` where `wf` is the Workflow
-                containing this Node, if this Node is in a Workflow and
-                `wf` has the attribute `_largest_func`)
+                the node. `path` can be a Node input string or an
+                actual path.
             ''']))
 
     @property
@@ -249,9 +241,9 @@ class Workflow(pe.Workflow):
                                     if hasattr(self, '_largest_func'):
                                         node._apply_mem_x(self._largest_func)
                                     else:
-                                        # memoize the path otherwise
-                                        node._mem_x = (node._mem_x[0],
-                                                       multiplicand_path)
+                                        # TODO: handle S3 files
+                                        # 1e8 is a small estimate
+                                        node._apply_mem_x(1e8)
 
 
 def get_data_size(filepath):
