@@ -68,7 +68,10 @@ surface_analysis:
 anatomical_preproc: 
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: [On]
+  non_local_means_filtering:
+
+    # this is a fork option
+    run: [On]
 
   brain_extraction:
 

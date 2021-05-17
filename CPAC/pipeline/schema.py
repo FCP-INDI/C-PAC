@@ -260,7 +260,7 @@ schema = Schema({
                 'acpc_target': valid_options['acpc']['target'][1],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
-                'T2w_ACPC_template': str,
+                'T2w_ACPC_template': Maybe(str),
                 'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
@@ -270,8 +270,8 @@ schema = Schema({
                 'acpc_target': valid_options['acpc']['target'][0],
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
-                'T2w_ACPC_template': str,
-                'T2w_brain_ACPC_template': str,
+                'T2w_ACPC_template': Maybe(str),
+                'T2w_brain_ACPC_template': Maybe(str),
             },),
             msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',

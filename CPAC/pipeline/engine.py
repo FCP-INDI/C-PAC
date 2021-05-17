@@ -1360,9 +1360,15 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
+
+    if type(data_paths['anat']) is str:
+        anat_T1=data_paths['anat']
+    elif 'T1w' in data_paths['anat']:
+        anat_T1=data_paths['anat']['T1w']
+
     anat_flow.inputs.inputnode.set(
         subject=part_id,
-        anat=data_paths['anat'],
+        anat=anat_T1,
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'],
         img_type='anat'

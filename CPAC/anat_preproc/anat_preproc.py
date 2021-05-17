@@ -1957,8 +1957,8 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
 def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "anatomical_init_T2",
-     "config": "None",
-     "switch": "None",
+     "config": ["anatomical_preproc"],
+     "switch": ["run_t2"],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["T2w"],
@@ -1989,8 +1989,9 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_head_T2",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
@@ -2021,8 +2022,9 @@ def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_head_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_head_with_mask_T2",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
@@ -2057,8 +2059,9 @@ def acpc_align_head_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_brain_T2",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
@@ -2099,8 +2102,9 @@ def acpc_align_brain_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_T2_brain_with_mask",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
@@ -2146,8 +2150,9 @@ def acpc_align_brain_with_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def non_local_means_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "nlm_filtering_T2",
-     "config": ["anatomical_preproc"],
-     "switch": ["non_local_means_filtering"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "non_local_means_filtering", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"]],
@@ -2171,8 +2176,9 @@ def non_local_means_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def n4_bias_correction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "n4_bias_correction_T2",
-     "config": ["anatomical_preproc"],
-     "switch": ["n4_bias_field_correction"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "n4_bias_field_correction", "run"], 
+                ["anatomical_preproc", "run_t2"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"]],
@@ -3139,6 +3145,8 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
         'desc-restore-brain_T1w': (apply_mask, 'out_file')
     }
 
+    # TODO check if it's merge error?
+    '''
     if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
         outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
         outputs['label-WM_mask'] = (erode_wm, 'binary_file')
@@ -3147,5 +3155,6 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
         outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
         outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
         outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
+    '''
 
     return (wf, outputs)
