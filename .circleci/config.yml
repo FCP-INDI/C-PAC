@@ -38,7 +38,7 @@ commands:
       - run:
           name: "Checking for locally built images"
           command: |
-            if [[ ! -f ${DOCKER_TARBALL}.tar.gz || ! -f cpac-singularity-image${VARIANT}.simg ]]
+            if [[ ! -f ${DOCKER_TARBALL}.tar.gz ]]
             then
               circleci step halt
             fi
