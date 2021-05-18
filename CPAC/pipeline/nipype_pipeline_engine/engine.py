@@ -81,18 +81,25 @@ class Node(pe.Node):
             Estimate (in GB) of constant memory to allocate for this
             node.
 
-        mem_x : tuple or number
+        mem_x : 2-tuple
+            (``multiplier``, ``input_file``)
+            (int or float, str)
 
-            tuple (len 2)
-                (multiplier, path)
-                (int or float, str)
+            **Note**
+            This parameter (``mem_x``) is likely to change in a future
+            release as we incorporate more factors into memory
+            estimates.
 
-                Multiplier for memory allocation such that `multiplier`
-                times x * y * z * t of 4-D file at `path` plus
-                `self._mem_gb` equals the total memory allocation for
-                the node. `path` can be a Node input string or an
-                actual path.
-            ''']))
+            See also: `⚡️ Setting data- and operation-dependent memory-estimates <https://github.com/FCP-INDI/C-PAC/issues/1509>`_
+                GitHub epic of issues related to improving Node
+                memory estimates based on the data and operations
+                involved.
+
+            Multiplier for memory allocation such that ``multiplier``
+            times x * y * z * t of 4-D file at ``input_file`` plus
+            ``self._mem_gb`` equals the total memory allocation for
+            the node. ``input_file`` can be a Node input string or
+            an actual path.''']))  # noqa E501
 
     @property
     def mem_gb(self):
@@ -186,7 +193,8 @@ class Node(pe.Node):
 
     @property
     def mem_x(self):
-        """Get memory multiplier"""
+        """Get (memory multiplier, input file) tuple. Returns ``None``
+        if already consumed or not set."""
         if hasattr(self, '_mem_x'):
             return self._mem_x
         return None
@@ -248,10 +256,6 @@ class Workflow(pe.Workflow):
 
 def get_data_size(filepath):
     """Function to return the size of a functional image (x * y * z * t)
-
-    # !!!
-    # Temporarily returns just the time dimension, defaulting to 1200.
-    # !!!
 
     Parameters
     ----------
