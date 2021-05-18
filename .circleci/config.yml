@@ -13,7 +13,7 @@ commands:
       - run:
           name: "Building Docker image"
           command: |
-            docker build -t fcpindi/c-pac:${DOCKER_TAG} . ${DOCKERFILE}
+            docker build --rm -t fcpindi/c-pac:${DOCKER_TAG} . ${DOCKERFILE}
             docker save fcpindi/c-pac:${DOCKER_TAG} | gzip > ${DOCKER_TARBALL}.tar.gz
           no_output_timeout: 5h
       - run:
