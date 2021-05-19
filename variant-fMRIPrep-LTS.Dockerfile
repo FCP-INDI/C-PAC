@@ -107,6 +107,9 @@ RUN apt-get update && \
                     connectome-workbench=1.3.2-2~nd16.04+1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+COPY --from=fcpindi/c-pac:nightly /opt/afni/3dTto1D /usr/lib/afni/bin/
+COPY --from=fcpindi/c-pac:nightly /lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/
+
 # set up AFNI
 ENV PATH=/usr/lib/afni/bin:$PATH
 
