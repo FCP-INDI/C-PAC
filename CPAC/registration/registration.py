@@ -2769,7 +2769,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     
     # ${FSLDIR}/bin/fslmaths ${WD}/${T1wImageFile}.${FinalfMRIResolution} -mas ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     T1_brain_res = pe.Node(interface=fsl.MultiImageMaths(),
-                                  name=f'anat_func_res_{pipe_num}')
+                                  name=f't1_brain_func_res_{pipe_num}')
     T1_brain_res.inputs.op_string = "-mas %s "
 
     wf.connect(applywarp_anat_res, 'out_file', T1_brain_res, 'in_file')
@@ -2789,7 +2789,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     
     # ${FSLDIR}/bin/fslmaths ${WD}/${BiasFieldFile}.${FinalfMRIResolution} -thr 0.1 ${WD}/${BiasFieldFile}.${FinalfMRIResolution}
     biasfield_thr = pe.Node(interface=fsl.MultiImageMaths(),
-                                  name=f'anat_func_res_{pipe_num}')
+                                  name=f'biasfiedl_thr_{pipe_num}')
     biasfield_thr.inputs.op_string = "-thr 0.1"
 
     wf.connect(applywarp_bias_field_res, 'out_file', biasfield_thr, 'in_file')
