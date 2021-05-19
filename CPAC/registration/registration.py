@@ -2402,6 +2402,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
+                 "desc-preproc_T2w",
+                 "desc-brain_T2w",
+                 "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
                  "T1w"),
                 "diffphase_dwell",
@@ -2420,20 +2423,20 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     
     if strat_pool.check_rpool('T2w'):
         # monkey data
-        func_to_anat = create_register_func_to_anat_use_T2(cfg, diff_complete,
+        func_to_anat = create_register_func_to_anat_use_T2(cfg, 
                                                     f'func_to_anat_FLIRT_'
                                                     f'{pipe_num}')
 
         node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
-        node, out = strat_pool.get_data('desc-correctedbrain_T1w', 'desc-brain_T1w')
+        node, out = strat_pool.get_data('desc-brain_T1w')
         wf.connect(node, out, func_to_anat, 'inputspec.T1_brain')
 
         node, out = strat_pool.get_data('desc-preproc_T2w')
         wf.connect(node, out, func_to_anat, 'inputspec.T2_head')
         
-        node, out = strat_pool.get_data('desc-correctedbrain_T2w', 'desc-brain_T2w')
+        node, out = strat_pool.get_data('desc-brain_T2w')
         wf.connect(node, out, func_to_anat, 'inputspec.T2_brain')
 
     else:
@@ -2818,7 +2821,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     extract_func_roi.inputs.t_min = 0
     extract_func_roi.inputs.t_size = 3
 
-    node, out = strat_pool.get_data('desc-reorient_bold', 'bold')
+    node, out = strat_pool.get_data(['desc-reorient_bold', 'bold'])
     wf.connect(node, out, extract_func_roi, 'in_file')
 
     # fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
@@ -2837,7 +2840,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     split_func.inputs.dimension = 't'
 
-    node, out = strat_pool.get_data('bold')
+    node, out = strat_pool.get_data(['desc-reorient_bold', 'bold'])
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
