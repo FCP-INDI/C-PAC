@@ -249,8 +249,21 @@ registration_workflows:
 
       FSL-FNIRT: 
 
+        # The resolution to which anatomical images should be transformed during registration.
+        # This is the resolution at which processed anatomical files will be output. 
+        # specifically for monkey pipeline
+        ref_resolution: 1mm
+
         # Reference mask for FSL registration.
-        ref_mask: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_0.5mm_brain_mask.nii.gz
+        ref_mask: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
+        
+        # Template to be used during registration.
+        # It is not necessary to change this path unless you intend to use a non-standard template.
+        FNIRT_T1w_brain_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+
+        # Template to be used during registration.
+        # It is not necessary to change this path unless you intend to use a non-standard template.
+        FNIRT_T1w_template: /DCAN_MacaqueYerkes19_template/MacaqueYerkes19_T1w_1.0mm.nii.gz
         
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline

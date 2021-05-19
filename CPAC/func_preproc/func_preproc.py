@@ -805,6 +805,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
+            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
@@ -937,7 +938,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": ["desc-preproc_bold", "desc-reorient_bold"]}
     '''
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -956,7 +957,8 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(func_deoblique, 'out_file', func_reorient, 'in_file')
 
     outputs = {
-        'desc-preproc_bold': (func_reorient, 'out_file')
+        'desc-preproc_bold': (func_reorient, 'out_file'),
+        'desc-reorient_bold': (func_reorient, 'out_file')
     }
 
     return (wf, outputs)

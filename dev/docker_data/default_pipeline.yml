@@ -602,9 +602,22 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
         fnirt_config: T1_2_MNI152_2mm
 
+        # The resolution to which anatomical images should be transformed during registration.
+        # This is the resolution at which processed anatomical files will be output. 
+        # specifically for monkey pipeline
+        ref_resolution: 2mm
+
         # Reference mask for FSL registration.
         ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        
+        # Template to be used during registration.
+        # It is for monkey pipeline specifically. 
+        FNIRT_T1w_brain_template: None
 
+        # Template to be used during registration.
+        # It is for monkey pipeline specifically. 
+        FNIRT_T1w_template: None
+        
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
         interpolation: sinc

@@ -392,6 +392,8 @@ schema = Schema({
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
                     'ref_mask': Maybe(str),
+                    'FNIRT_T1w_brain_template': Maybe(str),
+                    'FNIRT_T1w_template': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),
