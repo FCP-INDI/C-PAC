@@ -144,13 +144,6 @@ registration_workflows:
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 7
 
-      boundary_based_registration:
-
-        # using: ['FSL', 'FreeSurfer']
-        # this is a fork point
-        # ex. selecting both ['FSL', 'FreeSurfer'] will run both and fork the pipeline
-        using: ['FreeSurfer']
-
     func_registration_to_template: 
 
       FNIRT_pipelines:

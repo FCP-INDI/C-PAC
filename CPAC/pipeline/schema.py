@@ -440,9 +440,6 @@ schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'using': [In({
-                        'FSL', 'FreeSurfer'
-                    })],
                     'run': forkable,
                     'bbr_schedule': str,
                     'reference': In({'whole-head', 'brain'})
