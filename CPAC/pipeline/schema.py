@@ -457,7 +457,7 @@ schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template'})],
+                    'using': [In({'T1_template', 'EPI_template', 'DCAN_NHP'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),

@@ -803,7 +803,7 @@ registration_workflows:
 
       target_template:
 
-        # using: ['T1_template', 'EPI_template']
+        # using: ['T1_template', 'EPI_template', 'DCAN_NHP']
         # this is a fork point
         # NOTE:
         #   this will determine which registration transform to use to warp the functional

@@ -2716,7 +2716,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
-     "option_val": "abcd",
+     "option_val": "DCAN_NHP",
      "inputs": [(["desc-reorient_bold", "bold"],
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_warp",

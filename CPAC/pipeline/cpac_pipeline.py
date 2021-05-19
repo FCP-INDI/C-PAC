@@ -74,7 +74,8 @@ from CPAC.registration.registration import (
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
-    warp_deriv_mask_to_EPItemplate
+    warp_deriv_mask_to_EPItemplate,
+    warp_timeseries_to_T1template_dcan_nhp
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -1151,6 +1152,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
+                             warp_timeseries_to_T1template_dcan_nhp,
                              warp_timeseries_to_EPItemplate],
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
