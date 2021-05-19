@@ -2399,7 +2399,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
+     "inputs": [(["desc-motion_bold","desc-reginput_bold", "desc-mean_bold"],
                  "space-bold_label-WM_mask"),
                 ("desc-brain_T1w",
                  "desc-preproc_T2w",
@@ -2426,9 +2426,19 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         func_to_anat = create_register_func_to_anat_use_T2(cfg, 
                                                     f'func_to_anat_FLIRT_'
                                                     f'{pipe_num}')
+        
+        # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L177
+        # fslmaths "$fMRIFolder"/"$NameOffMRI"_mc -Tmean "$fMRIFolder"/"$ScoutName"_gdc
+        func_mc_mean = pe.Node(interface=afni_utils.TStat(),
+                            name=f'func_motion_corrected_mean_{pipe_num}')
 
-        node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
-        wf.connect(node, out, func_to_anat, 'inputspec.func')
+        func_mc_mean.inputs.options = '-mean'
+        func_mc_mean.inputs.outputtype = 'NIFTI_GZ'
+
+        node, out = strat_pool.get_data("desc-motion_bold")
+        wf.connect(node, out, func_mc_mean, 'in_file')
+
+        wf.connect(func_mc_mean, 'out_file', func_to_anat, 'inputspec.func')
 
         node, out = strat_pool.get_data('desc-brain_T1w')
         wf.connect(node, out, func_to_anat, 'inputspec.T1_brain')
