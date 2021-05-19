@@ -3002,7 +3002,7 @@ def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": "T1_template",
+     "option_val": ["T1_template", "DCAN_NHP"]
      "inputs": [("desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
