@@ -967,10 +967,10 @@ functional_preproc:
     motion_estimates: 
 
       # calculate motion statistics BEFORE slice-timing correction
-      calculate_motion_first: On
+      calculate_motion_first: Off
 
       # calculate motion statistics AFTER motion correction
-      calculate_motion_after: Off
+      calculate_motion_after: On
 
     motion_correction:
 

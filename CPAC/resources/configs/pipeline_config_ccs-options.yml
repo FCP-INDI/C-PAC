@@ -71,7 +71,7 @@ anatomical_preproc:
   non_local_means_filtering:
 
     # this is a fork option
-    run: [On]
+    run: [Off]
 
   brain_extraction:
 
@@ -194,7 +194,10 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On, Off]
+    run: [Off]
+
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: Off
 
     # Select which nuisance signal corrections to apply
     Regressors: 

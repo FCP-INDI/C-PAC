@@ -822,7 +822,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     return (wf, outputs)
 
 
-def func_scaling(wf, cfg, strat_pool, opt=None):
+def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_scaling",
      "config": ["functional_preproc", "scaling"],
@@ -835,7 +835,7 @@ def func_scaling(wf, cfg, strat_pool, opt=None):
 
     scale_func_wf = create_scale_func_wf(
         scaling_factor=cfg.scaling_factor,
-        wf_name=f"scale_func_{pipe_idx}"
+        wf_name=f"scale_func_{pipe_num}"
     )
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
