@@ -1309,7 +1309,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 ["desc-acpcbrain_T1w"]],
-     "outputs": ["desc-preproc_T1w", "desc-cbrain_T1w", "desc-preproc_T2w", "desc-brain_T2w", "desc-biasfield_T1wT2w"]}
+     "outputs": ["desc-preproc_T1w", "desc-brain_T1w", "desc-preproc_T2w", "desc-brain_T2w", "desc-biasfield_T1wT2w"]}
     '''
 
     t1t2_bias_correction = BiasFieldCorrection_sqrtT1wXT1w(config=cfg, wf_name=f't1t2_bias_correction_{pipe_num}')
