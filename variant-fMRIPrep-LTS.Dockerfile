@@ -1,7 +1,7 @@
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0 AS freesurfer
 
-FROM nipreps/fmriprep:20.1.3 as fmriprep
+FROM nipreps/fmriprep:20.2.1 as fmriprep
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ubuntu:xenial-20200114
@@ -147,7 +147,7 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
 
 RUN echo "Downloading ANTs ..." \
     && mkdir -p /usr/lib/ants \
-    && curl -fsSL --retry 5 https://dl.dropbox.com/s/2f4sui1z6lcgyek/ANTs-Linux-centos5_x86_64-v2.2.0-0740f91.tar.gz \
+    && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
     | tar -xz -C /usr/lib/ants --strip-components 1
 
 # download OASIS templates for niworkflows-ants skullstripping
@@ -224,8 +224,10 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 # install FreeSurfer
 # set shell to BASH
+SHELL ["/bin/bash", "-c"]
+ENV FREESURFER_HOME=/usr/lib/freesurfer
 RUN mkdir -p /usr/lib/freesurfer && \
-    curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /usr/lib/freesurfer \
+    curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /usr/lib \
     --exclude='freesurfer/diffusion' \
     --exclude='freesurfer/docs' \
     --exclude='freesurfer/fsfast' \
@@ -243,12 +245,7 @@ RUN mkdir -p /usr/lib/freesurfer && \
     --exclude='freesurfer/subjects/rh.EC_average' \
     --exclude='freesurfer/subjects/sample-*.mgz' \
     --exclude='freesurfer/subjects/V1_average' \
-    --exclude='freesurfer/trctrain'
-ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
-SHELL ["/bin/bash", "-c"]
-RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
-    | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
+    --exclude='freesurfer/trctrain' && \
     source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
 # restore shell to default (sh)
