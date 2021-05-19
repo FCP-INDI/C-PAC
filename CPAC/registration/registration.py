@@ -2715,7 +2715,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
+     "option_key": ["target_template", "using"],
      "option_val": "DCAN_NHP",
      "inputs": [(["desc-reorient_bold", "bold"],
                  "coordinate-transformation",
@@ -2735,7 +2735,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     anat_resample = pe.Node(interface=fsl.FLIRT(),
                             name=f'anat_resample_func_res_{pipe_num}'
                             )
-    anat_resample.inputs.apply_isoxfm = cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs']
+    anat_resample.inputs.apply_isoxfm = float(cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'].replace("mm", ""))
     anat_resample.inputs.interp = 'spline'
 
     node, out = strat_pool.get_data('space-template_desc-head_T1w')
