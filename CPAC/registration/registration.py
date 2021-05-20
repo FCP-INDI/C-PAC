@@ -2558,7 +2558,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": "T1_template",
+     "option_val": ["T1_template", "DCAN_NHP"],
      "inputs": [("desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("from-T1w_to-template_mode-image_xfm",
@@ -2613,7 +2613,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": "T1_template",
+     "option_val": ["T1_template", "DCAN_NHP"],
      "inputs": [("from-T1w_to-symtemplate_mode-image_xfm",
                  "from-symtemplate_to-T1w_mode-image_xfm",
                  "desc-brain_T1w"),
@@ -2666,7 +2666,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": "T1_template",
+     "option_val": ["T1_template", "DCAN_NHP"],
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),
@@ -2961,8 +2961,6 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
         find_min_mask, 'in_file')
 
     # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/IntensityNormalization.sh#L113-L119
-    # fslmaths ${OutputfMRI} -mas ${BrainMask} -mas ${OutputfMRI}_mask -thr 0 -ing 10000 task-rest01_nonlin_norm -odt float
-
     # fslmaths ${InputfMRI} -div ${BiasField} $jacobiancom -mas ${BrainMask} -mas ${InputfMRI}_mask -ing 10000 ${OutputfMRI} -odt float
 
     merge_func_mask = pe.Node(util.Merge(3), 
@@ -2987,8 +2985,17 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     wf.connect(merge_func_mask, 'out',
         extract_func_brain, 'operand_files')
 
+    func_mask_final = pe.Node(interface=fsl.MultiImageMaths(),
+                                name=f'func_mask_final_{pipe_num}')
+    func_mask_final.inputs.op_string = "-mas %s "
+
+    wf.connect(applywarp_anat_mask_res, 'out_file', func_mask_final, 'in_file')
+
+    wf.connect(find_min_mask, 'out_file', func_mask_final, 'operand_files')
+
     outputs = {
-        'space-template_desc-brain_bold': (extract_func_brain, 'out_file')
+        'space-template_desc-brain_bold': (extract_func_brain, 'out_file'),
+        'space-template_desc-bold_mask': (func_mask_final, 'out_file')
     }
 
     return (wf, outputs)
@@ -3107,7 +3114,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": "T1_template",
+     "option_val": ["T1_template", "DCAN_NHP"],
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w_brain_template_deriv"],
