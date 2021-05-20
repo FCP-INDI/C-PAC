@@ -7,6 +7,11 @@ on:
 jobs:
   Ubuntu:
     name: Build C-PAC Ubuntu
+    strategy:
+      matrix:
+        Dockerfile: 
+        - Ubuntu.bionic-non-free
+        - Ubuntu.xenial-20200114
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -19,7 +24,7 @@ jobs:
         with:
           # regex
           files: |
-            \.github/Dockerfiles/Ubuntu.*\.Dockerfile
+            \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
       
       - name: Set up Docker Buildx
         if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
@@ -33,15 +38,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lowercase tag
+      - name: Set tag
         run: |
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/ubuntu:bionic-non-free" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       
       - name: Build and push Docker image
         if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
         uses: docker/build-push-action@v2.4.0
         with:
-          file: .github/Dockerfiles/Ubuntu.bionic-non-free.Dockerfile
+          file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
@@ -52,12 +58,71 @@ jobs:
     strategy:
       matrix:
         Dockerfile: 
-        - AFNI.20.0.04
-        - ANTs.2.3.4.neurodocker
-        - c3d.1.0.0
-        - FreeSurfer.6.0.0-min.neurodocker
-        - FSL.neurodebian
-        - ICA-AROMA.0.4.3-beta
+        - AFNI.20.0.04-bionic
+        - AFNI.update.afni.binaries-bionic
+        - ANTs.2.3.4.neurodocker-bionic
+        - c3d.1.0.0-bionic
+        - FreeSurfer.6.0.0-min.neurodocker-bionic
+        - FSL.neurodebian-bionic
+        - ICA-AROMA.0.4.3-beta-bionic
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Get changed files using defaults
+        id: dockerfile-changed
+        uses: tj-actions/changed-files@v6.2
+        with:
+          # regex
+          files: |
+            \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
+      
+      - name: Set up Docker Buildx
+        if: steps.dockerfile-changed.outputs.any_changed == 'true'
+        uses: docker/setup-buildx-action@v1
+        
+      - name: Log in to GitHub Container Registry
+        if: steps.dockerfile-changed.outputs.any_changed == 'true'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set tag
+        run: |
+          TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      
+      - name: Prep Dockerfiles for forked repository
+        if: github.repository_owner != 'FCP-INDI'
+        run: |
+            .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }}
+            cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
+
+      - name: See Dockerfile
+        run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
+      
+      - name: Build and push Docker image
+        if: steps.dockerfile-changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2.4.0
+        with:
+          context: .
+          file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_TAG }}
+
+  C-PAC:
+    name: Build Docker C-PAC images
+    needs: stages
+    strategy:
+      matrix:
+        Dockerfile: 
+        - C-PAC.develop-bionic
+        - C-PAC.latest-bionic
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -108,4 +173,3 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
-  
