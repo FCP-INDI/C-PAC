@@ -7,14 +7,12 @@ def replace_primary_repo(yaml_string, local_owner):
     return yaml_string.replace('ghcr.io/fcp-indi', f'ghcr.io/{local_owner}')
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        raise SyntaxError('Usage: local_ghcr $OWNER')
-    owner = sys.argv[1]
+    if len(sys.argv) != 3:
+        raise SyntaxError('Usage: local_ghcr $FILE $OWNER')
+    file, owner = sys.argv[1:]
     dockerfiles = '.github/Dockerfiles'
-    for file in os.listdir(dockerfiles):
-        dockerfile_path = os.path.join(dockerfiles, file)
-        new_Dockerfile = replace_primary_repo(
-            open(dockerfile_path, 'r').read(),
-            owner
-        )
-        open(dockerfile_path, 'w').write(new_Dockerfile)
+    new_Dockerfile = replace_primary_repo(
+        open(file, 'r').read(),
+        owner
+    )
+    open(file, 'w').write(new_Dockerfile)

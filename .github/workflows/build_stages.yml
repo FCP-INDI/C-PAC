@@ -92,7 +92,12 @@ jobs:
       
       - name: Prep Dockerfiles for forked repository
         if: github.repository_owner != 'FCP-INDI'
-        run: .github/scripts/local_ghcr ${{ github.repository_owner }}
+        run: |
+            .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }}
+            cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
+
+      - name: See Dockerfile
+        run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       
       - name: Build and push Docker image
         if: steps.dockerfile-changed.outputs.any_changed == 'true'
