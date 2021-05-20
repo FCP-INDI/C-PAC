@@ -71,6 +71,7 @@ jobs:
           # regex
           files: |
             \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
+            \.github/workflows/build_stages.yml
       
       - name: Set up Docker Buildx
         if: steps.dockerfile-changed.outputs.any_changed == 'true'
@@ -87,7 +88,11 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/${TAG:0:-11}" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      
+      - name: Prep Dockerfiles for forked repository
+        if: github.repository_owner != 'FCP-INDI'
+        run: .github/scripts/local_ghcr ${{ github.repository_owner }}
       
       - name: Build and push Docker image
         if: steps.dockerfile-changed.outputs.any_changed == 'true'
