@@ -71,7 +71,7 @@ anatomical_preproc:
   non_local_means_filtering:
 
     # this is a fork option
-    run: [Off]
+    run: [On]
 
   brain_extraction:
 

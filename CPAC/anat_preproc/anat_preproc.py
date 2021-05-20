@@ -2984,6 +2984,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     sub_dir = cfg.pipeline_setup['working_directory']['path']
     freesurfer_subject_dir = os.path.join(sub_dir,
+                                          'cpac_'+cfg['subject_id'],
                                           f'anat_preproc_freesurfer_{pipe_num}',
                                           'anat_freesurfer')
 
