@@ -2737,7 +2737,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
                  "space-template_desc-head_T1w",
                  "space-template_desc-T1w_mask",
                  "space-template_desc-T1wT2w_biasfield")],
-     "outputs": ["space-template_desc-brain_bold"]}
+     "outputs": ["space-template_desc-brain_bold",
+                 "space-template_desc-bold_mask"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries 

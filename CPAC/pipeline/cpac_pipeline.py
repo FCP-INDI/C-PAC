@@ -1082,7 +1082,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # anatomical template (the BOLD-to- EPI template is already created above)
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
-    ] and 'T1_template' in cfg.registration_workflows[
+    ] and 'T1_template' or "DCAN_NHP" in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
             'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
