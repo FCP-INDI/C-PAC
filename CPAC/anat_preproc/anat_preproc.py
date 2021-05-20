@@ -424,7 +424,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                       function=predict_volumes),
                         name=f'unet_mask_{pipe_num}')
 
-    node, out = strat_pool.get_data('unet_model')
+    node, out = strat_pool.get_data('unet-model')
     wf.connect(node, out, unet_mask, 'model_path')
 
     node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
@@ -947,7 +947,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
                 "T1w_template",
-                "unet_model"],
+                "unet-model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -966,7 +966,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
                 "T1w_template",
-                "unet_model"],
+                "unet-model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 

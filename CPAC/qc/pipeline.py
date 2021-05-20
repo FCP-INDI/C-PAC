@@ -176,7 +176,7 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-brain_T1w",
-                "T1w_brain_template"],
+                "T1w-brain-template"],
      "outputs": ["space-template_desc-brain_T1w-axial-qc",
                  "space-template_desc-brain_T1w-sagittal-qc"]}
     '''
@@ -195,7 +195,7 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
                                           as_module=True),
                                  name=f'anat_template_edge_{pipe_num}')
 
-    node, out = strat_pool.get_data('T1w_brain_template')
+    node, out = strat_pool.get_data('T1w-brain-template')
     wf.connect(node, out, anat_template_edge, 'in_file')
 
     wf.connect(anat_template_edge, 'out_file',
@@ -403,7 +403,7 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-mean_bold",
-                "T1w_brain_template_funcreg"],
+                "T1w-brain-template-funcreg"],
      "outputs": ["space-template_desc-mean_bold-axial-qc",
                  "space-template_desc-mean_bold-sagittal-qc"]}
     '''
@@ -422,7 +422,7 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
                                           as_module=True),
                                  name=f'func_template_edge_{pipe_num}')
 
-    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    node, out = strat_pool.get_data("T1w-brain-template-funcreg")
     wf.connect(node, out, func_template_edge, 'in_file')
 
     wf.connect(func_template_edge, 'out_file',

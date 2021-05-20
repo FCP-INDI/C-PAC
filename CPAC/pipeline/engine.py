@@ -220,6 +220,7 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
+            
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
@@ -744,6 +745,7 @@ class ResourcePool(object):
         return wf
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
+       
         excl = []
         substring_excl = []
 
@@ -874,6 +876,11 @@ class ResourcePool(object):
 
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
+
+                try:
+                    del json_info['subjson']
+                except KeyError:
+                    pass
 
                 if out_dct['subdir'] == 'other' and not all:
                     continue
@@ -1174,7 +1181,7 @@ class NodeBlock(object):
                             data_type = label.split('_')[-1]
                             if data_type in new_json_info['subjson']:
                                 if 'SkullStripped' in new_json_info['subjson'][data_type]:
-                                    new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']    
+                                    new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
 
                             # determine sources for the outputs, i.e. all input data into the node block                   
                             new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
@@ -1509,168 +1516,92 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
 def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
-    # TODO: pull this from some external list instead
-    # TODO: nah, even better: just loop through the config for .nii's
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    templates_for_resampling = [
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_brain_template'], 'T1w_brain_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_template'], 'T1w_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric'], 'T1w_brain_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_brain_template_symmetric_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric'], 'T1w_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_template_symmetric_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'func_preproc_outputs'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_deriv', 'func_derivative_outputs'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs')
-    ]
+    import pkg_resources as p
+    import pandas as pd
+    import ast
 
-    if cfg.PyPEER['run']:
-        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'func_preproc_outputs'))
-        #Outputs.any.append("template_eye_mask")
-
-    # update resampled template to resource pool
-    for resolution, template, template_name, tag in templates_for_resampling:
-
-        if not template:
-            continue
-
-        if '$FSLDIR' in template:
-            template = template.replace('$FSLDIR', cfg.pipeline_setup[
-                'system_config']['FSLDIR'])
-        #if '${resolution_for_anat}' in template:
-        #    template = template.replace('${resolution_for_anat}',
-        #                                cfg.registration_workflows[
-        #                                    'anatomical_registration'][
-        #                                    'resolution_for_anat'])
-        if '${func_resolution}' in template:
-            template = template.replace('func_resolution', tag)
-
-        resampled_template = pe.Node(Function(input_names=['resolution',
-                                                           'template',
-                                                           'template_name',
-                                                           'tag'],
-                                              output_names=['resampled_template'],
-                                              function=resolve_resolution,
-                                              as_module=True),
-                                     name='resampled_' + template_name)
-
-        resampled_template.inputs.resolution = resolution
-        resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name
-        resampled_template.inputs.tag = tag
-
-        # the set_data below is set up a little differently, because we are
-        # injecting and also over-writing already-existing entries
-        #   other alternative would have been to ingress into the
-        #   resampled_template node from the already existing entries, but we
-        #   didn't do that here
-        rpool.set_data(template_name,
-                       resampled_template,
-                       'resampled_template',
-                       #{'CpacProvenance': [f'{template_name}:{template_name}_config_ingress']},
-                       #f"['{template_name}:{template_name}_config_ingress']",
-                       {}, "",
-                       "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
-
-    config_resource_paths = [
-        ('CSF_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['CSF_path']),
-        ('WM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['WM_path']),
-        ('GM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['GM_path']),
-        ('T1w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_ACPC_template']),
-        ('T1w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_brain_ACPC_template']),
-        ('unet_model', cfg.anatomical_preproc['brain_extraction']['UNet']['unet_model']),
-        ('T1w_brain_template', cfg.registration_workflows['anatomical_registration']['T1w_brain_template'],
-            {'Resolution': cfg.registration_workflows['anatomical_registration']['resolution_for_anat'],
-             'Description': f"T1w-based skull-stripped template - {cfg.registration_workflows['anatomical_registration']['T1w_brain_template']}"}),
-        ('T1w_template', cfg.registration_workflows['anatomical_registration']['T1w_template'],
-            {'Resolution': cfg.registration_workflows['anatomical_registration']['resolution_for_anat'],
-             'Description': f"T1w-based template - {cfg.registration_workflows['anatomical_registration']['T1w_template']}"}),
-        ('T1w_brain_template_mask', cfg.registration_workflows['anatomical_registration']['T1w_brain_template_mask']),
-        ('T1w_brain_template_symmetric', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric']),
-        ('T1w_template_symmetric', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric']),
-        ('dilated_symmetric_brain_mask', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask']),
-        ('T1w_brain_template_symmetric_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric_for_resample']),
-        ('T1w_template_symmetric_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric_for_resample']),
-        ('dilated_symmetric_brain_mask_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask_for_resample']),
-        ('ref_mask', cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask']),
-        ('T1w_template_for_resample', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_for_resample']),
-        ('EPI_template_for_resample', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_for_resample']),
-        ('T1w_brain_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_brain_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('T1w_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('T1w_brain_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('EPI_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'],
-            {'Resolution': cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'],
-             'Description': f"EPI-based template - {cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']}"}),
-        ('EPI_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'],
-            {'Resolution': cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'],
-             'Description': f"EPI-based template - {cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']}"}),
-        ('EPI_template', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template']),
-        ('EPI_template_mask', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template_mask']),
-        ('lateral_ventricles_mask', cfg.nuisance_corrections['2-nuisance_regression']['lateral_ventricles_mask']),
-        ('template_specification_file', cfg.network_centrality['template_specification_file'])
-    ]
-
-    if cfg.PyPEER['run']:
-        config_resource_paths.append(
-            ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
-
-    for resource in config_resource_paths:
-        key = resource[0]
-        val = resource[1]
-        
-        try:
-            json_info = resource[2]
-        except IndexError:
-            json_info = {}
-
-        if rpool.check_rpool(key):
-            continue
+    template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
+    template_df = pd.read_csv(template_csv, keep_default_na=False)
+    
+    for row in template_df.itertuples():
+    
+        key = row.Key
+        val = row.Pipeline_Config_Entry
+        val = cfg.get_nested(cfg, [x.lstrip() for x in val.split(',')])
+        resolution = row.Intended_Resolution_Config_Entry
+        desc = row.Description
 
         if not val:
             continue
+            
+        if resolution:
+            res_keys = [x.lstrip() for x in resolution.split(',')]
+            tag = res_keys[-1]
+    
+        json_info = {} 
 
         if '$FSLDIR' in val:
-            val = val.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
+            val = val.replace('$FSLDIR', cfg.pipeline_setup[
+                'system_config']['FSLDIR'])
         if '$priors_path' in val:
             priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
         if '${resolution_for_anat}' in val:
-            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
+            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])               
         if '${func_resolution}' in val:
-            # functional registration
-            if 'funcreg' in key:
-                out_res = 'func_preproc_outputs'
-            # functional derivatives
-            else:
-                out_res = 'func_derivative_outputs'
-            val = val.replace('${func_resolution}', cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution'][out_res])
+            val = val.replace('func_resolution', tag)
 
-        if val:
-            config_ingress = create_general_datasource(f'gather_{key}')
-            config_ingress.inputs.inputnode.set(
-                unique_id=unique_id,
-                data=val,
-                creds_path=creds_path,
-                dl_dir=cfg.pipeline_setup['working_directory']['path']
-            )
-            rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
-                           "", f"{key}_config_ingress")
+        if desc:
+            json_info['Description'] = f"{desc} - {val}"     
 
+        if resolution:
+            resolution = cfg.get_nested(cfg, res_keys)
+            json_info['Resolution'] = resolution
+
+            resampled_template = pe.Node(Function(input_names=['resolution',
+                                                               'template',
+                                                               'template_name',
+                                                               'tag'],
+                                                  output_names=['resampled_template'],
+                                                  function=resolve_resolution,
+                                                  as_module=True),
+                                         name='resampled_' + key)
+
+            resampled_template.inputs.resolution = resolution
+            resampled_template.inputs.template = val
+            resampled_template.inputs.template_name = key
+            resampled_template.inputs.tag = tag
+            
+            # the set_data below is set up a little differently, because we are
+            # injecting and also over-writing already-existing entries
+            #   other alternative would have been to ingress into the
+            #   resampled_template node from the already existing entries, but we
+            #   didn't do that here
+            rpool.set_data(key,
+                           resampled_template,
+                           'resampled_template',
+                           json_info, "",
+                           "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+
+        else:
+            if val:
+                config_ingress = create_general_datasource(f'gather_{key}')
+                config_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=val,
+                    creds_path=creds_path,
+                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+                )
+                rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
+                               "", f"{key}_config_ingress")
+        print('\n\n')
+        print(key)
+        print(json_info)
+            
     # templates, resampling from config
     '''
     template_keys = [

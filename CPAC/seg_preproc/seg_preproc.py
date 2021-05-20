@@ -551,9 +551,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-longitudinal_desc-brain_mask"],
                  ["from-template_to-T1w_mode-image_desc-linear_xfm",
                   "from-template_to-longitudinal_mode-image_desc-linear_xfm"]),
-                "CSF_path",
-                "GM_path",
-                "WM_path"],
+                "CSF-path",
+                "GM-path",
+                "WM-path"],
      "outputs": ["label-CSF_mask", "label-GM_mask", "label-WM_mask",
                  "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
                  "label-WM_desc-preproc_mask",
@@ -623,7 +623,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         'CSF_threshold_value']
 
     if use_priors:
-        node, out = strat_pool.get_data('CSF_path')
+        node, out = strat_pool.get_data('CSF-path')
         wf.connect(node, out, process_csf, 'inputspec.tissue_prior')
 
     process_gm = process_segment_map(f'GM_{pipe_num}', use_priors,
@@ -633,7 +633,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         'GM_threshold_value']
 
     if use_priors:
-        node, out = strat_pool.get_data('GM_path')
+        node, out = strat_pool.get_data('GM-path')
         wf.connect(node, out, process_gm, 'inputspec.tissue_prior')
 
     process_wm = process_segment_map(f'WM_{pipe_num}', use_priors,
@@ -643,7 +643,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         'WM_threshold_value']
 
     if use_priors:
-        node, out = strat_pool.get_data('WM_path')
+        node, out = strat_pool.get_data('WM-path')
         wf.connect(node, out, process_wm, 'inputspec.tissue_prior')
 
     node, out = strat_pool.get_data(["desc-brain_T1w",

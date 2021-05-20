@@ -1997,7 +1997,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-GM_desc-eroded_mask", "label-GM_desc-preproc_mask", "label-GM_mask"],
                  "from-template_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
-                "lateral_ventricles_mask",
+                "lateral-ventricles-mask",
                 "TR"],
      "outputs": ["regressors",
                  "desc-cleaned_bold"]}
@@ -2008,7 +2008,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     use_ants = reg_tool == 'ants'
-    ventricle = strat_pool.check_rpool('lateral_ventricles_mask')
+    ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
@@ -2046,7 +2046,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
 
     if ventricle:
-        node, out = strat_pool.get_data('lateral_ventricles_mask')
+        node, out = strat_pool.get_data('lateral-ventricles-mask')
         wf.connect(node, out,
                    regressors, 'inputspec.lat_ventricles_mask_file_path')
 
@@ -2347,7 +2347,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-bold_label-GM_mask"],
                  "from-template_to-bold_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_desc-linear_xfm"),
-                "lateral_ventricles_mask",
+                "lateral-ventricles-mask",
                 "TR"],
      "outputs": ["regressors",
                  "desc-cleaned_bold"]}
@@ -2358,7 +2358,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     use_ants = reg_tool == 'ants'
-    ventricle = strat_pool.check_rpool('lateral_ventricles_mask')
+    ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
@@ -2396,7 +2396,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
 
     if ventricle:
-        node, out = strat_pool.get_data('lateral_ventricles_mask')
+        node, out = strat_pool.get_data('lateral-ventricles-mask')
         wf.connect(node, out,
                    regressors, 'inputspec.lat_ventricles_mask_file_path')
 
