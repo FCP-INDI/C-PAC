@@ -324,10 +324,22 @@ workflows:
     jobs:
       - build:
           name: "Build images"
+          filters:
+            branches:
+              ignore: 
+                - CI/GitHub-workflows
       - build-ABCD-HCP:
           name: "Build ABCD-HCP variant images"
+          filters:
+            branches:
+              ignore: 
+                - CI/GitHub-workflows
       - build-lite:
           name: "Build lite variant images"
+          filters:
+            branches:
+              ignore: 
+                - CI/GitHub-workflows
       - combine-coverage:
           name: "Combine coverage"
           requires:
