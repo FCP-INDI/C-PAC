@@ -103,6 +103,7 @@ jobs:
         if: steps.dockerfile-changed.outputs.any_changed == 'true'
         uses: docker/build-push-action@v2.4.0
         with:
+          context: .
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
           push: true
           tags: |
