@@ -1,12 +1,14 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 import scipy.io
 from CPAC.qpp.qpp import detect_qpp
 
 np.random.seed(10)
 
 
+@pytest.mark.skip(
+    reason="No such file or directory: 'CPAC/qpp/tests/matlab/qpp.mat'")
 def test_qpp():
 
     voxels, trs = 600, 200

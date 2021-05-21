@@ -192,7 +192,9 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
 
         overlap_segmentmap_with_prior = pe.Node(
             interface=fsl.MultiImageMaths(),
-            name='overlap_%s_map_with_prior' % (wf_name))
+            name='overlap_%s_map_with_prior' % (wf_name),
+            mem_gb=1.775,
+            mem_x=(5022839943792975 / 2417851639229258349412352, 'in_file'))
         overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
         preproc.connect(input_1, value_1,
@@ -370,10 +372,8 @@ def create_seg_preproc_antsJointLabel_method(
                                                        'template_segmentation'
                                                        '_list',
                                                        'csf_label',
-                                                       'left_gm_label',
-                                                       'left_wm_label',
-                                                       'right_gm_label',
-                                                       'right_wm_label']),
+                                                       'gm_label',
+                                                       'wm_label']),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
@@ -402,10 +402,8 @@ def create_seg_preproc_antsJointLabel_method(
 
     pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
                                                      'csf_label',
-                                                     'left_gm_label',
-                                                     'left_wm_label',
-                                                     'right_gm_label',
-                                                     'right_wm_label'],
+                                                     'gm_label',
+                                                     'wm_label'],
                                         output_names=['csf_mask', 'gm_mask',
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
@@ -415,14 +413,10 @@ def create_seg_preproc_antsJointLabel_method(
                     pick_tissue, 'multiatlas_Labels')
     preproc.connect(inputNode, 'csf_label',
                     pick_tissue, 'csf_label')
-    preproc.connect(inputNode, 'left_gm_label',
-                    pick_tissue, 'left_gm_label')
-    preproc.connect(inputNode, 'left_wm_label',
-                    pick_tissue, 'left_wm_label')
-    preproc.connect(inputNode, 'right_gm_label',
-                    pick_tissue, 'right_gm_label')
-    preproc.connect(inputNode, 'right_wm_label',
-                    pick_tissue, 'right_wm_label')
+    preproc.connect(inputNode, 'gm_label',
+                    pick_tissue, 'gm_label')
+    preproc.connect(inputNode, 'wm_label',
+                    pick_tissue, 'wm_label')
 
     preproc.connect(pick_tissue, 'csf_mask',
                     outputNode, 'csf_mask')
@@ -480,9 +474,6 @@ def create_seg_preproc_freesurfer(config=None,
     reconall2.inputs.openmp = config.pipeline_setup['system_config'][
         'num_omp_threads']
 
-    #if config.autorecon2_args is not None:  # TODO: update nested
-    #    reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
-
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
 
@@ -521,8 +512,6 @@ def create_seg_preproc_freesurfer(config=None,
                                                       'wm_mask'],
                                         function=pick_tissue_from_labels_file),
                           name=f'{wf_name}_tissue_mask')
-
-    pick_tissue.inputs.include_ventricles = True
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')
@@ -575,7 +564,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #  'probability_maps' output is a list of individual probability maps
     #      triggered by 'probability_maps' boolean input (-p)
 
-    segment = pe.Node(interface=fsl.FAST(), name=f'segment_{pipe_num}')
+    segment = pe.Node(interface=fsl.FAST(),
+                      name=f'segment_{pipe_num}',
+                      mem_gb=3.48,
+                      mem_x=(3444233104315183 / 19342813113834066795298816,
+                             'in_files'))
     segment.inputs.img_type = 1
     segment.inputs.segments = True
     segment.inputs.probability_maps = True
@@ -774,14 +767,14 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "Template_Based",
      "inputs": [("desc-mean_bold",
-                 "from-template_to-bold_mode-image_desc-linear_xfm")],
+                 "from-EPItemplate_to-bold_mode-image_desc-linear_xfm")],
      "outputs": ["space-bold_label-CSF_mask",
                  "space-bold_label-GM_mask",
                  "space-bold_label-WM_mask"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
-        'from-template_to-bold_mode-image_desc-linear_xfm')
+        'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == 'ants'
 
@@ -804,7 +797,7 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = \
         strat_pool.get_data(
-            'from-template_to-bold_mode-image_desc-linear_xfm')
+            'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
     wf.connect(node, out,
                csf_template2t1, 'inputspec.standard2highres_mat')
     wf.connect(node, out,
@@ -854,19 +847,13 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
         'CSF_label']
 
-    seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = cfg[
+    seg_preproc_ants_prior_based.inputs.inputspec.gm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'left_GM_label']
-    seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = cfg[
-        'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'right_GM_label']
+        'GM_label']
 
-    seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = cfg[
+    seg_preproc_ants_prior_based.inputs.inputspec.wm_label = cfg[
         'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'left_WM_label']
-    seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = cfg[
-        'segmentation']['tissue_segmentation']['ANTs_Prior_Based'][
-        'right_WM_label']
+        'WM_label']
 
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out,

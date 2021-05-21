@@ -17,23 +17,23 @@ def get_template_specs(in_template, template_spec=None, default_resolution=1):
     """
     Parse template specifications
 
-    >>> get_template_specs('MNI152NLin2009cAsym', {'suffix': 'T1w'})[1]
+    >>> get_template_specs('MNI152NLin2009cAsym', {'suffix': 'T1w'})[1]  # doctest: +SKIP
     {'resolution': 1}
 
-    >>> get_template_specs('MNI152NLin2009cAsym', {'res': '2', 'suffix': 'T1w'})[1]
+    >>> get_template_specs('MNI152NLin2009cAsym', {'res': '2', 'suffix': 'T1w'})[1]  # doctest: +SKIP
     {'resolution': '2'}
 
-    >>> get_template_specs('MNIInfant', {'res': '2', 'cohort': '10', 'suffix': 'T1w'})[1]
+    >>> get_template_specs('MNIInfant', {'res': '2', 'cohort': '10', 'suffix': 'T1w'})[1]  # doctest: +SKIP
     {'resolution': '2', 'cohort': '10'}
 
     >>> get_template_specs('MNI152NLin2009cAsym',
-    ...                    {'suffix': 'T1w', 'cohort': 1})[1] # doctest: +IGNORE_EXCEPTION_DETAIL
+    ...                    {'suffix': 'T1w', 'cohort': 1})[1] # doctest: +IGNORE_EXCEPTION_DETAIL +SKIP
     Traceback (most recent call last):
     RuntimeError:
     ...
 
     >>> get_template_specs('MNI152NLin2009cAsym',
-    ...                    {'suffix': 'T1w', 'res': '1|2'})[1] # doctest: +IGNORE_EXCEPTION_DETAIL
+    ...                    {'suffix': 'T1w', 'res': '1|2'})[1] # doctest: +IGNORE_EXCEPTION_DETAIL +SKIP
     Traceback (most recent call last):
     RuntimeError:
     ...

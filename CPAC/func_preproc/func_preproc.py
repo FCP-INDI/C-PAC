@@ -26,6 +26,7 @@ def collect_arguments(*args):
 
 
 def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
+
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(util.IdentityInterface(fields=['func',
@@ -41,6 +42,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
     func_single_volume = pe.Node(interface=afni.Calc(),
                                  name='func_single_volume')
 
+    # TODO add an option to select volume
     func_single_volume.inputs.set(
         expr='a',
         single_idx=1,
@@ -380,7 +382,10 @@ def create_wf_edit_func(wf_name="edit_func"):
 
     # allocate a node to edit the functional file
     func_drop_trs = pe.Node(interface=afni_utils.Calc(),
-                            name='func_drop_trs')
+                            name='func_drop_trs',
+                            mem_gb=0.37,
+                            mem_x=(739971956005215 / 151115727451828646838272,
+                                   'in_file_a'))
 
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
@@ -402,7 +407,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     return preproc
 
 
-def slice_timing_wf(name='slice_timing'):
+def slice_timing_wf(name='slice_timing', tpattern=None, tzero=None):
     # allocate a workflow object
     wf = pe.Workflow(name=name)
 
@@ -419,8 +424,15 @@ def slice_timing_wf(name='slice_timing'):
 
     # create TShift AFNI node
     func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
-                                           name='slice_timing')
+                                           name='slice_timing',
+                                           mem_gb=0.45,
+                                           mem_x=(5247073869855161 /
+                                                  604462909807314587353088,
+                                                  'in_file'))
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
+
+    if tzero is not None:
+        func_slice_timing_correction.inputs.tzero = tzero
 
     wf.connect([
         (
@@ -431,14 +443,14 @@ def slice_timing_wf(name='slice_timing'):
                     'func_ts',
                     'in_file'
                 ),
-                (
-                    # add the @ prefix to the tpattern file going into
-                    # AFNI 3dTshift - needed this so the tpattern file
-                    # output from get_scan_params would be tied downstream
-                    # via a connection (to avoid poofing)
-                    ('tpattern', nullify, add_afni_prefix),
-                    'tpattern'
-                ),
+                # (
+                #     # add the @ prefix to the tpattern file going into
+                #     # AFNI 3dTshift - needed this so the tpattern file
+                #     # output from get_scan_params would be tied downstream
+                #     # via a connection (to avoid poofing)
+                #     ('tpattern', nullify, add_afni_prefix),
+                #     'tpattern'
+                # ),
                 (
                     ('tr', nullify),
                     'tr'
@@ -446,6 +458,12 @@ def slice_timing_wf(name='slice_timing'):
             ]
         ),
     ])
+
+    if tpattern is not None:
+        func_slice_timing_correction.inputs.tpattern = tpattern
+    else:
+        wf.connect(inputNode, ('tpattern', nullify, add_afni_prefix),
+               func_slice_timing_correction, 'tpattern')
 
     wf.connect(func_slice_timing_correction, 'out_file',
                outputNode, 'slice_time_corrected')
@@ -812,12 +830,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
             'movement-parameters': (normalize_motion_params, 'out_file'),
+            'coordinate-transformation': (func_motion_correct_A, 'mat_file')
         }
 
     return (wf, outputs)
 
 
-def func_scaling(wf, cfg, strat_pool, opt=None):
+def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_scaling",
      "config": ["functional_preproc", "scaling"],
@@ -830,7 +849,7 @@ def func_scaling(wf, cfg, strat_pool, opt=None):
 
     scale_func_wf = create_scale_func_wf(
         scaling_factor=cfg.scaling_factor,
-        wf_name=f"scale_func_{pipe_idx}"
+        wf_name=f"scale_func_{pipe_num}"
     )
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
@@ -899,7 +918,10 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     despike = pe.Node(interface=preprocess.Despike(),
-                      name=f'func_despiked_{pipe_num}')
+                      name=f'func_despiked_{pipe_num}',
+                      mem_gb=0.66,
+                      mem_x=(8251808479088459 / 1208925819614629174706176,
+                             'in_file'))
     despike.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
@@ -925,12 +947,18 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": {
          "desc-preproc_bold": {
              "Description": "Slice-time corrected BOLD time-series via AFNI 3dTShift."
-         }}
+         },
+         "desc-stc_bold": {
+             "Description": "Slice-time corrected BOLD time-series via AFNI 3dTShift."}}
     }
     '''
 
     slice_time = slice_timing_wf(name='func_slice_timing_correction_'
-                                      f'{pipe_num}')
+                                 f'{pipe_num}',
+                                 tpattern=cfg.functional_preproc[
+                                 'slice_timing_correction']['tpattern'],
+                                 tzero=cfg.functional_preproc[
+                                 'slice_timing_correction']['tzero'])
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, slice_time, 'inputspec.func_ts')
@@ -942,7 +970,8 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, slice_time, 'inputspec.tpattern')
 
     outputs = {
-        'desc-preproc_bold': (slice_time, 'outputspec.slice_time_corrected')
+        'desc-preproc_bold': (slice_time, 'outputspec.slice_time_corrected'),
+        'desc-stc_bold': (slice_time, 'outputspec.slice_time_corrected')
     }
 
     return (wf, outputs)
@@ -951,8 +980,8 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_reorient",
-     "config": "None",
-     "switch": "None",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
@@ -960,14 +989,22 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name=f'func_deoblique_{pipe_num}')
+                             name=f'func_deoblique_{pipe_num}',
+                             mem_gb=0.68,
+                             mem_x=(4664065662093477 /
+                                    1208925819614629174706176,
+                                    'in_file'))
     func_deoblique.inputs.deoblique = True
 
     node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'func_reorient_{pipe_num}')
+                            name=f'func_reorient_{pipe_num}',
+                            mem_gb=0.68,
+                            mem_x=(9005234470657405 /
+                                   1208925819614629174706176,
+                                   'in_file'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -996,12 +1033,16 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt != 'mean' and opt != 'median' and opt != 'selected_volume':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'motion_correction_reference' workflow must be either "
-                        "'mean' or 'median' or 'selected volume'.\n\nTool input: "
+                        "'mean' or 'median' or 'selected_volume'.\n\nTool input: "
                         "{0}\n\n".format(opt))
 
     if opt == 'mean':
         func_get_RPI = pe.Node(interface=afni_utils.TStat(),
-                               name=f'func_get_mean_RPI_{pipe_num}')
+                               name=f'func_get_mean_RPI_{pipe_num}',
+                               mem_gb=0.48,
+                               mem_x=(1435097126797993 /
+                                      302231454903657293676544,
+                                      'in_file'))
 
         func_get_RPI.inputs.options = '-mean'
         func_get_RPI.inputs.outputtype = 'NIFTI_GZ'
@@ -1025,7 +1066,8 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
         func_get_RPI.inputs.set(
             expr='a',
-            single_idx=cfg.motion_correction_reference_volume,
+            single_idx=cfg.functional_preproc['motion_estimates_and_correction'][
+                'motion_correction']['motion_correction_reference_volume'],
             outputtype='NIFTI_GZ'
         )
 
@@ -1198,7 +1240,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "calc_motion_stats",
      "config": "None",
-     "switch": "None",
+     "switch": [["functional_preproc", "run"], 
+                ["functional_preproc", "motion_estimates_and_correction", 
+                "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-motion_bold",
@@ -1484,7 +1528,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
-    # binarize anat mask, in case of it is not a binary mask.
+    # binarize anat mask, in case it is not a binary mask.
     anat_brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
                                   name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
@@ -1553,7 +1597,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(func_tmp_brain_mask, 'out_file',
                refined_bold_mask, 'inputspec.init_func_brain_mask')
 
-    # Dialate anatomical mask
+    # dilate anatomical mask
     if cfg.functional_preproc['func_masking']['Anatomical_Refined'][
         'anatomical_mask_dilation']:
         anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
@@ -1684,11 +1728,210 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
+    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
+
+    Node Block:
+    {"name": "bold_mask_anatomical_resampled",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "Anatomical_Resampled",
+     "inputs": ["T1w_template_funcreg",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask"],
+     "outputs": ["space-template_res-bold_desc-brain_T1w",
+                 "space-template_desc-bold_mask"]}
+    '''
+
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+                                     name=f'resample_anat_brain_in_standard_{pipe_num}')
+    
+    anat_brain_to_func_res.inputs.interp = 'spline'
+    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    wf.connect(node, out, anat_brain_to_func_res, 'in_file')
+
+    node, out = strat_pool.get_data('T1w_template_funcreg')
+    wf.connect(node, out, anat_brain_to_func_res, 'ref_file')
+
+    # Create brain masks in this space from the FreeSurfer output (changing resolution)
+    # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
+    anat_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
+                                          name=f'resample_anat_brain_mask_in_standard_{pipe_num}')
+    
+    anat_brain_mask_to_func_res.inputs.interp = 'nn'
+    anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
+    wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
+
+    wf.connect(anat_brain_to_func_res, 'out_file',
+        anat_brain_mask_to_func_res, 'ref_file')
+
+    outputs = {
+        'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
+        'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Generate the BOLD mask by basing it off of the anatomical brain.
+    Adapted from the BOLD mask method from the CCS pipeline.
+        https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110
+    Node Block:
+    {"name": "bold_mask_ccs",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "CCS_Anatomical_Refined",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+                "desc-brain_T1w",
+                ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
+     "outputs": ["space-bold_desc-brain_mask",
+                "desc-ROIbrain_bold"]}
+    '''
+
+    # Run 3dAutomask to generate func initial mask
+    func_tmp_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                  name=f'func_tmp_brain_mask_AFNI_{pipe_num}')
+    func_tmp_brain_mask.inputs.dilate = 1
+    func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+    node, out = strat_pool.get_data(["desc-motion_bold", 
+                                    "desc-preproc_bold",
+                                    "bold"])
+    wf.connect(node, out, func_tmp_brain_mask, 'in_file')
+
+    # Extract 8th volume as func ROI
+    func_roi = pe.Node(interface=fsl.ExtractROI(),
+                       name=f'extract_func_roi_{pipe_num}')
+    func_roi.inputs.t_min = 7
+    func_roi.inputs.t_size = 1
+
+    node, out = strat_pool.get_data(["desc-motion_bold", 
+                                    "desc-preproc_bold",
+                                    "bold"])
+    wf.connect(node, out, func_roi, 'in_file')
+
+    # Apply func initial mask on func ROI volume
+    func_tmp_brain = pe.Node(interface=fsl.maths.ApplyMask(),
+                             name=f'get_func_tmp_brain_{pipe_num}')
+
+    wf.connect(func_roi, 'roi_file',
+               func_tmp_brain, 'in_file')
+
+    wf.connect(func_tmp_brain_mask, 'out_file',
+               func_tmp_brain, 'mask_file')
+
+    # Register func tmp brain to anat brain to get func2anat matrix
+    reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                               name=f'func_to_anat_linear_reg_{pipe_num}')
+    reg_func_to_anat.inputs.interp = 'trilinear'
+    reg_func_to_anat.inputs.cost = 'corratio'
+    reg_func_to_anat.inputs.dof = 6
+
+    wf.connect(func_tmp_brain, 'out_file',
+               reg_func_to_anat, 'in_file')
+
+    node, out = strat_pool.get_data("desc-brain_T1w")
+    wf.connect(node, out, reg_func_to_anat, 'reference')
+
+    # Inverse func2anat matrix
+    inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                                      name=f'inv_func2anat_affine_{pipe_num}')
+    inv_func_to_anat_affine.inputs.invert_xfm = True
+
+    wf.connect(reg_func_to_anat, 'out_matrix_file',
+               inv_func_to_anat_affine, 'in_file')
+
+    # Transform anat brain to func space
+    reg_anat_brain_to_func = pe.Node(interface=fsl.FLIRT(),
+                                     name=f'reg_anat_brain_to_func_{pipe_num}')
+    reg_anat_brain_to_func.inputs.apply_xfm = True
+    reg_anat_brain_to_func.inputs.interp = 'trilinear'
+
+    node, out = strat_pool.get_data("desc-brain_T1w")
+    wf.connect(node, out, reg_anat_brain_to_func, 'in_file')
+
+    wf.connect(func_roi, 'roi_file',
+               reg_anat_brain_to_func, 'reference')
+
+    wf.connect(inv_func_to_anat_affine, 'out_file',
+               reg_anat_brain_to_func, 'in_matrix_file')
+
+    # Binarize and dilate anat brain in func space
+    bin_anat_brain_in_func = pe.Node(interface=fsl.ImageMaths(),
+                                     name=f'bin_anat_brain_in_func_{pipe_num}')
+    bin_anat_brain_in_func.inputs.op_string = '-bin -dilM'
+
+    wf.connect(reg_anat_brain_to_func, 'out_file', 
+               bin_anat_brain_in_func, 'in_file')
+
+    # Binarize detectable func signals
+    bin_func = pe.Node(interface=fsl.ImageMaths(),
+                                     name=f'bin_func_{pipe_num}')
+    bin_func.inputs.op_string = '-Tstd -bin'
+
+    node, out = strat_pool.get_data(["desc-motion_bold", 
+                                     "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, bin_func, 'in_file')
+
+    # Take intersection of masks
+    merge_func_mask = pe.Node(util.Merge(2), 
+                              name=f'merge_func_mask_{pipe_num}')
+
+    wf.connect(func_tmp_brain_mask, 'out_file',
+               merge_func_mask, 'in1')
+
+    wf.connect(bin_anat_brain_in_func, 'out_file',
+               merge_func_mask, 'in2')
+
+    intersect_mask = pe.Node(interface=fsl.MultiImageMaths(),
+                             name=f'intersect_mask_{pipe_num}')
+    intersect_mask.inputs.op_string = '-mul %s -mul %s'
+    intersect_mask.inputs.output_datatype = 'char'
+
+    wf.connect(bin_func, 'out_file', 
+               intersect_mask, 'in_file')
+
+    wf.connect(merge_func_mask, 'out', 
+               intersect_mask, 'operand_files')
+
+    # this is the func input for coreg in ccs
+    # TODO evaluate if it's necessary to use this brain
+    example_func_brain = pe.Node(interface=fsl.maths.ApplyMask(),
+                                 name=f'get_example_func_brain_{pipe_num}')
+
+    wf.connect(func_roi, 'roi_file',
+               example_func_brain, 'in_file')
+
+    wf.connect(intersect_mask, 'out_file',
+               example_func_brain, 'mask_file')
+
+    outputs = {
+        'space-bold_desc-brain_mask': (intersect_mask, 'out_file'),
+        'desc-ROIbrain_bold': (example_func_brain, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "bold_masking",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": None,
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "func_masking", "apply_func_mask_in_native_space"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_bold", "bold"],
@@ -1727,8 +1970,9 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_mean",
-     "config": ["functional_preproc"],
-     "switch": "None",
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "generate_func_mean", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
@@ -1755,8 +1999,9 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_normalize",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "normalize_func", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_bold", "bold"]],
@@ -1765,7 +2010,9 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
                              name=f'func_normalize_{pipe_num}',
-                             mem_gb=3.0)
+                             mem_gb=0.7,
+                             mem_x=(4538494663498653 /
+                                    604462909807314587353088, 'in_file'))
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
@@ -1793,7 +2040,9 @@ def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name=f'func_mask_normalize_{pipe_num}',
-                                  mem_gb=3.0)
+                                  mem_gb=0.7,
+                                  mem_x=(4538494663498653 /
+                                         604462909807314587353088, 'in_file'))
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 

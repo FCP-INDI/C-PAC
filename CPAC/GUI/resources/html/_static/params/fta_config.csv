@@ -1,5 +1,0 @@
-runRegisterFuncToAnat,Run Functional to Anatomical Registration.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-runBBReg,Run Functional to Anatomical Registration with BB Register,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-boundaryBasedRegistration Schedule,Standard FSL 5.0 Scheduler used for Boundary Based Registration. It is not necessary to change this path unless you intend to use non-standard MNI registration.,"A path (e.g., /usr/share/fsl/5.0/etc/flirtsch/bbr.sch)."
-func_reg_input,Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.,"A list that can contain one of the following values: “Mean Functional”,”Selected Functional Volume”"
-func_reg_input_volume,Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration. Only for when func_reg_input is set to ‘Selected Functional Volume’.,An integer.

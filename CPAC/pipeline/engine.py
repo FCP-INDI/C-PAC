@@ -30,6 +30,7 @@ from CPAC.utils.datasource import (
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
+from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
 logger = logging.getLogger('workflow')
 
@@ -770,39 +771,6 @@ class ResourcePool(object):
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
             substring_excl.append(['desc-reginput', 'bold'])
             excl += Outputs.debugging
-        
-        '''
-        bold_ts = Outputs.bold_ts
-        for opt in Outputs.debugging:
-            if opt in bold_ts:
-                bold_ts.remove(opt)
-        bold_descs = [x.replace('_bold', '') for x in bold_ts]
-        avail_bolds = []
-        prov_lens = {}
-        max_bold = (None, 0)
-        latest_bold = None
-        for bold in bold_ts:
-            if bold in self.rpool:
-                for pipe_idx in self.rpool[bold]:
-                    length = len(pipe_idx)
-                    if bold in prov_lens:
-                        if length > prov_lens[bold]:
-                            prov_lens[bold] = length
-                    else:
-                        prov_lens[bold] = length
-        for bold, length in prov_lens.items():
-            if length > max_bold[1]:
-                max_bold = (bold, length)
-        latest_bold = max_bold[0]            
-        
-        if not cfg.pipeline_setup['output_directory']['write_func_outputs']:
-            for bold_desc in bold_descs:
-                if bold_desc in latest_bold:
-                    bold_descs.remove(bold_desc)
-                    break
-            for bold in bold_descs:
-                substring_excl.append([bold, 'bold'])
-        '''              
 
         for resource in self.rpool.keys():
         
@@ -823,6 +791,7 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
@@ -879,6 +848,7 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
@@ -1100,6 +1070,10 @@ class NodeBlock(object):
                     for option in option_val:
                         if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                             opts.append(option)
+                            
+                if opts == None:
+                    opts = [opts]
+
             elif option_key and not option_val:
                 # enables multiple config forking entries
                 if not isinstance(option_key[0], list):
@@ -1167,13 +1141,33 @@ class NodeBlock(object):
                         raise Exception("\n\n[!] Developer info: Docstring error "
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
+                    switch = self.grab_tiered_dct(cfg, key_list)
                 else:
-                    key_list = switch
-                switch = self.grab_tiered_dct(cfg, key_list)
+                    if isinstance(switch[0], list):
+                        # we have multiple switches, which is designed to only work if
+                        # config is set to "None"
+                        switch_list = []
+                        for key_list in switch:
+                            val = self.grab_tiered_dct(cfg, key_list)
+                            if isinstance(val, list):
+                                # fork switches
+                                if True in val:
+                                    switch_list.append(True)
+                                else:
+                                    switch_list.append(False)
+                            else:
+                                switch_list.append(val)
+                        if False in switch_list:
+                            switch = [False]
+                        else:
+                            switch = [True]
+                    else:
+                        # if config is set to "None"
+                        key_list = switch
+                        switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
 
-            #print(f'switch and opts for {name}: {switch} --- {opts}')
             if True in switch:
                 print(f"Connecting {name}...\n")
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
@@ -1362,16 +1356,34 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
-    anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
+    anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
+
+    if type(data_paths['anat']) is str:
+        anat_T1=data_paths['anat']
+    elif 'T1w' in data_paths['anat']:
+        anat_T1=data_paths['anat']['T1w']
+
     anat_flow.inputs.inputnode.set(
         subject=part_id,
-        anat=data_paths['anat'],
+        anat=anat_T1,
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'],
         img_type='anat'
     )
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
                    "", "anat_ingress")
+    
+    if 'T2w' in data_paths['anat']: 
+        anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
+        anat_flow_T2.inputs.inputnode.set(
+            subject=part_id,
+            anat=data_paths['anat']['T2w'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'],
+            img_type='anat'
+        )
+        rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
+                    "", "anat_ingress")
 
     return rpool
 
@@ -1402,12 +1414,24 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
+    # Memoize largest (x * y * z * t) functional image size in workflow
+    # TODO: handle S3 files
+    # Skip S3 files for now
+    functional_scan_sizes = [get_data_size(
+        func_paths_dct[scan]['scan']
+    ) for scan in func_paths_dct.keys() if not
+        func_paths_dct[scan]['scan'].startswith('s3://')]
+    if functional_scan_sizes:
+        wf._largest_func = max(functional_scan_sizes)
+    del functional_scan_sizes
+
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
+    source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
@@ -1415,6 +1439,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                     out_dir = cfg.pipeline_setup['output_directory'][
                         'source_outputs_dir']
+                    source = True
                 else:
                     out_dir = cfg.pipeline_setup['output_directory']['path']
             else:
@@ -1423,28 +1448,40 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                 out_dir = cfg.pipeline_setup['output_directory'][
                     'source_outputs_dir']
+                source = True
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
             out_dir = cfg.pipeline_setup['output_directory'][
                 'source_outputs_dir']
+            source = True
         else:
             out_dir = cfg.pipeline_setup['output_directory']['path']
 
-    if os.path.isdir(out_dir):
-        if not os.listdir(out_dir):
+    if not source:
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                print(f"\nOutput directory {out_dir} does not exist yet, "
+                      f"initializing.")
+                return rpool
+        else:
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
+            
+        cpac_dir = os.path.join(out_dir,
+                                f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+                                unique_id)
     else:
-        print(f"\nOutput directory {out_dir} does not exist yet, "
-              f"initializing.")
-        return rpool
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                raise Exception(f"\nSource directory {out_dir} does not exist!")
+        
+        cpac_dir = os.path.join(out_dir,
+                                unique_id)
 
-    print(f"\nPulling outputs from {out_dir}.\n")
+    print(f"\nPulling outputs from {cpac_dir}.\n")
 
-    cpac_dir = os.path.join(out_dir,
-                            f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
-                            unique_id)
+
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
@@ -1495,6 +1532,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         #                    'session in this directory?\n\nDirectory: '
         #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
+        desc_val = None
         for tag in data_label.split('_'):
             if 'desc-' in tag:
                 desc_val = tag
@@ -1519,24 +1557,25 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             json_info = read_json(jsonpath)
             
         if 'CpacProvenance' in json_info:
-            # it's a C-PAC output, let's check for pipe_idx/strat integer
-            # suffixes in the desc- entries.
-            only_desc = str(desc_val)
+            if desc_val:
+                # it's a C-PAC output, let's check for pipe_idx/strat integer
+                # suffixes in the desc- entries.
+                only_desc = str(desc_val)
             
-            if only_desc[-1].isdigit():
-                for idx in range(0, 3):
-                    # let's stop at 3, please don't run >999 strategies okay?
-                    if only_desc[-1].isdigit():
-                        only_desc = only_desc[:-1]
+                if only_desc[-1].isdigit():
+                    for idx in range(0, 3):
+                        # let's stop at 3, please don't run >999 strategies okay?
+                        if only_desc[-1].isdigit():
+                            only_desc = only_desc[:-1]
             
-                if only_desc[-1] == '-':
-                    only_desc = only_desc.rstrip('-')
-                else:
-                    raise Exception('\n[!] Something went wrong with either '
-                                    'reading in the output directory or when '
-                                    'it was written out previously.\n\nGive '
-                                    'this to your friendly local C-PAC '
-                                    f'developer:\n\n{unique_data_label}\n')
+                    if only_desc[-1] == '-':
+                        only_desc = only_desc.rstrip('-')
+                    else:
+                        raise Exception('\n[!] Something went wrong with either '
+                                        'reading in the output directory or when '
+                                        'it was written out previously.\n\nGive '
+                                        'this to your friendly local C-PAC '
+                                        f'developer:\n\n{unique_data_label}\n')
 
                 # remove the integer at the end of the desc-* variant, we will 
                 # get the unique pipe_idx from the CpacProvenance below
@@ -1671,7 +1710,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         ("anat",
          ["segmentation", "tissue_segmentation", "Template_Based", "WHITE"]),
         ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_ACPC_template"]),
-        ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_brain_ACPC_template"])]
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T1w_brain_ACPC_template"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T2w_ACPC_template"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "T2w_brain_ACPC_template"])]
 
     def get_nested_attr(c, template_key):
         attr = getattr(c, template_key[0])
@@ -1740,7 +1781,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     '''
 
     data_paths format:
-      {'anat': '{T1w path}',
+      {'anat': {
+            'T1w': '{T1w path}',
+            'T2w': '{T2w path}'
+        },
        'creds_path': {None OR path to credentials CSV},
        'func': {
            '{scan ID}':

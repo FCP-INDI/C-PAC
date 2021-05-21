@@ -9,6 +9,7 @@ import numpy as np
 import json
 import yaml
 
+from copy import deepcopy
 from itertools import repeat
 from optparse import OptionError
 from voluptuous.error import Invalid
@@ -1611,6 +1612,8 @@ def dct_diff(dct1, dct2):
                 except AttributeError:
                     raise TypeError(f'{dct2} is not a dict.')
             diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+            if diff[key] == {}:
+                del diff[key]
         else:
             dct1_val = dct1.get(key)
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
@@ -2163,22 +2166,13 @@ def update_nested_dict(d_base, d_update):
     >>> update_nested_dict(d_base, d_update)
     {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}}
     """  # noqa
-    if d_base is None:
-        d_base = {}
+    d_new = {} if d_base is None else deepcopy(d_base)
     for k, v in d_update.items():
         if isinstance(v, collections.abc.Mapping):
-            d_base[k] = update_nested_dict(d_base.get(k, {}), v)
+            d_new[k] = update_nested_dict(d_new.get(k, {}), v)
         else:
-            try:
-                d_base[k] = v
-            except:
-                err = "\n[!] If you are seeing this error, it might be that "\
-                      "you are using a pipeline configuration nest level in "\
-                      "either your current pipeline configuration or an "\
-                      "imported one that is not compatible with the version "\
-                      "of C-PAC you are currently using.\n"
-                raise Exception(err)
-    return d_base
+            d_new[k] = v
+    return d_new
 
 
 def update_pipeline_values_1_8(d_old):
@@ -2330,8 +2324,8 @@ def update_values_from_list(d_old, last_exception=None):
     >>> update_values_from_list({'pipeline_setup': {
     ...     'pipeline_name': ['one_string']}})
     {'pipeline_setup': {'pipeline_name': 'one_string'}}
-    >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
-    {'regional_homogeneity': {'run': [False]}}
+    >>> update_values_from_list({'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}})
+    {'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}}
     '''  # noqa
     from CPAC.pipeline.schema import schema
 

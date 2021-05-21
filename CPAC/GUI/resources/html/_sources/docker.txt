@@ -1,4 +1,0 @@
-Running C-PAC as a Docker App
-==============================
-
-The `BIDS Apps <https://github.com/BIDS-Apps>`_ project is an initiative to create a collection of reproducible neuroimaging workflows that can be executed as self-contained environments using `Docker <https://www.docker.com/>`_ containers.  These workflows take as input any dataset that is organized according to the `Brain Imaging Data Structure (BIDS) standard <http://http://bids.neuroimaging.io>`_ and generating first-level outputs for this dataset.  We have created a Docker configuration as part of this initiative that allows you to run the C-PAC pipeline on your data in an environment that is fully provisioned with all of C-PAC's dependencies.  More information can be found at the official C-PAC BIDS app page `here <https://github.com/BIDS-Apps/CPAC>`_.

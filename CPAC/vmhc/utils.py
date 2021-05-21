@@ -19,7 +19,7 @@ def get_img_nvols(in_files):
     out = None
     from nibabel import load
     img = load(in_files)
-    hdr = img.get_header()
+    hdr = img.header
     nvols = None
     if len(hdr.get_data_shape()) > 3:
         nvols = int(hdr.get_data_shape()[3])
@@ -52,4 +52,3 @@ def get_operand_expression(nvols):
     expr = ('a*sqrt(%d-3)' % vol)
 
     return expr
-
