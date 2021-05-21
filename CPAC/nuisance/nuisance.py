@@ -766,7 +766,9 @@ def create_regressor_workflow(nuisance_selectors,
             custom_dsort_check_s3_nodes = []
             custom_dsort_convolve_nodes = []
 
-            for custom_regressor in sorted(regressor_selector, key=lambda c: c['file']):
+            for file_num, custom_regressor in enumerate(sorted(
+                regressor_selector, key=lambda c: c['file']
+            )):
                 custom_regressor_file = custom_regressor['file']
 
                 custom_check_s3_node = pe.Node(Function(
@@ -781,15 +783,17 @@ def create_regressor_workflow(nuisance_selectors,
                     ],
                     function=check_for_s3,
                     as_module=True),
-                    name='custom_check_for_s3_%s' % name)
+                    name=f'custom_check_for_s3_{name}_{file_num}')
 
                 custom_check_s3_node.inputs.set(
                     file_path=custom_regressor_file,
                     img_type='func'
                 )
 
-                if custom_regressor_file.endswith('.nii.gz') or \
-                    custom_regressor_file.endswith('.nii'):
+                if (
+                    custom_regressor_file.endswith('.nii.gz') or
+                    custom_regressor_file.endswith('.nii')
+                ):
 
                     if custom_regressor.get('convolve'):
                         custom_dsort_convolve_nodes += [custom_check_s3_node]
