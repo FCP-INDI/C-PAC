@@ -523,14 +523,19 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                    'max_cores_per_participant']) > 1:
             chunk_imports = ['import nibabel as nb']
             chunk = pe.Node(Function(input_names=['func_file',
-                                                  'n_cpus'],
+                                                  'n_chunks',
+                                                  'chunk_size'],
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
                             name=f'chunk_{pipe_num}')
 
-            chunk.inputs.n_cpus = int(cfg.pipeline_setup['system_config'][
-                                          'max_cores_per_participant'])
+            #chunk.inputs.n_chunks = int(cfg.pipeline_setup['system_config'][
+            #                              'max_cores_per_participant'])
+            
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+            
             node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
             wf.connect(node, out, chunk, 'func_file')
 
@@ -762,6 +767,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                        out_oned_matrix, 'out_file')
 
         outputs = {
+            'desc-preproc_bold': (out_motion_A, 'out_file'),
             'desc-motion_bold': (out_motion_A, 'out_file'),
             'max-displacement': (out_md1d, 'out_file'),
             'movement-parameters': (out_oned, 'out_file'),
@@ -801,6 +807,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                    get_rms_abs, 'rms_files')
 
         outputs = {
+            'desc-preproc_bold': (out_motion_A, 'out_file'),
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
@@ -1042,7 +1049,8 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
-     "outputs": ["desc-motion_bold",
+     "outputs": ["desc-preproc_bold",
+                 "desc-motion_bold",
                  "max-displacement",
                  "rels-displacement",
                  "movement-parameters",
@@ -1099,7 +1107,8 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
-     "outputs": ["desc-motion_bold"]}
+     "outputs": ["desc-preproc_bold",
+                 "desc-motion_bold"]}
     '''
 
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
@@ -1272,7 +1281,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "AFNI",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": {
          "space-bold_desc-brain_mask": {
              "Description": "Binary brain mask of the BOLD functional time-series
@@ -1284,7 +1293,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                                   name=f'func_get_brain_mask_AFNI_{pipe_num}')
     func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, func_get_brain_mask, 'in_file')
 
@@ -1302,7 +1311,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "FSL",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1374,8 +1383,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
         func_skull_mean.inputs.options = '-mean'
         func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
 
-        node, out = strat_pool.get_data(["desc-motion_bold",
-                                         "desc-preproc_bold", "bold"])
+        node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
         wf.connect(node, out, func_skull_mean, 'in_file')
         wf.connect(func_skull_mean, 'out_file',
                    func_get_brain_mask, 'in_file')
@@ -1383,8 +1391,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         func_get_brain_mask.inputs.functional = True
 
-        node, out = strat_pool.get_data(["desc-motion_bold",
-                                         "desc-preproc_bold", "bold"])
+        node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
         wf.connect(node, out, func_get_brain_mask, 'in_file')
 
     # erode one voxel of functional brian mask
@@ -1411,7 +1418,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "FSL_AFNI",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1439,7 +1446,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, func_skull_mean, 'in_file')
 
@@ -1471,7 +1478,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["func_masking", "using"],
      "option_val": "Anatomical_Refined",
      "inputs": ["bold",
-                ["desc-motion_bold", "desc-preproc_bold", "bold"],
+                ["desc-preproc_bold", "bold"],
                 "desc-brain_T1w",
                 "space-T1w_desc-brain_mask"],
      "outputs": ["space-bold_desc-brain_mask"]}
@@ -1536,7 +1543,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
                                           wf_name='refined_bold_mask'
                                                   f'_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, refined_bold_mask, 'inputspec.func')
 
@@ -1592,7 +1599,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "Anatomical_Based",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+     "inputs": [["desc-preproc_bold", "bold"],
                 "desc-brain_T1w",
                 ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-bold_desc-brain_mask"]}
@@ -1608,7 +1615,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
         outputtype='NIFTI_GZ'
     )
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, func_single_volume, 'in_file_a')
 
@@ -1646,7 +1653,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("desc-brain_T1w")
     wf.connect(node, out, reg_anat_brain_to_func, 'in_file')
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, reg_anat_brain_to_func, 'ref_file')
 
@@ -1684,9 +1691,12 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["desc-motion_bold", "desc-preproc_bold", "bold"],
+     "inputs": [(["desc-preproc_bold", "bold"],
                  "space-bold_desc-brain_mask")],
      "outputs": {
+         "desc-preproc_bold": {
+             "Description": "The skull-stripped BOLD time-series.",
+             "SkullStripped": True},
          "desc-brain_bold": {
              "Description": "The skull-stripped BOLD time-series.",
              "SkullStripped": True}}
@@ -1699,7 +1709,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     func_edge_detect.inputs.expr = 'a*b'
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+    node, out = strat_pool.get_data(["desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, func_edge_detect, 'in_file_a')
 
@@ -1707,6 +1717,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_edge_detect, 'in_file_b')
 
     outputs = {
+        'desc-preproc_bold': (func_edge_detect, 'out_file'),
         'desc-brain_bold': (func_edge_detect, 'out_file')
     }
 
@@ -1720,7 +1731,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-brain_bold"],
+     "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": ["desc-mean_bold"]
     }
     '''
@@ -1731,7 +1742,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data("desc-brain_bold")
+    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, func_mean, 'in_file')
 
     outputs = {
@@ -1748,8 +1759,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-brain_bold"],
-     "outputs": ["desc-brain_bold"]}
+     "inputs": [["desc-preproc_bold", "bold"]],
+     "outputs": ["desc-preproc_bold"]}
     '''
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
@@ -1758,11 +1769,11 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
-    node, out = strat_pool.get_data('desc-brain_bold')
+    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, func_normalize, 'in_file')
 
     outputs = {
-        'desc-brain_bold': (func_normalize, 'out_file')
+        'desc-preproc_bold': (func_normalize, 'out_file')
     }
 
     return (wf, outputs)
@@ -1775,7 +1786,8 @@ def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-brain_bold"],
+     "inputs": [(["desc-preproc_bold", "bold"],
+                 "space-bold_desc-brain_mask")],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1785,7 +1797,7 @@ def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 
-    node, out = strat_pool.get_data('desc-brain_bold')
+    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, func_mask_normalize, 'in_file')
 
     outputs = {

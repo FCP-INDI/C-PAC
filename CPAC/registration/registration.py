@@ -98,14 +98,19 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
             chunk_imports = ['import nibabel as nb']
             chunk = pe.Node(util.Function(input_names=['func_file',
-                                                       'n_cpus'],
+                                                       'n_chunks',
+                                                       'chunk_size'],
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
                             name=f'chunk_{wf_name}',
                             mem_gb=mem_gb)
 
-            chunk.inputs.n_cpus = int(num_cpus)
+            #chunk.inputs.n_chunks = int(num_cpus)
+            
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+            
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
 
             split_imports = ['import os', 'import subprocess']
@@ -172,14 +177,18 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
             chunk_imports = ['import nibabel as nb']
             chunk = pe.Node(util.Function(input_names=['func_file',
-                                                       'n_cpus'],
+                                                       'n_chunks',
+                                                       'chunk_size'],
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
                             name=f'chunk_{wf_name}',
                             mem_gb=mem_gb)
 
-            chunk.inputs.n_cpus = int(num_cpus)
+            #chunk.inputs.n_chunks = int(num_cpus)
+            
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
 
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
 
@@ -1756,29 +1765,49 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                     "to template space.",
                      "Template": "T1w-template"},
                  "from-T1w_to-template_mode-image_desc-linear_xfm": {
-                     "Description": ""},
+                     "Description": "Linear (affine) transform from T1w native"
+                                    " space to T1w-template space."},
                  "from-template_to-T1w_mode-image_desc-linear_xfm": {
-                     "Description": ""},
+                     "Description": "Linear (affine) transform from T1w-"
+                                    "template space to T1w native space."},
                  "from-T1w_to-template_mode-image_desc-nonlinear_xfm": {
-                     "Description": ""},
+                     "Description": "Nonlinear (warp field) transform from "
+                                    "T1w native space to T1w-template space."},
                  "from-template_to-T1w_mode-image_desc-nonlinear_xfm": {
-                     "Description": ""},
+                     "Description": "Nonlinear (warp field) transform from "
+                                    "T1w-template space to T1w native space."},
                  "from-T1w_to-template_mode-image_xfm": {
-                     "Description": ""},
+                     "Description": "Composite (affine + warp field) "
+                                    "transform from T1w native space to T1w-"
+                                    "template space."},
                  "from-template_to-T1w_mode-image_xfm": {
-                     "Description": ""},
+                     "Description": "Composite (affine + warp field) "
+                                    "transform from T1w-template space to T1w "
+                                    "native space."},
                  "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
-                     "Description": ""},
+                     "Description": "Linear (affine) transform from "
+                                    "longitudinal-template space to T1w-"
+                                    "template space."},
                  "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
-                     "Description": ""},
+                     "Description": "Linear (affine) transform from T1w-"
+                                    "template space to longitudinal-template "
+                                    "space."},
                  "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm": {
-                     "Description": ""},
+                     "Description": "Nonlinear (warp field) transform from "
+                                    "longitudinal-template space to T1w-"
+                                    "template space."},
                  "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm": {
-                     "Description": ""},
+                     "Description": "Nonlinear (warp field) transform from "
+                                    "T1w-template space to longitudinal-"
+                                    "template space."},
                  "from-longitudinal_to-template_mode-image_xfm": {
-                     "Description": ""},
+                     "Description": "Composite (affine + warp field) "
+                                    "transform from longitudinal-template "
+                                    "space to T1w-template space."},
                  "from-template_to-longitudinal_mode-image_xfm": {
-                     "Description": ""}}}
+                     "Description": "Composite (affine + warp field) "
+                                    "transform from T1w-template space to "
+                                    "longitudinal-template space."}}}
     '''
 
     params = cfg.registration_workflows['anatomical_registration'][

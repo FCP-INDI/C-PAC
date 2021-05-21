@@ -111,8 +111,11 @@ class ResourcePool(object):
         return self.name
 
     def check_rpool(self, resource):
-        if resource not in self.rpool:
-            return False
+        if not isinstance(resource, list):
+            resource = [resource]
+        for name in resource:
+            if name not in self.rpool:
+                return False
         return True
 
     def get_pipe_number(self, pipe_idx):
@@ -203,8 +206,12 @@ class ResourcePool(object):
         new_prov_list = list(cpac_prov)   # <---- making a copy, it was already a list
         if not inject:
             new_prov_list.append(f'{resource}:{node_name}')
-        res, new_pipe_idx = self.generate_prov_string(new_prov_list)
-
+        try:
+            res, new_pipe_idx = self.generate_prov_string(new_prov_list)
+        except IndexError:
+            raise IndexError(f'\n\nThe set_data() call for {resource} has no '
+                             'provenance information and should not be an '
+                             'injection.')
         if not json_info:
             json_info = {'RawSources': [resource]}     # <---- this will be repopulated to the full file path at the end of the pipeline building, in gather_pipes()
         json_info['CpacProvenance'] = new_prov_list
@@ -751,9 +758,7 @@ class ResourcePool(object):
 
         if add_excl:
             excl += add_excl
-            
-        bold_descs = [x.rstrip('_bold') for x in Outputs.bold_ts]
-            
+                       
         if 'unsmoothed' not in cfg.post_processing['spatial_smoothing']['output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
@@ -764,22 +769,40 @@ class ResourcePool(object):
 
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
             substring_excl.append(['desc-reginput', 'bold'])
-            
+            excl += Outputs.debugging
+        
+        '''
+        bold_ts = Outputs.bold_ts
+        for opt in Outputs.debugging:
+            if opt in bold_ts:
+                bold_ts.remove(opt)
+        bold_descs = [x.replace('_bold', '') for x in bold_ts]
+        avail_bolds = []
+        prov_lens = {}
+        max_bold = (None, 0)
+        latest_bold = None
+        for bold in bold_ts:
+            if bold in self.rpool:
+                for pipe_idx in self.rpool[bold]:
+                    length = len(pipe_idx)
+                    if bold in prov_lens:
+                        if length > prov_lens[bold]:
+                            prov_lens[bold] = length
+                    else:
+                        prov_lens[bold] = length
+        for bold, length in prov_lens.items():
+            if length > max_bold[1]:
+                max_bold = (bold, length)
+        latest_bold = max_bold[0]            
+        
         if not cfg.pipeline_setup['output_directory']['write_func_outputs']:
-            avail_bolds = []
-            for resource in self.rpool.keys():
-                if resource.split('_')[-1] != 'bold':
-                    continue
-                for bold_desc in bold_descs:
-                    if bold_desc in resource:
-                        if bold_desc not in avail_bolds:
-                            avail_bolds.append(bold_desc)
-            for bold in bold_descs:
-                if bold in avail_bolds:
-                    bold_descs.remove(bold)
+            for bold_desc in bold_descs:
+                if bold_desc in latest_bold:
+                    bold_descs.remove(bold_desc)
                     break
             for bold in bold_descs:
-                substring_excl.append([bold, 'bold'])                  
+                substring_excl.append([bold, 'bold'])
+        '''              
 
         for resource in self.rpool.keys():
         
@@ -1077,6 +1100,24 @@ class NodeBlock(object):
                     for option in option_val:
                         if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                             opts.append(option)
+            elif option_key and not option_val:
+                # enables multiple config forking entries
+                if not isinstance(option_key[0], list):
+                    raise Exception(f'[!] The option_key field ({option_key}) '
+                                    f'for {name} exists but there is no '
+                                    'option_val.\n\nIf you are trying to '
+                                    'populate multiple option keys, the '
+                                    'option_val field must contain a list of '
+                                    'a list.\n')
+                for option_config in option_key:
+                    # option_config is a list of pipe config levels down to the option
+                    if config:
+                        key_list = config + option_config
+                    else:
+                        key_list = option_config
+                    option_val = option_config[-1]
+                    if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
+                        opts.append(option_val)                
             else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
@@ -1464,10 +1505,19 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         jsonpath = f"{jsonpath}.json"
 
         if not os.path.exists(jsonpath):
-            raise Exception('\n\n[!] No JSON found for file '
-                            f'{filepath}.\n\n')
-
-        json_info = read_json(jsonpath)
+            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+                  f'{jsonpath}..\n\n')
+            json_info = {
+                'Description': 'This data was generated elsewhere and '
+                               'supplied by the user into this C-PAC run\'s '
+                               'output directory. This JSON file was '
+                               'automatically generated by C-PAC because a '
+                               'JSON file was not supplied with the data.'
+            }
+            write_output_json(json_info, jsonpath)
+        else:        
+            json_info = read_json(jsonpath)
+            
         if 'CpacProvenance' in json_info:
             # it's a C-PAC output, let's check for pipe_idx/strat integer
             # suffixes in the desc- entries.
@@ -1488,8 +1538,8 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                                     'this to your friendly local C-PAC '
                                     f'developer:\n\n{unique_data_label}\n')
 
-                # remove the integer at the end of the desc-* variant, we will get
-                # the unique pipe_idx from the CpacProvenance below
+                # remove the integer at the end of the desc-* variant, we will 
+                # get the unique pipe_idx from the CpacProvenance below
                 data_label = data_label.replace(desc_val, only_desc)
 
             # preserve cpac provenance/pipe_idx
@@ -1598,9 +1648,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-        print('\n\n')
-        print(key)
-        print(json_info)
             
     # templates, resampling from config
     '''
