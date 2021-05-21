@@ -58,6 +58,8 @@ RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install FreeSurfer
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
+ENV FREESURFER_HOME="/usr/lib/freesurfer" \
+    PATH="/usr/lib/freesurfer/bin:$PATH"
 
 # install C-PAC
 COPY . /code
