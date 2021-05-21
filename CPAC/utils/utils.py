@@ -162,7 +162,9 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
 def write_output_json(json_data, filename, indent=3, basedir=None):
     if not basedir:
         basedir = os.getcwd()
-    json_file = os.path.join(basedir, f'{filename}.json')
+    if '.json' not in filename:
+        filename = f'{filename}.json'
+    json_file = os.path.join(basedir, filename)
     json_data = json.dumps(json_data, indent=indent, sort_keys=True)
     with open(json_file, 'wt') as f:
         f.write(json_data)

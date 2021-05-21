@@ -115,6 +115,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_masking,
     func_mean,
     func_normalize,
+    func_mask_normalize,
     get_motion_ref,
     func_motion_estimates,
     motion_estimate_filter,
@@ -1049,7 +1050,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             bold_masking,
             calc_motion_stats,
             func_mean,
-            func_normalize
+            func_normalize,
+            func_mask_normalize
         ]
 
         # Distortion/Susceptibility Correction

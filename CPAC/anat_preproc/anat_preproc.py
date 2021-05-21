@@ -744,7 +744,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                       function=predict_volumes),
                         name=f'unet_mask_{pipe_num}')
 
-    node, out = strat_pool.get_data('unet_model')
+    node, out = strat_pool.get_data('unet-model')
     wf.connect(node, out, unet_mask, 'model_path')
 
     if strat_pool.check_rpool('desc-preproc_T1w') or \
@@ -1494,8 +1494,14 @@ def n4_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["desc-preproc_T1w",
-                 "desc-n4_T1w"]}
+     "outputs": {
+         "desc-preproc_T1w": {
+             "Description": "T1w image that has been N4-bias-field corrected 
+                             using ANTs N4BiasFieldCorrection."},
+         "desc-n4_T1w": {
+             "Description": "T1w image that has been N4-bias-field corrected 
+                             using ANTs N4BiasFieldCorrection."}
+    }
     '''
 
     n4 = pe.Node(interface=ants.N4BiasFieldCorrection(dimension=3,
@@ -1674,7 +1680,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
                 "T1w_template",
-                "unet_model"],
+                "unet-model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -1693,7 +1699,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
                 "T1w_template",
-                "unet_model"],
+                "unet-model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 
