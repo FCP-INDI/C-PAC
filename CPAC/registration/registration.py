@@ -2062,7 +2062,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "space-T1w_desc-brain_mask",
-                "T1w_template",
+                "T1w-template",
                 "from-T1w_to-template_mode-image_xfm"],
      "outputs": ["space-template_desc-brain_T1w",
                  "space-template_desc-T1w_mask",
@@ -2093,7 +2093,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = connect
         wf.connect(node, out, ants_t1_brain_to_template, 'input_image')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, ants_t1_brain_to_template, 'reference_image')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -2107,7 +2107,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
         wf.connect(node, out, ants_t1_mask_to_template, 'input_image')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, ants_t1_mask_to_template, 'reference_image')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -2131,7 +2131,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = connect
         wf.connect(node, out, fsl_t1_brain_to_template, 'in_file')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, fsl_t1_brain_to_template, 'ref_file')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -2162,7 +2162,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data(['desc-restore_T1w', 'desc-preproc_T1w', 'desc-reorient_T1w', 'T1w'])
         wf.connect(node, out, ants_apply_warp_t1_to_template, 'input_image')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, ants_apply_warp_t1_to_template, 'reference_image')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -2217,7 +2217,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data(['desc-restore_T1w', 'desc-preproc_T1w', 'desc-reorient_T1w', 'T1w'])
         wf.connect(node, out, fsl_apply_warp_t1_to_template, 'in_file')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, fsl_apply_warp_t1_to_template, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 
@@ -2233,7 +2233,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('desc-brain_T1w')
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, 'in_file')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 
@@ -2247,7 +2247,7 @@ def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
         wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, 'in_file')
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 

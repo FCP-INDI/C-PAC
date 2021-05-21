@@ -1500,7 +1500,7 @@ def n4_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
                              using ANTs N4BiasFieldCorrection."},
          "desc-n4_T1w": {
              "Description": "T1w image that has been N4-bias-field corrected 
-                             using ANTs N4BiasFieldCorrection."}
+                             using ANTs N4BiasFieldCorrection."}}
     }
     '''
 
