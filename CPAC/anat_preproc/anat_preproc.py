@@ -2661,6 +2661,15 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'T1': (reconall, 'T1')
     }
 
+    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
+        outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
+        outputs['label-WM_mask'] = (erode_wm, 'binary_file')
+        outputs['label-GM_mask'] = (erode_gm, 'binary_file')
+    else:
+        outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
+        outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
+        outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
+
     return (wf, outputs)
 
 
@@ -3145,17 +3154,5 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     outputs = {
         'desc-restore-brain_T1w': (apply_mask, 'out_file')
     }
-
-    # TODO check if it's merge error?
-    '''
-    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
-        outputs['label-WM_mask'] = (erode_wm, 'binary_file')
-        outputs['label-GM_mask'] = (erode_gm, 'binary_file')
-    else:
-        outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
-        outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
-        outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
-    '''
 
     return (wf, outputs)
