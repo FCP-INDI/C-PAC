@@ -183,7 +183,9 @@ def init_brain_extraction_wf(tpl_target_path,
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_file', 'out_mask', 'bias_corrected', 'bias_image']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
+        name='copy_xform', run_without_submitting=True,
+        mem_gb=1.3, mem_x=(3811976743057169 / 302231454903657293676544,
+                           'hdr_file'))
 
     trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity', op2='0.01 0.999 256'),
                        name='truncate_images', iterfield=['op1'])
@@ -232,7 +234,8 @@ def init_brain_extraction_wf(tpl_target_path,
         'CPAC.anat_preproc', 'data/'+settings_file % normalization_quality)),
         name='norm',
         n_procs=omp_nthreads,
-        mem_gb=mem_gb)
+        mem_gb=1.7,
+        mem_x=(1233286593342025 / 151115727451828646838272, 'moving_image'))
     norm.inputs.float = use_float
     fixed_mask_trait = 'fixed_image_mask'
     if _ants_version and parseversion(_ants_version) >= Version('2.2.0'):
@@ -240,8 +243,7 @@ def init_brain_extraction_wf(tpl_target_path,
 
     map_brainmask = pe.Node(
         ApplyTransforms(interpolation='Gaussian', float=True),
-        name='map_brainmask',
-        mem_gb=1
+        name='map_brainmask'
     )
     map_brainmask.inputs.input_image = str(tpl_mask_path)
 
@@ -332,8 +334,12 @@ def init_brain_extraction_wf(tpl_target_path,
             mem_gb=mem_gb,
             in_segmentation_model=atropos_model,
         )
-        sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1), name='sel_wm',
-                         run_without_submitting=True)
+        sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1),
+                         name='sel_wm',
+                         run_without_submitting=True,
+                         mem_gb=0.1,
+                         mem_x=(5157380299430287 / 302231454903657293676544,
+                                'inlist'))
 
         wf.disconnect([
             (get_brainmask, apply_mask, [('output_image', 'mask_file')]),
@@ -417,7 +423,9 @@ def init_atropos_wf(name='atropos_wf',
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_mask', 'out_segm', 'out_tpms']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
+        name='copy_xform', run_without_submitting=True,
+        mem_gb=1.3, mem_x=(3811976743057169 / 302231454903657293676544,
+                           'hdr_file'))
 
     # Run atropos (core node)
     atropos = pe.Node(Atropos(
@@ -455,7 +463,10 @@ def init_atropos_wf(name='atropos_wf',
     # ImageMath ${DIMENSION} ${EXTRACTION_TMP} FillHoles ${EXTRACTION_GM} 2
     # MultiplyImages ${DIMENSION} ${EXTRACTION_GM} ${EXTRACTION_TMP} ${EXTRACTION_GM}
     fill_gm = pe.Node(ImageMath(operation='FillHoles', op2='2'),
-                      name='07_fill_gm')
+                      name='07_fill_gm',
+                      mem_gb=2.1,
+                      mem_x=(1435097126797993 / 1208925819614629174706176,
+                             'op1'))
     mult_gm = pe.Node(MultiplyImages(
         dimension=3, output_product_image='08_mult_gm.nii.gz'), name='08_mult_gm')
 
@@ -495,7 +506,10 @@ def init_atropos_wf(name='atropos_wf',
     md_7 = pe.Node(ImageMath(operation='MD', op2='4'), name='18_md_7')
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} FillHoles ${EXTRACTION_MASK} 2
     fill_7 = pe.Node(ImageMath(operation='FillHoles', op2='2'),
-                     name='19_fill_7')
+                     name='19_fill_7',
+                     mem_gb=2.1,
+                     mem_x=(1435097126797993 / 1208925819614629174706176,
+                            'op1'))
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} addtozero ${EXTRACTION_MASK} \
     # ${EXTRACTION_MASK_PRIOR_WARPED}
     add_7_2 = pe.Node(ImageMath(operation='addtozero'), name='20_add_7_2')

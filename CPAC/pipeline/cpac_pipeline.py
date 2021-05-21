@@ -11,6 +11,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -245,7 +246,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                         'run_logging', True))
         },
         'execution': {
-            'crashfile_format': 'txt'
+            'crashfile_format': 'txt',
+            'resource_monitor_frequency': 0.2
         }
     })
 
@@ -262,14 +264,14 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
         c)
 
-    if not plugin:
-        plugin = 'MultiProc'
-
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+
+    if not plugin:
+        plugin = LegacyMultiProcPlugin(plugin_args)
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly

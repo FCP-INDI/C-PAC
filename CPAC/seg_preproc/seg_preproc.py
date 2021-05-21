@@ -192,7 +192,9 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
 
         overlap_segmentmap_with_prior = pe.Node(
             interface=fsl.MultiImageMaths(),
-            name='overlap_%s_map_with_prior' % (wf_name))
+            name='overlap_%s_map_with_prior' % (wf_name),
+            mem_gb=1.775,
+            mem_x=(5022839943792975 / 2417851639229258349412352, 'in_file'))
         overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
         preproc.connect(input_1, value_1,
@@ -562,7 +564,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #  'probability_maps' output is a list of individual probability maps
     #      triggered by 'probability_maps' boolean input (-p)
 
-    segment = pe.Node(interface=fsl.FAST(), name=f'segment_{pipe_num}')
+    segment = pe.Node(interface=fsl.FAST(),
+                      name=f'segment_{pipe_num}',
+                      mem_gb=3.48,
+                      mem_x=(3444233104315183 / 19342813113834066795298816,
+                             'in_files'))
     segment.inputs.img_type = 1
     segment.inputs.segments = True
     segment.inputs.probability_maps = True

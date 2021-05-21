@@ -29,7 +29,7 @@ from CPAC.utils.utils import check_prov_for_regtool
 
 
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
-                    num_cpus=1, num_ants_cores=1, mem_gb=2.5):
+                    num_cpus=1, num_ants_cores=1):
 
     if not reg_tool:
         raise Exception("\n[!] Developer info: the 'reg_tool' parameter sent "
@@ -61,11 +61,17 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             apply_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                                     name=f'apply_warp_{wf_name}',
                                     iterfield=['input_image'],
-                                    mem_gb=mem_gb)
+                                    mem_gb=0.7,
+                                    mem_x=(8969357042487455 /
+                                           151115727451828646838272,
+                                           'input_image'))
         else:
             apply_warp = pe.Node(interface=ants.ApplyTransforms(),
                                  name=f'apply_warp_{wf_name}',
-                                 mem_gb=mem_gb)
+                                 mem_gb=0.7,
+                                 mem_x=(8969357042487455 /
+                                        151115727451828646838272,
+                                        'input_image'))
 
         apply_warp.inputs.dimension = 3
         apply_warp.interface.num_threads = int(num_ants_cores)
@@ -80,7 +86,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                               output_names=['interpolation'],
                                               function=interpolation_string),
                                 name=f'interp_string',
-                                mem_gb=mem_gb)
+                                mem_gb=2.5)
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
@@ -92,7 +98,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                   output_names=['transform_list'],
                                   function=single_ants_xfm_to_list),
                     name=f'single_ants_xfm_to_list',
-                    mem_gb=mem_gb)
+                    mem_gb=2.5)
 
         wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
         wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
@@ -108,7 +114,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      function=chunk_ts,
                                      imports=chunk_imports),
                             name=f'chunk_{wf_name}',
-                            mem_gb=mem_gb)
+                            mem_gb=2.5)
 
             chunk.inputs.n_cpus = int(num_cpus)
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
@@ -120,7 +126,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      function=split_ts_chunks,
                                      imports=split_imports),
                             name=f'split_{wf_name}',
-                            mem_gb=mem_gb)
+                            mem_gb=2.5)
 
             wf.connect(inputNode, 'input_image', split, 'func_file')
             wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -129,7 +135,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
             func_concat = pe.Node(interface=afni_utils.TCat(),
                                   name=f'func_concat_{wf_name}',
-                                  mem_gb=mem_gb)
+                                  mem_gb=2.5)
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
             wf.connect(apply_warp, 'output_image', func_concat, 'in_files')
@@ -146,18 +152,18 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                                     name=f'fsl_apply_warp',
                                     iterfield=['in_file'],
-                                    mem_gb=mem_gb)
+                                    mem_gb=2.5)
         else:
             apply_warp = pe.Node(interface=fsl.ApplyWarp(),
                                  name='fsl_apply_warp',
-                                 mem_gb=mem_gb)
+                                 mem_gb=2.5)
 
         interp_string = pe.Node(util.Function(input_names=['interpolation',
                                                            'reg_tool'],
                                               output_names=['interpolation'],
                                               function=interpolation_string),
                                 name=f'interp_string',
-                                mem_gb=mem_gb)
+                                mem_gb=2.5)
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
@@ -182,7 +188,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      function=chunk_ts,
                                      imports=chunk_imports),
                             name=f'chunk_{wf_name}',
-                            mem_gb=mem_gb)
+                            mem_gb=2.5)
 
             chunk.inputs.n_cpus = int(num_cpus)
 
@@ -195,7 +201,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                      function=split_ts_chunks,
                                      imports=split_imports),
                             name=f'split_{wf_name}',
-                            mem_gb=mem_gb)
+                            mem_gb=2.5)
 
             wf.connect(inputNode, 'input_image', split, 'func_file')
             wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -860,7 +866,10 @@ def create_wf_calculate_ants_warp(
                                                       'warped_image'],
                                         function=hardcoded_reg,
                                         imports=reg_imports),
-                name='calc_ants_warp', mem_gb=6.0)
+                name='calc_ants_warp',
+                mem_gb=2.8,
+                mem_x=(8969357042487455 / 604462909807314587353088,
+                       'moving_brain'))
 
     calculate_ants_warp.interface.num_threads = num_threads
 
@@ -1196,7 +1205,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     write_composite_linear_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f'write_composite_linear{symm}_xfm',
-        mem_gb=1.5)
+        mem_gb=1.155,
+        mem_x=(8969357042487455 / 1208925819614629174706176, 'input_image'))
     write_composite_linear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_linear_xfm.inputs.output_image = \
         "from-T1w_to-{sym}{tmpl}template_mode-image_desc-linear_xfm.nii.gz"
@@ -1214,7 +1224,11 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     write_composite_linear_xfm.inputs.dimension = 3
 
     collect_transforms = pe.Node(util.Merge(3),
-                                 name=f'collect_transforms{symm}')
+                                 name=f'collect_transforms{symm}',
+                                 mem_gb=0.8,
+                                 mem_x=(263474863123069 /
+                                        37778931862957161709568,
+                                        'in1'))
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_transforms, 'in1')
@@ -1231,7 +1245,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
                       output_names=['checked_transform_list',
                                     'list_length'],
                       function=check_transforms),
-        name=f'check_transforms')
+        name=f'check_transforms',
+        mem_gb=6)
 
     wf.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -1242,7 +1257,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     write_composite_invlinear_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f'write_composite_invlinear{symm}_xfm',
-        mem_gb=1.5)
+        mem_gb=1.05,
+        mem_x=(1367826948979337 / 151115727451828646838272, 'input_image'))
     write_composite_invlinear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_invlinear_xfm.inputs.output_image = \
         "from-{sym}{tmpl}template_to-T1w_mode-image_desc-linear_xfm.nii.gz"
@@ -1354,7 +1370,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     write_composite_inv_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f'write_composite_inv_{symm}xfm',
-        mem_gb=1.5)
+        mem_gb=0.3,
+        mem_x=(6278549929741219 / 604462909807314587353088, 'input_image'))
     write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
     write_composite_inv_xfm.inputs.output_image = \
         "from-{sym}{tmpl}template_to-T1w_mode-image_xfm.nii.gz"
