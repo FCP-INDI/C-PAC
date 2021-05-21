@@ -25,7 +25,13 @@ jobs:
           # regex
           files: |
             \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
-      
+      - name: Clear up some space on runner
+        if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
         uses: docker/setup-buildx-action@v1
