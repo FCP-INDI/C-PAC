@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -179,8 +179,10 @@ functional_preproc:
 
   motion_estimates_and_correction: 
 
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: On
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: On
 
     motion_correction: 
 

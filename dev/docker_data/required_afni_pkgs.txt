@@ -20,6 +20,7 @@ linux_openmp_64/3drefit
 linux_openmp_64/3dresample
 linux_openmp_64/3dROIstats
 linux_openmp_64/3dSkullStrip
+linux_openmp_64/3dTto1D
 linux_openmp_64/3dTcat
 linux_openmp_64/3dTcorr1D
 linux_openmp_64/3dTcorrelate

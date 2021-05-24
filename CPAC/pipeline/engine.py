@@ -16,6 +16,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.registration.registration import transform_derivative
 from CPAC.nuisance import NuisanceRegressor
 
+from CPAC.utils import Outputs
 from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, ordereddict_to_dict, check_prov_for_regtool
 from CPAC.utils.datasource import (
@@ -29,6 +30,7 @@ from CPAC.utils.datasource import (
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
+from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
 logger = logging.getLogger('workflow')
 
@@ -110,8 +112,11 @@ class ResourcePool(object):
         return self.name
 
     def check_rpool(self, resource):
-        if resource not in self.rpool:
-            return False
+        if not isinstance(resource, list):
+            resource = [resource]
+        for name in resource:
+            if name not in self.rpool:
+                return False
         return True
 
     def get_pipe_number(self, pipe_idx):
@@ -202,8 +207,12 @@ class ResourcePool(object):
         new_prov_list = list(cpac_prov)   # <---- making a copy, it was already a list
         if not inject:
             new_prov_list.append(f'{resource}:{node_name}')
-        res, new_pipe_idx = self.generate_prov_string(new_prov_list)
-
+        try:
+            res, new_pipe_idx = self.generate_prov_string(new_prov_list)
+        except IndexError:
+            raise IndexError(f'\n\nThe set_data() call for {resource} has no '
+                             'provenance information and should not be an '
+                             'injection.')
         if not json_info:
             json_info = {'RawSources': [resource]}     # <---- this will be repopulated to the full file path at the end of the pipeline building, in gather_pipes()
         json_info['CpacProvenance'] = new_prov_list
@@ -219,6 +228,7 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
+            
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
@@ -530,7 +540,9 @@ class ResourcePool(object):
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = ResourcePool()     # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool['json'] = {}
+                new_strats[pipe_idx].rpool['json']['subjson'] = {}
                 new_strats[pipe_idx].rpool['json']['CpacProvenance'] = strat_list
 
                 # now just invert resource:strat to strat:resource for each resource:strat
@@ -545,6 +557,11 @@ class ResourcePool(object):
                         for younger_resource, variant_list in resource_strat_dct['json']['CpacVariant'].items():
                             if younger_resource not in new_strats[pipe_idx].rpool['json']['CpacVariant']:
                                 new_strats[pipe_idx].rpool['json']['CpacVariant'][younger_resource] = variant_list
+                    # preserve each input's JSON info also
+                    data_type = resource.split('_')[-1]
+                    if data_type not in new_strats[pipe_idx].rpool['json']['subjson']:
+                        new_strats[pipe_idx].rpool['json']['subjson'][data_type] = {}
+                    new_strats[pipe_idx].rpool['json']['subjson'][data_type].update(copy.deepcopy(resource_strat_dct['json']))
         else:
             new_strats = {}
             for resource_strat_list in total_pool:       # total_pool will have only one list of strats, for the one input
@@ -552,8 +569,15 @@ class ResourcePool(object):
                     resource, pipe_idx = self.generate_prov_string(cpac_prov)
                     resource_strat_dct = self.rpool[resource][pipe_idx]   # <----- remember, this is the dct of 'data' and 'json'.
                     new_strats[pipe_idx] = ResourcePool(rpool={resource: resource_strat_dct})   # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                    # placing JSON info at one level higher only for copy convenience
                     new_strats[pipe_idx].rpool['json'] = resource_strat_dct['json']  # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
+                    new_strats[pipe_idx].rpool['json']['subjson'] = {}
                     new_strats[pipe_idx].rpool['json']['CpacProvenance'] = cpac_prov
+                    # preserve each input's JSON info also
+                    data_type = resource.split('_')[-1]                    
+                    if data_type not in new_strats[pipe_idx].rpool['json']['subjson']:
+                        new_strats[pipe_idx].rpool['json']['subjson'][data_type] = {}
+                    new_strats[pipe_idx].rpool['json']['subjson'][data_type].update(copy.deepcopy(resource_strat_dct['json']))
 
         return new_strats
 
@@ -729,101 +753,33 @@ class ResourcePool(object):
         return wf
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-        # TODO: cpac_outputs.csv etc
-        # TODO: might be better to do an inclusion instead
-        non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
-                    'pe_direction', 'subject', 'atlas_name', 'scan_params',
-                    'deltaTE', 'diff_phase_dwell', 'dwell_asym_ratio',
-                    'diffphase_scan_params', 'diffmag_scan_params']
-        excl = ['T1w', 'bold', 'motion-basefile',
-                'diffphase', 'diffmag', 'epi']
+       
+        excl = []
         substring_excl = []
-        bold_descs = ['desc-cleaned', 'desc-brain', 'desc-motion', 
-                      'desc-preproc']
-        config_paths = ['T1w_ACPC_template', 'T1w_brain_ACPC_template',
-                        'T2w_ACPC_template', 'T2w_brain_ACPC_template',
-                        'unet_model', 'T1w_brain_template', 'T1w_template',
-                        'T1w_brain_template_mask',
-                        'T1w_brain_template_symmetric',
-                        'T1w_template_symmetric',
-                        'dilated_symmetric_brain_mask',
-                        'dilated_symmetric_brain_mask_for_template',
-                        'T1w_brain_template_symmetric_for_resample',
-                        'T1w_template_symmetric_for_resample', 'ref_mask',
-                        'FNIRT_T1w_brain_template','FNIRT_T1w_template',
-                        'template_for_resample',
-                        'T1w_brain_template_for_func',
-                        'T1w_template_for_func',
-                        'template_epi', 'template_epi_mask',
-                        'lateral_ventricles_mask', 'eye_mask_path',
-                        'EPI_template', 'EPI_template_mask',
-                        'EPI_template_deriv', 'EPI_template_for_resample',
-                        'EPI_template_funcreg', 'T1w_brain_template_deriv',
-                        'T1w_template_deriv', 'T1w_brain_template_funcreg',
-                        'T1w_template_funcreg',
-                        'T1w_template_symmetric_funcreg',
-                        'T1w_brain_template_symmetric_funcreg',
-                        'T1w_brain_template_for_resample',
-                        'T1w_template_for_resample']
-        excl += non_sink
-        excl += config_paths
 
         if add_excl:
             excl += add_excl
+                       
+        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing']['output']:
+            excl += Outputs.native_nonsmooth
+            excl += Outputs.template_nonsmooth
+            
+        if 'raw' not in cfg.post_processing['z-scoring']['output']:
+            excl += Outputs.native_raw
+            excl += Outputs.template_raw
 
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
-            excl.append('motion-basefile')
             substring_excl.append(['desc-reginput', 'bold'])
-            
-        if not cfg.pipeline_setup['output_directory']['write_func_outputs']:
-            avail_bolds = []
-            for resource in self.rpool.keys():
-                if resource.split('_')[-1] != 'bold':
-                    continue
-                for bold_desc in bold_descs:
-                    if bold_desc in resource:
-                        if bold_desc not in avail_bolds:
-                            avail_bolds.append(bold_desc)
-            for bold in bold_descs:
-                if bold in avail_bolds:
-                    bold_descs.remove(bold)
-                    break
-            for bold in bold_descs:
-                substring_excl.append([bold, 'bold'])                  
-
-        anat = ['T1w', 'probseg', 'T1w-template', 'T2w', 'T2w-template']
-        func = ['bold', 'timeseries', 'alff', 'falff', 'reho', 'vmhc',
-                'correlations', 'statmap', 'regressors', 'degree-centrality',
-                'eigen-centrality', 'lfcd']
-
-        motions = ['motion', 'movement', 'coordinate', 'displacement',
-                   'dvars', 'power-params']
-
-        qc_anat = ['T1w-axial-qc',
-                   'T1w-sagittal-qc',
-                   'dseg-axial-qc',
-                   'dseg-sagittal-qc']
-        anat += qc_anat
-
-        qc_func = ['bold-axial-qc',
-                   'bold-sagittal-qc',
-                   'bold-carpet-qc',
-                   'framewise-displacement-jenkinson-plot-qc',
-                   'movement-parameters-trans-qc',
-                   'movement-parameters-rot-qc',
-                   'bold-snr-axial-qc',
-                   'bold-snr-sagittal-qc',
-                   'bold-snr-hist-qc',
-                   'bold-snr-qc']
-        func += qc_func
-
-        if all:
-            excl = non_sink
+            excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-            # TODO: cpac_outputs.csv etc
+        
+            if resource not in Outputs.any:
+                continue
+        
             if resource in excl:
                 continue
+                
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -835,6 +791,7 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
@@ -842,33 +799,12 @@ class ResourcePool(object):
                 continue
                 
             subdir = 'other'
-            if resource.split('_')[-1] in anat:
+            if resource in Outputs.anat:
                 subdir = 'anat'
                 #TODO: get acq- etc.
-            elif resource.split('_')[-1] in func:
+            elif resource in Outputs.func:
                 subdir = 'func'
                 #TODO: other stuff like acq- etc.
-            elif resource.split('_')[-1] == 'mask':
-                if 'space-T1w' in resource:
-                    subdir = 'anat'
-                if 'label-CSF' in resource or 'label-GM' in resource or \
-                        'label-WM' in resource:
-                    subdir = 'anat'
-                if 'space-bold' in resource:
-                    subdir = 'func'
-            elif resource.split('_')[-1] == 'xfm':
-                if 'from-T1w' in resource:
-                    subdir = 'anat'
-                if 'template_to-T1w' in resource:
-                    subdir = 'anat'
-                if 'from-bold' in resource:
-                    subdir = 'func'
-                if 'template_to-bold' in resource:
-                    subdir = 'func'
-            else:
-                for tag in motions:
-                    if tag in resource:
-                        subdir = 'func'
 
             for pipe_idx in self.rpool[resource]:
                 unique_id = self.get_name()
@@ -894,9 +830,13 @@ class ResourcePool(object):
                 # TODO: can do the pipeline_description.json variants here too!
 
         for resource in self.rpool.keys():
-            # TODO: cpac_outputs.csv etc
+
+            if resource not in Outputs.any:
+                continue
+
             if resource in excl:
                 continue
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -908,16 +848,13 @@ class ResourcePool(object):
                 for item in bool_list:
                     if not item:
                         break
+                else:
                     drop = True
                 if drop:
                     break
             if drop:
                 continue
                 
-            if not all:
-                if 'symtemplate' in resource:
-                    continue
-
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -932,6 +869,11 @@ class ResourcePool(object):
 
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
+
+                try:
+                    del json_info['subjson']
+                except KeyError:
+                    pass
 
                 if out_dct['subdir'] == 'other' and not all:
                     continue
@@ -1076,14 +1018,8 @@ class NodeBlock(object):
                            'option_val', 'inputs', 'outputs']
         if 'Node Block:' in fn_docstring:
             fn_docstring = fn_docstring.split('Node Block:')[1]
-        fn_docstring = fn_docstring.replace('\n', '').replace(' ', '')
-        #dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
+        fn_docstring = fn_docstring.lstrip().replace('\n', '')
         dct = ast.literal_eval(fn_docstring)
-        #try:
-        #    dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
-        #except Exception as e:
-        #    raise Exception('\n\n[!] Node block docstring error.\n\n'
-        #                    f'Docstring:\n{fn_docstring}\n\n')
         for key in init_dct_schema:
             if key not in dct.keys():
                 raise Exception('\n[!] Developer info: At least one of the '
@@ -1134,6 +1070,28 @@ class NodeBlock(object):
                     for option in option_val:
                         if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                             opts.append(option)
+                            
+                if opts == None:
+                    opts = [opts]
+
+            elif option_key and not option_val:
+                # enables multiple config forking entries
+                if not isinstance(option_key[0], list):
+                    raise Exception(f'[!] The option_key field ({option_key}) '
+                                    f'for {name} exists but there is no '
+                                    'option_val.\n\nIf you are trying to '
+                                    'populate multiple option keys, the '
+                                    'option_val field must contain a list of '
+                                    'a list.\n')
+                for option_config in option_key:
+                    # option_config is a list of pipe config levels down to the option
+                    if config:
+                        key_list = config + option_config
+                    else:
+                        key_list = option_config
+                    option_val = option_config[-1]
+                    if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
+                        opts.append(option_val)                
             else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
@@ -1183,13 +1141,33 @@ class NodeBlock(object):
                         raise Exception("\n\n[!] Developer info: Docstring error "
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
+                    switch = self.grab_tiered_dct(cfg, key_list)
                 else:
-                    key_list = switch
-                switch = self.grab_tiered_dct(cfg, key_list)
+                    if isinstance(switch[0], list):
+                        # we have multiple switches, which is designed to only work if
+                        # config is set to "None"
+                        switch_list = []
+                        for key_list in switch:
+                            val = self.grab_tiered_dct(cfg, key_list)
+                            if isinstance(val, list):
+                                # fork switches
+                                if True in val:
+                                    switch_list.append(True)
+                                else:
+                                    switch_list.append(False)
+                            else:
+                                switch_list.append(val)
+                        if False in switch_list:
+                            switch = [False]
+                        else:
+                            switch = [True]
+                    else:
+                        # if config is set to "None"
+                        key_list = switch
+                        switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
 
-            #print(f'switch and opts for {name}: {switch} --- {opts}')
             if True in switch:
                 print(f"Connecting {name}...\n")
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
@@ -1233,7 +1211,51 @@ class NodeBlock(object):
                             self.check_output(outputs, label, name)
                             new_json_info = copy.deepcopy(strat_pool.get('json'))
                             
+                            # transfer over data-specific json info
+                            #   for example, if the input data json is _bold and the output is also _bold
+                            data_type = label.split('_')[-1]
+                            if data_type in new_json_info['subjson']:
+                                if 'SkullStripped' in new_json_info['subjson'][data_type]:
+                                    new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
+
+                            # determine sources for the outputs, i.e. all input data into the node block                   
                             new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            
+                            if isinstance(outputs, dict):
+                                new_json_info.update(outputs[label])
+                                if 'Description' not in outputs[label]:
+                                    # don't propagate old Description
+                                    try:
+                                        del new_json_info['Description']
+                                    except KeyError:
+                                        pass
+                                if 'Template' in outputs[label]:
+                                    template_key = outputs[label]['Template']
+                                    if template_key in new_json_info['Sources']:
+                                        # only if the pipeline config template key is entered as the 'Template' field
+                                        # otherwise, skip this and take in the literal 'Template' string
+                                        try:
+                                            new_json_info['Template'] = new_json_info['subjson'][template_key]['Description']
+                                        except KeyError:
+                                            pass
+                                    try:
+                                        new_json_info['Resolution'] = new_json_info['subjson'][template_key]['Resolution']
+                                    except KeyError:
+                                        pass
+                            else:
+                                # don't propagate old Description
+                                try:
+                                    del new_json_info['Description']
+                                except KeyError:
+                                    pass
+
+                            if 'Description' in new_json_info:
+                                new_json_info['Description'] = ' '.join(new_json_info['Description'].split())
+
+                            try:
+                                del new_json_info['subjson']
+                            except KeyError:
+                                pass
 
                             if strat_pool.check_rpool(label):
                                 # so we won't get extra forks if we are
@@ -1335,9 +1357,15 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
+
+    if type(data_paths['anat']) is str:
+        anat_T1=data_paths['anat']
+    elif 'T1w' in data_paths['anat']:
+        anat_T1=data_paths['anat']['T1w']
+
     anat_flow.inputs.inputnode.set(
         subject=part_id,
-        anat=data_paths['anat']['T1w'],
+        anat=anat_T1,
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'],
         img_type='anat'
@@ -1386,12 +1414,24 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
+    # Memoize largest (x * y * z * t) functional image size in workflow
+    # TODO: handle S3 files
+    # Skip S3 files for now
+    functional_scan_sizes = [get_data_size(
+        func_paths_dct[scan]['scan']
+    ) for scan in func_paths_dct.keys() if not
+        func_paths_dct[scan]['scan'].startswith('s3://')]
+    if functional_scan_sizes:
+        wf._largest_func = max(functional_scan_sizes)
+    del functional_scan_sizes
+
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
+    source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
@@ -1399,6 +1439,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                     out_dir = cfg.pipeline_setup['output_directory'][
                         'source_outputs_dir']
+                    source = True
                 else:
                     out_dir = cfg.pipeline_setup['output_directory']['path']
             else:
@@ -1407,28 +1448,40 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
                 out_dir = cfg.pipeline_setup['output_directory'][
                     'source_outputs_dir']
+                source = True
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
             out_dir = cfg.pipeline_setup['output_directory'][
                 'source_outputs_dir']
+            source = True
         else:
             out_dir = cfg.pipeline_setup['output_directory']['path']
 
-    if os.path.isdir(out_dir):
-        if not os.listdir(out_dir):
+    if not source:
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                print(f"\nOutput directory {out_dir} does not exist yet, "
+                      f"initializing.")
+                return rpool
+        else:
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
+            
+        cpac_dir = os.path.join(out_dir,
+                                f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+                                unique_id)
     else:
-        print(f"\nOutput directory {out_dir} does not exist yet, "
-              f"initializing.")
-        return rpool
+        if os.path.isdir(out_dir):
+            if not os.listdir(out_dir):
+                raise Exception(f"\nSource directory {out_dir} does not exist!")
+        
+        cpac_dir = os.path.join(out_dir,
+                                unique_id)
 
-    print(f"\nPulling outputs from {out_dir}.\n")
+    print(f"\nPulling outputs from {cpac_dir}.\n")
 
-    cpac_dir = os.path.join(out_dir,
-                            f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
-                            unique_id)
+
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
@@ -1479,6 +1532,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         #                    'session in this directory?\n\nDirectory: '
         #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
+        desc_val = None
         for tag in data_label.split('_'):
             if 'desc-' in tag:
                 desc_val = tag
@@ -1489,32 +1543,42 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         jsonpath = f"{jsonpath}.json"
 
         if not os.path.exists(jsonpath):
-            raise Exception('\n\n[!] No JSON found for file '
-                            f'{filepath}.\n\n')
-
-        json_info = read_json(jsonpath)
+            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+                  f'{jsonpath}..\n\n')
+            json_info = {
+                'Description': 'This data was generated elsewhere and '
+                               'supplied by the user into this C-PAC run\'s '
+                               'output directory. This JSON file was '
+                               'automatically generated by C-PAC because a '
+                               'JSON file was not supplied with the data.'
+            }
+            write_output_json(json_info, jsonpath)
+        else:        
+            json_info = read_json(jsonpath)
+            
         if 'CpacProvenance' in json_info:
-            # it's a C-PAC output, let's check for pipe_idx/strat integer
-            # suffixes in the desc- entries.
-            only_desc = str(desc_val)
+            if desc_val:
+                # it's a C-PAC output, let's check for pipe_idx/strat integer
+                # suffixes in the desc- entries.
+                only_desc = str(desc_val)
             
-            if only_desc[-1].isdigit():
-                for idx in range(0, 3):
-                    # let's stop at 3, please don't run >999 strategies okay?
-                    if only_desc[-1].isdigit():
-                        only_desc = only_desc[:-1]
+                if only_desc[-1].isdigit():
+                    for idx in range(0, 3):
+                        # let's stop at 3, please don't run >999 strategies okay?
+                        if only_desc[-1].isdigit():
+                            only_desc = only_desc[:-1]
             
-                if only_desc[-1] == '-':
-                    only_desc = only_desc.rstrip('-')
-                else:
-                    raise Exception('\n[!] Something went wrong with either '
-                                    'reading in the output directory or when '
-                                    'it was written out previously.\n\nGive '
-                                    'this to your friendly local C-PAC '
-                                    f'developer:\n\n{unique_data_label}\n')
+                    if only_desc[-1] == '-':
+                        only_desc = only_desc.rstrip('-')
+                    else:
+                        raise Exception('\n[!] Something went wrong with either '
+                                        'reading in the output directory or when '
+                                        'it was written out previously.\n\nGive '
+                                        'this to your friendly local C-PAC '
+                                        f'developer:\n\n{unique_data_label}\n')
 
-                # remove the integer at the end of the desc-* variant, we will get
-                # the unique pipe_idx from the CpacProvenance below
+                # remove the integer at the end of the desc-* variant, we will 
+                # get the unique pipe_idx from the CpacProvenance below
                 data_label = data_label.replace(desc_val, only_desc)
 
             # preserve cpac provenance/pipe_idx
@@ -1541,161 +1605,89 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
 def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
-    # TODO: pull this from some external list instead
-    # TODO: nah, even better: just loop through the config for .nii's
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    templates_for_resampling = [
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_brain_template'], 'T1w_brain_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_template'], 'T1w_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric'], 'T1w_brain_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_brain_template_symmetric_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric'], 'T1w_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_template_symmetric_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'ref_resolution'),
-        (cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['FNIRT_T1w_brain_template'], 'FNIRT_T1w_brain_template', 'ref_resolution'),
-        (cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['FNIRT_T1w_template'], 'FNIRT_T1w_template', 'ref_resolution'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'func_preproc_outputs'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_deriv', 'func_derivative_outputs'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs')
-    ]
+    import pkg_resources as p
+    import pandas as pd
+    import ast
 
-    if cfg.PyPEER['run']:
-        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'func_preproc_outputs'))
-        #Outputs.any.append("template_eye_mask")
-
-    # update resampled template to resource pool
-    for resolution, template, template_name, tag in templates_for_resampling:
-
-        if not template:
-            continue
-
-        if '$FSLDIR' in template:
-            template = template.replace('$FSLDIR', cfg.pipeline_setup[
-                'system_config']['FSLDIR'])
-        #if '${resolution_for_anat}' in template:
-        #    template = template.replace('${resolution_for_anat}',
-        #                                cfg.registration_workflows[
-        #                                    'anatomical_registration'][
-        #                                    'resolution_for_anat'])
-        if '${func_resolution}' in template:
-            template = template.replace('func_resolution', tag)
-
-        resampled_template = pe.Node(Function(input_names=['resolution',
-                                                           'template',
-                                                           'template_name',
-                                                           'tag'],
-                                              output_names=['resampled_template'],
-                                              function=resolve_resolution,
-                                              as_module=True),
-                                     name='resampled_' + template_name)
-
-        resampled_template.inputs.resolution = resolution
-        resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name
-        resampled_template.inputs.tag = tag
-
-        # the set_data below is set up a little differently, because we are
-        # injecting and also over-writing already-existing entries
-        #   other alternative would have been to ingress into the
-        #   resampled_template node from the already existing entries, but we
-        #   didn't do that here
-        rpool.set_data(template_name,
-                       resampled_template,
-                       'resampled_template',
-                       #{'CpacProvenance': [f'{template_name}:{template_name}_config_ingress']},
-                       #f"['{template_name}:{template_name}_config_ingress']",
-                       {}, "",
-                       "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
-
-    config_resource_paths = [
-        ('CSF_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['CSF_path']),
-        ('WM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['WM_path']),
-        ('GM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['GM_path']),
-        ('T1w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_ACPC_template']),
-        ('T1w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_brain_ACPC_template']),
-        ('T2w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T2w_ACPC_template']),
-        ('T2w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T2w_brain_ACPC_template']),
-        ('unet_model', cfg.anatomical_preproc['brain_extraction']['UNet']['unet_model']),
-        ('T1w_brain_template', cfg.registration_workflows['anatomical_registration']['T1w_brain_template']),
-        ('T1w_template', cfg.registration_workflows['anatomical_registration']['T1w_template']),
-        ('T1w_brain_template_mask', cfg.registration_workflows['anatomical_registration']['T1w_brain_template_mask']),
-        ('T1w_brain_template_symmetric', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric']),
-        ('T1w_template_symmetric', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric']),
-        ('dilated_symmetric_brain_mask', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask']),
-        ('T1w_brain_template_symmetric_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric_for_resample']),
-        ('T1w_template_symmetric_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric_for_resample']),
-        ('dilated_symmetric_brain_mask_for_resample', cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask_for_resample']),
-        ('ref_mask', cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask']),
-        ('FNIRT_T1w_brain_template', cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['FNIRT_T1w_brain_template']),
-        ('FNIRT_T1w_template', cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['FNIRT_T1w_template']),
-        ('T1w_template_for_resample', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_for_resample']),
-        ('EPI_template_for_resample', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_for_resample']),
-        ('T1w_brain_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_brain_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('T1w_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('T1w_brain_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
-        ('T1w_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
-        ('EPI_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']),
-        ('EPI_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']),
-        ('EPI_template', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template']),
-        ('EPI_template_mask', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template_mask']),
-        ('lateral_ventricles_mask', cfg.nuisance_corrections['2-nuisance_regression']['lateral_ventricles_mask']),
-        ('template_specification_file', cfg.network_centrality['template_specification_file'])
-    ]
-
-    if cfg.PyPEER['run']:
-        config_resource_paths.append(
-            ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
-
-    for resource in config_resource_paths:
-        key = resource[0]
-        val = resource[1]
-
-        if rpool.check_rpool(key):
-            continue
+    template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
+    template_df = pd.read_csv(template_csv, keep_default_na=False)
+    
+    for row in template_df.itertuples():
+    
+        key = row.Key
+        val = row.Pipeline_Config_Entry
+        val = cfg.get_nested(cfg, [x.lstrip() for x in val.split(',')])
+        resolution = row.Intended_Resolution_Config_Entry
+        desc = row.Description
 
         if not val:
             continue
+            
+        if resolution:
+            res_keys = [x.lstrip() for x in resolution.split(',')]
+            tag = res_keys[-1]
+    
+        json_info = {} 
 
         if '$FSLDIR' in val:
-            val = val.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
+            val = val.replace('$FSLDIR', cfg.pipeline_setup[
+                'system_config']['FSLDIR'])
         if '$priors_path' in val:
             priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
         if '${resolution_for_anat}' in val:
-            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
+            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])               
         if '${func_resolution}' in val:
-            # functional registration
-            if 'funcreg' in key:
-                out_res = 'func_preproc_outputs'
-            # functional derivatives
-            else:
-                out_res = 'func_derivative_outputs'
-            val = val.replace('${func_resolution}', cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution'][out_res])
+            val = val.replace('func_resolution', tag)
 
-        if val:
-            config_ingress = create_general_datasource(f'gather_{key}')
-            config_ingress.inputs.inputnode.set(
-                unique_id=unique_id,
-                data=val,
-                creds_path=creds_path,
-                dl_dir=cfg.pipeline_setup['working_directory']['path']
-            )
-            rpool.set_data(key, config_ingress, 'outputspec.data', {}, "",
-                           f"{key}_config_ingress")
+        if desc:
+            json_info['Description'] = f"{desc} - {val}"     
 
+        if resolution:
+            resolution = cfg.get_nested(cfg, res_keys)
+            json_info['Resolution'] = resolution
+
+            resampled_template = pe.Node(Function(input_names=['resolution',
+                                                               'template',
+                                                               'template_name',
+                                                               'tag'],
+                                                  output_names=['resampled_template'],
+                                                  function=resolve_resolution,
+                                                  as_module=True),
+                                         name='resampled_' + key)
+
+            resampled_template.inputs.resolution = resolution
+            resampled_template.inputs.template = val
+            resampled_template.inputs.template_name = key
+            resampled_template.inputs.tag = tag
+            
+            # the set_data below is set up a little differently, because we are
+            # injecting and also over-writing already-existing entries
+            #   other alternative would have been to ingress into the
+            #   resampled_template node from the already existing entries, but we
+            #   didn't do that here
+            rpool.set_data(key,
+                           resampled_template,
+                           'resampled_template',
+                           json_info, "",
+                           "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+
+        else:
+            if val:
+                config_ingress = create_general_datasource(f'gather_{key}')
+                config_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=val,
+                    creds_path=creds_path,
+                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+                )
+                rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
+                               "", f"{key}_config_ingress")
+            
     # templates, resampling from config
     '''
     template_keys = [

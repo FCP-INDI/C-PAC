@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -158,6 +158,9 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   run_freesurfer: Off
 
+  # Add extra arguments to recon-all command
+  reconall_args: None
+
 
 longitudinal_template_generation:
 
@@ -198,11 +201,25 @@ anatomical_preproc:
 
   run: On
 
+  run_t2: Off
+
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: False
+  non_local_means_filtering: 
+
+    # this is a fork option
+    run: [Off]
+
+    # options: 'Gaussian' or 'Rician'
+    noise_model: 'Gaussian'
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: False
+  n4_bias_field_correction:
+
+    # this is a fork option
+    run: [Off]
+
+    # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
+    shrink_factor: 2
 
   # Bias field correction based on square root of T1w * T2w
   t1t2_bias_field_correction: 
@@ -235,13 +252,16 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+
     T1w_brain_ACPC_template: None
     T2w_ACPC_template: None
     T2w_brain_ACPC_template: None
 
   brain_extraction:
+  
+    run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
     # this is a fork option
     using: ['3dSkullStrip']
 
@@ -371,6 +391,11 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+    FreeSurfer-BET:
+
+      # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
+      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+
 
 segmentation:
 
@@ -380,7 +405,7 @@ segmentation:
 
   tissue_segmentation:
 
-    # using: ['FSL-FAST', 'Template_Based', 'FreeSurfer', 'ANTs_Prior_Based']
+    # using: ['FSL-FAST', 'Template_Based', 'ANTs_Prior_Based', 'FreeSurfer']
     # this is a fork point
     using: ['FSL-FAST']
 
@@ -477,20 +502,28 @@ segmentation:
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
       # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
 
-      # Label value corresponding to CSF in multiatlas file
-      CSF_label : 24
+      # Label values corresponding to CSF in multiatlas file
+      CSF_label : [24]
 
-      # Label value corresponding to Left Gray Matter in multiatlas file
-      left_GM_label : 3
+      # Label values corresponding to Gray Matter in multiatlas file
+      GM_label : [3, 42]
 
-      # Label value corresponding to Right Gray Matter in multiatlas file
-      right_GM_label : 42
+      # Label values corresponding to White Matter in multiatlas file
+      WM_label : [2, 41]
 
-      # Label value corresponding to Left White Matter in multiatlas file
-      left_WM_label : 2
+    FreeSurfer:
 
-      # Label value corresponding to Right White Matter in multiatlas file
-      right_WM_label : 41
+      # Use mri_binarize --erode option to erode segmentation masks
+      erode: 0
+
+      # Label values corresponding to CSF in FreeSurfer aseg segmentation file
+      CSF_label : [24]
+
+      # Label values corresponding to Gray Matter in FreeSurfer aseg segmentation file
+      GM_label : [3, 42]
+
+      # Label values corresponding to White Matter in FreeSurfer aseg segmentation file
+      WM_label : [2, 41]
 
 
 registration_workflows:
@@ -626,12 +659,32 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
+        # Reference mask for FSL registration.
+        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+
+        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
+
+    apply_transform:
+
+      # Choose the tool to apply transform regardless of which tool to calculate transform
+      # 'default' will use the same tool as registration
+      # using: 'default', 'ANTS', 'FSL'
+      using: default
+
   functional_registration:
 
     coregistration:
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
 
       run: On
+
+      # reference: 'brain' or 'restore-brain'
+      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
+      reference: brain
 
       # Choose FSL or ABCD as coregistration method
       using: FSL
@@ -652,6 +705,9 @@ registration_workflows:
       arguments: None
 
       func_input_prep:
+
+        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
+        reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume']
@@ -677,6 +733,10 @@ registration_workflows:
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: whole-head
 
     EPI_registration:
 
@@ -782,7 +842,12 @@ registration_workflows:
 
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
+      
+      # apply the functional-to-template (T1 template) registration transform to the functional data
       run: On
+      
+      # apply the functional-to-template (EPI template) registration transform to the functional data
+      run_EPI: Off
 
       output_resolution:
 
@@ -801,8 +866,8 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 3mm
 
-      target_template:
-
+      target_template:      
+        # choose which template space to transform derivatives towards
         # using: ['T1_template', 'EPI_template', 'DCAN_NHP']
         # this is a fork point
         # NOTE:
@@ -810,7 +875,6 @@ registration_workflows:
         #   outputs and derivatives to template space
         using: ['T1_template']
 
-        # option parameters
         T1_template:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
@@ -856,6 +920,14 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
+      apply_transform:
+
+        # options: 'default', 'abcd', 'single_step_resampling'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        using: 'default'
+
 
 functional_preproc:
 
@@ -897,10 +969,22 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+    # use specified slice time pattern rather than one in header
+    tpattern: None
+
+    # align each slice to given time offset
+    # The default alignment time is the average of the 'tpattern' values (either from the dataset header or from the tpattern option).
+    tzero: None
+
   motion_estimates_and_correction:
 
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: Off
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: Off
+
+      # calculate motion statistics AFTER motion correction
+      calculate_motion_after: On
 
     motion_correction:
 
@@ -1011,7 +1095,7 @@ functional_preproc:
 
   func_masking:
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # this is a fork point
     using: ['AFNI']
 
@@ -1063,6 +1147,19 @@ functional_preproc:
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: False
 
+    # Apply functional mask in native space
+    apply_func_mask_in_native_space: On
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: On
+
 
 nuisance_corrections:
 
@@ -1082,6 +1179,9 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
+    
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: On
 
     # Select which nuisance signal corrections to apply
     Regressors:
