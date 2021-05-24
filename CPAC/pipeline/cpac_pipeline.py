@@ -11,7 +11,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.plugins import MultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -271,8 +271,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
 
-    if not plugin:
-        plugin = LegacyMultiProcPlugin(plugin_args)
+    if not plugin or plugin == 'MultiProc':
+        plugin = MultiProcPlugin(plugin_args)
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
