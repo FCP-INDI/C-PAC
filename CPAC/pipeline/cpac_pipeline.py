@@ -88,7 +88,8 @@ from CPAC.registration.registration import (
     warp_bold_mask_to_EPItemplate,
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
-    single_step_resample_timeseries_to_T1template
+    single_step_resample_timeseries_to_T1template,
+    warp_timeseries_to_T1template_dcan_nhp
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -1118,7 +1119,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # anatomical template (the BOLD-to- EPI template is already created above)
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
-    ] and 'T1_template' in cfg.registration_workflows[
+    ] and 'T1_template' or "DCAN_NHP" in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
             'target_template']['using'] and cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
@@ -1175,8 +1176,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_T1template_abcd,
+                             warp_timeseries_to_T1template_dcan_nhp,
                              single_step_resample_timeseries_to_T1template],
-                            warp_bold_mean_to_T1template]
+                            warp_bold_mean_to_T1template
+                            warp_bold_mean_to_EPItemplate]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,

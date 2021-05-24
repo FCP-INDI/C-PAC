@@ -216,7 +216,8 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     outputnode = pe.Node(util.IdentityInterface(fields=['T1w_biascorrected',
                                                        'T1w_brain_biascorrected',
                                                        'T2w_biascorrected',
-                                                       'T2w_brain_biascorrected']),
+                                                       'T2w_brain_biascorrected',
+                                                        'biasfield']),
                           name='outputspec')
 
     # 1. Form sqrt(T1w*T2w), mask this and normalise by the mean
@@ -398,6 +399,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(OutputT1wRestoredBrainImage, 'out_file', outputnode, 'T1w_brain_biascorrected')
     preproc.connect(OutputT2wRestoredImage, 'out_file', outputnode, 'T2w_biascorrected')
     preproc.connect(OutputT2wRestoredBrainImage, 'out_file', outputnode, 'T2w_brain_biascorrected')
+    preproc.connect(OutputBiasField, 'out_file', outputnode, 'biasfield')
 
     return preproc
 
@@ -1531,7 +1533,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 ["desc-acpcbrain_T1w"]],
-     "outputs": ["desc-preproc_T1w", "desc-correctedbrain_T1w", "desc-preproc_T2w", "desc-correctedbrain_T2w"]}
+     "outputs": ["desc-preproc_T1w", "desc-brain_T1w", "desc-preproc_T2w", "desc-brain_T2w", "desc-biasfield_T1wT2w"]}
     '''
 
     t1t2_bias_correction = BiasFieldCorrection_sqrtT1wXT1w(config=cfg, wf_name=f't1t2_bias_correction_{pipe_num}')
@@ -1549,9 +1551,10 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (t1t2_bias_correction, 'outputspec.T1w_biascorrected'),
-        'desc-correctedbrain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
+        'desc-brain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
         'desc-preproc_T2w': (t1t2_bias_correction, 'outputspec.T2w_biascorrected'),
-        'desc-correctedbrain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-brain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-biasfield_T1wT2w': (t1t2_bias_correction, 'outputspec.biasfield'),
     }
 
     return (wf, outputs)
