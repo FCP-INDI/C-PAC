@@ -16,6 +16,7 @@ from traits.trait_handlers import TraitListObject
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
+UNDEFINED_SIZE = int(1e8)
 
 
 def _doctest_skiplines(docstring, lines_to_skip):
@@ -251,7 +252,7 @@ class Workflow(pe.Workflow):
                                     else:
                                         # TODO: handle S3 files
                                         # 1e8 is a small estimate
-                                        node._apply_mem_x(1e8)
+                                        node._apply_mem_x(UNDEFINED_SIZE)
 
 
 def get_data_size(filepath):
