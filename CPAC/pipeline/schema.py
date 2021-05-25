@@ -22,7 +22,7 @@ valid_options = {
     },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
-                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
+                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose',
                   'FreeSurfer-ABCD']
     },
     'centrality': {
@@ -241,7 +241,8 @@ schema = Schema({
             },),
         ),
         'acpc_alignment': Required(
-            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template'
+            # if 'acpc_target' is 'brain'
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
@@ -273,7 +274,8 @@ schema = Schema({
                 'T2w_ACPC_template': Maybe(str),
                 'T2w_brain_ACPC_template': Maybe(str),
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and '
+                '\'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
@@ -363,7 +365,7 @@ schema = Schema({
                 'erode': int,
                 'CSF_label': [int],
                 'GM_label': [int],
-                'WM_label': [int],                
+                'WM_label': [int],
             },
             'ANTs_Prior_Based': {
                 'run': forkable,
@@ -411,7 +413,6 @@ schema = Schema({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
-                    'ref_mask': Maybe(str),
                     'ref_mask_res-2': str,
                     'T1w_template_res-2': str
                 },
@@ -616,7 +617,8 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+                 'Anatomical_Based', 'Anatomical_Resampled',
+                 'CCS_Anatomical_Refined']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-
@@ -757,6 +759,7 @@ schema = Schema({
     },
     'timeseries_extraction': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'tse_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([
@@ -774,6 +777,7 @@ schema = Schema({
 
     'seed_based_correlation_analysis': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'sca_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([

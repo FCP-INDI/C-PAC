@@ -146,7 +146,7 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
         out_filename = f'{unique_id}_task-{scan_id}_{resource}'
     else:
         out_filename = f'{unique_id}_{resource}'
-        
+
     if fwhm:
         for tag in resource.split('_'):
             if 'desc-' in tag and '-sm' in tag:
@@ -1802,7 +1802,7 @@ def replace_in_strings(d, replacements=[
 
 
 def set_nested_value(d, keys, value):
-    '''Helper method to look up nested values
+    '''Helper method to set nested values
 
     Paramters
     ---------
@@ -1829,9 +1829,11 @@ def set_nested_value(d, keys, value):
         return d
     if not len(keys):
         return d
-    return update_nested_dict(d, {
+    new_d = {
         keys[0]: set_nested_value(d.get(keys[0], {}), keys[1:], value)
-    })
+    }
+    d = update_nested_dict(d, new_d)
+    return d
 
 
 def update_config_dict(old_dict):
@@ -2128,7 +2130,7 @@ def update_config_dict(old_dict):
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
-def update_nested_dict(d_base, d_update):
+def update_nested_dict(d_base, d_update, fully_specified=False):
     """Update dictionary of varying depth.
 
     Parameters
@@ -2138,6 +2140,9 @@ def update_nested_dict(d_base, d_update):
 
     d_update : dict
         dictionary with updates
+
+    fully_specified : bool
+        if True, overwrite instead of update
 
     Returns
     -------
@@ -2163,13 +2168,77 @@ def update_nested_dict(d_base, d_update):
     >>> d_update = {'pipeline_name': 'cpac_fmriprep-options',
     ...     'system_config': {'num_ants_threads': 1},
     ...     'Amazon-AWS': {'s3_encryption': True}}
-    >>> update_nested_dict(d_base, d_update)
-    {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}}
+    >>> str(update_nested_dict(d_base, d_update)) == str({
+    ...     'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {
+    ...         'path': '/output', 'write_func_outputs': False,
+    ...         'write_debugging_outputs': False, 'output_tree': 'default',
+    ...         'generate_quality_control_images': True
+    ...     }, 'working_directory': {
+    ...        'path': '/tmp', 'remove_working_dir': True
+    ...     }, 'log_directory': {'run_logging': True, 'path': '/logs'},
+    ...     'system_config': {
+    ...     'maximum_memory_per_participant': 1,
+    ...     'max_cores_per_participant': 1,
+    ...     'num_ants_threads': 1, 'num_participants_at_once': 1
+    ... }, 'Amazon-AWS': {
+    ...     'aws_output_bucket_credentials': None, 's3_encryption': True}})
+    True
+    >>> tse_base = {'timeseries_extraction': {'run': True, 'tse_roi_paths': {
+    ...     '/cpac_templates/CC400.nii.gz': 'Avg',
+    ...     '/cpac_templates/aal_mask_pad.nii.gz': 'Avg'
+    ... }, 'realignment': 'ROI_to_func'}}
+    >>> str(update_nested_dict(tse_base, {})) == str({
+    ...     'timeseries_extraction': {'run': True, 'tse_roi_paths': {
+    ...         '/cpac_templates/CC400.nii.gz': 'Avg',
+    ...         '/cpac_templates/aal_mask_pad.nii.gz': 'Avg'
+    ... }, 'realignment': 'ROI_to_func'}})
+    True
+    >>> str(update_nested_dict(tse_base, {'timeseries_extraction': {
+    ...     'tse_roi_paths': {'/cpac_templates/rois_3mm.nii.gz': 'Voxel'}
+    ... }})) == str({'timeseries_extraction': {'run': True, 'tse_roi_paths': {
+    ...     '/cpac_templates/rois_3mm.nii.gz': 'Voxel'
+    ... }, 'realignment': 'ROI_to_func'}})
+    True
+    >>> str(update_nested_dict(tse_base, {'timeseries_extraction': {
+    ...     'roi_paths_fully_specified': False,
+    ...     'tse_roi_paths': {'/cpac_templates/rois_3mm.nii.gz': 'Voxel'}
+    ... }})) == str({'timeseries_extraction': {'run': True, 'tse_roi_paths': {
+    ...     '/cpac_templates/CC400.nii.gz': 'Avg',
+    ...     '/cpac_templates/aal_mask_pad.nii.gz': 'Avg',
+    ...     '/cpac_templates/rois_3mm.nii.gz': 'Voxel'
+    ... }, 'realignment': 'ROI_to_func'}})
+    True
+    >>> str(update_nested_dict(tse_base, {'timeseries_extraction': {
+    ...     'roi_paths_fully_specified': False,
+    ...     'tse_roi_paths': {'/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'}
+    ... }})) == str({'timeseries_extraction': {'run': True,
+    ...     'tse_roi_paths': {
+    ...         '/cpac_templates/CC400.nii.gz': 'Avg',
+    ...         '/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'
+    ... }, 'realignment': 'ROI_to_func'}})
+    True
+    >>> str(update_nested_dict(tse_base, {'timeseries_extraction': {
+    ...     'tse_roi_paths': {'/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'}
+    ... }})) == str({'timeseries_extraction': {'run': True, 'tse_roi_paths': {
+    ...     '/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'
+    ... }, 'realignment': 'ROI_to_func'}})
+    True
     """  # noqa
+
+    # short-circuit if d_update has `*_roi_paths` and
+    # `roi_paths_fully_specified` children
+    if fully_specified:
+        return d_update
+    if any([k.endswith('_roi_paths') for k in d_update.keys()]):
+        fully_specified = d_update.pop('roi_paths_fully_specified', True)
+    else:
+        fully_specified = False
     d_new = {} if d_base is None else deepcopy(d_base)
+
     for k, v in d_update.items():
         if isinstance(v, collections.abc.Mapping):
-            d_new[k] = update_nested_dict(d_new.get(k, {}), v)
+            d_new[k] = update_nested_dict(
+                d_new.get(k, {}), v, fully_specified)
         else:
             d_new[k] = v
     return d_new
@@ -2229,17 +2298,17 @@ def update_pipeline_values_1_8(d_old):
                 'tissue_segmentation'
             ]['using'].append('FSL-FAST')
         else:
-            set_nested_value(d, [
+            d = set_nested_value(d, [
                 'segmentation', 'tissue_segmentation',
                 'using'], ['FSL-FAST'])
         seg_use_threshold.remove('FSL-FAST Thresholding')
     if 'Customized Thresholding' in seg_use_threshold:
-        set_nested_value(d, [
+        seg_use_threshold.remove('Customized Thresholding')
+        d = set_nested_value(d, [
             'segmentation', 'tissue_segmentation',
             'FSL-FAST', 'thresholding', 'use'], 'Custom')
-        seg_use_threshold.remove('Customized Thresholding')
     else:
-        set_nested_value(d, [
+        d = set_nested_value(d, [
             'segmentation', 'tissue_segmentation',
             'FSL-FAST', 'thresholding', 'use'], 'Auto')
 
@@ -2255,7 +2324,7 @@ def update_pipeline_values_1_8(d_old):
                             'weight_options'][i]
                 while False in centr_value:
                     centr_value.remove(False)
-                set_nested_value(d, centr_keys, centr_value)
+                d = set_nested_value(d, centr_keys, centr_value)
         except KeyError:
             continue
 
@@ -2290,7 +2359,7 @@ def update_pipeline_values_1_8(d_old):
     ):
         if '1-coregistration' in d['functional_registration']:
             coreg = d['functional_registration'].pop('1-coregistration')
-            set_nested_value(
+            d = set_nested_value(
                 d, ['registration_workflows', 'functional_registration',
                     'coregistration'],
                 coreg
@@ -2324,9 +2393,10 @@ def update_values_from_list(d_old, last_exception=None):
     >>> update_values_from_list({'pipeline_setup': {
     ...     'pipeline_name': ['one_string']}})
     {'pipeline_setup': {'pipeline_name': 'one_string'}}
-    >>> update_values_from_list({'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}})
+    >>> update_values_from_list({'nuisance_corrections': {
+    ...     '1-ICA-AROMA': {'run': [False]}}})
     {'nuisance_corrections': {'1-ICA-AROMA': {'run': [False]}}}
-    '''  # noqa
+    '''
     from CPAC.pipeline.schema import schema
 
     d = d_old.copy()
