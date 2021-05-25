@@ -7,10 +7,12 @@ from nipype.pipeline import engine as pe
 # import everything in nipype.pipeline.engine.__all__
 from nipype.pipeline.engine import *  # noqa F401
 # import our DEFAULT_MEM_GB and override Node, MapNode
-from .engine import DEFAULT_MEM_GB, get_data_size, Node, MapNode, Workflow
+from .engine import DEFAULT_MEM_GB, get_data_size, Node, MapNode, \
+                    UNDEFINED_SIZE, Workflow
 
 __all__ = [
     interface for interface in dir(pe) if not interface.startswith('_')
-] + ['DEFAULT_MEM_GB', 'get_data_size', 'Node', 'MapNode', 'Workflow']
+] + ['DEFAULT_MEM_GB', 'get_data_size', 'Node', 'MapNode', 'UNDEFINED_SIZE',
+     'Workflow']
 
 del pe
