@@ -1740,7 +1740,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "Anatomical_Resampled",
-     "inputs": ["T1w_template_funcreg",
+     "inputs": ["T1w-template-funcreg",
                 "space-template_desc-brain_T1w",
                 "space-template_desc-T1w_mask"],
      "outputs": ["space-template_res-bold_desc-brain_T1w",
@@ -1758,7 +1758,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-template_desc-brain_T1w')
     wf.connect(node, out, anat_brain_to_func_res, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_template_funcreg')
+    node, out = strat_pool.get_data('T1w-template-funcreg')
     wf.connect(node, out, anat_brain_to_func_res, 'ref_file')
 
     # Create brain masks in this space from the FreeSurfer output (changing resolution)
