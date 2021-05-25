@@ -816,7 +816,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(native_brain_to_template_brain, 'out_matrix_file',
                native_head_to_template_head, 'in_matrix_file')
 
-    node, out = strat_pool.get_data('T1w_template')
+    node, out = strat_pool.get_data('T1w-template')
     wf.connect(node, out, native_head_to_template_head, 'reference')
 
     # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
@@ -1682,7 +1682,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1701,7 +1701,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
@@ -2333,7 +2333,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
@@ -2352,7 +2352,7 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
@@ -2690,7 +2690,7 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
-                                                       'ref_mask_res-2',
+                                                       'template-ref-mask-res-2',
                                                        'template_skull_for_anat',
                                                        'template_skull_for_anat_2mm',
                                                        'template_brain_mask_for_anat']), 
@@ -2743,7 +2743,7 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     preproc.connect(linear_reg, 'out_matrix_file',
                     non_linear_reg, 'affine_file')
 
-    preproc.connect(inputnode, 'ref_mask_res-2',
+    preproc.connect(inputnode, 'template-ref-mask-res-2',
                     non_linear_reg, 'refmask_file')
 
     # Overwrite the image output from FNIRT with a spline interpolated highres version
@@ -2894,10 +2894,10 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "FreeSurfer-ABCD",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "T1w_template",
-                 "T1w_brain_template_mask",
-                 "ref_mask_res-2",
-                 "T1w_template_res-2"],
+                 "T1w-template",
+                 "T1w-brain-template-mask",
+                 "template-ref-mask-res-2",
+                 "T1w-template-res-2"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
@@ -2912,16 +2912,16 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, brain_extraction, 'inputspec.anat_data')
 
-    node, out = strat_pool.get_data('ref_mask_res-2')
-    wf.connect(node, out, brain_extraction, 'inputspec.ref_mask_res-2')
+    node, out = strat_pool.get_data('template-ref-mask-res-2')
+    wf.connect(node, out, brain_extraction, 'inputspec.template-ref-mask-res-2')
 
-    node, out = strat_pool.get_data('T1w_template')
+    node, out = strat_pool.get_data('T1w-template')
     wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat')
 
-    node, out = strat_pool.get_data('T1w_template_res-2')
+    node, out = strat_pool.get_data('T1w-template-res-2')
     wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat_2mm')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask')
+    node, out = strat_pool.get_data('T1w-brain-template-mask')
     wf.connect(node, out, brain_extraction, 'inputspec.template_brain_mask_for_anat')
 
     # fast bias field correction

@@ -3728,11 +3728,12 @@ def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_bold_mean_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["target_template", "using"],
-     "option_val": ["T1_template", "DCAN_NHP"], 
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["functional_preproc", "generate_func_mean", "run"]],
+     "option_key": "None",
+     "option_val": "None",
      "inputs": [("desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-funcreg"],
