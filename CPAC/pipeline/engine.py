@@ -622,7 +622,7 @@ class ResourcePool(object):
                 wf.connect(connection[0], connection[1],
                            xfm, 'inputspec.in_file')
 
-                node, out = self.get_data("T1w_brain_template_deriv",
+                node, out = self.get_data("T1w-brain-template-deriv",
                                           quick_single=True)
                 wf.connect(node, out, xfm, 'inputspec.reference')
 

@@ -1760,7 +1760,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm",
                  "from-template_to-bold_mode-image_xfm"),
-                "T1w_brain_template_funcreg"],
+                "T1w-brain-template-funcreg"],
      "outputs": ["desc-preproc_bold",
                  "desc-cleaned_bold"]}
     '''
@@ -1876,7 +1876,7 @@ def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-mean_bold",
                  "from-bold_to-EPItemplate_mode-image_xfm",
                  "from-EPItemplate_to-bold_mode-image_xfm"),
-                "EPI_template"],
+                "EPI-template"],
      "outputs": ["desc-preproc_bold",
                  "desc-cleaned_bold"]}
     '''
