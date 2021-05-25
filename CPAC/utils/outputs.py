@@ -40,12 +40,18 @@ class Outputs():
     _bold_native_filter = reference['Space'] == 'functional'
     _long_native_filter = reference['Space'] == 'longitudinal T1w'
     _nonsmoothed_filter = reference['To Smooth'] == 'Yes'
+    _zstd_filter = reference['To z-std'] == 'Yes'
+    _corr_filter = reference['Type'] == 'correlation'
     
     all_template_filter = _template_filter | _epitemplate_filter | _symtemplate_filter
     all_native_filter = _T1w_native_filter | _bold_native_filter | _long_native_filter
 
     native_nonsmooth = list(reference[all_native_filter & _nonsmoothed_filter]['Resource'])
     template_nonsmooth = list(reference[all_template_filter & _nonsmoothed_filter]['Resource'])
+
+    to_smooth = list(reference[_nonsmoothed_filter]['Resource'])
+    to_zstd = list(reference[_zstd_filter & ~_corr_filter]['Resource'])
+    to_fisherz = list(reference[_zstd_filter & _corr_filter]['Resource'])
 
     # don't write these, unless the user selects to write native-space outputs
     native_smooth = list(reference[~all_template_filter & ~_nonsmoothed_filter]['Resource'])
