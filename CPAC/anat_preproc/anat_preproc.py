@@ -1060,7 +1060,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(reorient_fs_T1, 'out_file',
         convert_head_to_template, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, convert_head_to_template, 'reference')
 
     # convert_xfm -omat tmp_standard2head_fs.mat -inverse tmp_head_fs2standard.mat
@@ -1092,7 +1092,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(skullstrip, 'out_file',
         apply_mask, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask_ccs')
+    node, out = strat_pool.get_data('T1w-brain-template-mask-ccs')
     wf.connect(node, out, apply_mask, 'mask_file')
 
     # flirt -in tmp_mask.nii.gz -applyxfm -init tmp_standard2head_fs.mat -out brain_fsl_mask_tight.nii.gz \
@@ -1266,7 +1266,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_ACPC_template"],
+                "T1w-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
@@ -1281,7 +1281,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1302,7 +1302,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "space-T1w_desc-brain_mask"),
-                "T1w_ACPC_template"],
+                "T1w-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
@@ -1318,7 +1318,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1341,7 +1341,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w",
-                 "T1w_ACPC_template",
+                 "T1w-ACPC-template",
                  "T1w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T1w",
                  "desc-acpcbrain_T1w"
@@ -1361,7 +1361,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-tempbrain_T1w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') 
+    node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     node, out = strat_pool.get_data('T1w_brain_ACPC_template')
@@ -1386,7 +1386,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w", "space-T1w_desc-brain_mask"),
-                 "T1w_ACPC_template",
+                 "T1w-ACPC-template",
                  "T1w_brain_ACPC_template"],
      "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w",
                  "space-T1w_desc-brain_mask", "space-T1w_desc-prebrain_mask"]}
@@ -1408,7 +1408,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') 
+    node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     node, out = strat_pool.get_data('T1w_brain_ACPC_template')
@@ -1786,8 +1786,8 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_brain_mask"]}
     '''
 
@@ -1828,8 +1828,8 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_brain_mask"]}
     '''
 
@@ -1847,8 +1847,8 @@ def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Tight",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_acpcbrain_mask"]}
     '''
 
@@ -1869,8 +1869,8 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
     '''
 
