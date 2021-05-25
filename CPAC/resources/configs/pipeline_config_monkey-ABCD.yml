@@ -80,11 +80,23 @@ pipeline_setup:
 
 anatomical_preproc: 
 
+  run: On
+
+  run_t2: On
+
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: False
+  non_local_means_filtering: 
+
+    # this is a fork option
+    run: [Off]
+
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: False
+  n4_bias_field_correction:
+
+    # this is a fork option
+    run: [Off]
+
 
   # Bias field correction based on square root of T1w * T2w
   t1t2_bias_field_correction: 
@@ -393,6 +405,14 @@ functional_preproc:
 
   motion_estimates_and_correction:
 
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: Off
+
+      # calculate motion statistics AFTER motion correction
+      calculate_motion_after: On
+
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
@@ -434,43 +454,8 @@ nuisance_corrections:
     run: [Off]
 
     # Select which nuisance signal corrections to apply
-    Regressors: 
-      - Bandpass:
-          bottom_frequency: 0.01
-          top_frequency: 0.1
-        CerebrospinalFluid:
-          summary:
-            components: 5
-            method: PC
-        GlobalSignal:
-          summary: Mean
-        Motion:
-          include_delayed: On
-          include_delayed_squared: On
-          include_squared: On
-        Name: Regressor-1
-        PolyOrt:
-          degree: 2
-        WhiteMatter:
-          summary:
-            components: 5
-            method: PC
-      - CerebrospinalFluid:
-          summary:
-            components: 5
-            method: PC
-        GlobalSignal:
-          summary: Mean
-        Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
-        PolyOrt:
-          degree: 2
-        WhiteMatter:
-          summary:
-            components: 5
-            method: PC
+    Regressors: None
+
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: 
