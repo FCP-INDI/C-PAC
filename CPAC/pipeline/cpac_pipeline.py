@@ -1178,7 +1178,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                              warp_timeseries_to_T1template_abcd,
                              warp_timeseries_to_T1template_dcan_nhp,
                              single_step_resample_timeseries_to_T1template],
-                            warp_bold_mean_to_T1template
+                            warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):

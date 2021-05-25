@@ -76,12 +76,6 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
-
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
-
   brain_extraction: 
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
