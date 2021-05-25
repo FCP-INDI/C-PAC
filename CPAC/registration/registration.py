@@ -2783,13 +2783,13 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
-    if cfg.registration_workflows['functional_registration'][
-        'coregistration']['reference'] == 'brain':
-        node, out = strat_pool.get_data('desc-brain_T1w')
-    elif cfg.registration_workflows['functional_registration'][
-        'coregistration']['reference'] == 'restore-brain':
-        node, out = strat_pool.get_data('desc-restore-brain_T1w')
-    wf.connect(node, out, func_to_anat, 'inputspec.anat')
+        if cfg.registration_workflows['functional_registration'][
+            'coregistration']['reference'] == 'brain':
+            node, out = strat_pool.get_data('desc-brain_T1w')
+        elif cfg.registration_workflows['functional_registration'][
+            'coregistration']['reference'] == 'restore-brain':
+            node, out = strat_pool.get_data('desc-restore-brain_T1w')
+        wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
 
     if diff_complete:

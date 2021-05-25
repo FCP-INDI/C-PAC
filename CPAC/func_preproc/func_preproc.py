@@ -825,7 +825,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                    get_rms_abs, 'rms_files')
 
         outputs = {
-            'desc-preproc_bold': (out_motion_A, 'out_file'),
+            'desc-preproc_bold': (func_motion_correct_A, 'out_file'),
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
             'max-displacement': (get_rms_abs, 'abs_file'),
             'rels-displacement': (get_rms_abs, 'rels_file'),
