@@ -17,16 +17,14 @@ Fixes #[issue number] by @[issue author]
 
 ## Checklist
 <!-- Replace  the [ ] with [x] to check the boxes. -->
-- [ ] My pull request has a descriptive title (not a vague title like `Update
-  index.md`).
+- [ ] My pull request has a descriptive title (not a vague title like `Update index.md`).
 - [ ] My pull request targets the `develop` branch of the repository. <!-- Change this branch if you're targeting a branch other than `develop` -->
 - [ ] My commit messages follow best practices.
 - [ ] My code follows the established code style of the repository.
 - [ ] I added tests for the changes I made (if applicable).
 - [ ] I updated the changelog.
 - [ ] I added or updated documentation (if applicable).
-- [ ] I tried running the project locally and verified that there are no
-  visible errors.
+- [ ] I tried running the project locally and verified that there are no visible errors.
 
 ## Developer Certificate of Origin
 <!-- You must read and understand the following attestation. -->
