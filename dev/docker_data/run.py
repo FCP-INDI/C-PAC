@@ -9,6 +9,7 @@ import time
 import shutil
 import yaml
 from base64 import b64decode
+from multiprocessing import set_start_method
 from urllib import request
 from urllib.error import HTTPError
 
@@ -660,13 +661,17 @@ elif args.analysis_level in ["test_config", "participant"]:
             'memory_gb': int(c['pipeline_setup']['system_config']['maximum_memory_per_participant']),
         }
 
+        if plugin_args['n_procs'] > 1:
+            set_start_method('forkserver')
+            plugin = LegacyMultiProcPlugin(plugin_args)
+        else:
+            plugin = 'Linear'
+
         print ("Starting participant level processing")
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin=LegacyMultiProcPlugin(plugin_args) if plugin_args[
-                'n_procs'
-            ] > 1 else 'Linear',
+            plugin=plugin,
             plugin_args=plugin_args,
             tracking=not args.tracking_opt_out,
             test_config = 1 if args.analysis_level == "test_config" else 0
