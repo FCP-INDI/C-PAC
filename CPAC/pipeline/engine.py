@@ -80,31 +80,6 @@ class ResourcePool(object):
 
         self.xfm = ['alff', 'falff', 'reho']
 
-        self.smooth = ['alff', 'falff', 'reho',
-                       'space-template_alff',
-                       'space-template_falff',
-                       'space-template_reho',
-                       'degree-centrality',
-                       'eigen-centrality',
-                       'lfcd']
-        self.zscore = self.smooth + ['alff', 'falff', 'reho',
-                                     'desc-sm_alff',
-                                     'desc-sm_falff',
-                                     'desc-sm_reho',
-                                     'space-template_alff',
-                                     'space-template_falff',
-                                     'space-template_reho',
-                                     'space-template_degree-centrality',
-                                     'space-template_eigen-centrality',
-                                     'space-template_lfcd'
-                                     'space-template_desc-sm_alff',
-                                     'space-template_desc-sm_falff',
-                                     'space-template_desc-sm_reho',
-                                     'space-template_desc-sm_degree-centrality',
-                                     'space-template_desc-sm_eigen-centrality',
-                                     'space-template_desc-sm_lfcd']
-        self.fisher_zscore = ['desc-MeanSCA_correlations']
-
     def append_name(self, name):
         self.name.append(name)
 
@@ -622,7 +597,7 @@ class ResourcePool(object):
                 wf.connect(connection[0], connection[1],
                            xfm, 'inputspec.in_file')
 
-                node, out = self.get_data("T1w_brain_template_deriv",
+                node, out = self.get_data("T1w-brain-template-deriv",
                                           quick_single=True)
                 wf.connect(node, out, xfm, 'inputspec.reference')
 
@@ -649,7 +624,7 @@ class ResourcePool(object):
             input_type = 'func_derivative_multi'
 
         if 'centrality' in label or 'lfcd' in label:
-            mask = 'template_specification_file'
+            mask = 'template-specification-file'
         elif 'space-template' in label:
             mask = 'space-template_res-derivative_desc-bold_mask'
         else:
@@ -664,7 +639,7 @@ class ResourcePool(object):
                     break
 
         if self.run_smoothing:
-            if label in self.smooth:
+            if label in Outputs.to_smooth:
                 for smooth_opt in self.smooth_opts:
 
                     sm = spatial_smoothing(f'{label}_smooth_{smooth_opt}_'
@@ -715,7 +690,7 @@ class ResourcePool(object):
                         new_label = label.replace(tag, newtag)
                         break
 
-            if label in self.zscore:
+            if label in Outputs.to_zstd:
 
                 zstd = z_score_standardize(f'{label}_zstd_{pipe_x}',
                                            input_type)
@@ -730,7 +705,7 @@ class ResourcePool(object):
                               json_info, pipe_idx, f'zscore_standardize',
                               fork=True)
 
-            elif label in self.fisher_zscore:
+            elif label in Outputs.to_fisherz:
 
                 zstd = fisher_z_score_standardize(f'{label}_zstd_{pipe_x}',
                                                   label, input_type)
@@ -917,8 +892,13 @@ class ResourcePool(object):
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
                         fwhm_idx = pipe_idx.replace(f'{resource}:', 'fwhm:')
-                        node, out = self.rpool['fwhm'][fwhm_idx]['data']
-                        wf.connect(node, out, id_string, 'fwhm')
+                        try:
+                            node, out = self.rpool['fwhm'][fwhm_idx]['data']
+                            wf.connect(node, out, id_string, 'fwhm')
+                        except KeyError:
+                            # smoothing was not done for this resource in the
+                            # engine.py smoothing
+                            pass
                         break
 
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']

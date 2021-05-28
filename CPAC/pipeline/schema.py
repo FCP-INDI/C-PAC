@@ -403,6 +403,10 @@ schema = Schema({
                 },
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
+                    'ref_resolution': All(str, Match(resolution_regex)),
+                    'ref_mask': Maybe(str),
+                    'FNIRT_T1w_brain_template': Maybe(str),
+                    'FNIRT_T1w_template': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),
@@ -473,7 +477,7 @@ schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template'})],
+                    'using': [In({'T1_template', 'EPI_template', 'DCAN_NHP'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),

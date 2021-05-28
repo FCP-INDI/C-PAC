@@ -313,9 +313,9 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-template_desc-preproc_bold",
                   "space-template_bold"],
                  "space-template_desc-mean_bold"),
-                "GM_path",
-                "WM_path",
-                "CSF_path"],
+                "GM-path",
+                "WM-path",
+                "CSF-path"],
      "outputs": ["space-template_desc-cleaned_bold-carpet-qc",
                  "space-template_desc-brain_bold-carpet-qc",
                  "space-template_desc-preproc_bold-carpet-qc",
@@ -337,13 +337,13 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-template_desc-mean_bold")
     wf.connect(node, out, carpet_seg, 'inputspec.mean_functional_to_standard')
 
-    node, out = strat_pool.get_data("GM_path")
+    node, out = strat_pool.get_data("GM-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_gm_mask')
 
-    node, out = strat_pool.get_data("WM_path")
+    node, out = strat_pool.get_data("WM-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_wm_mask')
 
-    node, out = strat_pool.get_data("CSF_path")
+    node, out = strat_pool.get_data("CSF-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_csf_mask')
 
     outputs = {

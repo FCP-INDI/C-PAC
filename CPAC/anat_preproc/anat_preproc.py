@@ -216,7 +216,8 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     outputnode = pe.Node(util.IdentityInterface(fields=['T1w_biascorrected',
                                                        'T1w_brain_biascorrected',
                                                        'T2w_biascorrected',
-                                                       'T2w_brain_biascorrected']),
+                                                       'T2w_brain_biascorrected',
+                                                        'biasfield']),
                           name='outputspec')
 
     # 1. Form sqrt(T1w*T2w), mask this and normalise by the mean
@@ -398,6 +399,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(OutputT1wRestoredBrainImage, 'out_file', outputnode, 'T1w_brain_biascorrected')
     preproc.connect(OutputT2wRestoredImage, 'out_file', outputnode, 'T2w_biascorrected')
     preproc.connect(OutputT2wRestoredBrainImage, 'out_file', outputnode, 'T2w_brain_biascorrected')
+    preproc.connect(OutputBiasField, 'out_file', outputnode, 'biasfield')
 
     return preproc
 
@@ -814,7 +816,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(native_brain_to_template_brain, 'out_matrix_file',
                native_head_to_template_head, 'in_matrix_file')
 
-    node, out = strat_pool.get_data('T1w_template')
+    node, out = strat_pool.get_data('T1w-template')
     wf.connect(node, out, native_head_to_template_head, 'reference')
 
     # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
@@ -1058,7 +1060,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(reorient_fs_T1, 'out_file',
         convert_head_to_template, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, convert_head_to_template, 'reference')
 
     # convert_xfm -omat tmp_standard2head_fs.mat -inverse tmp_head_fs2standard.mat
@@ -1090,7 +1092,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(skullstrip, 'out_file',
         apply_mask, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask_ccs')
+    node, out = strat_pool.get_data('T1w-brain-template-mask-ccs')
     wf.connect(node, out, apply_mask, 'mask_file')
 
     # flirt -in tmp_mask.nii.gz -applyxfm -init tmp_standard2head_fs.mat -out brain_fsl_mask_tight.nii.gz \
@@ -1264,7 +1266,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_ACPC_template"],
+                "T1w-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
@@ -1279,7 +1281,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1300,7 +1302,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "space-T1w_desc-brain_mask"),
-                "T1w_ACPC_template"],
+                "T1w-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
@@ -1316,7 +1318,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template')
+    node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
@@ -1339,7 +1341,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w",
-                 "T1w_ACPC_template",
+                 "T1w-ACPC-template",
                  "T1w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T1w",
                  "desc-acpcbrain_T1w"
@@ -1359,7 +1361,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-tempbrain_T1w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') 
+    node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     node, out = strat_pool.get_data('T1w_brain_ACPC_template')
@@ -1384,7 +1386,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w", "space-T1w_desc-brain_mask"),
-                 "T1w_ACPC_template",
+                 "T1w-ACPC-template",
                  "T1w_brain_ACPC_template"],
      "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w",
                  "space-T1w_desc-brain_mask", "space-T1w_desc-prebrain_mask"]}
@@ -1406,7 +1408,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data('T1w_ACPC_template') 
+    node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     node, out = strat_pool.get_data('T1w_brain_ACPC_template')
@@ -1531,7 +1533,7 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 ["desc-acpcbrain_T1w"]],
-     "outputs": ["desc-preproc_T1w", "desc-correctedbrain_T1w", "desc-preproc_T2w", "desc-correctedbrain_T2w"]}
+     "outputs": ["desc-preproc_T1w", "desc-brain_T1w", "desc-preproc_T2w", "desc-brain_T2w", "desc-biasfield_T1wT2w"]}
     '''
 
     t1t2_bias_correction = BiasFieldCorrection_sqrtT1wXT1w(config=cfg, wf_name=f't1t2_bias_correction_{pipe_num}')
@@ -1549,9 +1551,10 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (t1t2_bias_correction, 'outputspec.T1w_biascorrected'),
-        'desc-correctedbrain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
+        'desc-brain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
         'desc-preproc_T2w': (t1t2_bias_correction, 'outputspec.T2w_biascorrected'),
-        'desc-correctedbrain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-brain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-biasfield_T1wT2w': (t1t2_bias_correction, 'outputspec.biasfield'),
     }
 
     return (wf, outputs)
@@ -1679,7 +1682,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1698,7 +1701,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
@@ -1783,8 +1786,8 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_brain_mask"]}
     '''
 
@@ -1825,8 +1828,8 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1",
                 "raw_average",
                 "freesurfer_subject_dir",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_brain_mask"]}
     '''
 
@@ -1844,8 +1847,8 @@ def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Tight",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_acpcbrain_mask"]}
     '''
 
@@ -1866,8 +1869,8 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["brainmask",
                 "T1",
-                "T1w_brain_template_mask_ccs",
-                "T1w_ACPC_template"],
+                "T1w-brain-template-mask-ccs",
+                "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
     '''
 
@@ -2330,7 +2333,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-brain_mask"]}
     '''
@@ -2349,7 +2352,7 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T1w_brain_template",
-                "T1w_template",
+                "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
     '''
@@ -2687,7 +2690,7 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
-                                                       'ref_mask_res-2',
+                                                       'template-ref-mask-res-2',
                                                        'template_skull_for_anat',
                                                        'template_skull_for_anat_2mm',
                                                        'template_brain_mask_for_anat']), 
@@ -2740,7 +2743,7 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     preproc.connect(linear_reg, 'out_matrix_file',
                     non_linear_reg, 'affine_file')
 
-    preproc.connect(inputnode, 'ref_mask_res-2',
+    preproc.connect(inputnode, 'template-ref-mask-res-2',
                     non_linear_reg, 'refmask_file')
 
     # Overwrite the image output from FNIRT with a spline interpolated highres version
@@ -2891,10 +2894,10 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "FreeSurfer-ABCD",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                 "T1w_template",
-                 "T1w_brain_template_mask",
-                 "ref_mask_res-2",
-                 "T1w_template_res-2"],
+                 "T1w-template",
+                 "T1w-brain-template-mask",
+                 "template-ref-mask-res-2",
+                 "T1w-template-res-2"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
@@ -2909,16 +2912,16 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, brain_extraction, 'inputspec.anat_data')
 
-    node, out = strat_pool.get_data('ref_mask_res-2')
-    wf.connect(node, out, brain_extraction, 'inputspec.ref_mask_res-2')
+    node, out = strat_pool.get_data('template-ref-mask-res-2')
+    wf.connect(node, out, brain_extraction, 'inputspec.template-ref-mask-res-2')
 
-    node, out = strat_pool.get_data('T1w_template')
+    node, out = strat_pool.get_data('T1w-template')
     wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat')
 
-    node, out = strat_pool.get_data('T1w_template_res-2')
+    node, out = strat_pool.get_data('T1w-template-res-2')
     wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat_2mm')
 
-    node, out = strat_pool.get_data('T1w_brain_template_mask')
+    node, out = strat_pool.get_data('T1w-brain-template-mask')
     wf.connect(node, out, brain_extraction, 'inputspec.template_brain_mask_for_anat')
 
     # fast bias field correction
