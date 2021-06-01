@@ -91,8 +91,7 @@ space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI
 space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI				
 space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI				
 space-template_desc-bold_mask	mask	template	func	NIfTI				
-space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI				
-coordinate-transformation	motion		func	1D				
+space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI							
 dvars	motion		func	text				
 framewise-displacement-jenkinson	motion		func	1D				
 framewise-displacement-power	motion		func	1D				
