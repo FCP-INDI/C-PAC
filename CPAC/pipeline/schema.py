@@ -548,7 +548,7 @@ schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume'})],
+                    'mean', 'median', 'selected_volume', 'fmriprep_reference'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
@@ -639,6 +639,11 @@ schema = Schema({
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }])
             ),
+            'FSL_AFNI': {
+                'bold_ref': str,
+                'brain_mask': str,
+                'brain_probseg': str,
+            },
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },

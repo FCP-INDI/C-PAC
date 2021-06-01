@@ -16,6 +16,8 @@ from CPAC.generate_motion_statistics import motion_power_statistics
 
 from CPAC.utils.utils import check_prov_for_motion_tool
 
+# niworkflows
+from ..utils.interfaces.ants import AI
 
 def collect_arguments(*args):
     command_args = []
@@ -265,6 +267,59 @@ def get_mcflirt_rms_abs(rms_files):
         if 'rel.rms' in path:
             rels_file = path
     return (abs_file, rels_file)
+
+
+def estimate_reference_image(in_file):
+
+    # fMRIPrep-style BOLD reference
+    # Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/interfaces/registration.py#L446-L549
+
+    import os
+    import numpy as np
+    import nibabel as nb
+
+    ref_input = [in_file]
+    mc_out_file = 'bold_mc.nii.gz'
+
+    # Build the nibabel spatial image we will work with
+    ref_im = []
+    for im_i in ref_input:
+        max_new_volumes = 50 - len(ref_im)
+        if max_new_volumes <= 0:
+            break
+        nib_i = nb.squeeze_image(nb.load(im_i))
+        if nib_i.dataobj.ndim == 3:
+            ref_im.append(nib_i)
+        elif nib_i.dataobj.ndim == 4:
+            ref_im += nb.four_to_three(nib_i.slicer[..., :max_new_volumes])
+    ref_im = nb.squeeze_image(nb.concat_images(ref_im))
+
+    out_file = os.path.join(os.getcwd(), "ref_bold.nii.gz")
+
+    # Slicing may induce inconsistencies with shape-dependent values in extensions.
+    # For now, remove all. If this turns out to be a mistake, we can select extensions
+    # that don't break pipeline stages.
+    ref_im.header.extensions.clear()
+
+    if ref_im.shape[-1] > 40:
+        ref_im = nb.Nifti1Image(
+            ref_im.dataobj[:, :, :, 20:40], ref_im.affine, ref_im.header
+        )
+
+    ref_name = os.path.join(os.getcwd(), "slice.nii.gz")
+    ref_im.to_filename(ref_name)
+    cmd = '3dvolreg -Fourier -twopass -zpad 4 -prefix %s %s'%(mc_out_file, ref_name)
+    os.system(cmd)
+
+    mc_slice_nii = nb.load(mc_out_file)
+
+    median_image_data = np.median(mc_slice_nii.get_fdata(), axis=3)
+
+    nb.Nifti1Image(median_image_data, ref_im.affine, ref_im.header).to_filename(
+        out_file
+    )
+
+    return out_file
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
@@ -1026,15 +1081,15 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                 "motion_correction"],
      "switch": "None",
      "option_key": "motion_correction_reference",
-     "option_val": ["mean", "median", "selected_volume"],
+     "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
      "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": ["motion-basefile"]}
     '''
 
-    if opt != 'mean' and opt != 'median' and opt != 'selected_volume':
+    if opt != 'mean' and opt != 'median' and opt != 'selected_volume' and opt != 'fmriprep_reference':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'motion_correction_reference' workflow must be either "
-                        "'mean' or 'median' or 'selected_volume'.\n\nTool input: "
+                        "'mean' or 'median' or 'selected_volume' or 'fmriprep_reference'.\n\nTool input: "
                         "{0}\n\n".format(opt))
 
     if opt == 'mean':
@@ -1074,6 +1129,15 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
         node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
         wf.connect(node, out, func_get_RPI, 'in_file_a')
+
+    elif opt == 'fmriprep_reference':
+        func_get_RPI = pe.Node(util.Function(input_names=['in_file'],
+                                             output_names=['out_file'],
+                                             function=estimate_reference_image),
+                           name=f'func_get_fmriprep_ref_{pipe_num}')
+
+        node, out = strat_pool.get_data(['bold'])
+        wf.connect(node, out, func_get_RPI, 'in_file')
 
     outputs = {
         'motion-basefile': (func_get_RPI, 'out_file')
@@ -1463,40 +1527,143 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "FSL_AFNI",
-     "inputs": [["desc-preproc_bold", "bold"]],
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+                 "motion-basefile"],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
-    func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                              name=f'func_mean_skull_{pipe_num}')
-    func_skull_mean.inputs.options = '-mean'
-    func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+    # fMRIPrep-style BOLD mask
+    # Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514
+
+    # Initialize transforms with antsAI
+    init_aff = pe.Node(
+        AI(
+            metric=("Mattes", 32, "Regular", 0.2),
+            transform=("Affine", 0.1),
+            search_factor=(20, 0.12),
+            principal_axes=False,
+            convergence=(10, 1e-6, 10),
+            verbose=True,
+        ),
+        name=f"init_aff_{pipe_num}",
+        n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
+    )
+
+    init_aff.inputs.fixed_image = cfg.functional_preproc[
+        'func_masking']['FSL_AFNI']['bold_ref']
+
+    init_aff.inputs.fixed_image_mask = cfg.functional_preproc[
+        'func_masking']['FSL_AFNI']['brain_mask']
+
+    init_aff.inputs.search_grid = (40, (0, 40, 40))
+
+    # Set up spatial normalization
+    norm = pe.Node(
+        ants.Registration(
+            winsorize_upper_quantile=0.98,
+            winsorize_lower_quantile=0.05,
+            float=True,
+            metric=['Mattes'],
+            metric_weight=[1],
+            radius_or_number_of_bins=[64],
+            transforms=['Affine'],
+            transform_parameters=[[0.1]],
+            number_of_iterations=[[200]],
+            convergence_window_size=[10],
+            convergence_threshold=[1.e-9],
+            sampling_strategy=['Random', 'Random'],
+            smoothing_sigmas=[[2]],
+            sigma_units=['mm', 'mm', 'mm'],
+            shrink_factors=[[2]],
+            sampling_percentage=[0.2],
+            use_histogram_matching=[True],
+            use_estimate_learning_rate_once=[True]
+        ),
+        name=f"norm_{pipe_num}",
+        n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
+    )
+
+    norm.inputs.fixed_image = cfg.functional_preproc[
+        'func_masking']['FSL_AFNI']['bold_ref']
+
+    map_brainmask = pe.Node(
+        ants.ApplyTransforms(
+            interpolation="BSpline",
+            float=True,
+        ),
+        name=f"map_brainmask_{pipe_num}",
+    )
+    
+    # Use the higher resolution and probseg for numerical stability in rounding
+    map_brainmask.inputs.input_image = cfg.functional_preproc[
+        'func_masking']['FSL_AFNI']['brain_probseg']
+
+    binarize_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                            name=f'binarize_mask_{pipe_num}')
+    binarize_mask.inputs.args = '-thr 0.85 -bin'
+
+    # Dilate pre_mask
+    pre_dilate = pe.Node(
+        fsl.DilateImage(
+            operation="max",
+            kernel_shape="sphere",
+            kernel_size=3.0,
+            internal_datatype="char",
+        ),
+        name=f"pre_mask_dilate_{pipe_num}",
+    )
+
+    # Run N4 normally, force num_threads=1 for stability (images are small, no need for >1)
+    n4_correct = pe.Node(
+        ants.N4BiasFieldCorrection(
+            dimension=3, copy_header=True, bspline_fitting_distance=200
+        ),
+        shrink_factor=2,
+        rescale_intensities = True,
+        name=f"n4_correct_{pipe_num}",
+        n_procs=1,
+    )
 
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
         name=f'skullstrip_first_pass_{pipe_num}')
+
     bet_dilate = pe.Node(
         fsl.DilateImage(operation='max', kernel_shape='sphere',
                         kernel_size=6.0, internal_datatype='char'),
         name=f'skullstrip_first_dilate_{pipe_num}')
+
     bet_mask = pe.Node(fsl.ApplyMask(), name=f'skullstrip_first_mask_'
                                              f'{pipe_num}')
+
     unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ',
                                          args='-clfrac 0.2 -rbt 18.3 65.0 90.0',
                                          out_file="uni.nii.gz"),
                       name=f'unifize_{pipe_num}')
+
     skullstrip_second_pass = pe.Node(
         preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'),
         name=f'skullstrip_second_pass_{pipe_num}')
+
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-preproc_bold",
-                                     "bold"])
-    wf.connect(node, out, func_skull_mean, 'in_file')
+    node, out = strat_pool.get_data(["motion-basefile"])
 
-    wf.connect([(func_skull_mean, skullstrip_first_pass,
-                 [('out_file', 'in_file')]),
+    wf.connect([(node, init_aff, [(out, "moving_image")]),
+                (node, map_brainmask, [(out, "reference_image")]),
+                (node, norm, [(out, "moving_image")]),
+                (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+                (norm, map_brainmask, [
+                    ("reverse_invert_flags", "invert_transform_flags"),
+                    ("reverse_transforms", "transforms"),
+                ]),
+                (map_brainmask, binarize_mask, [("output_image", "in_file")]),
+                (binarize_mask, pre_dilate, [("out_file", "in_file")]),
+                (pre_dilate, n4_correct, [("out_file", "mask_image")]),
+                (node, n4_correct, [(out, "input_image")]),
+                (n4_correct, skullstrip_first_pass,
+                 [('output_image', 'in_file')]),
                 (skullstrip_first_pass, bet_dilate,
                  [('mask_file', 'in_file')]),
                 (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
