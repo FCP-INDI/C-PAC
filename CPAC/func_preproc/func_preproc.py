@@ -1082,7 +1082,8 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "motion_correction_reference",
      "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
-     "inputs": [["desc-preproc_bold", "bold"]],
+     "inputs": [["desc-preproc_bold", "bold"],
+                 "bold"],
      "outputs": ["motion-basefile"]}
     '''
 
@@ -1136,7 +1137,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                                              function=estimate_reference_image),
                            name=f'func_get_fmriprep_ref_{pipe_num}')
 
-        node, out = strat_pool.get_data(['bold'])
+        node, out = strat_pool.get_data('bold')
         wf.connect(node, out, func_get_RPI, 'in_file')
 
     outputs = {
