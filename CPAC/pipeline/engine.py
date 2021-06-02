@@ -1159,8 +1159,14 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
-                        wf, outs = block_function(wf, cfg, strat_pool,
-                                                  pipe_x, opt)
+
+
+                        try:
+                            wf, outs = block_function(wf, cfg, strat_pool,
+                                                pipe_x, opt)
+                        except IOError as e:  # duplicate node
+                            logger.warning(e)
+                            continue
 
                         if not outs:
                             continue
