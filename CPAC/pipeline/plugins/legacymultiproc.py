@@ -9,8 +9,9 @@ Override Nipype's LegacyMultiproc:
 import platform
 import resource
 from nipype.pipeline.plugins.legacymultiproc import (
-    LegacyMultiProcPlugin as LegacyMultiProc, logger)
+    LegacyMultiProcPlugin as LegacyMultiProc)
 from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE
+from .base import logger, run_node
 
 
 def get_peak_usage():
@@ -72,13 +73,34 @@ class LegacyMultiProcPlugin(LegacyMultiProc):
 
     def _check_resources(self, running_tasks):
         """
-        Make sure there are resources available, accounting for Nipype memory usage
+        Make sure there are resources available, accounting for Nipype
+        memory usage
         """
 
-        free_memory_gb, free_processors = super()._check_resources(running_tasks)
+        free_memory_gb, free_processors = super()._check_resources(
+            running_tasks)
 
         # Nipype memory usage
         peak = get_peak_usage()
         free_memory_gb -= peak
 
         return free_memory_gb, free_processors
+
+    def _submit_job(self, node, updatehash=False):
+        self._taskid += 1
+
+        # Don't allow streaming outputs
+        if getattr(node.interface, "terminal_output", "") == "stream":
+            node.interface.terminal_output = "allatonce"
+
+        self._task_obj[self._taskid] = self.pool.apply_async(
+            run_node, (node, updatehash, self._taskid),
+            callback=self._async_callback
+        )
+
+        logger.debug(
+            "[LegacyMultiProc] Submitted task %s (taskid=%d).",
+            node.fullname,
+            self._taskid,
+        )
+        return self._taskid

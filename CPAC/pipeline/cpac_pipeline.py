@@ -4,6 +4,7 @@ import csv
 import shutil
 import pickle
 import copy
+import faulthandler
 import yaml
 
 import logging as cb_logging
@@ -191,6 +192,10 @@ from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
+if len(logger.handlers) and hasattr(logger.handlers[0].baseFilename):
+    faulthandler.enable(file=logger.handlers[0].baseFilename)
+else:
+    faulthandler.enable()
 
 # config.enable_debug_mode()
 
