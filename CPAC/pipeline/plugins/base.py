@@ -3,6 +3,10 @@ import faulthandler
 import sys
 from nipype.pipeline.plugins.base import format_exception, logger
 
+logfile = logger.handlers[0].baseFilename if (
+    len(logger.handlers) and hasattr(logger.handlers[0].baseFilename)
+) else sys.stderr
+
 
 # Run node
 def run_node(node, updatehash, taskid):
@@ -25,9 +29,6 @@ def run_node(node, updatehash, taskid):
     # Init variables
     result = dict(result=None, traceback=None, taskid=taskid)
 
-    logfile = logger.handlers[0].baseFilename if (
-        len(logger.handlers) and hasattr(logger.handlers[0].baseFilename)
-    ) else sys.stderr
     faulthandler.dump_traceback_later(timeout=10, file=logfile, exit=True)
     # Try and execute the node via node.run()
     try:
