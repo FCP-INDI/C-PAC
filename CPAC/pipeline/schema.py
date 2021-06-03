@@ -232,6 +232,27 @@ def _now_runswitch(config_dict, key_sequence):
 
 
 def _changes_1_8_0_to_1_8_1(config_dict):
+    '''
+    Examples
+    --------
+    >>> zero = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': 0,
+    ...             'left_GM_label': 1,
+    ...             'right_GM_label': 2,
+    ...             'left_WM_label': 3,
+    ...             'right_WM_label': 4}}}}
+    >>> str(_changes_1_8_0_to_1_8_1(zero))
+    "{'anatomical_preproc': {'non_local_means_filtering': {'run': True}, 'n4_bias_field_correction': {'run': True}}, 'functional_preproc': {'motion_estimates_and_correction': {'motion_estimates': {'calculate_motion_first': False}}}, 'segmentation': {'tissue_segmentation': {'ANTs_Prior_Based': {'CSF_label': [0], 'GM_label': [1, 2], 'WM_label': [3, 4]}}}}"
+    '''  # noqa E501
     for key_sequence in {
         ('anatomical_preproc', 'non_local_means_filtering'),
         ('anatomical_preproc', 'n4_bias_field_correction')
@@ -240,7 +261,7 @@ def _changes_1_8_0_to_1_8_1(config_dict):
     for combiners in {
         ((
             ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'CSF_label')
+             'CSF_label'),
         ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
             'CSF_label')),
         ((
