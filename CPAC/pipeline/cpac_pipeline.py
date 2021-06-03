@@ -272,9 +272,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
 
-    if not plugin:
-        plugin = LegacyMultiProcPlugin(plugin_args)
-
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
     # import mkl
@@ -480,6 +477,9 @@ Please, make yourself aware of how it works and its assumptions:
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
+
+            if not plugin:
+                plugin = LegacyMultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject
