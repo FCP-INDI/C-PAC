@@ -192,7 +192,7 @@ from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
-faulthandler.enable(file=pe.logfile)
+faulthandler.enable()
 
 # config.enable_debug_mode()
 

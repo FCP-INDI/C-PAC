@@ -62,6 +62,7 @@ class Node(pe.Node):
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         if 'mem_x' in kwargs:
             setattr(self, '_mem_x', kwargs['mem_x'])
+        setattr(self, 'skip_timeout', False)
 
     orig_sig_params = list(signature(pe.Node).parameters.items())
 
