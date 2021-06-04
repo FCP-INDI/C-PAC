@@ -1399,6 +1399,44 @@ def check_config_resources(c):
     return sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
 
 
+def _check_nested_types(d, keys):
+    '''Helper function to check types for *_nested_value functions'''
+    if not isinstance(d, dict):
+        raise TypeError(f'Expected dict, got {type(d).__name__}: {str(d)}')
+    if not isinstance(keys, list) and not isinstance(keys, tuple):
+        raise TypeError(f'Expected list, got {type(keys).__name}: {str(keys)}')
+
+
+def delete_nested_value(d, keys):
+    '''Helper function to delete nested values
+
+    Paramters
+    ---------
+    d: dict
+    keys: list or tuple
+
+    Returns
+    -------
+    dict
+        updated
+
+    Examples
+    --------
+    >>> delete_nested_value(
+    ...     {'nested': {'key1': 'value', 'key2': 'value'}},
+    ...     ['nested', 'key1'])
+    {'nested': {'key2': 'value'}}
+    '''
+    _check_nested_types(d, keys)
+    if len(keys) == 1:
+        del d[keys[0]]
+        return d
+    if not len(keys):
+        return d
+    d[keys[0]] = delete_nested_value(d.get(keys[0], {}), keys[1:])
+    return d
+
+
 def load_preconfig(pipeline_label):
     import os
     import pkg_resources as p
@@ -1820,10 +1858,7 @@ def set_nested_value(d, keys, value):
     >>> set_nested_value({}, ['nested', 'keys'], 'value')
     {'nested': {'keys': 'value'}}
     '''
-    if not isinstance(d, dict):
-        raise TypeError(f'Expected dict, got {type(d).__name__}: {str(d)}')
-    if not isinstance(keys, list):
-        raise TypeError(f'Expected list, got {type(keys).__name}: {str(keys)}')
+    _check_nested_types(d, keys)
     if len(keys) == 1:
         d.update({keys[0]: value})
         return d
