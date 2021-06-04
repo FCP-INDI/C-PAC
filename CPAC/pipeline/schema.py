@@ -539,7 +539,6 @@ latest_schema = Schema({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
-                    'ref_mask': Maybe(str),
                     'ref_mask_res-2': str,
                     'T1w_template_res-2': str
                 },
@@ -886,6 +885,7 @@ latest_schema = Schema({
     },
     'timeseries_extraction': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'tse_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([
@@ -903,6 +903,7 @@ latest_schema = Schema({
 
     'seed_based_correlation_analysis': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'sca_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([
