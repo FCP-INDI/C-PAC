@@ -199,6 +199,8 @@ def _combine_labels(config_dict, list_to_combine, new_key):
             old_value = None
         if old_value is not None:
             any_old_values = True
+            if isinstance(old_value, list) and len(old_value) == 1:
+                old_value = old_value[0]
             new_value.append(old_value)
             config_dict = delete_nested_value(config_dict, _to_combine)
     if any_old_values:
@@ -295,6 +297,7 @@ def _changes_1_8_0_to_1_8_1(config_dict):
             'functional_preproc', 'motion_estimates_and_correction',
             'motion_estimates', 'calculate_motion_first'
         ], calculate_motion_first)
+
     return config_dict
 
 
@@ -539,6 +542,7 @@ latest_schema = Schema({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
+                    'ref_mask': str,
                     'ref_mask_res-2': str,
                     'T1w_template_res-2': str
                 },
