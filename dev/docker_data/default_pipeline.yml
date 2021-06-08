@@ -738,6 +738,9 @@ registration_workflows:
         # options: 'whole-head' or 'brain'
         reference: whole-head
 
+        # optional FAST arguments to generate BBR WM mask
+        bbr_wm_mask_args: '-thr 0.5 -bin'
+
     EPI_registration:
 
       # directly register the mean functional to an EPI template

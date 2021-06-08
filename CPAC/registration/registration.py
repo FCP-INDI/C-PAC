@@ -916,6 +916,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                                        'linear_reg_matrix',
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule',
+                                                       'bbr_wm_mask_args',
                                                        'fieldmap',
                                                        'fieldmapmask']),
                         name='inputspec')
@@ -932,7 +933,10 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
 
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='wm_bb_mask')
-    wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
+
+    register_bbregister_func_to_anat.connect(
+        inputspec, 'bbr_wm_mask_args',
+        wm_bb_mask, 'op_string')
 
     register_bbregister_func_to_anat.connect(inputspec,
                                              'anat_wm_segmentation',
@@ -2854,6 +2858,10 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
                 'bbr_schedule']
+
+        func_to_anat_bbreg.inputs.inputspec.bbr_wm_mask_args = \
+            cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_mask_args']
 
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
