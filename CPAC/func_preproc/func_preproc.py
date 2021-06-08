@@ -1530,7 +1530,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FSL_AFNI",
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
                  "motion-basefile"],
-     "outputs": ["space-bold_desc-brain_mask"]}
+     "outputs": ["space-bold_desc-brain_mask",
+                 "desc-ref_bold"]}
     '''
 
     # fMRIPrep-style BOLD mask
@@ -1649,6 +1650,9 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
 
+    apply_mask = pe.Node(fsl.ApplyMask(), 
+                         name=f'extract_ref_brain_bold_{pipe_num}')
+
     node, out = strat_pool.get_data(["motion-basefile"])
 
     wf.connect([(node, init_aff, [(out, "moving_image")]),
@@ -1674,10 +1678,14 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                 (skullstrip_first_pass, combine_masks,
                  [('mask_file', 'in_file')]),
                 (skullstrip_second_pass, combine_masks,
-                 [('out_file', 'operand_file')])])
+                 [('out_file', 'operand_file')]),
+                (unifize, apply_mask, [('out_file', 'in_file')]),
+                (combine_masks, apply_mask, [('out_file', 'mask_file')]),
+                ])
 
     outputs = {
-        'space-bold_desc-brain_mask': (combine_masks, 'out_file')
+        'space-bold_desc-brain_mask': (combine_masks, 'out_file'),
+        'desc-ref_bold': (apply_mask, 'out_file')
     }
 
     return (wf, outputs)

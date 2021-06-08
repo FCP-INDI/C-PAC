@@ -2706,6 +2706,27 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "coregistration_prep_fmriprep",
+     "config": ["registration_workflows", "functional_registration",
+                "coregistration"],
+     "switch": ["run"],
+     "option_key": ["func_input_prep", "input"],
+     "option_val": "fmriprep_reference",
+     "inputs": ["desc-ref_bold"],
+     "outputs": ["desc-reginput_bold"]}
+    '''
+
+    coreg_input = strat_pool.get_data("desc-ref_bold")
+
+    outputs = {
+        'desc-reginput_bold': coreg_input
+    }
+
+    return (wf, outputs)
+
+
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration",

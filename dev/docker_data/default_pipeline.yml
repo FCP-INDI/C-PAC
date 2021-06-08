@@ -710,7 +710,7 @@ registration_workflows:
         reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-        # input: ['Mean_Functional', 'Selected_Functional_Volume']
+        # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: ['Mean_Functional']
 
         Mean Functional:

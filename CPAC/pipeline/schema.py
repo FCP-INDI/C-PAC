@@ -434,7 +434,7 @@ schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume'
+                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
