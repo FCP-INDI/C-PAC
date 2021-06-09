@@ -868,7 +868,7 @@ registration_workflows:
 
       target_template:      
         # choose which template space to transform derivatives towards
-        # using: ['T1_template', 'EPI_template', 'DCAN_NHP']
+        # using: ['T1_template', 'EPI_template']
         # this is a fork point
         # NOTE:
         #   this will determine which registration transform to use to warp the functional
@@ -922,7 +922,7 @@ registration_workflows:
 
       apply_transform:
 
-        # options: 'default', 'abcd', 'single_step_resampling'
+        # options: 'default', 'abcd', 'single_step_resampling', 'dcan_nhp'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
         # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
         # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
@@ -1182,6 +1182,16 @@ nuisance_corrections:
     
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
+
+    # run nuisance regression on a specific BOLD image type
+    # In default pipeline, 'process_preproc' is set to on, it'll run nuisance regression on preprocessed BOLD image
+    # In fx-options pipeline, 'process_stc' is set to on
+    # In abcd-options pipeline, 'process_raw' is set to on
+    process_preproc: On
+
+    process_stc: Off
+
+    process_raw: Off
 
     # Select which nuisance signal corrections to apply
     Regressors:

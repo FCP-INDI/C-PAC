@@ -1740,11 +1740,13 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "Anatomical_Resampled",
-     "inputs": ["T1w-template-funcreg",
+     "inputs": [["desc-preproc_bold", "bold"],
+                "T1w-template-funcreg",
                 "space-template_desc-brain_T1w",
                 "space-template_desc-T1w_mask"],
      "outputs": ["space-template_res-bold_desc-brain_T1w",
-                 "space-template_desc-bold_mask"]}
+                 "space-template_desc-bold_mask",
+                 "space-bold_desc-brain_mask"]}
     '''
 
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
@@ -1776,9 +1778,22 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(anat_brain_to_func_res, 'out_file',
         anat_brain_mask_to_func_res, 'ref_file')
 
+    # Resample func mask in template space back to native space
+    func_mask_template_to_native = pe.Node(interface=afni.Resample(),
+                                    name=f'resample_func_mask_to_native_{pipe_num}')
+    func_mask_template_to_native.inputs.resample_mode = 'NN'
+    func_mask_template_to_native.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(anat_brain_mask_to_func_res, 'out_file',
+        func_mask_template_to_native, 'in_file')
+
+    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
+    wf.connect(node, out, func_mask_template_to_native, 'master')
+
     outputs = {
         'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
-        'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file')
+        'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file'),
+        "space-bold_desc-brain_mask": (func_mask_template_to_native, 'out_file')
     }
 
     return (wf, outputs)

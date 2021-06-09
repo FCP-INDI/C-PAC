@@ -26,6 +26,13 @@ nuisance_corrections:
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
 
+    # run nuisance regression on a specific BOLD image type
+    process_preproc: Off
+
+    process_stc: On
+
+    process_raw: Off
+
     # Select which nuisance signal corrections to apply
     Regressors:
       - Name: Regressor-1

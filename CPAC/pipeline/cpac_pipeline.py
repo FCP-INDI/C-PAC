@@ -88,7 +88,9 @@ from CPAC.registration.registration import (
     warp_bold_mask_to_EPItemplate,
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
+    warp_cleaned_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
+    single_step_resample_cleaned_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp
 )
 
@@ -136,6 +138,8 @@ from CPAC.nuisance.nuisance import (
     ICA_AROMA_ANTsEPIreg,
     ICA_AROMA_FSLEPIreg,
     nuisance_regression_complete,
+    nuisance_regression_complete_stc,
+    nuisance_regression_complete_raw,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
@@ -1119,11 +1123,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # anatomical template (the BOLD-to- EPI template is already created above)
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
-    ] and 'T1_template' or "DCAN_NHP" in cfg.registration_workflows[
+    ] and 'T1_template' in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
-            'target_template']['using'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template'][
-            'apply_transform']['using'] == 'default':
+            'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
@@ -1147,8 +1149,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if 'T1_template' in \
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template'][
-                'using']:
-                nuisance.append(nuisance_regression_complete)
+                'using']: 
+
+                nuisance += [nuisance_regression_complete,
+                              nuisance_regression_complete_stc,
+                              nuisance_regression_complete_raw] # TODO for quick fix, to be updated
                 
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
@@ -1177,7 +1182,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_T1template_abcd,
                              warp_timeseries_to_T1template_dcan_nhp,
-                             single_step_resample_timeseries_to_T1template],
+                             single_step_resample_timeseries_to_T1template,
+                             warp_cleaned_timeseries_to_T1template_abcd,                             
+                             single_step_resample_cleaned_timeseries_to_T1template],
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
 

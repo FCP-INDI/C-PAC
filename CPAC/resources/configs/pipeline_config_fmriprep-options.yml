@@ -333,6 +333,16 @@ functional_preproc:
     # this is a fork point
     using: [FSL_AFNI]
 
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: Off
+
 nuisance_corrections: 
 
   2-nuisance_regression: 
