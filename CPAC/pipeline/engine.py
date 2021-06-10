@@ -971,10 +971,24 @@ class NodeBlock(object):
         self.node_blocks = {}
 
         for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
+        
+            self.input_interface = []
+            if isinstance(node_block_function, tuple):
+                self.input_interface = node_block_function[1]
+                node_block_function = node_block_function[0]
+                if not isinstance(self.input_interface, list):
+                    self.input_interface = [self.input_interface]
+        
             init_dct = self.grab_docstring_dct(node_block_function.__doc__)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
+            
+            if self.input_interface:
+                for interface in self.input_interface:
+                    if interface[0] in init_dct['inputs']:
+                        init_dct['inputs'].remove(interface[0])
+                        init_dct['inputs'].append(interface[1])
 
             for key, val in init_dct.items():
                 self.node_blocks[name][key] = val
@@ -1159,6 +1173,12 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
+                        
+                        replaced_inputs = []
+                        for interface in self.input_interface:
+                            strat_pool.copy_resource(interface[1], interface[0])
+                            replaced_inputs.append(interface[0])
+                        
                         wf, outs = block_function(wf, cfg, strat_pool,
                                                   pipe_x, opt)
 
@@ -1199,7 +1219,7 @@ class NodeBlock(object):
                                     new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
 
                             # determine sources for the outputs, i.e. all input data into the node block                   
-                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json' and x not in replaced_inputs]
                             
                             if isinstance(outputs, dict):
                                 new_json_info.update(outputs[label])

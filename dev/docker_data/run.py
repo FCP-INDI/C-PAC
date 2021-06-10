@@ -606,7 +606,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                                          args.participant_label,
                                          args.aws_input_creds)
 
-    if args.participant_ndx:
+    if args.participant_ndx is not None:
 
         participant_ndx = int(args.participant_ndx)
         if participant_ndx == -1:
