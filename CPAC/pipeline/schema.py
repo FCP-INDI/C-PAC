@@ -446,6 +446,7 @@ schema = Schema({
                 'boundary_based_registration': {
                     'run': forkable,
                     'bbr_schedule': str,
+                    'bbr_wm_map': In({'probability_map', 'partial_volume_map'}),
                     'bbr_wm_mask_args': str,
                     'reference': In({'whole-head', 'brain'})
                 },

@@ -2748,6 +2748,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-brain_T2w",
                  "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
+                 ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
                 "diffphase_dwell",
                 "diffphase_pedir",
@@ -2885,8 +2886,13 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data(["space-bold_label-WM_mask"])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
-        else: 
-            node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+        else:
+            if cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'probability_map':
+                node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+            elif cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'partial_volume_map':
+                node, out = strat_pool.get_data(["label-WM_pveseg", "label-WM_mask"])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
@@ -3032,8 +3038,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],
-     "option_key": ["target_template", "using"],
-     "option_val": ["T1_template", "DCAN_NHP"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": "default",
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),

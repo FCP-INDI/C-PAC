@@ -738,6 +738,10 @@ registration_workflows:
         # options: 'whole-head' or 'brain'
         reference: whole-head
 
+        # choose which FAST map to generate BBR WM mask
+        # options: 'probability_map', 'partial_volume_map'
+        bbr_wm_map: 'probability_map'
+
         # optional FAST arguments to generate BBR WM mask
         bbr_wm_mask_args: '-thr 0.5 -bin'
 
