@@ -710,7 +710,7 @@ registration_workflows:
         reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-        # input: ['Mean_Functional', 'Selected_Functional_Volume']
+        # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: ['Mean_Functional']
 
         Mean Functional:
@@ -737,6 +737,13 @@ registration_workflows:
         # reference for boundary based registration
         # options: 'whole-head' or 'brain'
         reference: whole-head
+
+        # choose which FAST map to generate BBR WM mask
+        # options: 'probability_map', 'partial_volume_map'
+        bbr_wm_map: 'probability_map'
+
+        # optional FAST arguments to generate BBR WM mask
+        bbr_wm_mask_args: '-thr 0.5 -bin'
 
     EPI_registration:
 
@@ -998,7 +1005,7 @@ functional_preproc:
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: On
 
-      # Choose motion correction reference. Options: mean, median, selected_volume
+      # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
       motion_correction_reference: ['mean']
 
       # Choose motion correction reference volume
@@ -1141,6 +1148,14 @@ functional_preproc:
 
       # Vertical gradient in fractional intensity threshold (-1,1)
       vertical_gradient: 0.0
+
+    FSL_AFNI:
+
+      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
+
+      brain_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
+
+      brain_probseg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_label-brain_probseg.nii.gz
 
     Anatomical_Refined:
 

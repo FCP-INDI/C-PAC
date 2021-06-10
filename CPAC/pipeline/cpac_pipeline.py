@@ -76,6 +76,7 @@ from CPAC.registration.registration import (
     register_FSL_EPI_to_template,
     coregistration_prep_vol,
     coregistration_prep_mean,
+    coregistration_prep_fmriprep,
     coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
@@ -1095,7 +1096,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             (not rpool.check_rpool('space-T1w_desc-mean_bold') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean],
+            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks
