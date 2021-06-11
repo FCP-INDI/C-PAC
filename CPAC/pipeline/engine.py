@@ -266,7 +266,10 @@ class ResourcePool(object):
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
-        self.rpool[new_name] = self.rpool[resource]
+        try:
+            self.rpool[new_name] = self.rpool[resource]
+        except KeyError:
+            raise Exception(f"[!] {resource} not in the resource pool.")
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -986,9 +989,18 @@ class NodeBlock(object):
             
             if self.input_interface:
                 for interface in self.input_interface:
-                    if interface[0] in init_dct['inputs']:
-                        init_dct['inputs'].remove(interface[0])
-                        init_dct['inputs'].append(interface[1])
+                    for orig_input in init_dct['inputs']:
+                        if isinstance(orig_input, tuple):
+                            list_tup = list(orig_input)
+                            if interface[0] in list_tup:
+                                list_tup.remove(interface[0])
+                                list_tup.append(interface[1])
+                                init_dct['inputs'].remove(orig_input)
+                                init_dct['inputs'].append(tuple(list_tup))
+                        else:                         
+                            if orig_input == interface[0]:
+                                init_dct['inputs'].remove(interface[0])
+                                init_dct['inputs'].append(interface[1])
 
             for key, val in init_dct.items():
                 self.node_blocks[name][key] = val
