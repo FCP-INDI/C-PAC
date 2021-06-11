@@ -2096,9 +2096,9 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "nuisance_regression",
-     "config": None,
-     "switch": ["nuisance_corrections", "2-nuisance_regression", "create_regressors"],
-     "option_key": ["nuisance_corrections", "2-nuisance_regression", "Regressors"],
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["create_regressors"],
+     "option_key": "Regressors",
      "option_val": "USER-DEFINED",
      "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask",
