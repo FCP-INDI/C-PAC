@@ -1146,11 +1146,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template']['using']:
             if cfg.nuisance_corrections['2-nuisance_regression']["process_preproc"]:
-                nuisance.append(nuisance_regression_complete)
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
             elif cfg.nuisance_corrections['2-nuisance_regression']["process_stc"]:
-                nuisance.append((nuisance_regression_complete, (["desc-preproc_bold", "bold"], "desc-stc_bold")))
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "desc-stc_bold")))
             elif cfg.nuisance_corrections['2-nuisance_regression']["process_raw"]:
-                nuisance.append((nuisance_regression_complete, (["desc-preproc_bold", "bold"], "bold")))
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "bold")))
 
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
