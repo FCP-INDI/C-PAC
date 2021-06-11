@@ -547,8 +547,9 @@ latest_schema = Schema({
                     'T1w_template_res-2': str
                 },
             },
-            'apply_transform': {
-                'using': In({'default', 'ANTS', 'FSL'}),
+            'overwrite_transform': {
+                'run': bool,
+                'using': In({'FSL'}),
             },
         },
         'functional_registration': {
@@ -565,7 +566,7 @@ latest_schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume'
+                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
@@ -577,6 +578,8 @@ latest_schema = Schema({
                 'boundary_based_registration': {
                     'run': forkable,
                     'bbr_schedule': str,
+                    'bbr_wm_map': In({'probability_map', 'partial_volume_map'}),
+                    'bbr_wm_mask_args': str,
                     'reference': In({'whole-head', 'brain'})
                 },
             },
@@ -679,7 +682,7 @@ latest_schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume'})],
+                    'mean', 'median', 'selected_volume', 'fmriprep_reference'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
@@ -771,6 +774,11 @@ latest_schema = Schema({
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }])
             ),
+            'FSL_AFNI': {
+                'bold_ref': str,
+                'brain_mask': str,
+                'brain_probseg': str,
+            },
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },

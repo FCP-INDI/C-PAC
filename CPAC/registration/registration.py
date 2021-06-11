@@ -916,6 +916,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                                        'linear_reg_matrix',
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule',
+                                                       'bbr_wm_mask_args',
                                                        'fieldmap',
                                                        'fieldmapmask']),
                         name='inputspec')
@@ -932,7 +933,10 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
 
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='wm_bb_mask')
-    wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
+
+    register_bbregister_func_to_anat.connect(
+        inputspec, 'bbr_wm_mask_args',
+        wm_bb_mask, 'op_string')
 
     register_bbregister_func_to_anat.connect(inputspec,
                                              'anat_wm_segmentation',
@@ -2404,13 +2408,15 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
     
     
-def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "apply_transform_anat_to_template",
-     "config": ["registration_workflows", "anatomical_registration"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
-     "option_val": ["default", "ANTS", "FSL"],
+    {"name": "overwrite_transform_anat_to_template",
+     "config": "None",
+     "switch": [["registration_workflows", "anatomical_registration", "run"],
+                ["registration_workflows", "anatomical_registration", "overwrite_transform", "run"]],
+     "option_key": ["registration_workflows", "anatomical_registration", 
+                    "overwrite_transform", "using"],
+     "option_val": "FSL",
      "inputs": ["desc-restore-brain_T1w", 
                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -2706,6 +2712,27 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "coregistration_prep_fmriprep",
+     "config": ["registration_workflows", "functional_registration",
+                "coregistration"],
+     "switch": ["run"],
+     "option_key": ["func_input_prep", "input"],
+     "option_val": "fmriprep_reference",
+     "inputs": ["desc-ref_bold"],
+     "outputs": ["desc-reginput_bold"]}
+    '''
+
+    coreg_input = strat_pool.get_data("desc-ref_bold")
+
+    outputs = {
+        'desc-reginput_bold': coreg_input
+    }
+
+    return (wf, outputs)
+
+
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration",
@@ -2723,6 +2750,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-brain_T2w",
                  "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
+                 ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
                 "diffphase_dwell",
                 "diffphase_pedir",
@@ -2834,6 +2862,10 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'bbr_schedule']
 
+        func_to_anat_bbreg.inputs.inputspec.bbr_wm_mask_args = \
+            cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_mask_args']
+
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
 
@@ -2856,8 +2888,13 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data(["space-bold_label-WM_mask"])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
-        else: 
-            node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+        else:
+            if cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'probability_map':
+                node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+            elif cfg.registration_workflows['functional_registration'][
+                'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'partial_volume_map':
+                node, out = strat_pool.get_data(["label-WM_pveseg", "label-WM_mask"])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
@@ -3838,7 +3875,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     the derivative outputs.
 
     Node Block:
-    {"name": "transform_bold_mask_to_T1template",
+    {"name": "transform_deriv_mask_to_T1template",
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],

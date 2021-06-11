@@ -68,7 +68,7 @@ from CPAC.anat_preproc.anat_preproc import (
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
-    apply_transform_anat_to_template,
+    overwrite_transform_anat_to_template,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -76,6 +76,7 @@ from CPAC.registration.registration import (
     register_FSL_EPI_to_template,
     coregistration_prep_vol,
     coregistration_prep_mean,
+    coregistration_prep_fmriprep,
     coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
@@ -810,7 +811,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
 
         anat_preproc_blocks = [
-            non_local_means,
+            (non_local_means, ('T1w', ['desc-preproc_T1w', 
+                                       'desc-reorient_T1w',
+                                       'T1w'])),
             n4_bias_correction
         ]
         if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:
@@ -922,7 +925,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-            apply_transform_anat_to_template,
+            overwrite_transform_anat_to_template,
             correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 
@@ -1095,7 +1098,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             (not rpool.check_rpool('space-T1w_desc-mean_bold') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean],
+            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks

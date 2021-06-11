@@ -242,11 +242,9 @@ registration_workflows:
 
       func_input_prep: 
 
-        Mean Functional: 
-
-          # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
-          # this can increase tissue contrast which may improve registration quality in some data
-          n4_correct_func: On
+        # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+        # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
+        input: ['fmriprep_reference']
 
       boundary_based_registration: 
 
@@ -257,6 +255,13 @@ registration_workflows:
         # reference for boundary based registration
         # options: 'whole-head' or 'brain'
         reference: brain
+
+        # choose which FAST map to generate BBR WM mask
+        # options: 'probability_map', 'partial_volume_map'
+        bbr_wm_map: 'partial_volume_map'
+
+        # optional FAST arguments to generate BBR WM mask
+        bbr_wm_mask_args: '-bin'
 
     EPI_registration: 
 
@@ -326,6 +331,9 @@ functional_preproc:
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
       using: [mcflirt]
+
+      # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
+      motion_correction_reference: ['fmriprep_reference']
 
   func_masking: 
 
