@@ -1176,7 +1176,13 @@ class NodeBlock(object):
                         
                         replaced_inputs = []
                         for interface in self.input_interface:
-                            strat_pool.copy_resource(interface[1], interface[0])
+                            if isinstance(interface[1], list):
+                                for input_name in interface[1]:
+                                    if strat_pool.check_rpool(input_name):
+                                        break
+                            else:
+                                input_name = interface[1]
+                            strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
                         
                         wf, outs = block_function(wf, cfg, strat_pool,

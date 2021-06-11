@@ -810,7 +810,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
 
         anat_preproc_blocks = [
-            non_local_means,
+            (non_local_means, ('T1w', ['desc-preproc_T1w', 
+                                       'desc-reorient_T1w',
+                                       'T1w'])),
             n4_bias_correction
         ]
         if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:

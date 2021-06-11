@@ -1468,7 +1468,7 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
+     "inputs": ["T1w"],
      "outputs": ["desc-preproc_T1w"]}
     '''
 
@@ -1477,8 +1477,7 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
 
     denoise.inputs.noise_model = cfg.anatomical_preproc['non_local_means_filtering']['noise_model']
 
-    node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
-                                     'T1w'])
+    node, out = strat_pool.get_data('T1w')
     wf.connect(node, out, denoise, 'input_image')
 
     outputs = {
