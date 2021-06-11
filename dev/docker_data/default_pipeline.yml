@@ -1179,19 +1179,9 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
-    
+
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
-
-    # run nuisance regression on a specific BOLD image type
-    # In default pipeline, 'process_preproc' is set to on, it'll run nuisance regression on preprocessed BOLD image
-    # In fx-options pipeline, 'process_stc' is set to on
-    # In abcd-options pipeline, 'process_raw' is set to on
-    process_preproc: On
-
-    process_stc: Off
-
-    process_raw: Off
 
     # Select which nuisance signal corrections to apply
     Regressors:

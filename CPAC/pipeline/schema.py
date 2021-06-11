@@ -791,9 +791,6 @@ latest_schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'create_regressors': bool,
-            'process_preproc': bool,
-            'process_stc': bool,
-            'process_raw': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
