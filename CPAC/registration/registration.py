@@ -2408,13 +2408,15 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
     
     
-def apply_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "apply_transform_anat_to_template",
-     "config": ["registration_workflows", "anatomical_registration"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
-     "option_val": ["default", "ANTS", "FSL"],
+    {"name": "overwrite_transform_anat_to_template",
+     "config": "None",
+     "switch": [["registration_workflows", "anatomical_registration", "run"],
+                ["registration_workflows", "anatomical_registration", "overwrite_transform", "run"]],
+     "option_key": ["registration_workflows", "anatomical_registration", 
+                    "overwrite_transform", "using"],
+     "option_val": "FSL",
      "inputs": ["desc-restore-brain_T1w", 
                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -3873,7 +3875,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     the derivative outputs.
 
     Node Block:
-    {"name": "transform_bold_mask_to_T1template",
+    {"name": "transform_deriv_mask_to_T1template",
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],

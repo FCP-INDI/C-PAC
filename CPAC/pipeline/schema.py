@@ -547,8 +547,9 @@ latest_schema = Schema({
                     'T1w_template_res-2': str
                 },
             },
-            'apply_transform': {
-                'using': In({'default', 'ANTS', 'FSL'}),
+            'overwrite_transform': {
+                'run': bool,
+                'using': In({'FSL'}),
             },
         },
         'functional_registration': {

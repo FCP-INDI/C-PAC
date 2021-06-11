@@ -68,7 +68,7 @@ from CPAC.anat_preproc.anat_preproc import (
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
-    apply_transform_anat_to_template,
+    overwrite_transform_anat_to_template,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -925,7 +925,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-            apply_transform_anat_to_template,
+            overwrite_transform_anat_to_template,
             correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 
@@ -1124,9 +1124,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'coregistration']['run'
     ] and 'T1_template' or "DCAN_NHP" in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
-            'target_template']['using'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template'][
-            'apply_transform']['using'] == 'default':
+            'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
