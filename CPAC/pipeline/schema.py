@@ -611,7 +611,7 @@ latest_schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template', 'DCAN_NHP'})],
+                    'using': [In({'T1_template', 'EPI_template'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
@@ -633,7 +633,7 @@ latest_schema = Schema({
                     'identity_matrix': str,
                 },
                 'apply_transform': {
-                    'using': In({'default', 'abcd', 'single_step_resampling'}),
+                    'using': In({'default', 'abcd', 'single_step_resampling', 'dcan_nhp'}),
                 },
             },
         },

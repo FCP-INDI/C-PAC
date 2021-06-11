@@ -2100,7 +2100,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["create_regressors"],
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [(["desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "movement-parameters",
@@ -2136,8 +2136,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-preproc_bold",
-                                     "bold"])
+    node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, 'inputspec.functional_file_path')
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -2269,8 +2268,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
             if cfg.nuisance_corrections['2-nuisance_regression'][
                 'bandpass_filtering_order'] == 'After':
 
-                node, out = strat_pool.get_data(["desc-preproc_bold",
-                                                 "bold"])
+                node, out = strat_pool.get_data("desc-preproc_bold")
                 wf.connect(node, out, nuis, 'inputspec.functional_file_path')
 
                 wf.connect(nuis, 'outputspec.residual_file_path',
@@ -2285,8 +2283,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
             elif cfg.nuisance_corrections['2-nuisance_regression'][
                 'bandpass_filtering_order'] == 'Before':
 
-                node, out = strat_pool.get_data(["desc-preproc_bold",
-                                                 "bold"])
+                node, out = strat_pool.get_data("desc-preproc_bold")
                 wf.connect(node, out, filt, 'inputspec.functional_file_path')
 
                 wf.connect(filt, 'outputspec.residual_file_path',
@@ -2311,8 +2308,8 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
         }
 
     return (wf, outputs)
-    
-    
+
+
 def erode_mask_bold(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "erode_mask_bold",
@@ -2480,7 +2477,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["create_regressors"],
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [(["desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "desc-brain_bold",
                  "space-bold_desc-brain_mask",
                  "movement-parameters",
@@ -2515,8 +2512,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-preproc_bold",
-                                     "bold"])
+    node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, 'inputspec.functional_file_path')
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -2625,8 +2621,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
             if cfg.nuisance_corrections['2-nuisance_regression'][
                 'bandpass_filtering_order'] == 'After':
 
-                node, out = strat_pool.get_data(["desc-preproc_bold",
-                                                 "bold"])
+                node, out = strat_pool.get_data("desc-preproc_bold")
                 wf.connect(node, out, nuis, 'inputspec.functional_file_path')
 
                 wf.connect(nuis, 'outputspec.residual_file_path',
@@ -2641,8 +2636,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
             elif cfg.nuisance_corrections['2-nuisance_regression'][
                 'bandpass_filtering_order'] == 'Before':
 
-                node, out = strat_pool.get_data(["desc-preproc_bold",
-                                                 "bold"])
+                node, out = strat_pool.get_data("desc-preproc_bold")
                 wf.connect(node, out, filt, 'inputspec.functional_file_path')
 
                 wf.connect(filt, 'outputspec.residual_file_path',

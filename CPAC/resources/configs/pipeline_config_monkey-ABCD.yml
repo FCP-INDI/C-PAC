@@ -346,7 +346,7 @@ registration_workflows:
         # NOTE:
         #   this will determine which registration transform to use to warp the functional
         #   outputs and derivatives to template space
-        using: ['DCAN_NHP']
+        using: ['T1_template']
 
         # option parameters
         T1_template: 
@@ -372,6 +372,13 @@ registration_workflows:
         # Possible values: trilinear, sinc, spline
         interpolation: spline
 
+      apply_transform:
+
+        # options: 'default', 'abcd', 'single_step_resampling', 'dcan_nhp'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        using: 'dcan_nhp'
 
 functional_preproc:
 
