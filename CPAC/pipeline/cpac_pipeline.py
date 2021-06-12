@@ -1190,13 +1190,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_bold_mean_to_EPItemplate]
 
     # ABCD end-to-end pipeline
-    if cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['apply_transform']['using'] == 'abcd':
+    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
         pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
 
     # fMRIPrep end-to-end pipeline
     if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'single_step_resampling':
+        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
         pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
