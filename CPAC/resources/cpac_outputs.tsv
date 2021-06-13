@@ -138,7 +138,6 @@ smoothed_surface_mesh	surface-derived		anat
 spherical_surface_mesh	surface-derived		anat					
 sulcal_depth_surface_maps	surface-derived		anat					
 surface_curvature	surface-derived		anat					
-white_matter_surface_mesh	surface-derived		anat					
 space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI				
 desc-brain_T1w	T1w	T1w	anat	NIfTI				
 desc-preproc_T1w	T1w	T1w	anat	NIfTI				

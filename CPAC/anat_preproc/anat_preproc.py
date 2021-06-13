@@ -2526,7 +2526,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "sulcal_depth_surface_maps",
                  "cortical_thickness_surface_maps",
                  "cortical_volume_surface_maps",
-                 "white_matter_surface_mesh",
                  "raw_average",
                  "brainmask",
                  "T1"]}
@@ -2627,7 +2626,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
-    # TODO refactor code to achieve DRY
+    # TODO refactor code to make it DRY
     if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
         erode_csf = pe.Node(interface=freesurfer.model.Binarize(),
                             name=f'erode_csf_{pipe_num}')
@@ -2663,7 +2662,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'sulcal_depth_surface_maps': (reconall, 'sulc'),
         'cortical_thickness_surface_maps': (reconall, 'thickness'),
         'cortical_volume_surface_maps': (reconall, 'volume'),
-        'white_matter_surface_mesh': (reconall, 'white'),
         'raw_average': (reconall, 'rawavg'),
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
