@@ -131,7 +131,6 @@ space-template_reho	reho	template	func	NIfTI	Yes	Yes
 desc-DualReg_statmap	statistic	template	func	NIfTI				
 desc-MultReg_statmap	statistic	template	func	NIfTI				
 cortical_thickness_surface_maps	surface-derived		anat					
-cortical_volume_surface_maps	surface-derived		anat					
 pial_surface_mesh	surface-derived		anat					
 raw_average	surface-derived		anat					
 smoothed_surface_mesh	surface-derived		anat					

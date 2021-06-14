@@ -2525,7 +2525,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "spherical_surface_mesh",
                  "sulcal_depth_surface_maps",
                  "cortical_thickness_surface_maps",
-                 "cortical_volume_surface_maps",
                  "raw_average",
                  "brainmask",
                  "T1"]}
@@ -2661,7 +2660,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'spherical_surface_mesh': (reconall, 'sphere'),
         'sulcal_depth_surface_maps': (reconall, 'sulc'),
         'cortical_thickness_surface_maps': (reconall, 'thickness'),
-        'cortical_volume_surface_maps': (reconall, 'volume'),
         'raw_average': (reconall, 'rawavg'),
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
