@@ -1962,7 +1962,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-longitudinal_to-template_mode-image_xfm"]}
     '''
 
-    fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
+    fsl, outputs = FSL_registration_connector(f'register_{opt}_anat_to_'
                                               f'template_{pipe_num}', cfg,
                                               orig='T1w', opt=opt)
 
@@ -2042,7 +2042,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                  "from-longitudinal_to-symtemplate_mode-image_xfm"]}
     '''
 
-    fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
+    fsl, outputs = FSL_registration_connector(f'register_{opt}_anat_to_'
                                               f'template_symmetric_'
                                               f'{pipe_num}', cfg, orig='T1w',
                                               opt=opt, symmetric=True)
@@ -2111,7 +2111,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-EPItemplate_mode-image_xfm"]}
     '''
 
-    fsl, outputs = FSL_registration_connector('register_FSL_EPI_to_'
+    fsl, outputs = FSL_registration_connector(f'register_{opt}_EPI_to_'
                                               f'template_{pipe_num}', cfg,
                                               orig='bold', opt=opt,
                                               template='EPI')

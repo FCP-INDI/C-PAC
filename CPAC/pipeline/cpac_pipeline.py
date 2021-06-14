@@ -925,8 +925,8 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-            overwrite_transform_anat_to_template,
-            correct_restore_brain_intensity_abcd # ABCD-options pipeline
+             overwrite_transform_anat_to_template,
+             correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
