@@ -2519,12 +2519,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-CSF_mask",
                  "label-WM_mask",
                  "label-GM_mask",
-                 "surface_curvature",
-                 "pial_surface_mesh",
-                 "smoothed_surface_mesh",
-                 "spherical_surface_mesh",
-                 "sulcal_depth_surface_maps",
-                 "cortical_thickness_surface_maps",
                  "raw_average",
                  "brainmask",
                  "T1"]}
@@ -2654,12 +2648,6 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer_subject_dir': (reconall, 'subjects_dir'),
-        'surface_curvature': (reconall, 'curv'),
-        'pial_surface_mesh': (reconall, 'pial'),
-        'smoothed_surface_mesh': (reconall, 'smoothwm'),
-        'spherical_surface_mesh': (reconall, 'sphere'),
-        'sulcal_depth_surface_maps': (reconall, 'sulc'),
-        'cortical_thickness_surface_maps': (reconall, 'thickness'),
         'raw_average': (reconall, 'rawavg'),
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
