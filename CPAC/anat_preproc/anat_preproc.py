@@ -903,10 +903,10 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
 
-    node, out = strat_pool.get_data('raw_average')
+    node, out = strat_pool.get_data('raw-average')
     wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
 
-    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_brain_mask_to_native, 'subjects_dir')
 
     # convert brain mask file from .mgz to .nii.gz
@@ -1144,10 +1144,10 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(binarize_combined_mask, 'out_file', 
         fs_fsl_brain_mask_to_native, 'source_file')
 
-    node, out = strat_pool.get_data('raw_average')
+    node, out = strat_pool.get_data('raw-average')
     wf.connect(node, out, fs_fsl_brain_mask_to_native, 'target_file')
 
-    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_fsl_brain_mask_to_native, 'subjects_dir')
 
     if opt == 'FreeSurfer-BET-Tight':
@@ -1723,8 +1723,8 @@ def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "Freesurfer",
      "inputs": ["space-T1w_desc-brain_mask",
-                "raw_average",
-                "freesurfer_subject_dir"],
+                "raw-average",
+                "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -1742,8 +1742,8 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "Freesurfer",
      "inputs": ["space-T1w_desc-brain_mask",
-                "raw_average",
-                "freesurfer_subject_dir"],
+                "raw-average",
+                "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 
@@ -1765,7 +1765,7 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-ABCD",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "wmparc",
-                "freesurfer_subject_dir"],
+                "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
 
@@ -1783,8 +1783,8 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-BET-Tight",
      "inputs": ["brainmask",
                 "T1",
-                "raw_average",
-                "freesurfer_subject_dir",
+                "raw-average",
+                "freesurfer-subject-dir",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_brain_mask"]}
@@ -1804,7 +1804,7 @@ def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-ABCD",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "wmparc",
-                "freesurfer_subject_dir"],
+                "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
 
@@ -1825,8 +1825,8 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["brainmask",
                 "T1",
-                "raw_average",
-                "freesurfer_subject_dir",
+                "raw-average",
+                "freesurfer-subject-dir",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_brain_mask"]}
@@ -2515,19 +2515,24 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-T1w_desc-brain_mask",
-                 "freesurfer_subject_dir",
+                 "freesurfer-subject-dir",
                  "label-CSF_mask",
                  "label-WM_mask",
                  "label-GM_mask",
-                 "surface_curvature",
-                 "pial_surface_mesh",
-                 "smoothed_surface_mesh",
-                 "spherical_surface_mesh",
-                 "sulcal_depth_surface_maps",
-                 "cortical_thickness_surface_maps",
-                 "cortical_volume_surface_maps",
-                 "white_matter_surface_mesh",
-                 "raw_average",
+                 "surface-curvature",
+                 "pial-surface-mesh",
+                 "smoothed-surface-mesh",
+                 "lh-spherical-surface-mesh",
+                 "rh-spherical-surface-mesh",
+                 "lh-sulcal-depth-surface-map",
+                 "rh-sulcal-depth-surface-map",
+                 "lh-cortical-thickness-surface-map",
+                 "rh-cortical-thickness-surface-map",
+                 "lh-cortical-volume-surface-map",
+                 "rh-cortical-volume-surface-map",
+                 "lh-white-matter-surface-mesh",
+                 "rh-white-matter-surface-mesh",
+                 "raw-average",
                  "brainmask",
                  "T1"]}
     '''
@@ -2652,19 +2657,64 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
             'tissue_segmentation']['FreeSurfer']['erode']
 
         wf.connect(pick_tissue, 'gm_mask', erode_gm, 'in_file')
+       
+    def split_hemi(multi_file):
+        lh = None
+        rh = None
+        for filepath in multi_file:
+            if 'lh.' in filepath:
+                lh = filepath
+            if 'rh.' in filepath:
+                rh = filepath
+        return (lh, rh)
+
+    split_spherical = pe.Node(util.Function(input_names=['multi_file'],
+                                            output_names=['lh', 'rh'],
+                                            function=split_hemi),
+                              name=f'split_spherical_{pipe_num}')
+    wf.connect(reconall, 'sphere', split_spherical, 'out')
+    
+    split_sulcal_depth = pe.Node(util.Function(input_names=['multi_file'],
+                                               output_names=['lh', 'rh'],
+                                               function=split_hemi),
+                             name=f'split_sulcal_{pipe_num}')
+    wf.connect(reconall, 'sulc', split_sulcal_depth, 'out')
+    
+    split_cortical_thick = pe.Node(util.Function(input_names=['multi_file'],
+                                                 output_names=['lh', 'rh'],
+                                                 function=split_hemi),
+                             name=f'split_cortical_thick_{pipe_num}')
+    wf.connect(reconall, 'thickness', split_cortical_thick, 'out')
+    
+    split_cortical_volume = pe.Node(util.Function(input_names=['multi_file'],
+                                                  output_names=['lh', 'rh'],
+                                                  function=split_hemi),
+                             name=f'split_cortical_vol_{pipe_num}')
+    wf.connect(reconall, 'volume', split_cortical_volume, 'out')
+    
+    split_white_surface = pe.Node(util.Function(input_names=['multi_file'],
+                                                output_names=['lh', 'rh'],
+                                                function=split_hemi),
+                             name=f'split_white_{pipe_num}')
+    wf.connect(reconall, 'white', split_white_surface, 'out')
 
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
-        'freesurfer_subject_dir': (reconall, 'subjects_dir'),
-        'surface_curvature': (reconall, 'curv'),
-        'pial_surface_mesh': (reconall, 'pial'),
-        'smoothed_surface_mesh': (reconall, 'smoothwm'),
-        'spherical_surface_mesh': (reconall, 'sphere'),
-        'sulcal_depth_surface_maps': (reconall, 'sulc'),
-        'cortical_thickness_surface_maps': (reconall, 'thickness'),
-        'cortical_volume_surface_maps': (reconall, 'volume'),
-        'white_matter_surface_mesh': (reconall, 'white'),
-        'raw_average': (reconall, 'rawavg'),
+        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
+        'surface-curvature': (reconall, 'curv'),
+        'pial-surface-mesh': (reconall, 'pial'),
+        'smoothed-surface-mesh': (reconall, 'smoothwm'),
+        'lh-spherical-surface-mesh': (split_spherical, 'lh'),
+        'rh-spherical-surface-mesh': (split_spherical, 'rh'),
+        'lh-sulcal-depth-surface-map': (split_sulcal_depth, 'lh'),
+        'rh-sulcal-depth-surface-map': (split_sulcal_depth, 'rh'),
+        'lh-cortical-thickness-surface-map': (split_cortical_thick, 'lh'),
+        'rh-cortical-thickness-surface-map': (split_cortical_thick, 'rh'),
+        'lh-cortical-volume-surface-map': (split_cortical_volume, 'lh'),
+        'rh-cortical-volume-surface-map': (split_cortical_volume, 'rh'),
+        'lh-white-matter-surface-mesh': (split_white_surface, 'lh'),
+        'rh-white-matter-surface-mesh': (split_white_surface, 'rh'),
+        'raw-average': (reconall, 'rawavg'),
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
     }
@@ -2901,7 +2951,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
                  "wmparc",
-                 "freesurfer_subject_dir"]}
+                 "freesurfer-subject-dir"]}
     '''
 
     # fnirt-based brain extraction
@@ -3021,7 +3071,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-restore-brain_T1w': (fast_correction, 'outputspec.anat_brain_restore'),
         'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
         'wmparc': (reconall, 'wmparc'),
-        'freesurfer_subject_dir': (reconall, 'subjects_dir'),
+        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
     }
 
     return (wf, outputs)
