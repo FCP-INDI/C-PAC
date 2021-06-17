@@ -2154,7 +2154,7 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
                    'inputspec.anatomical_eroded_brain_mask_file_path')
 
     if strat_pool.check_rpool(["label-CSF_desc-eroded_mask",
-                               "label-CSF_desc-preproc_mask", 
+                               "label-CSF_desc-preproc_mask",
                                "label-CSF_mask"]):
         node, out = strat_pool.get_data(["label-CSF_desc-eroded_mask",
                                          "label-CSF_desc-preproc_mask", 
@@ -2162,10 +2162,10 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, regressors, 'inputspec.csf_mask_file_path')
 
     if strat_pool.check_rpool(["label-WM_desc-eroded_mask",
-                               "label-WM_desc-preproc_mask", 
+                               "label-WM_desc-preproc_mask",
                                "label-WM_mask"]):
         node, out = strat_pool.get_data(["label-WM_desc-eroded_mask",
-                                         "label-WM_desc-preproc_mask", 
+                                         "label-WM_desc-preproc_mask",
                                          "label-WM_mask"])
         wf.connect(node, out, regressors, 'inputspec.wm_mask_file_path')
 
