@@ -2672,31 +2672,31 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                             output_names=['lh', 'rh'],
                                             function=split_hemi),
                               name=f'split_spherical_{pipe_num}')
-    wf.connect(reconall, 'sphere', split_spherical, 'out')
+    wf.connect(reconall, 'sphere', split_spherical, 'multi_file')
     
     split_sulcal_depth = pe.Node(util.Function(input_names=['multi_file'],
                                                output_names=['lh', 'rh'],
                                                function=split_hemi),
                              name=f'split_sulcal_{pipe_num}')
-    wf.connect(reconall, 'sulc', split_sulcal_depth, 'out')
+    wf.connect(reconall, 'sulc', split_sulcal_depth, 'multi_file')
     
     split_cortical_thick = pe.Node(util.Function(input_names=['multi_file'],
                                                  output_names=['lh', 'rh'],
                                                  function=split_hemi),
                              name=f'split_cortical_thick_{pipe_num}')
-    wf.connect(reconall, 'thickness', split_cortical_thick, 'out')
+    wf.connect(reconall, 'thickness', split_cortical_thick, 'multi_file')
     
     split_cortical_volume = pe.Node(util.Function(input_names=['multi_file'],
                                                   output_names=['lh', 'rh'],
                                                   function=split_hemi),
                              name=f'split_cortical_vol_{pipe_num}')
-    wf.connect(reconall, 'volume', split_cortical_volume, 'out')
+    wf.connect(reconall, 'volume', split_cortical_volume, 'multi_file')
     
     split_white_surface = pe.Node(util.Function(input_names=['multi_file'],
                                                 output_names=['lh', 'rh'],
                                                 function=split_hemi),
                              name=f'split_white_{pipe_num}')
-    wf.connect(reconall, 'white', split_white_surface, 'out')
+    wf.connect(reconall, 'white', split_white_surface, 'multi_file')
 
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
