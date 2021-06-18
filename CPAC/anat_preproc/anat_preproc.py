@@ -2519,9 +2519,12 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-CSF_mask",
                  "label-WM_mask",
                  "label-GM_mask",
-                 "surface-curvature",
-                 "pial-surface-mesh",
-                 "smoothed-surface-mesh",
+                 "lh-surface-curvature",
+                 "rh-surface-curvature",
+                 "lh-pial-surface-mesh",
+                 "rh-pial-surface-mesh",
+                 "lh-smoothed-surface-mesh",
+                 "rh-smoothed-surface-mesh",
                  "lh-spherical-surface-mesh",
                  "rh-spherical-surface-mesh",
                  "lh-sulcal-depth-surface-map",
@@ -2668,6 +2671,24 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 rh = filepath
         return (lh, rh)
 
+    split_surface = pe.Node(util.Function(input_names=['multi_file'],
+                                          output_names=['lh', 'rh'],
+                                          function=split_hemi),
+                            name=f'split_surface_{pipe_num}')
+    wf.connect(reconall, 'curv', split_surface, 'multi_file')
+    
+    split_pial = pe.Node(util.Function(input_names=['multi_file'],
+                                       output_names=['lh', 'rh'],
+                                       function=split_hemi),
+                         name=f'split_pial_{pipe_num}')
+    wf.connect(reconall, 'pial', split_pial, 'multi_file')
+    
+    split_smoothed = pe.Node(util.Function(input_names=['multi_file'],
+                                           output_names=['lh', 'rh'],
+                                           function=split_hemi),
+                             name=f'split_smoothed_{pipe_num}')
+    wf.connect(reconall, 'smoothwm', split_smoothed, 'multi_file')
+
     split_spherical = pe.Node(util.Function(input_names=['multi_file'],
                                             output_names=['lh', 'rh'],
                                             function=split_hemi),
@@ -2701,9 +2722,12 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        'surface-curvature': (reconall, 'curv'),
-        'pial-surface-mesh': (reconall, 'pial'),
-        'smoothed-surface-mesh': (reconall, 'smoothwm'),
+        'lh-surface-curvature': (split_surface, 'lh'),
+        'rh-surface-curvature': (split_surface, 'rh'),
+        'lh-pial-surface-mesh': (split_pial, 'lh'),
+        'rh-pial-surface-mesh': (split_pial, 'rh'),
+        'lh-smoothed-surface-mesh': (split_smoothed, 'lh'),
+        'rh-smoothed-surface-mesh': (split_smoothed, 'rh'),
         'lh-spherical-surface-mesh': (split_spherical, 'lh'),
         'rh-spherical-surface-mesh': (split_spherical, 'rh'),
         'lh-sulcal-depth-surface-map': (split_sulcal_depth, 'lh'),

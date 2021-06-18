@@ -134,14 +134,17 @@ lh-cortical-thickness-surface-map	surface-derived		anat						Yes
 rh-cortical-thickness-surface-map	surface-derived		anat						Yes
 lh-cortical-volume-surface-map	surface-derived		anat						Yes
 rh-cortical-volume-surface-map	surface-derived		anat						Yes
-pial-surface-mesh	surface-derived		anat						
+lh-pial-surface-mesh	surface-derived		anat						
+rh-pial-surface-mesh	surface-derived		anat						
 raw-average	surface-derived		anat						
-smoothed-surface-mesh	surface-derived		anat						
+lh-smoothed-surface-mesh	surface-derived		anat						
+rh-smoothed-surface-mesh	surface-derived		anat						
 lh-spherical-surface-mesh	surface-derived		anat						Yes
 rh-spherical-surface-mesh	surface-derived		anat						Yes
 lh-sulcal-depth-surface-maps	surface-derived		anat						Yes
 rh-sulcal-depth-surface-maps	surface-derived		anat						Yes
-surface-curvature	surface-derived		anat						
+lh-surface-curvature	surface-derived		anat						
+rh-surface-curvature	surface-derived		anat						
 lh-white-matter-surface-mesh	surface-derived		anat						Yes
 rh-white-matter-surface-mesh	surface-derived		anat						Yes
 space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
