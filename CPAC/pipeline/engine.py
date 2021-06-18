@@ -90,9 +90,9 @@ class ResourcePool(object):
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
-            if name not in self.rpool:
-                return False
-        return True
+            if name in self.rpool:
+                return True
+        return False
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
