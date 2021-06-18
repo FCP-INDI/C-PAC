@@ -952,20 +952,11 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_T1_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_T1_template_based)
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_EPI_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_EPI_template_based)
+            
         pipeline_blocks += seg_blocks
 
     return pipeline_blocks
@@ -1111,12 +1102,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             [register_ANTs_EPI_to_template, register_FSL_EPI_to_template]
         ]
         pipeline_blocks += EPI_reg_blocks
-
-    if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
-        'Template_Based']['template_for_segmentation']:
-        if not rpool.check_rpool('space-bold_label-CSF_mask') or \
-                not rpool.check_rpool('space-bold_label-WM_mask'):
-            pipeline_blocks += [tissue_seg_EPI_template_based]
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)

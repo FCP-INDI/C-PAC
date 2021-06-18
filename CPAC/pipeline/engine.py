@@ -1074,8 +1074,11 @@ class NodeBlock(object):
                     opts = self.grab_tiered_dct(cfg, key_list)
                 else:
                     for option in option_val:
-                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                            opts.append(option)
+                        try:
+                            if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                                opts.append(option)
+                        except AttributeError as err:
+                            raise Exception(f"{err}\nNode Block: {name}")
                             
                 if opts == None:
                     opts = [opts]
@@ -1371,6 +1374,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
+                          
+    if 'anat' not in data_paths:
+        print('No anatomical data present.')
+        return rpool
+                          
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
