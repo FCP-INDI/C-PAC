@@ -899,7 +899,7 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FreeSurfer",
-     "inputs": ["freesurfer_subject_dir"],
+     "inputs": ["freesurfer-subject-dir"],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -909,7 +909,7 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
                                            wf_name='seg_preproc_freesurfer'
                                                    f'_{pipe_num}')
 
-    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
 
     outputs = {

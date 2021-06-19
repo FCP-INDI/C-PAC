@@ -1,187 +1,197 @@
-Resource	Type	Space	Sub-Directory	File	To Smooth	To z-std	4D Time Series	Optional: Debugging
-alff	alff	functional	func	NIfTI	Yes	Yes		
-desc-sm_alff	alff	functional	func	NIfTI		Yes		
-desc-sm-zstd_alff	alff	functional	func	NIfTI				
-desc-zstd_alff	alff	functional	func	NIfTI				
-space-template_alff	alff	template	func	NIfTI	Yes	Yes		
-space-template_desc-sm_alff	alff	template	func	NIfTI		Yes		
-space-template_desc-sm-zstd_alff	alff	template	func	NIfTI				
-space-template_desc-zstd_alff	alff	template	func	NIfTI				
-desc-brain_bold	bold	functional	func	NIfTI			Yes	Yes
-desc-cleaned_bold	bold	functional	func	NifTI			Yes	Yes
-desc-mean_bold	bold	functional	func	NIfTI				
-desc-motion_bold	bold	functional	func	NIfTI			Yes	Yes
-desc-preproc_bold	bold	functional	func	NIfTI			Yes	
-desc-sm_bold	bold	functional	func	NIfTI			Yes	Yes
-space-EPItemplate_bold	bold	EPI template	func	NIfTI			Yes	
-space-EPItemplate_desc-brain_bold	bold	EPI template	func	NIfTI			Yes	
-space-EPItemplate_desc-cleaned_bold	bold	EPI template	func	NIfTI			Yes	
-space-EPItemplate_desc-mean_bold	bold	EPI template	func	NIfTI				
-space-EPItemplate_desc-preproc_bold	bold	EPI template	func	NIfTI			Yes	
-space-symtemplate_desc-sm_bold	bold	symmetric template	func	NIfTI			Yes	Yes
-space-T1w_desc-mean_bold	bold	T1w	func	NIfTI				
-space-template_bold	bold	template	func	NIfTI			Yes	
-space-template_desc-brain_bold	bold	template	func	NIfTI			Yes	
-space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes	
-space-template_desc-mean_bold	bold	template	func	NIfTI				
-space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes	
-desc-DualReg_correlations	correlation	template	func	NIfTI				
-desc-MeanSCA_correlations	correlation	template	func	NIfTI				
-desc-MultReg_correlations	correlation	template	func	NIfTI				
-desc-ndmg_correlations	correlation	template	func	NIfTI				
-space-template_desc-binarized_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes		
-space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes		
-space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI				
-space-template_desc-binarized-zstd_degree-centrality	degree-centrality	template	func	NIfTI				
-space-template_desc-weighted_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes		
-space-template_desc-weighted-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes		
-space-template_desc-weighted-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI				
-space-template_desc-weighted-zstd_degree-centrality	degree-centrality	template	func	NIfTI				
-space-template_desc-binarized_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes		
-space-template_desc-binarized-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes		
-space-template_desc-binarized-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI				
-space-template_desc-binarized-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI				
-space-template_desc-weighted_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes		
-space-template_desc-weighted-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes		
-space-template_desc-weighted-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI				
-space-template_desc-weighted-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI				
-desc-sm_falff	falff	functional	func	NIfTI		Yes		
-desc-sm-zstd_falff	falff	functional	func	NIfTI				
-desc-zstd_falff	falff	functional	func	NIfTI				
-falff	falff	functional	func	NIfTI	Yes	Yes		
-space-template_desc-sm_falff	falff	template	func	NIfTI		Yes		
-space-template_desc-sm-zstd_falff	falff	template	func	NIfTI				
-space-template_desc-zstd_falff	falff	template	func	NIfTI				
-space-template_falff	falff	template	func	NIfTI	Yes	Yes		
-space-template_desc-binarized_lfcd	lfcd	template	func	NIfTI	Yes	Yes		
-space-template_desc-binarized-sm_lfcd	lfcd	template	func	NIfTI		Yes		
-space-template_desc-binarized-sm-zstd_lfcd	lfcd	template	func	NIfTI				
-space-template_desc-binarized-zstd_lfcd	lfcd	template	func	NIfTI				
-space-template_desc-weighted_lfcd	lfcd	template	func	NIfTI	Yes	Yes		
-space-template_desc-weighted-sm_lfcd	lfcd	template	func	NIfTI		Yes		
-space-template_desc-weighted-sm-zstd_lfcd	lfcd	template	func	NIfTI				
-space-template_desc-weighted-zstd_lfcd	lfcd	template	func	NIfTI				
-space-EPItemplate_desc-bold_mask	mask	EPI template	func	NIfTI				
-space-EPItemplate_res-derivative_desc-bold_mask	mask	EPI template	func	NIfTI				
-space-bold_desc-brain_mask	mask	functional	func	NIfTI				
-space-bold_desc-eroded_mask	mask	functional	func	NIfTI				
-space-bold_label-CSF_desc-eroded_mask	mask	functional	func	NIfTI				
-space-bold_label-CSF_mask	mask	functional	func	NIfTI				
-space-bold_label-GM_desc-eroded_mask	mask	functional	func	NIfTI				
-space-bold_label-GM_mask	mask	functional	func	NIfTI				
-space-bold_label-WM_desc-eroded_mask	mask	functional	func	NIfTI				
-space-bold_label-WM_mask	mask	functional	func	NIfTI				
-space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-CSF_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-CSF_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-GM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-GM_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-WM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-WM_mask	mask	longitudinal T1w	anat	NIfTI				
-label-CSF_desc-eroded_mask	mask	T1w	anat	NIfTI				
-label-CSF_desc-preproc_mask	mask	T1w	anat	NIfTI				
-label-CSF_mask	mask	T1w	anat	NIfTI				
-label-GM_desc-eroded_mask	mask	T1w	anat	NIfTI				
-label-GM_desc-preproc_mask	mask	T1w	anat	NIfTI				
-label-GM_mask	mask	T1w	anat	NIfTI				
-label-WM_desc-eroded_mask	mask	T1w	anat	NIfTI				
-label-WM_desc-preproc_mask	mask	T1w	anat	NIfTI				
-label-WM_mask	mask	T1w	anat	NIfTI				
-space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI				
-space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI				
-space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI				
-space-template_desc-bold_mask	mask	template	func	NIfTI				
-space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI				
-dvars	motion		func	text				
-framewise-displacement-jenkinson	motion		func	1D				
-framewise-displacement-power	motion		func	1D				
-max-displacement	motion		func	1D				
-motion-filter-info	motion		func	text				
-motion-filter-plot	motion		func	png				
-motion-params	motion		func	text				
-movement-parameters	motion		func	1D				
-power-params	motion		func	text				
-rels-displacement	motion		func	1D				
-label-CSF_probseg	probseg	T1w	anat	NIfTI				
-label-GM_probseg	probseg	T1w	anat	NIfTI				
-label-WM_probseg	probseg	T1w	anat	NIfTI				
-T1w-axial-qc	qc		anat	png				
-T1w-sagittal-qc	qc		anat	png				
-dseg-axial-qc	qc		anat	png				
-desg-sagittal-qc	qc		anat	png				
-bold-axial-qc	qc		func	png				
-bold-sagittal-qc	qc		func	png				
-bold-carpet-qc	qc		func	png				
-framewise-displacement-jenkinson-plot-qc	qc		func	png				
-movement-parameters-trans-qc	qc		func	png				
-movement-parameters-rot-qc	qc		func	png				
-bold-snr-axial-qc	qc		func	png				
-bold-snr-sagittal-qc	qc		func	png				
-bold-snr-hist-qc	qc		func	png				
-bold-snr-qc	qc		func	png				
-regressors	regressors		func	1D				
-desc-sm_reho	reho	functional	func	NIfTI		Yes		
-desc-sm-zstd_reho	reho	functional	func	NIfTI				
-desc-zstd_reho	reho	functional	func	NIfTI				
-reho	reho	functional	func	NIfTI	Yes	Yes		
-space-template_desc-sm_reho	reho	template	func	NIfTI		Yes		
-space-template_desc-sm-zstd_reho	reho	template	func	NIfTI				
-space-template_desc-zstd_reho	reho	template	func	NIfTI				
-space-template_reho	reho	template	func	NIfTI	Yes	Yes		
-desc-DualReg_statmap	statistic	template	func	NIfTI				
-desc-MultReg_statmap	statistic	template	func	NIfTI				
-cortical_thickness_surface_maps	surface-derived		anat					
-pial_surface_mesh	surface-derived		anat					
-raw_average	surface-derived		anat					
-smoothed_surface_mesh	surface-derived		anat					
-spherical_surface_mesh	surface-derived		anat					
-sulcal_depth_surface_maps	surface-derived		anat					
-surface_curvature	surface-derived		anat					
-space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI				
-desc-brain_T1w	T1w	T1w	anat	NIfTI				
-desc-preproc_T1w	T1w	T1w	anat	NIfTI				
-desc-reorient_T1w	T1w	T1w	anat	NIfTI				
-space-template_desc-brain_T1w	T1w	template	anat	NIfTI				
-desc-Mean_timeseries	timeseries		func	1D				
-desc-MeanSCA_timeseries	timeseries		func	1D				
-desc-SpatReg_timeseries	timeseries		func	1D				
-desc-Voxel_timeseries	timeseries		func	1D				
-space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI				
-space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI				
-vmhc	vmhc	symmetric template	func	NIfTI				
-blip-warp	xfm		func	NIfTI				
-from-bold_to-EPItemplate_mode-image_desc-linear_xfm	xfm		func	NIfTI				
-from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI				
-from-bold_to-EPItemplate_mode-image_xfm	xfm		func	NIfTI				
-from-bold_to-symtemplate_mode-image_xfm	xfm		func	NIfTI				
-from-bold_to-T1w_mode-image_desc-linear_xfm	xfm		func	NIfTI				
-from-bold_to-template_mode-image_xfm	xfm		func	NIfTI				
-from-EPItemplate_to-bold_mode-image_desc-linear_xfm	xfm		func	NIfTI				
-from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI				
-from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-longitudinal_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI				
-from-longitudinal_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-longitudinal_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-longitudinal_to-template_mode-image_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-bold_mode-image_xfm	xfm		func	NIfTI				
-from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-symtemplate_to-T1w_mode-image_xfm	xfm		anat	NIfTI				
-from-T1w_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-T1w_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI				
-from-T1w_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-T1w_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-T1w_to-template_mode-image_xfm	xfm		anat	NIfTI				
-from-template_to-bold_mode-image_xfm	xfm		func	NIfTI				
-from-template_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-template_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI				
-from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI				
-from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI				
-from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI				
+Resource	Type	Space	Sub-Directory	File	To Smooth	To z-std	4D Time Series	Optional: Debugging	Multi-File
+alff	alff	functional	func	NIfTI	Yes	Yes			
+desc-sm_alff	alff	functional	func	NIfTI		Yes			
+desc-sm-zstd_alff	alff	functional	func	NIfTI					
+desc-zstd_alff	alff	functional	func	NIfTI					
+space-template_alff	alff	template	func	NIfTI	Yes	Yes			
+space-template_desc-sm_alff	alff	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_alff	alff	template	func	NIfTI					
+space-template_desc-zstd_alff	alff	template	func	NIfTI					
+desc-brain_bold	bold	functional	func	NIfTI			Yes	Yes	
+desc-cleaned_bold	bold	functional	func	NifTI			Yes	Yes	
+desc-mean_bold	bold	functional	func	NIfTI					
+desc-motion_bold	bold	functional	func	NIfTI			Yes	Yes	
+desc-preproc_bold	bold	functional	func	NIfTI			Yes		
+desc-sm_bold	bold	functional	func	NIfTI			Yes	Yes	
+space-EPItemplate_bold	bold	EPI template	func	NIfTI			Yes		
+space-EPItemplate_desc-brain_bold	bold	EPI template	func	NIfTI			Yes		
+space-EPItemplate_desc-cleaned_bold	bold	EPI template	func	NIfTI			Yes		
+space-EPItemplate_desc-mean_bold	bold	EPI template	func	NIfTI					
+space-EPItemplate_desc-preproc_bold	bold	EPI template	func	NIfTI			Yes		
+space-symtemplate_desc-sm_bold	bold	symmetric template	func	NIfTI			Yes	Yes	
+space-T1w_desc-mean_bold	bold	T1w	func	NIfTI					
+space-template_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-brain_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-mean_bold	bold	template	func	NIfTI					
+space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes		
+desc-DualReg_correlations	correlation	template	func	NIfTI					
+desc-MeanSCA_correlations	correlation	template	func	NIfTI					
+desc-MultReg_correlations	correlation	template	func	NIfTI					
+desc-ndmg_correlations	correlation	template	func	NIfTI					
+space-template_desc-binarized_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
+space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
+space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-binarized-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-weighted_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
+space-template_desc-weighted-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
+space-template_desc-weighted-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-weighted-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-binarized_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes			
+space-template_desc-binarized-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
+space-template_desc-binarized-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+space-template_desc-binarized-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+space-template_desc-weighted_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes			
+space-template_desc-weighted-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
+space-template_desc-weighted-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+space-template_desc-weighted-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+desc-sm_falff	falff	functional	func	NIfTI		Yes			
+desc-sm-zstd_falff	falff	functional	func	NIfTI					
+desc-zstd_falff	falff	functional	func	NIfTI					
+falff	falff	functional	func	NIfTI	Yes	Yes			
+space-template_desc-sm_falff	falff	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_falff	falff	template	func	NIfTI					
+space-template_desc-zstd_falff	falff	template	func	NIfTI					
+space-template_falff	falff	template	func	NIfTI	Yes	Yes			
+space-template_desc-binarized_lfcd	lfcd	template	func	NIfTI	Yes	Yes			
+space-template_desc-binarized-sm_lfcd	lfcd	template	func	NIfTI		Yes			
+space-template_desc-binarized-sm-zstd_lfcd	lfcd	template	func	NIfTI					
+space-template_desc-binarized-zstd_lfcd	lfcd	template	func	NIfTI					
+space-template_desc-weighted_lfcd	lfcd	template	func	NIfTI	Yes	Yes			
+space-template_desc-weighted-sm_lfcd	lfcd	template	func	NIfTI		Yes			
+space-template_desc-weighted-sm-zstd_lfcd	lfcd	template	func	NIfTI					
+space-template_desc-weighted-zstd_lfcd	lfcd	template	func	NIfTI					
+space-EPItemplate_desc-bold_mask	mask	EPI template	func	NIfTI					
+space-EPItemplate_res-derivative_desc-bold_mask	mask	EPI template	func	NIfTI					
+space-bold_desc-brain_mask	mask	functional	func	NIfTI					
+space-bold_desc-eroded_mask	mask	functional	func	NIfTI					
+space-bold_label-CSF_desc-eroded_mask	mask	functional	func	NIfTI					
+space-bold_label-CSF_mask	mask	functional	func	NIfTI					
+space-bold_label-GM_desc-eroded_mask	mask	functional	func	NIfTI					
+space-bold_label-GM_mask	mask	functional	func	NIfTI					
+space-bold_label-WM_desc-eroded_mask	mask	functional	func	NIfTI					
+space-bold_label-WM_mask	mask	functional	func	NIfTI					
+space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-CSF_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-CSF_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-GM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-GM_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-WM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-WM_mask	mask	longitudinal T1w	anat	NIfTI					
+label-CSF_desc-eroded_mask	mask	T1w	anat	NIfTI					
+label-CSF_desc-preproc_mask	mask	T1w	anat	NIfTI					
+label-CSF_mask	mask	T1w	anat	NIfTI					
+label-GM_desc-eroded_mask	mask	T1w	anat	NIfTI					
+label-GM_desc-preproc_mask	mask	T1w	anat	NIfTI					
+label-GM_mask	mask	T1w	anat	NIfTI					
+label-WM_desc-eroded_mask	mask	T1w	anat	NIfTI					
+label-WM_desc-preproc_mask	mask	T1w	anat	NIfTI					
+label-WM_mask	mask	T1w	anat	NIfTI					
+space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI					
+space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI					
+space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
+space-template_desc-bold_mask	mask	template	func	NIfTI					
+space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
+dvars	motion		func	text					
+framewise-displacement-jenkinson	motion		func	1D					
+framewise-displacement-power	motion		func	1D					
+max-displacement	motion		func	1D					
+motion-filter-info	motion		func	text					
+motion-filter-plot	motion		func	png					
+motion-params	motion		func	text					
+movement-parameters	motion		func	1D					
+power-params	motion		func	text					
+rels-displacement	motion		func	1D					
+label-CSF_probseg	probseg	T1w	anat	NIfTI					
+label-GM_probseg	probseg	T1w	anat	NIfTI					
+label-WM_probseg	probseg	T1w	anat	NIfTI					
+T1w-axial-qc	qc		anat	png					
+T1w-sagittal-qc	qc		anat	png					
+dseg-axial-qc	qc		anat	png					
+desg-sagittal-qc	qc		anat	png					
+bold-axial-qc	qc		func	png					
+bold-sagittal-qc	qc		func	png					
+bold-carpet-qc	qc		func	png					
+framewise-displacement-jenkinson-plot-qc	qc		func	png					
+movement-parameters-trans-qc	qc		func	png					
+movement-parameters-rot-qc	qc		func	png					
+bold-snr-axial-qc	qc		func	png					
+bold-snr-sagittal-qc	qc		func	png					
+bold-snr-hist-qc	qc		func	png					
+bold-snr-qc	qc		func	png					
+regressors	regressors		func	1D					
+desc-sm_reho	reho	functional	func	NIfTI		Yes			
+desc-sm-zstd_reho	reho	functional	func	NIfTI					
+desc-zstd_reho	reho	functional	func	NIfTI					
+reho	reho	functional	func	NIfTI	Yes	Yes			
+space-template_desc-sm_reho	reho	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_reho	reho	template	func	NIfTI					
+space-template_desc-zstd_reho	reho	template	func	NIfTI					
+space-template_reho	reho	template	func	NIfTI	Yes	Yes			
+desc-DualReg_statmap	statistic	template	func	NIfTI					
+desc-MultReg_statmap	statistic	template	func	NIfTI					
+lh-cortical-thickness-surface-map	surface-derived		anat						Yes
+rh-cortical-thickness-surface-map	surface-derived		anat						Yes
+lh-cortical-volume-surface-map	surface-derived		anat						Yes
+rh-cortical-volume-surface-map	surface-derived		anat						Yes
+lh-pial-surface-mesh	surface-derived		anat						
+rh-pial-surface-mesh	surface-derived		anat						
+raw-average	surface-derived		anat						
+lh-smoothed-surface-mesh	surface-derived		anat						
+rh-smoothed-surface-mesh	surface-derived		anat						
+lh-spherical-surface-mesh	surface-derived		anat						Yes
+rh-spherical-surface-mesh	surface-derived		anat						Yes
+lh-sulcal-depth-surface-maps	surface-derived		anat						Yes
+rh-sulcal-depth-surface-maps	surface-derived		anat						Yes
+lh-surface-curvature	surface-derived		anat						
+rh-surface-curvature	surface-derived		anat						
+lh-white-matter-surface-mesh	surface-derived		anat						Yes
+rh-white-matter-surface-mesh	surface-derived		anat						Yes
+space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
+desc-brain_T1w	T1w	T1w	anat	NIfTI					
+desc-preproc_T1w	T1w	T1w	anat	NIfTI					
+desc-reorient_T1w	T1w	T1w	anat	NIfTI					
+space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
+desc-Mean_timeseries	timeseries		func	1D					
+desc-MeanSCA_timeseries	timeseries		func	1D					
+desc-SpatReg_timeseries	timeseries		func	1D					
+desc-Voxel_timeseries	timeseries		func	1D					
+space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
+space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
+vmhc	vmhc	symmetric template	func	NIfTI					
+blip-warp	xfm		func	NIfTI					
+from-bold_to-EPItemplate_mode-image_desc-linear_xfm	xfm		func	NIfTI					
+from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI					
+from-bold_to-EPItemplate_mode-image_xfm	xfm		func	NIfTI					
+from-bold_to-symtemplate_mode-image_xfm	xfm		func	NIfTI					
+from-bold_to-T1w_mode-image_desc-linear_xfm	xfm		func	NIfTI					
+from-bold_to-template_mode-image_xfm	xfm		func	NIfTI					
+from-EPItemplate_to-bold_mode-image_desc-linear_xfm	xfm		func	NIfTI					
+from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI					
+from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-template_mode-image_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-bold_mode-image_xfm	xfm		func	NIfTI					
+from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-symtemplate_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
+from-T1w_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-T1w_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
+from-T1w_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-T1w_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-T1w_to-template_mode-image_xfm	xfm		anat	NIfTI					
+from-template_to-bold_mode-image_xfm	xfm		func	NIfTI					
+from-template_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-template_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI					
+from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
+from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
+from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
