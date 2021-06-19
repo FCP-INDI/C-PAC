@@ -220,10 +220,16 @@ functional_preproc:
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
+      
+      # Integer value of head radius
+      radius: 50
+
+      # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      robust: On
 
 nuisance_corrections: 
 
-  2-nuisance_regression: 
+  2-nuisance_regression:
 
     # Select which nuisance signal corrections to apply
     Regressors: 

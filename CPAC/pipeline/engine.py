@@ -90,9 +90,9 @@ class ResourcePool(object):
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
-            if name not in self.rpool:
-                return False
-        return True
+            if name in self.rpool:
+                return True
+        return False
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
@@ -266,7 +266,10 @@ class ResourcePool(object):
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
-        self.rpool[new_name] = self.rpool[resource]
+        try:
+            self.rpool[new_name] = self.rpool[resource]
+        except KeyError:
+            raise Exception(f"[!] {resource} not in the resource pool.")
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -986,9 +989,18 @@ class NodeBlock(object):
             
             if self.input_interface:
                 for interface in self.input_interface:
-                    if interface[0] in init_dct['inputs']:
-                        init_dct['inputs'].remove(interface[0])
-                        init_dct['inputs'].append(interface[1])
+                    for orig_input in init_dct['inputs']:
+                        if isinstance(orig_input, tuple):
+                            list_tup = list(orig_input)
+                            if interface[0] in list_tup:
+                                list_tup.remove(interface[0])
+                                list_tup.append(interface[1])
+                                init_dct['inputs'].remove(orig_input)
+                                init_dct['inputs'].append(tuple(list_tup))
+                        else:                         
+                            if orig_input == interface[0]:
+                                init_dct['inputs'].remove(interface[0])
+                                init_dct['inputs'].append(interface[1])
 
             for key, val in init_dct.items():
                 self.node_blocks[name][key] = val
@@ -1062,8 +1074,11 @@ class NodeBlock(object):
                     opts = self.grab_tiered_dct(cfg, key_list)
                 else:
                     for option in option_val:
-                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                            opts.append(option)
+                        try:
+                            if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                                opts.append(option)
+                        except AttributeError as err:
+                            raise Exception(f"{err}\nNode Block: {name}")
                             
                 if opts == None:
                     opts = [opts]
@@ -1359,6 +1374,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
+                          
+    if 'anat' not in data_paths:
+        print('No anatomical data present.')
+        return rpool
+                          
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 

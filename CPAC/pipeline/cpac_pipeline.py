@@ -952,20 +952,11 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_T1_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_T1_template_based)
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_EPI_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_EPI_template_based)
+            
         pipeline_blocks += seg_blocks
 
     return pipeline_blocks
@@ -1112,17 +1103,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         pipeline_blocks += EPI_reg_blocks
 
-    if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
-        'Template_Based']['template_for_segmentation']:
-        if not rpool.check_rpool('space-bold_label-CSF_mask') or \
-                not rpool.check_rpool('space-bold_label-WM_mask'):
-            pipeline_blocks += [tissue_seg_EPI_template_based]
-
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
-    ] and 'T1_template' or "DCAN_NHP" in cfg.registration_workflows[
+    ] and 'T1_template' in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
             'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
@@ -1147,10 +1132,17 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         if 'T1_template' in \
             cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template'][
-                'using']:
-                nuisance.append(nuisance_regression_complete)
-                
+                'func_registration_to_template']['target_template']['using']:
+            if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'default':
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "desc-stc_bold")))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
+                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "bold")))
+
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template'][
@@ -1181,6 +1173,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                              single_step_resample_timeseries_to_T1template],
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
+
+    # ABCD end-to-end pipeline
+    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+        pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
+
+    # fMRIPrep end-to-end pipeline
+    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+        pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,

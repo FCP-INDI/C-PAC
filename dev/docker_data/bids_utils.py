@@ -492,7 +492,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     sublist = []
     for ksub, sub in subdict.items():
         for kses, ses in sub.items():
-            if "anat" in ses and "func" in ses:
+            if "anat" in ses or "func" in ses:
                 sublist.append(ses)
             else:
                 if "anat" not in ses:

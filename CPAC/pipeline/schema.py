@@ -199,9 +199,11 @@ def _combine_labels(config_dict, list_to_combine, new_key):
             old_value = None
         if old_value is not None:
             any_old_values = True
-            if isinstance(old_value, list) and len(old_value) == 1:
-                old_value = old_value[0]
-            new_value.append(old_value)
+            if isinstance(old_value, (list, set, tuple)):
+                for value in old_value:
+                    new_value.append(value)
+            else:
+                new_value.append(old_value)
             config_dict = delete_nested_value(config_dict, _to_combine)
     if any_old_values:
         return set_nested_value(config_dict, new_key, new_value)
@@ -237,6 +239,7 @@ def _changes_1_8_0_to_1_8_1(config_dict):
     '''
     Examples
     --------
+    Starting with 1.8.0
     >>> zero = {'anatomical_preproc': {
     ...     'non_local_means_filtering': True,
     ...     'n4_bias_field_correction': True
@@ -252,9 +255,38 @@ def _changes_1_8_0_to_1_8_1(config_dict):
     ...             'right_GM_label': 2,
     ...             'left_WM_label': 3,
     ...             'right_WM_label': 4}}}}
-    >>> str(_changes_1_8_0_to_1_8_1(zero))
-    "{'anatomical_preproc': {'non_local_means_filtering': {'run': True}, 'n4_bias_field_correction': {'run': True}}, 'functional_preproc': {'motion_estimates_and_correction': {'motion_estimates': {'calculate_motion_first': False}}}, 'segmentation': {'tissue_segmentation': {'ANTs_Prior_Based': {'CSF_label': [0], 'GM_label': [1, 2], 'WM_label': [3, 4]}}}}"
-    '''  # noqa E501
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(zero)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+
+    Starting with 1.8.1
+    >>> one = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': [0],
+    ...             'GM_label': [1, 2],
+    ...             'WM_label': [3, 4]}}}}
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(one)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+    '''
     for key_sequence in {
         ('anatomical_preproc', 'non_local_means_filtering'),
         ('anatomical_preproc', 'n4_bias_field_correction')
@@ -611,7 +643,7 @@ latest_schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template', 'DCAN_NHP'})],
+                    'using': [In({'T1_template', 'EPI_template'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
@@ -633,7 +665,7 @@ latest_schema = Schema({
                     'identity_matrix': str,
                 },
                 'apply_transform': {
-                    'using': In({'default', 'abcd', 'single_step_resampling'}),
+                    'using': In({'default', 'abcd', 'single_step_resampling', 'dcan_nhp'}),
                 },
             },
         },

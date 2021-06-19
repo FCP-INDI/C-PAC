@@ -2933,7 +2933,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": ["T1_template", "DCAN_NHP"],
+     "option_val": "T1_template",
      "inputs": [("desc-reginput_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("from-T1w_to-template_mode-image_xfm",
@@ -2988,7 +2988,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["target_template", "using"],
-     "option_val": ["T1_template", "DCAN_NHP"],
+     "option_val": "T1_template",
      "inputs": [("from-T1w_to-symtemplate_mode-image_xfm",
                  "from-symtemplate_to-T1w_mode-image_xfm",
                  "desc-brain_T1w"),
@@ -3320,7 +3320,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-                                     
+
 
 def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=None):
     """
@@ -3328,8 +3328,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],
-     "option_key": ["target_template", "using"],
-     "option_val": "DCAN_NHP",
+     "option_key": ["apply_transform", "using"],
+     "option_val": "dcan_nhp",
      "inputs": [(["desc-reorient_bold", "bold"],
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_warp",
@@ -3826,10 +3826,13 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_bold_mask_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                 "func_registration_to_template", "run"],
+                ["registration_workflows", "anatomical_registration", "run"]],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "func_registration_to_template", "apply_transform",
+                    "using"],
      "option_val": "default",
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-template_mode-image_xfm"),
@@ -3876,11 +3879,14 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     Node Block:
     {"name": "transform_deriv_mask_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["target_template", "using"],
-     "option_val": ["T1_template", "DCAN_NHP"],
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                "func_registration_to_template", "run"],
+                ["registration_workflows", "anatomical_registration", "run"]],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "func_registration_to_template", "apply_transform", 
+                    "using"],
+     "option_val": "default",
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-deriv"],
