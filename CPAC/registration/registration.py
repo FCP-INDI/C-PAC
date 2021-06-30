@@ -3107,6 +3107,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "bold",
+                 "motion-basefile",
                  "coordinate-transformation",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
@@ -3115,12 +3116,14 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_res-bold_desc-brain_T1w",
                  "space-template_desc-bold_mask",
                  "T1w-brain-template-funcreg")],
-     "outputs": ["space-template_desc-brain_bold"]}
+     "outputs": ["space-template_desc-brain_bold",
+                 "space-template_desc-scout_bold",
+                 "space-template_desc-head_bold"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries using ABCD-style registration
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
-    
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
+
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     # convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
     convert_func_to_anat_linear_warp = pe.Node(interface=fsl.ConvertWarp(),
@@ -3293,9 +3296,42 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(merge_func_mask_to_standard, 'merged_file',
         find_min_mask, 'in_file')
 
-    # fslmaths ${OutputfMRI} -mas ${BrainMask} -mas ${OutputfMRI}_mask -thr 0 -ing 10000 task-rest01_nonlin_norm -odt float
-    merge_func_mask = pe.Node(util.Merge(2), 
-                                name=f'merge_func_mask_{pipe_num}')
+    # Combine transformations: gradient non-linearity distortion + fMRI_dc to standard
+    # convertwarp --relout --rel --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --warp1=${GradientDistortionField} --warp2=${OutputTransform} --out=${WD}/Scout_gdc_MNI_warp.nii.gz
+    convert_dc_warp = pe.Node(interface=fsl.ConvertWarp(),
+        name=f'convert_dc_warp_{pipe_num}')
+
+    convert_dc_warp.inputs.out_relwarp = True
+    convert_dc_warp.inputs.relwarp = True
+
+    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
+    wf.connect(node, out, convert_dc_warp, 'reference')
+
+    wf.connect(multiply_func_roi_by_zero, 'out_file',
+        convert_dc_warp, 'warp1')
+
+    wf.connect(convert_func_to_standard_warp, 'out_file',
+        convert_dc_warp, 'warp2')
+
+    # applywarp --rel --interp=spline --in=${ScoutInput} -w ${WD}/Scout_gdc_MNI_warp.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -o ${ScoutOutput}
+    applywarp_scout = pe.Node(interface=fsl.ApplyWarp(),
+        name=f'applywarp_scout_input_{pipe_num}')
+
+    applywarp_scout.inputs.relwarp = True
+    applywarp_scout.inputs.interp = 'spline'
+
+    node, out = strat_pool.get_data('motion-basefile')
+    wf.connect(node, out, applywarp_scout, 'in_file')
+
+    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
+    wf.connect(node, out, applywarp_scout, 'ref_file')
+
+    wf.connect(convert_dc_warp, 'out_file', applywarp_scout, 'field_file')
+
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/IntensityNormalization.sh#L124-L127
+    # fslmaths ${InputfMRI} -mas ${BrainMask} -mas ${InputfMRI}_mask -thr 0 -ing 10000 ${OutputfMRI} -odt float
+    merge_func_mask = pe.Node(util.Merge(2),
+        name=f'merge_func_mask_{pipe_num}')
 
     node, out = strat_pool.get_data('space-template_desc-bold_mask')
     wf.connect(node, out, merge_func_mask, 'in1')
@@ -3314,8 +3350,23 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(merge_func_mask, 'out',
         extract_func_brain, 'operand_files')
 
+    # fslmaths ${ScoutInput} -mas ${BrainMask} -mas ${InputfMRI}_mask -thr 0 -ing 10000 ${ScoutOutput} -odt float
+    extract_scout_brain = pe.Node(interface=fsl.MultiImageMaths(),
+        name=f'extract_scout_brain_{pipe_num}')
+
+    extract_scout_brain.inputs.op_string = '-mas %s -mas %s -thr 0 -ing 10000'
+    extract_scout_brain.inputs.output_datatype = 'float'
+
+    wf.connect(applywarp_scout, 'out_file',
+        extract_scout_brain, 'in_file')
+
+    wf.connect(merge_func_mask, 'out',
+        extract_scout_brain, 'operand_files')
+
     outputs = {
-        'space-template_desc-brain_bold': (extract_func_brain, 'out_file')
+        'space-template_desc-brain_bold': (extract_func_brain, 'out_file'),
+        'space-template_desc-scout_bold': (extract_scout_brain, 'out_file'),
+        'space-template_desc-head_bold': (merge_func_to_standard, 'merged_file')
     }
 
     return (wf, outputs)
@@ -3535,7 +3586,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
     merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name=f'merge_func_to_standard_{pipe_num}')
+        name=f'merge_func_to_standard_{pipe_num}')
 
     merge_func_to_standard.inputs.dimension = 't'
 
@@ -3544,7 +3595,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
     merge_func_mask_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name=f'merge_func_mask_to_standard_{pipe_num}')
+        name=f'merge_func_mask_to_standard_{pipe_num}')
 
     merge_func_mask_to_standard.inputs.dimension = 't'
 
@@ -3553,7 +3604,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     # fslmaths ${OutputfMRI}_mask -Tmin ${OutputfMRI}_mask
     find_min_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                        name=f'find_min_mask_{pipe_num}')
+        name=f'find_min_mask_{pipe_num}')
 
     find_min_mask.inputs.args = '-Tmin'
 
