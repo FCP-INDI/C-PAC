@@ -90,9 +90,9 @@ class ResourcePool(object):
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
-            if name not in self.rpool:
-                return False
-        return True
+            if name in self.rpool:
+                return True
+        return False
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
@@ -266,7 +266,10 @@ class ResourcePool(object):
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
-        self.rpool[new_name] = self.rpool[resource]
+        try:
+            self.rpool[new_name] = self.rpool[resource]
+        except KeyError:
+            raise Exception(f"[!] {resource} not in the resource pool.")
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -971,10 +974,33 @@ class NodeBlock(object):
         self.node_blocks = {}
 
         for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
+        
+            self.input_interface = []
+            if isinstance(node_block_function, tuple):
+                self.input_interface = node_block_function[1]
+                node_block_function = node_block_function[0]
+                if not isinstance(self.input_interface, list):
+                    self.input_interface = [self.input_interface]
+        
             init_dct = self.grab_docstring_dct(node_block_function.__doc__)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
+            
+            if self.input_interface:
+                for interface in self.input_interface:
+                    for orig_input in init_dct['inputs']:
+                        if isinstance(orig_input, tuple):
+                            list_tup = list(orig_input)
+                            if interface[0] in list_tup:
+                                list_tup.remove(interface[0])
+                                list_tup.append(interface[1])
+                                init_dct['inputs'].remove(orig_input)
+                                init_dct['inputs'].append(tuple(list_tup))
+                        else:                         
+                            if orig_input == interface[0]:
+                                init_dct['inputs'].remove(interface[0])
+                                init_dct['inputs'].append(interface[1])
 
             for key, val in init_dct.items():
                 self.node_blocks[name][key] = val
@@ -1048,8 +1074,11 @@ class NodeBlock(object):
                     opts = self.grab_tiered_dct(cfg, key_list)
                 else:
                     for option in option_val:
-                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                            opts.append(option)
+                        try:
+                            if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                                opts.append(option)
+                        except AttributeError as err:
+                            raise Exception(f"{err}\nNode Block: {name}")
                             
                 if opts == None:
                     opts = [opts]
@@ -1159,14 +1188,20 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
-
-
-                        try:
-                            wf, outs = block_function(wf, cfg, strat_pool,
-                                                pipe_x, opt)
-                        except IOError as e:  # duplicate node
-                            logger.warning(e)
-                            continue
+                        
+                        replaced_inputs = []
+                        for interface in self.input_interface:
+                            if isinstance(interface[1], list):
+                                for input_name in interface[1]:
+                                    if strat_pool.check_rpool(input_name):
+                                        break
+                            else:
+                                input_name = interface[1]
+                            strat_pool.copy_resource(input_name, interface[0])
+                            replaced_inputs.append(interface[0])
+                        
+                        wf, outs = block_function(wf, cfg, strat_pool,
+                                                  pipe_x, opt)
 
                         if not outs:
                             continue
@@ -1205,7 +1240,7 @@ class NodeBlock(object):
                                     new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
 
                             # determine sources for the outputs, i.e. all input data into the node block                   
-                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json' and x not in replaced_inputs]
                             
                             if isinstance(outputs, dict):
                                 new_json_info.update(outputs[label])
@@ -1339,6 +1374,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
+                          
+    if 'anat' not in data_paths:
+        print('No anatomical data present.')
+        return rpool
+                          
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 

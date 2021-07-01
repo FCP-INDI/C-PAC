@@ -263,13 +263,7 @@ RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir -p /ndmg_atlases/label && \
-    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
-    cd /tmp/neuroparc && \
-    git lfs install --skip-smudge && \
-    git lfs pull -I "atlases/label/Human/*" && \
-    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
-    cd -
+COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
