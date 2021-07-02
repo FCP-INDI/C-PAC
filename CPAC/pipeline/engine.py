@@ -1200,8 +1200,12 @@ class NodeBlock(object):
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
                         
-                        wf, outs = block_function(wf, cfg, strat_pool,
-                                                  pipe_x, opt)
+                        try:
+                            wf, outs = block_function(wf, cfg, strat_pool,
+                                                      pipe_x, opt)
+                        except IOError as e:  # duplicate node
+                            logger.warning(e)
+                            continue
 
                         if not outs:
                             continue
