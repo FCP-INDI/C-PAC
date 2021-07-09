@@ -183,6 +183,11 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# install Multimodal Surface Matching
+COPY --from=ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
+
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
