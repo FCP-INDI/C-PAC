@@ -136,7 +136,8 @@ from CPAC.nuisance.nuisance import (
     ICA_AROMA_FSLreg,
     ICA_AROMA_ANTsEPIreg,
     ICA_AROMA_FSLEPIreg,
-    nuisance_regression_complete,
+    nuisance_regressors_generation,
+    nuisance_regression,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
@@ -1047,8 +1048,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             bold_masking,
             calc_motion_stats,
             func_mean,
-            func_normalize,
-            func_mask_normalize
+            func_normalize#,
+            #func_mask_normalize
         ]
 
         # Distortion/Susceptibility Correction
@@ -1137,13 +1138,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 'func_registration_to_template']['target_template']['using']:
             if cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
             elif cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
-                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "desc-stc_bold")))
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
             elif cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regression_complete, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
 
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
