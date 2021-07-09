@@ -175,7 +175,7 @@ functional_preproc:
       AFNI-3dvolreg: 
 
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-        functional_volreg_twopass: On
+        functional_volreg_twopass: Off
 
   distortion_correction: 
     run: [Off]
