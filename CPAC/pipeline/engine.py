@@ -158,27 +158,11 @@ class ResourcePool(object):
 
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
-        '''
-        pipe_idx, node_name = new_id
-        if f';{resource}:' not in pipe_idx:
-            pipe_idx = f'{pipe_idx};{resource}:'   # <--- doing this up here, now, because the del self.rpool[resource][pipe_idx] below should only get deleted for the same input/output tag!
-        if resource not in self.rpool.keys():
-            self.rpool[resource] = {}
-        else:
-            if not fork:     # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
-                if pipe_idx in self.rpool[resource].keys():  # <--- in case the resource name is now new, and not the original
-                    del self.rpool[resource][pipe_idx]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
-        if pipe_idx[-1] == ';' or pipe_idx[-1] == ':':  # <--- if the ':', this kicks off when the pipe_idx is only something like 'T1w:', at the beginning
-            new_name = node_name                        #      but how do we manage new threads, mid-pipeline?
-        else:
-            new_name = f',{node_name}'
-        new_pipe_idx = f'{pipe_idx}{new_name}'
-        '''
         json_info = json_info.copy()
-
         cpac_prov = []
         if 'CpacProvenance' in json_info:
             cpac_prov = json_info['CpacProvenance']
+        current_prov_list = list(cpac_prov)
         new_prov_list = list(cpac_prov)   # <---- making a copy, it was already a list
         if not inject:
             new_prov_list.append(f'{resource}:{node_name}')
@@ -196,9 +180,23 @@ class ResourcePool(object):
             self.rpool[resource] = {}
         else:
             if not fork:     # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
+                search = False
+                if self.get_resource_from_prov(current_prov_list) == resource:
+                    pipe_idx = self.generate_prov_string(current_prov_list)[1] # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                    if pipe_idx not in self.rpool[resource].keys():
+                        search = True
+                else:
+                    search = True
+                if search:
+                    for idx in current_prov_list:
+                        if self.get_resource_from_prov(idx) == resource:
+                            if isinstance(idx, list):
+                                pipe_idx = self.generate_prov_string(idx)[1] # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                            elif isinstance(idx, str):
+                                pipe_idx = idx
+                            break
                 if pipe_idx in self.rpool[resource].keys():  # <--- in case the resource name is now new, and not the original
                     del self.rpool[resource][pipe_idx]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
-
         if new_pipe_idx not in self.rpool[resource]:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
@@ -832,7 +830,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-                
+            
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -1188,7 +1186,7 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
-                        
+
                         replaced_inputs = []
                         for interface in self.input_interface:
                             if isinstance(interface[1], list):
@@ -1281,14 +1279,6 @@ class NodeBlock(object):
                                 del new_json_info['subjson']
                             except KeyError:
                                 pass
-
-                            if strat_pool.check_rpool(label):
-                                # so we won't get extra forks if we are
-                                # merging strats (multiple inputs) plus the
-                                # output name is one of the input names
-                                old_pipe_prov = list(strat_pool.get_cpac_provenance(label))
-                                new_json_info['CpacProvenance'] = old_pipe_prov
-                                pipe_idx = strat_pool.generate_prov_string(old_pipe_prov)[1]
 
                             if fork or len(opts) > 1 or len(all_opts) > 1:
                                 if 'CpacVariant' not in new_json_info:

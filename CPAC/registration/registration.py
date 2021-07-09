@@ -1179,9 +1179,9 @@ def create_wf_calculate_ants_warp(
                                                      'reference_brain',
                                                      'moving_skull',
                                                      'reference_skull',
-                                                     'reference_mask',
-                                                     'moving_mask',
                                                      'ants_para',
+                                                     'moving_mask',
+                                                     'reference_mask',
                                                      'fixed_image_mask',
                                                      'interp',
                                                      'reg_with_skull'],
@@ -2002,7 +2002,6 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('template-ref-mask')
-
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
 
     if 'space-longitudinal' in brain:

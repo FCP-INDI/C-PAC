@@ -15,10 +15,6 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: analysis
 
-  log_directory: 
-
-    path: /tmp
-
   system_config: 
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -53,34 +49,7 @@ anatomical_preproc:
   run: Off
 
 segmentation: 
-
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: On
-
-  tissue_segmentation: 
-
-    using: ['Template_Based']
-
-    Template_Based: 
-
-      # These masks should be in the same space of your registration template, e.g. if
-      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
-      #
-      # Options: ['T1_Template', 'EPI_Template']
-      template_for_segmentation: [EPI_Template]
-
-      # These masks are included as part of the 'Image Resource Files' package available
-      # on the Install page of the User Guide.
-
-      # Full path to a binarized White Matter mask.
-      WHITE: /template/chd8_functional_template_ventricles_ag.nii.gz
-
-      # Full path to a binarized Gray Matter mask.
-      GRAY: /template/chd8_functional_template_ventricles_ag.nii.gz
-
-      # Full path to a binarized CSF mask.
-      CSF: /template/chd8_functional_template_ventricles_ag.nii.gz
+  run: Off
 
 registration_workflows: 
 
