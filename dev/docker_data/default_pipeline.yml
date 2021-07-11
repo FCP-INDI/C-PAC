@@ -1199,6 +1199,10 @@ nuisance_corrections:
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
 
+    # choose which space to run nuisance regression and temporal filtering
+    # options: 'native' or 'template'
+    denoising_space: native
+
     # Select which nuisance signal corrections to apply
     Regressors:
 

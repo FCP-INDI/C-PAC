@@ -831,6 +831,7 @@ latest_schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'create_regressors': bool,
+            'denoising_space': In({'native', 'template'}),
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {

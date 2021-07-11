@@ -1134,18 +1134,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if 'T1_template' in \
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template']['using']:
-            if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            if cfg.nuisance_corrections['2-nuisance_regression']['denoising_space'] == 'native':
                 nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            '''
+            # TODO connect motion corrected BOLD for nuisance_regressors_generation
+            # TODO connect template BOLD for nuisance_regression
             elif cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
                 nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
                 nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
             elif cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
                 nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
+            '''
 
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
@@ -1179,14 +1182,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_bold_mean_to_EPItemplate]
 
     # ABCD end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
+    # if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+    #     'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+    #     pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
 
     # fMRIPrep end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
+    # if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+    #     'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+    #     pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
@@ -1212,6 +1215,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # Nuisance regression in template space for ABCD and fMRIPrep end-to-end pipeline
+    if cfg.nuisance_corrections['2-nuisance_regression']['denoising_space'] == 'template':
+        pipeline_blocks += [(nuisance_regression, [["desc-preproc_bold","space-bold_desc-brain_mask"], \
+            ["space-template_desc-brain_bold", "space-template_desc-bold_mask"]])]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
