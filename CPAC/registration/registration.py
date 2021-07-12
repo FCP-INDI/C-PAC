@@ -2425,6 +2425,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
                 "from-T1w_to-template_mode-image_xfm",
                 "from-template_to-T1w_mode-image_xfm"],
      "outputs": ["space-template_desc-brain_T1w",
+                 "space-template_desc-head_T1w",
                  "space-template_desc-T1w_mask",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-template_to-T1w_mode-image_xfm"]}
@@ -2615,12 +2616,13 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         wf.connect(fsl_apply_warp_t1_to_template, 'out_file',
             apply_mask, 'in_file')
-        
+
         wf.connect(fsl_apply_warp_t1_brain_to_template, 'out_file',
             apply_mask, 'mask_file')
 
         outputs = {
             'space-template_desc-brain_T1w': (apply_mask, 'out_file'),
+            'space-template_desc-head_T1w': (fsl_apply_warp_t1_to_template, 'out_file'),
             'space-template_desc-T1w_mask': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
             'from-T1w_to-template_mode-image_xfm': (merge_xfms, 'merged_file'),
             'from-template_to-T1w_mode-image_xfm': (merge_inv_xfms, 'merged_file')

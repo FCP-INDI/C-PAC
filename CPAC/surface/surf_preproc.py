@@ -93,10 +93,10 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
 
-    node, out = strat_pool.get_data('desc-restore-brain_T1w')
+    node, out = strat_pool.get_data('desc-restore_T1w')
     wf.connect(node, out, surf, 't1w_restore_image')
 
-    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    node, out = strat_pool.get_data('space-template_desc-head_T1w')
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -126,8 +126,8 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["freesurfer-subject-dir",
-                "desc-restore-brain_T1w",
-                "space-template_desc-brain_T1w",
+                "desc-restore_T1w",
+                "space-template_desc-head_T1w",
                 "from-T1w_to-template_mode-image_xfm",
                 "from-template_to-T1w_mode-image_xfm",
                 "space-template_desc-brain_bold",
