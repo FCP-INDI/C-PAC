@@ -1495,8 +1495,54 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
 
         node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
         wf.connect(node, out, func_skull_mean, 'in_file')
-        wf.connect(func_skull_mean, 'out_file',
-                   func_get_brain_mask, 'in_file')
+
+        out_node, out_file = (func_skull_mean, 'out_file')
+
+        if cfg.functional_preproc['func_masking']['FSL-BET'][
+            'functional_mean_thr']['run']:
+            # T=$(fslstats ${subject}_tmean.nii.gz -p 98)
+            threshold_T = pe.Node(interface=fsl.ImageStats(),
+                                    name=f'func_mean_skull_thr_value_{pipe_num}',
+                                    iterfield=['in_file'])
+            threshold_T.inputs.op_string = "-mas %f " % (cfg.functional_preproc['func_masking']['FSL-BET']['functional_mean_thr']['threshold_value'])
+            
+            wf.connect(func_skull_mean, 'out_file', threshold_T, 'in_file')
+            
+            # z=$(echo "$T / 10" | bc -l)
+            def form_thr_string(thr):
+                threshold_z = str(float(thr/10))
+                return '-thr %s' % (threshold_z)
+
+            form_thr_string = pe.Node(util.Function(input_names=['thr'],
+                                            output_names=['out_str'],
+                                            function=form_thr_string),
+                                            name=f'form_thr_string_{pipe_num}')
+
+            wf.connect(threshold_T, 'out_stat', form_thr_string, 'thr')
+
+            # fslmaths ${subject}_tmean.nii.gz -thr ${z} ${subject}_tmean_thr.nii.gz
+            func_skull_mean_thr = pe.Node(interface=fsl.ImageMaths(),
+                                            name=f'func_mean_skull_thr_{pipe_num}')
+
+            wf.connect(func_skull_mean, 'out_file', func_skull_mean_thr, 'in_file')
+            wf.connect(form_thr_string, 'out_str', func_skull_mean_thr, 'op_string')
+            
+            out_node, out_file = (func_skull_mean_thr, 'out_file')
+
+        if cfg.functional_preproc['func_masking']['FSL-BET'][
+            'functional_mean_bias_correction']:
+
+            # fast --nopve -B ${subject}_tmean_thr.nii.gz
+            functional_mean_skull_fast = pe.Node(interface=fsl.FAST(),
+                                                    name=f'functional_mean_skull_fast_{pipe_num}')
+            functional_mean_skull_fast.inputs.no_pve = True
+            functional_mean_skull_fast.inputs.output_biascorrected = True
+            
+            wf.connect(out_node, out_file, functional_mean_skull_fast, 'in_files')
+            
+            out_node, out_file = (functional_mean_skull_fast, 'restored_image')
+
+        wf.connect(out_node, out_file, func_get_brain_mask, 'in_file')
 
     else:
         func_get_brain_mask.inputs.functional = True
