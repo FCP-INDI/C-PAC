@@ -1,5 +1,4 @@
 import os
-import subprocess
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -23,6 +22,9 @@ def run_surface(post_freesurfer_folder,
                 freesurfer_labels,
                 fmri_res,
                 smooth_fwhm):
+
+    import os
+    import subprocess
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
