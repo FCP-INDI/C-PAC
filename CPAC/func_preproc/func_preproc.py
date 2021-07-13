@@ -1504,7 +1504,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
             threshold_T = pe.Node(interface=fsl.ImageStats(),
                                     name=f'func_mean_skull_thr_value_{pipe_num}',
                                     iterfield=['in_file'])
-            threshold_T.inputs.op_string = "-mas %f " % (cfg.functional_preproc['func_masking']['FSL-BET']['functional_mean_thr']['threshold_value'])
+            threshold_T.inputs.op_string = "-p %f " % (cfg.functional_preproc['func_masking']['FSL-BET']['functional_mean_thr']['threshold_value'])
             
             wf.connect(func_skull_mean, 'out_file', threshold_T, 'in_file')
             
