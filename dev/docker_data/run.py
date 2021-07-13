@@ -266,17 +266,27 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     ' read from the environment. (E.g. when using AWS iam roles).',
                     default=None)
 # TODO: restore <default=3> for <--n_cpus> once we remove
-#       <maxCoresPerParticipant> from config file
+#       <max_cores_per_participant> from config file
 #       <https://github.com/FCP-INDI/C-PAC/pull/1264#issuecomment-631643708>
 parser.add_argument('--n_cpus', type=int, default=0,
                     help='Number of execution resources per participant '
-                         ' available for the pipeline.')
+                         'available for the pipeline. This flag takes '
+                         'precidence over max_cores_per_participant in '
+                         'the pipeline configuration file.')
 parser.add_argument('--mem_mb', type=float,
-                    help='Amount of RAM available to the pipeline in megabytes.'
-                         ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
+                    help='Amount of RAM available per participant in '
+                         'megabytes. Included for compatibility with '
+                         'BIDS-Apps standard, but mem_gb is preferred. '
+                         'This flag takes precedence over '
+                         'maximum_memory_per_participant in the pipeline '
+                         'configuration file.')
 parser.add_argument('--mem_gb', type=float,
-                    help='Amount of RAM available to the pipeline in gigabytes.'
-                         ' if this is specified along with mem_mb, this flag will take precedence.')
+                    help='Amount of RAM available per participant in '
+                         'gigabytes. If this is specified along with mem_mb, '
+                         'this flag will take precedence. This flag also '
+                         'takes precedence over '
+                         'maximum_memory_per_participant in the pipeline '
+                         'configuration file.')
 
 parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
