@@ -1533,14 +1533,14 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
             'functional_mean_bias_correction']:
 
             # fast --nopve -B ${subject}_tmean_thr.nii.gz
-            functional_mean_skull_fast = pe.Node(interface=fsl.FAST(),
-                                                    name=f'functional_mean_skull_fast_{pipe_num}')
-            functional_mean_skull_fast.inputs.no_pve = True
-            functional_mean_skull_fast.inputs.output_biascorrected = True
+            func_mean_skull_fast = pe.Node(interface=fsl.FAST(),
+                                                    name=f'func_mean_skull_fast_{pipe_num}')
+            func_mean_skull_fast.inputs.no_pve = True
+            func_mean_skull_fast.inputs.output_biascorrected = True
             
-            wf.connect(out_node, out_file, functional_mean_skull_fast, 'in_files')
+            wf.connect(out_node, out_file, func_mean_skull_fast, 'in_files')
             
-            out_node, out_file = (functional_mean_skull_fast, 'restored_image')
+            out_node, out_file = (func_mean_skull_fast, 'restored_image')
 
         wf.connect(out_node, out_file, func_get_brain_mask, 'in_file')
 
