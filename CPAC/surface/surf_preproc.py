@@ -26,11 +26,13 @@ def run_surface(post_freesurfer_folder,
     import os
     import subprocess
 
+    freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
+
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
-    cmd = ['bash', 'PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
         '--freesurfer_folder', freesurfer_folder, '--subject', subject, \
-        '--t1w_restore', t1w_restore_image, 'atlas_t1w', atlas_space_t1w_image, \
+        '--t1w_restore', t1w_restore_image, '--atlas_t1w', atlas_space_t1w_image, \
         '--atlas_transform', atlas_transform, '--inverse_atlas_transform', inverse_atlas_transform, \
         '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
         '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
@@ -39,7 +41,7 @@ def run_surface(post_freesurfer_folder,
 
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
-    cmd = ['bash', 'fMRISurface/run.sh', '--post_freesurfer_folder', post_freesurfer_folder,\
+    cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh', '--post_freesurfer_folder', post_freesurfer_folder,\
         '--subject', subject, '--fmri', atlas_space_bold, '--scout', scout_bold,
         '--lowresmesh', low_res_mesh, '--grayordinatesres', gray_ordinates_res,
         '--fmrires', fmri_res, '--smoothingFWHM', smooth_fwhm]
@@ -82,13 +84,15 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
     surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
-    surf.inputs.gray_ordinates_res = cfg.surface_analysis['post_freesurfer']['gray_ordinates_res']
-    surf.inputs.high_res_mesh = cfg.surface_analysis['post_freesurfer']['high_res_mesh']
-    surf.inputs.low_res_mesh = cfg.surface_analysis['post_freesurfer']['low_res_mesh']
     surf.inputs.subcortical_gray_labels = cfg.surface_analysis['post_freesurfer']['subcortical_gray_labels']
     surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer']['freesurfer_labels']
-    surf.inputs.fmri_res = cfg.surface_analysis['post_freesurfer']['fmri_res']
-    surf.inputs.smooth_fwhm = cfg.surface_analysis['post_freesurfer']['smooth_fwhm']
+
+    # convert integers to strings as subprocess requires string inputs
+    surf.inputs.gray_ordinates_res = str(cfg.surface_analysis['post_freesurfer']['gray_ordinates_res'])
+    surf.inputs.high_res_mesh = str(cfg.surface_analysis['post_freesurfer']['high_res_mesh'])
+    surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
+    surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
+    surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')

@@ -1,13 +1,35 @@
 # Input Variables
-StudyFolder=`opts_GetOpt1 "--post_freesurfer_folder" $@`
-Subject=`opts_GetOpt1 "--subject" $@`
-SurfaceAtlasDIR=`opts_GetOpt1 "--surfatlasdir" $@`
-GrayordinatesSpaceDIR=`opts_GetOpt1 "--grayordinatesdir" $@`
-GrayordinatesResolutions=`opts_GetOpt1 "--grayordinatesres" $@`
-HighResMesh=`opts_GetOpt1 "--hiresmesh" $@`
-LowResMeshes=`opts_GetOpt1 "--lowresmesh" $@`
-SubcorticalGrayLabels=`opts_GetOpt1 "--subcortgraylabels" $@`
-FreeSurferLabels=`opts_GetOpt1 "--freesurferlabels" $@`
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --post_freesurfer_folder) StudyFolder="$2"; shift ;;
+        --subject) Subject="$2"; shift ;;
+		--surfatlasdir) SurfaceAtlasDIR="$2"; shift ;;
+		--grayordinatesdir) GrayordinatesSpaceDIR="$2"; shift ;;
+		--grayordinatesres) GrayordinatesResolutions="$2"; shift ;;
+		--hiresmesh) HighResMesh="$2"; shift ;;
+		--lowresmesh) LowResMeshes="$2"; shift ;;
+		--subcortgraylabels) SubcorticalGrayLabels="$2"; shift ;;
+		--freesurferlabels) FreeSurferLabels="$2"; shift ;;
+		--freesurfer_folder) FreeSurferFolder="$2"; shift ;;
+		--atlas_transform) AtlasTransformCPAC="$2"; shift ;;
+		--inverse_atlas_transform) InverseAtlasTransformCPAC="$2"; shift ;;
+		--atlas_t1w) AtlasSpaceT1wImageCPAC="$2"; shift ;;
+		--t1w_restore) T1wRestoreImageCPAC="$2"; shift ;;
+        # *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+# StudyFolder=`opts_GetOpt1 "--post_freesurfer_folder" $@`
+# Subject=`opts_GetOpt1 "--subject" $@`
+# SurfaceAtlasDIR=`opts_GetOpt1 "--surfatlasdir" $@`
+# GrayordinatesSpaceDIR=`opts_GetOpt1 "--grayordinatesdir" $@`
+# GrayordinatesResolutions=`opts_GetOpt1 "--grayordinatesres" $@`
+# HighResMesh=`opts_GetOpt1 "--hiresmesh" $@`
+# LowResMeshes=`opts_GetOpt1 "--lowresmesh" $@`
+# SubcorticalGrayLabels=`opts_GetOpt1 "--subcortgraylabels" $@`
+# FreeSurferLabels=`opts_GetOpt1 "--freesurferlabels" $@`
 # ReferenceMyelinMaps=`opts_GetOpt1 "--refmyelinmaps" $@`
 # CorrectionSigma=`opts_GetOpt1 "--mcsigma" $@`
 RegName=MSMSulc
@@ -50,20 +72,20 @@ T2wFolder="T2w" #Location of T1w images
 T2wImage="T2w_acpc_dc" 
 AtlasSpaceFolder="MNINonLinear"
 NativeFolder="Native"
-FreeSurferFolder=`opts_GetOpt1 "--freesurfer_folder" $@`
+# FreeSurferFolder=`opts_GetOpt1 "--freesurfer_folder" $@`
 FreeSurferInput="T1w_acpc_dc_restore_1mm"
-AtlasTransformCPAC=`opts_GetOpt1 "--atlas_transform" $@`
+# AtlasTransformCPAC=`opts_GetOpt1 "--atlas_transform" $@`
 # /data3/cnl/xli/reproducibility/out/cpac_abcd/output/cpac_cpac_abcd-options/sub-0025427a_ses-1/anat/sub-0025427a_ses-1_from-T1w_to-template_mode-image_xfm.nii.gz # from-T1w_to-template_mode-image_xfm
 AtlasTransform="acpc_dc2standard"
-InverseAtlasTransformCPAC=`opts_GetOpt1 "--inverse_atlas_transform" $@`
+# InverseAtlasTransformCPAC=`opts_GetOpt1 "--inverse_atlas_transform" $@`
 # /data3/cnl/cpac1.8.1/abcd_scout/output/cpac_cpac_abcd-options/sub-0025427_ses-1/anat/sub-0025427_ses-1_from-template_to-T1w_mode-image_xfm.nii.gz
 # InverseAtlasTransformABCD=/data3/cnl/fmriprep/Lei_working/CPAC_XCP/ABCD/ABCD_Testing_With_Intermediate/sub-0025427/ses-1/files/MNINonLinear/xfms/standard2acpc_dc.nii.gz
 InverseAtlasTransform="standard2acpc_dc"
-AtlasSpaceT1wImageCPAC=`opts_GetOpt1 "--atlas_t1w" $@`
+# AtlasSpaceT1wImageCPAC=`opts_GetOpt1 "--atlas_t1w" $@`
 # /data3/cnl/xli/reproducibility/out/cpac_abcd/working/cpac_sub-0025427a_ses-1/FSL-ABCD_T1_to_template_81/sub-0025427a_run-1_T1w_resample_noise_corrected_corrected_warp_maths_restore_maths_warp.nii.gz
 AtlasSpaceT1wImage="T1w_restore"
 AtlasSpaceT2wImage="T2w_restore"
-T1wRestoreImageCPAC=`opts_GetOpt1 "--t1w_restore" $@`
+# T1wRestoreImageCPAC=`opts_GetOpt1 "--t1w_restore" $@`
 # /data3/cnl/xli/reproducibility/out/cpac_abcd/working/cpac_sub-0025427a_ses-1/fast_bias_field_correction_52/get_anat_restore/sub-0025427a_run-1_T1w_resample_noise_corrected_corrected_warp_maths_restore_maths.nii.gz # DCAN origin file: "T1w_acpc_dc_restore"; CPAC RP item: "desc-restore-brain_T1w"
 T1wRestoreImage="T1w_acpc_dc_restore"
 T2wRestoreImage="T2w_acpc_dc_restore"
@@ -136,4 +158,4 @@ fi
 
 echo "$StudyFolder" "$Subject" "$T1wFolder" "$AtlasSpaceFolder" "$NativeFolder" "$FreeSurferFolder" "$FreeSurferInput" "$T1wRestoreImage" "$T2wRestoreImage" "$SurfaceAtlasDIR" "$HighResMesh" "$LowResMeshes" "$AtlasTransform" "$InverseAtlasTransform" "$AtlasSpaceT1wImage" "$AtlasSpaceT2wImage" "$T1wImageBrainMask" "$FreeSurferLabels" "$GrayordinatesSpaceDIR" "$GrayordinatesResolutions" "$SubcorticalGrayLabels" "$RegName" "$InflateExtraScale" "$useT2"
 
-bash FreeSurfer2CaretConvertAndRegisterNonlinear.sh "$StudyFolder" "$Subject" "$T1wFolder" "$AtlasSpaceFolder" "$NativeFolder" "$FreeSurferFolder" "$FreeSurferInput" "$T1wRestoreImage" "$T2wRestoreImage" "$SurfaceAtlasDIR" "$HighResMesh" "$LowResMeshes" "$AtlasTransform" "$InverseAtlasTransform" "$AtlasSpaceT1wImage" "$AtlasSpaceT2wImage" "$T1wImageBrainMask" "$FreeSurferLabels" "$GrayordinatesSpaceDIR" "$GrayordinatesResolutions" "$SubcorticalGrayLabels" "$RegName" "$InflateExtraScale" "$useT2"
+bash /code/CPAC/surface/PostFreeSurfer/FreeSurfer2CaretConvertAndRegisterNonlinear.sh "$StudyFolder" "$Subject" "$T1wFolder" "$AtlasSpaceFolder" "$NativeFolder" "$FreeSurferFolder" "$FreeSurferInput" "$T1wRestoreImage" "$T2wRestoreImage" "$SurfaceAtlasDIR" "$HighResMesh" "$LowResMeshes" "$AtlasTransform" "$InverseAtlasTransform" "$AtlasSpaceT1wImage" "$AtlasSpaceT2wImage" "$T1wImageBrainMask" "$FreeSurferLabels" "$GrayordinatesSpaceDIR" "$GrayordinatesResolutions" "$SubcorticalGrayLabels" "$RegName" "$InflateExtraScale" "$useT2"
