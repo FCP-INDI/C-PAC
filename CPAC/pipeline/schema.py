@@ -579,6 +579,7 @@ latest_schema = Schema({
                     'T1w_template_res-2': str
                 },
             },
+            'resample_anat_brain': bool,
             'overwrite_transform': {
                 'run': bool,
                 'using': In({'FSL'}),

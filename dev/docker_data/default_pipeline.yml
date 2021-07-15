@@ -676,6 +676,8 @@ registration_workflows:
       # using: 'FSL'
       using: FSL
 
+    resample_anat_brain: Off
+
   functional_registration:
 
     coregistration:

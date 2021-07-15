@@ -2264,6 +2264,43 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def resample_anat_brain(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "resample_anat_brain",
+     "config": "None",
+     "switch": [["registration_workflows", "anatomical_registration", "run"],
+                ["registration_workflows", "anatomical_registration", "resample_anat_brain"]],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-preproc_bold", "bold"],
+                "T1w-template-funcreg",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask"],
+     "outputs": ["space-template_res-bold_desc-brain_T1w"]}
+    '''
+
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+                                     name=f'resample_anat_brain_in_standard_{pipe_num}')
+    
+    anat_brain_to_func_res.inputs.interp = 'spline'
+    anat_brain_to_func_res.inputs.premat = cfg.registration_workflows[
+        'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    node, out = strat_pool.get_data('space-template_desc-brain_T1w')
+    wf.connect(node, out, anat_brain_to_func_res, 'in_file')
+
+    node, out = strat_pool.get_data('T1w-template-funcreg')
+    wf.connect(node, out, anat_brain_to_func_res, 'ref_file')
+
+    outputs = {
+        'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
 def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
                                              opt=None):
     '''
@@ -3149,6 +3186,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, convert_func_to_standard_warp, 'warp2')
 
+    # resampled anat brain in standard space
     node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
     wf.connect(node, out, convert_func_to_standard_warp, 'reference')
 

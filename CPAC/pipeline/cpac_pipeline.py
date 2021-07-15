@@ -69,6 +69,7 @@ from CPAC.anat_preproc.anat_preproc import (
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
     overwrite_transform_anat_to_template,
+    resample_anat_brain,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -927,6 +928,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
              overwrite_transform_anat_to_template,
+             resample_anat_brain,
              correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 
