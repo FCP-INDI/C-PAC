@@ -142,7 +142,7 @@ from CPAC.nuisance.nuisance import (
     erode_mask_CSF,
     erode_mask_GM,
     erode_mask_WM,
-    nuisance_regression_EPItemplate,
+    nuisance_regressors_generation_EPItemplate,
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
@@ -1151,7 +1151,18 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template'][
                 'using']:
-                nuisance.append(nuisance_regression_EPItemplate)
+            if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'default':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "desc-stc_bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
 
         pipeline_blocks += nuisance
 
