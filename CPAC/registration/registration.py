@@ -1558,7 +1558,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
         mem_x=(8969357042487455 / 1208925819614629174706176, 'input_image'))
     write_composite_linear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_linear_xfm.inputs.output_image = \
-        "from-T1w_to-{sym}{tmpl}template_mode-image_desc-linear_xfm.nii.gz"
+        f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm.nii.gz"
 
     wf.connect(inputNode, 'input_brain',
                write_composite_linear_xfm, 'input_image')
@@ -1610,7 +1610,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
         mem_x=(1367826948979337 / 151115727451828646838272, 'input_image'))
     write_composite_invlinear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_invlinear_xfm.inputs.output_image = \
-        "from-{sym}{tmpl}template_to-T1w_mode-image_desc-linear_xfm.nii.gz"
+        f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm.nii.gz"
 
     wf.connect(inputNode, 'reference_brain',
                write_composite_invlinear_xfm, 'input_image')
@@ -1672,7 +1672,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
         mem_gb=1.5)
     write_composite_xfm.inputs.print_out_composite_warp_file = True
     write_composite_xfm.inputs.output_image = \
-        f"from-T1w_to-{sym}{tmpl}template_mode-image_xfm.nii.gz"
+        f"from-{orig}_to-{sym}{tmpl}template_mode-image_xfm.nii.gz"
 
     wf.connect(inputNode, 'input_brain', write_composite_xfm, 'input_image')
 
@@ -1723,7 +1723,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
         mem_x=(6278549929741219 / 604462909807314587353088, 'input_image'))
     write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
     write_composite_inv_xfm.inputs.output_image = \
-        "from-{sym}{tmpl}template_to-T1w_mode-image_xfm.nii.gz"
+        f"from-{sym}{tmpl}template_to-{orig}_mode-image_xfm.nii.gz"
 
     wf.connect(inputNode, 'reference_brain',
                write_composite_inv_xfm, 'input_image')
@@ -1782,6 +1782,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
                write_composite_inv_xfm, 'invert_transform_flags')
 
     outputs = {
+        f'space-{sym}template_desc-brain_{orig}': (
+            ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
         f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
         f'from-{sym}{tmpl}template_to-{orig}_mode-image_xfm': (
@@ -2377,7 +2379,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['functional_registration'][
         'EPI_registration']['ANTs']['parameters']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI-template'
+    ants, outputs = ANTs_registration_connector('ANTS_bold_to_EPI-template'
                                                 f'_{pipe_num}', cfg, params,
                                                 orig='bold', template='EPI')                                                
 

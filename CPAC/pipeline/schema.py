@@ -61,7 +61,7 @@ valid_options = {
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
-                int, float, All(str, Match(resolution_regex))
+                int, float, 'Functional', All(str, Match(resolution_regex))
             ),
             'include_delayed': bool,
             'include_delayed_squared': bool,

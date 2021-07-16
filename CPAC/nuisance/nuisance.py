@@ -418,6 +418,7 @@ def gather_nuisance(functional_file_path,
 def create_regressor_workflow(nuisance_selectors,
                               use_ants,
                               ventricle_mask_exist,
+                              all_bold=False,
                               name='nuisance_regressors'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
@@ -1084,7 +1085,8 @@ def create_regressor_workflow(nuisance_selectors,
                         tissue_regressor_descriptor,
                         regressor_selector,
                         use_ants=use_ants,
-                        ventricle_mask_exist=ventricle_mask_exist
+                        ventricle_mask_exist=ventricle_mask_exist,
+                        all_bold=all_bold
                     )
 
                 regressor_mask_file_resource_keys += \
@@ -2494,10 +2496,10 @@ def erode_mask_boldWM(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
-    {"name": "nuisance_regression_EPItemplate",
+    {"name": "nuisance_regressors_generation_EPItemplate",
      "config": ["nuisance_corrections", "2-nuisance_regression"],
      "switch": ["create_regressors"],
      "option_key": "Regressors",
@@ -2520,9 +2522,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors",
-                 "desc-preproc_bold",
-                 "desc-cleaned_bold"]}
+     "outputs": ["regressors"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -2534,6 +2534,7 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
+                                           all_bold=True,
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
@@ -2579,122 +2580,37 @@ def nuisance_regression_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out,
                    regressors, 'inputspec.lat_ventricles_mask_file_path')
 
-    node, out = strat_pool.get_data('from-bold_to-EPItemplate_mode-image_desc-linear_xfm')
-    wf.connect(node, out, regressors, 'inputspec.func_to_anat_linear_xfm_file_path')
+    if strat_pool.check_rpool('from-EPItemplate_to-bold_mode-image_desc-linear_xfm'):    
+        node, out = strat_pool.get_data('from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
+        wf.connect(node, out, regressors, 'inputspec.mni_to_anat_linear_xfm_file_path')
+        wf.connect(node, out, regressors, 'inputspec.anat_to_func_linear_xfm_file_path')
 
-    # invert func2anat matrix to get anat2func_linear_xfm
-    anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(),
-                                   name=f'anat_to_func_linear_xfm_'
-                                        f'{opt["Name"]}_{pipe_num}')
-    anat2func_linear_xfm.inputs.invert_xfm = True
-    wf.connect(node, out, anat2func_linear_xfm, 'in_file')
+    if strat_pool.check_rpool('from-bold_to-EPItemplate_mode-image_desc-linear_xfm'):    
+        node, out = strat_pool.get_data('from-bold_to-EPItemplate_mode-image_desc-linear_xfm')
+        wf.connect(node, out, regressors, 'inputspec.anat_to_mni_linear_xfm_file_path')
+        wf.connect(node, out, regressors, 'inputspec.func_to_anat_linear_xfm_file_path')
 
-    wf.connect(anat2func_linear_xfm, 'out_file',
-               regressors, 'inputspec.anat_to_func_linear_xfm_file_path')
+    if strat_pool.check_rpool('movement-parameters'):    
+        node, out = strat_pool.get_data('movement-parameters')
+        wf.connect(node, out, regressors, 'inputspec.motion_parameters_file_path')
 
-    node, out = strat_pool.get_data('from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
-    wf.connect(node, out, regressors, 'inputspec.mni_to_anat_linear_xfm_file_path')
+    if strat_pool.check_rpool('framewise-displacement-jenkinson'):    
+        node, out = strat_pool.get_data('framewise-displacement-jenkinson')
+        wf.connect(node, out, regressors, 'inputspec.fd_j_file_path')
 
-    node, out = strat_pool.get_data('from-bold_to-EPItemplate_mode-image_desc-linear_xfm')
-    wf.connect(node, out, regressors, 'inputspec.anat_to_mni_linear_xfm_file_path')
+    if strat_pool.check_rpool('framewise-displacement-power'):    
+        node, out = strat_pool.get_data('framewise-displacement-power')
+        wf.connect(node, out, regressors, 'inputspec.fd_p_file_path')
 
-    node, out = strat_pool.get_data('movement-parameters')
-    wf.connect(node, out, regressors, 'inputspec.motion_parameters_file_path')
-
-    node, out = strat_pool.get_data('framewise-displacement-jenkinson')
-    wf.connect(node, out, regressors, 'inputspec.fd_j_file_path')
-
-    node, out = strat_pool.get_data('framewise-displacement-power')
-    wf.connect(node, out, regressors, 'inputspec.fd_p_file_path')
-
-    node, out = strat_pool.get_data('dvars')
-    wf.connect(node, out, regressors, 'inputspec.dvars_file_path')
+    if strat_pool.check_rpool('dvars'):    
+        node, out = strat_pool.get_data('dvars')
+        wf.connect(node, out, regressors, 'inputspec.dvars_file_path')
 
     node, out = strat_pool.get_data('TR')
     wf.connect(node, out, regressors, 'inputspec.tr')
 
-    runswitch = cfg.nuisance_corrections['2-nuisance_regression']['run']
-    if not isinstance(runswitch, list):
-        runswitch = [runswitch]
-    if True in runswitch:
-        nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
-                                                   f'_{opt["Name"]}_{pipe_num}')
-
-        node, out = strat_pool.get_data("space-bold_desc-brain_mask")
-        wf.connect(node, out, nuis, 'inputspec.functional_brain_mask_file_path')
-
-        wf.connect(regressors, 'outputspec.regressors_file_path',
-                   nuis, 'inputspec.regressor_file')
-
-        node, out = strat_pool.get_data("framewise-displacement-jenkinson")
-        wf.connect(node, out, nuis, 'inputspec.fd_j_file_path')
-
-        node, out = strat_pool.get_data("framewise-displacement-power")
-        wf.connect(node, out, nuis, 'inputspec.fd_p_file_path')
-
-        node, out = strat_pool.get_data("dvars")
-        wf.connect(node, out, nuis, 'inputspec.dvars_file_path')
-
-        if 'Bandpass' in opt:
-
-            filt = filtering_bold_and_regressors(opt, name=f'filtering_bold_and_'
-                                                 f'regressors_{opt["Name"]}_{pipe_num}')
-
-            filt.inputs.inputspec.nuisance_selectors = opt
-
-            wf.connect(regressors, 'outputspec.regressors_file_path',
-                       filt, 'inputspec.regressors_file_path')
-
-            node, out = strat_pool.get_data('space-bold_desc-brain_mask')
-            wf.connect(node, out,
-                       filt, 'inputspec.functional_brain_mask_file_path')
-
-            node, out = strat_pool.get_data('TR')
-            wf.connect(node, out, filt, 'inputspec.tr')
-
-            if cfg.nuisance_corrections['2-nuisance_regression'][
-                'bandpass_filtering_order'] == 'After':
-
-                node, out = strat_pool.get_data("desc-preproc_bold")
-                wf.connect(node, out, nuis, 'inputspec.functional_file_path')
-
-                wf.connect(nuis, 'outputspec.residual_file_path',
-                           filt, 'inputspec.functional_file_path')
-
-                outputs = {
-                    'desc-preproc_bold': (filt, 'outputspec.residual_file_path'),
-                    'desc-cleaned_bold': (filt, 'outputspec.residual_file_path'),
-                    'regressors': (filt, 'outputspec.residual_regressor')
-                }
-
-            elif cfg.nuisance_corrections['2-nuisance_regression'][
-                'bandpass_filtering_order'] == 'Before':
-
-                node, out = strat_pool.get_data("desc-preproc_bold")
-                wf.connect(node, out, filt, 'inputspec.functional_file_path')
-
-                wf.connect(filt, 'outputspec.residual_file_path',
-                           nuis, 'inputspec.functional_file_path')
-
-                outputs = {
-                    'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
-                    'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
-                    'regressors': (filt, 'outputspec.residual_regressor')
-                }
-
-        else:
-            node, out = strat_pool.get_data("desc-preproc_bold")
-            wf.connect(node, out, nuis, 'inputspec.functional_file_path')
-            
-            outputs = {
-                'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
-                'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
-                'regressors': (regressors, 'outputspec.regressors_file_path')
-            }
-
-    else:
-        outputs = {
-            'regressors': (regressors, 'outputspec.regressors_file_path')
-        }
+    outputs = {
+        'regressors': (regressors, 'outputspec.regressors_file_path')
+    }
 
     return (wf, outputs)

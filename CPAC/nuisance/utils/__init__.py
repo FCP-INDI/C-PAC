@@ -271,7 +271,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    regressor_descriptor,
                                    regressor_selector,
                                    use_ants=True,
-                                   ventricle_mask_exist=True):
+                                   ventricle_mask_exist=True,
+                                   all_bold=False):
     """
     Add tissue mask generation into pipeline according to the selector.
 
@@ -317,6 +318,10 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pass
 
         elif step == 'resolution':
+        
+            if all_bold:
+                pass
+        
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
                                        .format(node_mask_key),
