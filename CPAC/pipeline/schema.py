@@ -87,6 +87,11 @@ mutex = {  # mutually exclusive booleans
             'threshold': bool,
             'vertical_gradient': Range(min=-1, max=1, min_included=False,
                                        max_included=False),
+            'functional_mean_thr': {
+                'run': bool,
+                'threshold_value': Maybe(int),
+            },
+            'functional_mean_bias_correction': bool,
         }
     }
 }
