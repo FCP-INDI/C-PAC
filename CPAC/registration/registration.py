@@ -379,6 +379,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
                                                        'input_skull',
+                                                       'input_brain_mask',
                                                        'reference_brain',
                                                        'reference_skull',
                                                        'interp',
@@ -388,6 +389,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+                                                        'output_brain_mask',
                                                         'nonlinear_xfm']),
                          name='outputspec')
 
@@ -434,6 +436,24 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
 
     nonlinear_register.connect(brain_warp, 'out_file',
                                outputspec, 'output_brain')
+
+    brain_mask_warp = pe.Node(interface=fsl.ApplyWarp(),
+                              name='brain_mask_warp')
+
+    brain_mask_warp.inputs.relwarp = True
+    brain_mask_warp.inputs.interp = 'nn'
+
+    nonlinear_register.connect(inputspec, 'input_brain_mask',
+                               brain_mask_warp, 'in_file')
+
+    nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file', 
+                               brain_mask_warp, 'field_file')
+
+    nonlinear_register.connect(inputspec, 'reference_brain',
+                               brain_mask_warp, 'ref_file')
+
+    nonlinear_register.connect(brain_mask_warp, 'out_file',
+                               outputspec, 'output_brain_mask')
 
     return nonlinear_register
 
@@ -1429,6 +1449,9 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         wf.connect(inputNode, 'reference_head',
                    fnirt_reg_anat_mni, 'inputspec.reference_skull')
 
+        wf.connect(inputNode, 'input_mask',
+                   fnirt_reg_anat_mni, 'inputspec.input_brain_mask')
+
         wf.connect(inputNode, 'reference_mask',
                    fnirt_reg_anat_mni, 'inputspec.ref_mask')
 
@@ -1442,6 +1465,8 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
             added_outputs = {
                 f'space-{sym}{tmpl}template_desc-brain_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_brain'),
+                f'space-{sym}{tmpl}template_desc-T1w_mask': (
+                    fnirt_reg_anat_mni, 'outputspec.output_brain_mask'),
                 f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
                     fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm')
             }
@@ -1948,6 +1973,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "T1w-brain-template",
                 "FNIRT-T1w-template",
                 "FNIRT-T1w-brain-template",
+                "space-T1w_desc-brain_mask",
                 "template-ref-mask"],
      "outputs": ["space-template_desc-brain_T1w",
                  "space-template_desc-head_T1w",
@@ -2000,6 +2026,9 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, fsl, 'inputspec.input_mask')
 
     node, out = strat_pool.get_data('template-ref-mask')
     wf.connect(node, out, fsl, 'inputspec.reference_mask')
@@ -2604,63 +2633,63 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             merge_xfms, 'in_files')
 
         # applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
-        fsl_apply_warp_t1_to_template = pe.Node(interface=fsl.ApplyWarp(),
-                                                name=f'FSL-ABCD_T1_to_template_{pipe_num}')
-        fsl_apply_warp_t1_to_template.inputs.relwarp = True
-        fsl_apply_warp_t1_to_template.inputs.interp = 'spline'
+        head_to_template_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                        name=f'FSL-ABCD_T1_to_template_{pipe_num}')
+        head_to_template_warp.inputs.relwarp = True
+        head_to_template_warp.inputs.interp = 'spline'
 
         node, out = strat_pool.get_data(['desc-restore_T1w', 'desc-preproc_T1w', 'desc-reorient_T1w', 'T1w'])
-        wf.connect(node, out, fsl_apply_warp_t1_to_template, 'in_file')
+        wf.connect(node, out, head_to_template_warp, 'in_file')
 
         node, out = strat_pool.get_data('T1w-template')
-        wf.connect(node, out, fsl_apply_warp_t1_to_template, 'ref_file')
+        wf.connect(node, out, head_to_template_warp, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 
-            fsl_apply_warp_t1_to_template, 'field_file')
+            head_to_template_warp, 'field_file')
 
         # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
-        fsl_apply_warp_t1_brain_to_template = pe.Node(interface=fsl.ApplyWarp(),
-                                                      name=f'FSL-ABCD_T1_brain_to_template_{pipe_num}')
-        fsl_apply_warp_t1_brain_to_template.inputs.relwarp = True
-        fsl_apply_warp_t1_brain_to_template.inputs.interp = 'nn'
+        brain_to_template_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                         name=f'FSL-ABCD_T1_brain_to_template_{pipe_num}')
+        brain_to_template_warp.inputs.relwarp = True
+        brain_to_template_warp.inputs.interp = 'nn'
 
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
         node, out = strat_pool.get_data('desc-brain_T1w')
-        wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, 'in_file')
+        wf.connect(node, out, brain_to_template_warp, 'in_file')
 
         node, out = strat_pool.get_data('T1w-template')
-        wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, 'ref_file')
+        wf.connect(node, out, brain_to_template_warp, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 
-            fsl_apply_warp_t1_brain_to_template, 'field_file')
+            brain_to_template_warp, 'field_file')
 
-        fsl_apply_warp_t1_brain_mask_to_template = pe.Node(interface=fsl.ApplyWarp(),
-                                                        name=f'FSL-ABCD_T1_brain_mask_to_template_{pipe_num}')
-        fsl_apply_warp_t1_brain_mask_to_template.inputs.relwarp = True
-        fsl_apply_warp_t1_brain_mask_to_template.inputs.interp = 'nn'
+        brain_mask_to_template_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                              name=f'FSL-ABCD_T1_brain_mask_to_template_{pipe_num}')
+        brain_mask_to_template_warp.inputs.relwarp = True
+        brain_mask_to_template_warp.inputs.interp = 'nn'
 
         node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
-        wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, 'in_file')
+        wf.connect(node, out, brain_mask_to_template_warp, 'in_file')
 
         node, out = strat_pool.get_data('T1w-template')
-        wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, 'ref_file')
+        wf.connect(node, out, brain_mask_to_template_warp, 'ref_file')
 
         wf.connect(merge_xfms, 'merged_file', 
-            fsl_apply_warp_t1_brain_mask_to_template, 'field_file')
+            brain_mask_to_template_warp, 'field_file')
 
         # fslmaths ${OutputT1wImageRestore} -mas ${OutputT1wImageRestoreBrain} ${OutputT1wImageRestoreBrain}
         apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
-                            name=f'get_t1_brain_{pipe_num}')
+                             name=f'get_t1_brain_{pipe_num}')
 
-        wf.connect(fsl_apply_warp_t1_to_template, 'out_file',
+        wf.connect(head_to_template_warp, 'out_file',
             apply_mask, 'in_file')
         
-        wf.connect(fsl_apply_warp_t1_brain_to_template, 'out_file',
+        wf.connect(brain_to_template_warp, 'out_file',
             apply_mask, 'mask_file')
 
         outputs = {
             'space-template_desc-brain_T1w': (apply_mask, 'out_file'),
-            'space-template_desc-T1w_mask': (fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
+            'space-template_desc-T1w_mask': (brain_mask_to_template_warp, 'out_file'),
             'from-T1w_to-template_mode-image_xfm': (merge_xfms, 'merged_file')
         }
 
