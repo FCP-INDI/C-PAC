@@ -300,6 +300,11 @@ RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/r
 COPY --from=0 opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
 COPY --from=0 opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
 
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 COPY . /code
 RUN pip install -e /code
 
