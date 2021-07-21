@@ -20,11 +20,11 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 RegName=MSMSulc
+# RegName=FS
 useT2=false
 
 # default parameters
 CorrectionSigma=$(echo "sqrt ( 200 )" | bc -l)
-# RegName=FS
 InflateExtraScale=1
 
 #Naming Conventions

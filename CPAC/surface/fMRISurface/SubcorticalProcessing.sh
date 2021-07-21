@@ -48,7 +48,7 @@ unset POSIXLY_CORRECT
 #mkdir -p $TempSubjectDIR
 
 #hj edit: make a temp dir
-TempSubjectDIR="/data3/cnl/xli/cpac_features/abcd/PostFreeSurfer/TempSubjectDIR"
+TempSubjectDIR="/tmp/TempSubjectDIR"
 mkdir -p $TempSubjectDIR
 chmod 770 $TempSubjectDIR
 
@@ -56,7 +56,6 @@ chmod 770 $TempSubjectDIR
 #    echo Exit code caught. Removing temp scratch space directory
 #    rm -fR ${TempSubjectDIR}
 #}
-
 
 
 #generate subject-roi space fMRI cifti for subcortical
@@ -99,14 +98,13 @@ else
 fi
 
 
-
 #delete the temp space directory
 # trap clean_up EXIT SIGTERM SIGHUP SIGINT SIGQUIT
-# rm -rf ${TempSubjectDIR}
+rm -rf ${TempSubjectDIR}
 
 #delete common temporaries
-#rm -f ${ResultsFolder}/${NameOffMRI}_temp_subject_dilate.dtseries.nii
-#rm -f ${ResultsFolder}/${NameOffMRI}_temp_template.dlabel.nii
+rm -f ${ResultsFolder}/${NameOffMRI}_temp_subject_dilate.dtseries.nii
+rm -f ${ResultsFolder}/${NameOffMRI}_temp_template.dlabel.nii
 
 #write output volume, delete temporary
 #NOTE: $VolumefMRI contains a path in it, it is not a file in the current directory

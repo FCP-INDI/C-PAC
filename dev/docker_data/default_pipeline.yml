@@ -168,13 +168,13 @@ surface_analysis:
 
     run: Off
 
-    subcortical_gray_labels: /DCAN-HCP/global/config/FreeSurferSubcorticalLabelTableLut.txt
+    subcortical_gray_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferSubcorticalLabelTableLut.txt
 
-    freesurfer_labels: /DCAN-HCP/global/config/FreeSurferAllLut.txt
+    freesurfer_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferAllLut.txt
 
-    surf_atlas_dir: /DCAN-HCP/global/templates/standard_mesh_atlases
+    surf_atlas_dir: /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases
 
-    gray_ordinates_dir: /DCAN-HCP/global/templates/91282_Greyordinates
+    gray_ordinates_dir: /opt/dcan-tools/pipeline/global/templates/91282_Greyordinates
 
     gray_ordinates_res: 2
 
