@@ -44,12 +44,13 @@ def fill_holes(prt_msk):
 
     return prt_msk_filled
 
-def erosion_dilation(prt_msk, structure=snd.generate_binary_structure(3, 1), iterations=1):
+def erosion_dilation(prt_msk, iterations=1):
 
     import scipy.ndimage as snd
     from CPAC.unet.function import extract_large_comp
 
     # Erosion
+    structure=snd.generate_binary_structure(3, 1)
     prt_msk_eroded=snd.binary_erosion(prt_msk, structure=structure, iterations=iterations).astype(prt_msk.dtype)
 
     # Extract Largest Component
