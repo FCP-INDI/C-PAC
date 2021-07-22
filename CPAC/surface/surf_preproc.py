@@ -74,7 +74,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                             'smooth_fwhm'],
                                 output_names=['out_file'],
                                 function=run_surface),
-                    name='post_freesurfer')
+                    name=f'post_freesurfer_{pipe_num}')
 
     surf.inputs.subject = cfg['subject_id']
 
