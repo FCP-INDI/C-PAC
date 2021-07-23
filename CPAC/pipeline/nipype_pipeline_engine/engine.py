@@ -61,7 +61,10 @@ class Node(pe.Node):
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         if 'mem_x' in kwargs:
-            setattr(self, '_mem_x', kwargs['mem_x'])
+            setattr(self, '_mem_x', {
+                'multiplicand': kwargs['mem_x'],
+                'mode': kwargs.get('mem_x_mode', 'xyzt')
+            })
         setattr(self, 'skip_timeout', False)
 
     orig_sig_params = list(signature(pe.Node).parameters.items())
@@ -73,6 +76,7 @@ class Node(pe.Node):
                       default=DEFAULT_MEM_GB)
         )[1] for p in orig_sig_params[:-1]] + [
             Parameter('mem_x', Parameter.KEYWORD_ONLY),
+            Parameter('mem_x_mode', Parameter.KEYWORD_ONLY),
             orig_sig_params[-1][1]
         ])
 
@@ -98,10 +102,17 @@ class Node(pe.Node):
                 involved.
 
             Multiplier for memory allocation such that ``multiplier``
-            times x * y * z * t of 4-D file at ``input_file`` plus
+            times ``self.mem_x_mode`` of 4-D file at ``input_file`` plus
             ``self._mem_gb`` equals the total memory allocation for
             the node. ``input_file`` can be a Node input string or
-            an actual path.''']))  # noqa E501
+            an actual path.
+
+        mem_x_mode : str
+            One of
+
+            * 'xyzt' (spatial * temporal) (default)
+            * 'xyz' (spatial)
+            * 't' (temporal)''']))  # noqa E501
 
     @property
     def mem_gb(self):
@@ -115,12 +126,13 @@ class Node(pe.Node):
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
         if hasattr(self, '_mem_x'):
-            if not isinstance(self._mem_x, tuple):
-                self._mem_x = (self._mem_x, )
-            if len(self._mem_x) == 1:
+            if not isinstance(self._mem_x['multiplicand'], tuple):
+                self._mem_x['multiplicand'] = (self._mem_x['multiplicand'], )
+            if len(self._mem_x['multiplicand']) == 1:
                 return self._apply_mem_x()
             try:
-                mem_x_path = getattr(self.inputs, self._mem_x[1])
+                mem_x_path = getattr(
+                    self.inputs, self._mem_x['multiplicand'][1])
             except AttributeError as e:
                 raise AttributeError(
                     f'{e.args[0]} in Node \'{self.name}\'') from e
@@ -129,8 +141,8 @@ class Node(pe.Node):
                 return self._apply_mem_x(mem_x_path)
             raise FileNotFoundError(2, 'The memory estimate for Node '
                                     f"'{self.name}' depends on the input "
-                                    f"'{self._mem_x[1]}' but no such file or "
-                                    'directory', mem_x_path)
+                                    f"'{self._mem_x['multiplicand'][1]}' but "
+                                    'no such file or directory', mem_x_path)
         return self._mem_gb
 
     def _check_mem_x_path(self, mem_x_path):
@@ -177,26 +189,42 @@ class Node(pe.Node):
 
         Parameters
         ----------
-        multiplicand : str, int or None
+        multiplicand : str, int or None or list thereof
 
         Returns
         -------
         number
             estimated memory usage (GB)
         '''
+        def parse_multiplicand(multiplicand):
+            if isinstance(multiplicand, list):
+                return sum([parse_multiplicand(part) for part in multiplicand])
+            if isinstance(multiplicand, (int, float)):
+                return multiplicand
+            if (
+                isinstance(multiplicand, tuple) and
+                3 <= len(multiplicand) <= 4 and
+                all(isinstance(i, (int, float)) for i in multiplicand)
+            ):
+                return get_data_size(
+                    multiplicand,
+                    getattr(self, '_mem_x', {}).get('mode'))
+            if self._check_mem_x_path(multiplicand):
+                return get_data_size(
+                    self._grab_first_path(multiplicand),
+                    getattr(self, '_mem_x', {}).get('mode'))
+
         if hasattr(self, '_mem_x'):
-            if not isinstance(multiplicand, int):
-                if self._check_mem_x_path(multiplicand):
-                    multiplicand = get_data_size(
-                        self._grab_first_path(multiplicand))
-            self._mem_gb = self._mem_gb + self._mem_x[0] * multiplicand
+            self._mem_gb = self._mem_gb + self._mem_x[0] * parse_multiplicand(
+                multiplicand)
             del self._mem_x
         return self._mem_gb
 
     @property
     def mem_x(self):
-        """Get (memory multiplier, input file) tuple. Returns ``None``
-        if already consumed or not set."""
+        """Get dict of multiplicand ((memory multiplier, input file)
+        tuple) and multiplier mode (spatial * temporal, spatial only or
+        temporal only). Returns ``None`` if already consumed or not set."""
         if hasattr(self, '_mem_x'):
             return self._mem_x
         return None
@@ -234,8 +262,8 @@ class Workflow(pe.Workflow):
                     )
                     if node and hasattr(node, 'mem_x'):
                         if isinstance(
-                            node.mem_x, tuple
-                        ) and node.mem_x[1] == field:
+                            node.mem_x.get('multiplicand'), tuple
+                        ) and node.mem_x['multiplicand'][1] == field:
                             input_resultfile = node.input_source.get(field)
                             if input_resultfile:
                                 if isinstance(input_resultfile, tuple):
@@ -253,18 +281,29 @@ class Workflow(pe.Workflow):
                                     else:
                                         # TODO: handle S3 files
                                         # 1e8 is a small estimate
-                                        node._apply_mem_x(UNDEFINED_SIZE)
+                                        node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
 
 
-def get_data_size(filepath):
+def get_data_size(filepath, mode='xyzt'):
     """Function to return the size of a functional image (x * y * z * t)
 
     Parameters
     ----------
     filepath : str or path
 
+    mode : str
+        One of:
+        * 'xyzt' (all dimensions multiplied) (DEFAULT)
+        * 'xyz' (spatial dimensions multiplied)
+        * 't' (number of TRs)
+
     Returns
     -------
     int
     """
-    return prod(load(filepath).shape)
+    data_shape = load(filepath).shape
+    if mode == 't':
+        return data_shape[3]
+    if mode == 'xyz':
+        return prod(data_shape[0:3])
+    return prod(data_shape)

@@ -60,4 +60,4 @@ def test_Workflow(tmpdir):
     out = wf.run()
 
     assert list(out.nodes)[0].mem_gb == DEFAULT_MEM_GB + get_data_size(
-        example_filepath) * 0.1
+        example_filepath, 'xyzt') * 0.1

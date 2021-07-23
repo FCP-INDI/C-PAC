@@ -1438,7 +1438,8 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     # TODO: handle S3 files
     # Skip S3 files for now
     functional_scan_sizes = [get_data_size(
-        func_paths_dct[scan]['scan']
+        func_paths_dct[scan]['scan'],
+        mode='xyzt'
     ) for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
     if functional_scan_sizes:
@@ -1873,7 +1874,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
     rpool = initiate_rpool(cfg, data_paths)
 
-    wf = pe.Workflow(name=f'node_blocks')
+    wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',

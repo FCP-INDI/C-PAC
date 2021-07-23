@@ -112,7 +112,10 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
 
     # Anatomical reorientation
     lesion_reorient = pe.Node(interface=afni.Resample(),
-                              name='lesion_reorient')
+                              name='lesion_reorient',
+                              mem_gb=0,
+                              mem_x=(0.0115, 'in_file'),
+                              mem_x_mode='t')
 
     lesion_reorient.inputs.orientation = 'RPI'
     lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
