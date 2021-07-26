@@ -2375,22 +2375,6 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-EPItemplate_mode-image_xfm",
                  "from-EPItemplate_to-bold_mode-image_xfm"]}
     '''
-    outputs = {
-        f'space-{sym}template_desc-brain_{orig}': (
-            ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
-        f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
-            write_composite_xfm, 'output_image'),
-        f'from-{sym}{tmpl}template_to-{orig}_mode-image_xfm': (
-            write_composite_inv_xfm, 'output_image'),
-        f'from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm': (
-            write_composite_linear_xfm, 'output_image'),
-        f'from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm': (
-            write_composite_invlinear_xfm, 'output_image'),
-        f'from-{orig}_to-{sym}{tmpl}template_mode-image_desc-nonlinear_xfm': (
-            ants_reg_anat_mni, 'outputspec.warp_field'),
-        f'from-{sym}{tmpl}template_to-{orig}_mode-image_desc-nonlinear_xfm': (
-            ants_reg_anat_mni, 'outputspec.inverse_warp_field')
-    }
     params = cfg.registration_workflows['functional_registration'][
         'EPI_registration']['ANTs']['parameters']
 
