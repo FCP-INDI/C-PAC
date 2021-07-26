@@ -1434,17 +1434,15 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
-    # Memoize largest (x * y * z * t) functional image size in workflow
+    # Memoize list of local functional scans
     # TODO: handle S3 files
     # Skip S3 files for now
-    functional_scan_sizes = [get_data_size(
-        func_paths_dct[scan]['scan'],
-        mode='xyzt'
-    ) for scan in func_paths_dct.keys() if not
+    local_func_scans = [
+        func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
-    if functional_scan_sizes:
-        wf._largest_func = max(functional_scan_sizes)
-    del functional_scan_sizes
+    if local_func_scans:
+        wf._local_func_scans = local_func_scans
+    del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 

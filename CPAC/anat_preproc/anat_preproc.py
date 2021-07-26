@@ -1022,8 +1022,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     reorient_fs_brainmask = pe.Node(interface=afni.Resample(),
                                     name=f'reorient_fs_brainmask_{node_id}',
                                     mem_gb=0,
-                                    mem_x=(0.0115, 'in_file'),
-                                    mem_x_mode='t')
+                                    mem_x=(0.0115, 'in_file', 't'))
     reorient_fs_brainmask.inputs.orientation = 'RPI'
     reorient_fs_brainmask.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1042,8 +1041,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     reorient_fs_T1 = pe.Node(interface=afni.Resample(),
                              name=f'reorient_fs_T1_{node_id}',
                              mem_gb=0,
-                             mem_x=(0.0115, 'in_file'),
-                             mem_x_mode='t')
+                             mem_x=(0.0115, 'in_file', 't'))
     reorient_fs_T1.inputs.orientation = 'RPI'
     reorient_fs_T1.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1254,8 +1252,7 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     anat_reorient = pe.Node(interface=afni.Resample(),
                             name=f'anat_reorient_{pipe_num}',
                             mem_gb=0,
-                            mem_x=(0.0115, 'in_file'),
-                            mem_x_mode='t')
+                            mem_x=(0.0115, 'in_file', 't'))
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1930,8 +1927,7 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     brain_mask_reorient = pe.Node(interface=afni.Resample(),
                                   name='brain_mask_reorient',
                                   mem_gb=0,
-                                  mem_x=(0.0115, 'in_file'),
-                                  mem_x_mode='t')
+                                  mem_x=(0.0115, 'in_file', 't'))
     brain_mask_reorient.inputs.orientation = 'RPI'
     brain_mask_reorient.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(brain_mask_deoblique, 'out_file',
@@ -2014,8 +2010,7 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     T2_reorient = pe.Node(interface=afni.Resample(),
                           name=f'T2_reorient_{pipe_num}',
                           mem_gb=0,
-                          mem_x=(0.0115, 'in_file'),
-                          mem_x_mode='t')
+                          mem_x=(0.0115, 'in_file', 't'))
     T2_reorient.inputs.orientation = 'RPI'
     T2_reorient.inputs.outputtype = 'NIFTI_GZ'
 

@@ -830,8 +830,7 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         resample = pe.Node(interface=afni.Resample(),
                            name=template_name,
                            mem_gb=0,
-                           mem_x=(0.0115, 'in_file'),
-                           mem_x_mode='t')
+                           mem_x=(0.0115, 'in_file', 't'))
         resample.inputs.voxel_size = resolution
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'

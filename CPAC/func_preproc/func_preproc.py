@@ -1057,8 +1057,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     func_reorient = pe.Node(interface=afni_utils.Resample(),
                             name=f'func_reorient_{pipe_num}',
                             mem_gb=0,
-                            mem_x=(0.0115, 'in_file'),
-                            mem_x_mode='t')
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1735,8 +1734,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     func_reorient = pe.Node(interface=afni_utils.Resample(),
                             name=f'raw_func_reorient_{pipe_num}',
                             mem_gb=0,
-                            mem_x=(0.0115, 'in_file'),
-                            mem_x_mode='t')
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1961,8 +1959,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         interface=afni.Resample(),
         name=f'resample_func_mask_to_native_{pipe_num}',
         mem_gb=0,
-        mem_x=(0.0115, 'in_file'),
-        mem_x_mode='t')
+        mem_x=(0.0115, 'in_file', 't'))
     func_mask_template_to_native.inputs.resample_mode = 'NN'
     func_mask_template_to_native.inputs.outputtype = 'NIFTI_GZ'
 
