@@ -1,0 +1,191 @@
+// The FSL installer manifest file contains information
+// about the fslinstaller script, and about versions of
+// FSL that are available for download.
+//
+// This file is an example. The official installer
+// manifest.json file is automaticallygenerated/updated
+// by the generate_manifest-file.py script, which is run
+// when a new version of FSL is released.
+{
+
+    // The "installer" section contains information about the
+    // latest available version of the fslinstaller script
+    "installer" : {
+
+        // Latest version of fslinstaller script
+        "version" : "1.3.4",
+
+        // URL to download fslinstaller script
+        "url" : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py",
+
+        // SHA256 checksum of installer script
+        "sha256"  : "2626342288e232d56bd16898ab6b46a348e21bb7f06bb8371fbf7479d7b5e4e8"
+    },
+
+    // URLs to download miniconda/miniforge
+    "miniconda" : {
+        "linux-64" : {
+            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-Linux-x86_64.sh",
+            "sha256" : "303d65289f600fa4c85fe2b0fef9bb0848ec544a75a9c3079607d847918f7023",
+
+            // Number of lines of output to expect
+            // when running the miniconda installer
+            // script - used to report progress to
+            // the user.
+            "output" : "194"
+        },
+        "macos-64" : {
+            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-MacOSX-x86_64.sh",
+            "sha256" : "8ed6871bbd0b24f66b2d87fd88cbcd0854142e5cf1447de5f5f246884ef9c846",
+            "output" : "87"
+        }
+
+        "macos-M1" : {
+            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-MacOSX-arm64.sh",
+            "sha256" : "8ed6871bbd0b24f66b2d87fd88cbcd0854142e5cf1447de5f5f246884ef9c846",
+            "output" : "87"
+        }
+    },
+
+    // The "versions" section contains information
+    // about all available versions of FSL. FSL versions
+    // are distributed as conda environment.yml files.
+    "versions" : {
+
+        // Reference to latest available
+        // version - must be present
+        "latest" : "6.1.0",
+
+        // Builds available for this version. A build
+        // entry contains the following fields:
+        //
+        //   - "platform"      Architecture/platform  - currently one of
+        //                     "linux-64", "macos-64", or "macos-M1"
+        //   - "cuda"          Version of CUDA that this build was built
+        //                     against. MUST NOT be present for non-CUDA
+        //                     builds.
+        //   - "environment"   Conda environment.yml file
+        //   - "sha256"        SHA256 checksum of environment.yml file
+        //   - "base_packages" List of "base" packages, which are
+        //                     installed before all other packages.
+        //   - "output"        Dictionary containing number of lines of
+        //                     output to expect when installing the FSL
+        //                     environment ("install" : "100"), or when
+        //                     updating from an older FSL installation
+        //                     (e.g. "6.1.0" : "50") - used to report
+        //                     progress to the user.
+        "6.1.0"  : [
+            {
+                "platform"      : "linux-64",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11"
+                }
+            },
+            {
+                "platform"      : "macos-64",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-64.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11"
+                }
+            },
+            {
+                "platform"      : "macos-M1",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-M1.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11"
+                }
+            },
+            {
+                "platform"      : "linux-64",
+                "cuda"          : "9.2",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64-cuda9.2.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11"
+                }
+            },
+            {
+                "platform"      : "linux-64",
+                "cuda"          : "10.2",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64-cuda10.2.yml",
+                "sha256"        : "85ef650586c1d7f3475fe7d16108bb94b737decbfc7506ad4deff2917365d05f",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11"
+                }
+            }
+        ],
+        "6.2.0" : [
+            {
+                "platform"      : "linux-64",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11",
+                    "6.1.0"     : "11"
+                }
+            },
+            {
+                "platform"      : "macos-64",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-64.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11",
+                    "6.1.0"     : "11"
+                }
+            },
+            {
+                "platform"      : "macos-M1",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-M1.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11",
+                    "6.1.0"     : "11"
+                }
+            },
+            {
+                "platform"      : "linux-64",
+                "cuda"          : "9.2",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64-cuda9.2.yml",
+                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11",
+                    "6.1.0"     : "11"
+                }
+            },
+            {
+                "platform"      : "linux-64",
+                "cuda"          : "10.2",
+                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64-cuda10.2.yml",
+                "sha256"        : "6499385a2f5d2da48f4a44c95e090a5156319b0acbbd47029d4270abc691a290",
+                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
+                "output"        : {
+                    "install"   : "92",
+                    "6.0.6"     : "11",
+                    "6.1.0"     : "11"
+                }
+            }
+        ]
+    }
+}

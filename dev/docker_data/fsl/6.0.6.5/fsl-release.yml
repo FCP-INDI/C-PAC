@@ -1,0 +1,207 @@
+# URL to FSL release information. The fslinstaller.py
+# script, and previously generated manifest.json
+# file is assumed to be downloadable from this URL.
+# URLs for newly generated environment files are
+# constructed using this URL.
+release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
+
+# Latest fslinstaller version
+installer: 1.6.0
+
+# URLs to miniconda installers to
+# use for all supported platforms
+miniconda:
+ linux-64: https://github.com/conda-forge/miniforge/releases/download/4.10.3-7/Miniforge3-4.10.3-7-Linux-x86_64.sh
+ macos-64: https://github.com/conda-forge/miniforge/releases/download/4.10.3-7/Miniforge3-4.10.3-7-MacOSX-x86_64.sh
+ macos-M1: https://github.com/conda-forge/miniforge/releases/download/4.10.3-7/Miniforge3-4.10.3-7-MacOSX-arm64.sh
+
+# Versions of CUDA for which FSL packages are
+# built (currently only available on Linux).
+cuda:
+ - 9.2
+ - 10.2
+ - 11.0
+ - 11.1
+ - 11.3
+
+# Conda channels to source packages from
+channels:
+ - https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
+ - conda-forge
+ - defaults
+
+# Private internal channel for development and
+# testing releases. This is prepended to the
+# channels list for development releases.
+internal-channel: http://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/internal/
+
+# The FSL installation is created in two stages.
+# First of all, the base_packages are installed.
+# Versions of these packages are specified in
+# the packages list below
+base-packages:
+ - fslpy
+ - fsl-base
+ - fsl_sub
+ - fsl_sub_plugin_sge
+ - fsl_sub_plugin_slurm
+ - libopenblas
+
+# List of all packages that comprise a FSL
+# installation. All packages not installed
+# in the first stage (see base_packages
+# above) are installed in the second stage.
+packages:
+ - ciftilib 1.5.3
+ - c-compiler
+ - cxx-compiler
+ - fmrib-unpack 2.8.0
+ - fsleyes 1.3.0
+ - fslpy 3.7.1
+ - fsl-add_module 0.3.2
+ - fsl-armawrap 0.6.0
+ - fsl-asl_mfree v1.0.2
+ - fsl-avwutils 2111.0
+ - fsl-base 2111.8
+ - fsl-basil v4.0.4
+ - fsl-basisfield 2111.1
+ - fsl-baycest 2111.0
+ - fsl-bet2 2111.0
+ - fsl-bianca 2106.0
+ - fsl-biancaData 2006.0
+ - fsl-bint 2111.0
+ - fsl-cluster 2111.0
+ - fsl-copain 2111.1
+ - fsl-cprob 2111.0
+ - fsl-cudabasisfield-cuda-9.2 1.1.0
+ - fsl-cudabasisfield-cuda-10.2 1.1.0
+ - fsl-cudabasisfield-cuda-11.0 1.1.0
+ - fsl-cudabasisfield-cuda-11.1 1.1.0
+ - fsl-cudabasisfield-cuda-11.3 1.1.0
+ - fsl-cudimot 2006.0
+ - fsl-data_atlases 2103.0
+ - fsl-data_atlases_xtract 1.1.0
+ - fsl-data_first_models_317_bin 2006.0
+ - fsl-data_first_models_336_bin 2006.0
+ - fsl-data_linearmni 1.0.0
+ - fsl-data_possum 2106.0
+ - fsl-data_standard 2006.0
+ - fsl-deface 1.2.0
+ - fsl-discreteopt 2008.0
+ - fsl-dpm 2111.0
+ - fsl-dwssfp 2111.0
+ - fsl-eddy 2111.0
+ - fsl-eddy-cuda-9.2 2111.0
+ - fsl-eddy-cuda-10.2 2111.0
+ - fsl-eddy-cuda-11.0 2111.0
+ - fsl-eddy-cuda-11.1 2111.0
+ - fsl-eddy-cuda-11.3 2111.0
+ - fsl-eddy_qc v1.0.3
+ - fsl-fabber_core v4.0.10
+ - fsl-fabber_models_asl v2.0.7
+ - fsl-fabber_models_cest v2.1.6
+ - fsl-fabber_models_dce v2.1.5
+ - fsl-fabber_models_dsc v2.0.5
+ - fsl-fabber_models_dualecho v2.0.4
+ - fsl-fabber_models_dwi v2.0.3
+ - fsl-fabber_models_pet v1.0.1
+ - fsl-fabber_models_qbold v1.0.2
+ - fsl-fabber_models_t1 v2.0.2
+ - fsl-fast4 2111.0
+ - fsl-fastpdlib 2111.1
+ - fsl-fdt 2111.0
+ - fsl-fdt-cuda-9.2 2111.0
+ - fsl-fdt-cuda-10.2 2111.0
+ - fsl-fdt-cuda-11.0 2111.0
+ - fsl-fdt-cuda-11.1 2111.0
+ - fsl-fdt-cuda-11.3 2111.0
+ - fsl-feat5 2111.0
+ - fsl-film 2111.0
+ - fsl-filmbabe 2111.0
+ - fsl-first 2111.0
+ - fsl-first_lib 2111.0
+ - fsl-flameo 2111.0
+ - fsl-flirt 2111.0
+ - fsl-fnirt 2111.0
+ - fsl-fugue 2111.0
+ - fsl-get_standard 0.1.0
+ - fsl-giftiio 2111.0
+ - fsl-gps 2111.0
+ - fsl-lesions 2111.0
+ - fsl-libgdc 2111.0
+ - fsl-libmeshutils 2111.0
+ - fsl-libvis 2111.0
+ - fsl-load_dicom 2111.0
+ - fsl-load_varian 2111.1
+ - fsl-mcflirt 2111.0
+ - fsl-melodic 2111.1
+ - fsl-meshclass 2111.0
+ - fsl-misc_c 2111.0
+ - fsl-misc_scripts 2111.0
+ - fsl-misc_tcl 2111.0
+ - fsl-miscmaths 2111.1
+ - fsl-miscvis 2111.0
+ - fsl-mist 2111.0
+ - fsl-mm 2111.0
+ - fsl_mrs 1.1.8
+ - fsl-msm 2008.0
+ - fsl-msmreglib 2008.0
+ - fsl-mvdisc 2111.0
+ - fsl-newimage 2111.0
+ - fsl-newmesh 2111.0
+ - fsl-newnifti 4.0.0
+ - fsl-newran 2111.0
+ - fsl-oxford_asl v4.0.27
+ - fsl-possum 2111.2
+ - fsl-ptx2 2111.0
+ - fsl-ptx2-cuda-9.2 2111.0
+ - fsl-ptx2-cuda-10.2 2111.0
+ - fsl-ptx2-cuda-11.0 2111.0
+ - fsl-ptx2-cuda-11.1 2111.0
+ - fsl-ptx2-cuda-11.3 2111.0
+ - fsl-pyfeeds 0.9.9
+ - fsl-pyfeeds-tests 2111.0
+ - fsl-qboot 2111.0
+ - fsl-randomise 2111.1
+ - fsl-relax 2111.0
+ - fsl-shapemodel 2111.0
+ - fsl-siena 2111.0
+ - fsl-slicetimer 2111.0
+ - fsl_sub 2.7.0
+ - fsl_sub_plugin_sge 1.5.2
+ - fsl_sub_plugin_slurm 1.4.2
+ - fsl-surface 2111.0
+ - fsl-susan 2111.0
+ - fsl-swe v1.1.0
+ - fsl-tbss 2111.0
+ - fsl-tirl v2.2.1
+ - fsl-topup 2111.0
+ - fsl-utils 2111.1
+ - fsl-vbm 2006.0
+ - fsl-verbena v4.0.3
+ - fsl-vtkio 2111.0
+ - fsl-warpfns 2111.0
+ - fsl-wire 1.0.0
+ - fsl-xtract 1.5.1
+ - fsl-xtract_data 1.3.4
+ - fsl-znzlib 2111.0
+ - fmrib-unpack 2.8.0
+ - ghalton 0.6.1
+ - hlsvdpropy 2.0.1
+ - libopenblas 0.3.18 *openmp*
+ - make
+ - nidmresults 2.1.0
+ - nidmresults-fsl 2.2.0
+ - openslide-python v1.1.2
+
+# List of additional packages that
+# are added to linux-64 installations.
+linux-64-packages: []
+
+# List of additional packages that
+# are added to macos-64 installations.
+macos-64-packages: []
+
+# List of additional packages that
+# are added to macos-M1 installations.
+macos-M1-packages: []
