@@ -1,0 +1,35 @@
+Key,Pipeline_Config_Entry,Description,Intended_Resolution_Config_Entry
+CSF-path,"segmentation, tissue_segmentation, FSL-FAST, use_priors, CSF_path",Template-space CSF tissue prior,
+dilated-symmetric-brain-mask,"voxel_mirrored_homotopic_connectivity, symmetric_registration, dilated_symmetric_brain_mask",,"registration_workflows, anatomical_registration, resolution_for_anat"
+dilated-symmetric-brain-mask-for-resample,"voxel_mirrored_homotopic_connectivity, symmetric_registration, dilated_symmetric_brain_mask_for_resample",,
+EPI-template,"registration_workflows, functional_registration, EPI_registration, EPI_template",EPI-based template,
+EPI-template-deriv,"registration_workflows, functional_registration, func_registration_to_template, target_template, EPI_template, EPI_template_funcreg",EPI-based template resampled to the desired functional derivative resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_derivative_outputs"
+EPI-template-for-resample,"registration_workflows, functional_registration, func_registration_to_template, target_template, EPI_template, EPI_template_for_resample",,
+EPI-template-funcreg,"registration_workflows, functional_registration, func_registration_to_template, target_template, EPI_template, EPI_template_funcreg",EPI-based template resampled to the desired preprocessed-functional resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
+EPI-template-mask,"registration_workflows, functional_registration, EPI_registration, EPI_template_mask",Binary brain mask of the EPI template,
+GM-path,"segmentation, tissue_segmentation, FSL-FAST, use_priors, GM_path",Template-space GM tissue prior,
+lateral-ventricles-mask,"nuisance_corrections, 2-nuisance_regression, lateral_ventricles_mask",,
+T1w-ACPC-template,"anatomical_preproc, acpc_alignment, T1w_ACPC_template",,
+T1w-brain-ACPC-template,"anatomical_preproc, acpc_alignment, T1w_brain_ACPC_template",,
+T1w-brain-template,"registration_workflows, anatomical_registration, T1w_brain_template",T1w-based skull-stripped template,"registration_workflows, anatomical_registration, resolution_for_anat"
+T1w-brain-template-deriv,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_brain_template_funcreg",T1w-based skull-stripped template resampled to the desired functional derivative resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_derivative_outputs"
+T1w-brain-template-funcreg,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_brain_template_funcreg",T1w-based skull-stripped template resampled to the desired preprocessed-functional resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
+T1w-brain-template-mask,"registration_workflows, anatomical_registration, T1w_brain_template_mask",Binary brain mask of the T1w template,
+T1w-brain-template-symmetric,"voxel_mirrored_homotopic_connectivity, symmetric_registration, T1w_brain_template_symmetric",Symmetric version of the T1w-based skull-stripped template,"registration_workflows, anatomical_registration, resolution_for_anat"
+T1w-brain-template-symmetric-deriv,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_brain_template_funcreg","Symmetric version of the T1w-based skull-stripped template, resampled to the desired functional derivative resolution","registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_derivative_outputs"
+T1w-brain-template-symmetric-for-resample,"voxel_mirrored_homotopic_connectivity, symmetric_registration, T1w_brain_template_symmetric_for_resample",,
+T1w-template,"registration_workflows, anatomical_registration, T1w_template",T1w-based whole-head template,"registration_workflows, anatomical_registration, resolution_for_anat"
+T1w-template-deriv,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_template_funcreg",T1w-based whole-head template resampled to the desired functional derivative resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_derivative_outputs"
+T1w-template-for-resample,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_template_for_resample",,
+T1w-template-funcreg,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_template_funcreg",T1w-based whole-head template resampled to the desired preprocessed-functional resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
+T1w-template-symmetric,"voxel_mirrored_homotopic_connectivity, symmetric_registration, T1w_template_symmetric",,"registration_workflows, anatomical_registration, resolution_for_anat"
+T1w-template-symmetric-deriv,"registration_workflows, functional_registration, func_registration_to_template, target_template, T1_template, T1w_template_funcreg","Symmetric version of the T1w-based whole-head template, resampled to the desired functional derivative resolution","registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_derivative_outputs"
+T1w-template-symmetric-for-resample,"voxel_mirrored_homotopic_connectivity, symmetric_registration, T1w_template_symmetric_for_resample",,
+template-ref-mask,"registration_workflows, anatomical_registration, registration, FSL-FNIRT, ref_mask",,"registration_workflows, anatomical_registration, resolution_for_anat"
+template-ref-mask-res-2,"registration_workflows, anatomical_registration, registration, FSL-FNIRT, ref_mask_res-2",,
+T1w-template-res-2,"registration_workflows, anatomical_registration, registration, FSL-FNIRT, T1w_template_res-2",,
+template-specification-file,"network_centrality, template_specification_file",Binary ROI mask for network centrality calculations,
+unet-model,"anatomical_preproc, brain_extraction, UNet, unet_model",,
+WM-path,"segmentation, tissue_segmentation, FSL-FAST, use_priors, WM_path",Template-space WM tissue prior,
+template-eye-mask,"PyPEER, eye_mask_path",,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
+T1w-brain-template-mask-ccs,"anatomical_preproc, brain_extraction, FreeSurfer-BET, T1w_brain_template_mask_ccs",,

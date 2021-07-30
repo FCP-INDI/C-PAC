@@ -66,7 +66,7 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-preproc-sm_bold",
                  "desc-sm_bold"],
                 "from-bold_to-symtemplate_mode-image_xfm",
-                "T1w_brain_template_symmetric"],
+                "T1w-brain-template-symmetric"],
      "outputs": ["space-symtemplate_desc-sm_bold"]}
     '''
 
@@ -81,8 +81,7 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     apply_xfm = apply_transform(f'warp_ts_to_sym_template_{pipe_num}',
                                 reg_tool, time_series=True, num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores,
-                                mem_gb=5.0)
+                                num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':
         apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
@@ -102,7 +101,7 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data("T1w_brain_template_symmetric")
+    node, out = strat_pool.get_data("T1w-brain-template-symmetric")
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
     node, out = strat_pool.get_data("from-bold_to-symtemplate_mode-image_xfm")

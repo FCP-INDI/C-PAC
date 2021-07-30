@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -191,11 +191,12 @@ registration_workflows:
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
         T1w_template_res-2: /ABCD_template/MNI152_T1_2mm.nii.gz
 
-    apply_transform: 
+    overwrite_transform:
 
-      # Choose the tool to apply transform regardless of which tool to calculate transform
-      # 'default' will use the same tool as registration
-      # using: 'default', 'ANTS', 'FSL'
+      run: On
+
+      # Choose the tool to overwrite transform, currently only support 'FSL' to overwrite 'ANTs' transforms in ABCD-options pipeline.
+      # using: 'FSL'
       using: FSL
 
   functional_registration: 

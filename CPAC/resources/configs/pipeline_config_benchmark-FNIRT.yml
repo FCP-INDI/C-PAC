@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -75,12 +75,6 @@ pipeline_setup:
     num_participants_at_once: 15
 
 anatomical_preproc: 
-
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
-
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
 
   brain_extraction: 
 

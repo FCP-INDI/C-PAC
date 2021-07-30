@@ -16,24 +16,29 @@ commands:
             docker build -t fcpindi/c-pac:${DOCKER_TAG} . ${DOCKERFILE}
             docker save fcpindi/c-pac:${DOCKER_TAG} | gzip > ${DOCKER_TARBALL}.tar.gz
           no_output_timeout: 5h
-      - run:
-          name: "Starting local registry"
-          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - get-singularity
-      - run:
-          name: "Building Singularity image from Docker image"
-          command: |
-            docker load < ${DOCKER_TARBALL}.tar.gz
-            docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-            docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-          no_output_timeout: 5h
+      - when:
+          condition:
+            not:
+              equal: [<< parameters.variant >>, fMRIPrep-LTS]
+          steps:
+          - run:
+              name: "Starting local registry"
+              command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+          - get-singularity
+          - run:
+              name: "Building Singularity image from Docker image"
+              command: |
+                docker load < ${DOCKER_TARBALL}.tar.gz
+                docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+                docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+                SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+              no_output_timeout: 5h
   check-for-built-images:
     steps:
       - run:
           name: "Checking for locally built images"
           command: |
-            if [[ ! -f ${DOCKER_TARBALL}.tar.gz || ! -f cpac-singularity-image${VARIANT}.simg ]]
+            if [[ ! -f ${DOCKER_TARBALL}.tar.gz ]]
             then
               circleci step halt
             fi
@@ -229,6 +234,23 @@ jobs:
           paths:
             - project/cpac-docker-image-ABCD-HCP.tar.gz
             - project/cpac-singularity-image-ABCD-HCP.simg
+  build-fMRIPrep-LTS:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - set-python-version
+      - build-images:
+          variant: fMRIPrep-LTS
+      - store_artifacts:
+          path: cpac-docker-image-fMRIPrep-LTS.tar.gz
+      - store_artifacts:
+          path: cpac-singularity-image-fMRIPrep-LTS.simg
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - project/cpac-docker-image-fMRIPrep-LTS.tar.gz
+            - project/cpac-singularity-image-fMRIPrep-LTS.simg
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
@@ -324,12 +346,14 @@ workflows:
     jobs:
       - build:
           name: "Build images"
+      - build-ABCD-HCP:
+          name: "Build ABCD-HCP variant images"
           filters:
             branches:
               ignore: 
                 - CI/GitHub-workflows
-      - build-ABCD-HCP:
-          name: "Build ABCD-HCP variant images"
+      - build-fMRIPrep-LTS:
+          name: "Build fMRIPrep-LTS variant images"
           filters:
             branches:
               ignore: 
@@ -349,6 +373,7 @@ workflows:
             - "Test lite variant in Singularity"
             - "Test ABCD-HCP variant in Docker"
             - "Test ABCD-HCP variant in Singularity"
+            - "Test fMRIPrep-LTS variant in Docker"
       - pytest-docker:
           name: "Test in Docker"
           requires:
@@ -359,6 +384,11 @@ workflows:
             - "Build ABCD-HCP variant images"
           variant: ABCD-HCP
       - pytest-docker:
+          name: "Test fMRIPrep-LTS variant in Docker"
+          requires:
+            - "Build fMRIPrep-LTS variant images"
+          variant: fMRIPrep-LTS
+      - pytest-docker:
           name: "Test lite variant in Docker"
           requires:
             - "Build lite variant images"
@@ -368,12 +398,12 @@ workflows:
           requires:
             - "Build images"
       - pytest-singularity:
-          name: "Test lite variant in Singularity"
-          requires:
-            - "Build lite variant images"
-          variant: lite
-      - pytest-singularity:
           name: "Test ABCD-HCP variant in Singularity"
           requires:
             - "Build ABCD-HCP variant images"
           variant: ABCD-HCP
+      - pytest-singularity:
+          name: "Test lite variant in Singularity"
+          requires:
+            - "Build lite variant images"
+          variant: lite
