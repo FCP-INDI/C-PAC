@@ -44,7 +44,7 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Build and push Docker image
         if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
         uses: docker/build-push-action@v2.4.0
@@ -101,7 +101,7 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Prep Dockerfiles for forked repository
         if: github.repository_owner != 'FCP-INDI'
         run: |
@@ -161,7 +161,7 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository_owner }}/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Prep Dockerfiles for forked repository
         if: github.repository_owner != 'FCP-INDI'
         run: |
