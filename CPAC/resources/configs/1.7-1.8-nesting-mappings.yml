@@ -1040,7 +1040,8 @@ runZScoring:
    - output  # changed from boolean to string
 run_freesurfer:
    - surface_analysis
-   - run_freesurfer
+   - freesurfer
+   - run
 run_pypeer:
    - PyPEER
    - run

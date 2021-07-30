@@ -149,6 +149,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldWM
 )
 
+from CPAC.surface.surf_preproc import surface_preproc
+
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
     timeseries_extraction_Voxel,
@@ -776,7 +778,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -801,7 +803,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -828,7 +830,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['run_freesurfer']:
+        cfg.surface_analysis['freesurfer']['run']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
@@ -1223,6 +1225,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # PostFreeSurfer and fMRISurface
+    if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+        pipeline_blocks += [surface_preproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

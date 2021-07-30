@@ -2527,8 +2527,8 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_preproc",
-     "config": ["surface_analysis"],
-     "switch": ["run_freesurfer"],
+     "config": ["surface_analysis", "freesurfer"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -2574,8 +2574,8 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall.inputs.openmp = cfg.pipeline_setup['system_config'][
         'num_OMP_threads']
 
-    if cfg.surface_analysis['reconall_args'] is not None:
-        reconall.inputs.args = cfg.surface_analysis['reconall_args']
+    if cfg.surface_analysis['freesurfer']['reconall_args'] is not None:
+        reconall.inputs.args = cfg.surface_analysis['freesurfer']['reconall_args']
 
     node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
                                      "T1w"])

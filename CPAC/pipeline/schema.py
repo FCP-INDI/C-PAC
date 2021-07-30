@@ -676,8 +676,22 @@ latest_schema = Schema({
         },
     },
     'surface_analysis': {
-        'run_freesurfer': bool,
-        'reconall_args': Maybe(str),
+        'freesurfer': {
+            'run': bool,
+            'reconall_args': Maybe(str),
+        },
+        'post_freesurfer': {
+            'run': bool,
+            'surf_atlas_dir': Maybe(str),
+            'gray_ordinates_dir': Maybe(str),
+            'gray_ordinates_res': Maybe(int),
+            'high_res_mesh': Maybe(int),
+            'low_res_mesh': Maybe(int),
+            'subcortical_gray_labels': Maybe(str),
+            'freesurfer_labels': Maybe(str),
+            'fmri_res': Maybe(int),
+            'smooth_fwhm': Maybe(int),
+        },
     },
     'longitudinal_template_generation': {
         'run': bool,
