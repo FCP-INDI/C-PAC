@@ -34,15 +34,42 @@ def extract_large_comp(prt_msk):
 
     return prt_msk
 
-def predict_volumes(model_path, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="unet_pre_mask",
-        save_dice=False, save_nii=True, nii_outdir=None, verbose=False, 
+def fill_holes(prt_msk):
+
+    from CPAC.unet.function import extract_large_comp
+
+    non_prt_msk=prt_msk==0
+    non_prt_msk=extract_large_comp(non_prt_msk)
+    prt_msk_filled=non_prt_msk==0
+
+    return prt_msk_filled
+
+def erosion_dilation(prt_msk, iterations=1):
+
+    import scipy.ndimage as snd
+    from CPAC.unet.function import extract_large_comp
+
+    # Erosion
+    structure=snd.generate_binary_structure(3, 1)
+    prt_msk_eroded=snd.binary_erosion(prt_msk, structure=structure, iterations=iterations).astype(prt_msk.dtype)
+
+    # Extract Largest Component
+    prt_msk_eroded=extract_large_comp(prt_msk_eroded)
+
+    # Dilation
+    prt_msk_dilated=snd.binary_dilation(prt_msk_eroded, structure=structure, iterations=iterations).astype(prt_msk.dtype)
+
+    return prt_msk_dilated
+
+def predict_volumes(model_path, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="unet_pre_mask", 
+        ed_iter=0, save_dice=False, save_nii=True, nii_outdir=None, verbose=False, 
         rescale_dim=256, num_slice=3):
 
     import torch
     import torch.nn as nn
     import numpy as np
     from torch.autograd import Variable
-    from CPAC.unet.function import extract_large_comp, estimate_dice, write_nifti
+    from CPAC.unet.function import extract_large_comp, estimate_dice, write_nifti, fill_holes, erosion_dilation
     from CPAC.unet.model import UNet2d
     from CPAC.unet.dataset import VolumeDataset, BlockDataset
     from torch.utils.data import DataLoader
@@ -146,6 +173,9 @@ def predict_volumes(model_path, rimg_in=None, cimg_in=None, bmsk_in=None, suffix
         
         pr_bmsk=pr_bmsk.numpy()
         pr_bmsk_final=extract_large_comp(pr_bmsk>0.5)
+        pr_bmsk_final=fill_holes(pr_bmsk_final)
+        if ed_iter>0:
+            pr_bmsk_final=erosion_dilation(pr_bmsk_final, iterations=ed_iter)
         
         if isinstance(bmsk, torch.Tensor):
             bmsk=bmsk.data[0].numpy()

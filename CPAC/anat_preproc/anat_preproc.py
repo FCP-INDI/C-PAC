@@ -792,7 +792,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(unet_masked_brain, 'out_file',
                native_brain_to_template_brain, 'in_file')
 
-    node, out = strat_pool.get_data('T1w_brain_template')
+    node, out = strat_pool.get_data('T1w-brain-template')
     wf.connect(node, out, native_brain_to_template_brain, 'reference')
 
     # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
@@ -824,7 +824,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                   name=f'template_brain_mask_{pipe_num}')
     template_brain_mask.inputs.args = '-bin'
 
-    node, out = strat_pool.get_data('T1w_brain_template')
+    node, out = strat_pool.get_data('T1w-brain-template')
     wf.connect(node, out, template_brain_mask, 'in_file')
 
     # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
@@ -844,7 +844,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(native_head_to_template_head, 'out_file',
                ants_template_head_to_template, 'fixed_image')
 
-    node, out = strat_pool.get_data('T1w_brain_template')
+    node, out = strat_pool.get_data('T1w-brain-template')
     wf.connect(node, out, ants_template_head_to_template, 'moving_image')
 
     # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
@@ -1688,7 +1688,7 @@ def brain_mask_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_template",
+                "T1w-brain-template",
                 "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-brain_mask"]}
@@ -1708,7 +1708,7 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "UNet",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_template",
+                "T1w-brain-template",
                 "T1w-template",
                 "unet-model"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
@@ -2349,7 +2349,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                "T1w_brain_template",
+                "T1w-brain-template",
                 "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-brain_mask"]}
@@ -2368,7 +2368,7 @@ def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "UNet",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                "T1w_brain_template",
+                "T1w-brain-template",
                 "T1w-template",
                 "unet_model"],
      "outputs": ["space-T2w_desc-acpcbrain_mask"]}
@@ -2527,8 +2527,8 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_preproc",
-     "config": ["surface_analysis"],
-     "switch": ["run_freesurfer"],
+     "config": ["surface_analysis", "freesurfer"],
+     "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
@@ -2574,8 +2574,8 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     reconall.inputs.openmp = cfg.pipeline_setup['system_config'][
         'num_OMP_threads']
 
-    if cfg.surface_analysis['reconall_args'] is not None:
-        reconall.inputs.args = cfg.surface_analysis['reconall_args']
+    if cfg.surface_analysis['freesurfer']['reconall_args'] is not None:
+        reconall.inputs.args = cfg.surface_analysis['freesurfer']['reconall_args']
 
     node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
                                      "T1w"])

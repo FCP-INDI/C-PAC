@@ -193,6 +193,14 @@ functional_preproc:
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
       
+      # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
+      functional_mean_thr: 
+        run: On
+        threshold_value: 98
+
+      # Bias correct the functional mean image to improve skull stripping performances of FSL BET on rodent scans
+      functional_mean_bias_correction: On
+      
       # Integer value of head radius
       radius: 50
 

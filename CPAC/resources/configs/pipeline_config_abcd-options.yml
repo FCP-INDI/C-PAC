@@ -82,7 +82,7 @@ anatomical_preproc:
     run_before_preproc: False
 
     # ACPC aligned template
-    T1w_ACPC_template: /ABCD_template/MNI152_T1_1mm.nii.gz
+    T1w_ACPC_template: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_1mm.nii.gz
 
   brain_extraction: 
 
@@ -100,11 +100,11 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: /ABCD_template/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: /ABCD_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_brain_template_mask: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: True
@@ -186,10 +186,10 @@ registration_workflows:
         fnirt_config: T1_2_MNI152_2mm
 
         # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /ABCD_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
+        ref_mask_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm_brain_mask_dil.nii.gz
 
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /ABCD_template/MNI152_T1_2mm.nii.gz
+        T1w_template_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm.nii.gz
 
     overwrite_transform:
 
@@ -260,15 +260,15 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: /ABCD_template/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_funcreg: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${func_resolution}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: /ABCD_template/MNI152_T1_${func_resolution}.nii.gz
+          T1w_template_funcreg: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${func_resolution}.nii.gz
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /ABCD_template/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_brain_template_mask_funcreg: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${func_resolution}_brain_mask.nii.gz
 
       ANTs_pipelines: 
 
