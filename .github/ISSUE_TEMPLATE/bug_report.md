@@ -22,6 +22,9 @@ Steps to reproduce the behavior:
 **Expected behavior**
 <!-- A clear and concise description of what you expected to happen, or delete this section entirely. -->
 
+**Acceptance criteria**
+<!-- What needs to be true for this issue to be considered resolved? -->
+
 **Screenshots**
 <!-- If applicable, add screenshots to help explain your problem, or delete this section entirely. -->
 

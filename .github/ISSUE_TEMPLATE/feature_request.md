@@ -15,6 +15,9 @@ assignees: ''
 **Proposed feature**
 <!-- Describe the solution you'd like. A clear and concise description of what you want to happen. -->
 
+**Acceptance criteria**
+<!-- What needs to be true for this issue to be considered resolved? -->
+
 **Alternatives**
 <!-- Describe alternatives you've considered, or delete this section entirely. A clear and concise description of any alternative solutions or features you've considered. -->
 
