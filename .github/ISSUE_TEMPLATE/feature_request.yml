@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest an idea for this project
+title: "✨ [User-requested Feature]"
+labels: [enhancement, user-reported]
+body:
+  - type: markdown
+    attributes:
+      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new feature request. If something like your request already exists, please add to that discussion.
+  - type: textarea
+    id: related-problem
+    attributes:
+      label: Related problem
+      description: Is your feature request related to a problem? Please provide a clear and concise description of what the problem is. If any open issues relate to the problem, please link to them here.
+      placeholder: I'm always frustrated when…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed feature
+      description: Describe the solution you'd like. A clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: What needs to be true for this issue to be considered resolved?
+      placeholder: |
+        Tell us what you'd like to see!
+        - [ ] criterion 1
+        - [ ] criterion 2
+        …
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe alternatives you've considered. A clear and concise description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false

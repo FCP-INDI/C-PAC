@@ -1,0 +1,88 @@
+name: Bug report
+description: Create a report to help us improve
+title: "\U0001F41B [User-reported Bug]"
+labels: [bug, user-reported]
+body:
+  - type: markdown
+    attributes:
+      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new bug report. If something like your bug is already reported, please add to that discussion.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: false
+  - type: textarea
+    id: expectation
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: Tell us what you thought you'd see!
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: What needs to be true for this issue to be considered resolved?
+      placeholder: |
+        Tell us what you'd like to see!
+        - [ ] criterion 1
+        - [ ] criterion 2
+        …
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: Show us what you see!
+    validations:
+      required: false
+  - type: input
+    id: c-pac-version
+    attributes:
+      label: C-PAC version
+      placeholder: v1.8.1
+    validations:
+      required: false
+  - type: dropdown
+    id: container-platform
+    attributes:
+      label: Container platform
+      description: As many as are relevant
+      multiple: true
+      options:
+        - Docker
+        - Singularity
+    validations:
+      required: false
+  - type: input
+    id: container-platform-version
+    attributes:
+      label: Docker and/or Singularity version(s)
+      placeholder: Docker v20.10.2; Singularity v3.7.2
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false
