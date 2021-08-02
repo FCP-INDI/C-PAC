@@ -222,6 +222,12 @@ registration_workflows:
         # input: ['Mean Functional', 'Selected_Functional_Volume']
         input: [Selected_Functional_Volume]
 
+        Selected Functional Volume:
+
+          # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
+          #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+          func_reg_input_volume: 0
+
       boundary_based_registration: 
 
         # this is a fork point
