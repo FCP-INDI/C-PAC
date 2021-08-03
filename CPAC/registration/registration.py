@@ -1806,9 +1806,26 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     wf.connect(inverse_all_transform_flags, 'inverse_transform_flags',
                write_composite_inv_xfm, 'invert_transform_flags')
 
+    # T1 brain mask in templace space
+    applyxfm_anat_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
+                                             name=f'applyxfm_anat_mask_to_standard')
+
+    applyxfm_anat_mask_to_standard.inputs.interpolation = 'NearestNeighbor'
+
+    wf.connect(inputNode, 'input_mask',
+        applyxfm_anat_mask_to_standard, 'input_image')
+
+    wf.connect(inputNode, 'reference_brain',
+        applyxfm_anat_mask_to_standard, 'reference_image')
+
+    wf.connect(write_composite_xfm, 'output_image',
+        applyxfm_anat_mask_to_standard, 'transforms')
+
     outputs = {
         f'space-{sym}{tmpl}template_desc-brain_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
+        f'space-{sym}{tmpl}template_desc-{orig}_mask': (
+            applyxfm_anat_mask_to_standard, 'output_image'),
         f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
         f'from-{sym}{tmpl}template_to-{orig}_mode-image_xfm': (
@@ -2193,6 +2210,9 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                      "Description": "The preprocessed T1w brain transformed "
                                     "to template space.",
                      "Template": "T1w-template"},
+                 "space-template_desc-T1w_mask": {
+                     "Description": "The preprocessed T1w brain mask transformed "
+                                    "to template space."},
                  "from-T1w_to-template_mode-image_desc-linear_xfm": {
                      "Description": "Linear (affine) transform from T1w native"
                                     " space to T1w-template space."},
@@ -2266,7 +2286,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, ants, 'inputspec.input_head')
 
 
-    node, out = strat_pool.get_data(f'T1w-template')
+    node, out = strat_pool.get_data('T1w-template')
     wf.connect(node, out, ants, 'inputspec.reference_head')
 
     node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
@@ -2350,6 +2370,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
                 "dilated-symmetric-brain-mask",
                 "label-lesion_mask"],
      "outputs": ["space-symtemplate_desc-brain_T1w",
+                 "space-symtemplate_desc-T1w_mask",
                  "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm",
