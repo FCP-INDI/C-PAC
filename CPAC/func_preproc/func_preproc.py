@@ -632,7 +632,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
 
             func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
                                              name=f'func_generate_ref_{pipe_num}',
-                                             iterfield=['in_file'])
+                                             iterfield=['in_file'],
+                                             mem_gb=0.03,
+                                             mem_x=(
+                                                 4596263886281283/
+                                                 2417851639229258349412352,
+                                                 'in_file'
+                                             ))
 
             wf.connect(out_split_func, 'out_file',
                        func_motion_correct, 'in_file')
@@ -659,7 +665,11 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             wf.connect(node, out, out_split_func, 'out_file')
 
             func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                          name=f'func_generate_ref_{pipe_num}')
+                                          name=f'func_generate_ref_{pipe_num}',
+                                          mem_gb=0.03,
+                                          mem_x=(4596263886281283/
+                                                 2417851639229258349412352,
+                                                 'in_file'))
 
             wf.connect(out_split_func, 'out_file',
                        func_motion_correct, 'in_file')
@@ -680,7 +690,11 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(node, out, out_split_func, 'out_file')
 
         func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                      name=f'func_generate_ref_{pipe_num}')
+                                      name=f'func_generate_ref_{pipe_num}',
+                                      mem_gb=0.03,
+                                      mem_x=(4596263886281283/
+                                             2417851639229258349412352,
+                                             'in_file'))
 
         wf.connect(out_split_func, 'out_file',
                    func_motion_correct, 'in_file')
