@@ -61,7 +61,7 @@ valid_options = {
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
-                int, float, All(str, Match(resolution_regex))
+                int, float, 'Functional', All(str, Match(resolution_regex))
             ),
             'include_delayed': bool,
             'include_delayed_squared': bool,
@@ -87,6 +87,11 @@ mutex = {  # mutually exclusive booleans
             'threshold': bool,
             'vertical_gradient': Range(min=-1, max=1, min_included=False,
                                        max_included=False),
+            'functional_mean_thr': {
+                'run': bool,
+                'threshold_value': Maybe(int),
+            },
+            'functional_mean_bias_correction': bool,
         }
     }
 }
@@ -671,8 +676,22 @@ latest_schema = Schema({
         },
     },
     'surface_analysis': {
-        'run_freesurfer': bool,
-        'reconall_args': Maybe(str),
+        'freesurfer': {
+            'run': bool,
+            'reconall_args': Maybe(str),
+        },
+        'post_freesurfer': {
+            'run': bool,
+            'surf_atlas_dir': Maybe(str),
+            'gray_ordinates_dir': Maybe(str),
+            'gray_ordinates_res': Maybe(int),
+            'high_res_mesh': Maybe(int),
+            'low_res_mesh': Maybe(int),
+            'subcortical_gray_labels': Maybe(str),
+            'freesurfer_labels': Maybe(str),
+            'fmri_res': Maybe(int),
+            'smooth_fwhm': Maybe(int),
+        },
     },
     'longitudinal_template_generation': {
         'run': bool,

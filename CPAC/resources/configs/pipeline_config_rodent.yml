@@ -166,13 +166,16 @@ functional_preproc:
 
   motion_estimates_and_correction: 
 
-    motion_correction: 
+    motion_correction:
+      # using: ['3dvolreg', 'mcflirt']
+      # this is a fork point
+      using: ['mcflirt']
 
       # option parameters
       AFNI-3dvolreg: 
 
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-        functional_volreg_twopass: On
+        functional_volreg_twopass: Off
 
   distortion_correction: 
     run: [Off]
@@ -189,6 +192,14 @@ functional_preproc:
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
+      
+      # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
+      functional_mean_thr: 
+        run: On
+        threshold_value: 98
+
+      # Bias correct the functional mean image to improve skull stripping performances of FSL BET on rodent scans
+      functional_mean_bias_correction: On
       
       # Integer value of head radius
       radius: 50
