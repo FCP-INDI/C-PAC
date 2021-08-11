@@ -191,7 +191,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -476,8 +476,6 @@ Please, make yourself aware of how it works and its assumptions:
                           "CPAC v%s, please install Nipype version 1.5.1\n" \
                           % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
