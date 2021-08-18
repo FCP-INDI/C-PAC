@@ -668,9 +668,11 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
                           % (bucket_name, exc)
                 raise Exception(err_msg)
 
-    # Otherwise just return what was passed in
+    # Otherwise just return what was passed in, resolving if a link
     else:
-        local_path = file_path
+        local_path = os.path.realpath(
+            file_path
+        ) if os.path.islink(file_path) else file_path
 
     # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
