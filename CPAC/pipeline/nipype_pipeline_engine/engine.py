@@ -244,18 +244,11 @@ class Workflow(pe.Workflow):
                                     # already exists
                                     multiplicand_path = _load_resultfile(
                                         input_resultfile
-                                    ).inputs['in_file']
-                                    node._apply_mem_x(multiplicand_path)
-                                except KeyError:
-                                    print(_load_resultfile(
-                                        input_resultfile
-                                    ).inputs)
-                                    if hasattr(self, '_largest_func'):
-                                        node._apply_mem_x(self._largest_func)
+                                    ).inputs.get('in_file')
+                                    if multiplicand_path:
+                                        node._apply_mem_x(multiplicand_path)
                                     else:
-                                        # TODO: handle S3 files
-                                        # 1e8 is a small estimate
-                                        node._apply_mem_x(UNDEFINED_SIZE)
+                                        raise FileNotFoundError
                                 except FileNotFoundError:
                                     if hasattr(self, '_largest_func'):
                                         node._apply_mem_x(self._largest_func)
