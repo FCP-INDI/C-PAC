@@ -246,6 +246,16 @@ class Workflow(pe.Workflow):
                                         input_resultfile
                                     ).inputs['in_file']
                                     node._apply_mem_x(multiplicand_path)
+                                except KeyError:
+                                    print(_load_resultfile(
+                                        input_resultfile
+                                    ).inputs)
+                                    if hasattr(self, '_largest_func'):
+                                        node._apply_mem_x(self._largest_func)
+                                    else:
+                                        # TODO: handle S3 files
+                                        # 1e8 is a small estimate
+                                        node._apply_mem_x(UNDEFINED_SIZE)
                                 except FileNotFoundError:
                                     if hasattr(self, '_largest_func'):
                                         node._apply_mem_x(self._largest_func)
