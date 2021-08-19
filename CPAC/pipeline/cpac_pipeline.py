@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import csv
 import shutil
@@ -227,6 +228,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -665,7 +667,8 @@ Please, make yourself aware of how it works and its assumptions:
                     logger.error(err_msg, log_dir, exc)
 
         except Exception as e:
-            import traceback;
+            import traceback
+            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -708,6 +711,7 @@ CPAC run error:
                     except (FileNotFoundError, PermissionError):
                         logger.warn('Could not remove working directory %s',
                                     working_dir)
+            sys.exit(exitcode)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
