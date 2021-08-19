@@ -151,6 +151,8 @@ class ResourcePool(object):
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
         # list, with the two separated by a colon :
+        if not len(prov):
+            return None
         if isinstance(prov[-1], list):
             return prov[-1][-1].split(':')[0]
         elif isinstance(prov[-1], str):
