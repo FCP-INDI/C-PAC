@@ -244,9 +244,14 @@ class Workflow(pe.Workflow):
                                     # already exists
                                     multiplicand_path = _load_resultfile(
                                         input_resultfile
-                                    ).inputs.get('in_file')
-                                    if multiplicand_path:
-                                        node._apply_mem_x(multiplicand_path)
+                                    ).inputs
+                                    if isinstance(
+                                        multiplicand_path,
+                                        dict
+                                    ) and 'in_file' in multiplicand_path:
+                                        node._apply_mem_x(
+                                            multiplicand_path['in_file']
+                                        )
                                     else:
                                         raise FileNotFoundError
                                 except FileNotFoundError:
