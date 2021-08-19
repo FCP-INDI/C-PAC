@@ -327,6 +327,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Run command: {run_command}
 
     C-PAC version: {cpac_version}
 
@@ -355,6 +356,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 """
 
     logger.info(information.format(
+        run_command=' '.join(sys.argv),
         cpac_version=CPAC.__version__,
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
