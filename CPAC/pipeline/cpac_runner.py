@@ -296,7 +296,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     if len(c.pipeline_setup['working_directory']['path']) > 70:
         warnings.warn("We recommend that the working directory full path "
                       "should have less then 70 characters. "
-                      "Long paths might not work in your operational system.")
+                      "Long paths might not work in your operating system.")
         warnings.warn("Current working directory: %s" % c.pipeline_setup['working_directory']['path'])
 
     # Get the pipeline name
