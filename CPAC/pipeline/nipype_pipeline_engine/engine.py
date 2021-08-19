@@ -248,10 +248,17 @@ class Workflow(pe.Workflow):
                                     if isinstance(
                                         multiplicand_path,
                                         dict
-                                    ) and 'in_file' in multiplicand_path:
-                                        node._apply_mem_x(
-                                            multiplicand_path['in_file']
-                                        )
+                                    ):
+                                        if 'in_file' in multiplicand_path:
+                                            node._apply_mem_x(
+                                                multiplicand_path['in_file']
+                                            )
+                                        elif 'in_file_a' in multiplicand_path:
+                                            node._apply_mem_x(
+                                                multiplicand_path['in_file_a']
+                                            )
+                                        else:
+                                            raise FileNotFoundError
                                     else:
                                         raise FileNotFoundError
                                 except FileNotFoundError:
