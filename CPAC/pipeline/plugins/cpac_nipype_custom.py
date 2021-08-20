@@ -6,6 +6,7 @@ Custom methods for Nipype pipeline plugins:
 import platform
 import resource
 from nipype.pipeline.plugins.multiproc import logger
+from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE
 
 
 def get_peak_usage():
@@ -39,8 +40,12 @@ class CpacNipypeCustomPlugin():
         overrun_message_mem = None
         overrun_message_th = None
         for node in graph.nodes():
-            if node.mem_gb > self.memory_gb:
-                tasks_mem_gb.append((node.name, node.mem_gb))
+            try:
+                node_memory_estimate = node.mem_gb
+            except FileNotFoundError:
+                node_memory_estimate = node._apply_mem_x(UNDEFINED_SIZE)
+            if node_memory_estimate > self.memory_gb:
+                tasks_mem_gb.append((node.name, node_memory_estimate))
             if node.n_procs > self.processors:
                 tasks_num_th.append((node.name, node.n_procs))
 

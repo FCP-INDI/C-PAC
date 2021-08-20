@@ -4,6 +4,7 @@ import csv
 import shutil
 import pickle
 import copy
+import faulthandler
 import yaml
 
 import logging as cb_logging
@@ -11,7 +12,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import MultiProcPlugin
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin, MultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -195,6 +196,7 @@ from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
+faulthandler.enable()
 
 # config.enable_debug_mode()
 
@@ -276,8 +278,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
 
-    if not plugin or plugin == 'MultiProc':
-        plugin = MultiProcPlugin(plugin_args)
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
@@ -484,6 +484,10 @@ Please, make yourself aware of how it works and its assumptions:
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
+            if not plugin or plugin == 'LegacyMultiProc':
+                plugin = LegacyMultiProcPlugin(plugin_args)
+            elif plugin == 'MultiProc':
+                plugin = MultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject

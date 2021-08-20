@@ -632,7 +632,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
 
             func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
                                              name=f'func_generate_ref_{pipe_num}',
-                                             iterfield=['in_file'])
+                                             iterfield=['in_file'],
+                                             mem_gb=0.03,
+                                             mem_x=(
+                                                 4596263886281283/
+                                                 2417851639229258349412352,
+                                                 'in_file'
+                                             ))
 
             wf.connect(out_split_func, 'out_file',
                        func_motion_correct, 'in_file')
@@ -659,7 +665,11 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             wf.connect(node, out, out_split_func, 'out_file')
 
             func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                          name=f'func_generate_ref_{pipe_num}')
+                                          name=f'func_generate_ref_{pipe_num}',
+                                          mem_gb=0.03,
+                                          mem_x=(4596263886281283/
+                                                 2417851639229258349412352,
+                                                 'in_file'))
 
             wf.connect(out_split_func, 'out_file',
                        func_motion_correct, 'in_file')
@@ -680,7 +690,11 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(node, out, out_split_func, 'out_file')
 
         func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                      name=f'func_generate_ref_{pipe_num}')
+                                      name=f'func_generate_ref_{pipe_num}',
+                                      mem_gb=0.03,
+                                      mem_x=(4596263886281283/
+                                             2417851639229258349412352,
+                                             'in_file'))
 
         wf.connect(out_split_func, 'out_file',
                    func_motion_correct, 'in_file')
@@ -1056,10 +1070,8 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
                             name=f'func_reorient_{pipe_num}',
-                            mem_gb=0.68,
-                            mem_x=(9005234470657405 /
-                                   1208925819614629174706176,
-                                   'in_file'))
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1780,7 +1792,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'raw_func_reorient_{pipe_num}')
+                            name=f'raw_func_reorient_{pipe_num}',
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1998,11 +2012,14 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
 
     wf.connect(anat_brain_to_func_res, 'out_file',
-        anat_brain_mask_to_func_res, 'ref_file')
+               anat_brain_mask_to_func_res, 'ref_file')
 
     # Resample func mask in template space back to native space
-    func_mask_template_to_native = pe.Node(interface=afni.Resample(),
-                                    name=f'resample_func_mask_to_native_{pipe_num}')
+    func_mask_template_to_native = pe.Node(
+        interface=afni.Resample(),
+        name=f'resample_func_mask_to_native_{pipe_num}',
+        mem_gb=0,
+        mem_x=(0.0115, 'in_file', 't'))
     func_mask_template_to_native.inputs.resample_mode = 'NN'
     func_mask_template_to_native.inputs.outputtype = 'NIFTI_GZ'
 

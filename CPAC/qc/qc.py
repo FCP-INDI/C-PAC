@@ -36,20 +36,24 @@ def create_montage(wf_name, cbar_name, png_name, mapnode=True):
                                   output_names=['new_fname'],
                                   function=resample_1mm,
                                   as_module=True),
-                         name='resample_u')
-    
+                         name='resample_u',
+                         mem_gb=0,
+                         mem_x=(0.0115, 'file_', 't'))
+
     wf.connect(inputnode, 'underlay', resample_u, 'file_')
-    wf.connect(resample_u, 'new_fname', outputnode,'resampled_underlay')
+    wf.connect(resample_u, 'new_fname', outputnode, 'resampled_underlay')
 
     # same for overlays (resampling to 1mm)
     resample_o = pe.Node(Function(input_names=['file_'],
                                   output_names=['new_fname'],
                                   function=resample_1mm,
                                   as_module=True),
-                         name='resample_o')
+                         name='resample_o',
+                         mem_gb=0,
+                         mem_x=(0.0115, 'file_', 't'))
 
     wf.connect(inputnode, 'overlay', resample_o, 'file_')
-    wf.connect(resample_o, 'new_fname', outputnode,'resampled_overlay')
+    wf.connect(resample_o, 'new_fname', outputnode, 'resampled_overlay')
 
     # node for axial montages
     if mapnode:
@@ -131,7 +135,9 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                   output_names=['new_fname'],
                                   function=resample_1mm,
                                   as_module=True),
-                         name='resample_u')
+                         name='resample_u',
+                         mem_gb=0,
+                         mem_x=(0.0115, 'file_', 't'))
 
     resample_o_csf = resample_u.clone('resample_o_csf')
     resample_o_wm = resample_u.clone('resample_o_wm')
@@ -403,35 +409,42 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     output_node = pe.Node(util.IdentityInterface(fields=['carpet_plot']),
                           name='outputspec')
 
-
-    gm_resample = pe.Node(afni.Resample(), name='gm_resample')
+    gm_resample = pe.Node(afni.Resample(),
+                          name='gm_resample',
+                          mem_gb=0,
+                          mem_x=(0.0115, 'in_file', 't'))
     gm_resample.inputs.outputtype = 'NIFTI'
     wf.connect(input_node, 'anatomical_gm_mask', gm_resample, 'in_file')
-    wf.connect(input_node, 'mean_functional_to_standard', gm_resample, 'master')
+    wf.connect(input_node, 'mean_functional_to_standard',
+               gm_resample, 'master')
 
     gm_mask = pe.Node(afni.Calc(), name="gm_mask")
     gm_mask.inputs.expr = 'astep(a, 0.5)'
     gm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(gm_resample, 'out_file', gm_mask, 'in_file_a')
 
-
-
-    wm_resample = pe.Node(afni.Resample(), name='wm_resample')
+    wm_resample = pe.Node(afni.Resample(),
+                          name='wm_resample',
+                          mem_gb=0,
+                          mem_x=(0.0115, 'in_file', 't'))
     wm_resample.inputs.outputtype = 'NIFTI'
     wf.connect(input_node, 'anatomical_wm_mask', wm_resample, 'in_file')
-    wf.connect(input_node, 'mean_functional_to_standard', wm_resample, 'master')
+    wf.connect(input_node, 'mean_functional_to_standard',
+               wm_resample, 'master')
 
     wm_mask = pe.Node(afni.Calc(), name="wm_mask")
     wm_mask.inputs.expr = 'astep(a, 0.5)'
     wm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(wm_resample, 'out_file', wm_mask, 'in_file_a')
 
-
-
-    csf_resample = pe.Node(afni.Resample(), name='csf_resample')
+    csf_resample = pe.Node(afni.Resample(),
+                           name='csf_resample',
+                           mem_gb=0,
+                           mem_x=(0.0115, 'in_file', 't'))
     csf_resample.inputs.outputtype = 'NIFTI'
     wf.connect(input_node, 'anatomical_csf_mask', csf_resample, 'in_file')
-    wf.connect(input_node, 'mean_functional_to_standard', csf_resample, 'master')
+    wf.connect(input_node, 'mean_functional_to_standard',
+               csf_resample, 'master')
 
     csf_mask = pe.Node(afni.Calc(), name="csf_mask")
     csf_mask.inputs.expr = 'astep(a, 0.5)'
