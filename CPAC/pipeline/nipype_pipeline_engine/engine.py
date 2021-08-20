@@ -16,7 +16,7 @@ from traits.trait_handlers import TraitListObject
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
-UNDEFINED_SIZE = int(1e8)
+UNDEFINED_SIZE = int(8.9e7)
 
 
 def _doctest_skiplines(docstring, lines_to_skip):

@@ -547,6 +547,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
                  "label-WM_desc-preproc_mask",
                  "label-CSF_probseg", "label-GM_probseg", "label-WM_probseg",
+                 "label-CSF_pveseg", "label-GM_pveseg", "label-WM_pveseg",
                  "space-longitudinal_label-CSF_mask",
                  "space-longitudinal_label-GM_mask",
                  "space-longitudinal_label-WM_mask",
@@ -614,6 +615,21 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     process_csf.inputs.inputspec.threshold = cfg['segmentation'][
         'tissue_segmentation']['FSL-FAST']['thresholding']['Custom'][
         'CSF_threshold_value']
+
+    get_pve_csf = pe.Node(interface=fsl.maths.MathsCommand(),
+                          name=f'get_pve_csf_{pipe_num}')
+    get_pve_csf.inputs.args = '-thr 0.5 -uthr 1.5 -bin'
+    wf.connect(segment, 'partial_volume_map', get_pve_csf, 'in_file')
+
+    get_pve_gm = pe.Node(interface=fsl.maths.MathsCommand(),
+                          name=f'get_pve_gm_{pipe_num}')
+    get_pve_gm.inputs.args = '-thr 1.5 -uthr 2.5 -bin'
+    wf.connect(segment, 'partial_volume_map', get_pve_gm, 'in_file')
+
+    get_pve_wm = pe.Node(interface=fsl.maths.MathsCommand(),
+                          name=f'get_pve_wm_{pipe_num}')
+    get_pve_wm.inputs.args = '-thr 2.5 -uthr 3.5 -bin'
+    wf.connect(segment, 'partial_volume_map', get_pve_wm, 'in_file')
 
     if use_priors:
         node, out = strat_pool.get_data('CSF-path')
@@ -695,7 +711,10 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         f'{long}label-GM_desc-preproc_mask':
             (process_gm, 'outputspec.segment_mask'),
         f'{long}label-WM_desc-preproc_mask':
-            (process_wm, 'outputspec.segment_mask')
+            (process_wm, 'outputspec.segment_mask'),
+        f'{long}label-CSF_pveseg': (get_pve_csf, 'out_file'),
+        f'{long}label-GM_pveseg': (get_pve_gm, 'out_file'),
+        f'{long}label-WM_pveseg': (get_pve_wm, 'out_file'),
     }
 
     return (wf, outputs)
@@ -880,7 +899,7 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FreeSurfer",
-     "inputs": ["freesurfer_subject_dir"],
+     "inputs": ["freesurfer-subject-dir"],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -890,7 +909,7 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
                                            wf_name='seg_preproc_freesurfer'
                                                    f'_{pipe_num}')
 
-    node, out = strat_pool.get_data('freesurfer_subject_dir')
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
 
     outputs = {

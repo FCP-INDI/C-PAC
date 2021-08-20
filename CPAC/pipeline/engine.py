@@ -90,9 +90,9 @@ class ResourcePool(object):
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
-            if name not in self.rpool:
-                return False
-        return True
+            if name in self.rpool:
+                return True
+        return False
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
@@ -158,27 +158,11 @@ class ResourcePool(object):
 
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
-        '''
-        pipe_idx, node_name = new_id
-        if f';{resource}:' not in pipe_idx:
-            pipe_idx = f'{pipe_idx};{resource}:'   # <--- doing this up here, now, because the del self.rpool[resource][pipe_idx] below should only get deleted for the same input/output tag!
-        if resource not in self.rpool.keys():
-            self.rpool[resource] = {}
-        else:
-            if not fork:     # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
-                if pipe_idx in self.rpool[resource].keys():  # <--- in case the resource name is now new, and not the original
-                    del self.rpool[resource][pipe_idx]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
-        if pipe_idx[-1] == ';' or pipe_idx[-1] == ':':  # <--- if the ':', this kicks off when the pipe_idx is only something like 'T1w:', at the beginning
-            new_name = node_name                        #      but how do we manage new threads, mid-pipeline?
-        else:
-            new_name = f',{node_name}'
-        new_pipe_idx = f'{pipe_idx}{new_name}'
-        '''
         json_info = json_info.copy()
-
         cpac_prov = []
         if 'CpacProvenance' in json_info:
             cpac_prov = json_info['CpacProvenance']
+        current_prov_list = list(cpac_prov)
         new_prov_list = list(cpac_prov)   # <---- making a copy, it was already a list
         if not inject:
             new_prov_list.append(f'{resource}:{node_name}')
@@ -196,9 +180,23 @@ class ResourcePool(object):
             self.rpool[resource] = {}
         else:
             if not fork:     # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
+                search = False
+                if self.get_resource_from_prov(current_prov_list) == resource:
+                    pipe_idx = self.generate_prov_string(current_prov_list)[1] # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                    if pipe_idx not in self.rpool[resource].keys():
+                        search = True
+                else:
+                    search = True
+                if search:
+                    for idx in current_prov_list:
+                        if self.get_resource_from_prov(idx) == resource:
+                            if isinstance(idx, list):
+                                pipe_idx = self.generate_prov_string(idx)[1] # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                            elif isinstance(idx, str):
+                                pipe_idx = idx
+                            break
                 if pipe_idx in self.rpool[resource].keys():  # <--- in case the resource name is now new, and not the original
                     del self.rpool[resource][pipe_idx]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
-
         if new_pipe_idx not in self.rpool[resource]:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
@@ -266,7 +264,10 @@ class ResourcePool(object):
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
-        self.rpool[new_name] = self.rpool[resource]
+        try:
+            self.rpool[new_name] = self.rpool[resource]
+        except KeyError:
+            raise Exception(f"[!] {resource} not in the resource pool.")
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -829,7 +830,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-                
+            
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -971,10 +972,33 @@ class NodeBlock(object):
         self.node_blocks = {}
 
         for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
+        
+            self.input_interface = []
+            if isinstance(node_block_function, tuple):
+                self.input_interface = node_block_function[1]
+                node_block_function = node_block_function[0]
+                if not isinstance(self.input_interface, list):
+                    self.input_interface = [self.input_interface]
+        
             init_dct = self.grab_docstring_dct(node_block_function.__doc__)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
+            
+            if self.input_interface:
+                for interface in self.input_interface:
+                    for orig_input in init_dct['inputs']:
+                        if isinstance(orig_input, tuple):
+                            list_tup = list(orig_input)
+                            if interface[0] in list_tup:
+                                list_tup.remove(interface[0])
+                                list_tup.append(interface[1])
+                                init_dct['inputs'].remove(orig_input)
+                                init_dct['inputs'].append(tuple(list_tup))
+                        else:                         
+                            if orig_input == interface[0]:
+                                init_dct['inputs'].remove(interface[0])
+                                init_dct['inputs'].append(interface[1])
 
             for key, val in init_dct.items():
                 self.node_blocks[name][key] = val
@@ -1048,8 +1072,11 @@ class NodeBlock(object):
                     opts = self.grab_tiered_dct(cfg, key_list)
                 else:
                     for option in option_val:
-                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                            opts.append(option)
+                        try:
+                            if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                                opts.append(option)
+                        except AttributeError as err:
+                            raise Exception(f"{err}\nNode Block: {name}")
                             
                 if opts == None:
                     opts = [opts]
@@ -1159,6 +1186,18 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
+
+                        replaced_inputs = []
+                        for interface in self.input_interface:
+                            if isinstance(interface[1], list):
+                                for input_name in interface[1]:
+                                    if strat_pool.check_rpool(input_name):
+                                        break
+                            else:
+                                input_name = interface[1]
+                            strat_pool.copy_resource(input_name, interface[0])
+                            replaced_inputs.append(interface[0])
+                        
                         wf, outs = block_function(wf, cfg, strat_pool,
                                                   pipe_x, opt)
 
@@ -1199,7 +1238,7 @@ class NodeBlock(object):
                                     new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
 
                             # determine sources for the outputs, i.e. all input data into the node block                   
-                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json' and x not in replaced_inputs]
                             
                             if isinstance(outputs, dict):
                                 new_json_info.update(outputs[label])
@@ -1236,14 +1275,6 @@ class NodeBlock(object):
                                 del new_json_info['subjson']
                             except KeyError:
                                 pass
-
-                            if strat_pool.check_rpool(label):
-                                # so we won't get extra forks if we are
-                                # merging strats (multiple inputs) plus the
-                                # output name is one of the input names
-                                old_pipe_prov = list(strat_pool.get_cpac_provenance(label))
-                                new_json_info['CpacProvenance'] = old_pipe_prov
-                                pipe_idx = strat_pool.generate_prov_string(old_pipe_prov)[1]
 
                             if fork or len(opts) > 1 or len(all_opts) > 1:
                                 if 'CpacVariant' not in new_json_info:
@@ -1333,6 +1364,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
+                          
+    if 'anat' not in data_paths:
+        print('No anatomical data present.')
+        return rpool
+                          
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 

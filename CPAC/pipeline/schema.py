@@ -3,6 +3,8 @@ from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
 from CPAC import __version__
+from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
+                             set_nested_value
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -22,7 +24,7 @@ valid_options = {
     },
     'brain_extraction': {
         'using': ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
-                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 
+                  'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose',
                   'FreeSurfer-ABCD']
     },
     'centrality': {
@@ -59,7 +61,7 @@ valid_options = {
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
-                int, float, All(str, Match(resolution_regex))
+                int, float, 'Functional', All(str, Match(resolution_regex))
             ),
             'include_delayed': bool,
             'include_delayed_squared': bool,
@@ -85,6 +87,11 @@ mutex = {  # mutually exclusive booleans
             'threshold': bool,
             'vertical_gradient': Range(min=-1, max=1, min_included=False,
                                        max_included=False),
+            'functional_mean_thr': {
+                'run': bool,
+                'threshold_value': Maybe(int),
+            },
+            'functional_mean_bias_correction': bool,
         }
     }
 }
@@ -171,7 +178,167 @@ Available analyses for \'{key}\' are {options}
 '''
 
 
-schema = Schema({
+def _combine_labels(config_dict, list_to_combine, new_key):
+    '''
+    Helper function to combine formerly separate keys into a
+    combined key.
+
+    Parameters
+    ----------
+    config_dict: dict
+
+    key_sequence: iterable of lists or tuples
+
+    new_key: list or tuple
+
+    Returns
+    -------
+    updated_config_dict: dict
+    '''
+    new_value = []
+    any_old_values = False
+    for _to_combine in list_to_combine:
+        try:
+            old_value = lookup_nested_value(config_dict, _to_combine)
+        except KeyError:
+            old_value = None
+        if old_value is not None:
+            any_old_values = True
+            if isinstance(old_value, (list, set, tuple)):
+                for value in old_value:
+                    new_value.append(value)
+            else:
+                new_value.append(old_value)
+            config_dict = delete_nested_value(config_dict, _to_combine)
+    if any_old_values:
+        return set_nested_value(config_dict, new_key, new_value)
+    return config_dict
+
+
+def _now_runswitch(config_dict, key_sequence):
+    '''
+    Helper function to convert a formerly forkable value to a
+    runswitch.
+
+    Parameters
+    ----------
+    config_dict: dict
+
+    key_sequence: list or tuple
+
+    Returns
+    -------
+    updated_config_dict: dict
+    '''
+    try:
+        old_forkable = lookup_nested_value(config_dict, key_sequence)
+    except KeyError:
+        return config_dict
+    if isinstance(old_forkable, bool) or isinstance(old_forkable, list):
+        return set_nested_value(
+            config_dict, key_sequence, {'run': old_forkable})
+    return config_dict
+
+
+def _changes_1_8_0_to_1_8_1(config_dict):
+    '''
+    Examples
+    --------
+    Starting with 1.8.0
+    >>> zero = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': 0,
+    ...             'left_GM_label': 1,
+    ...             'right_GM_label': 2,
+    ...             'left_WM_label': 3,
+    ...             'right_WM_label': 4}}}}
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(zero)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+
+    Starting with 1.8.1
+    >>> one = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': [0],
+    ...             'GM_label': [1, 2],
+    ...             'WM_label': [3, 4]}}}}
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(one)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+    '''
+    for key_sequence in {
+        ('anatomical_preproc', 'non_local_means_filtering'),
+        ('anatomical_preproc', 'n4_bias_field_correction')
+    }:
+        config_dict = _now_runswitch(config_dict, key_sequence)
+    for combiners in {
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'CSF_label'),
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'CSF_label')),
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'left_GM_label'),
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'right_GM_label')
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'GM_label')),
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'left_WM_label'),
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'right_WM_label')
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'WM_label'))
+    }:
+        config_dict = _combine_labels(config_dict, *combiners)
+    try:
+        calculate_motion_first = lookup_nested_value(
+            config_dict,
+            ['functional_preproc', 'motion_estimates_and_correction',
+                'calculate_motion_first']
+        )
+    except KeyError:
+        calculate_motion_first = None
+    if calculate_motion_first is not None:
+        del config_dict['functional_preproc'][
+            'motion_estimates_and_correction']['calculate_motion_first']
+        config_dict = set_nested_value(config_dict, [
+            'functional_preproc', 'motion_estimates_and_correction',
+            'motion_estimates', 'calculate_motion_first'
+        ], calculate_motion_first)
+
+    return config_dict
+
+
+latest_schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
         'pipeline_name': All(str, Length(min=1)),
@@ -241,7 +408,8 @@ schema = Schema({
             },),
         ),
         'acpc_alignment': Required(
-            # require 'T1w_brain_ACPC_template' and 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
+            # require 'T1w_brain_ACPC_template' and
+            # 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
@@ -273,7 +441,8 @@ schema = Schema({
                 'T2w_ACPC_template': Maybe(str),
                 'T2w_brain_ACPC_template': Maybe(str),
             },),
-            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and \'T2w_brain_ACPC_template\' to '
+            msg='\'brain\' requires \'T1w_brain_ACPC_template\' and '
+                '\'T2w_brain_ACPC_template\' to '
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
@@ -363,7 +532,7 @@ schema = Schema({
                 'erode': int,
                 'CSF_label': [int],
                 'GM_label': [int],
-                'WM_label': [int],                
+                'WM_label': [int],
             },
             'ANTs_Prior_Based': {
                 'run': forkable,
@@ -404,20 +573,20 @@ schema = Schema({
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
                     'ref_resolution': All(str, Match(resolution_regex)),
-                    'ref_mask': Maybe(str),
                     'FNIRT_T1w_brain_template': Maybe(str),
                     'FNIRT_T1w_template': Maybe(str),
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
                     }),
                     'identity_matrix': str,
-                    'ref_mask': Maybe(str),
+                    'ref_mask': str,
                     'ref_mask_res-2': str,
                     'T1w_template_res-2': str
                 },
             },
-            'apply_transform': {
-                'using': In({'default', 'ANTS', 'FSL'}),
+            'overwrite_transform': {
+                'run': bool,
+                'using': In({'FSL'}),
             },
         },
         'functional_registration': {
@@ -434,7 +603,7 @@ schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume'
+                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
@@ -446,6 +615,8 @@ schema = Schema({
                 'boundary_based_registration': {
                     'run': forkable,
                     'bbr_schedule': str,
+                    'bbr_wm_map': In({'probability_map', 'partial_volume_map'}),
+                    'bbr_wm_mask_args': str,
                     'reference': In({'whole-head', 'brain'})
                 },
             },
@@ -477,7 +648,7 @@ schema = Schema({
                     ),
                 },
                 'target_template': {
-                    'using': [In({'T1_template', 'EPI_template', 'DCAN_NHP'})],
+                    'using': [In({'T1_template', 'EPI_template'})],
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
@@ -499,14 +670,28 @@ schema = Schema({
                     'identity_matrix': str,
                 },
                 'apply_transform': {
-                    'using': In({'default', 'abcd', 'single_step_resampling'}),
+                    'using': In({'default', 'abcd', 'single_step_resampling', 'dcan_nhp'}),
                 },
             },
         },
     },
     'surface_analysis': {
-        'run_freesurfer': bool,
-        'reconall_args': Maybe(str),
+        'freesurfer': {
+            'run': bool,
+            'reconall_args': Maybe(str),
+        },
+        'post_freesurfer': {
+            'run': bool,
+            'surf_atlas_dir': Maybe(str),
+            'gray_ordinates_dir': Maybe(str),
+            'gray_ordinates_res': Maybe(int),
+            'high_res_mesh': Maybe(int),
+            'low_res_mesh': Maybe(int),
+            'subcortical_gray_labels': Maybe(str),
+            'freesurfer_labels': Maybe(str),
+            'fmri_res': Maybe(int),
+            'smooth_fwhm': Maybe(int),
+        },
     },
     'longitudinal_template_generation': {
         'run': bool,
@@ -548,7 +733,7 @@ schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume'})],
+                    'mean', 'median', 'selected_volume', 'fmriprep_reference'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
@@ -616,7 +801,8 @@ schema = Schema({
         'func_masking': {
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
-                 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+                 'Anatomical_Based', 'Anatomical_Resampled',
+                 'CCS_Anatomical_Refined']
             )],
             # handle validating mutually-exclusive booleans for FSL-BET
             # functional_mean_boolean must be True if one of the mutually-
@@ -639,6 +825,11 @@ schema = Schema({
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }])
             ),
+            'FSL_AFNI': {
+                'bold_ref': str,
+                'brain_mask': str,
+                'brain_probseg': str,
+            },
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },
@@ -757,6 +948,7 @@ schema = Schema({
     },
     'timeseries_extraction': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'tse_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([
@@ -774,6 +966,7 @@ schema = Schema({
 
     'seed_based_correlation_analysis': {
         'run': bool,
+        Optional('roi_paths_fully_specified'): bool,
         'sca_roi_paths': Optional(
             Maybe({
                 str: In({', '.join([
@@ -832,3 +1025,10 @@ schema = Schema({
         },
     },
 })
+
+
+def schema(config_dict):
+    return latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+
+
+schema.schema = latest_schema.schema
