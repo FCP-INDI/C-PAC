@@ -1,4 +1,13 @@
+FROM ubuntu:bionic-20200112 as source
+
+RUN apt-get update && \
+    apt-get install -y curl
+
+RUN curl -LOJ https://github.com/ANTsX/ANTs/archive/refs/tags/v2.3.5.tar.gz && \
+        tar -xvf ANTs-2.3.5.tar.gz
+
 FROM ubuntu:bionic-20200112 as builder
+COPY --from=source /ANTs-2.3.5 /tmp/ants/source
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -19,7 +28,6 @@ RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/nul
   && apt-get update \
   && apt-get -y install cmake=3.18.3-0kitware1 cmake-data=3.18.3-0kitware1 
 
-ADD . /tmp/ants/source
 RUN mkdir -p /tmp/ants/build \
     && cd /tmp/ants/build \
     && mkdir -p /opt/ants \
