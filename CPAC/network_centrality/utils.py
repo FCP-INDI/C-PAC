@@ -97,9 +97,12 @@ def sep_nifti_subbriks(nifti_file, out_names):
     nii_dims = nii_arr.shape
 
     if nii_dims[-1] != len(out_names):
-        err_msg = 'out_names must have same number of elements as '\
-                  'nifti sub-briks'
-        raise Exception(err_msg)
+        if len(nii_dims) == 3 and len(out_names) == 1:
+            pass
+        else:
+            err_msg = 'out_names must have same number of elements as '\
+                      'nifti sub-briks'
+            raise Exception(err_msg)
 
     for brik, out_name in enumerate(out_names):
         brik_arr = nii_arr[:, :, :, 0, brik]
