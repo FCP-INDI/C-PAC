@@ -1,13 +1,4 @@
-FROM ubuntu:bionic-20200112 as source
-
-RUN apt-get update && \
-    apt-get install -y curl
-
-RUN curl -LOJ https://github.com/ANTsX/ANTs/archive/refs/tags/v2.3.5.tar.gz && \
-        tar -xvf ANTs-2.3.5.tar.gz
-
 FROM ubuntu:bionic-20200112 as builder
-COPY --from=source /ANTs-2.3.5 /tmp/ants/source
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -32,15 +23,13 @@ RUN mkdir -p /tmp/ants/build \
     && cd /tmp/ants/build \
     && mkdir -p /opt/ants \
     && git config --global url."https://".insteadOf git:// \
+    && git clone -b v2.3.5 --depth 1 https://github.com/ANTsX/ANTs.git /tmp/ants/ANTs \
     && cmake \
-      -GNinja \
-      -DBUILD_TESTING=OFF \
-      -DBUILD_SHARED_LIBS=ON \
       -DCMAKE_INSTALL_PREFIX=/opt/ants \
-      /tmp/ants/source \
-    && cmake --build . --parallel \
+      ../ANTs 2>&1 | tee cmake.log \
+    && make -j 4 2>&1 | tee build.log \
     && cd ANTS-build \
-    && cmake --install .
+    && make install 2>&1 | tee install.log
 
 FROM ubuntu:bionic-20200112
 COPY --from=builder /opt/ants /opt/ants
