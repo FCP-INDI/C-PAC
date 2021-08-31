@@ -1,6 +1,6 @@
 # Choose versions
 FROM ghcr.io/fcp-indi/afni:update.afni.binaries-bionic as AFNI
-FROM ghcr.io/fcp-indi/ants:2.3.4.neurodocker-bionic as ANTs
+FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs
 FROM ghcr.io/fcp-indi/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/fsl:neurodebian-bionic as FSL
