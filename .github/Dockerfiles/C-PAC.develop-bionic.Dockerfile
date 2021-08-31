@@ -1,6 +1,7 @@
 # Choose versions
 FROM ghcr.io/fcp-indi/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs
+from ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-bionic as oldANTS
 FROM ghcr.io/fcp-indi/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/fsl:neurodebian-bionic as FSL
@@ -41,8 +42,8 @@ ENV LANG="en_US.UTF-8" \
     ANTSPATH="/opt/ants/bin" \
     PATH="/opt/ants/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
-COPY --from=ANTs /ants_template/ /ants_template/
-COPY --from=ANTs /etc/locale.gen /etc/
+COPY --from=oldANTS /ants_template/ /ants_template/
+COPY --from=oldANTS /etc/locale.gen /etc/
 COPY --from=ANTs /opt/ants/ /opt/ants/
 RUN dpkg-reconfigure --frontend=noninteractive locales \
     && update-locale LANG="en_US.UTF-8" \
