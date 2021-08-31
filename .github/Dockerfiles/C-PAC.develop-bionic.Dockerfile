@@ -38,11 +38,12 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 # install ANTs
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    ANTSPATH="/usr/lib/ants" \
-    PATH="/usr/lib/ants:$PATH"
+    ANTSPATH="/opt/ants/bin" \
+    PATH="/opt/ants/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
 COPY --from=ANTs /ants_template/ /ants_template/
 COPY --from=ANTs /etc/locale.gen /etc/
-COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ANTs /opt/ants/ /opt/ants/
 RUN dpkg-reconfigure --frontend=noninteractive locales \
     && update-locale LANG="en_US.UTF-8" \
     && chmod 777 /opt && chmod a+s /opt
