@@ -11,6 +11,7 @@ import resource
 from nipype.pipeline.plugins.legacymultiproc import (
     LegacyMultiProcPlugin as LegacyMultiProc, logger)
 from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE
+from CPAC.utils.monitoring import log_nodes_cb
 
 
 def get_peak_usage():
@@ -25,7 +26,12 @@ def get_peak_usage():
 
 
 class LegacyMultiProcPlugin(LegacyMultiProc):
+    """Nipype's LegacyMultiprocPlugin with some modifications for C-PAC"""
     def __init__(self, plugin_args=None):
+        if not isinstance(plugin_args, dict):
+            plugin_args = {}
+        if 'status_callback' not in plugin_args:
+            plugin_args['status_callback'] = log_nodes_cb
         super().__init__(plugin_args)
 
     def _prerun_check(self, graph):
