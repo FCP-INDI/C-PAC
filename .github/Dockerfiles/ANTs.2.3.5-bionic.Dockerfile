@@ -25,7 +25,13 @@ RUN mkdir -p /tmp/ants/build \
     && git config --global url."https://".insteadOf git:// \
     && git clone -b v2.3.5 --depth 1 https://github.com/ANTsX/ANTs.git /tmp/ants/ANTs \
     && cmake \
-      -DCMAKE_INSTALL_PREFIX=/opt/ants \
+        -DCMAKE_INSTALL_PREFIX=/opt/ants \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DUSE_VTK=OFF \
+        -DSuperBuild_ANTS_USE_GIT_PROTOCOL=OFF \
+        -DBUILD_TESTING=OFF \
+        -DRUN_LONG_TESTS=OFF \
+        -DRUN_SHORT_TESTS=OFF \
       ../ANTs 2>&1 | tee cmake.log \
     && make -j 4 2>&1 | tee build.log \
     && cd ANTS-build \
