@@ -6,7 +6,7 @@
 Nipype interfaces for ANTs commands
 """
 
-# This functionality is adapted from poldracklab/niworkflows:
+# Some of this functionality is adapted from poldracklab/niworkflows:
 # https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/ants.py
 # https://fmriprep.readthedocs.io/
 # https://poldracklab.stanford.edu/
@@ -17,6 +17,61 @@ from glob import glob
 from nipype.interfaces import base
 from nipype.interfaces.ants.base import ANTSCommandInputSpec, ANTSCommand
 from nipype.interfaces.base import traits, isdefined
+
+
+class CopyImageHeaderInformationInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ``CopyImageHeaderInformation``.
+
+    ``imagetocopyrefimageinfoto`` is also used for ``imageout`` if
+    ``imageout`` is not specified.
+    """
+    refimage = base.File(position=1, argstr='%s', name_source=['refimage'],
+                         desc='reference image (with header to copy from)',
+                         exists=True, mandatory=True)
+
+    imagetocopyrefimageinfoto = base.File(position=2, argstr='%s',
+                                          name_source=[
+                                              'imagetocopyrefimageinfoto'
+                                          ], desc='image to copy header to',
+                                          exists=True, mandatory=True)
+
+    imageout = base.File(position=3, argstr='%s', name_sources=[
+                            'imagetocopyrefimageinfoto',
+                            'imageout'
+                         ],
+                         desc='output image file', usedefault=True)
+
+    boolcopydirection = traits.Bool(True, argstr='%d', position=4,
+                                    desc='copy direction?', usedefault=True)
+
+    boolcopyorigin = traits.Bool(True, argstr='%d', position=5,
+                                 desc='copy origin?', usedefault=True)
+
+    boolcopyspacing = traits.Bool(True, argstr='%d', position=6,
+                                  desc='copy spacing?', usedefault=True)
+
+
+class CopyImageHeaderInformationOutputSpec(base.TraitedSpec):
+    """OutputSpec for CopyImageHeaderInformation"""
+    imageout = base.File(exists=True, desc='output image file')
+
+
+class CopyImageHeaderInformation(ANTSCommand):
+    """Copy image header information from one file to another,
+    optionally as a copy.
+
+    Examples
+    --------
+    >>> CopyImageHeaderInformation(
+    ...     refimage='/cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz',
+    ...     imagetocopyrefimageinfoto='/cpac_templates/MacaqueYerkes19_'
+    ...                               'T1w_2mm_brain_mask.nii.gz'
+    ... ).cmdline
+    'CopyImageHeaderInformation /cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz 1 1 1'
+    """  # noqa: E501
+    _cmd = 'CopyImageHeaderInformation'
+    input_spec = CopyImageHeaderInformationInputSpec
+    output_spec = CopyImageHeaderInformationOutputSpec
 
 
 class ImageMathInputSpec(ANTSCommandInputSpec):

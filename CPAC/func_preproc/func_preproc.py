@@ -17,7 +17,9 @@ from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 # niworkflows
-from ..utils.interfaces.ants import AI
+from ..utils.interfaces.ants import AI, \
+    CopyImageHeaderInformation  # noqa: E402
+
 
 def collect_arguments(*args):
     command_args = []
@@ -1661,7 +1663,13 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"pre_mask_dilate_{pipe_num}",
     )
 
-    # Run N4 normally, force num_threads=1 for stability (images are small, no need for >1)
+    # Fix precision errors
+    # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
+    restore_header = pe.Node(CopyImageHeaderInformation(),
+                             name=f'restore_header_{pipe_num}')
+
+    # Run N4 normally, force num_threads=1 for stability (images are
+    # small, no need for >1)
     n4_correct = pe.Node(
         ants.N4BiasFieldCorrection(
             dimension=3, copy_header=True, bspline_fitting_distance=200
@@ -1704,14 +1712,18 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect([(node, init_aff, [(out, "moving_image")]),
                 (node, map_brainmask, [(out, "reference_image")]),
                 (node, norm, [(out, "moving_image")]),
-                (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+                (node, restore_header, [(out, "refimage")]),
+                (init_aff, norm, [
+                    ("output_transform", "initial_moving_transform")]),
                 (norm, map_brainmask, [
                     ("reverse_invert_flags", "invert_transform_flags"),
                     ("reverse_transforms", "transforms"),
                 ]),
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
-                (pre_dilate, n4_correct, [("out_file", "mask_image")]),
+                (pre_dilate, restore_header, [
+                    ("out_file", "imagetocopyrefimageinfoto")]),
+                (restore_header, n4_correct, [("imageout", "mask_image")]),
                 (node, n4_correct, [(out, "input_image")]),
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
