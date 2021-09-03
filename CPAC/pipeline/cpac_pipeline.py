@@ -11,6 +11,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -67,7 +68,7 @@ from CPAC.anat_preproc.anat_preproc import (
 
 from CPAC.registration.registration import (
     register_ANTs_anat_to_template,
-    apply_transform_anat_to_template,
+    overwrite_transform_anat_to_template,
     register_FSL_anat_to_template,
     register_symmetric_ANTs_anat_to_template,
     register_symmetric_FSL_anat_to_template,
@@ -75,6 +76,7 @@ from CPAC.registration.registration import (
     register_FSL_EPI_to_template,
     coregistration_prep_vol,
     coregistration_prep_mean,
+    coregistration_prep_fmriprep,
     coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
@@ -87,7 +89,8 @@ from CPAC.registration.registration import (
     warp_bold_mask_to_EPItemplate,
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
-    single_step_resample_timeseries_to_T1template
+    single_step_resample_timeseries_to_T1template,
+    warp_timeseries_to_T1template_dcan_nhp
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -114,6 +117,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_masking,
     func_mean,
     func_normalize,
+    func_mask_normalize,
     get_motion_ref,
     func_motion_estimates,
     motion_estimate_filter,
@@ -132,17 +136,20 @@ from CPAC.nuisance.nuisance import (
     ICA_AROMA_FSLreg,
     ICA_AROMA_ANTsEPIreg,
     ICA_AROMA_FSLEPIreg,
-    nuisance_regression_complete,
+    nuisance_regressors_generation,
+    nuisance_regression,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
     erode_mask_WM,
-    nuisance_regression_EPItemplate,
+    nuisance_regressors_generation_EPItemplate,
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
     erode_mask_boldWM
 )
+
+from CPAC.surface.surf_preproc import surface_preproc
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -184,7 +191,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -245,7 +252,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                         'run_logging', True))
         },
         'execution': {
-            'crashfile_format': 'txt'
+            'crashfile_format': 'txt',
+            'resource_monitor_frequency': 0.2
         }
     })
 
@@ -261,9 +269,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # Check pipeline config resources
     sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
         c)
-
-    if not plugin:
-        plugin = 'MultiProc'
 
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb
@@ -471,11 +476,12 @@ Please, make yourself aware of how it works and its assumptions:
                           "CPAC v%s, please install Nipype version 1.5.1\n" \
                           % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
+
+            if not plugin:
+                plugin = LegacyMultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject
@@ -770,7 +776,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -795,7 +801,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -806,7 +812,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
 
         anat_preproc_blocks = [
-            non_local_means,
+            (non_local_means, ('T1w', ['desc-preproc_T1w', 
+                                       'desc-reorient_T1w',
+                                       'T1w'])),
             n4_bias_correction
         ]
         if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:
@@ -820,7 +828,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['run_freesurfer']:
+        cfg.surface_analysis['freesurfer']['run']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
@@ -918,8 +926,8 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-            apply_transform_anat_to_template,
-            correct_restore_brain_intensity_abcd # ABCD-options pipeline
+             overwrite_transform_anat_to_template,
+             correct_restore_brain_intensity_abcd # ABCD-options pipeline
         ]
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
@@ -945,20 +953,11 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_T1_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_T1_template_based)
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
-            seg_blocks = [
-                [tissue_seg_fsl_fast,
-                 tissue_seg_ants_prior,
-                 tissue_seg_EPI_template_based]
-                # tissue_seg_freesurfer
-            ]
+            seg_blocks.append(tissue_seg_EPI_template_based)
+            
         pipeline_blocks += seg_blocks
 
     return pipeline_blocks
@@ -1047,7 +1046,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             bold_masking,
             calc_motion_stats,
             func_mean,
-            func_normalize
+            func_normalize#,
+            #func_mask_normalize
         ]
 
         # Distortion/Susceptibility Correction
@@ -1090,7 +1090,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             (not rpool.check_rpool('space-T1w_desc-mean_bold') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean],
+            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks
@@ -1104,21 +1104,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         pipeline_blocks += EPI_reg_blocks
 
-    if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
-        'Template_Based']['template_for_segmentation']:
-        if not rpool.check_rpool('space-bold_label-CSF_mask') or \
-                not rpool.check_rpool('space-bold_label-WM_mask'):
-            pipeline_blocks += [tissue_seg_EPI_template_based]
-
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
     ] and 'T1_template' in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
-            'target_template']['using'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template'][
-            'apply_transform']['using'] == 'default':
+            'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
@@ -1141,15 +1133,36 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         if 'T1_template' in \
             cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template'][
-                'using']:
-                nuisance.append(nuisance_regression_complete)
-                
+                'func_registration_to_template']['target_template']['using']:
+            if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'default':
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
+                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
+
         if 'EPI_template' in \
             cfg.registration_workflows['functional_registration'][
                 'func_registration_to_template']['target_template'][
                 'using']:
-                nuisance.append(nuisance_regression_EPItemplate)
+            if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'default':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "desc-stc_bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
+            elif cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
+                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "bold")))
+                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
 
         pipeline_blocks += nuisance
 
@@ -1171,8 +1184,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if apply_func_warp:
         pipeline_blocks += [[warp_timeseries_to_T1template,
                              warp_timeseries_to_T1template_abcd,
+                             warp_timeseries_to_T1template_dcan_nhp,
                              single_step_resample_timeseries_to_T1template],
-                            warp_bold_mean_to_T1template]
+                            warp_bold_mean_to_T1template,
+                            warp_bold_mean_to_EPItemplate]
+
+    # ABCD end-to-end pipeline
+    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+        pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
+
+    # fMRIPrep end-to-end pipeline
+    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
+        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+        pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
@@ -1198,6 +1223,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # PostFreeSurfer and fMRISurface
+    if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+        pipeline_blocks += [surface_preproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

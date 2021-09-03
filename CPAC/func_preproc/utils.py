@@ -22,17 +22,24 @@ def nullify(value, function=None):
     return value
 
 
-def chunk_ts(func_file, n_cpus):
+def chunk_ts(func_file, n_chunks=None, chunk_size=None):
     func_img = nb.load(func_file)
     trs = func_img.shape[3]
-    chunk = trs/n_cpus
     TR_ranges = []
 
-    for chunk_idx in range(0, n_cpus):
-        if chunk_idx == n_cpus - 1:
-            TR_ranges.append((int(chunk_idx*chunk), int(trs - 1)))
+    if n_chunks:
+        chunk_size = trs/n_chunks
+    elif chunk_size:
+        n_chunks = int(trs/chunk_size)
+    else:
+        raise Exception("\n[!] Dev error: Either 'n_chunks' or 'chunk_size' "
+                        "arguments must be passed to 'chunk_ts' function.\n")
+
+    for chunk_idx in range(0, n_chunks):
+        if chunk_idx == n_chunks - 1:
+            TR_ranges.append((int(chunk_idx*chunk_size), int(trs - 1)))
         else:
-            TR_ranges.append((int(chunk_idx*chunk), int((chunk_idx+1)*chunk -1)))
+            TR_ranges.append((int(chunk_idx*chunk_size), int((chunk_idx+1)*chunk_size - 1)))
     return TR_ranges
 
 

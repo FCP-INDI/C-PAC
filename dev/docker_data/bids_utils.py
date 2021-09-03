@@ -136,7 +136,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # if we have an image parameter dictionary at this level, use it to
     # initialize our configuration we look for "RepetitionTime", because
     #  according to the spec it is a mandatory parameter for JSON
-    # sidecare files
+    # sidecar files
 
     if dbg:
         print(t_dict)
@@ -492,7 +492,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     sublist = []
     for ksub, sub in subdict.items():
         for kses, ses in sub.items():
-            if "anat" in ses and "func" in ses:
+            if "anat" in ses or "func" in ses:
                 sublist.append(ses)
             else:
                 if "anat" not in ses:

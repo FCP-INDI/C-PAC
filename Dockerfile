@@ -116,24 +116,8 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     fi && \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
-    # curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
-    # tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
-    # pin to 20.0.04: "3dROIstats in [newer versions] is VERY slowww!"
-    apt-get update && apt-get install -y libglw1-mesa-dev && \
-    AFNI_VERSION="20.0.04" && \
-    curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
-    mkdir /opt/afni && \
-    tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
-    rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
-    cd /opt/afni/src && \
-    sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
-    make vastness && make cleanest && \
-    cd /opt/afni && \
-    # filter down to required packages
-    ls > full_ls && \
-    sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
-    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
-    apt-get remove -y libglw1-mesa-dev && \
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
+    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
     ldconfig
 
 # set up AFNI
@@ -164,6 +148,11 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
+
+# install Multimodal Surface Matching
+COPY --from=ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
 
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
@@ -239,13 +228,7 @@ RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir -p /ndmg_atlases/label && \
-    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
-    cd /tmp/neuroparc && \
-    git lfs install --skip-smudge && \
-    git lfs pull -I "atlases/label/Human/*" && \
-    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
-    cd -
+COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
@@ -254,7 +237,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # set shell to BASH
 RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 SHELL ["/bin/bash", "-c"]
 RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
     | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \

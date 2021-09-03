@@ -3,11 +3,15 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
-from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags
+from CPAC.registration.utils import (
+    change_itk_transform_type,
+    check_transforms,
+    generate_inverse_transform_flags)
 
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.utils.interfaces.function import Function
+from CPAC.vmhc.utils import get_img_nvols
 
 # Todo: CC distcor is not implement for fsl apply xform func to mni, why ??
 
@@ -259,51 +263,51 @@ def ants_apply_warps_func_mni(
 
     Workflow Inputs::
 
-        workflow: Nipype workflow object
+        workflow : Nipype workflow object
             the workflow containing the resources involved
-        output_name: str
+        output_name : str
             what the name of the warped functional should be when written to the
             resource pool
-        func_key: string
+        func_key : string
             resource pool key correspoding to the node containing the 3D or 4D
             functional file to be written into MNI space, use 'leaf' for a 
             leaf node
-        ref_key: string
+        ref_key : string
             resource pool key correspoding to the file path to the template brain
             used for functional-to-template registration
-        num_strat: int
+        num_strat : int
             the number of strategy objects
-        strat: C-PAC Strategy object
+        strat : C-PAC Strategy object
             a strategy with one or more resource pools
-        interpolation_method: str
+        interpolation_method : str
             which interpolation to use when applying the warps, commonly used
             options are 'Linear', 'Bspline', 'LanczosWindowedSinc' (default) 
             for derivatives and image data 'NearestNeighbor' for masks
-        distcor: boolean
+        distcor : boolean
             indicates whether a distortion correction transformation should be 
             added to the transforms, this of course requires that a distortion
             correction map exist in the resource pool
-        map_node: boolean
+        map_node : boolean
             indicates whether a mapnode should be used, if TRUE func_key is 
             expected to correspond to a list of resources that should each 
             be written into standard space with the other parameters
-        inverse: boolean
+        inverse : boolean
             writes the invrse of the transform, i.e. MNI->EPI instead of
             EPI->MNI
-        input_image_type: int
+        input_image_type : int
             argument taken by the ANTs apply warp tool; in this case, should be
             0 for scalars (default) and 3 for 4D functional time-series
-        num_ants_cores: int
+        num_ants_cores : int
             the number of CPU cores dedicated to ANTS anatomical-to-standard
             registration
-        registration_template: str
+        registration_template : str
             which template to use as a target for the apply warps ('t1' or 'epi'),
             should be the same as the target used in the warp calculation
             (registration)
-        func_type: str
+        func_type : str
             'non-ica-aroma' or 'ica-aroma' - how to handle the functional time series
             based on the particular demands of ICA-AROMA processed time series
-        num_cpus: int
+        num_cpus : int
             the number of CPUs dedicated to each participant workflow - this is
             used to determine how to parallelize the warp application step
             
@@ -561,14 +565,22 @@ def ants_apply_warps_func_mni(
     if map_node:
         apply_ants_warp = pe.MapNode(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat),
-                iterfield=['input_image'], mem_gb=10.0)
+                name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(
+                    output_name, inverse_string, registration_template,
+                    num_strat),
+                iterfield=['input_image'],
+                mem_gb=1,
+                mem_x=(1401462037888665 / 2361183241434822606848,
+                       'input_image'))
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=10.0)
+                name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(
+                    output_name, inverse_string, registration_template,
+                    num_strat),
+                mem_gb=1,
+                mem_x=(1401462037888665 / 2361183241434822606848,
+                       'input_image'))
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)

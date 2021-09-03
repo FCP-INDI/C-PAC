@@ -58,7 +58,10 @@ def log_nodes_cb(node, status):
     if isinstance(node, nodes.MapNode):
         return
 
-    runtime = node.result.runtime
+    try:
+        runtime = node.result.runtime
+    except FileNotFoundError:
+        runtime = {}
     runtime_threads = getattr(runtime, 'cpu_percent', 'N/A')
     if runtime_threads != 'N/A':
         runtime_threads = math.ceil(runtime_threads/100)

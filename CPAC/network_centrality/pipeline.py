@@ -76,7 +76,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold",
                  "space-template_bold"],
-                "template_specification_file"],
+                "template-specification-file"],
      "outputs": ["space-template_desc-weighted_degree-centrality",
                  "space-template_desc-binarized_degree-centrality",
                  "space-template_desc-weighted_eigen-centrality",
@@ -105,7 +105,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_bold"])
     wf.connect(node, out, resample_functional_to_template, 'in_file')
 
-    node, out = strat_pool.get_data("template_specification_file")
+    node, out = strat_pool.get_data("template-specification-file")
     wf.connect(node, out, resample_functional_to_template, 'reference')
 
     merge_node = pe.Node(Function(input_names=['deg_list',
