@@ -25,6 +25,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     run_c3d, \
                                     run_c4d
 
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_regtool
 
 
@@ -2541,7 +2542,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         wf.connect(split_combined_warp, 'output3',
             merge_xfms_to_list, 'in3')
 
-        merge_xfms = pe.Node(interface=fsl.Merge(), 
+        merge_xfms = pe.Node(interface=fslMerge(),
                              name=f'merge_t1_to_template_xfms_{pipe_num}')
         merge_xfms.inputs.dimension = 't'
 
@@ -2559,8 +2560,8 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         wf.connect(split_combined_inv_warp, 'output3', 
             merge_inv_xfms_to_list, 'in3')
 
-        merge_inv_xfms = pe.Node(interface=fsl.Merge(),
-                                name=f'merge_template_to_t1_xfms_{pipe_num}')
+        merge_inv_xfms = pe.Node(interface=fslMerge(),
+                                 name=f'merge_template_to_t1_xfms_{pipe_num}')
         merge_inv_xfms.inputs.dimension = 't'
 
         wf.connect(merge_inv_xfms_to_list, 'out', 
@@ -3272,8 +3273,8 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     ### Loop ends! ###
 
     # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
-    merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name=f'merge_func_to_standard_{pipe_num}')
+    merge_func_to_standard = pe.Node(interface=fslMerge(),
+                                     name=f'merge_func_to_standard_{pipe_num}')
 
     merge_func_to_standard.inputs.dimension = 't'
 
@@ -3281,8 +3282,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         merge_func_to_standard, 'in_files')
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
-    merge_func_mask_to_standard = pe.Node(interface=fsl.Merge(), 
-                         name=f'merge_func_mask_to_standard_{pipe_num}')
+    merge_func_mask_to_standard = pe.Node(interface=fslMerge(),
+                                          name='merge_func_mask_to_'
+                                               f'standard_{pipe_num}')
 
     merge_func_mask_to_standard.inputs.dimension = 't'
 
@@ -3587,8 +3589,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     ### Loop ends! ###
 
     # fslmerge -tr ${OutputfMRI} $FrameMergeSTRING $TR_vol
-    merge_func_to_standard = pe.Node(interface=fsl.Merge(), 
-        name=f'merge_func_to_standard_{pipe_num}')
+    merge_func_to_standard = pe.Node(interface=fslMerge(),
+                                     name=f'merge_func_to_standard_{pipe_num}')
 
     merge_func_to_standard.inputs.dimension = 't'
 
@@ -3596,8 +3598,9 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
         merge_func_to_standard, 'in_files')
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
-    merge_func_mask_to_standard = pe.Node(interface=fsl.Merge(), 
-        name=f'merge_func_mask_to_standard_{pipe_num}')
+    merge_func_mask_to_standard = pe.Node(interface=fslMerge(),
+                                          name='merge_func_mask_to_'
+                                               f'standard_{pipe_num}')
 
     merge_func_mask_to_standard.inputs.dimension = 't'
 
@@ -3765,7 +3768,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
 
     ### Loop ends! ###
 
-    merge_func_to_standard = pe.Node(interface=fsl.Merge(),
+    merge_func_to_standard = pe.Node(interface=fslMerge(),
                                      name=f'merge_func_to_standard_{pipe_num}')
 
     merge_func_to_standard.inputs.dimension = 't'

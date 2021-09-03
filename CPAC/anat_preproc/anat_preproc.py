@@ -14,6 +14,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 from CPAC.unet.function import predict_volumes
 
@@ -3147,7 +3148,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(node, out, merge_t1_acpc_to_list, 'in2')
     wf.connect(node, out, merge_t1_acpc_to_list, 'in3')
 
-    merge_t1_acpc = pe.Node(interface=fsl.Merge(),
+    merge_t1_acpc = pe.Node(interface=fslMerge(),
                             name='merge_t1_acpc')
 
     merge_t1_acpc.inputs.dimension = 't'

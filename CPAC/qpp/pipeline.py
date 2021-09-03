@@ -7,6 +7,7 @@ import numpy as np
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 from CPAC.utils.interfaces.function import Function
 
@@ -77,7 +78,7 @@ def create_qpp(name='qpp', working_dir=None, crash_dir=None):
     outputspec = pe.Node(util.IdentityInterface(fields=['qpp']),
                          name='outputspec')
 
-    merge = pe.Node(fsl.Merge(), name='joint_datasets')
+    merge = pe.Node(fslMerge(), name='joint_datasets')
     merge.inputs.dimension = 't'
     merge.inputs.output_type = 'NIFTI_GZ'
 

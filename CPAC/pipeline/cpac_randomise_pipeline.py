@@ -2,8 +2,8 @@ import os
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-
 from CPAC.pipeline.cpac_group_runner import load_config_yml
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 
 def load_subject_file(group_config_path):
@@ -17,7 +17,7 @@ def load_subject_file(group_config_path):
 
 def randomise_merged_file(s_paths):
     
-    merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
+    merge = pe.Node(interface=fslMerge(), name='fsl_merge')
     merge.inputs.dimension = 't'
     merge.inputs.merged_file = "randomise_merged.nii.gz"
     merge.inputs.in_files = s_paths   
