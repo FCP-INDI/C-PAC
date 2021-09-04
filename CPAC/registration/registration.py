@@ -3825,6 +3825,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                             name=f'collectxfm_func_to_standard_{pipe_num}',
                             iterfield=['in4'])
 
+    # this xfm is generated from ANTs
+    # TODO check if it can take FSL xfm, change ANTs xfm to FSL xfm
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, collectxfm, 'in1')
 
