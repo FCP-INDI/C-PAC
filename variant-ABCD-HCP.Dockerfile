@@ -280,7 +280,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # set shell to BASH
 RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 SHELL ["/bin/bash", "-c"]
 RUN apt-get install -y \
     bc \

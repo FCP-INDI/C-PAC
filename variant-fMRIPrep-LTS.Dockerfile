@@ -222,7 +222,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # install FreeSurfer
 # set shell to BASH
 SHELL ["/bin/bash", "-c"]
-ENV FREESURFER_HOME=/usr/lib/freesurfer
+ENV FREESURFER_HOME=/usr/lib/freesurfer  \
+    NO_FSFAST=1
 RUN mkdir -p /usr/lib/freesurfer && \
     curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /usr/lib \
     --exclude='freesurfer/diffusion' \
