@@ -1,7 +1,8 @@
 """FSL Nipype interfaces with customized functionality"""
 import os
+from nipype.interfaces.base.trait_extensions import isdefined
 from nipype.interfaces.fsl.utils import Merge as fslMerge
-    
+
 
 class Merge(fslMerge):
     """Use relative paths for input files"""
