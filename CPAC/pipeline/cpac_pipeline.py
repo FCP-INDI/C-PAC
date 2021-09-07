@@ -278,7 +278,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
 
-
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
     # import mkl
@@ -479,8 +478,6 @@ Please, make yourself aware of how it works and its assumptions:
                           "CPAC v%s, please install Nipype version 1.5.1\n" \
                           % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'

@@ -7,6 +7,7 @@ from CPAC.pipeline.engine import ResourcePool, ingress_raw_anat_data, ingress_ra
 from CPAC.utils.bids_utils import create_cpac_data_config
 
 
+@pytest.mark.skip(reason='not a pytest test')
 def test_ingress_func_raw_data(pipe_config, bids_dir, test_dir):
 
     sub_data_dct = create_cpac_data_config(bids_dir,
@@ -36,6 +37,8 @@ def test_ingress_func_raw_data(pipe_config, bids_dir, test_dir):
 
     wf.run()
 
+
+@pytest.mark.skip(reason='not a pytest test')
 def test_ingress_anat_raw_data(pipe_config, bids_dir, test_dir):
 
     sub_data_dct = create_cpac_data_config(bids_dir,
@@ -64,6 +67,7 @@ def test_ingress_anat_raw_data(pipe_config, bids_dir, test_dir):
     rpool.gather_pipes(wf, cfg, all=True)
 
     wf.run()
+
 
 @pytest.mark.skip(reason='not a pytest test')
 def test_ingress_pipeconfig_data(pipe_config, bids_dir, test_dir):
@@ -94,6 +98,8 @@ def test_ingress_pipeconfig_data(pipe_config, bids_dir, test_dir):
 
     wf.run()
 
+
+@pytest.mark.skip(reason='not a pytest test')
 def test_build_anat_preproc_stack(pipe_config, bids_dir, test_dir):
     
     sub_data_dct = create_cpac_data_config(bids_dir,
@@ -119,6 +125,7 @@ def test_build_anat_preproc_stack(pipe_config, bids_dir, test_dir):
     wf.run()
     
 
+@pytest.mark.skip(reason='not a pytest test')
 def test_build_workflow(pipe_config, bids_dir, test_dir):
     
     sub_data_dct = create_cpac_data_config(bids_dir,
@@ -155,5 +162,5 @@ test_dir = "/Users/hecheng.jin/GitHub/Test/T2preproc"
 # test_ingress_anat_raw_data(cfg, bids_dir, test_dir)
 # test_ingress_pipeconfig_data(cfg, bids_dir, test_dir)
 # test_build_anat_preproc_stack(cfg, bids_dir, test_dir)
-test_build_workflow(cfg, bids_dir, test_dir)
-
+if __name__ == '__main__':
+    test_build_workflow(cfg, bids_dir, test_dir)
