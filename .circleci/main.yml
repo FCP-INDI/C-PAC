@@ -1,6 +1,14 @@
 --- 
 version: 2.1
 
+parameters:
+  branch:
+    type: string
+    default: unknown
+  owner:
+    type: string
+    default: unknown
+
 commands:
   push-to-docker-hub:
     parameters:
@@ -44,7 +52,7 @@ commands:
                       tag: latest
             - when:
                 condition:
-                  equal: [ << pipeline.parameters.branch >>, "CI/push-to-Docker-Hub" ]
+                  equal: [ << pipeline.parameters.branch >>, "develop" ]
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
