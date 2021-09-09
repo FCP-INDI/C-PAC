@@ -53,7 +53,7 @@ commands:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - "12:bc:f2:e4:31:cc:72:54:54:bc:f5:5b:89:e6:d8:ee"
+            - "e0:d6:95:7b:bf:44:ff:9c:3f:91:d5:30:57:37:3c:1f"
       - run:
           name: "Configuring git user"
           command: |
@@ -61,8 +61,8 @@ commands:
             curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install git -y
-            git config --global user.email "${CIRCLE_USERNAME}@users.noreply.github.com"
-            git config --global user.name "${CIRCLE_USERNAME} @ CircleCI"
+            git config --global user.email "CMI_CPAC_Support@childmind.org"
+            git config --global user.name "Theodore (machine user) @ CircleCI"
   create-docker-test-container:
     parameters:
       coverage-file:
