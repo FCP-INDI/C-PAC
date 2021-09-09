@@ -82,6 +82,9 @@ class CopyImageHeaderInformation(ANTSCommand):
     input_spec = CopyImageHeaderInformationInputSpec
     output_spec = CopyImageHeaderInformationOutputSpec
 
+    def _list_outputs(self):
+        return {'imageout': self.inputs.imageout}
+
 
 class ImageMathInputSpec(ANTSCommandInputSpec):
     dimension = traits.Int(3, usedefault=True, position=1, argstr='%d',
