@@ -25,6 +25,15 @@ class CopyImageHeaderInformationInputSpec(ANTSCommandInputSpec):
     ``imagetocopyrefimageinfoto`` is also used for ``imageout`` if
     ``imageout`` is not specified.
     """
+    def __setattr__(self, name, value):
+        super(ANTSCommandInputSpec, self).__setattr__(name, value)
+        if name == 'imagetocopyrefimageinfoto':
+            self._infer_imageout()
+
+    def _infer_imageout(self):
+        if (self.imageout == base.Undefined):
+            self.trait_set(imageout=self.imagetocopyrefimageinfoto)
+
     refimage = base.File(position=1, argstr='%s', name_source=['refimage'],
                          desc='reference image (with header to copy from)',
                          exists=True, mandatory=True)
