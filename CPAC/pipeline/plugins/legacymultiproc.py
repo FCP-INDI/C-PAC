@@ -11,6 +11,7 @@ import resource
 from nipype.pipeline.plugins.legacymultiproc import (
     LegacyMultiProcPlugin as LegacyMultiProc)
 from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE
+from CPAC.utils.monitoring import log_nodes_cb
 from .base import logger, run_node
 
 
