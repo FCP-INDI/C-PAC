@@ -65,17 +65,17 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
     lfcd_weighted = None
     lfcd_binarized = None
     for path in merged_list:
-        if 'degree' in path and 'weighted' in path:
+        if 'degree' in path and 'Weighted' in path:
             degree_weighted = path
-        elif 'degree' in path and 'binarize' in path:
+        elif 'degree' in path and 'Binarize' in path:
             degree_binarized = path
-        elif 'eigen' in path and 'weighted' in path:
+        elif 'eigen' in path and 'Weighted' in path:
             eigen_weighted = path
-        elif 'eigen' in path and 'binarize' in path:
+        elif 'eigen' in path and 'Binarize' in path:
             eigen_binarized = path
-        elif 'lfcd' in path and 'weighted' in path:
+        elif 'local_functional' in path and 'Weighted' in path:
             lfcd_weighted = path
-        elif 'lfcd' in path and 'binarize' in path:
+        elif 'local_functional' in path and 'Binarize' in path:
             lfcd_binarized = path
 
     return (degree_weighted, degree_binarized, eigen_weighted,
@@ -105,7 +105,10 @@ def sep_nifti_subbriks(nifti_file, out_names):
             raise Exception(err_msg)
 
     for brik, out_name in enumerate(out_names):
-        brik_arr = nii_arr[:, :, :, 0, brik]
+        if len(nii_dims) == 3:
+            brik_arr = nii_arr
+        elif len(nii_dims) > 3:
+            brik_arr = nii_arr[:, :, :, 0, brik]
         out_file = os.path.join(os.getcwd(), out_name+'.nii.gz')
         out_img = nib.Nifti1Image(brik_arr, nii_affine)
         out_img.to_filename(out_file)
