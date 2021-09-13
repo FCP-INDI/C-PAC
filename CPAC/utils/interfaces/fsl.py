@@ -19,7 +19,7 @@ class Merge(fslMerge):
         # -----------------
         if name == "in_files":
             return ' '.join([
-                os.path.relpath(in_file) for in_file in value.split(' ')
+                os.path.relpath(in_file) for in_file in value
             ])
         # ---------------
         # End custom code
