@@ -1970,7 +1970,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
-        'interpolation']
+        'interpolationcoregistration_prep_vol']
 
     fsl.inputs.inputspec.fnirt_config = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT'][
@@ -2670,10 +2670,30 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-reginput_bold': coreg_input
     }
+    ############################################################
+# N4 bias field correction added here for functional volume 
+    if cfg.registration_workflows['functional_registration'][
+            'coregistration']['func_input_prep']['n4_correct_func']:
+        n4_correct_func = pe.Node(
+            interface=
+            ants.N4BiasFieldCorrection(dimension=3,
+                                       copy_header=True,
+                                       bspline_fitting_distance=200),
+            shrink_factor=2,
+            name=f'func_volume_n4_corrected_{pipe_num}')
+        n4_correct_func.inputs.args = '-r True'
 
+        node, out = coreg_input
+        wf.connect(node, out, n4_correct_func, 'input_image')
+
+        coreg_input = (n4_correct_func, 'output_image')
+
+    outputs = {
+        'desc-reginput_bold': coreg_input
+    }
     return (wf, outputs)
 
-
+##################################################################
 def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_mean",
@@ -2690,7 +2710,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # TODO add mean skull
     if cfg.registration_workflows['functional_registration'][
-            'coregistration']['func_input_prep']['Mean Functional'][
+            'coregistration']['func_input_prep'][
             'n4_correct_func']:
         n4_correct_func = pe.Node(
             interface=
