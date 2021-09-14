@@ -2667,6 +2667,27 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     coreg_input = (get_func_volume, 'out_file')
 
+    #### Here is where we added the n4 code ####
+
+    if cfg.registration_workflows['functional_registration'][
+            'coregistration']['func_input_prep']['n4_correct_func']:
+        n4_correct_func = pe.Node(
+            interface=
+            ants.N4BiasFieldCorrection(dimension=3,
+                                       copy_header=True,
+                                       bspline_fitting_distance=200),
+            shrink_factor=2,
+            name=f'func_volume_n4_corrected_{pipe_num}')  ## changed from mean to volume
+        n4_correct_func.inputs.args = '-r True'
+
+        node, out = coreg_input
+        wf.connect(node, out, n4_correct_func, 'input_image')
+
+
+        coreg_input = (n4_correct_func, 'output_image')
+
+     #######################################################   
+
     outputs = {
         'desc-reginput_bold': coreg_input
     }
@@ -2690,8 +2711,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # TODO add mean skull
     if cfg.registration_workflows['functional_registration'][
-            'coregistration']['func_input_prep']['Mean Functional'][
-            'n4_correct_func']:
+            'coregistration']['func_input_prep']['n4_correct_func']: 
         n4_correct_func = pe.Node(
             interface=
             ants.N4BiasFieldCorrection(dimension=3,
