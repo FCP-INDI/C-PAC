@@ -13,7 +13,7 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
@@ -698,7 +698,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin=LegacyMultiProcPlugin(plugin_args) if plugin_args[
+            plugin=MultiProcPlugin(plugin_args) if plugin_args[
                 'n_procs'
             ] > 1 else 'Linear',
             plugin_args=plugin_args,

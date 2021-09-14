@@ -8,8 +8,9 @@ from voluptuous.error import Invalid
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
+from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.longitudinal_pipeline.longitudinal_workflow import (
-    anat_longitudinal_wf, 
+    anat_longitudinal_wf,
     func_preproc_longitudinal_wf,
     func_longitudinal_template_wf
 )
@@ -100,26 +101,35 @@ def run_cpac_on_cluster(config_file, subject_list_file,
                       'plugin=\'MultiProc\', plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
-    plugin_args = {'n_procs': pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
-                   'memory_gb': pipeline_config.pipeline_setup['system_config']['maximum_memory_per_participant']}
+    plugin_args = {
+        'n_procs': pipeline_config.pipeline_setup['system_config'][
+            'max_cores_per_participant'],
+        'memory_gb': pipeline_config.pipeline_setup['system_config'][
+            'maximum_memory_per_participant'],
+        'status_callback': log_nodes_cb}
 
     # Set up run command dictionary
-    run_cmd_dict = {'config_file' : config_file,
-                    'subject_list_file' : subject_list_file,
-                    'pipeline_name' : pipeline_config.pipeline_setup['pipeline_name'],
-                    'plugin_args' : plugin_args}
+    run_cmd_dict = {'config_file': config_file,
+                    'subject_list_file': subject_list_file,
+                    'pipeline_name': pipeline_config.pipeline_setup[
+                        'pipeline_name'],
+                    'plugin_args': plugin_args}
 
     # Set up config dictionary
-    config_dict = {'timestamp' : timestamp,
-                   'shell' : shell,
-                   'job_name' : 'CPAC_' + pipeline_config.pipeline_setup['pipeline_name'],
-                   'num_tasks' : num_subs,
-                   'queue' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['queue'],
-                   'par_env' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['parallel_environment'],
-                   'cores_per_task' : pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
-                   'user' : user_account,
-                   'work_dir' : cluster_files_dir,
-                   'time_limit' : time_limit}
+    config_dict = {'timestamp': timestamp,
+                   'shell': shell,
+                   'job_name': 'CPAC_' + pipeline_config.pipeline_setup[
+                       'pipeline_name'],
+                   'num_tasks': num_subs,
+                   'queue': pipeline_config.pipeline_setup['system_config'][
+                       'on_grid']['SGE']['queue'],
+                   'par_env': pipeline_config.pipeline_setup['system_config'][
+                       'on_grid']['SGE']['parallel_environment'],
+                   'cores_per_task': pipeline_config.pipeline_setup[
+                       'system_config']['max_cores_per_participant'],
+                   'user': user_account,
+                   'work_dir': cluster_files_dir,
+                   'time_limit': time_limit}
 
     # Get string template for job scheduler
     if job_scheduler == 'pbs':
@@ -204,6 +214,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
+
+    if plugin_args is None:
+        plugin_args = {'status_callback': log_nodes_cb}
 
     if not config_file:
         import pkg_resources as p

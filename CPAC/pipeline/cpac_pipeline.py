@@ -13,7 +13,7 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin, MultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -193,7 +193,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -219,9 +219,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         list of pipeline info for reporting timing information
     p_name : string (optional); default=None
         name of pipeline
-    plugin : string (optional); defaule='MultiProc'
+    plugin : string (optional); default='MultiProc'
         nipype plugin to utilize when the workflow is ran
-    plugin_args : dictionary (optional); default=None
+    plugin_args : dictionary (optional);
+                  default={'status_callback': log_nodes_cb}
         plugin-specific arguments for the workflow plugin
 
     Returns
@@ -271,14 +272,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # number of subjects
 
     # Check pipeline config resources
-    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
-        c)
+    (
+        sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
+    ) = check_config_resources(c)
 
-    if plugin_args:
-        plugin_args['memory_gb'] = sub_mem_gb
-        plugin_args['n_procs'] = num_cores_per_sub
-    else:
-        plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+    if not plugin_args:
+        plugin_args = {}
+
+    plugin_args['memory_gb'] = sub_mem_gb
+    plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
@@ -485,9 +488,10 @@ Please, make yourself aware of how it works and its assumptions:
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
-
-            if not plugin:
+            if not plugin or plugin == 'LegacyMultiProc':
                 plugin = LegacyMultiProcPlugin(plugin_args)
+            elif plugin == 'MultiProc':
+                plugin = MultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject

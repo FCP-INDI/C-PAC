@@ -3,7 +3,9 @@ import os
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_group_runner import load_config_yml
+from CPAC.pipeline.plugins import MultiProcPlugin
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
+from CPAC.utils.monitoring import log_nodes_cb
 
 
 def load_subject_file(group_config_path):
@@ -60,18 +62,19 @@ def prep_randomise_workflow(c, subject_infos):
     wf.connect(rw, 'outputspec.t_corrected_p_files',
                ds, 't_corrected_p_files')
     wf.connect(rw, 'outputspec.index_file', ds, 'index_file')
-    wf.connect(rw,'outputspec.threshold_file',ds,'threshold_file')
-    wf.connect(rw, 'outputspec.localmax_vol_file',ds,'localmax_vol_file')
-    wf.connect(rw,'outputspec.localmax_txt_file',ds,'localmax_txt_file')
-    wf.connect(rw,'outputspec.max_file',ds,'max_file')
-    wf.connect(rw,'outputspec.mean_file',ds,'mean_file')
-    wf.connect(rw,'outputspec.max_file',ds,
-        'max_file')
-    wf.connect(rw,'outputspec.pval_file',ds,'pval_file')
-    wf.connect(rw,'outputspec.size_file',ds,'size_file')
+    wf.connect(rw, 'outputspec.threshold_file', ds, 'threshold_file')
+    wf.connect(rw, 'outputspec.localmax_vol_file', ds, 'localmax_vol_file')
+    wf.connect(rw, 'outputspec.localmax_txt_file', ds, 'localmax_txt_file')
+    wf.connect(rw, 'outputspec.max_file', ds, 'max_file')
+    wf.connect(rw, 'outputspec.mean_file', ds, 'mean_file')
+    wf.connect(rw, 'outputspec.max_file', ds, 'max_file')
+    wf.connect(rw, 'outputspec.pval_file', ds, 'pval_file')
+    wf.connect(rw, 'outputspec.size_file', ds, 'size_file')
 
-    wf.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+    plugin_args = {'n_procs': c.numCoresPerSubject,
+                   'status_callback': log_nodes_cb}
+    wf.run(plugin=MultiProcPlugin(plugin_args),
+           plugin_args=plugin_args)
 
     return wf
 
