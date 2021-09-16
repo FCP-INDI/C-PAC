@@ -1184,22 +1184,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             apply_func_warp = False
 
     if apply_func_warp:
-        pipeline_blocks += [[warp_timeseries_to_T1template,
-                             warp_timeseries_to_T1template_abcd,
-                             warp_timeseries_to_T1template_dcan_nhp,
-                             single_step_resample_timeseries_to_T1template],
+
+        ts_to_T1template_block = [warp_timeseries_to_T1template,
+                                  warp_timeseries_to_T1template_dcan_nhp]
+
+        if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
+            ts_to_T1template_block += [(single_step_resample_timeseries_to_T1template, ('desc-cleaned_bold', 'desc-stc_bold'))]
+        else:
+            ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)
+            ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
+
+        pipeline_blocks += [ts_to_T1template_block,
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
-
-    # ABCD end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
-
-    # fMRIPrep end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
