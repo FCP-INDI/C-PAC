@@ -74,15 +74,6 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction:
-
-    # this is a fork option
-    run: [On]
-
-    # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
-    shrink_factor: 2
-
   brain_extraction: 
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
@@ -360,7 +351,7 @@ nuisance_corrections:
     run: [Off]
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
+    create_regressors: On
 
     # Select which nuisance signal corrections to apply
     Regressors: 
