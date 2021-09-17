@@ -176,7 +176,7 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-brain_T1w",
-                "T1w_brain_template"],
+                "T1w-brain-template"],
      "outputs": ["space-template_desc-brain_T1w-axial-qc",
                  "space-template_desc-brain_T1w-sagittal-qc"]}
     '''
@@ -195,7 +195,7 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
                                           as_module=True),
                                  name=f'anat_template_edge_{pipe_num}')
 
-    node, out = strat_pool.get_data('T1w_brain_template')
+    node, out = strat_pool.get_data('T1w-brain-template')
     wf.connect(node, out, anat_template_edge, 'in_file')
 
     wf.connect(anat_template_edge, 'out_file',
@@ -313,9 +313,9 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-template_desc-preproc_bold",
                   "space-template_bold"],
                  "space-template_desc-mean_bold"),
-                "GM_path",
-                "WM_path",
-                "CSF_path"],
+                "GM-path",
+                "WM-path",
+                "CSF-path"],
      "outputs": ["space-template_desc-cleaned_bold-carpet-qc",
                  "space-template_desc-brain_bold-carpet-qc",
                  "space-template_desc-preproc_bold-carpet-qc",
@@ -337,13 +337,13 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-template_desc-mean_bold")
     wf.connect(node, out, carpet_seg, 'inputspec.mean_functional_to_standard')
 
-    node, out = strat_pool.get_data("GM_path")
+    node, out = strat_pool.get_data("GM-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_gm_mask')
 
-    node, out = strat_pool.get_data("WM_path")
+    node, out = strat_pool.get_data("WM-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_wm_mask')
 
-    node, out = strat_pool.get_data("CSF_path")
+    node, out = strat_pool.get_data("CSF-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_csf_mask')
 
     outputs = {
@@ -398,12 +398,14 @@ def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_bold_registration",
-     "config": ["pipeline_setup", "output_directory"],
-     "switch": ["generate_quality_control_images"],
+     "config": "None",
+     "switch": [["pipeline_setup", "output_directory", 
+                 "generate_quality_control_images"],
+                ["registration_workflows", "anatomical_registration", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-mean_bold",
-                "T1w_brain_template_funcreg"],
+                "T1w-brain-template-funcreg"],
      "outputs": ["space-template_desc-mean_bold-axial-qc",
                  "space-template_desc-mean_bold-sagittal-qc"]}
     '''
@@ -422,7 +424,7 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
                                           as_module=True),
                                  name=f'func_template_edge_{pipe_num}')
 
-    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    node, out = strat_pool.get_data("T1w-brain-template-funcreg")
     wf.connect(node, out, func_template_edge, 'in_file')
 
     wf.connect(func_template_edge, 'out_file',
@@ -436,6 +438,53 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+    
+    
+def qc_bold_EPI_registration(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "qc_bold_EPI_registration",
+     "config": "None",
+     "switch": [["pipeline_setup", "output_directory", 
+                 "generate_quality_control_images"],
+                ["registration_workflows", "functional_registration",
+                 "func_registration_to_template", "run_EPI"]],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-EPItemplate_desc-mean_bold",
+                "EPI-template-funcreg"],
+     "outputs": ["space-EPItemplate_desc-mean_bold-axial-qc",
+                 "space-EPItemplate_desc-mean_bold-sagittal-qc"]}
+    '''
+
+    # make QC montage for Mean Functional in MNI with MNI edge
+    montage_mfi = create_montage(f'montage_mfi_{pipe_num}', 'red',
+                                 'EPI_MNI_edge_on_mean_func_mni',
+                                 mapnode=False)
+
+    node, out = strat_pool.get_data('space-EPItemplate_desc-mean_bold')
+    wf.connect(node, out,  montage_mfi, 'inputspec.underlay')
+
+    func_template_edge = pe.Node(Function(input_names=['in_file'],
+                                          output_names=['out_file'],
+                                          function=afni_Edge3,
+                                          as_module=True),
+                                 name=f'EPI_func_template_edge_{pipe_num}')
+
+    node, out = strat_pool.get_data("EPI-template-funcreg")
+    wf.connect(node, out, func_template_edge, 'in_file')
+
+    wf.connect(func_template_edge, 'out_file',
+               montage_mfi, 'inputspec.overlay')
+
+    outputs = {
+        'space-EPItemplate_desc-mean_bold-axial-qc':
+            (montage_mfi, 'outputspec.axial_png'),
+        'space-EPItemplate_desc-mean_bold-sagittal-qc':
+            (montage_mfi, 'outputspec.sagittal_png')
+    }
+
+    return (wf, outputs)
+
 
 
 def create_qc_workflow(cfg):

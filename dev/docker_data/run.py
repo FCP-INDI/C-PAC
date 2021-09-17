@@ -13,7 +13,9 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
+from CPAC.pipeline.plugins import LegacyMultiProcPlugin
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import load_preconfig, update_nested_dict
@@ -210,10 +212,10 @@ parser.add_argument('output_dir', help='The directory where the output files '
 parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' be performed. Multiple participant level analyses can be run '
                                            ' independently (in parallel) using the same output_dir. '
-                                           ' GUI will open the CPAC gui (currently only works with singularity) and'
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
-                    choices=['participant', 'group', 'test_config', 'gui', 'cli'], type=str.lower)
+                    choices=['participant', 'group', 'test_config', 'cli'],
+                    type=str.lower)
 
 parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
@@ -265,17 +267,27 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     ' read from the environment. (E.g. when using AWS iam roles).',
                     default=None)
 # TODO: restore <default=3> for <--n_cpus> once we remove
-#       <maxCoresPerParticipant> from config file
+#       <max_cores_per_participant> from config file
 #       <https://github.com/FCP-INDI/C-PAC/pull/1264#issuecomment-631643708>
 parser.add_argument('--n_cpus', type=int, default=0,
                     help='Number of execution resources per participant '
-                         ' available for the pipeline.')
+                         'available for the pipeline. This flag takes '
+                         'precidence over max_cores_per_participant in '
+                         'the pipeline configuration file.')
 parser.add_argument('--mem_mb', type=float,
-                    help='Amount of RAM available to the pipeline in megabytes.'
-                         ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
+                    help='Amount of RAM available per participant in '
+                         'megabytes. Included for compatibility with '
+                         'BIDS-Apps standard, but mem_gb is preferred. '
+                         'This flag takes precedence over '
+                         'maximum_memory_per_participant in the pipeline '
+                         'configuration file.')
 parser.add_argument('--mem_gb', type=float,
-                    help='Amount of RAM available to the pipeline in gigabytes.'
-                         ' if this is specified along with mem_mb, this flag will take precedence.')
+                    help='Amount of RAM available per participant in '
+                         'gigabytes. If this is specified along with mem_mb, '
+                         'this flag will take precedence. This flag also '
+                         'takes precedence over '
+                         'maximum_memory_per_participant in the pipeline '
+                         'configuration file.')
 
 parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
@@ -330,15 +342,7 @@ args = parser.parse_args(
     ]
 )
 
-# if we are running the GUI, then get to it
-if args.analysis_level == "gui":
-    print("Starting CPAC GUI")
-    import CPAC.GUI
-
-    CPAC.GUI.run()
-    sys.exit(0)
-
-elif args.analysis_level == "cli":
+if args.analysis_level == "cli":
     from CPAC.__main__ import main
     main.main(args=sys.argv[sys.argv.index('--') + 1:])
     sys.exit(0)
@@ -508,25 +512,40 @@ elif args.analysis_level in ["test_config", "participant"]:
     elif args.mem_mb:
         c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_mb) / 1024.0
     else:
-        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = 6.0
+        try:
+            c['pipeline_setup', 'system_config',
+              'maximum_memory_per_participant'] = float(
+                  c['pipeline_setup', 'system_config',
+                    'maximum_memory_per_participant'])
+        except KeyError:
+            c['pipeline_setup', 'system_config',
+              'maximum_memory_per_participant'] = 6.0
 
     # Preference: n_cpus if given, override if present, else from config if
     # present, else n_cpus=3
     if int(args.n_cpus) == 0:
-        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(c['pipeline_setup']['system_config'].get('max_cores_per_participant', 3))
-        args.n_cpus = 3
-    else:
-        c['pipeline_setup']['system_config']['max_cores_per_participant'] = args.n_cpus
+        try:
+            args.n_cpus = c['pipeline_setup', 'system_config',
+                            'max_cores_per_participant']
+        except KeyError:
+            args.n_cpus = 3
+    c['pipeline_setup', 'system_config',
+      'max_cores_per_participant'] = int(args.n_cpus)
 
-    c['pipeline_setup']['system_config']['num_participants_at_once'] = int(c['pipeline_setup']['system_config'].get('num_participants_at_once', 1))
+    c['pipeline_setup']['system_config']['num_participants_at_once'] = int(
+        c['pipeline_setup']['system_config'].get(
+            'num_participants_at_once', 1))
     # Reduce cores per participant if cores times participants is more than
     # available CPUS. n_cpus is a hard upper limit.
-    if (c['pipeline_setup']['system_config']['max_cores_per_participant'] * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
-        args.n_cpus
-    ):
-        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(
-            args.n_cpus
-        ) // c['pipeline_setup']['system_config']['num_participants_at_once']
+    if (
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] *
+        c['pipeline_setup']['system_config']['num_participants_at_once']
+    ) > int(args.n_cpus):
+        c['pipeline_setup']['system_config'][
+            'max_cores_per_participant'
+        ] = int(args.n_cpus) // c['pipeline_setup']['system_config'][
+            'num_participants_at_once'
+        ]
         if c['pipeline_setup']['system_config'][
             'max_cores_per_participant'
         ] == 0:
@@ -536,7 +555,8 @@ elif args.analysis_level in ["test_config", "participant"]:
                 'num_participants_at_once'] = 1
 
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
-        c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
+        c['pipeline_setup']['system_config']['max_cores_per_participant'],
+        int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
 
     c['disable_log'] = args.disable_file_logging
@@ -613,7 +633,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                                          args.participant_label,
                                          args.aws_input_creds)
 
-    if args.participant_ndx:
+    if args.participant_ndx is not None:
 
         participant_ndx = int(args.participant_ndx)
         if participant_ndx == -1:
@@ -663,15 +683,20 @@ elif args.analysis_level in ["test_config", "participant"]:
                 pass
 
         plugin_args = {
-            'n_procs': int(c['pipeline_setup']['system_config']['max_cores_per_participant']),
-            'memory_gb': int(c['pipeline_setup']['system_config']['maximum_memory_per_participant']),
+            'n_procs': int(c['pipeline_setup']['system_config'][
+                'max_cores_per_participant']),
+            'memory_gb': int(c['pipeline_setup']['system_config'][
+                'maximum_memory_per_participant']),
+            'status_callback': log_nodes_cb
         }
 
-        print ("Starting participant level processing")
+        print("Starting participant level processing")
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin='MultiProc' if plugin_args['n_procs'] > 1 else 'Linear',
+            plugin=LegacyMultiProcPlugin(plugin_args) if plugin_args[
+                'n_procs'
+            ] > 1 else 'Linear',
             plugin_args=plugin_args,
             tracking=not args.tracking_opt_out,
             test_config = 1 if args.analysis_level == "test_config" else 0

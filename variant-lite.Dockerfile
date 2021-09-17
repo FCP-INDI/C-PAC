@@ -1,3 +1,14 @@
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y git
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
@@ -7,17 +18,20 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 16.8.0 && \
+     nvm use 16.8.0 && \
+     nvm alias default 16.8.0 && \
+     mkdir /root/.npm-packages && \
+     npm config set prefix /root/.npm-packages && \
+     NPM_PACKAGES=/root/.npm-packages && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/root/.npm-packages/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -201,6 +215,7 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
 RUN conda update conda -y && \
+    conda install nomkl && \
     conda install -y  \
         blas \
         cython \
@@ -229,19 +244,14 @@ RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global/templates /opt/dcan-tools/pipeline/global/templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir -p /ndmg_atlases/label && \
-    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
-    cd /tmp/neuroparc && \
-    git lfs install --skip-smudge && \
-    git lfs pull -I "atlases/label/Human/*" && \
-    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
-    cd -
+COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml

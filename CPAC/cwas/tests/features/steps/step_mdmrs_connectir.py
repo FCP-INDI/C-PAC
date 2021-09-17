@@ -1,5 +1,6 @@
 from base_cwas import *
 import code
+from pytest_bdd import scenario, given, when, then
 
 @given('a connectir-based MDMR folder "{mdir}" looking at the factor "{factor}"')
 def step(context, mdir, factor):

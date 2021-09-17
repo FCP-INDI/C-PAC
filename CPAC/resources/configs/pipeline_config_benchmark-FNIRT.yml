@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -76,22 +76,11 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
-
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
-
   brain_extraction: 
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [BET]
-
-    FSL-BET: 
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
 
 segmentation: 
 

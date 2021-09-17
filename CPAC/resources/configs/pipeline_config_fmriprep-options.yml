@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.0
+# Version 1.8.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -22,6 +22,9 @@ pipeline_setup:
     #   name like '/output', and then map (-B/-v) your desired output directory to that label.
     # - If running outside a container, this should be a full path to a directory.
     path: /outputs/output
+
+    # Generate quality control pages containing preprocessing and derivative outputs.
+    generate_quality_control_images: False
 
   working_directory: 
 
@@ -70,12 +73,6 @@ pipeline_setup:
     s3_encryption: On
 
 anatomical_preproc: 
-
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
-
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction: On
 
   brain_extraction: 
 
@@ -236,17 +233,26 @@ registration_workflows:
 
       func_input_prep: 
 
-        Mean Functional: 
-
-          # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
-          # this can increase tissue contrast which may improve registration quality in some data
-          n4_correct_func: On
+        # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+        # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
+        input: ['fmriprep_reference']
 
       boundary_based_registration: 
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
+
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: brain
+
+        # choose which FAST map to generate BBR WM mask
+        # options: 'probability_map', 'partial_volume_map'
+        bbr_wm_map: 'partial_volume_map'
+
+        # optional FAST arguments to generate BBR WM mask
+        bbr_wm_mask_args: '-bin'
 
     EPI_registration: 
 
@@ -294,12 +300,22 @@ registration_workflows:
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
+      apply_transform:
+
+        # options: 'default', 'abcd', 'single_step_resampling'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        using: 'single_step_resampling'
+
 functional_preproc: 
 
   motion_estimates_and_correction: 
 
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: On
+    motion_estimates: 
+
+      # calculate motion statistics BEFORE slice-timing correction
+      calculate_motion_first: On
 
     motion_correction: 
 
@@ -307,11 +323,24 @@ functional_preproc:
       # this is a fork point
       using: [mcflirt]
 
+      # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
+      motion_correction_reference: ['fmriprep_reference']
+
   func_masking: 
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
     # this is a fork point
     using: [FSL_AFNI]
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: Off
 
 nuisance_corrections: 
 
@@ -320,6 +349,9 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
+
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: On
 
     # Select which nuisance signal corrections to apply
     Regressors: 

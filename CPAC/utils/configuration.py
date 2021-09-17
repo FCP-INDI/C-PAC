@@ -101,7 +101,7 @@ class Configuration(object):
         config_map = _enforce_forkability(
             update_nested_dict(default_config, config_map))
 
-        config_map = self.nonestr_to_None(config_map)
+        config_map = self._nonestr_to_None(config_map)
 
         try:
             regressors = lookup_nested_value(
@@ -165,14 +165,12 @@ class Configuration(object):
             self.key_type_error(key)
 
     def dict(self):
-        '''Show contents of a C-PAC configuration as a dict
-        '''
+        '''Show contents of a C-PAC configuration as a dict'''
         return {k: self[k] for k in self.__dict__ if not callable(
             self.__dict__[k])}
 
-    def nonestr_to_None(self, d):
-        """
-        recursive method to type convert 'None' to None in nested
+    def _nonestr_to_None(self, d):
+        '''Recursive method to type convert 'None' to None in nested
         config
 
         Parameters
@@ -185,15 +183,15 @@ class Configuration(object):
         d : any
             same item, same type, but with 'none' strings converted to
             Nonetypes
-        """
+        '''
         if isinstance(d, str) and d.lower() == 'none':
             return None
         elif isinstance(d, list):
-            return [self.nonestr_to_None(i) for i in d]
+            return [self._nonestr_to_None(i) for i in d]
         elif isinstance(d, set):
-            return {self.nonestr_to_None(i) for i in d}
+            return {self._nonestr_to_None(i) for i in d}
         elif isinstance(d, dict):
-            return {i: self.nonestr_to_None(d[i]) for i in d}
+            return {i: self._nonestr_to_None(d[i]) for i in d}
         else:
             return d
 
@@ -211,7 +209,9 @@ class Configuration(object):
     def sub_pattern(self, pattern, orig_key):
         return orig_key.replace(pattern, self[pattern[2:-1].split('.')])
 
-    def check_pattern(self, orig_key, tags=[]):
+    def check_pattern(self, orig_key, tags=None):
+        if tags is None:
+            tags = []
         if isinstance(orig_key, dict):
             return {k: self.check_pattern(orig_key[k], tags) for k in orig_key}
         if isinstance(orig_key, list):
@@ -235,7 +235,7 @@ class Configuration(object):
 
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
-    def update_attr(self):
+    def __update_attr(self):
 
         def check_path(key):
             if type(key) is str and '/' in key:
@@ -263,8 +263,6 @@ class Configuration(object):
             else:
                 new_key = self.check_pattern(attr_value)
             setattr(self, attr_key, new_key)
-
-    __update_attr = update_attr
 
     def update(self, key, val=ConfigurationDictUpdateConflation):
         if isinstance(key, dict):
@@ -339,12 +337,12 @@ def _enforce_forkability(config_dict):
     Examples
     --------
     >>> c = Configuration().dict()
-    >>> c['functional_preproc']['run']
-    [True]
-    >>> c['functional_preproc']['run'] = True
-    >>> c['functional_preproc']['run']
+    >>> c['functional_preproc']['despiking']['run']
+    [False]
+    >>> c['functional_preproc']['despiking']['run'] = True
+    >>> c['functional_preproc']['despiking']['run']
     True
-    >>> _enforce_forkability(c)['functional_preproc']['run']
+    >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
     [True]
     '''
     from CPAC.pipeline.schema import schema

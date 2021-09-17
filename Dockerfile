@@ -1,6 +1,17 @@
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0
 
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y git
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
@@ -10,17 +21,20 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 16.8.0 && \
+     nvm use 16.8.0 && \
+     nvm alias default 16.8.0 && \
+     mkdir /root/.npm-packages && \
+     npm config set prefix /root/.npm-packages && \
+     NPM_PACKAGES=/root/.npm-packages && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/root/.npm-packages/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -116,24 +130,8 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     fi && \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
-    # curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
-    # tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
-    # pin to 20.0.04: "3dROIstats in [newer versions] is VERY slowww!"
-    apt-get update && apt-get install -y libglw1-mesa-dev && \
-    AFNI_VERSION="20.0.04" && \
-    curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
-    mkdir /opt/afni && \
-    tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
-    rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
-    cd /opt/afni/src && \
-    sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
-    make vastness && make cleanest && \
-    cd /opt/afni && \
-    # filter down to required packages
-    ls > full_ls && \
-    sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
-    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
-    apt-get remove -y libglw1-mesa-dev && \
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
+    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
     ldconfig
 
 # set up AFNI
@@ -164,6 +162,11 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
+
+# install Multimodal Surface Matching
+COPY --from=ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
 
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
@@ -204,6 +207,7 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
 RUN conda update conda -y && \
+    conda install nomkl && \
     conda install -y  \
         blas \
         cython \
@@ -232,19 +236,14 @@ RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global/templates /opt/dcan-tools/pipeline/global/templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir -p /ndmg_atlases/label && \
-    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
-    cd /tmp/neuroparc && \
-    git lfs install --skip-smudge && \
-    git lfs pull -I "atlases/label/Human/*" && \
-    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
-    cd -
+COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
@@ -253,7 +252,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # set shell to BASH
 RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 SHELL ["/bin/bash", "-c"]
 RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
     | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \

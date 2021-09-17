@@ -57,9 +57,9 @@ def generate_inverse_transform_flags(transform_list):
     return inverse_transform_flags
 
 
-def hardcoded_reg(moving_brain, reference_brain, moving_skull,
-                  reference_skull, reference_mask, moving_mask, ants_para,
-                  fixed_image_mask=None, interp=None):
+def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull, 
+                  ants_para, moving_mask=None, reference_mask=None,
+                  fixed_image_mask=None, interp=None, reg_with_skull=0):
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]
@@ -104,6 +104,16 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                 else:
                     regcmd.append("--collapse-output-transforms")
                     regcmd.append(str(ants_para[para_index][para_type]))
+            
+            elif para_type == 'winsorize-image-intensities': 
+                if ants_para[para_index][para_type]['lowerQuantile'] is None or ants_para[para_index][para_type]['upperQuantile'] is None:
+                    err_msg = 'Please specifiy lowerQuantile and upperQuantile of ANTs parameters --winsorize-image-intensities in pipeline config. '
+                    raise Exception(err_msg)
+                else:
+                    regcmd.append("--winsorize-image-intensities")
+                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'], 
+                        ants_para[para_index][para_type]['upperQuantile']))
+
             elif para_type == 'initial-moving-transform':
                 if ants_para[para_index][para_type][
                     'initializationFeature'] is None:
@@ -111,10 +121,16 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--initial-moving-transform")
-                    regcmd.append("[{0},{1},{2}]".format(
-                        reference_brain, moving_brain,
-                        ants_para[para_index][para_type][
-                            'initializationFeature']))
+                    if reg_with_skull == 1:
+                        regcmd.append("[{0},{1},{2}]".format(
+                            reference_skull, moving_skull, 
+                            ants_para[para_index][para_type][
+                                'initializationFeature']))
+                    else:
+                        regcmd.append("[{0},{1},{2}]".format(
+                            reference_brain, moving_brain,
+                            ants_para[para_index][para_type][
+                                'initializationFeature']))
 
             elif para_type == 'transforms':
                 for trans_index in range(
@@ -212,8 +228,12 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                 MI_para = ','.join(
                                     [str(elem) for elem in MI_para])
                                 regcmd.append("--metric")
-                                regcmd.append("MI[{0},{1},{2}]".format(
-                                    reference_brain, moving_brain, MI_para))
+                                if reg_with_skull == 1:
+                                    regcmd.append("MI[{0},{1},{2}]".format(
+                                        reference_skull, moving_skull, MI_para))
+                                else:
+                                    regcmd.append("MI[{0},{1},{2}]".format(
+                                        reference_brain, moving_brain, MI_para))
 
                         if ants_para[para_index][para_type][trans_index][
                             trans_type]['metric']['type'] == 'CC':
@@ -342,8 +362,6 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                 trans_type]['use-histogram-matching']:
                                 regcmd.append("--use-histogram-matching")
                                 regcmd.append("1")
-                            else:
-                                continue
 
                         if 'winsorize-image-intensities' in \
                                 ants_para[para_index][para_type][trans_index][
@@ -365,6 +383,16 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                     trans_type][
                                     'winsorize-image-intensities'][
                                     'upperQuantile']))
+
+                        if 'masks' in ants_para[para_index][para_type][trans_index][
+                            trans_type] and ants_para[para_index][para_type][
+                                trans_index][trans_type]['masks'] is not None:
+                            if ants_para[para_index][para_type][trans_index][trans_type]['masks']:
+                                regcmd.append("--masks")
+                                regcmd.append("[{0},{1}]".format(reference_mask, moving_mask))
+                            else:
+                                regcmd.append("--masks")
+                                regcmd.append("[NULL,NULL]")
 
             elif para_type == 'masks':
                 # lesion preproc has 
@@ -473,11 +501,6 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
     import os
     import subprocess
 
-    # if inverse:
-    #     inverse = 1
-    # else:
-    #     inverse = 0
-
     if func_to_anat:
         # this assumes the func->anat affine transform is FSL-based and needs
         # to be converted to ITK format via c3d_affine_tool
@@ -548,3 +571,31 @@ def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
             pass
 
             # run_ants_apply_warp()
+
+
+def run_c3d(reference_file, source_file, transform_file):
+
+    import os
+    import subprocess
+
+    itk_transform = os.path.join(os.getcwd(), 'affine.txt')
+
+    cmd = ['c3d_affine_tool', '-ref', reference_file, '-src',
+            source_file, transform_file, '-fsl2ras', '-oitk', itk_transform]
+    retcode = subprocess.check_output(cmd)
+
+    return itk_transform
+
+
+def run_c4d(input, output_name):
+    
+    import os
+
+    output1 = os.path.join(os.getcwd(), output_name+'1.nii.gz')
+    output2 = os.path.join(os.getcwd(), output_name+'2.nii.gz')
+    output3 = os.path.join(os.getcwd(), output_name+'3.nii.gz')
+
+    cmd = 'c4d -mcs %s -oo %s %s %s' % (input, output1, output2, output3)
+    os.system(cmd)
+
+    return output1, output2, output3

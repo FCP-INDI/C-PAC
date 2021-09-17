@@ -59,6 +59,13 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
     workflow.connect(template_node, template_out,
                      afni_centrality_wf, 'inputspec.template')
 
+    if 'degree' in method_option:
+        out_list = 'deg_list'
+    elif 'eigen' in method_option:
+        out_list = 'eig_list'
+    elif 'lfcd' in method_option:
+        out_list = 'lfcd_list'
+
     workflow.connect(afni_centrality_wf, 'outputspec.outfile_list',
                      merge_node, out_list)
 
@@ -76,7 +83,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold",
                  "space-template_bold"],
-                "template_specification_file"],
+                "template-specification-file"],
      "outputs": ["space-template_desc-weighted_degree-centrality",
                  "space-template_desc-binarized_degree-centrality",
                  "space-template_desc-weighted_eigen-centrality",
@@ -105,7 +112,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_bold"])
     wf.connect(node, out, resample_functional_to_template, 'in_file')
 
-    node, out = strat_pool.get_data("template_specification_file")
+    node, out = strat_pool.get_data("template-specification-file")
     wf.connect(node, out, resample_functional_to_template, 'reference')
 
     merge_node = pe.Node(Function(input_names=['deg_list',
@@ -127,19 +134,25 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      valid_options['centrality']['method_options'] if
      cfg.network_centrality[option]['weight_options']]
 
-    outputs = {
-        'space-template_desc-weighted_degree-centrality': 
-            (merge_node, 'degree_weighted'),
-        'space-template_desc-binarized_degree-centrality':
-            (merge_node, 'degree_binarized'),
-        'space-template_desc-weighted_eigen-centrality': 
-            (merge_node, 'eigen_weighted'),
-        'space-template_desc-binarized_eigen-centrality': 
-            (merge_node, 'eigen_binarized'),
-        'space-template_desc-weighted_lfcd': 
-            (merge_node, 'lfcd_weighted'),
-        'space-template_desc-binarized_lfcd': 
-            (merge_node, 'lfcd_binarized')
-    }
+    outputs = {}
+
+    for option in valid_options['centrality']['method_options']:
+        if cfg.network_centrality[option]['weight_options']:
+            for weight in cfg.network_centrality[option]['weight_options']:
+                if 'degree' in option.lower():
+                    if 'weight' in weight.lower():
+                        outputs['space-template_desc-weighted_degree-centrality'] = (merge_node, 'degree_weighted')
+                    elif 'binarize' in weight.lower():
+                        outputs['space-template_desc-binarized_degree-centrality'] = (merge_node, 'degree_binarized')
+                elif 'eigen' in option.lower():
+                    if 'weight' in weight.lower():
+                        outputs['space-template_desc-weighted_eigen-centrality'] = (merge_node, 'eigen_weighted')
+                    elif 'binarize' in weight.lower():
+                        outputs['space-template_desc-binarized_eigen-centrality'] = (merge_node, 'eigen_binarized')
+                elif 'lfcd' in option.lower() or 'local_functional' in option.lower():
+                    if 'weight' in weight.lower():
+                        outputs['space-template_desc-weighted_lfcd'] = (merge_node, 'lfcd_weighted')
+                    elif 'binarize' in weight.lower():
+                        outputs['space-template_desc-binarized_lfcd'] = (merge_node, 'lfcd_binarized')
 
     return (wf, outputs)
