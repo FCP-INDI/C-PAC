@@ -1188,7 +1188,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
             ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
-            ts_to_T1template_block += [(single_step_resample_timeseries_to_T1template, ('desc-cleaned_bold', 'desc-stc_bold'))]
+            ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
         else:
             ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
