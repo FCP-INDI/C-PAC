@@ -602,12 +602,11 @@ latest_schema = Schema({
                 'arguments': Maybe(str),
                 'func_input_prep': {
                     'reg_with_skull': bool,
+                    'n4_correct_func': bool, #Added this and removed the 'Mean functional' block
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
                     })],
-                    'Mean Functional': {
-                        'n4_correct_func': bool
-                    },
+
                     'Selected Functional Volume': {
                         'func_reg_input_volume': int
                     },
