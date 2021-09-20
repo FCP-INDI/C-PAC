@@ -43,8 +43,7 @@ class CpacNipypeCustomPlugin():
     def _check_resources(self, running_tasks):
         """Make sure there are resources available, accounting for
         Nipype memory usage"""
-        free_memory_gb, free_processors = super(
-        )._check_resources(running_tasks)
+        free_memory_gb, free_processors = self._check_resources(running_tasks)
 
         # Nipype memory usage
         peak = get_peak_usage()

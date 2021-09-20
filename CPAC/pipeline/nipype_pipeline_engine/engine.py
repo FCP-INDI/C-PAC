@@ -239,7 +239,10 @@ class Node(pe.Node):
             )
             try:
                 if self.mem_gb > 1000:
-                    print(self._mem_x)
+                    logger.warning(
+                        f'{self.name} is estimated to use {self.mem_gb} GB '
+                        f'({self._mem_x}).'
+                    )
             except FileNotFoundError:
                 pass
             del self._mem_x
@@ -333,7 +336,6 @@ def get_data_size(filepath, mode='xyzt'):
     elif isinstance(filepath, tuple) and len(filepath) == 4:
         data_shape = filepath
     if mode == 't':
-        print(filepath)
         return data_shape[3]
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
