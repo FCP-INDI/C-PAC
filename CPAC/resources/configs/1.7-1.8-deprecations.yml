@@ -8,7 +8,7 @@
 - targetAngleDeg
 - runSymbolicLinks
 - configFileTwomm
-- ref_mask_res-2
+- ref_mask_2mm
 - template_skull_for_anat_2mm
 - surface_reconstruction
 # See :ref:`Regressors specification <nuisance-no-gui>` to manually update any of the following keys:

@@ -3043,8 +3043,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "default",
-     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
-                  "desc-motion_bold", "desc-preproc_bold", "bold"],
+     "inputs": [(["desc-preproc_bold", "desc-cleaned_bold",
+                  "desc-brain_bold", "desc-motion_bold", "bold"],
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-funcreg"],
      "outputs": ["space-template_desc-cleaned_bold",
@@ -3076,10 +3076,10 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
             'functional_registration']['func_registration_to_template'][
             'FNIRT_pipelines']['interpolation']
 
-    connect, resource = strat_pool.get_data(["desc-cleaned_bold",
+    connect, resource = strat_pool.get_data(["desc-preproc_bold",
+                                             "desc-cleaned_bold",
                                              "desc-brain_bold",
                                              "desc-motion_bold",
-                                             "desc-preproc_bold",
                                              "bold"],
                                             report_fetched=True)
     node, out = connect
@@ -3662,9 +3662,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "single_step_resampling",
-     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
-                  "desc-motion_bold", "desc-preproc_bold", "bold"],
-                 ['desc-reginput_bold', 'desc-mean_bold'],
+     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "desc-stc_bold",
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
