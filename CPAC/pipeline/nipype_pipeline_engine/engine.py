@@ -244,7 +244,7 @@ class Workflow(pe.Workflow):
                                     # already exists
                                     multiplicand_path = _load_resultfile(
                                         input_resultfile
-                                    ).inputs['in_file']
+                                    ).inputs[field]
                                     node._apply_mem_x(multiplicand_path)
                                 except FileNotFoundError:
                                     if hasattr(self, '_largest_func'):
