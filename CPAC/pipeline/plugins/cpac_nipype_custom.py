@@ -40,10 +40,22 @@ class CpacNipypeCustomPlugin():
             plugin_args['status_callback'] = log_nodes_cb
         super().__init__(plugin_args)
 
+    def _check_resources_(self, running_tasks):
+        """
+        Make sure there are resources available
+        """
+        free_memory_gb = self.memory_gb
+        free_processors = self.processors
+        for _, jobid in running_tasks:
+            free_memory_gb -= min(self.procs[jobid].mem_gb, free_memory_gb)
+            free_processors -= min(self.procs[jobid].n_procs, free_processors)
+
+        return free_memory_gb, free_processors
+
     def _check_resources(self, running_tasks):
         """Make sure there are resources available, accounting for
         Nipype memory usage"""
-        free_memory_gb, free_processors = self._check_resources(running_tasks)
+        free_memory_gb, free_processors = self._check_resources_(running_tasks)
 
         # Nipype memory usage
         peak = get_peak_usage()
