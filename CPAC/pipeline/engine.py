@@ -623,8 +623,6 @@ class ResourcePool(object):
                      outs):
 
         input_type = 'func_derivative'
-        if 'centrality' in label or 'lfcd' in label:
-            input_type = 'func_derivative_multi'
 
         if 'centrality' in label or 'lfcd' in label:
             mask = 'template-specification-file'
