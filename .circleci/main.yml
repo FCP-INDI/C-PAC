@@ -77,11 +77,7 @@ commands:
     steps:
       - run:
           name: "Halt if version updated"
-          command: |
-            if [[ ${HALT} == true ]]
-            then
-              circleci step halt
-            fi
+          command: if [[ $(cat /home/circleci/HALT) == true ]]; then circleci step halt; fi
   combine-coverage:
     steps:
       - run:
@@ -222,8 +218,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images
       - store_artifacts:
@@ -239,8 +237,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: ABCD-HCP
@@ -257,8 +257,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: fMRIPrep-LTS
@@ -275,8 +277,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: lite
@@ -319,12 +323,15 @@ jobs:
               fi
               cd ..
             fi
-            echo "export HALT=${HALT}" >> $BASH_ENV
+            echo "${HALT}" > /home/circleci/HALT
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - HALT
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
       - restore_cache:
           key: coverage-docker--{{ .Revision }}
@@ -350,10 +357,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
       - attach_workspace:
           at: /home/circleci/
+      - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - set-python-version
@@ -374,10 +381,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - check-updated
       - checkout
       - attach_workspace:
           at: /home/circleci/
+      - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - set-python-version
