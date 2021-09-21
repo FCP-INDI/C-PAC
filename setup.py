@@ -44,9 +44,10 @@ def main(**extra_args):
         REQUIREMENTS,
     )
 
+    # DEPRECATED with 1.8.2
     # copy default pipeline into package
     open('CPAC/resources/configs/default_pipeline.yml', 'w').write(
-        open('dev/docker_data/default_pipeline.yml', 'r').read())
+        open('CPAC/resources/configs/pipeline_config_default.yml', 'r').read())
 
     setup(
         name=NAME,

@@ -1662,9 +1662,12 @@ def util_copy_template(template_type=None):
     else:
         type = template_type
 
-    settings_template = "/cpac_resources/default_pipeline.yml" if (
-        type == "pipeline_config"
-    ) else p.resource_filename("CPAC",
+    settings_template = p.resource_filename(
+        "CPAC",
+        os.path.join("resources", "configs",
+                     "pipeline_config_default.yml")
+    ) if (type == "pipeline_config") else p.resource_filename(
+        "CPAC",
         os.path.join("resources",
                      "configs",
                      "{0}_template.yml".format(type)))

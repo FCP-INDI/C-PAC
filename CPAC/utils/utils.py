@@ -1633,7 +1633,8 @@ def dct_diff(dct1, dct2):
     >>> import yaml
     >>> def read_yaml_file(yaml_file):
     ...     return yaml.safe_load(open(yaml_file, 'r'))
-    >>> pipeline = read_yaml_file('/code/dev/docker_data/default_pipeline.yml')
+    >>> pipeline = read_yaml_file(
+    ...     '/code/CPAC/resources/configs/pipeline_config_default.yml')
     >>> dct_diff(pipeline, pipeline)
     {}
     >>> pipeline2 = read_yaml_file('/code/CPAC/resources/configs/'

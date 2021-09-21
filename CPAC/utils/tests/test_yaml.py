@@ -11,10 +11,11 @@ def test_yaml_template():
 
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]
 
-    # Create a new YAML configuration file based on the default_pipeline.yml file.
-    config = yaml.safe_load(open('./data/default_pipeline.yml', 'r'))
+    # Create a new YAML configuration file based on the default 
+    # pipeline YAML file.
+    config = yaml.safe_load(open('/code/CPAC/resources/configs/pipeline_config_default.yml', 'r'))
 
-    new_config = create_yaml_from_template(config, './data/default_pipeline.yml')
+    new_config = create_yaml_from_template(config, '/code/CPAC/resources/configs/pipeline_config_default.yml')
 
     with open(config_file, 'wb') as f:
         f.write(new_config)

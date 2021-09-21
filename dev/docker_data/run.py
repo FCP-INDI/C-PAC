@@ -25,12 +25,7 @@ from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
-if not os.path.exists(DEFAULT_PIPELINE):
-    DEFAULT_PIPELINE = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yml"
-    )
+DEFAULT_PIPELINE = "/code/CPAC/resources/configs/pipeline_config_default.yml"
 
 
 def load_yaml_config(config_filename, aws_input_creds):

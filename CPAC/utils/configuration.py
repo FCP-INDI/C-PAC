@@ -8,23 +8,8 @@ from warnings import warn
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
 
-# Find default config
-# in-container location
-DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline.yml'
-if not os.path.exists(DEFAULT_PIPELINE_FILE):
-    CPAC_DIRECTORY = os.path.abspath(os.path.join(
-        __file__,
-        *repeat(os.path.pardir, 3)))
-    # package location
-    DEFAULT_PIPELINE_FILE = os.path.join(
-        CPAC_DIRECTORY,
-        'CPAC/resources/configs/default_pipeline.yml')
-    # source code (developer) location
-    if not os.path.exists(DEFAULT_PIPELINE_FILE):
-        DEFAULT_PIPELINE_FILE = os.path.join(
-            CPAC_DIRECTORY,
-            'dev/docker_data/default_pipeline.yml')
-    del CPAC_DIRECTORY
+# Path to default config
+DEFAULT_PIPELINE_FILE = 'CPAC/resources/configs/pipeline_config_default.yml'
 
 with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
     default_config = yaml.safe_load(dp_fp)
