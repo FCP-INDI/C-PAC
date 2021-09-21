@@ -253,6 +253,12 @@ class Workflow(pe.Workflow):
                                         # TODO: handle S3 files
                                         # 1e8 is a small estimate
                                         node._apply_mem_x(UNDEFINED_SIZE)
+                                except KeyError:
+                                    raise KeyError(
+                                        f'Node {node.name} specifies memory '
+                                        'allocation for input '
+                                        f'{node.mem_x[1]}, but no such input '
+                                        'is specified for that Node.')
 
 
 def get_data_size(filepath):
