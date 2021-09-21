@@ -78,6 +78,14 @@ commands:
       - run:
           name: "Halt if version updated"
           command: if [[ $(cat /home/circleci/HALT) == true ]]; then circleci step halt; fi
+  clear-up-space:
+    parameters:
+      filepath:
+        type: string
+    steps:
+      - run:
+          name: "Delete file we're done with"
+          command: rm -rf << parameters.filepath >>
   combine-coverage:
     steps:
       - run:
@@ -366,6 +374,8 @@ jobs:
       - set-python-version
       - get-sample-bids-data
       - run-pytest-docker
+      - clear-up-space:
+          filepath: ${DOCKER_TARBALL}.tar.gz
       - store_test_results:
           path: test-results
       - save_cache:
@@ -393,6 +403,8 @@ jobs:
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Singularity image"
+      - clear-up-space:
+          filepath: cpac-singularity-image${VARIANT}.simg
       - store_test_results:
           path: test-results
       - save_cache:
