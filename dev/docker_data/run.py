@@ -287,6 +287,11 @@ parser.add_argument('--mem_gb', type=float,
                          'takes precedence over '
                          'maximum_memory_per_participant in the pipeline '
                          'configuration file.')
+parser.add_argument('--num_ants_threads', type=int, default=1,
+                    help='The number of coresto allocate to ANTS-based anatomical '
+                        'registration per participant. Multiple cores can greatly '
+                        'speed up this preprocessing step. This number cannot be '
+                        'greater than the number of cores per participant.')                        
 
 parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
@@ -552,6 +557,18 @@ elif args.analysis_level in ["test_config", "participant"]:
                 'max_cores_per_participant'] = args.n_cpus
             c['pipeline_setup']['system_config'][
                 'num_participants_at_once'] = 1
+
+    ##### Num_ants_threads code added here #####
+
+    if int(args.num_ants_threads) == 0:
+        try:
+            args.num_ants_threads = c['pipeline_setup', 'system_config',
+                                    'num_ants_threads']
+        except KeyError:
+            args.num_ants_threads = 3
+    c['pipeline_setup', 'system_config', 
+    'num_ants_threads'] = int(args.num_ants_threads)
+    #################################################
 
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'],
