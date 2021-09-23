@@ -73,15 +73,19 @@ commands:
                 docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
                 SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
               no_output_timeout: 5h
-  check-for-built-images:
+  check-updated:
     steps:
       - run:
-          name: "Checking for locally built images"
-          command: |
-            if [[ ! -f ${DOCKER_TARBALL}.tar.gz ]]
-            then
-              circleci step halt
-            fi
+          name: "Halt if version updated"
+          command: if [[ $(cat /home/circleci/HALT) == true ]]; then circleci step halt; fi
+  clear-up-space:
+    parameters:
+      filepath:
+        type: string
+    steps:
+      - run:
+          name: "Delete file we're done with"
+          command: rm -rf << parameters.filepath >>
   combine-coverage:
     steps:
       - run:
@@ -217,36 +221,16 @@ commands:
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
 
-jobs:
+jobs:         
   build:
     machine:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
-      - configure-git-user
-      - run:
-          name: "Checking if version needs updated"
-          # update version if version needs updated, otherwise just move on
-          command: |
-            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
-            then
-              cd $HOME/project/CPAC
-              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
-              cd ..
-              echo "v${VERSION}" > version
-              sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
-              find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-              git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
-              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
-              then
-                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
-                git push origin HEAD:${CIRCLE_BRANCH} || true
-                circleci step halt
-              fi
-              cd ..
-            fi
       - build-images
       - store_artifacts:
           path: cpac-docker-image.tar.gz
@@ -262,6 +246,9 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: ABCD-HCP
@@ -279,6 +266,9 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: fMRIPrep-LTS
@@ -296,6 +286,9 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - set-python-version
       - build-images:
           variant: lite
@@ -308,11 +301,49 @@ jobs:
           paths:
             - project/cpac-docker-image-lite.tar.gz
             - project/cpac-singularity-image-lite.simg
+  check-version:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - set-python-version
+      - configure-git-user
+      - run:
+          name: "Checking if version needs updated"
+          # update version if version needs updated, otherwise just move on
+          command: |
+            HALT=false
+            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
+            then
+              cd $HOME/project/CPAC
+              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+              cd ..
+              echo "v${VERSION}" > version
+              sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
+              find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+              git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+              then
+                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
+                HALT=true
+              fi
+              cd ..
+            fi
+            echo "${HALT}" > /home/circleci/HALT
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - HALT
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - attach_workspace:
+          at: /home/circleci/
+      - check-updated
       - restore_cache:
           key: coverage-docker--{{ .Revision }}
       - restore_cache:
@@ -340,12 +371,14 @@ jobs:
       - checkout
       - attach_workspace:
           at: /home/circleci/
+      - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
-      - check-for-built-images
       - set-python-version
       - get-sample-bids-data
       - run-pytest-docker
+      - clear-up-space:
+          filepath: ${DOCKER_TARBALL}.tar.gz
       - store_test_results:
           path: test-results
       - save_cache:
@@ -364,15 +397,17 @@ jobs:
       - checkout
       - attach_workspace:
           at: /home/circleci/
+      - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
-      - check-for-built-images
       - set-python-version
       - get-singularity
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Singularity image"
+      - clear-up-space:
+          filepath: cpac-singularity-image${VARIANT}.simg
       - store_test_results:
           path: test-results
       - save_cache:
@@ -386,12 +421,22 @@ workflows:
     jobs:
       - build:
           name: "Build images"
+          requires:
+            - "Checking for updated version"
       - build-ABCD-HCP:
           name: "Build ABCD-HCP variant images"
+          requires:
+            - "Checking for updated version"
       - build-fMRIPrep-LTS:
           name: "Build fMRIPrep-LTS variant images"
+          requires:
+            - "Checking for updated version"
       - build-lite:
           name: "Build lite variant images"
+          requires:
+            - "Checking for updated version"
+      - check-version:
+          name: "Checking for updated version"
       - combine-coverage:
           name: "Combine coverage"
           requires:
