@@ -75,6 +75,8 @@ commands:
               no_output_timeout: 5h
   check-updated:
     steps:
+      - restore_cache:
+          key: updated--{{ .Revision }}
       - run:
           name: "Halt if version updated"
           command: if [[ $(cat /home/circleci/HALT) == true ]]; then circleci step halt; fi
@@ -227,8 +229,6 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-python-version
       - build-images
@@ -246,8 +246,6 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-python-version
       - build-images:
@@ -266,8 +264,6 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-python-version
       - build-images:
@@ -286,8 +282,6 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-python-version
       - build-images:
@@ -332,17 +326,15 @@ jobs:
               cd ..
             fi
             echo "${HALT}" > /home/circleci/HALT
-      - persist_to_workspace:
-          root: /home/circleci/
+      - save_cache:
+          key: updated--{{ .Revision }}
           paths:
-            - HALT
+            - /home/circleci/HALT
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - restore_cache:
           key: coverage-docker--{{ .Revision }}
@@ -369,11 +361,11 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
       - set-python-version
       - get-sample-bids-data
       - run-pytest-docker
@@ -395,11 +387,11 @@ jobs:
       image: ubuntu-2004:202010-01
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/
       - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
       - set-python-version
       - get-singularity
       - test-singularity-installation
