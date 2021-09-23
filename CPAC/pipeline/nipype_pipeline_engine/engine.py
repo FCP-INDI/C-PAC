@@ -289,9 +289,13 @@ class Workflow(pe.Workflow):
                         sourceinfo,
                     )
                     if node and hasattr(node, 'mem_x'):
-                        if isinstance(node.mem_x, dict) and node.mem_x['file'] == field:
+                        if isinstance(
+                            node.mem_x,
+                            dict
+                        ) and node.mem_x['file'] == field:
                             input_resultfile = node.input_source.get(field)
                             if input_resultfile:
+                                # pylint: disable=protected-access
                                 if isinstance(input_resultfile, tuple):
                                     input_resultfile = input_resultfile[0]
                                 try:
@@ -299,7 +303,7 @@ class Workflow(pe.Workflow):
                                     # already exists
                                     node._apply_mem_x(_load_resultfile(
                                         input_resultfile
-                                    ).inputs['in_file'])
+                                    ).inputs[field])
                                 except FileNotFoundError:
                                     if hasattr(self, '_local_func_scans'):
                                         node._apply_mem_x(
@@ -308,6 +312,12 @@ class Workflow(pe.Workflow):
                                         # TODO: handle S3 files
                                         # 1e8 is a small estimate
                                         node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
+                                except KeyError:
+                                    raise KeyError(
+                                        f'Node {node.name} specifies memory '
+                                        'allocation for input '
+                                        f'{node.mem_x[1]}, but no such input '
+                                        'is specified for that Node.')
 
 
 def get_data_size(filepath, mode='xyzt'):
