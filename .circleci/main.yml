@@ -11,6 +11,10 @@ parameters:
 
 commands:
   push-to-docker-hub:
+    when:
+      and:
+        - equal: ["${CIRCLE_PROJECT_USERNAME}", "FCP-INDI"]
+        - equal: ["${CIRCLE_PROJECT_REPONAME}", "C-PAC"]        
     parameters:
       tag:
         type: string
@@ -20,7 +24,7 @@ commands:
           command: docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PUSH}
       - run:
           name: "Tag image for Docker Hub"
-          command: "docker tag fcpindi/c-pac:${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
+          command: "docker tag ${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
       - run:
           name: "Push to Docker Hub"
           command: "docker push fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
@@ -59,10 +63,9 @@ commands:
         description: "Filename for coverage file"
         type: string
     steps:
-      - load-docker-image
       - run:
           name: "Creating Docker container"
-          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${DOCKER_TAG}"
+          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}"
   get-sample-bids-data:
     steps:
       - run:
@@ -104,11 +107,6 @@ commands:
           name: "Installing Singularity requirements"
           command: |
            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
-  load-docker-image:
-    steps:
-      - run:
-          name: "Loading Docker image"
-          command: "docker load < cpac-docker-image${VARIANT}.tar.gz"
   run-pytest-docker:
     steps:
       - create-docker-test-container:
@@ -142,21 +140,22 @@ commands:
       - run:
           name: "Setting up variant"
           command: |
-            DOCKER_TARBALL="cpac-docker-image"
+            if [[ ${CIRCLE_BRANCH} == 'main' ]]
+            then
+              TAG=latest
+            elif [[ ${CIRCLE_BRANCH} == 'develop' ]]
+            then
+              TAG=nightly
+            else
+              TAG=${CIRCLE_BRANCH//\//_}
+            DOCKER_TAG=ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}
+
             if [[ -n "<< parameters.variant >>" ]]
             then
-              DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
-              if [[ -f ${DOCKERFILE} ]]
-              then
-                sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
-              fi
-              DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"
-              echo "export DOCKERFILE=\"-f ${DOCKERFILE}\"" >> $BASH_ENV
             fi
-            echo "export DOCKER_TARBALL=${DOCKER_TARBALL}" >> $BASH_ENV
             echo "export VARIANT=${VARIANT}" >> $BASH_ENV
-            DOCKER_TAG=${CIRCLE_BRANCH//\//_}${VARIANT}
+            DOCKER_TAG=${DOCKER_TAG}${VARIANT}
             echo "export DOCKER_TAG=${DOCKER_TAG}" >> $BASH_ENV
   test-singularity-installation:
     steps:
@@ -167,23 +166,6 @@ commands:
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
 
 jobs:
-  build:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - checkout
-      - check-updated
-      - set-python-version
-      - build-images
-      - store_artifacts:
-          path: cpac-docker-image.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image.simg
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - project/cpac-docker-image.tar.gz
-            - project/cpac-singularity-image.simg
   check-version:
     machine:
       image: ubuntu-2004:202010-01
@@ -253,8 +235,6 @@ jobs:
       - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
-      - attach_workspace:
-          at: /home/circleci/
       - set-python-version
       - get-sample-bids-data
       - run-pytest-docker
@@ -277,10 +257,11 @@ jobs:
       - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
-      - attach_workspace:
-          at: /home/circleci/
       - set-python-version
       - get-singularity
+      - run:
+          command: singularity pull ${DOCKER_TAG} cpac-singularity-image${VARIANT}.simg
+          name: "Pull Singularity image"
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
