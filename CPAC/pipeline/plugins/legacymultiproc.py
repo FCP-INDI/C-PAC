@@ -5,12 +5,11 @@ Override Nipype's LegacyMultiProc:
 """
 from nipype.pipeline.plugins.legacymultiproc import \
     LegacyMultiProcPlugin as LegacyMultiProc
-from .cpac_nipype_custom import CpacNipypeCustomPlugin
+from .cpac_nipype_custom import CpacNipypeCustomPluginMixin
 
 
-class LegacyMultiProcPlugin(LegacyMultiProc, CpacNipypeCustomPlugin):
-    def __init__(self, plugin_args=None):
-        super().__init__(plugin_args)
-
-    _check_resources = CpacNipypeCustomPlugin._check_resources
-    _prerun_check = CpacNipypeCustomPlugin._prerun_check
+class LegacyMultiProcPlugin(LegacyMultiProc, CpacNipypeCustomPluginMixin):
+    # pylint: disable=too-few-public-methods
+    __doc__ = LegacyMultiProc.__doc__
+    _check_resources = CpacNipypeCustomPluginMixin._check_resources
+    _prerun_check = CpacNipypeCustomPluginMixin._prerun_check

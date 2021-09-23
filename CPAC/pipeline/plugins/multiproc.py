@@ -4,12 +4,11 @@ Override Nipype's MultiProc:
 * _check_resources to account for the main process' memory usage.
 """
 from nipype.pipeline.plugins.multiproc import MultiProcPlugin as MultiProc
-from .cpac_nipype_custom import CpacNipypeCustomPlugin
+from .cpac_nipype_custom import CpacNipypeCustomPluginMixin
 
 
-class MultiProcPlugin(MultiProc, CpacNipypeCustomPlugin):
-    def __init__(self, plugin_args=None):
-        super().__init__(plugin_args)
-
-    _check_resources = CpacNipypeCustomPlugin._check_resources
-    _prerun_check = CpacNipypeCustomPlugin._prerun_check
+class MultiProcPlugin(MultiProc, CpacNipypeCustomPluginMixin):
+    # pylint: disable=too-few-public-methods
+    __doc__ = MultiProc.__doc__
+    _check_resources = CpacNipypeCustomPluginMixin._check_resources
+    _prerun_check = CpacNipypeCustomPluginMixin._prerun_check
