@@ -92,8 +92,9 @@ jobs:
             --header "Content-Type: application/json" \
             -d '{
               "parameters": {
-                "branch": "${GITHUB_BRANCH}",
-                "run_tests": true
+                "parameters": {
+                  "branch": "${GITHUB_BRANCH}",
+                  "run_tests": true
               }
             }' \
             https://circleci.com/api/v2/project/github/${GITHUB_REPOSITORY}/pipeline
