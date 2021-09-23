@@ -149,6 +149,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldWM
 )
 
+from CPAC.surface.surf_preproc import surface_preproc
+
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
     timeseries_extraction_Voxel,
@@ -189,7 +191,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -273,9 +275,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         plugin_args['n_procs'] = num_cores_per_sub
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
-
-    if not plugin:
-        plugin = LegacyMultiProcPlugin(plugin_args)
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
@@ -477,11 +476,12 @@ Please, make yourself aware of how it works and its assumptions:
                           "CPAC v%s, please install Nipype version 1.5.1\n" \
                           % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
+
+            if not plugin:
+                plugin = LegacyMultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject
@@ -776,7 +776,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -801,7 +801,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['run_freesurfer']:
+                    cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -828,7 +828,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['run_freesurfer']:
+        cfg.surface_analysis['freesurfer']['run']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
@@ -1182,22 +1182,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             apply_func_warp = False
 
     if apply_func_warp:
-        pipeline_blocks += [[warp_timeseries_to_T1template,
-                             warp_timeseries_to_T1template_abcd,
-                             warp_timeseries_to_T1template_dcan_nhp,
-                             single_step_resample_timeseries_to_T1template],
+
+        ts_to_T1template_block = [warp_timeseries_to_T1template,
+                                  warp_timeseries_to_T1template_dcan_nhp]
+
+        if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
+            ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
+        else:
+            ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)
+            ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
+
+        pipeline_blocks += [ts_to_T1template_block,
                             warp_bold_mean_to_T1template,
                             warp_bold_mean_to_EPItemplate]
-
-    # ABCD end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'abcd' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(warp_timeseries_to_T1template_abcd, ('bold', 'desc-cleaned_bold'))]
-
-    # fMRIPrep end-to-end pipeline
-    if cfg.registration_workflows['functional_registration']['func_registration_to_template'][
-        'apply_transform']['using'] == 'single_step_resampling' and cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        pipeline_blocks += [(single_step_resample_timeseries_to_T1template, ('desc-stc_bold', 'desc-cleaned_bold'))]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
@@ -1223,6 +1221,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # PostFreeSurfer and fMRISurface
+    if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+        pipeline_blocks += [surface_preproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

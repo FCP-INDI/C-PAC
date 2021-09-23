@@ -1,6 +1,17 @@
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0
 
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y git
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
@@ -10,17 +21,20 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 16.8.0 && \
+     nvm use 16.8.0 && \
+     nvm alias default 16.8.0 && \
+     mkdir /root/.npm-packages && \
+     npm config set prefix /root/.npm-packages && \
+     NPM_PACKAGES=/root/.npm-packages && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/root/.npm-packages/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -149,6 +163,11 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# install Multimodal Surface Matching
+COPY --from=ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
+
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
@@ -217,6 +236,7 @@ RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global/templates /opt/dcan-tools/pipeline/global/templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
@@ -232,7 +252,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # set shell to BASH
 RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 SHELL ["/bin/bash", "-c"]
 RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
     | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \

@@ -3,6 +3,17 @@ FROM freesurfer/freesurfer:6.0 AS freesurfer
 
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y git
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 # using Ubuntu 16.04 LTS as parent image
 FROM ubuntu:xenial-20200114
 
@@ -12,17 +23,20 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 16.8.0 && \
+     nvm use 16.8.0 && \
+     nvm alias default 16.8.0 && \
+     mkdir /root/.npm-packages && \
+     npm config set prefix /root/.npm-packages && \
+     NPM_PACKAGES=/root/.npm-packages && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/root/.npm-packages/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -205,6 +219,7 @@ RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global/templates /opt/dcan-tools/pipeline/global/templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
@@ -219,7 +234,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # install FreeSurfer
 # set shell to BASH
 SHELL ["/bin/bash", "-c"]
-ENV FREESURFER_HOME=/usr/lib/freesurfer
+ENV FREESURFER_HOME=/usr/lib/freesurfer  \
+    NO_FSFAST=1
 RUN mkdir -p /usr/lib/freesurfer && \
     curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /usr/lib \
     --exclude='freesurfer/diffusion' \

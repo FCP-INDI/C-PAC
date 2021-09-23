@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.1
+# Version 1.8.2.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -156,7 +156,9 @@ surface_analysis:
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  run_freesurfer: Off
+  freesurfer: 
+
+    run: Off
 
 
 longitudinal_template_generation:

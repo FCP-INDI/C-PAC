@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.1
+# Version 1.8.2.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -60,10 +60,12 @@ surface_analysis:
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  run_freesurfer: On
+  freesurfer: 
+    
+    run: On
 
-  # Add extra arguments to recon-all command
-  reconall_args: '-clean-bm -gcut'
+    # Add extra arguments to recon-all command
+    reconall_args: '-clean-bm -gcut'
 
 anatomical_preproc: 
 
@@ -82,7 +84,7 @@ anatomical_preproc:
     FreeSurfer-BET:
 
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
-      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+      T1w_brain_template_mask_ccs: /code/CPAC/resources/templates/MNI152_T1_1mm_first_brain_mask.nii.gz
 
 segmentation:
 

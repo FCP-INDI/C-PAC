@@ -12,17 +12,20 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 16.8.0 && \
+     nvm use 16.8.0 && \
+     nvm alias default 16.8.0 && \
+     mkdir /root/.npm-packages && \
+     npm config set prefix /root/.npm-packages && \
+     NPM_PACKAGES=/root/.npm-packages && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/root/.npm-packages/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -183,6 +186,11 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# install Multimodal Surface Matching
+COPY --from=ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
+
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
@@ -272,7 +280,8 @@ COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 # set shell to BASH
 RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 SHELL ["/bin/bash", "-c"]
 RUN apt-get install -y \
     bc \
@@ -294,6 +303,11 @@ RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/r
 
 COPY --from=0 opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
 COPY --from=0 opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
 
 COPY . /code
 RUN pip install -e /code

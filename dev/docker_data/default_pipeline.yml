@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.1
+# Version 1.8.2.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -156,10 +156,35 @@ surface_analysis:
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  run_freesurfer: Off
+  freesurfer: 
 
-  # Add extra arguments to recon-all command
-  reconall_args: None
+    run: Off
+
+    # Add extra arguments to recon-all command
+    reconall_args: None
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer: 
+
+    run: Off
+
+    subcortical_gray_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferSubcorticalLabelTableLut.txt
+
+    freesurfer_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferAllLut.txt
+
+    surf_atlas_dir: /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases
+
+    gray_ordinates_dir: /opt/dcan-tools/pipeline/global/templates/91282_Greyordinates
+
+    gray_ordinates_res: 2
+
+    high_res_mesh: 164
+
+    low_res_mesh: 32
+
+    fmri_res: 2
+
+    smooth_fwhm: 2
 
 
 longitudinal_template_generation:
