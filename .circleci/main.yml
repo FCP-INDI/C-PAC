@@ -24,55 +24,6 @@ commands:
       - run:
           name: "Push to Docker Hub"
           command: "docker push fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
-  build-images:
-    parameters:
-      variant:
-        type: string
-        default: ""
-    steps:
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
-      - run:
-          name: "Building Docker image"
-          command: |
-            docker build -t fcpindi/c-pac:${DOCKER_TAG} . ${DOCKERFILE}
-            docker save fcpindi/c-pac:${DOCKER_TAG} | gzip > ${DOCKER_TARBALL}.tar.gz
-          no_output_timeout: 5h
-      - when:
-          condition:
-            equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
-          steps:
-            - when:
-                condition:
-                  or:
-                    - equal: [ << pipeline.parameters.branch >>, "main" ]
-                    - equal: [ << pipeline.parameters.branch >>, "master" ]
-                steps:
-                  - push-to-docker-hub:
-                      tag: latest
-            - when:
-                condition:
-                  equal: [ << pipeline.parameters.branch >>, "develop" ]
-                steps:
-                  - push-to-docker-hub:
-                      tag: nightly
-      - when:
-          condition:
-            not:
-              equal: [<< parameters.variant >>, fMRIPrep-LTS]
-          steps:
-          - run:
-              name: "Starting local registry"
-              command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-          - get-singularity
-          - run:
-              name: "Building Singularity image from Docker image"
-              command: |
-                docker load < ${DOCKER_TARBALL}.tar.gz
-                docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-                docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-                SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-              no_output_timeout: 5h
   check-updated:
     steps:
       - restore_cache:
@@ -233,60 +184,6 @@ jobs:
           paths:
             - project/cpac-docker-image.tar.gz
             - project/cpac-singularity-image.simg
-  build-ABCD-HCP:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - checkout
-      - check-updated
-      - set-python-version
-      - build-images:
-          variant: ABCD-HCP
-      - store_artifacts:
-          path: cpac-docker-image-ABCD-HCP.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-ABCD-HCP.simg
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - project/cpac-docker-image-ABCD-HCP.tar.gz
-            - project/cpac-singularity-image-ABCD-HCP.simg
-  build-fMRIPrep-LTS:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - checkout
-      - check-updated
-      - set-python-version
-      - build-images:
-          variant: fMRIPrep-LTS
-      - store_artifacts:
-          path: cpac-docker-image-fMRIPrep-LTS.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-fMRIPrep-LTS.simg
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - project/cpac-docker-image-fMRIPrep-LTS.tar.gz
-            - project/cpac-singularity-image-fMRIPrep-LTS.simg
-  build-lite:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - checkout
-      - check-updated
-      - set-python-version
-      - build-images:
-          variant: lite
-      - store_artifacts:
-          path: cpac-docker-image-lite.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-lite.simg
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - project/cpac-docker-image-lite.tar.gz
-            - project/cpac-singularity-image-lite.simg
   check-version:
     machine:
       image: ubuntu-2004:202010-01
@@ -397,36 +294,8 @@ jobs:
             - .coverage.singularity-<<parameters.variant >>
 workflows:
   version: 2
-  build-and-test:
+  test:
     jobs:
-      - build:
-          name: "Build images"
-          requires:
-            - "Checking for updated version"
-      - build-ABCD-HCP:
-          name: "Build ABCD-HCP variant images"
-          requires:
-            - "Checking for updated version"
-          filters:
-            branches:
-              ignore: 
-                - CI/GitHub-workflows
-      - build-fMRIPrep-LTS:
-          name: "Build fMRIPrep-LTS variant images"
-          requires:
-            - "Checking for updated version"
-          filters:
-            branches:
-              ignore: 
-                - CI/GitHub-workflows
-      - build-lite:
-          name: "Build lite variant images"
-          requires:
-            - "Checking for updated version"
-          filters:
-            branches:
-              ignore: 
-                - CI/GitHub-workflows
       - check-version:
           name: "Checking for updated version"
       - combine-coverage:
@@ -457,18 +326,11 @@ workflows:
           name: "Test lite variant in Docker"
           requires:
             - "Build lite variant images"
-          variant: lite
       - pytest-singularity:
           name: "Test in Singularity"
-          requires:
-            - "Build images"
       - pytest-singularity:
           name: "Test ABCD-HCP variant in Singularity"
-          requires:
-            - "Build ABCD-HCP variant images"
           variant: ABCD-HCP
       - pytest-singularity:
           name: "Test lite variant in Singularity"
-          requires:
-            - "Build lite variant images"
           variant: lite

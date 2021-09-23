@@ -179,3 +179,27 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
+
+  Circle_tests:
+    name: Run tests on CircleCI
+    needs: C-PAC
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Trigger CircleCI tests
+        run: |
+            export GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3)
+            curl \
+            -u ${CIRCLE_API_USER_TOKEN}: \
+            --header "Content-Type: application/json" \
+            -d '{ \
+              "parameters": { \
+                "branch": "${GITHUB_BRANCH}", \
+                "run_tests": true \
+              } \
+            }' \
+            https://circleci.com/api/v2/project/github/${GITHUB_REPOSITORY}/pipeline
+            

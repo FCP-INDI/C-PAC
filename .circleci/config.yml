@@ -2,8 +2,13 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.1.3
+parameters:
+  run_tests:
+    type: boolean
+    default: false
 workflows:
   setup:
+    when: << pipeline.parameters.run_tests >>
     jobs:
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
@@ -12,4 +17,3 @@ workflows:
             - run:
                 command: |
                   echo '{ "owner": "'${CIRCLE_PROJECT_USERNAME}'", "branch": "'${CIRCLE_BRANCH}'" }' >> /home/circleci/test.json
-
