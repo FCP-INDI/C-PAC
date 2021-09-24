@@ -8,6 +8,7 @@ EPI-template-for-resample,"registration_workflows, functional_registration, func
 EPI-template-funcreg,"registration_workflows, functional_registration, func_registration_to_template, target_template, EPI_template, EPI_template_funcreg",EPI-based template resampled to the desired preprocessed-functional resolution,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
 EPI-template-mask,"registration_workflows, functional_registration, EPI_registration, EPI_template_mask",Binary brain mask of the EPI template,
 FNIRT-T1w-brain-template,"registration_workflows, anatomical_registration, registration, FSL-FNIRT, FNIRT_T1w_brain_template",Brain template to be used during monkey pipeline registration
+FNIRT-T1w-template,"registration_workflows, anatomical_registration, registration, FSL-FNIRT, FNIRT_T1w_template",Template to be used during monkey pipeline registration
 GM-path,"segmentation, tissue_segmentation, FSL-FAST, use_priors, GM_path",Template-space GM tissue prior,
 lateral-ventricles-mask,"nuisance_corrections, 2-nuisance_regression, lateral_ventricles_mask",,
 T1w-ACPC-template,"anatomical_preproc, acpc_alignment, T1w_ACPC_template",,
