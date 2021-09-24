@@ -65,8 +65,6 @@ def create_centrality_wf(wf_name, method_option, weight_options,
             }), name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = \
             'degree_centrality_merged.nii.gz'
-        out_names = ('degree_centrality_binarize',
-                     'degree_centrality_weighted')
 
     # Eigenvector centrality
     elif method_option == 'eigenvector_centrality':
@@ -76,8 +74,6 @@ def create_centrality_wf(wf_name, method_option, weight_options,
         afni_centrality_node.inputs.out_file = \
             'eigenvector_centrality_merged.nii.gz'
         afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
-        out_names = ('eigenvector_centrality_binarize',
-                     'eigenvector_centrality_weighted')
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
@@ -85,7 +81,8 @@ def create_centrality_wf(wf_name, method_option, weight_options,
                 'OMP_NUM_THREADS': str(num_threads)
             }), name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
-        out_names = ('lfcd_binarize', 'lfcd_weighted')
+
+    out_names = tuple(f'{method_option}_{x}' for x in weight_options)
 
     afni_centrality_node.interface.num_threads = num_threads
 

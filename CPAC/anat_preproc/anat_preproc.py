@@ -718,14 +718,16 @@ def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         strat_pool.check_rpool('desc-reorient_T1w') or \
             strat_pool.check_rpool('T1w'): 
         outputs = {
-            'space-T1w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask')
+            'space-T1w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask'),
+            'desc-preproc_T1w': (anat_skullstrip_ants, 'copy_xform.out_file')
         }
 
     elif strat_pool.check_rpool('desc-preproc_T2w') or \
         strat_pool.check_rpool('desc-reorient_T2w') or \
             strat_pool.check_rpool('T2w'):
         outputs = {
-            'space-T2w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask')
+            'space-T2w_desc-brain_mask': (anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask'),
+            'desc-preproc_T2w': (anat_skullstrip_ants, 'copy_xform.out_file')
         }
 
     return (wf, outputs)
@@ -1647,7 +1649,8 @@ def brain_mask_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "niworkflows-ants",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-brain_mask"]}
+     "outputs": ["space-T1w_desc-brain_mask",
+                 "desc-preproc_T1w"]}
     '''
 
     wf, outputs = niworkflows_ants_brain_connector(wf, cfg, strat_pool,
@@ -1665,7 +1668,8 @@ def brain_mask_acpc_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "niworkflows-ants",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
-     "outputs": ["space-T1w_desc-acpcbrain_mask"]}
+     "outputs": ["space-T1w_desc-acpcbrain_mask",
+                 "desc-preproc_T1w"]}
     '''
 
     wf, wf_outputs = niworkflows_ants_brain_connector(wf, cfg, strat_pool,
@@ -1673,7 +1677,9 @@ def brain_mask_acpc_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'space-T1w_desc-acpcbrain_mask':
-            wf_outputs['space-T1w_desc-brain_mask']
+            wf_outputs['space-T1w_desc-brain_mask'],
+        'desc-preproc_T1w':
+            wf_outputs['desc-preproc_T1w']
     }
 
     return (wf, outputs)

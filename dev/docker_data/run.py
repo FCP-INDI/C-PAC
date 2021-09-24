@@ -15,6 +15,7 @@ from urllib.error import HTTPError
 from CPAC import __version__
 from CPAC.pipeline.plugins import LegacyMultiProcPlugin
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import load_preconfig, update_nested_dict
@@ -682,11 +683,14 @@ elif args.analysis_level in ["test_config", "participant"]:
                 pass
 
         plugin_args = {
-            'n_procs': int(c['pipeline_setup']['system_config']['max_cores_per_participant']),
-            'memory_gb': int(c['pipeline_setup']['system_config']['maximum_memory_per_participant']),
+            'n_procs': int(c['pipeline_setup']['system_config'][
+                'max_cores_per_participant']),
+            'memory_gb': int(c['pipeline_setup']['system_config'][
+                'maximum_memory_per_participant']),
+            'status_callback': log_nodes_cb
         }
 
-        print ("Starting participant level processing")
+        print("Starting participant level processing")
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
