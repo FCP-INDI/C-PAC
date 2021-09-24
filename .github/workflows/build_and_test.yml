@@ -91,11 +91,9 @@ jobs:
             -u ${CIRCLE_API_USER_TOKEN}: \
             --header "Content-Type: application/json" \
             -d '{
+              "branch": "${GITHUB_BRANCH}",
               "parameters": {
-                "parameters": {
-                  "branch": "${GITHUB_BRANCH}",
-                  "run_tests": true
-                }
+                "run_tests": true
               }
             }' \
             https://circleci.com/api/v2/project/github/${GITHUB_REPOSITORY}/pipeline
