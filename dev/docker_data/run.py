@@ -13,7 +13,7 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \

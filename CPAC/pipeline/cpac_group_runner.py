@@ -1,7 +1,7 @@
 import os
 import fnmatch
 import pandas
-from CPAC.pipeline.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.monitoring import log_nodes_cb
 
 

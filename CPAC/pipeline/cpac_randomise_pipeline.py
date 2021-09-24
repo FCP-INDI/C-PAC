@@ -3,7 +3,7 @@ import os
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_group_runner import load_config_yml
-from CPAC.pipeline.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.monitoring import log_nodes_cb
 

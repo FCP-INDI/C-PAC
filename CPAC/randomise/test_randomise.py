@@ -3,9 +3,8 @@ import glob
 import nipype.interfaces.io as nio
 import pytest
 
-from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from nipype.interfaces.fsl import ImageStats
 
 
@@ -58,8 +57,7 @@ def test_run_randomize(inputs, output_dir=None, run=True):
     randomise_workflow.connect(t_node, 'outputspec.t_corrected_p_files',
                                dataSink, 't_corrected_p_files')
     if run is True:
-        plugin_args = {'n_procs': num_of_cores,
-                       'status_callback': log_nodes_cb}
+        plugin_args = {'n_procs': num_of_cores}
         randomise_workflow.run(plugin=MultiProcPlugin(plugin_args),
                                plugin_args=plugin_args)
     else:

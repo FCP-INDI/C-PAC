@@ -27,8 +27,7 @@ import pytest
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import MultiProcPlugin
-from CPAC.utils.monitoring import log_nodes_cb
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from nipype.interfaces.fsl import ImageStats
 # from nose.tools import *
 
@@ -96,8 +95,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
     warp_workflow.connect(t_node, 'outputspec.anat_func',
                           dataSink, 'anat_func')
     if run is True:
-        plugin_args = {'n_procs': num_of_cores,
-                       'status_callback': log_nodes_cb}
+        plugin_args = {'n_procs': num_of_cores}
         warp_workflow.run(plugin=MultiProcPlugin(plugin_args),
                           plugin_args=plugin_args)
         # outpath = glob.glob(

@@ -1,6 +1,5 @@
 import pytest
-from CPAC.pipeline.plugins import MultiProcPlugin
-from CPAC.utils.monitoring import log_nodes_cb
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 
 
 @pytest.mark.skip(reason='requires RegressionTester')
@@ -109,9 +108,7 @@ class RegressionTester(object):
 
         # Run it!
         start = time.clock()
-        plugin_args = {
-            'n_procs': 4,
-            'status_callback': log_nodes_cb}
+        plugin_args = {'n_procs': 4}
         c.run(plugin=MultiProcPlugin(plugin_args), plugin_args=plugin_args)
         end = time.clock()
         print("time: %.2gs" % (end-start))
