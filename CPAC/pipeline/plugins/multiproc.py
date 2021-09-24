@@ -7,7 +7,7 @@ from nipype.pipeline.plugins.multiproc import MultiProcPlugin as MultiProc
 from .cpac_nipype_custom import CpacNipypeCustomPluginMixin
 
 
-class MultiProcPlugin(MultiProc, CpacNipypeCustomPluginMixin):
+class MultiProcPlugin(CpacNipypeCustomPluginMixin, MultiProc):
     # pylint: disable=too-few-public-methods
     __doc__ = MultiProc.__doc__
     _check_resources = CpacNipypeCustomPluginMixin._check_resources

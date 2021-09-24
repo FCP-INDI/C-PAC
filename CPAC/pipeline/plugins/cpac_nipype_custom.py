@@ -45,9 +45,9 @@ class CpacNipypeCustomPluginMixin():
             plugin_args = {}
         if 'status_callback' not in plugin_args:
             plugin_args['status_callback'] = log_nodes_cb
+        super().__init__(plugin_args=plugin_args)
         self.peak = 0
         self._stats = None
-        super().__init__(plugin_args)
 
     def _check_resources_(self, running_tasks):
         """

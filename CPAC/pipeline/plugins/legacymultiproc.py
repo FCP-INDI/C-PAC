@@ -8,7 +8,7 @@ from nipype.pipeline.plugins.legacymultiproc import \
 from .cpac_nipype_custom import CpacNipypeCustomPluginMixin
 
 
-class LegacyMultiProcPlugin(LegacyMultiProc, CpacNipypeCustomPluginMixin):
+class LegacyMultiProcPlugin(CpacNipypeCustomPluginMixin, LegacyMultiProc):
     # pylint: disable=too-few-public-methods
     __doc__ = LegacyMultiProc.__doc__
     _check_resources = CpacNipypeCustomPluginMixin._check_resources
