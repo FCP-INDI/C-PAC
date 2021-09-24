@@ -1128,7 +1128,7 @@ def create_regressor_workflow(nuisance_selectors,
                     MaskTool(outputtype='NIFTI_GZ'),
                     name='{}_union_masks'.format(regressor_type),
                     mem_gb=2.1,
-                    mem_x=(8969357042487455 / 1208925819614629174706176,
+                    mem_x=(1708448960473801 / 1208925819614629174706176,
                            'in_files')
                 )
 
