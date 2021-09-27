@@ -11,10 +11,6 @@ parameters:
 
 commands:
   push-to-docker-hub:
-    when:
-      and:
-        - equal: ["${CIRCLE_PROJECT_USERNAME}", "FCP-INDI"]
-        - equal: ["${CIRCLE_PROJECT_REPONAME}", "C-PAC"]        
     parameters:
       tag:
         type: string
@@ -221,6 +217,22 @@ jobs:
           key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
+      - when:
+          condition:
+            equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
+          steps:
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "main" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: latest
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "develop" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: nightly
       - store_artifacts:
           path: htmlcov
   pytest-docker:
