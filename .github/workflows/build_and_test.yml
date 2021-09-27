@@ -86,7 +86,7 @@ jobs:
           fetch-depth: 2
       - name: Trigger CircleCI tests
         run: |
-            export GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3)
+            export GITHUB_BRANCH=$(echo ${GITHUB_REF#refs/heads/})
             echo "            curl \
               --request POST \
               --url 'https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline' \
