@@ -87,6 +87,13 @@ jobs:
       - name: Trigger CircleCI tests
         run: |
             export GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3)
+            echo "            curl \
+              --request POST \
+              --url 'https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline' \
+              -u ${CIRCLE_API_USER_TOKEN}: \
+              --header 'content-type: application/json' \
+              --data '{\"branch\":\"$GITHUB_BRANCH\", \"parameters\": {\"run_tests\": true}}'
+            "
             curl \
               --request POST \
               --url 'https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline' \
