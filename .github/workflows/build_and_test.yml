@@ -101,4 +101,10 @@ jobs:
               -u "${{ secrets.CIRCLE_API_USER_TOKEN }}:" |
               jq '.id' |
               tr -d '"')
-            echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/${PIPELINE_ID}
+            WORKFLOW_ID=$(curl \
+              --request GET \
+              --url "https://circleci.com/api/v2/pipeline/${PIPELINE_ID}/workflow" \
+              -u "${{ secrets.CIRCLE_API_USER_TOKEN }}:" |
+              jq '.items[0].id' |
+              tr -d '"')
+            echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/workflows/${WORKFLOW_ID}
