@@ -13,6 +13,8 @@ jobs:
       IMAGE: c-pac
       TAG: ${{ github.event.ref }}
     steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
       - name: 'Delete branch image'
         run: |
           OWNER=$(echo ${GITHUB_REPOSITORY} | cut -d '/' -f 1)
