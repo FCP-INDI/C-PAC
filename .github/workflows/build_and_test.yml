@@ -43,7 +43,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set tag & Dockerfile
         run: |
-          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3)
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=${GITHUB_BRANCH}
@@ -57,7 +57,7 @@ jobs:
             TAG=latest
             DOCKERFILE=Dockerfile
           fi
-          TAG=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2):${TAG//\//_}
+          TAG=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2-):${TAG//\//_}
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
