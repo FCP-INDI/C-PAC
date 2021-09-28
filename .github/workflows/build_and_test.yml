@@ -69,7 +69,7 @@ jobs:
           echo $DOCKERFILE
           cat $DOCKERFILE
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2.4.0
+        uses: docker/build-push-action@v2.7.0
         with:
           context: .
           file: ${DOCKERFILE}

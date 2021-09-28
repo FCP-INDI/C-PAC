@@ -50,7 +50,7 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Build and push Docker image
         if: steps.ubuntu-dockerfile-changed.outputs.any_changed == 'true'
-        uses: docker/build-push-action@v2.4.0
+        uses: docker/build-push-action@v2.7.0
         with:
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
           push: true
@@ -115,7 +115,7 @@ jobs:
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: Build and push Docker image
         if: steps.dockerfile-changed.outputs.any_changed == 'true'
-        uses: docker/build-push-action@v2.4.0
+        uses: docker/build-push-action@v2.7.0
         with:
           context: .
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
