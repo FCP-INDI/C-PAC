@@ -1,0 +1,13 @@
+name: Delete development images
+
+on:
+  delete:
+
+jobs:
+  C-PAC:
+    name: Delete branch images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/delete-package-versions@v1
+        with:
+          - 
