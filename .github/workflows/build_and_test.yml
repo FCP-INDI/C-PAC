@@ -57,9 +57,10 @@ jobs:
             TAG=latest
             DOCKERFILE=Dockerfile
           fi
-          TAG=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2):${TAG}
+          TAG=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2):${TAG//\//_}
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
+          cat $GITHUB_ENV
       - name: Prep Dockerfiles for forked repository
         if: ${{ github.repository_owner }} != 'FCP-INDI'
         run: .github/scripts/local_ghcr $DOCKERFILE ${{ github.repository_owner }}
