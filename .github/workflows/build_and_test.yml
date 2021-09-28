@@ -101,6 +101,8 @@ jobs:
               -u "${{ secrets.CIRCLE_API_USER_TOKEN }}:" |
               jq '.id' |
               tr -d '"')
+            # wait for workflow to get an ID
+            sleep 20
             WORKFLOW_ID=$(curl \
               --request GET \
               --url "https://circleci.com/api/v2/pipeline/${PIPELINE_ID}/workflow" \
