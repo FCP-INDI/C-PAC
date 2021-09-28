@@ -8,6 +8,9 @@ parameters:
   owner:
     type: string
     default: unknown
+  run_tests:
+    type: boolean
+    default: false
 
 commands:
   push-to-docker-hub:
