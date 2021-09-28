@@ -1686,6 +1686,38 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                         raise Exception(f"Number of dimensions in T1 template-based tissue segmentation prior {p_fname} "
                                         f"does not match anatomical registration template {t_fname}.")
 
+        # EPI template-based segmentation priors
+        if (
+            cfg.segmentation["run"] == "On" and
+            cfg.segmentation["tissue_segmentation"]["Template_Based"] == "EPI_Template" and
+            cfg.registration_workflows["functional_registration"]["EPI_registration"]["run"] == "On"
+        ):
+            # get dimensions
+            prior_dims = []
+            prior_fnames = ["WHITE","GRAY","CSF"]
+            for fname in prior_fnames:
+                prior_dims.append(
+                    nib.load(
+                        cfg.segmentation["tissue_segmentation"]["Template_Based"][fname]
+                    ).header.get_data_shape()
+                )
+            template_dims = []
+            template_fnames = ["EPI"]
+            for fname in template_fnames:
+                template_dims.append(
+                    (np.nan) # TODO
+                    # nib.load(
+                    #     cfg.registration_workflows["functional_registration"]["EPI_registration"][f"{fname}_template"]
+                    # ).header.get_data_shape()
+                )
+
+            # compare dims
+            for p_dim,p_fname in zip(prior_dims,prior_fnames):
+                for t_dim,t_fname in zip(template_dims,template_fnames):
+                    if len(p_dim) != len(t_dim):
+                        raise Exception(f"Number of dimensions in tissue segmentation prior {p_fname} "
+                                        f"does not match functional registration template {t_fname}.")
+
     import pkg_resources as p
     import pandas as pd
     import ast
