@@ -139,6 +139,7 @@ commands:
       - run:
           name: "Setting up variant"
           command: |
+            echo "starting"
             if [[ ${CIRCLE_BRANCH} == 'main' ]]
             then
               TAG=latest
@@ -146,15 +147,16 @@ commands:
             then
               TAG=nightly
             else
-              TAG=${CIRCLE_BRANCH//\//_}
-            DOCKER_TAG=ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}
-
+              TAG="${CIRCLE_BRANCH//\//_}"
+            DOCKER_TAG="ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}"
+            echo "${DOCKER_TAG}"
             if [[ -n "<< parameters.variant >>" ]]
             then
               VARIANT="-<< parameters.variant >>"
             fi
+            echo "${VARIANT}"
             echo "export VARIANT=${VARIANT}" >> $BASH_ENV
-            DOCKER_TAG=${DOCKER_TAG}${VARIANT}
+            DOCKER_TAG="${DOCKER_TAG}${VARIANT}"
             echo "export DOCKER_TAG=${DOCKER_TAG}" >> $BASH_ENV
   test-singularity-installation:
     steps:
