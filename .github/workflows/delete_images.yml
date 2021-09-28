@@ -28,6 +28,8 @@ jobs:
           TAG=${TAG//\//_}
           TAG=${TAG,,}
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
-          curl \
+          COMMAND="curl \
             -X DELETE \
-            https://api.github.com/$OWNER_TYPE/$OWNER/packages/container/c-pac/versions/$VERSION_ID
+            https://api.github.com/$OWNER_TYPE/$OWNER/packages/container/c-pac/versions/$VERSION_ID"
+          echo $COMMAND
+          $($COMMAND -u $GITHUB_TOKEN:)
