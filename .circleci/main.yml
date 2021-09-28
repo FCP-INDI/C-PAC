@@ -306,22 +306,14 @@ workflows:
             - "Test fMRIPrep-LTS variant in Docker"
       - pytest-docker:
           name: "Test in Docker"
-          requires:
-            - "Build images"
       - pytest-docker:
           name: "Test ABCD-HCP variant in Docker"
-          requires:
-            - "Build ABCD-HCP variant images"
           variant: ABCD-HCP
       - pytest-docker:
           name: "Test fMRIPrep-LTS variant in Docker"
-          requires:
-            - "Build fMRIPrep-LTS variant images"
           variant: fMRIPrep-LTS
       - pytest-docker:
           name: "Test lite variant in Docker"
-          requires:
-            - "Build lite variant images"
       - pytest-singularity:
           name: "Test in Singularity"
       - pytest-singularity:
