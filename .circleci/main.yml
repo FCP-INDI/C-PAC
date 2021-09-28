@@ -64,7 +64,9 @@ commands:
     steps:
       - run:
           name: "Creating Docker container"
-          command: "docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}"
+          command: |
+            docker pull ${DOCKER_TAG}
+            docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}
   get-sample-bids-data:
     steps:
       - run:
