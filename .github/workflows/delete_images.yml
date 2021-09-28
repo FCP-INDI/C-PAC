@@ -7,7 +7,25 @@ jobs:
   C-PAC:
     name: Delete branch images
     runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch'
+    env:
+      GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
+      IMAGE: c-pac
+      TAG: ${{ github.event.ref }}
     steps:
-      - uses: actions/delete-package-versions@v1
-        with:
-          - 
+      - name: 'Delete branch image'
+        run: |
+          OWNER=$(echo ${GITHUB_REPOSITORY} | cut -d '/' -f 1)
+          if [[ $(curl -u ${GITHUB_TOKEN}: https://api.github.com/users/${OWNER} | jq '.type') == "User" ]]
+          then
+            OWNER_TYPE=users
+          else
+            OWNER_TYPE=org
+          fi
+          TAG=${TAG#refs/heads/}
+          TAG=${TAG//\//_}
+          TAG=${TAG,,}
+          VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
+          curl \
+            -X DELETE \
+            https://api.github.com/$OWNER_TYPE/$OWNER/packages/container/c-pac/versions/$VERSION_ID
