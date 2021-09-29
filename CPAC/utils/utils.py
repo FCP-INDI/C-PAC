@@ -13,6 +13,7 @@ from copy import deepcopy
 from itertools import repeat
 from optparse import OptionError
 from voluptuous.error import Invalid
+import nibabel as nib
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -20,6 +21,29 @@ NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
     CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r'))
 NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
     CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
+
+def check_space(in_template, in_priors: list):
+    """
+    Check that files are all in the same space
+    by checking the number of dimensions
+
+    Parameters
+    __________
+
+    in_template
+        file path
+    in_priors : list
+        priors to check space against
+
+    """
+
+    template_len = len(nib.load(in_template).header.get_data_shape())
+    for pr in priors:
+        pr_len = len(nib.load(pr).header.get_data_shape())
+        if template_len != pr_len:
+            raise Exception("Priors and templates are not all in the same space.")
+            
+    return
 
 
 def get_last_prov_entry(prov):
