@@ -1323,6 +1323,10 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
+    if strat_pool.check_rpool('space-T1w_desc-brain_mask'):
+        node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+        wf.connect(node, out. acpc_align, 'inputspec.brain_mask')
+
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'space-T1w_desc-brain_mask': (
