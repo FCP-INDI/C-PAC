@@ -9,6 +9,8 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni, fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
+import nipype.interfaces.afni.preprocess as preprocess
+import nipype.interfaces.afni.utils as afni_utils
 
 from CPAC.pipeline.engine import wrap_block
 
@@ -315,7 +317,8 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "Blip",
-     "inputs": ["epi_1",
+     "inputs": ["desc-mean_bold",
+                "epi_1",
                 "epi_1_scan_params",
                 "epi_2",
                 "epi_2_scan_params",
@@ -355,16 +358,30 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('pe_direction')
     wf.connect(node, out, match_epi_fmaps_node, 'bold_pedir')
 
-    interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
-                 'desc-brain_bold': 'opposite_pe_epi_brain'}
-    wf, strat_pool = wrap_block([bold_mask_afni, bold_masking],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    #interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
+    #             'desc-brain_bold': 'opposite_pe_epi_brain'}
+    #wf, strat_pool = wrap_block([bold_mask_afni, bold_masking],
+    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
+
+    func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                  name=f'afni_mask_opposite_pe_{pipe_num}')
+    func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(match_epi_fmaps_node, 'opposite_pe_epi', func_get_brain_mask, 'in_file')
+
+    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
+                               name=f'skullstrip_opposite_pe_{pipe_num}')
+
+    func_edge_detect.inputs.expr = 'a*b'
+    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
+ 
+    wf.connect(match_epi_fmaps_node, 'opposite_pe_epi', func_edge_detect, 'in_file_a')
+    wf.connect(func_get_brain_mask, 'out_file', func_edge_detect, 'in_file_b')
 
     opp_pe_to_func = pe.Node(interface=fsl.FLIRT(), name='opp_pe_to_func')
     opp_pe_to_func.inputs.cost = 'corratio'
-
-    node, out = strat_pool.get_data('opposite_pe_epi_brain')
-    wf.connect(node, out, opp_pe_to_func, 'in_file')
+ 
+    wf.connect(func_edge_detect, 'out_file',  opp_pe_to_func, 'in_file')
 
     node, out = strat_pool.get_data('desc-mean_bold')
     wf.connect(node, out, opp_pe_to_func, 'reference')
@@ -424,17 +441,21 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(convert_afni_warp, 'ants_warp',
                undistort_func_mean, 'transforms')
 
-    interface = {'bold': (undistort_func_mean, 'output_image'),
-                 'space-bold_desc-brain_mask': 'opposite_pe_epi_brain'}
-    wf, strat_pool = wrap_block([bold_mask_afni],
-                                interface, wf, cfg, strat_pool, pipe_num, opt)
+    #interface = {'desc-preproc_bold': (undistort_func_mean, 'output_image')}
+    #wf, strat_pool = wrap_block([bold_mask_afni],
+    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
+
+    remask = pe.Node(interface=preprocess.Automask(),
+                     name=f'afni_remask_boldmask_{pipe_num}')
+    remask.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(undistort_func_mean, 'output_image', remask, 'in_file')
 
     outputs = {
         'blip-warp': (convert_afni_warp, 'ants_warp'),
         #'inv-blip-warp': None,  # TODO
         'desc-mean_bold': (undistort_func_mean, 'output_image'),
-        'space-bold_desc-brain_mask':
-            strat_pool.get_data('space-bold_desc-brain_mask')
+        'space-bold_desc-brain_mask': (remask, 'out_file')
     }
 
     return (wf, outputs)
