@@ -543,9 +543,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
                 "CSF-path",
                 "GM-path",
                 "WM-path",
-                "T1w_template",
-                "T1w_brain_template",
-                "T1w_brain_template_mask"],
+                "T1w-template",
+                "T1w-brain-template",
+                "T1w-brain-template-mask"],
      "outputs": ["label-CSF_mask", "label-GM_mask", "label-WM_mask",
                  "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
                  "label-WM_desc-preproc_mask",
@@ -628,13 +628,13 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
         ]
 
-        node, out = strat_pool.get_data('T1w_template')
+        node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out, check_space, 'in_template')
 
-        node, out = strat_pool.get_data('T1w_brain_template')
+        node, out = strat_pool.get_data('T1w-brain-template')
         wf.connect(node, out, check_space, 'in_template')
 
-        node, out = strat_pool.get_data('T1w_brain_template_mask')
+        node, out = strat_pool.get_data('T1w-brain-template-mask')
         wf.connect(node, out, check_space, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(xfm)
@@ -759,9 +759,9 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Template_Based",
      "inputs": [("desc-brain_T1w",
                  "from-template_to-T1w_mode-image_desc-linear_xfm"),
-                 "T1w_template",
-                 "T1w_brain_template",
-                 "T1w_brain_template_mask"],
+                 "T1w-template",
+                 "T1w-brain-template",
+                 "T1w-brain-template-mask"],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -846,15 +846,15 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Template_Based",
      "inputs": [("desc-mean_bold",
                  "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"),
-                 "EPI_template",
-                 "EPI_template_mask"],
+                 "EPI-template",
+                 "EPI-template-mask"],
      "outputs": ["space-bold_label-CSF_mask",
                  "space-bold_label-GM_mask",
                  "space-bold_label-WM_mask"]}
     '''
 
     # check that epi template-based priors are in same space as registration template
-    if strat_pool.check_rpool("EPI_template") and strat_pool.check_rpool("EPI_template_mask"):
+    if strat_pool.check_rpool("EPI-template") and strat_pool.check_rpool("EPI-template-mask"):
         check_space_imports = ['import nibabel as nib']
         check_space = pe.Node(
             util.Function(
@@ -871,10 +871,10 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg.segmentation["tissue_segmentation"]["Template_Based"]["CSF"]
         ]
 
-        node, out = strat_pool.get_data('EPI_template')
+        node, out = strat_pool.get_data('EPI-template')
         wf.connect(node, out, check_space, 'in_template')
 
-        node, out = strat_pool.get_data('EPI_template_mask')
+        node, out = strat_pool.get_data('EPI-template_mask')
         wf.connect(node, out, check_space, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(
