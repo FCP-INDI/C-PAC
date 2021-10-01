@@ -37,12 +37,12 @@ def check_space(in_template, in_priors: list):
 
     """
 
-    template_len = len(nib.load(in_template).header.get_data_shape())
+    template_dims = nib.load(in_template).header.get_data_shape()
     for pr in priors:
-        pr_len = len(nib.load(pr).header.get_data_shape())
-        if template_len != pr_len:
+        pr_dims = nib.load(pr).header.get_data_shape()
+        if template_dims != pr_dims:
             raise Exception("Priors and templates are not all in the same space.")
-            
+
     return
 
 
