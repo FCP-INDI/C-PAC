@@ -1328,6 +1328,9 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
         wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
+        node, out = strat_pool.get_data('T1w-brain-ACPC-template')
+        wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
+
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'space-T1w_desc-brain_mask': (
@@ -1349,7 +1352,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w",
                  "T1w-ACPC-template",
-                 "T1w_brain_ACPC_template")],
+                 "T1w-brain-ACPC-template")],
      "outputs": ["desc-preproc_T1w",
                  "desc-acpcbrain_T1w"
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
@@ -1371,7 +1374,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
-    node, out = strat_pool.get_data('T1w_brain_ACPC_template')
+    node, out = strat_pool.get_data('T1w-brain-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
 
     outputs = {
@@ -1394,7 +1397,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "desc-tempbrain_T1w", "space-T1w_desc-brain_mask"),
                  "T1w-ACPC-template",
-                 "T1w_brain_ACPC_template"],
+                 "T1w-brain-ACPC-template"],
      "outputs": ["desc-preproc_T1w", "desc-acpcbrain_T1w",
                  "space-T1w_desc-brain_mask", "space-T1w_desc-prebrain_mask"]}
     '''
@@ -1418,7 +1421,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w-ACPC-template') 
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
-    node, out = strat_pool.get_data('T1w_brain_ACPC_template')
+    node, out = strat_pool.get_data('T1w-brain-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
 
     outputs = {
