@@ -1304,7 +1304,8 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                  "space-T1w_desc-brain_mask"),
-                "T1w-ACPC-template"],
+                "T1w-ACPC-template",
+                "T1w-brain-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}

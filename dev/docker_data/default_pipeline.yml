@@ -277,8 +277,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-
-    T1w_brain_ACPC_template: None
+    T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
     T2w_ACPC_template: None
     T2w_brain_ACPC_template: None
 
