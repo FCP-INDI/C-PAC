@@ -275,6 +275,11 @@ anatomical_preproc:
     #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
     acpc_target: 'whole-head'
 
+    # Run ACPC alignment on brain mask 
+    # If the brain mask is in native space, turn it on
+    # If the brain mask is ACPC aligned, turn it off
+    align_brain_mask: Off
+
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
     T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
