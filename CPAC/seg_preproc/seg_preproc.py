@@ -613,29 +613,29 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     # check that segmentation prior is in same space as registration templates
     if use_priors:
         check_space_imports = ['import nibabel as nib']
-        check_space = pe.Node(
+        check_prior_space = pe.Node(
             util.Function(
                 input_names=['in_template','in_priors'],
                 output_names=[],
                 function=check_space,
                 imports=check_space_imports
             ),
-            name='check_space_tissue_priors'
+            name='check_prior_space'
          )
-        check_space.inputs.in_priors = [
+        check_prior_space.inputs.in_priors = [
             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["WM_path"],
             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["GM_path"],
             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
         ]
 
         node, out = strat_pool.get_data('T1w-template')
-        wf.connect(node, out, check_space, 'in_template')
+        wf.connect(node, out, check_prior_space, 'in_template')
 
         node, out = strat_pool.get_data('T1w-brain-template')
-        wf.connect(node, out, check_space, 'in_template')
+        wf.connect(node, out, check_prior_space, 'in_template')
 
         node, out = strat_pool.get_data('T1w-brain-template-mask')
-        wf.connect(node, out, check_space, 'in_template')
+        wf.connect(node, out, check_prior_space, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(xfm)
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -769,29 +769,29 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # check that template-based priors are in same space as registration templates
     check_space_imports = ['import nibabel as nib']
-    check_space = pe.Node(
+    check_template_based_prior_space = pe.Node(
         util.Function(
             input_names=['in_template','in_priors'],
             output_names=[],
             function=check_space,
             imports=check_space_imports
         ),
-        name='check_space_template_based_seg'
+        name='check_template-based_prior_space'
      )
-    check_space.inputs.in_priors = [
+    check_prior_space.inputs.in_priors = [
         cfg.segmentation["tissue_segmentation"]["Template_Based"]["WHITE"],
         cfg.segmentation["tissue_segmentation"]["Template_Based"]["GRAY"],
         cfg.segmentation["tissue_segmentation"]["Template_Based"]["CSF"]
     ]
 
     node, out = strat_pool.get_data('T1w_template')
-    wf.connect(node, out, check_space, 'in_template')
+    wf.connect(node, out, check_template_based_prior_space, 'in_template')
 
     node, out = strat_pool.get_data('T1w_brain_template')
-    wf.connect(node, out, check_space, 'in_template')
+    wf.connect(node, out, check_template_based_prior_space, 'in_template')
 
     node, out = strat_pool.get_data('T1w_brain_template_mask')
-    wf.connect(node, out, check_space, 'in_template')
+    wf.connect(node, out, check_template_based_prior_space, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-template_to-T1w_mode-image_desc-linear_xfm')
@@ -856,26 +856,26 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     # check that epi template-based priors are in same space as registration template
     if strat_pool.check_rpool("EPI-template") and strat_pool.check_rpool("EPI-template-mask"):
         check_space_imports = ['import nibabel as nib']
-        check_space = pe.Node(
+        check_epi_space = pe.Node(
             util.Function(
                 input_names=['in_template','in_priors'],
                 output_names=[],
                 function=check_space,
                 imports=check_space_imports
             ),
-            name='check_space_epi_template_based_seg'
+            name='check_epi_space'
          )
-        check_space.inputs.in_priors = [
+        check_epi_space.inputs.in_priors = [
             cfg.segmentation["tissue_segmentation"]["Template_Based"]["WHITE"],
             cfg.segmentation["tissue_segmentation"]["Template_Based"]["GRAY"],
             cfg.segmentation["tissue_segmentation"]["Template_Based"]["CSF"]
         ]
 
         node, out = strat_pool.get_data('EPI-template')
-        wf.connect(node, out, check_space, 'in_template')
+        wf.connect(node, out, check_epi_space, 'in_template')
 
         node, out = strat_pool.get_data('EPI-template_mask')
-        wf.connect(node, out, check_space, 'in_template')
+        wf.connect(node, out, check_epi_space, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
