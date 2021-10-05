@@ -50,6 +50,7 @@ class ResourcePool(object):
             self.pipe_list = pipe_list
 
         self.name = name
+        self.info = {}
 
         if cfg:
             self.cfg = cfg
@@ -97,6 +98,12 @@ class ResourcePool(object):
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
+
+    def get_pool_info(self):
+        return self.info
+
+    def set_pool_info(self, info_dct):
+        self.info.update(info_dct)
 
     def get_entire_rpool(self):
         return self.rpool
@@ -249,9 +256,6 @@ class ResourcePool(object):
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
-        if quick_single:
-            for key, val in self.get(resource).items():
-                return val['data']
         if report_fetched:
             if pipe_idx:
                 connect, fetched = self.get(resource, pipe_idx=pipe_idx,
@@ -260,8 +264,11 @@ class ResourcePool(object):
             connect, fetched =self.get(resource,
                                        report_fetched=report_fetched)
             return (connect['data'], fetched)
-        if pipe_idx:
+        elif pipe_idx:
             return self.get(resource, pipe_idx=pipe_idx)['data']
+        elif quick_single or len(self.get(resource)) == 1:
+            for key, val in self.get(resource).items():
+                return val['data']
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
@@ -1346,17 +1353,26 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
         # the next node.
 
     """
-
     for block in node_blocks:
-        new_pool = copy.deepcopy(strat_pool)
-        for input, val in interface.items():
+        #new_pool = copy.deepcopy(strat_pool)
+        for in_resource, val in interface.items():
             if isinstance(val, tuple):
-                new_pool.set_data(input, val[0], val[1], {}, "", "")
-        wf, outputs = block(wf, cfg, new_pool, pipe_num, opt)
+                strat_pool.set_data(in_resource, val[0], val[1], {}, "", "",
+                                    fork=True)#
+        if 'sub_num' not in strat_pool.get_pool_info():
+            strat_pool.set_pool_info({'sub_num': 0})
+        sub_num = strat_pool.get_pool_info()['sub_num']
+        
+        wf, outputs = block(wf, cfg, strat_pool, f'{pipe_num}-{sub_num}', opt)#
         for out, val in outputs.items():
-            if out in interface and isinstance(val, str):
+            if out in interface and isinstance(interface[out], str):
+                strat_pool.set_data(interface[out], outputs[out][0], outputs[out][1],
+                                    {}, "", "")
+            else:
                 strat_pool.set_data(out, outputs[out][0], outputs[out][1],
                                     {}, "", "")
+        sub_num += 1
+        strat_pool.set_pool_info({'sub_num': sub_num})
 
     return (wf, strat_pool)
 
