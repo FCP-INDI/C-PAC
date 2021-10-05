@@ -19,7 +19,7 @@ import scipy.ndimage as nd
 import numpy as np
 from nipype.interfaces import freesurfer
 
-from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.utils.utils import check_prov_for_regtool, check_space
 
 from CPAC.anat_preproc.utils import mri_convert
 from CPAC.registration.utils import (
