@@ -668,9 +668,9 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
                           % (bucket_name, exc)
                 raise Exception(err_msg)
 
-    # Otherwise just return what was passed in
+    # Otherwise just return what was passed in, resolving if a link
     else:
-        local_path = file_path
+        local_path = os.path.realpath(file_path)
 
     # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
@@ -827,7 +827,10 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             resolution = (float(resolution.replace('mm', '')),) * 3
 
-        resample = pe.Node(interface=afni.Resample(), name=template_name)
+        resample = pe.Node(interface=afni.Resample(),
+                           name=template_name,
+                           mem_gb=0,
+                           mem_x=(0.0115, 'in_file', 't'))
         resample.inputs.voxel_size = resolution
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'

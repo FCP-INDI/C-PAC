@@ -151,6 +151,8 @@ class ResourcePool(object):
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
         # list, with the two separated by a colon :
+        if not len(prov):
+            return None
         if isinstance(prov[-1], list):
             return prov[-1][-1].split(':')[0]
         elif isinstance(prov[-1], str):
@@ -1196,8 +1198,12 @@ class NodeBlock(object):
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
                         
-                        wf, outs = block_function(wf, cfg, strat_pool,
-                                                  pipe_x, opt)
+                        try:
+                            wf, outs = block_function(wf, cfg, strat_pool,
+                                                      pipe_x, opt)
+                        except IOError as e:  # duplicate node
+                            logger.warning(e)
+                            continue
 
                         if not outs:
                             continue
@@ -1428,16 +1434,15 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
-    # Memoize largest (x * y * z * t) functional image size in workflow
+    # Memoize list of local functional scans
     # TODO: handle S3 files
     # Skip S3 files for now
-    functional_scan_sizes = [get_data_size(
-        func_paths_dct[scan]['scan']
-    ) for scan in func_paths_dct.keys() if not
+    local_func_scans = [
+        func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
-    if functional_scan_sizes:
-        wf._largest_func = max(functional_scan_sizes)
-    del functional_scan_sizes
+    if local_func_scans:
+        wf._local_func_scans = local_func_scans
+    del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 
@@ -1867,7 +1872,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
     rpool = initiate_rpool(cfg, data_paths)
 
-    wf = pe.Workflow(name=f'node_blocks')
+    wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',

@@ -14,6 +14,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 from CPAC.unet.function import predict_volumes
 
@@ -1022,7 +1023,9 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # 3dresample -orient RPI -inset brainmask.nii.gz -prefix brain_fs.nii.gz
     reorient_fs_brainmask = pe.Node(interface=afni.Resample(),
-                                    name=f'reorient_fs_brainmask_{node_id}')
+                                    name=f'reorient_fs_brainmask_{node_id}',
+                                    mem_gb=0,
+                                    mem_x=(0.0115, 'in_file', 't'))
     reorient_fs_brainmask.inputs.orientation = 'RPI'
     reorient_fs_brainmask.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1039,7 +1042,9 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # 3dresample -orient RPI -inset T1.nii.gz -prefix head_fs.nii.gz
     reorient_fs_T1 = pe.Node(interface=afni.Resample(),
-                             name=f'reorient_fs_T1_{node_id}')
+                             name=f'reorient_fs_T1_{node_id}',
+                             mem_gb=0,
+                             mem_x=(0.0115, 'in_file', 't'))
     reorient_fs_T1.inputs.orientation = 'RPI'
     reorient_fs_T1.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1248,7 +1253,9 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, anat_deoblique, 'in_file')
 
     anat_reorient = pe.Node(interface=afni.Resample(),
-                            name=f'anat_reorient_{pipe_num}')
+                            name=f'anat_reorient_{pipe_num}',
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1925,7 +1932,9 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
                     brain_mask_deoblique, 'in_file')
 
     brain_mask_reorient = pe.Node(interface=afni.Resample(),
-                                  name='brain_mask_reorient')
+                                  name='brain_mask_reorient',
+                                  mem_gb=0,
+                                  mem_x=(0.0115, 'in_file', 't'))
     brain_mask_reorient.inputs.orientation = 'RPI'
     brain_mask_reorient.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(brain_mask_deoblique, 'out_file',
@@ -2006,7 +2015,9 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, T2_deoblique, 'in_file')
 
     T2_reorient = pe.Node(interface=afni.Resample(),
-                            name=f'T2_reorient_{pipe_num}')
+                          name=f'T2_reorient_{pipe_num}',
+                          mem_gb=0,
+                          mem_x=(0.0115, 'in_file', 't'))
     T2_reorient.inputs.orientation = 'RPI'
     T2_reorient.inputs.outputtype = 'NIFTI_GZ'
 
@@ -2566,6 +2577,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),
                        name=f'anat_freesurfer_{pipe_num}')
+    reconall.skip_timeout = True  # this Node could take > 24 hours
 
     freesurfer_subject_dir = os.path.join(cfg.pipeline_setup['working_directory']['path'],
         'cpac_'+cfg['subject_id'],
@@ -3153,7 +3165,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(node, out, merge_t1_acpc_to_list, 'in2')
     wf.connect(node, out, merge_t1_acpc_to_list, 'in3')
 
-    merge_t1_acpc = pe.Node(interface=fsl.Merge(),
+    merge_t1_acpc = pe.Node(interface=fslMerge(),
                             name='merge_t1_acpc')
 
     merge_t1_acpc.inputs.dimension = 't'
