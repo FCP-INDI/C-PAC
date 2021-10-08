@@ -345,7 +345,7 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     spatialReg = pe.Node(interface=fsl.GLM(),
                          name='spatial_regression',
                          mem_gb=0.2,
-                         mem_x=(8969357042487455 / 302231454903657293676544,
+                         mem_x=(1708448960473801 / 302231454903657293676544,
                                 'in_file'))
 
     spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'

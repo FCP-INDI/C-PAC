@@ -280,7 +280,7 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
                          name='outputspec')
 
     '''
-    merge_to_4d = pe.Node(interface=fsl.Merge(),
+    merge_to_4d = pe.Node(interface=fslMerge(),
                           name='merge_to_4d')
     merge_to_4d.inputs.dimension = 't'
 

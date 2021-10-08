@@ -69,8 +69,8 @@ def log_nodes_cb(node, status):
     status_dict = {
         'id': str(node),
         'hash': node.inputs.get_hashval()[1],
-        'start': getattr(runtime, 'startTime'),
-        'finish': getattr(runtime, 'endTime'),
+        'start': getattr(runtime, 'startTime', None),
+        'finish': getattr(runtime, 'endTime', None),
         'runtime_threads': runtime_threads,
         'runtime_memory_gb': getattr(runtime, 'mem_peak_gb', 'N/A'),
         'estimated_memory_gb': node.mem_gb,

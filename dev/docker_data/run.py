@@ -13,7 +13,7 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -288,6 +288,11 @@ parser.add_argument('--mem_gb', type=float,
                          'takes precedence over '
                          'maximum_memory_per_participant in the pipeline '
                          'configuration file.')
+parser.add_argument('--num_ants_threads', type=int, default=0,
+                    help='The number of cores to allocate to ANTS-based anatomical '
+                        'registration per participant. Multiple cores can greatly '
+                        'speed up this preprocessing step. This number cannot be '
+                        'greater than the number of cores per participant.')                        
 
 parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
@@ -342,6 +347,13 @@ args = parser.parse_args(
     ]
 )
 
+bids_dir_is_s3 = args.bids_dir.lower().startswith("s3://")
+bids_dir = args.bids_dir if bids_dir_is_s3 else os.path.realpath(
+    args.bids_dir)
+output_dir_is_s3 = args.output_dir.lower().startswith("s3://")
+output_dir = args.output_dir if output_dir_is_s3 else os.path.realpath(
+    args.output_dir)
+
 if args.analysis_level == "cli":
     from CPAC.__main__ import main
     main.main(args=sys.argv[sys.argv.index('--') + 1:])
@@ -365,10 +377,10 @@ elif args.analysis_level == "group":
                 )
             )
 
-        output_group = os.path.join(args.output_dir, "group_config.yml")
+        output_group = os.path.join(output_dir, "group_config.yml")
 
         try:
-            if args.output_dir.lower().startswith("s3://"):
+            if output_dir.lower().startswith("s3://"):
                 raise Exception
 
             if not os.path.exists(output_group):
@@ -395,7 +407,7 @@ elif args.analysis_level == "group":
     else:
         import CPAC.pipeline.cpac_group_runner as cgr
         print("Starting group level analysis of data in {0} using {1}".format(
-            args.bids_dir, args.group_file
+            bids_dir, args.group_file
         ))
         cgr.run(args.group_file)
 
@@ -404,23 +416,22 @@ elif args.analysis_level == "group":
 elif args.analysis_level in ["test_config", "participant"]:
 
     # check to make sure that the input directory exists
-    if not args.data_config_file and \
-        not args.bids_dir.lower().startswith("s3://") and \
-        not os.path.exists(args.bids_dir):
+    if (
+        not args.data_config_file and
+        not bids_dir_is_s3 and
+        not os.path.exists(bids_dir)
+    ):
 
-        print("Error! Could not find {0}".format(args.bids_dir))
+        print(f"Error! Could not find {bids_dir}")
         sys.exit(1)
 
     # check to make sure that the output directory exists
-    if not args.output_dir.lower().startswith("s3://") and \
-        not os.path.exists(args.output_dir):
+    if not output_dir_is_s3 and not os.path.exists(output_dir):
 
         try:
-            os.makedirs(args.output_dir)
-        except:
-            print("Error! Could not find/create output dir {0}".format(
-                args.output_dir
-            ))
+            os.makedirs(output_dir)
+        except Exception:
+            print(f"Error! Could not find/create output dir {output_dir}")
             sys.exit(1)
 
     # validate input dir (if skip_bids_validator is not set)
@@ -430,15 +441,15 @@ elif args.analysis_level in ["test_config", "participant"]:
             print("Running BIDS validator")
             run("bids-validator --config {config} {bids_dir}".format(
                 config=args.bids_validator_config,
-                bids_dir=args.bids_dir
+                bids_dir=bids_dir
             ))
         elif args.skip_bids_validator:
             print('Skipping bids-validator...')
-        elif args.bids_dir.lower().startswith("s3://"):
+        elif bids_dir_is_s3:
             print('Skipping bids-validator for S3 datasets...')
         else:
             print("Running BIDS validator")
-            run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
+            run(f"bids-validator {bids_dir}")
 
     if args.preconfig:
         args.pipeline_file = load_preconfig(args.preconfig)
@@ -468,12 +479,12 @@ elif args.analysis_level in ["test_config", "participant"]:
              category=DeprecationWarning)
 
         updated_config = os.path.join(
-            args.output_dir,
+            output_dir,
             'updated_config',
             os.path.basename(args.pipeline_file)
         )
         os.makedirs(
-            os.path.join(args.output_dir, 'updated_config'), exist_ok=True)
+            os.path.join(output_dir, 'updated_config'), exist_ok=True)
 
         open(updated_config, 'w').write(yaml.dump(c))
 
@@ -500,12 +511,15 @@ elif args.analysis_level in ["test_config", "participant"]:
             args.aws_output_creds
         )
 
-    c['pipeline_setup']['output_directory']['path'] = os.path.join(args.output_dir, "output")
+    c['pipeline_setup']['output_directory']['path'] = os.path.join(
+        output_dir, "output")
 
-    if "s3://" not in args.output_dir.lower():
-        c['pipeline_setup']['log_directory']['path'] = os.path.join(args.output_dir, "log")
+    if not output_dir_is_s3:
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(
+            output_dir, "log")
     else:
-        c['pipeline_setup']['log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "log")
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(
+            DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
         c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_gb)
@@ -554,6 +568,15 @@ elif args.analysis_level in ["test_config", "participant"]:
             c['pipeline_setup']['system_config'][
                 'num_participants_at_once'] = 1
 
+    if int(args.num_ants_threads) == 0:
+        try:
+            args.num_ants_threads = c['pipeline_setup', 'system_config',
+                                    'num_ants_threads']
+        except KeyError:
+            args.num_ants_threads = 3
+    c['pipeline_setup', 'system_config', 
+    'num_ants_threads'] = int(args.num_ants_threads)
+
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'],
         int(c['pipeline_setup']['system_config']['num_ants_threads'])
@@ -566,14 +589,13 @@ elif args.analysis_level in ["test_config", "participant"]:
         if args.save_working_dir is not None:
             c['pipeline_setup']['working_directory']['path'] = \
                 os.path.abspath(args.save_working_dir)
-        elif "s3://" not in args.output_dir.lower():
+        elif not output_dir_is_s3:
             c['pipeline_setup']['working_directory']['path'] = \
-                os.path.join(args.output_dir, "working")
+                os.path.join(output_dir, "working")
         else:
             print('Cannot write working directory to S3 bucket.'
-                ' Either change the output directory to something'
-                ' local or turn off the --save_working_dir flag')
-
+                  ' Either change the output directory to something'
+                  ' local or turn off the --save_working_dir flag')
 
     if args.participant_label:
         print(
@@ -587,7 +609,7 @@ elif args.analysis_level in ["test_config", "participant"]:
           .format(c['pipeline_setup']['system_config']['num_participants_at_once']))
 
     if not args.data_config_file:
-        print("Input directory: {0}".format(args.bids_dir))
+        print("Input directory: {0}".format(bids_dir))
 
     print("Output directory: {0}".format(c['pipeline_setup']['output_directory']['path']))
     print("Working directory: {0}".format(c['pipeline_setup']['working_directory']['path']))
@@ -601,9 +623,9 @@ elif args.analysis_level in ["test_config", "participant"]:
     st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
 
     # update config file
-    if "s3://" not in args.output_dir.lower():
+    if not output_dir_is_s3:
         pipeline_config_file = os.path.join(
-            args.output_dir, "cpac_pipeline_config_{0}.yml".format(st)
+            output_dir, "cpac_pipeline_config_{0}.yml".format(st)
         )
     else:
         pipeline_config_file = os.path.join(
@@ -624,7 +646,7 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # otherwise we move on to conforming the data configuration
     if not args.data_config_file:
-        sub_list = create_cpac_data_config(args.bids_dir,
+        sub_list = create_cpac_data_config(bids_dir,
                                            args.participant_label,
                                            args.aws_input_creds,
                                            args.skip_bids_validator)
@@ -657,8 +679,8 @@ elif args.analysis_level in ["test_config", "participant"]:
         # write out the data configuration file
         data_config_file = "cpac_data_config_{0}.yml".format(st)
 
-    if "s3://" not in args.output_dir.lower():
-        data_config_file = os.path.join(args.output_dir, data_config_file)
+    if not output_dir_is_s3:
+        data_config_file = os.path.join(output_dir, data_config_file)
     else:
         data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
 
@@ -694,7 +716,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin=LegacyMultiProcPlugin(plugin_args) if plugin_args[
+            plugin=MultiProcPlugin(plugin_args) if plugin_args[
                 'n_procs'
             ] > 1 else 'Linear',
             plugin_args=plugin_args,
