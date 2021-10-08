@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Bug (https://github.com/FCP-INDI/C-PAC/issues/1582) in which blip-up/down distortion correction and EPI field map ingress would raise `IndexError: list index out of range` when ingressing the field maps.
+- Bug (https://github.com/FCP-INDI/C-PAC/issues/1572) in which some nodes would raise `KeyError: 'in_file'` when estimating memory allocation
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1572) in which some nodes would raise `KeyError: 'in_file'` when estimating memory allocation
 - Improved memory management for multi-core node allocation.
 

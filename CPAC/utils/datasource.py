@@ -382,6 +382,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     fmap_TE_list = []
 
     if "fmap" in sub_dict:
+        second = False
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                  f"fmap_gather_{key}_"
@@ -393,11 +394,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             )
             gather_fmap.inputs.inputnode.scan = key
 
-            second = False
-            if 'epi' in key:
+            orig_key = key
+            if 'epi' in key and not second:
                 key = 'epi_1'
                 second = True
-            if 'epi' in key and second:
+            elif 'epi' in key and second:
                 key = 'epi_2'
 
             rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
@@ -434,7 +435,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
                 fmap_TE_list.append(f"{key}_TE")
 
-            if key == "epi_AP" or key == "epi_PA":
+            if orig_key == "epi_AP" or orig_key == "epi_PA":
                 blip = True
 
         if diff:
