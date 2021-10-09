@@ -152,7 +152,8 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
+    # In fMRIPrep-LTS, a skull-on template is used as reference
+    T1w_brain_template: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_T1w_reference.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
