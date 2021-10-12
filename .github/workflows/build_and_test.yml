@@ -72,7 +72,7 @@ jobs:
         uses: docker/build-push-action@v2.7.0
         with:
           context: .
-          file: ${DOCKERFILE}
+          file: ${{ env.DOCKERFILE }}
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
