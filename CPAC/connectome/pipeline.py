@@ -21,6 +21,8 @@ def compute_correlation(time_series, method):
         method = 'correlation'
     elif method == 'PartialCorr':
         method = 'partial correlation'
+    elif method == 'TangentEmbedding':
+        method = 'tangent'
 
     connectivity_measure = ConnectivityMeasure(kind=method)
     connectome = connectivity_measure.fit_transform([data])[0]
