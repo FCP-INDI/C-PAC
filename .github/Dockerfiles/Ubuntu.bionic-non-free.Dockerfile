@@ -98,7 +98,7 @@ RUN apt-get update && \
 # install miniconda
 RUN curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
     bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh
+    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod 777 /usr/local/miniconda
 
 # update path to include conda
 ENV PATH=/usr/local/miniconda/bin:$PATH
