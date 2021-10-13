@@ -1,3 +1,5 @@
+# Requires secret `ACTIONS_WORKFLOW_TOKEN` with `workflow` scope
+
 name: Build stages
 
 on:
@@ -130,3 +132,5 @@ jobs:
     steps:
       - name: Build and test C-PAC
         run: gh workflow run "Build and test C-PAC" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
