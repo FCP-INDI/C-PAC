@@ -277,7 +277,7 @@ jobs:
       - set-python-version
       - get-singularity
       - run:
-          command: singularity pull cpac-singularity-image${VARIANT}.sif ${DOCKER_TAG}
+          command: singularity pull cpac-singularity-image${VARIANT}.sif docker://${DOCKER_TAG}
           name: "Pull Singularity image"
       - test-singularity-installation
       - run:
