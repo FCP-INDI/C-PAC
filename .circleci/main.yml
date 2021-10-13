@@ -277,11 +277,11 @@ jobs:
       - set-python-version
       - get-singularity
       - run:
-          command: singularity pull ${DOCKER_TAG} cpac-singularity-image${VARIANT}.simg
+          command: singularity pull cpac-singularity-image${VARIANT}.sif ${DOCKER_TAG}
           name: "Pull Singularity image"
       - test-singularity-installation
       - run:
-          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.simg /code/dev/circleci_data/test_in_image.sh"
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.sif /code/dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Singularity image"
       - store_test_results:
           path: test-results
