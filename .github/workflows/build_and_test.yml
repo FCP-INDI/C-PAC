@@ -2,6 +2,11 @@ name: Build and test C-PAC
 
 on:
   push:
+    branches-ignore:
+      - main
+      - develop
+      - CI/GitHub-workflows
+  workflow_dispatch:
 
 jobs:
   C-PAC:

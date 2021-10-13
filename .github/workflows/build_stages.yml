@@ -133,3 +133,10 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
+
+  trigger-next-workflow:
+    needs: stages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test C-PAC
+        run: gh workflow run "Build and test C-PAC" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
