@@ -106,6 +106,7 @@ output_renamings = {
     'reho_to_standard_zstd_smooth': 'reho',
     'connectome_PearsonCorr': 'connectome',
     'connectome_PartialCorr': 'connectome',
+    'connectome_TangentEmbed': 'connectome',
     'voxel_timeseries': 'timeseries',
     'roi_timeseries': 'timeseries',
     'roi_timeseries_for_SCA': 'timeseries',

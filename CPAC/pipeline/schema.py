@@ -42,8 +42,8 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
-                      'PartialCorr'},
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg',
+                      'PearsonCorr', 'PartialCorr', 'TangentEmbed'},
     },
     'Regressors': {
         'CompCor': {
