@@ -160,6 +160,11 @@ from CPAC.timeseries.timeseries_analysis import (
     spatial_regression
 )
 
+from CPAC.connectome.pipeline import (
+    any_correlation_matrices,
+    timeseries_correlation_matrix
+)
+
 from CPAC.sca.sca import (
     SCA_AVG,
     dual_regression,
@@ -1256,6 +1261,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('desc-SpatReg_timeseries') and \
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
+
+    if any_correlation_matrices(tse_atlases):
+        #  If we want a correlation matrix but don't have any
+        #  timeseries, get mean timeseries
+        if not rpool.check_rpool('_timeseries'):
+            pipeline_blocks += [timeseries_extraction_AVG]
+        pipeline_blocks += [timeseries_correlation_matrix]
 
     if not rpool.check_rpool('desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:

@@ -7,7 +7,15 @@ import numpy as np
 from nilearn.connectome import ConnectivityMeasure
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.function import Function
+
+
+CONNECTOME_METHODS = [
+    option for option in
+    valid_options['timeseries']['roi_paths'] if
+    option.endswith('Corr') or option.endswith('Embed')
+]
 
 
 def compute_correlation(time_series, method):
@@ -96,4 +104,59 @@ def create_connectome(name='connectome'):
     ])
 
     return wf
-    
+
+
+def timeseries_correlation_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "timeseries_correlation_matrix",
+     "config": ["timeseries_extraction"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["_timeseries"],
+     "outputs": ["_connectome"]}
+    '''
+    # pylint: disable=invalid-name,unused-argument
+    node, out = strat_pool.get_data(["_timeseries"])
+    outputs = {}
+    for method in cfg['timeseries_extraction', 'tse_roi_paths']:
+        if method in CONNECTOME_METHODS:
+            timeseries_correlation = pe.Node(Function(
+                input_names=['time_series', 'method'],
+                output_names=['connectome'],
+                function=compute_correlation,
+                as_module=True
+            ), name=f'timeseries_{method}_{pipe_num}')
+
+            timeseries_correlation.inputs.method = method
+
+            wf.connect(node, out, timeseries_correlation, 'time_series')
+            outputs[f'desc-{method}_connectome'] = (
+                timeseries_correlation, 'connectome'
+            )
+
+    return (wf, outputs)
+
+
+def any_correlation_matrices(tse_atlases):
+    """Function to check if any configured timeseries analyses
+    are correlation matrices
+
+    Parameters
+    ----------
+    tse_altases : dict or list
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> any_correlation_matrices({'Avg': []})
+    False
+    >>> any_correlation_matrices({'Avg': [], 'PartialCorr': []})
+    True
+    """
+    return any(
+        corr_matrix in tse_atlases for corr_matrix in CONNECTOME_METHODS
+    )
