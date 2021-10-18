@@ -691,6 +691,9 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
                     'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
                     '-x': -1, '-i': -1, '-y': -2,
                     '-j': -2, '-z': -3, '-k': -3}
+        
+        if isinstance(pedir, bytes):
+            pedir = pedir.decode()
         if not isinstance(pedir, str):
             raise Exception("\n\nPhase-encoding direction must be a "
                             "string value.\n\nValue: {0}"
@@ -2745,7 +2748,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-reginput_bold",
                  "desc-motion_bold",
-                 "space-bold_label-WM_mask"),
+                 "space-bold_label-WM_mask",
+                 "despiked_fieldmap",
+                 "fieldmap_mask"),
                 ("desc-brain_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2755,9 +2760,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
                 "diffphase_dwell",
-                "diffphase_pedir",
-                ("despiked_fieldmap",
-                 "fieldmap_mask")],
+                "diffphase_pedir"],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}

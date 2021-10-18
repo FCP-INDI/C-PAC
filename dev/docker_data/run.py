@@ -574,6 +574,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                                     'num_ants_threads']
         except KeyError:
             args.num_ants_threads = 3
+
     c['pipeline_setup', 'system_config', 
     'num_ants_threads'] = int(args.num_ants_threads)
 
