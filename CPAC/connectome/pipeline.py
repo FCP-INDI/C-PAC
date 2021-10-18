@@ -1,19 +1,34 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from nipype.interfaces.base import BaseInterface, \
-    BaseInterfaceInputSpec, traits, File, TraitedSpec
-
-from CPAC.utils.interfaces.function import Function
-
+"""Functions for creating connectome connectivity matrices."""
 import os
+import re
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
+from nipype.interfaces import utility as util
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces.function import Function
 
 
 def compute_correlation(time_series, method):
+    """Function to create a numpy array file [1] containing a
+    correlation matrix for a given time series and method.
+
+    Parameters
+    ----------
+    time_series : str
+        path to time series output
+
+    method : str
+        correlation matrix method. See https://fcp-indi.github.io/docs/nightly/user/tse#configuring-roi-time-series-extraction
+        for options and how to configure.
+
+    References
+    ----------
+    .. [1] The NumPy community (2021). NPY format. https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html#npy-format
+    """  # pylint: disable=line-too-long  # noqa E501
+    desc_regex = re.compile(r'\_desc.*(?=\_)')
+    method_string = method.replace(' ', '+')
 
     data = np.genfromtxt(time_series).T
 
@@ -27,9 +42,26 @@ def compute_correlation(time_series, method):
     connectivity_measure = ConnectivityMeasure(kind=method)
     connectome = connectivity_measure.fit_transform([data])[0]
 
-    file = os.path.abspath('./%s_connectome.npy' % (method.replace(" ", "-")))
-    np.save(file, connectome)
-    return file
+    existing_desc = desc_regex.search(time_series)
+    if hasattr(existing_desc, 'group'):
+        matrix_file = time_series.replace(
+            existing_desc.group(),
+            '+'.join([
+                existing_desc.group(),
+                method_string
+            ])
+        ).replace('_timeseries.1D', '_connectome.npy')
+    else:
+        matrix_file = os.path.abspath(os.path.join(
+            os.path.dirname(time_series),
+            time_series.replace(
+                '_timeseries.1D',
+                f'_desc-{method_string}_connectome.npy'
+            )
+        ))
+
+    np.save(matrix_file, connectome)
+    return matrix_file
 
 
 def create_connectome(name='connectome'):
