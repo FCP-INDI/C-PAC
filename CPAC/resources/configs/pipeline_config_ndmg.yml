@@ -155,7 +155,7 @@ timeseries_extraction:
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
-  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr, TangentEmbed
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
   tse_roi_paths: 
     /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz: Avg

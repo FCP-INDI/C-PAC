@@ -43,7 +43,9 @@ valid_options = {
     },
     'timeseries': {
         'roi_paths': {'Avg', 'Voxel', 'SpatialReg',
-                      'PearsonCorr', 'PartialCorr', 'TangentEmbed'},
+                      'PearsonCorr', 'PartialCorr',
+                      # 'TangentEmbed'  # "Skip tangent embedding for now"
+                     },
     },
     'Regressors': {
         'CompCor': {
