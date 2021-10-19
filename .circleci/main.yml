@@ -205,7 +205,7 @@ commands:
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
               if [[ -f ${DOCKERFILE} ]]
               then
-                sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
+                sed -i "s|c-pac:latest|c-pac:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
               fi
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"
