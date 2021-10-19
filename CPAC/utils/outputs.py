@@ -72,4 +72,3 @@ class Outputs():
     template_raw = list(
         reference[all_template_filter &  
         (reference['To z-std'] == 'Yes')]['Resource'])
-
