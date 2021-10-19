@@ -718,7 +718,6 @@ CPAC run error:
                     except (FileNotFoundError, PermissionError):
                         logger.warn('Could not remove working directory %s',
                                     working_dir)
-            sys.exit(exitcode)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
