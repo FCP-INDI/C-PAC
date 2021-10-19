@@ -6,6 +6,7 @@ for Nipype's documentation.
 '''  # noqa E501
 import os
 import re
+import warnings
 from inspect import Parameter, Signature, signature
 from nibabel import load
 from nipype.pipeline import engine as pe
@@ -305,19 +306,24 @@ class Workflow(pe.Workflow):
                                         input_resultfile
                                     ).inputs[field])
                                 except FileNotFoundError:
-                                    if hasattr(self, '_local_func_scans'):
-                                        node._apply_mem_x(
-                                            self._local_func_scans)
-                                    else:
-                                        # TODO: handle S3 files
-                                        # 1e8 is a small estimate
-                                        node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
+                                    self._handle_just_in_time_exception(node)
                                 except KeyError:
-                                    raise KeyError(
+                                    warnings.warn(str(KeyError(
                                         f'Node {node.name} specifies memory '
                                         'allocation for input '
-                                        f'{node.mem_x[1]}, but no such input '
-                                        'is specified for that Node.')
+                                        f'{node.mem_x["file"]}, but no such '
+                                        'input is specified for that Node.')))
+                                    self._handle_just_in_time_exception(node)
+
+    def _handle_just_in_time_exception(self, node):
+        # pylint: disable=protected-access
+        if hasattr(self, '_local_func_scans'):
+            node._apply_mem_x(
+                self._local_func_scans)  # pylint: disable=no-member
+        else:
+            # TODO: handle S3 files
+            # 1e8 is a small estimate
+            node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
 
 
 def get_data_size(filepath, mode='xyzt'):
