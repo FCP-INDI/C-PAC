@@ -352,7 +352,11 @@ def get_data_size(filepath, mode='xyzt'):
     elif isinstance(filepath, tuple) and len(filepath) == 4:
         data_shape = filepath
     if mode == 't':
-        return data_shape[3]
+        # if the data has muptiple TRs, return that number
+        if len(data_shape) > 3:
+            return data_shape[3]
+        # otherwise return 1
+        return 1
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
