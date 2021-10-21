@@ -612,13 +612,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # check that segmentation prior is in same space as registration templates
     if use_priors:
-        check_space_imports = ['import nibabel as nib']
-
         check_prior_space = util.Function(
             input_names=['in_template','in_priors'],
             output_names=[],
             function=check_space,
-            imports=check_space_imports
+            imports=['import nibabel']
         )
 
         for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
@@ -765,13 +763,11 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     # check that template-based priors are in same space as registration templates
-    check_space_imports = ['import nibabel as nib']
-
     check_template_based_prior_space = util.Function(
         input_names=['in_template','in_priors'],
         output_names=[],
         function=check_space,
-        imports=check_space_imports
+        imports=['import nibabel']
     )
 
     for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
@@ -849,13 +845,11 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # check that epi template-based priors are in same space as registration template
     if strat_pool.check_rpool("EPI-template") and strat_pool.check_rpool("EPI-template-mask"):
-        check_space_imports = ['import nibabel as nib']
-
         check_epi_based_prior_space = util.Function(
             input_names=['in_template','in_priors'],
             output_names=[],
             function=check_space,
-            imports=check_space_imports
+            imports=['import nibabel']
         )
 
         for template in ["EPI-template","EPI-template-mask"]:
