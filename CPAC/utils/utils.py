@@ -37,9 +37,9 @@ def check_space(in_template, in_priors: list):
 
     """
 
-    template_dims = nibabel.load(in_template).shape()
+    template_dims = nibabel.load(in_template).shape
     for pr in in_priors:
-        pr_dims = nibabel.load(pr).shape()
+        pr_dims = nibabel.load(pr).shape
         if template_dims != pr_dims:
             raise Exception("Priors and templates have different dimensions.")
 
