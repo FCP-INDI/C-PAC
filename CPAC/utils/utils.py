@@ -13,7 +13,7 @@ from copy import deepcopy
 from itertools import repeat
 from optparse import OptionError
 from voluptuous.error import Invalid
-import nibabel as nib
+import nibabel
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -37,11 +37,11 @@ def check_space(in_template, in_priors: list):
 
     """
 
-    template_dims = nib.load(in_template).header.get_data_shape()
+    template_dims = nibabel.load(in_template).shape()
     for pr in in_priors:
-        pr_dims = nib.load(pr).header.get_data_shape()
+        pr_dims = nibabel.load(pr).shape()
         if template_dims != pr_dims:
-            raise Exception("Priors and templates are not all in the same space.")
+            raise Exception("Priors and templates have different dimensions.")
 
     return
 
