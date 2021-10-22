@@ -594,11 +594,6 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, segment, 'in_files')
 
-    long = ''
-    xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
-    if 'space-longitudinal' in resource:
-        long = 'space-longitudinal_'
-        xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
 
     use_custom_threshold = cfg['segmentation']['tissue_segmentation'][
                                'FSL-FAST']['thresholding'][
@@ -607,8 +602,18 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     use_priors = cfg['segmentation']['tissue_segmentation'][
         'FSL-FAST']['use_priors']['run']
 
-    xfm_prov = strat_pool.get_cpac_provenance(xfm)
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    if use_priors: 
+        long = ''
+        xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
+        if 'space-longitudinal' in resource:
+            long = 'space-longitudinal_'
+            xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
+        xfm_prov = strat_pool.get_cpac_provenance(xfm)
+        reg_tool = check_prov_for_regtool(xfm_prov)
+    else:
+        xfm_prov = None
+        reg_tool = None
+
 
     process_csf = process_segment_map(f'CSF_{pipe_num}', use_priors,
                                       use_custom_threshold, reg_tool)
