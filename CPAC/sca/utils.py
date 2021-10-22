@@ -132,9 +132,9 @@ def map_to_roi(timeseries, maps):
     timepoints, rois = testMat.shape
 
     if rois > timepoints:
-        logger.warn('The number of timepoints is smaller than the number '
-                        'of ROIs to run - therefore the GLM is '
-                        'underspecified and can\'t run.')
+        logger.warning('The number of timepoints is smaller than the number '
+                       'of ROIs to run - therefore the GLM is '
+                       'underspecified and can\'t run.')
 
     # pull in the ROI labels from the header of the extracted timeseries
     # CSV file

@@ -140,7 +140,7 @@ def create_cpac_data_config(bids_dir, participant_label=None,
                 participant_label in file_path
                 for participant_label in participant_labels
             )
-            ]
+        ]
 
     if not file_paths:
         print("Did not find data for {0}".format(
@@ -639,6 +639,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     participant_labels = []
     if args.participant_label:
+        args.participant_label[0] = args.participant_label[0].lstrip('[')
+        args.participant_label[-1] = args.participant_label[-1].rstrip(']')
         participant_labels = [
             'sub-' + pt if not pt.startswith('sub-') else pt
             for pt in args.participant_label
