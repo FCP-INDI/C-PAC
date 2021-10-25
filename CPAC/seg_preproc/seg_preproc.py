@@ -577,16 +577,14 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
             ),
             name='check_prior_space_fsl_fast'
         )
-        node, out = strat_pool.get_data([
-            "T1w-template",
-            "T1w-brain-template",
-            "T1w-brain-template-mask",
-            "WM_path",
-            "GM_path",
-            "CSF_path"
-            ]
-        )
-        wf.connect(node, out, check_prior_space_node, 'in_files')
+        create_list = pe.Node(interface=utility.Merge(6), name='create_list')
+        create_list.inputs.in1 = cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["WM_path"]
+        create_list.inputs.in2 = cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["GM_path"]
+        create_list.inputs.in3 = cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
+        create_list.inputs.in4 = cfg.registration_workflows["anatomical_registration"]["T1w_brain_template"]
+        create_list.inputs.in5 = cfg.registration_workflows["anatomical_registration"]["T1w_template"]
+        create_list.inputs.in6 = cfg.registration_workflows["anatomical_registration"]["T1w_brain_template_mask"]
+        wf.connect(create_list, 'out', check_prior_space_node, 'in_files')
 
     # FSL-FAST
     #  'tissue_class_files' output is a list of individual binary tissue masks
