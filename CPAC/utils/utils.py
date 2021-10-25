@@ -1468,7 +1468,7 @@ def load_preconfig(pipeline_label):
             )
         )
 
-    print("Running the '{0}' pre-configured pipeline.".format(pipeline_label))
+    print("Loading the '{0}' pre-configured pipeline.".format(pipeline_label))
 
     return pipeline_file
 

@@ -1,9 +1,11 @@
 import os
+import sys
 import time
 import csv
 import shutil
 import pickle
 import copy
+import faulthandler
 import yaml
 
 import logging as cb_logging
@@ -11,7 +13,8 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import \
+    LegacyMultiProcPlugin, MultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -191,10 +194,11 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
+faulthandler.enable()
 
 # config.enable_debug_mode()
 
@@ -216,9 +220,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         list of pipeline info for reporting timing information
     p_name : string (optional); default=None
         name of pipeline
-    plugin : string (optional); defaule='MultiProc'
+    plugin : string (optional); default='MultiProc'
         nipype plugin to utilize when the workflow is ran
-    plugin_args : dictionary (optional); default=None
+    plugin_args : dictionary (optional);
+                  default={'status_callback': log_nodes_cb}
         plugin-specific arguments for the workflow plugin
 
     Returns
@@ -227,6 +232,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -267,14 +273,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # number of subjects
 
     # Check pipeline config resources
-    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
-        c)
+    (
+        sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
+    ) = check_config_resources(c)
 
-    if plugin_args:
-        plugin_args['memory_gb'] = sub_mem_gb
-        plugin_args['n_procs'] = num_cores_per_sub
-    else:
-        plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+    if not plugin_args:
+        plugin_args = {}
+
+    plugin_args['memory_gb'] = sub_mem_gb
+    plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
@@ -322,6 +330,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Run command: {run_command}
 
     C-PAC version: {cpac_version}
 
@@ -350,6 +359,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 """
 
     logger.info(information.format(
+        run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
@@ -421,8 +431,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         #             shutil.rmtree(f)
 
         if hasattr(c, 'trim') and c.trim:
-            logger.warn("""
-Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
+            logger.warning("""
+Trimming is an experimental feature, and if used wrongly, it can
+lead to unreproducible results.
 It is useful for performance optimization, but only if used correctly.
 Please, make yourself aware of how it works and its assumptions:
     - The pipeline configuration has not changed;
@@ -479,9 +490,10 @@ Please, make yourself aware of how it works and its assumptions:
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
-
-            if not plugin:
+            if not plugin or plugin == 'LegacyMultiProc':
                 plugin = LegacyMultiProcPlugin(plugin_args)
+            elif plugin == 'MultiProc':
+                plugin = MultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject
@@ -663,7 +675,8 @@ Please, make yourself aware of how it works and its assumptions:
                     logger.error(err_msg, log_dir, exc)
 
         except Exception as e:
-            import traceback;
+            import traceback
+            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -704,8 +717,10 @@ CPAC run error:
                                         working_dir)
                             shutil.rmtree(working_dir)
                     except (FileNotFoundError, PermissionError):
-                        logger.warn('Could not remove working directory %s',
-                                    working_dir)
+                        logger.warning(
+                            'Could not remove working directory %s',
+                            working_dir
+                        )
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
@@ -800,7 +815,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
-            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+            if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
+                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
                     cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     acpc_align_head_with_mask

@@ -1,5 +1,5 @@
 import os
-import glob
+import sys
 import warnings
 import yaml
 from multiprocessing import Process
@@ -8,8 +8,9 @@ from voluptuous.error import Invalid
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
+from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.longitudinal_pipeline.longitudinal_workflow import (
-    anat_longitudinal_wf, 
+    anat_longitudinal_wf,
     func_preproc_longitudinal_wf,
     func_longitudinal_template_wf
 )
@@ -100,26 +101,35 @@ def run_cpac_on_cluster(config_file, subject_list_file,
                       'plugin=\'MultiProc\', plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
-    plugin_args = {'n_procs': pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
-                   'memory_gb': pipeline_config.pipeline_setup['system_config']['maximum_memory_per_participant']}
+    plugin_args = {
+        'n_procs': pipeline_config.pipeline_setup['system_config'][
+            'max_cores_per_participant'],
+        'memory_gb': pipeline_config.pipeline_setup['system_config'][
+            'maximum_memory_per_participant'],
+        'status_callback': log_nodes_cb}
 
     # Set up run command dictionary
-    run_cmd_dict = {'config_file' : config_file,
-                    'subject_list_file' : subject_list_file,
-                    'pipeline_name' : pipeline_config.pipeline_setup['pipeline_name'],
-                    'plugin_args' : plugin_args}
+    run_cmd_dict = {'config_file': config_file,
+                    'subject_list_file': subject_list_file,
+                    'pipeline_name': pipeline_config.pipeline_setup[
+                        'pipeline_name'],
+                    'plugin_args': plugin_args}
 
     # Set up config dictionary
-    config_dict = {'timestamp' : timestamp,
-                   'shell' : shell,
-                   'job_name' : 'CPAC_' + pipeline_config.pipeline_setup['pipeline_name'],
-                   'num_tasks' : num_subs,
-                   'queue' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['queue'],
-                   'par_env' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['parallel_environment'],
-                   'cores_per_task' : pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
-                   'user' : user_account,
-                   'work_dir' : cluster_files_dir,
-                   'time_limit' : time_limit}
+    config_dict = {'timestamp': timestamp,
+                   'shell': shell,
+                   'job_name': 'CPAC_' + pipeline_config.pipeline_setup[
+                       'pipeline_name'],
+                   'num_tasks': num_subs,
+                   'queue': pipeline_config.pipeline_setup['system_config'][
+                       'on_grid']['SGE']['queue'],
+                   'par_env': pipeline_config.pipeline_setup['system_config'][
+                       'on_grid']['SGE']['parallel_environment'],
+                   'cores_per_task': pipeline_config.pipeline_setup[
+                       'system_config']['max_cores_per_participant'],
+                   'user': user_account,
+                   'work_dir': cluster_files_dir,
+                   'time_limit': time_limit}
 
     # Get string template for job scheduler
     if job_scheduler == 'pbs':
@@ -194,16 +204,18 @@ def run_T1w_longitudinal(sublist, cfg):
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
         test_config=False):
+    exitcode = 0
 
     # Import packages
-    import subprocess
     import os
-    import pickle
     import time
 
     from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
+
+    if plugin_args is None:
+        plugin_args = {'status_callback': log_nodes_cb}
 
     if not config_file:
         import pkg_resources as p
@@ -225,7 +237,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         sublist = bids_gen_cpac_sublist(subject_list_file, file_paths,
                                         config, None)
         if not sublist:
-            import sys
             print("Did not find data in {0}".format(subject_list_file))
             sys.exit(1)
 
@@ -246,7 +257,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     upgrade_pipeline_to_1_8(config_file)
                     c = Configuration(yaml.safe_load(open(config_file, 'r')))
                 except Exception as e:
-                    import sys
                     print(
                         'C-PAC could not upgrade pipeline configuration file '
                         f'{config_file} to v1.8 syntax',
@@ -296,7 +306,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     if len(c.pipeline_setup['working_directory']['path']) > 70:
         warnings.warn("We recommend that the working directory full path "
                       "should have less then 70 characters. "
-                      "Long paths might not work in your operational system.")
+                      "Long paths might not work in your operating system.")
         warnings.warn("Current working directory: %s" % c.pipeline_setup['working_directory']['path'])
 
     # Get the pipeline name
@@ -534,10 +544,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
             
                 print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
-                
+
                 # skip main preprocessing
-                if not c.anatomical_preproc['run'] and not c.functional_preproc['run']:
-                    import sys
+                if (
+                    not c.anatomical_preproc['run'] and
+                    not c.functional_preproc['run']
+                ):
                     sys.exit()
         '''
         # END LONGITUDINAL TEMPLATE PIPELINE
@@ -545,11 +557,17 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         # If it only allows one, run it linearly
         if c.pipeline_setup['system_config']['num_participants_at_once'] == 1:
             for sub in sublist:
-                run_workflow(sub, c, True, pipeline_timing_info,
-                              p_name, plugin, plugin_args, test_config)
-            return
+                try:
+                    run_workflow(sub, c, True, pipeline_timing_info,
+                                 p_name, plugin, plugin_args, test_config)
+                except Exception as e:
+                    exitcode = 1
+                    raise e
+            return exitcode
 
-        pid = open(os.path.join(c.pipeline_setup['working_directory']['path'], 'pid.txt'), 'w')
+        pid = open(os.path.join(
+            c.pipeline_setup['working_directory']['path'], 'pid.txt'
+        ), 'w')
 
         # Init job queue
         job_queue = []
@@ -600,5 +618,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                             idx += 1
                     # Add sleep so while loop isn't consuming 100% of CPU
                     time.sleep(2)
+        # set exitcode to 1 if any exception
+        exitcode = exitcode or pid.exitcode
         # Close PID txt file to indicate finish
         pid.close()
+    sys.exit(exitcode)

@@ -382,6 +382,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     fmap_TE_list = []
 
     if "fmap" in sub_dict:
+        second = False
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                  f"fmap_gather_{key}_"
@@ -393,11 +394,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             )
             gather_fmap.inputs.inputnode.scan = key
 
-            second = False
-            if 'epi' in key:
+            orig_key = key
+            if 'epi' in key and not second:
                 key = 'epi_1'
                 second = True
-            if 'epi' in key and second:
+            elif 'epi' in key and second:
                 key = 'epi_2'
 
             rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
@@ -434,7 +435,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
                 fmap_TE_list.append(f"{key}_TE")
 
-            if key == "epi_AP" or key == "epi_PA":
+            if orig_key == "epi_AP" or orig_key == "epi_PA":
                 blip = True
 
         if diff:
@@ -668,9 +669,9 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
                           % (bucket_name, exc)
                 raise Exception(err_msg)
 
-    # Otherwise just return what was passed in
+    # Otherwise just return what was passed in, resolving if a link
     else:
-        local_path = file_path
+        local_path = os.path.realpath(file_path)
 
     # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
@@ -827,7 +828,10 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             resolution = (float(resolution.replace('mm', '')),) * 3
 
-        resample = pe.Node(interface=afni.Resample(), name=template_name)
+        resample = pe.Node(interface=afni.Resample(),
+                           name=template_name,
+                           mem_gb=0,
+                           mem_x=(0.0115, 'in_file', 't'))
         resample.inputs.voxel_size = resolution
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'

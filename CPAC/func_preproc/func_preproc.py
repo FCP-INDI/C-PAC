@@ -17,7 +17,9 @@ from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 # niworkflows
-from ..utils.interfaces.ants import AI
+from ..utils.interfaces.ants import AI, \
+    CopyImageHeaderInformation  # noqa: E402
+
 
 def collect_arguments(*args):
     command_args = []
@@ -631,7 +633,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             wf.connect(split, 'split_funcs', out_split_func, 'out_file')
 
             func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
-                                             name=f'func_generate_ref_{pipe_num}',
+                                             name='func_generate_'
+                                                  f'ref_{pipe_num}',
                                              iterfield=['in_file'])
 
             wf.connect(out_split_func, 'out_file',
@@ -1056,10 +1059,8 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
                             name=f'func_reorient_{pipe_num}',
-                            mem_gb=0.68,
-                            mem_x=(9005234470657405 /
-                                   1208925819614629174706176,
-                                   'in_file'))
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1661,7 +1662,13 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"pre_mask_dilate_{pipe_num}",
     )
 
-    # Run N4 normally, force num_threads=1 for stability (images are small, no need for >1)
+    # Fix precision errors
+    # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
+    restore_header = pe.Node(CopyImageHeaderInformation(),
+                             name=f'restore_header_{pipe_num}')
+
+    # Run N4 normally, force num_threads=1 for stability (images are
+    # small, no need for >1)
     n4_correct = pe.Node(
         ants.N4BiasFieldCorrection(
             dimension=3, copy_header=True, bspline_fitting_distance=200
@@ -1704,14 +1711,18 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect([(node, init_aff, [(out, "moving_image")]),
                 (node, map_brainmask, [(out, "reference_image")]),
                 (node, norm, [(out, "moving_image")]),
-                (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+                (node, restore_header, [(out, "refimage")]),
+                (init_aff, norm, [
+                    ("output_transform", "initial_moving_transform")]),
                 (norm, map_brainmask, [
                     ("reverse_invert_flags", "invert_transform_flags"),
                     ("reverse_transforms", "transforms"),
                 ]),
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
-                (pre_dilate, n4_correct, [("out_file", "mask_image")]),
+                (pre_dilate, restore_header, [
+                    ("out_file", "imagetocopyrefimageinfoto")]),
+                (restore_header, n4_correct, [("imageout", "mask_image")]),
                 (node, n4_correct, [(out, "input_image")]),
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
@@ -1780,7 +1791,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'raw_func_reorient_{pipe_num}')
+                            name=f'raw_func_reorient_{pipe_num}',
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1998,11 +2011,14 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
 
     wf.connect(anat_brain_to_func_res, 'out_file',
-        anat_brain_mask_to_func_res, 'ref_file')
+               anat_brain_mask_to_func_res, 'ref_file')
 
     # Resample func mask in template space back to native space
-    func_mask_template_to_native = pe.Node(interface=afni.Resample(),
-                                    name=f'resample_func_mask_to_native_{pipe_num}')
+    func_mask_template_to_native = pe.Node(
+        interface=afni.Resample(),
+        name=f'resample_func_mask_to_native_{pipe_num}',
+        mem_gb=0,
+        mem_x=(0.0115, 'in_file', 't'))
     func_mask_template_to_native.inputs.resample_mode = 'NN'
     func_mask_template_to_native.inputs.outputtype = 'NIFTI_GZ'
 

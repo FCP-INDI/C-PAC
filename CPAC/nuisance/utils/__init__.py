@@ -10,6 +10,7 @@ from nipype.interfaces import afni
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
+from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
 
@@ -254,7 +255,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
     wf.connect(mapper, 'out_file', threshold_mask, 'in_file')
     wf.connect(threshold_node, 'threshold', threshold_mask, 'thresh')
 
-    merge_slice_masks = pe.Node(interface=fsl.Merge(), name='merge_slice_masks')
+    merge_slice_masks = pe.Node(interface=fslMerge(), name='merge_slice_masks')
     merge_slice_masks.inputs.dimension = 'z'
     wf.connect(
         threshold_mask, 'out_file',
