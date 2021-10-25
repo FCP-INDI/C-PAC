@@ -35,7 +35,7 @@ def check_space(in_files):
 
     """
 
-    dims = [nibabel.load(f).shape for f in files]
+    dims = [nibabel.load(f).shape for f in in_files]
     if not np.all(dims == dims[0]):
         raise Exception("Input files have different dimensions.")
 
