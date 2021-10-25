@@ -579,12 +579,12 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         )
         create_list = pe.Node(interface=util.Merge(6), name='create_list')
         files = [
-            "CSF_path",
-            "GM_path",
-            "WM_path",
-            "T1w_brain_template",
-            "T1w_template",
-            "T1w_brain_template_mask"
+            "CSF-path",
+            "GM-path",
+            "WM-path",
+            "T1w-brain-template",
+            "T1w-template",
+            "T1w-brain-template-mask"
         ]
         for i, file in enumerate(files):
             node, out = strat_pool.get_data(file)
