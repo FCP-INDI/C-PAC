@@ -9,6 +9,7 @@ import re
 import warnings
 from inspect import Parameter, Signature, signature
 from nibabel import load
+from nipype import logging
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
 from numpy import prod
@@ -61,6 +62,8 @@ class Node(pe.Node):
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
+        self.logger = logging.getLogger("nipype.workflow")
+
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
         ):
@@ -135,10 +138,8 @@ class Node(pe.Node):
     def mem_gb(self):
         """Get estimated memory (GB)"""
         if hasattr(self._interface, "estimated_memory_gb"):
-            from nipype import logging
-            logger = logging.getLogger("nipype.workflow")
             self._mem_gb = self._interface.estimated_memory_gb
-            logger.warning(
+            self.logger.warning(
                 'Setting "estimated_memory_gb" on Interfaces has been '
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
@@ -197,6 +198,9 @@ class Node(pe.Node):
             mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
         return mem_x_path
 
+    def _mem_x_file(self):
+        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
+
     def _apply_mem_x(self, multiplicand=None):
         '''Method to calculate and memoize a Node's estimated memory
         footprint.
@@ -215,6 +219,18 @@ class Node(pe.Node):
             estimated memory usage (GB)
         '''
         def parse_multiplicand(multiplicand):
+            '''
+            Returns an numeric value for a multiplicand if
+            multipland is a string or None.
+
+            Parameters
+            ----------
+            muliplicand : any
+
+            Returns
+            -------
+            int or float
+            '''
             if isinstance(multiplicand, list):
                 return sum([parse_multiplicand(part) for part in multiplicand])
             if isinstance(multiplicand, (int, float)):
@@ -231,18 +247,23 @@ class Node(pe.Node):
                 return get_data_size(
                     self._grab_first_path(multiplicand),
                     getattr(self, '_mem_x', {}).get('mode'))
+            return 1
 
         if hasattr(self, '_mem_x'):
+            if multiplicand is None:
+                multiplicand = self._mem_x_file()
             self._mem_gb = (
                 self._mem_gb +
-                self._mem_x['multiplier'] *
+                self._mem_x['multiplier'] *  # pylint: disable=no-member
                 parse_multiplicand(multiplicand)
             )
             try:
-                if self.mem_gb > 1000:
-                    logger.warning(
-                        f'{self.name} is estimated to use {self.mem_gb} GB '
-                        f'({self._mem_x}).'
+                if self._mem_gb > 1000:
+                    self.logger.warning(
+                        '%s is estimated to use %.3f GB (%s).',
+                        self.name,
+                        self._mem_gb,
+                        getattr(self, '_mem_x')
                     )
             except FileNotFoundError:
                 pass
@@ -322,7 +343,6 @@ class Workflow(pe.Workflow):
                 self._local_func_scans)  # pylint: disable=no-member
         else:
             # TODO: handle S3 files
-            # 1e8 is a small estimate
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
 
 
