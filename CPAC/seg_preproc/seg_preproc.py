@@ -633,30 +633,30 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
                                'FSL-FAST']['thresholding'][
                                'use'] == 'Custom'
 
-    use_priors = cfg['segmentation']['tissue_segmentation'][
-        'FSL-FAST']['use_priors']['run']
-
-    # check that segmentation prior is in same space as registration templates
-    if use_priors:
-        check_prior_space = util.Function(
-            input_names=['in_template','in_priors'],
-            output_names=[],
-            function=check_space,
-            imports=['import nibabel']
-        )
-
-        for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
-            check_node = pe.Node(
-                check_prior_space,
-                name=f'check_{template}_prior_space'
-             )
-            check_node.inputs.in_priors = [
-                cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["WM_path"],
-                cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["GM_path"],
-                cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
-            ]
-            node, out = strat_pool.get_data(template)
-            wf.connect(node, out, check_node, 'in_template')
+    # use_priors = cfg['segmentation']['tissue_segmentation'][
+    #     'FSL-FAST']['use_priors']['run']
+    #
+    # # check that segmentation prior is in same space as registration templates
+    # if use_priors:
+    #     check_prior_space = util.Function(
+    #         input_names=['in_template','in_priors'],
+    #         output_names=[],
+    #         function=check_space,
+    #         imports=['import nibabel']
+    #     )
+    #
+    #     for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
+    #         check_node = pe.Node(
+    #             check_prior_space,
+    #             name=f'check_{template}_prior_space'
+    #          )
+    #         check_node.inputs.in_priors = [
+    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["WM_path"],
+    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["GM_path"],
+    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
+    #         ]
+    #         node, out = strat_pool.get_data(template)
+    #         wf.connect(node, out, check_node, 'in_template')
 
     xfm_prov = strat_pool.get_cpac_provenance(xfm)
     reg_tool = check_prov_for_regtool(xfm_prov)
