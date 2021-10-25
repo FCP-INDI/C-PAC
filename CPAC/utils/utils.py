@@ -22,7 +22,7 @@ NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
 NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
     CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
 
-def check_space(in_template, in_priors: list):
+def check_space(in_files):
     """
     Check that files are all in the same space
     by checking the number of dimensions
@@ -30,18 +30,14 @@ def check_space(in_template, in_priors: list):
     Parameters
     __________
 
-    in_template
-        file path
-    in_priors : list
-        priors to check space against
+    in_files
+        files to check
 
     """
 
-    template_dims = nibabel.load(in_template).shape
-    for pr in in_priors:
-        pr_dims = nibabel.load(pr).shape
-        if template_dims != pr_dims:
-            raise Exception("Priors and templates have different dimensions.")
+    dims = [nibabel.load(f).shape for f in files]
+    if not np.all(dims == dims[0]):
+        raise Exception("Input files have different dimensions.")
 
     return
 
