@@ -641,25 +641,28 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #
     # # check that segmentation prior is in same space as registration templates
     # if use_priors:
-    #     check_prior_space = util.Function(
-    #         input_names=['in_template','in_priors'],
-    #         output_names=[],
-    #         function=check_space,
-    #         imports=['import nibabel']
-    #     )
-    #
-    #     for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
-    #         check_node = pe.Node(
-    #             check_prior_space,
-    #             name=f'check_{template}_prior_space'
-    #          )
-    #         check_node.inputs.in_priors = [
-    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["WM_path"],
-    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["GM_path"],
-    #             cfg.segmentation["tissue_segmentation"]["FSL-FAST"]["use_priors"]["CSF_path"]
-    #         ]
-    #         node, out = strat_pool.get_data(template)
-    #         wf.connect(node, out, check_node, 'in_template')
+        # check_prior_space_node = pe.Node(
+        #     util.Function(
+        #         input_names=['in_files'],
+        #         output_names=[],
+        #         function=check_space,
+        #         imports=['import nibabel', 'import numpy as np']
+        #     ),
+        #     name='check_prior_space_fsl_fast'
+        # )
+        # create_list = pe.Node(interface=util.Merge(6), name='create_list')
+        # files = [
+        #     "CSF-path",
+        #     "GM-path",
+        #     "WM-path",
+        #     "T1w-brain-template",
+        #     "T1w-template",
+        #     "T1w-brain-template-mask"
+        # ]
+        # for i, file in enumerate(files):
+        #     node, out = strat_pool.get_data(file)
+        #     wf.connect(node, out, create_list, f"in{i+1}")
+        # wf.connect(create_list, 'out', check_prior_space_node, 'in_files')
 
     xfm_prov = strat_pool.get_cpac_provenance(xfm)
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -783,6 +786,9 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Template_Based",
      "inputs": [("desc-brain_T1w",
                  "from-template_to-T1w_mode-image_desc-linear_xfm"),
+                 "WHITE",
+                 "GRAY",
+                 "CSF",
                  "T1w-template",
                  "T1w-brain-template",
                  "T1w-brain-template-mask"],
@@ -792,25 +798,28 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     # check that template-based priors are in same space as registration templates
-    check_template_based_prior_space = util.Function(
-        input_names=['in_template','in_priors'],
-        output_names=[],
-        function=check_space,
-        imports=['import nibabel']
+    check_template_based_prior_space_node = pe.Node(
+        util.Function(
+            input_names=['in_files'],
+            output_names=[],
+            function=check_space,
+            imports=['import nibabel', 'import numpy as np']
+        ),
+        name='check_template_based_prior_space'
     )
-
-    for template in ["T1w-template","T1w-brain-template","T1w-brain-template-mask"]:
-        check_node = pe.Node(
-            check_template_based_prior_space,
-            name=f'check_{template}_templated_based_space'
-         )
-        check_node.inputs.in_priors = [
-            cfg.segmentation["tissue_segmentation"]["Template_Based"]["WHITE"],
-            cfg.segmentation["tissue_segmentation"]["Template_Based"]["GRAY"],
-            cfg.segmentation["tissue_segmentation"]["Template_Based"]["CSF"]
-        ]
-        node, out = strat_pool.get_data(template)
-        wf.connect(node, out, check_node, 'in_template')
+    create_list = pe.Node(interface=util.Merge(6), name='create_list')
+    files = [
+        "WHITE",
+        "GRAY",
+        "CSF",
+        "T1w-brain-template",
+        "T1w-template",
+        "T1w-brain-template-mask"
+    ]
+    for i, file in enumerate(files):
+        node, out = strat_pool.get_data(file)
+        wf.connect(node, out, create_list, f"in{i+1}")
+    wf.connect(create_list, 'out', check_template_based_prior_space_node, 'in_files')
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-template_to-T1w_mode-image_desc-linear_xfm')
@@ -865,6 +874,9 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Template_Based",
      "inputs": [("desc-mean_bold",
                  "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"),
+                 "WHITE",
+                 "GRAY",
+                 "CSF",
                  "EPI-template",
                  "EPI-template-mask"],
      "outputs": ["space-bold_label-CSF_mask",
@@ -874,25 +886,27 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # check that epi template-based priors are in same space as registration template
     if strat_pool.check_rpool("EPI-template") and strat_pool.check_rpool("EPI-template-mask"):
-        check_epi_based_prior_space = util.Function(
-            input_names=['in_template','in_priors'],
-            output_names=[],
-            function=check_space,
-            imports=['import nibabel']
+        check_epi_template_space_node = pe.Node(
+            util.Function(
+                input_names=['in_files'],
+                output_names=[],
+                function=check_space,
+                imports=['import nibabel', 'import numpy as np']
+            ),
+            name='check_epi_template_space'
         )
-
-        for template in ["EPI-template","EPI-template-mask"]:
-            check_node = pe.Node(
-                check_epi_based_prior_space,
-                name=f'check_{template}_templated_based_space'
-             )
-            check_node.inputs.in_priors = [
-                cfg.segmentation["tissue_segmentation"]["Template_Based"]["WHITE"],
-                cfg.segmentation["tissue_segmentation"]["Template_Based"]["GRAY"],
-                cfg.segmentation["tissue_segmentation"]["Template_Based"]["CSF"]
-            ]
-            node, out = strat_pool.get_data(template)
-            wf.connect(node, out, check_node, 'in_template')
+        create_list = pe.Node(interface=util.Merge(6), name='create_list')
+        files = [
+            "WHITE",
+            "GRAY",
+            "CSF",
+            "EPI-template",
+            "EPI-template-mask"
+        ]
+        for i, file in enumerate(files):
+            node, out = strat_pool.get_data(file)
+            wf.connect(node, out, create_list, f"in{i+1}")
+        wf.connect(create_list, 'out', check_epi_template_space_node, 'in_files')
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
