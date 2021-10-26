@@ -8,11 +8,14 @@ import os
 import re
 from inspect import Parameter, Signature, signature
 from nibabel import load
+from nipype import logging
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+
+logger = logging.getLogger("nipype.workflow")
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -134,8 +137,6 @@ class Node(pe.Node):
     def mem_gb(self):
         """Get estimated memory (GB)"""
         if hasattr(self._interface, "estimated_memory_gb"):
-            from nipype import logging
-            logger = logging.getLogger("nipype.workflow")
             self._mem_gb = self._interface.estimated_memory_gb
             logger.warning(
                 'Setting "estimated_memory_gb" on Interfaces has been '
@@ -319,6 +320,23 @@ class Workflow(pe.Workflow):
                                         f'{node.mem_x[1]}, but no such input '
                                         'is specified for that Node.')
 
+    def write_hierarchical_dotfile(
+        self, dotfilename=None, colored=False, simple_form=True
+    ):
+        dotlist = ['digraph %s{' % self.name]
+        dotlist.append(
+            self._get_dot(prefix='  ',
+                          colored=colored,
+                          simple_form=simple_form)
+        )
+        dotlist.append('}')
+        dotstr = _get_rid_of_dashes('\n'.join(dotlist))
+        if dotfilename:
+            with open(_get_rid_of_dashes(dotfilename), 'wt') as dotfile:
+                dotfile.writelines(dotstr)
+        else:
+            logger.info(dotstr)
+
 
 def get_data_size(filepath, mode='xyzt'):
     """Function to return the size of a functional image (x * y * z * t)
@@ -350,3 +368,23 @@ def get_data_size(filepath, mode='xyzt'):
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
+
+
+def _get_rid_of_dashes(dot_string):
+    """
+    Method to replace dashes with double-underscores to
+    reduce Graphviz syntax errors.
+
+    It would be prefereable to wrap any strings with
+    dashes in double-quotes, but this replacement
+    approach is lower-friction.
+
+    Parameters
+    ----------
+    dot_string : str
+
+    Returns
+    -------
+    str
+    """
+    return dot_string.replace('-', '__').replace('__>', '->')
