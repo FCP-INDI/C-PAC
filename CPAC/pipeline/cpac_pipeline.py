@@ -161,8 +161,7 @@ from CPAC.timeseries.timeseries_analysis import (
 )
 
 from CPAC.connectome.pipeline import (
-    any_correlation_matrices,
-    timeseries_correlation_matrix
+    timeseries_connectivity_matrix
 )
 
 from CPAC.sca.sca import (
@@ -1262,12 +1261,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
 
-    if any_correlation_matrices(tse_atlases):
-        #  If we want a correlation matrix but don't have any
+    if (
+        len(cfg['connectivity_matrix', 'using']) and
+        len(cfg['connectivity_matrix', 'measure'])
+    ):
+        #  If we want a connectivity matrix but don't have any
         #  timeseries, get mean timeseries
         if not rpool.check_rpool('_timeseries'):
             pipeline_blocks += [timeseries_extraction_AVG]
-        pipeline_blocks += [timeseries_correlation_matrix]
+        pipeline_blocks += [timeseries_connectivity_matrix]
 
     if not rpool.check_rpool('desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:

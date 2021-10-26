@@ -42,10 +42,13 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg',
-                      'PearsonCorr', 'PartialCorr',
-                      # 'TangentEmbed'  # "Skip tangent embedding for now"
-                     },
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
+    },
+    'connectivity_matrix': {
+        'using': {'AFNI', 'Nilearn'},
+        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
+                    # 'TangentEmbed'  # "Skip tangent embedding for now"
+                    },
     },
     'Regressors': {
         'CompCor': {
@@ -968,7 +971,6 @@ latest_schema = Schema({
         ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
     },
-
     'seed_based_correlation_analysis': {
         'run': bool,
         Optional('roi_paths_fully_specified'): bool,
@@ -984,6 +986,10 @@ latest_schema = Schema({
                 'sca_roi_paths', valid_options['sca']['roi_paths'])
         ),
         'norm_timeseries_for_DR': bool,
+    },
+    'connectivity_matrix': {
+        option: [In(valid_options['connectivity_matrix'][option])]
+        for option in ['using', 'measure']
     },
     'network_centrality': {
         'run': bool,

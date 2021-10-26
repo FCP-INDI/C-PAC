@@ -744,9 +744,11 @@ def gather_extraction_maps(c):
                 x.strip() for x in tsa_roi_dict[roi_path].split(",")
                 ]
 
-            if any(corr in ts_analysis_to_run for corr in [
-                "PearsonCorr", "PartialCorr", "TangentEmbed"
-            ]) and "Avg" not in ts_analysis_to_run:
+            if (
+                len(c['connectivity_matrix', 'using']) and
+                len(c['connectivity_matrix', 'measure']) and
+                "Avg" not in ts_analysis_to_run
+            ):
                 ts_analysis_to_run += ["Avg"]
 
             for analysis_type in ts_analysis_to_run:
