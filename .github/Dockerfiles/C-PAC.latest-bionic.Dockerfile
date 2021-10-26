@@ -10,6 +10,9 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 
 USER root
 
+# allow users to update / create themselves
+RUN chmod ugo+w /etc/passwd
+
 # install and set up c3d
 COPY --from=c3d /opt/c3d/ /opt/c3d/
 ENV C3DPATH /opt/c3d/

@@ -11,6 +11,9 @@ RUN groupadd -r c-pac && \
     mkdir -p /home/c-pac_user/ && \
     chown -R c-pac_user:c-pac /home/c-pac_user
 
+# allow users to update / create themselves
+RUN chmod ugo+w /etc/passwd
+
 RUN apt-get update
 
 # Install the validator
