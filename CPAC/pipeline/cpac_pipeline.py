@@ -204,7 +204,8 @@ faulthandler.enable()
 
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
-                 plugin='MultiProc', plugin_args=None, test_config=False):
+                 plugin='LegacyMultiProc', plugin_args=None,
+                 test_config=False):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -220,7 +221,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         list of pipeline info for reporting timing information
     p_name : string (optional); default=None
         name of pipeline
-    plugin : string (optional); default='MultiProc'
+    plugin : string (optional); default='LegacyMultiProc'
         nipype plugin to utilize when the workflow is ran
     plugin_args : dictionary (optional);
                   default={'status_callback': log_nodes_cb}
@@ -292,7 +293,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
     # TODO: TEMPORARY
-    # TODO: solve the UNet model hanging issue during MultiProc
+    # TODO: solve the UNet model hanging issue during LegacyMultiProc
     if "UNet" in c.anatomical_preproc['brain_extraction']['using']:
         c.pipeline_setup['system_config']['max_cores_per_participant'] = 1
         logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "

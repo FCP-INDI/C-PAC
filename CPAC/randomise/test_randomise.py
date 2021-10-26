@@ -4,7 +4,7 @@ import nipype.interfaces.io as nio
 import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from nipype.interfaces.fsl import ImageStats
 
 
@@ -58,7 +58,7 @@ def test_run_randomize(inputs, output_dir=None, run=True):
                                dataSink, 't_corrected_p_files')
     if run is True:
         plugin_args = {'n_procs': num_of_cores}
-        randomise_workflow.run(plugin=MultiProcPlugin(plugin_args),
+        randomise_workflow.run(plugin=LegacyMultiProcPlugin(plugin_args),
                                plugin_args=plugin_args)
     else:
         return randomise_workflow, randomise_workflow.base_dir

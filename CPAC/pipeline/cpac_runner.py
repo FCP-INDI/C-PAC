@@ -95,10 +95,12 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     num_subs = len(sublist)
 
     # Run CPAC via python -c command
-    python_cpac_str = 'python -c "from CPAC.pipeline.cpac_pipeline import run; '\
+    python_cpac_str = 'python -c "from CPAC.pipeline.cpac_pipeline import '\
+                      'run; '\
                       'run(\'%(config_file)s\', \'%(subject_list_file)s\', '\
                       '%(env_arr_idx)s, \'%(pipeline_name)s\', '\
-                      'plugin=\'MultiProc\', plugin_args=%(plugin_args)s)"'
+                      'plugin=\'LegacyMultiProc\', '\
+                      'plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
     plugin_args = {

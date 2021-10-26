@@ -5,7 +5,7 @@ import glob
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from CPAC.utils import Configuration
 
 
@@ -48,7 +48,7 @@ def prep_basc_workflow(c, subject_infos):
                ds, 'ismap_imgs')
 
     plugin_args = {'n_procs': c.numCoresPerSubject}
-    wf.run(plugin=MultiProcPlugin(plugin_args),
+    wf.run(plugin=LegacyMultiProcPlugin(plugin_args),
            plugin_args=plugin_args)
 
 

@@ -27,7 +27,7 @@ import pytest
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from nipype.interfaces.fsl import ImageStats
 # from nose.tools import *
 
@@ -96,7 +96,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
                           dataSink, 'anat_func')
     if run is True:
         plugin_args = {'n_procs': num_of_cores}
-        warp_workflow.run(plugin=MultiProcPlugin(plugin_args),
+        warp_workflow.run(plugin=LegacyMultiProcPlugin(plugin_args),
                           plugin_args=plugin_args)
         # outpath = glob.glob(
         #     os.path.join(workflow_dir, "EPI_DistCorr","*"))[0]

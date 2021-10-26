@@ -5,7 +5,7 @@ import pytest
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from CPAC.utils.test_resources import setup_test_wf
 # from CPAC.func_preproc.func_preproc import create_func_preproc
 # from CPAC.distortion_correction.distortion_correction import blip_distcor_wf
@@ -94,7 +94,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
         t_node, 'outputspec.anat_func', dataSink, 'anat_func')
     if run is True:
         plugin_args = {'n_procs': num_of_cores}
-        warp_workflow.run(plugin=MultiProcPlugin(plugin_args),
+        warp_workflow.run(plugin=LegacyMultiProcPlugin(plugin_args),
                           plugin_args=plugin_args)
         # outpath = glob.glob(
         #     os.path.join(workflow_dir, "EPI_DistCorr","*"))[0]

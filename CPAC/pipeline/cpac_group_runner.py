@@ -1,7 +1,7 @@
 import os
 import fnmatch
 import pandas
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from CPAC.utils.monitoring import log_nodes_cb
 
 
@@ -1802,7 +1802,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isc_wf.inputs.inputspec.collapse_subj = False
                 plugin_args = {'n_procs': num_cpus,
                                'status_callback': log_nodes_cb}
-                isc_wf.run(plugin=MultiProcPlugin(plugin_args),
+                isc_wf.run(plugin=LegacyMultiProcPlugin(plugin_args),
                            plugin_args=plugin_args)
 
         if isfc:
@@ -1834,7 +1834,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf.inputs.inputspec.collapse_subj = False
                 plugin_args = {'n_procs': num_cpus,
                                'status_callback': log_nodes_cb}
-                isfc_wf.run(plugin=MultiProcPlugin(plugin_args),
+                isfc_wf.run(plugin=LegacyMultiProcPlugin(plugin_args),
                             plugin_args=plugin_args)
 
 

@@ -1,5 +1,5 @@
 import pytest
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 
 
 @pytest.mark.skip(reason='requires RegressionTester')
@@ -109,7 +109,8 @@ class RegressionTester(object):
         # Run it!
         start = time.clock()
         plugin_args = {'n_procs': 4}
-        c.run(plugin=MultiProcPlugin(plugin_args), plugin_args=plugin_args)
+        c.run(plugin=LegacyMultiProcPlugin(plugin_args),
+              plugin_args=plugin_args)
         end = time.clock()
         print("time: %.2gs" % (end-start))
 

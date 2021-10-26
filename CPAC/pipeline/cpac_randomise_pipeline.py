@@ -3,7 +3,7 @@ import os
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_group_runner import load_config_yml
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import LegacyMultiProcPlugin
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.monitoring import log_nodes_cb
 
@@ -73,7 +73,7 @@ def prep_randomise_workflow(c, subject_infos):
 
     plugin_args = {'n_procs': c.numCoresPerSubject,
                    'status_callback': log_nodes_cb}
-    wf.run(plugin=MultiProcPlugin(plugin_args),
+    wf.run(plugin=LegacyMultiProcPlugin(plugin_args),
            plugin_args=plugin_args)
 
     return wf

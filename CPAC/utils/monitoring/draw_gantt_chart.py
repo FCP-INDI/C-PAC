@@ -280,7 +280,7 @@ def generate_gantt_chart(
     # #create workflow
     # workflow = ...
 
-    # workflow.run(plugin='MultiProc',
+    # workflow.run(plugin='LegacyMultiProc',
     #     plugin_args={'n_procs':8, 'memory':12, 'status_callback': log_nodes_cb})
 
     # generate_gantt_chart('callback.log', 8)
