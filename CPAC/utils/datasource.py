@@ -745,8 +745,8 @@ def gather_extraction_maps(c):
                 ]
 
             if (
-                len(c['connectivity_matrix', 'using']) and
-                len(c['connectivity_matrix', 'measure']) and
+                c['connectivity_matrix', 'using'] and
+                c['connectivity_matrix', 'measure'] and
                 "Avg" not in ts_analysis_to_run
             ):
                 ts_analysis_to_run += ["Avg"]

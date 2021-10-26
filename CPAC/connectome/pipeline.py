@@ -71,8 +71,8 @@ def create_connectome(name='connectome'):
 
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'time_series',
-            'method'
+            'timeseries',
+            'measure'
         ]),
         name='inputspec'
     )
@@ -84,15 +84,15 @@ def create_connectome(name='connectome'):
         name='outputspec'
     )
 
-    node = pe.Node(Function(input_names=['time_series', 'method'],
+    node = pe.Node(Function(input_names=['timeseries', 'measure'],
                             output_names=['connectome'],
                             function=compute_correlation,
                             as_module=True),
                    name='connectome')
 
     wf.connect([
-        (inputspec, node, [('time_series', 'time_series')]),
-        (inputspec, node, [('method', 'method')]),
+        (inputspec, node, [('timeseries', 'timeseries')]),
+        (inputspec, node, [('measure', 'measure')]),
         (node, outputspec, [('connectome', 'connectome')]),
     ])
 
@@ -110,12 +110,12 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["connectome"]}
     '''
     # pylint: disable=invalid-name,unused-argument
-    node, out = strat_pool.get_data(["_timeseries"])
+    node, out = strat_pool.get_data(["timeseries"])
     outputs = {}
     for measure in cfg['connectivity_matrix', 'measure']:
         if measure in valid_options['connectivity_matrix']['measure']:
             timeseries_correlation = pe.Node(Function(
-                input_names=['timeseries', 'measure'],
+                input_names=['time_series', 'measure'],
                 output_names=['connectome'],
                 function=compute_correlation,
                 as_module=True
@@ -123,9 +123,10 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
 
             timeseries_correlation.inputs.measure = measure
 
-            wf.connect(node, out, timeseries_correlation, 'timeseries')
+            wf.connect(node, out,
+                       timeseries_correlation, 'timeseries')
             outputs[f'desc-{measure}_connectome'] = (
-                timeseries_correlation, 'connectome'
+                timeseries_correlation, 'outputspec.connectome'
             )
 
     return (wf, outputs)

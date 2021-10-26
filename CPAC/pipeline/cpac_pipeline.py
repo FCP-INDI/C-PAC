@@ -1262,8 +1262,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [spatial_regression]
 
     if (
-        len(cfg['connectivity_matrix', 'using']) and
-        len(cfg['connectivity_matrix', 'measure'])
+        cfg['connectivity_matrix', 'using'] and
+        cfg['connectivity_matrix', 'measure']
     ):
         #  If we want a connectivity matrix but don't have any
         #  timeseries, get mean timeseries
