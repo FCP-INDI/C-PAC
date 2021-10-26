@@ -200,10 +200,16 @@ def run_T1w_longitudinal(sublist, cfg):
                           "\n\n" % subject_id)
 
 
-# Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
         test_config=False):
+    """
+    Run C-PAC subjects via job queue.
+
+    Returns
+    -------
+    exitcode : int
+    """
     exitcode = 0
 
     # Import packages
@@ -622,4 +628,4 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         exitcode = exitcode or pid.exitcode
         # Close PID txt file to indicate finish
         pid.close()
-    sys.exit(exitcode)
+    return exitcode

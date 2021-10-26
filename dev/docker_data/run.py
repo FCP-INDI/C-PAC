@@ -195,6 +195,8 @@ def load_cpac_data_config(data_config_file, participant_label,
 
     return sub_list
 
+
+exitcode = 0
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -715,7 +717,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         }
 
         print("Starting participant level processing")
-        CPAC.pipeline.cpac_runner.run(
+        exitcode = exitcode or CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
             plugin=MultiProcPlugin(plugin_args) if plugin_args[
@@ -738,4 +740,4 @@ elif args.analysis_level in ["test_config", "participant"]:
                 )
             )
 
-sys.exit(0)
+sys.exit(exitcode)
