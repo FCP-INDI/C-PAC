@@ -33,13 +33,19 @@ def check_space(in_files):
     in_files
         files to check
 
+    Returns
+    _______
+
+    in_files 
+        checked files
+
     """
 
     dims = [nibabel.load(f).shape for f in in_files]
     if not np.all(dims == dims[0]):
         raise Exception("Input files have different dimensions.")
 
-    return
+    return in_files
 
 
 def get_last_prov_entry(prov):

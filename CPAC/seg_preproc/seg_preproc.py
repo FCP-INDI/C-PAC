@@ -571,7 +571,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         check_prior_space_node = pe.Node(
             util.Function(
                 input_names=['in_files'],
-                output_names=[],
+                output_names=['out_files'],
                 function=check_space,
                 imports=['import nibabel', 'import numpy as np']
             ),
