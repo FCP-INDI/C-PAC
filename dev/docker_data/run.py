@@ -14,6 +14,8 @@ from urllib.error import HTTPError
 
 from CPAC import __version__
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
+                                  collect_bids_files_configs
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -125,7 +127,6 @@ def resolve_aws_credential(source):
 
 def create_cpac_data_config(bids_dir, participant_label=None,
                             aws_input_creds=None, skip_bids_validator=False):
-    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     print("Parsing {0}..".format(bids_dir))
 
