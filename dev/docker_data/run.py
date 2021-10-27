@@ -289,38 +289,86 @@ parser.add_argument('--mem_gb', type=float,
                          'maximum_memory_per_participant in the pipeline '
                          'configuration file.')
 parser.add_argument('--num_ants_threads', type=int, default=0,
-                    help='The number of cores to allocate to ANTS-based anatomical '
-                        'registration per participant. Multiple cores can greatly '
-                        'speed up this preprocessing step. This number cannot be '
-                        'greater than the number of cores per participant.')                        
+                    help='The number of cores to allocate to ANTS-'
+                         'based anatomical registration per '
+                         'participant. Multiple cores can greatly '
+                         'speed up this preprocessing step. This '
+                         'number cannot be greater than the number of '
+                         'cores per participant.')
 
 parser.add_argument('--save_working_dir', nargs='?',
-                    help='Save the contents of the working directory.', default=False)
-parser.add_argument('--disable_file_logging', action='store_true',
-                    help='Disable file logging, this is useful for clusters that have disabled file locking.',
+                    help='Save the contents of the working directory.',
                     default=False)
-parser.add_argument('--participant_label', help='The label of the participant'
-                                                ' that should be analyzed. The label '
-                                                'corresponds to sub-<participant_label> from the BIDS spec '
-                                                '(so it does not include "sub-"). If this parameter is not '
-                                                'provided all participants should be analyzed. Multiple '
-                                                'participants can be specified with a space separated list. To work'
-                                                ' correctly this should come at the end of the command line.',
+parser.add_argument('--disable_file_logging', action='store_true',
+                    help='Disable file logging, this is useful for '
+                         'clusters that have disabled file locking.',
+                    default=False)
+
+parser.add_argument('--participant_label',
+                    help='The label of the participant that should be '
+                         'analyzed. The label corresponds to '
+                         'sub-<participant_label> from the BIDS spec '
+                         '(so it does not include "sub-"). If this '
+                         'parameter is not provided all participants '
+                         'should be analyzed. Multiple participants '
+                         'can be specified with a space separated '
+                         'list.',
                     nargs="+")
-parser.add_argument('--participant_ndx', help='The index of the participant'
-                                              ' that should be analyzed. This corresponds to the index of the'
-                                              ' participant in the data config file. This was added to make it easier'
-                                              ' to accommodate SGE array jobs. Only a single participant will be'
-                                              ' analyzed. Can be used with participant label, in which case it is the'
-                                              ' index into the list that follows the participant_label flag.'
-                                              ' Use the value "-1" to indicate that the participant index should'
-                                              ' be read from the AWS_BATCH_JOB_ARRAY_INDEX environment variable.',
+parser.add_argument('--participant_ndx',
+                    help='The index of the participant that should be '
+                         'analyzed. This corresponds to the index of '
+                         'the participant in the data config file. '
+                         'This was added to make it easier to '
+                         'accommodate SGE array jobs. Only a single '
+                         'participant will be analyzed. Can be used '
+                         'with participant label, in which case it is '
+                         'the index into the list that follows the '
+                         'participant_label flag. Use the value "-1" '
+                         'to indicate that the participant index '
+                         'should be read from the '
+                         'AWS_BATCH_JOB_ARRAY_INDEX environment '
+                         'variable.',
                     default=None, type=int)
 
+parser.add_argument('--T1w_label',
+                    help='C-PAC only runs one T1w per participant-'
+                         'session at a time, at this time. Use this '
+                         'flag to specify any BIDS entity (e.g., "acq-'
+                         'VNavNorm") or sequence of BIDS entities ('
+                         'e.g., "acq-VNavNorm_run-1") to specify '
+                         'which of multiple T1w files to use. Specify '
+                         '"--T1w_label T1w" to choose the T1w file '
+                         'with the fewest BIDS entities (i.e., the '
+                         'final option of [*_acq-VNavNorm_T1w.nii.gz, '
+                         '*_acq-HCP_T1w.nii.gz, *_T1w.nii.gz"]). '
+                         'C-PAC will choose the first T1w it finds if '
+                         'the user does not provide this flag, or '
+                         'if multiple T1w files match the --T1w_label '
+                         'provided.')
+parser.add_argument('--bold_label',
+                    help='To include a specified subset of available '
+                         'BOLD files, use this flag to specify any '
+                         'BIDS entity (e.g., "task-rest") or sequence '
+                         'of BIDS entities (e.g. "task-rest_run-1"). '
+                         'To specify the bold file with the fewest '
+                         'BIDS entities in the file name, specify '
+                         '"--bold_label bold". Multiple `--bold_'
+                         'label`s can be specified with a space-'
+                         'separated list. If multiple `--bold_label`s '
+                         'are provided (e.g., "--bold_label task-rest_'
+                         'run-1 task-rest_run-2", each scan that '
+                         'includes all BIDS entities specified in any '
+                         'of the provided `--bold_label`s will be '
+                         'analyzed. If this parameter is not provided '
+                         'all BOLD scans should be analyzed.',
+                    nargs="+")
+
 parser.add_argument('-v', '--version', action='version',
-                    version='C-PAC BIDS-App version {}'.format(__version__))
-parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
-                    'bids-validator: See https://github.com/bids-standard/bids-validator for more info.')
+                    version=f'C-PAC BIDS-App version {__version__}')
+parser.add_argument('--bids_validator_config',
+                    help='JSON file specifying configuration of '
+                         'bids-validator: See https://github.com/bids-'
+                         'standard/bids-validator for more info.')
 parser.add_argument('--skip_bids_validator',
                     help='Skips bids validation.',
                     action='store_true')
