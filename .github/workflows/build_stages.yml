@@ -130,6 +130,10 @@ jobs:
     needs: stages
     runs-on: ubuntu-latest
     steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
       - name: Build and test C-PAC
         run: gh workflow run "Build and test C-PAC" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
         env:
