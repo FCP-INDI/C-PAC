@@ -178,6 +178,9 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
         # probability map
         input_1, value_1 = (inputNode, 'probability_tissue_map')
 
+    ####### Added This Line    
+    use_priors = cfg['segmentation']['tissue_segmentation']['FSL-FAST']['use_priors']['run']
+
     if use_priors:
         apply_xfm = apply_transform(f'seg_tissue_priors_template_to_T1',
                                     reg_tool=reg_tool)
