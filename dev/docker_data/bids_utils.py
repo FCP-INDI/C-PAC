@@ -375,13 +375,22 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
         bids_config_dict = bids_parse_sidecar(config_dict, raise_error=raise_error)
 
     subdict = {}
-
+  
     for p in paths_list:
-        str_list=p.split(bids_dir)
-        val=str_list.rsplit('/')
-        
-        if 'sub-' not in val[0]:
-            continue
+        if bids_dir in p:
+           str_list=p.split(bids_dir)
+           val=str_list[0]
+      
+           val=val.rsplit('/')
+           val=val[0]
+           
+           if 'sub-' not in val:
+               continue
+        else:
+           str_list=p.split('/')
+           val=str_list[0]
+           if 'sub-' not in val:
+               continue
         p = p.rstrip()
         f = os.path.basename(p)
 
@@ -544,6 +553,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
         print(f"gathering files from S3 bucket ({bucket}) for {prefix}")
+        #print(f"object: {s3_obj}")
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
