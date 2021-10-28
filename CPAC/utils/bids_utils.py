@@ -377,6 +377,11 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     subdict = {}
 
     for p in paths_list:
+        str_list=p.split(bids_dir)
+        val=str_list.rsplit('/')
+        
+        if 'sub-' not in val[0]:
+            continue
         p = p.rstrip()
         f = os.path.basename(p)
 
