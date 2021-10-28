@@ -1269,7 +1269,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ):
         #  If we want a connectivity matrix but don't have any
         #  timeseries, get mean timeseries
-        if not rpool.check_rpool('_timeseries'):
+        if not rpool.check_rpool('timeseries'):
             pipeline_blocks += [timeseries_extraction_AVG]
         pipeline_blocks += [timeseries_connectivity_matrix]
 
