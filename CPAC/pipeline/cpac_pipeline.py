@@ -160,7 +160,7 @@ from CPAC.timeseries.timeseries_analysis import (
     spatial_regression
 )
 
-from CPAC.connectome.pipeline import (
+from CPAC.connectome.connectivity_matrix import (
     timeseries_connectivity_matrix
 )
 

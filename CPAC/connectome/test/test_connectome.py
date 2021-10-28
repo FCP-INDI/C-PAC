@@ -4,7 +4,7 @@ import random
 import re
 import numpy as np
 import pytest
-from CPAC.connectome.pipeline import compute_correlation
+from CPAC.connectome.connectivity_matrix import compute_correlation
 from CPAC.pipeline.schema import valid_options
 
 
@@ -14,7 +14,7 @@ from CPAC.pipeline.schema import valid_options
     option.endswith('Corr') or option.endswith('Embed')
 ])
 def test_compute_correlation(tmp_path, desc, method):
-    """Test CPAC.connectome.pipeline.compute_correlation
+    """Test CPAC.connectome.connectivity_matrix.compute_correlation
 
     Parameters
     ----------
