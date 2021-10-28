@@ -435,8 +435,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         #             shutil.rmtree(f)
 
         if hasattr(c, 'trim') and c.trim:
-            logger.warn("""
-Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
+            logger.warning("""
+Trimming is an experimental feature, and if used wrongly, it can
+lead to unreproducible results.
 It is useful for performance optimization, but only if used correctly.
 Please, make yourself aware of how it works and its assumptions:
     - The pipeline configuration has not changed;
@@ -720,9 +721,10 @@ CPAC run error:
                                         working_dir)
                             shutil.rmtree(working_dir)
                     except (FileNotFoundError, PermissionError):
-                        logger.warn('Could not remove working directory %s',
-                                    working_dir)
-            sys.exit(exitcode)
+                        logger.warning(
+                            'Could not remove working directory %s',
+                            working_dir
+                        )
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
