@@ -17,7 +17,8 @@ from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
                                   bids_match_entities, \
                                   bids_shortest_entity, \
-                                  collect_bids_files_configs
+                                  collect_bids_files_configs, \
+                                  load_cpac_data_config
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -164,37 +165,6 @@ def create_cpac_data_config(bids_dir, participant_labels=None,
     if not sub_list:
         print("Did not find data in {0}".format(bids_dir))
         sys.exit(1)
-
-    return sub_list
-
-
-def load_cpac_data_config(data_config_file, participant_labels,
-                          aws_input_creds):
-    # load the file as a check to make sure it is available and readable
-    sub_list = load_yaml_config(data_config_file, aws_input_creds)
-
-    if participant_labels:
-
-        sub_list = [
-            d
-            for d in sub_list
-            if (
-                d["subject_id"]
-                if d["subject_id"].startswith('sub-')
-                else 'sub-' + d["subject_id"]
-            ) in participant_labels
-        ]
-
-        if not sub_list:
-            print("Did not find data for {0} in {1}".format(
-                ", ".join(participant_labels),
-                (
-                    data_config_file
-                    if not data_config_file.startswith("data:")
-                    else "data URI"
-                )
-            ))
-            sys.exit(1)
 
     return sub_list
 

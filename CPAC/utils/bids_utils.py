@@ -750,12 +750,27 @@ def create_cpac_data_config(bids_dir, participant_label=None,
     return sub_list
 
 
-def load_cpac_data_config(data_config_file, participant_label,
+def load_cpac_data_config(data_config_file, participant_labels,
                           aws_input_creds):
-    # load the file as a check to make sure it is available and readable
+    """
+    Loads the file as a check to make sure it is available and readable
+
+    Parameters
+    ----------
+    data_config_file : str
+        path to data config
+
+    participants_labels : list or None
+
+    aws_input_creds
+
+    Returns
+    -------
+    list
+    """
     sub_list = load_yaml_config(data_config_file, aws_input_creds)
 
-    if participant_label:
+    if participant_labels:
 
         sub_list = [
             d
@@ -765,11 +780,11 @@ def load_cpac_data_config(data_config_file, participant_label,
                 if d["subject_id"].startswith('sub-')
                 else 'sub-' + d["subject_id"]
             ) in participant_labels
-            ]
+        ]
 
         if not sub_list:
             print("Did not find data for {0} in {1}".format(
-                ", ".join(participant_label),
+                ", ".join(participant_labels),
                 (
                     data_config_file
                     if not data_config_file.startswith("data:")
