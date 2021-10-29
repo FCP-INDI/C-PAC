@@ -602,7 +602,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
                                'use'] == 'Custom'
 
     use_priors = cfg['segmentation']['tissue_segmentation'][
-        'FSL-FAST']['use_priors']['run'] =='On'
+        'FSL-FAST']['use_priors']['run']
 
     if use_priors: 
         long = ''
@@ -615,6 +615,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         xfm_prov = None
         reg_tool = None
+        xfm = None
 
 
     process_csf = process_segment_map(f'CSF_{pipe_num}', use_priors,
