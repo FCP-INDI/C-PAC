@@ -1,7 +1,8 @@
 ## Fixes
 <!-- If PR doesn't fully resolve the issue, replace 'Fixes' below with 'Related to'. -->
 <!-- If there is no issue being resolved, open one before creating this pull request. -->
-Fixes #[issue number] by @[issue author]
+<!-- The square brackets in the template represent something for you to replace. For example, you might change "Fixes #[issue number]" to "Fixes #1". -->
+Fixes #[issue number] by @[original issue author]
 
 ## Description
 <!-- Concisely describe what the pull request does. -->

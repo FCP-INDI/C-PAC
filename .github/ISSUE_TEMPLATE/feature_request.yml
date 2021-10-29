@@ -5,7 +5,7 @@ labels: [enhancement, user-reported]
 body:
   - type: markdown
     attributes:
-      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new feature request. If something like your request already exists, please add to that discussion.
+      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new feature request. If something like your request already exists, please add to that discussion. Also, please change "[User-requested Feature]" in the title of this issue to something more descriptive of the feature you are requesting.
   - type: textarea
     id: related-problem
     attributes:
