@@ -18,6 +18,7 @@ from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
                                   bids_match_entities, \
                                   bids_shortest_entity, \
                                   collect_bids_files_configs, \
+                                  create_cpac_data_config, \
                                   load_cpac_data_config
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
@@ -126,47 +127,6 @@ def resolve_aws_credential(source):
             "Could not find aws credentials {0}"
             .format(source)
         )
-
-
-def create_cpac_data_config(bids_dir, participant_labels=None,
-                            aws_input_creds=None, skip_bids_validator=False):
-
-    print("Parsing {0}..".format(bids_dir))
-
-    (file_paths, config) = collect_bids_files_configs(bids_dir,
-                                                      aws_input_creds)
-
-    if participant_labels:
-        file_paths = [
-            file_path
-            for file_path in file_paths
-            if any(
-                participant_label in file_path
-                for participant_label in participant_labels
-            )
-        ]
-
-    if not file_paths:
-        print("Did not find data for {0}".format(
-            ", ".join(participant_labels)
-        ))
-        sys.exit(1)
-
-    raise_error = not skip_bids_validator
-
-    sub_list = bids_gen_cpac_sublist(
-        bids_dir,
-        file_paths,
-        config,
-        aws_input_creds,
-        raise_error=raise_error
-    )
-
-    if not sub_list:
-        print("Did not find data in {0}".format(bids_dir))
-        sys.exit(1)
-
-    return sub_list
 
 
 def sub_list_filter_by_label(sub_list, label_type, label):

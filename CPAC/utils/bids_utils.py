@@ -733,7 +733,7 @@ def load_yaml_config(config_filename, aws_input_creds):
         raise
 
 
-def create_cpac_data_config(bids_dir, participant_label=None,
+def create_cpac_data_config(bids_dir, participant_labels=None,
                             aws_input_creds=None, skip_bids_validator=False,
                             only_one_anat=True):
     """
@@ -743,7 +743,7 @@ def create_cpac_data_config(bids_dir, participant_label=None,
     ----------
     bids_dir : str
 
-    participant_label : str or None
+    participant_labels : list or None
 
     aws_input_creds
 
@@ -763,16 +763,19 @@ def create_cpac_data_config(bids_dir, participant_label=None,
     (file_paths, config) = collect_bids_files_configs(bids_dir,
                                                       aws_input_creds)
 
-    if participant_label:
+    if participant_labels:
         file_paths = [
             file_path
             for file_path in file_paths
-            if participant_label in file_path
-            ]
+            if any(
+                participant_label in file_path
+                for participant_label in participant_labels
+            )
+        ]
 
     if not file_paths:
         print("Did not find data for {0}".format(
-            ", ".join(participant_label)
+            ", ".join(participant_labels)
         ))
         sys.exit(1)
 
