@@ -425,30 +425,52 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     return sublist
 
 
-def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=False,
-                          raise_error=True):
+def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
+                          dbg=False, raise_error=True, only_one_anat=True):
     """
     Generates a CPAC formatted subject list from information contained in a
     BIDS formatted set of data.
 
-    :param bids_dir: base directory that contains all of the data, this could be
-       a directory that contains data for a multiple BIDS datasets, in which
-       case the intervening directories will be interpreted as site names
-    :param paths_list: lists of all nifti files found in bids_dir, these paths
-       are relative to bids_dir
-    :param config_dict: dictionary that contains information from the json
-       sidecars found in bids_dir, keys are relative paths and values are
-       dictionaries containing all of the parameter information. if config_dict
-       is None, the subject list will be built without the parameters
-    :param creds_path: if using S3 bucket, this path credentials needed to
-       access the bucket, if accessing anonymous bucket, this can be set
-       to None
-    :param dbg: boolean indicating whether or not the debug statements should
-       be printed
-    :return: a list of dictionaries suitable for use by CPAC to specify data
-       to be processed
-    """
+    Parameters
+    ----------
+    bids_dir : str
+        base directory that contains all of the data, this could be a
+        directory that contains data for a multiple BIDS datasets, in
+        which case the intervening directories will be interpreted as
+        site names
 
+    paths_list : str
+        lists of all nifti files found in bids_dir, these paths are
+        relative to bids_dir
+
+    config_dict : dict
+        dictionary that contains information from the JSON sidecars
+        found in bids_dir, keys are relative paths and values are
+        dictionaries containing all of the parameter information. if
+        config_dict is None, the subject list will be built without the
+        parameters
+
+    creds_path : str
+        if using S3 bucket, this path credentials needed to access the
+        bucket, if accessing anonymous bucket, this can be set to None
+
+    dbg : bool
+        indicating whether or not the debug statements should be
+        printed
+
+    raise_error : bool
+
+    only_one_anat : bool
+        The "anat" key for a subject expects a string value, but we can
+        temporarily store a list instead by passing True here if we
+        will be filtering that list down to a single string later
+
+    Returns
+    -------
+    list
+        a list of dictionaries suitable for use by CPAC to specify data
+        to be processed
+    """
     if dbg:
         print("gen_bids_sublist called with:")
         print("  bids_dir: {0}".format(bids_dir))
@@ -514,24 +536,23 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                         print("Lesion mask file (%s) already found" %
                               (subdict[f_dict["sub"]]
                                [f_dict["ses"]]
-                               ["lesion_mask"]) + " for (%s:%s) discarding %s" %
+                               ["lesion_mask"]) +
+                              " for (%s:%s) discarding %s" %
                               (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
-                elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = {}
-                    if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["anat"]:
-                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]] = \
-                            task_info["scan"] if config_dict else task_info
-                elif "anat" in subdict[f_dict["sub"]][f_dict["ses"]]:
-                    if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["anat"]:
-                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]] = \
-                            task_info["scan"] if config_dict else task_info
-                else:
-                    print("Anatomical file (%s) already found" %
-                          (subdict[f_dict["sub"]][f_dict["ses"]]["anat"][f_dict["scantype"]]) +
-                          " for (%s:%s) discarding %s" % (f_dict["sub"],
-                                                          f_dict["ses"],
-                                                          p))
+
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][
+                    f_dict["ses"]
+                ]["anat"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
+                        f_dict["scantype"]] = []
+
+                subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
+                    f_dict["scantype"]].append(
+                        task_info["scan"] if config_dict else task_info)
+
             if "bold" in f_dict["scantype"]:
                 task_key = f_dict["task"]
                 if "run" in f_dict:
@@ -713,8 +734,30 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 
 def create_cpac_data_config(bids_dir, participant_label=None,
-                            aws_input_creds=None, skip_bids_validator=False):
+                            aws_input_creds=None, skip_bids_validator=False,
+                            only_one_anat=True):
+    """
+    Create a C-PAC data config YAML file from a BIDS directory.
 
+    Parameters
+    ----------
+    bids_dir : str
+
+    participant_label : str or None
+
+    aws_input_creds
+
+    skip_bids_validator : bool
+
+    only_one_anat : bool
+        The "anat" key for a subject expects a string value, but we
+        can temporarily store a list instead by passing True here if
+        we will be filtering that list down to a single string later
+
+    Returns
+    -------
+    list
+    """
     print("Parsing {0}..".format(bids_dir))
 
     (file_paths, config) = collect_bids_files_configs(bids_dir,
@@ -740,7 +783,8 @@ def create_cpac_data_config(bids_dir, participant_label=None,
         file_paths,
         config,
         aws_input_creds,
-        raise_error=raise_error
+        raise_error=raise_error,
+        only_one_anat=only_one_anat
     )
 
     if not sub_list:
