@@ -546,12 +546,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 if f_dict["scantype"] not in subdict[f_dict["sub"]][
                     f_dict["ses"]
                 ]["anat"]:
+                    if only_one_anat:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
+                            f_dict["scantype"]
+                        ] = task_info["scan"] if config_dict else task_info
+                    else:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
+                            f_dict["scantype"]] = []
+                if not only_one_anat:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
-                        f_dict["scantype"]] = []
-
-                subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
-                    f_dict["scantype"]].append(
-                        task_info["scan"] if config_dict else task_info)
+                        f_dict["scantype"]].append(
+                            task_info["scan"] if config_dict else task_info)
 
             if "bold" in f_dict["scantype"]:
                 task_key = f_dict["task"]
@@ -763,11 +768,9 @@ def create_cpac_data_config(bids_dir, participant_labels=None,
     (file_paths, config) = collect_bids_files_configs(bids_dir,
                                                       aws_input_creds)
 
-    if participant_labels:
+    if participant_labels and file_paths:
         file_paths = [
-            file_path
-            for file_path in file_paths
-            if any(
+            file_path for file_path in file_paths if any(
                 participant_label in file_path
                 for participant_label in participant_labels
             )

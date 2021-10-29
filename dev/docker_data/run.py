@@ -762,7 +762,8 @@ def run_main():
             sub_list = create_cpac_data_config(bids_dir,
                                                args.participant_label,
                                                args.aws_input_creds,
-                                               args.skip_bids_validator)
+                                               args.skip_bids_validator,
+                                               only_one_anat=False)
         else:
             sub_list = load_cpac_data_config(args.data_config_file,
                                              args.participant_label,
