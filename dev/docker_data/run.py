@@ -274,33 +274,11 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
 
     Examples
     --------
-    >>> matched = _match_functional_scan({
-    ...     'MSIT': {
-    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
-    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
-    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
-    ...                 'sub-0001_ses-NFB3_task-MSIT_bold.nii.gz',
-    ...         'scan_parameters': 's3://fake/data/task-MSIT_bold.json'
-    ...     }, 'PEER1': {
-    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
-    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
-    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
-    ...                 'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz',
-    ...         'scan_parameters': 's3://fake/data/task-PEER1_bold.json'
-    ...     }, 'PEER2': {
-    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
-    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
-    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
-    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
-    ...                 'sub-0001_ses-NFB3_task-PEER2_bold.nii.gz',
-    ...         'scan_parameters': 's3://fake/data/task-PEER2_bold.json'
-    ... }}, 's3://fake/data/sub-0001/ses-NFB3/func/'
-    ...     'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz)
+    >>> from CPAC.pipeline.test.sample_data import sub_list
+    >>> matched = _match_functional_scan(
+    ...     sub_list[0]['func'],
+    ...     '/fake/data/sub-0001/ses-NFB3/func/'
+    ...     'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz')
     >>> matched.keys()
     dict_keys(['PEER1'])
     >>> all([key in matched['PEER1'] for key in [
