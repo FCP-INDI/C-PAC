@@ -15,6 +15,8 @@ from urllib.error import HTTPError
 from CPAC import __version__
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
+                                  bids_match_entities, \
+                                  bids_shortest_entity, \
                                   collect_bids_files_configs
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
@@ -195,6 +197,123 @@ def load_cpac_data_config(data_config_file, participant_label,
             sys.exit(1)
 
     return sub_list
+
+
+def sub_list_filter_by_label(sub_list, label_type, label):
+    """Function to filter a sub_list by a CLI-provided label.
+
+    Parameters
+    ----------
+    sub_list : list
+
+    label_type : str
+        'T1w' or 'bold'
+
+    label : str or list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> from CPAC.pipeline.test.sample_data import sub_list
+    >>> sub_list_filter_by_label(sub_list, 'bold', 'PEER1')[
+    ...     0]['func'].keys()
+    dict_keys(['PEER1'])
+    """
+    if isinstance(label, str):
+        label = [label]
+    if label_type in label:
+        shortest_entity = True
+        label.remove(label_type)
+    else:
+        shortest_entity = False
+
+    if label_type == 'T1w':
+        pass
+
+    elif label_type == 'bold':
+        for sub in sub_list:
+            if 'func' in sub:
+                all_scans = [
+                    sub['func'][scan].get('scan') for scan in sub['func']]
+                new_func = {}
+                for entity in label:
+                    matched_scans = bids_match_entities(all_scans, entity)
+                    for scan in matched_scans:
+                        new_func = {
+                            **new_func,
+                            **_match_functional_scan(sub['func'], scan)
+                        }
+                if shortest_entity:
+                    new_func = {
+                        **new_func,
+                        **_match_functional_scan(
+                            sub['func'], bids_shortest_entity(all_scans)
+                        )
+                    }
+                sub['func'] = new_func
+
+    return sub_list
+
+
+def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
+    """Function to subset a scan from a sub_list_func_dict by a scan filename
+
+    Parameters
+    ---------
+    sub_list_func_dict : dict
+        sub_list[sub]['func']
+
+    scan_file_to_match : str
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> matched = _match_functional_scan({
+    ...     'MSIT': {
+    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
+    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
+    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
+    ...                 'sub-0001_ses-NFB3_task-MSIT_bold.nii.gz',
+    ...         'scan_parameters': 's3://fake/data/task-MSIT_bold.json'
+    ...     }, 'PEER1': {
+    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
+    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
+    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
+    ...                 'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz',
+    ...         'scan_parameters': 's3://fake/data/task-PEER1_bold.json'
+    ...     }, 'PEER2': {
+    ...         'fmap_mag': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                     'sub-0001_ses-NFB3_magnitude1.nii.gz',
+    ...         'fmap_phase': 's3://fake/data/sub-0001/ses-NFB3/fmap/'
+    ...                       'sub-0001_ses-NFB3_phasediff.nii.gz',
+    ...         'scan': 's3://fake/data/sub-0001/ses-NFB3/func/'
+    ...                 'sub-0001_ses-NFB3_task-PEER2_bold.nii.gz',
+    ...         'scan_parameters': 's3://fake/data/task-PEER2_bold.json'
+    ... }}, 's3://fake/data/sub-0001/ses-NFB3/func/'
+    ...     'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz)
+    >>> matched.keys()
+    dict_keys(['PEER1'])
+    >>> all([key in matched['PEER1'] for key in [
+    ...     'fmap_mag', 'fmap_phase', 'scan', 'scan_parameters'
+    ... ]])
+    True
+    """
+    return {
+        entity: sub_list_func_dict[entity] for entity in
+        sub_list_func_dict if
+        sub_list_func_dict[entity].get('scan') == scan_file_to_match
+    }
+
 
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -705,6 +824,12 @@ elif args.analysis_level in ["test_config", "participant"]:
         sub_list = load_cpac_data_config(args.data_config_file,
                                          args.participant_label,
                                          args.aws_input_creds)
+
+    if args.T1w_label:
+        sub_list = sub_list_filter_by_label(sub_list, 'T1w', args.T1w_label)
+
+    if args.bold_label:
+        sub_list = sub_list_filter_by_label(sub_list, 'bold', args.bold_label)
 
     if args.participant_ndx is not None:
 

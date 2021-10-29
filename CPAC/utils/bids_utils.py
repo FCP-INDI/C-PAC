@@ -87,6 +87,60 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
     return f_dict
 
 
+def bids_entities_from_filename(filename):
+    """Function to collect a list of BIDS entities from a given
+    filename.
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    entities : list
+
+    Examples
+    --------
+    >>> bids_entities_from_filename(
+    ...     's3://fake/data/sub-0001/ses-NFB3/func/'
+    ...     'sub-0001_ses-NFB3_task-MSIT_bold.nii.gz')
+    ['sub-0001', 'ses-NFB3', 'task-MSIT', 'bold']
+    """
+    return (
+        filename.split('/')[-1] if '/' in filename else filename
+    ).split('.')[0].split('_')
+
+
+def bids_match_entities(file_list, entity):
+    """Function to subset a list of filepaths by a passed BIDS entity.
+
+    Parameters
+    ----------
+    file_list : list of str
+
+    entity : str
+
+    Returns
+    -------
+    list of str
+
+    Examples
+    --------
+    >>> bids_match_entities([
+    ...     's3://fake/data/sub-001_ses-001_task-MSIT_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz'
+    ... ], 'task-PEER1')
+    ['s3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz']
+    """
+    return [
+        file for file in file_list if entity in '_'.join(
+            bids_entities_from_filename(file)
+        )
+    ]
+
+
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     """
 
@@ -258,6 +312,41 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
         t_dict.update(bids_config)
 
     return(bids_config_dict)
+
+
+def bids_shortest_entity(file_list):
+    """Function to return the single file with the shortest chain of
+    BIDS entities from a given list, returning the first if more than
+    one have the same minimum length.
+
+    Parameters
+    ----------
+    file_list : list of strings
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> bids_shortest_entity([
+    ...     's3://fake/data/sub-001_ses-001_task-MSIT_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz'
+    ... ])
+    's3://fake/data/sub-001_ses-001_bold.nii.gz'
+    """
+    entity_lists = [
+        bids_entities_from_filename(filename) for filename in file_list
+    ]
+
+    shortest_len = min([len(entity_list) for entity_list in entity_lists])
+
+    return [
+        file_list[i] for i in range(len(file_list)) if
+        len(entity_lists[i]) == shortest_len
+    ][0]
 
 
 def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
@@ -625,7 +714,6 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 def create_cpac_data_config(bids_dir, participant_label=None,
                             aws_input_creds=None, skip_bids_validator=False):
-    from CPAC.utils.bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     print("Parsing {0}..".format(bids_dir))
 
