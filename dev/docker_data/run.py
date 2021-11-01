@@ -24,7 +24,8 @@ from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
-from CPAC.utils.utils import load_preconfig, update_nested_dict
+from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
+                             update_nested_dict
 
 import yamlordereddictloader
 from warnings import simplefilter, warn
@@ -750,8 +751,7 @@ def run_main():
             create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
         if args.participant_label:
-            args.participant_label[0] = args.participant_label[0].lstrip('[')
-            args.participant_label[-1] = args.participant_label[-1].rstrip(']')
+            args.participant_label = cl_strip_brackets(args.participant_label)
             args.participant_label = [
                 'sub-' + pt if not pt.startswith('sub-') else pt
                 for pt in args.participant_label
@@ -774,6 +774,7 @@ def run_main():
                 sub_list, 'T1w', args.T1w_label)
 
         if args.bold_label:
+            args.bids_label = cl_strip_brackets(args.bids_label)
             sub_list = sub_list_filter_by_label(
                 sub_list, 'bold', args.bold_label)
 
