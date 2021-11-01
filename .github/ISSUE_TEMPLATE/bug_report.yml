@@ -5,7 +5,7 @@ labels: [bug, user-reported]
 body:
   - type: markdown
     attributes:
-      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new bug report. If something like your bug is already reported, please add to that discussion.
+      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new bug report. If something like your bug is already reported, please add to that discussion. Also, please change "[User-reported Bug]" in the title of this issue to something more descriptive of the bug you are reporting.
   - type: textarea
     id: description
     attributes:
