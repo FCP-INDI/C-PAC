@@ -111,14 +111,18 @@ def bids_entities_from_filename(filename):
     ).split('.')[0].split('_')
 
 
-def bids_match_entities(file_list, entity):
+def bids_match_entities(file_list, entities, suffix):
     """Function to subset a list of filepaths by a passed BIDS entity.
 
     Parameters
     ----------
     file_list : list of str
 
-    entity : str
+    entities : str
+        BIDS entities joined by underscores (e.g., 'ses-001_task-PEER1')
+
+    suffix : str
+        BIDS suffix (e.g., 'bold', 'T1w')
 
     Returns
     -------
@@ -131,14 +135,22 @@ def bids_match_entities(file_list, entity):
     ...     's3://fake/data/sub-001_ses-001_bold.nii.gz',
     ...     's3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz',
     ...     's3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz'
-    ... ], 'task-PEER1')
+    ... ], 'task-PEER1', 'bold')
     ['s3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz']
     """
-    return [
-        file for file in file_list if entity in '_'.join(
+    matches = [
+        file for file in file_list if f'_{entities}_' in '_'.join(
             bids_entities_from_filename(file)
-        )
+        ) and bids_entities_from_filename(file)[-1] == suffix
     ]
+    if file_list and not matches:
+        pp_file_list = '\n'.join([f'- {file}' for file in file_list])
+        raise LookupError(' '.join([
+            'No match found for provided',
+            'entity' if len(entities.split('_')) == 1 else 'entities',
+            f'"{entities}" in\n{pp_file_list}',
+        ]))
+    return matches
 
 
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):

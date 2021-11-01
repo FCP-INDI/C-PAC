@@ -162,16 +162,26 @@ def sub_list_filter_by_label(sub_list, label_type, label):
         shortest_entity = False
 
     if label_type == 'T1w':
-        pass
-
+        for sub in sub_list:
+            if 'anat' in sub:
+                if not isinstance(sub['anat'], list):
+                    sub['anat'] = [sub['anat']]
+                if shortest_entity:
+                    sub['anat'] = bids_shortest_entity(sub['anat'])
+                else:
+                    if not isinstance(sub['anat'], list):
+                        sub['anat'] = [sub['anat']]
+                    sub['anat'] = bids_match_entities(sub['anat'], label[0],
+                                                      label_type)
     elif label_type == 'bold':
         for sub in sub_list:
             if 'func' in sub:
                 all_scans = [
                     sub['func'][scan].get('scan') for scan in sub['func']]
                 new_func = {}
-                for entity in label:
-                    matched_scans = bids_match_entities(all_scans, entity)
+                for entities in label:
+                    matched_scans = bids_match_entities(all_scans, entities,
+                                                        label_type)
                     for scan in matched_scans:
                         new_func = {
                             **new_func,
@@ -773,8 +783,14 @@ def run_main():
             sub_list = sub_list_filter_by_label(
                 sub_list, 'T1w', args.T1w_label)
 
+        # C-PAC only handles single anatomical images (for now)
+        # so we take just the first as a string if we have a list
+        for i, sub in enumerate(sub_list):
+            while (isinstance(sub.get('anat'), list) and len(sub['anat'])):
+                sub_list[i]['anat'] = sub['anat'][0]
+
         if args.bold_label:
-            args.bids_label = cl_strip_brackets(args.bids_label)
+            args.bold_label = cl_strip_brackets(args.bold_label)
             sub_list = sub_list_filter_by_label(
                 sub_list, 'bold', args.bold_label)
 
