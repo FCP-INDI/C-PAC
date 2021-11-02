@@ -1,7 +1,10 @@
 """Tests for bids_utils"""
 import os
 import pytest
-from CPAC.utils.bids_utils import create_cpac_data_config, \
+import yaml
+from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
+                                  collect_bids_files_configs, \
+                                  create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   sub_list_filter_by_labels
 from CPAC.utils.utils import cl_strip_brackets
@@ -51,6 +54,27 @@ def test_create_cpac_data_config_only_one_anat(tmp_path, only_one_anat):
         create_cpac_data_config(
             str(tmp_path), only_one_anat=only_one_anat
         )[0]['anat']['T1w'], str if only_one_anat else list)
+
+
+@pytest.mark.skip(reason='needs local files not included in package')
+def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
+
+    (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
+    print("Found %d config files for %d image files" % (len(config),
+                                                        len(img_files)))
+    sublist = bids_gen_cpac_sublist(bids_dir, img_files, config, creds_path,
+                                    dbg)
+
+    with open(test_yml, "w") as ofd:
+        yaml.dump(sublist, ofd, encoding='utf-8')
+
+    sublist = bids_gen_cpac_sublist(bids_dir, img_files, None, creds_path, dbg)
+
+    test_yml = test_yml.replace(".yml", "_no_param.yml")
+    with open(test_yml, "w") as ofd:
+        yaml.dump(sublist, ofd, encoding='utf-8')
+
+    assert sublist
 
 
 @pytest.mark.parametrize('t1w_label', ['acq-VNavNorm', None])

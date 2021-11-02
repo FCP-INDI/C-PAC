@@ -2,16 +2,6 @@ import json
 import os
 import re
 import sys
-try:
-    import pytest
-except ModuleNotFoundError:
-    # Mock pytest.mark.skip if pytest is not installed
-    # pylint: disable=invalid-name, missing-class-docstring
-    # pylint: disable=missing-function-docstring, too-few-public-methods
-    class pytest():
-        class mark():
-            def skip(self):
-                return self
 import yaml
 from CPAC.utils.utils import cl_strip_brackets
 
@@ -1024,56 +1014,3 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
         sub_list_func_dict if
         sub_list_func_dict[entity].get('scan') == scan_file_to_match
     }
-
-
-@pytest.mark.skip(reason='needs refactoring')
-def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
-
-    (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
-    print("Found %d config files for %d image files" % (len(config),
-                                                        len(img_files)))
-
-    sublist = bids_gen_cpac_sublist(bids_dir, img_files, config, creds_path, dbg)
-
-    with open(test_yml, "w") as ofd:
-        yaml.dump(sublist, ofd, encoding='utf-8')
-
-    sublist = bids_gen_cpac_sublist(bids_dir, img_files, None, creds_path, dbg)
-
-    test_yml = test_yml.replace(".yml","_no_param.yml")
-    with open(test_yml, "w") as ofd:
-        yaml.dump(sublist, ofd, encoding='utf-8')
-
-    assert sublist
-
-if __name__ == '__main__':
-
-    test_gen_bids_sublist(
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/data/ADHD200/RawDataBIDS/",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/test/rs_subject_list.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/data/ADHD200/RawDataBIDS/Peking_3",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/test/rs_subject_list_pk3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-           "rs_subject_list_s3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/Peking_3",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-           "rs_subject_list_pk3_s3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
