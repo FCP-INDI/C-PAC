@@ -1,6 +1,8 @@
 import json
 import os
+import re
 import sys
+import pytest
 import yaml
 from CPAC.utils.utils import cl_strip_brackets
 
@@ -138,6 +140,17 @@ def bids_match_entities(file_list, entities, suffix):
     ...     's3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz'
     ... ], 'task-PEER1', 'bold')
     ['s3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz']
+    >>> bids_match_entities([
+    ...     's3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz',
+    ...     's3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz'
+    ... ], 'PEER', 'bold')
+    Traceback (most recent call last):
+    LookupError: No match found for provided entity "PEER" in
+    - s3://fake/data/sub-001_ses-001_task-PEER1_bold.nii.gz
+    - s3://fake/data/sub-001_ses-001_task-PEER2_bold.nii.gz
+    Perhaps you meant one of these?
+    - task-PEER1
+    - task-PEER2
     """
     matches = [
         file for file in file_list if f'_{entities}_' in '_'.join(
@@ -146,11 +159,25 @@ def bids_match_entities(file_list, entities, suffix):
     ]
     if file_list and not matches:
         pp_file_list = '\n'.join([f'- {file}' for file in file_list])
-        raise LookupError(' '.join([
+        error_message = ' '.join([
             'No match found for provided',
             'entity' if len(entities.split('_')) == 1 else 'entities',
-            f'"{entities}" in\n{pp_file_list}',
-        ]))
+            f'"{entities}" in\n{pp_file_list}'
+        ])
+        partial_matches = [match.group() for match in [
+            re.search(re.compile(f'[^_]*{entities}[^_]*'), file) for
+            file in file_list
+        ] if match is not None]
+        if partial_matches:
+            if len(partial_matches) == 1:
+                error_message += f'\nPerhaps you meant "{partial_matches[0]}"?'
+            else:
+                error_message = '\n'.join([
+                    error_message,
+                    'Perhaps you meant one of these?',
+                    *[f'- {match}' for match in partial_matches]
+                ])
+        raise LookupError(error_message)
     return matches
 
 
@@ -905,7 +932,7 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
     Examples
     --------
     >>> from CPAC.pipeline.test.sample_data import sub_list
-    >>> sub_list_filter_by_label(sub_list, 'bold', 'PEER1')[
+    >>> _sub_list_filter_by_label(sub_list, 'bold', 'task-PEER1')[
     ...     0]['func'].keys()
     dict_keys(['PEER1'])
     """
@@ -990,6 +1017,7 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
     }
 
 
+@pytest.mark.skip(reason='needs refactoring')
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
 
     (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
