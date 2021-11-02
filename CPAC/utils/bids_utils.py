@@ -2,7 +2,16 @@ import json
 import os
 import re
 import sys
-import pytest
+try:
+    import pytest
+except ModuleNotFoundError:
+    # Mock pytest.mark.skip if pytest is not installed
+    # pylint: disable=invalid-name, missing-class-docstring
+    # pylint: disable=missing-function-docstring, too-few-public-methods
+    class pytest():
+        class mark():
+            def skip(self):
+                return self
 import yaml
 from CPAC.utils.utils import cl_strip_brackets
 
