@@ -10,6 +10,7 @@ from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.schema import valid_options
+from CPAC.utils.datasource import create_roi_mask_dataflow
 from CPAC.utils.interfaces.function import Function
 
 logger = logging.getLogger('nipype.workflow')
@@ -175,6 +176,37 @@ def create_connectome(name='connectome'):
     return wf
 
 
+def create_connectome_nilearn(name='connectomeNilearn'):
+    wf = pe.Workflow(name=name)
+    inputspec = pe.Node(
+        util.IdentityInterface(fields=[
+            'parcellation',
+            'timeseries',
+            'measure'
+        ]),
+        name='inputspec'
+    )
+    outputspec = pe.Node(
+        util.IdentityInterface(fields=[
+            'connectome',
+        ]),
+        name='outputspec'
+    )
+    node = pe.Node(Function(input_names=['parcellation', 'timeseries',
+                                         'measure'],
+                            output_names=['connectome'],
+                            function=compute_connectome_nilearn,
+                            as_module=True),
+                   name='connectome')
+    wf.connect([
+        (inputspec, node, [('parcellation', 'parcellation')]),
+        (inputspec, node, [('timeseries', 'timeseries')]),
+        (inputspec, node, [('measure', 'measure')]),
+        (node, outputspec, [('connectome', 'connectome')]),
+    ])
+    return wf
+
+
 def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "timeseries_connectivity_matrix",
@@ -182,35 +214,45 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["AFNI", "Nilearn"],
-     "inputs": ["timeseries"],
+     "inputs": ["timeseries", ""],
      "outputs": ["connectome"]}
     '''
     # pylint: disable=invalid-name,unused-argument
-    node, out = strat_pool.get_data(["timeseries"])
     outputs = {}
+    node, out = strat_pool.get_data(["timeseries"])
     for measure in cfg['connectivity_matrix', 'measure']:
         if measure in valid_options['connectivity_matrix']['measure']:
             if opt == "Nilearn":
                 timeseries_correlation = pe.Node(Function(
                     input_names=['parcellation', 'timeseries'],
-                    output_names=['connectome'],
-                    function=compute_connectome_nilearn,
+                    output_names=['connectomeNilearn'],
+                    function=create_connectome_nilearn,
                     as_module=True
-                ), name=f'connectome_Nilearn{measure}_{pipe_num}')
+                ), name=f'connectomeNilearn{measure}_{pipe_num}')
+
+                roi_dataflow = create_roi_mask_dataflow(
+                    cfg.timeseries_extraction['tse_atlases']['Avg'],
+                    f'roi_dataflow_{pipe_num}')
+                roi_dataflow.inputs.inputspec.set(
+                    creds_path=cfg.pipeline_setup['input_creds_path'],
+                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+                )
+
+                wf.connect(roi_dataflow, 'outputspec.out_file',
+                           timeseries_correlation, 'parcellation')
             else:
                 timeseries_correlation = pe.Node(Function(
-                    input_names=['time_series', 'measure'],
+                    input_names=['timeseries', 'measure'],
                     output_names=['connectome'],
-                    function=compute_correlation,
+                    function=create_connectome,
                     as_module=True
-                ), name=f'timeseries_{measure}_{pipe_num}')
+                ), name=f'connectome{measure}_{pipe_num}')
+        wf.connect(node, out,
+                   timeseries_correlation, 'timeseries')
+        outputs[f'desc-{opt}{measure}_connectome'] = (
+            timeseries_correlation, 'outputspec.connectome'
+        )
 
-            timeseries_correlation.inputs.measure = measure
-
-            wf.connect(node, out,
-                       timeseries_correlation, 'timeseries')
-            outputs[f'desc-{measure}_connectome'] = (
-                timeseries_correlation, 'outputspec.connectome'
-            )
+        timeseries_correlation.inputs.measure = measure
 
     return (wf, outputs)
