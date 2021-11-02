@@ -878,13 +878,11 @@ def sub_list_filter_by_labels(sub_list, labels):
     -------
     list
     """
-    print(labels)
     if labels.get('T1w'):
         sub_list = _sub_list_filter_by_label(sub_list, 'T1w', labels['T1w'])
     if labels.get('bold'):
         labels['bold'] = cl_strip_brackets(labels['bold'])
         sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
-    print(labels)
     return sub_list
 
 
