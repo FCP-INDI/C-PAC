@@ -1,7 +1,8 @@
+import json
 import os
 import sys
 import yaml
-import json
+from CPAC.utils.utils import cl_strip_brackets
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -856,6 +857,137 @@ def load_cpac_data_config(data_config_file, participant_labels,
             sys.exit(1)
 
     return sub_list
+
+
+def sub_list_filter_by_labels(sub_list, labels):
+    """Function to filter a sub_list by provided BIDS labels for
+    specified suffixes
+
+    Parameters
+    ----------
+    sub_list : list
+
+    labels : dict
+
+    labels['T1w'] : str or None
+        C-PAC currently only uses a single T1w image
+
+    labels['bold'] : str, list, or None
+
+    Returns
+    -------
+    list
+    """
+    if labels.get('T1w'):
+        sub_list = _sub_list_filter_by_label(sub_list, 'T1w', labels['T1w'])
+    if labels.get('bold'):
+        labels['bold'] = cl_strip_brackets(labels['bold'])
+        sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
+    return sub_list
+
+
+def _sub_list_filter_by_label(sub_list, label_type, label):
+    """Function to filter a sub_list by a CLI-provided label.
+
+    Parameters
+    ----------
+    sub_list : list
+
+    label_type : str
+        'T1w' or 'bold'
+
+    label : str or list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> from CPAC.pipeline.test.sample_data import sub_list
+    >>> sub_list_filter_by_label(sub_list, 'bold', 'PEER1')[
+    ...     0]['func'].keys()
+    dict_keys(['PEER1'])
+    """
+    if isinstance(label, str):
+        label = [label]
+    if label_type in label:
+        shortest_entity = True
+        label.remove(label_type)
+    else:
+        shortest_entity = False
+
+    if label_type == 'T1w':
+        for sub in sub_list:
+            if 'anat' in sub:
+                if not isinstance(sub['anat'], list):
+                    sub['anat'] = [sub['anat']]
+                if shortest_entity:
+                    sub['anat'] = bids_shortest_entity(sub['anat'])
+                else:
+                    if not isinstance(sub['anat'], list):
+                        sub['anat'] = [sub['anat']]
+                    sub['anat'] = bids_match_entities(sub['anat'], label[0],
+                                                      label_type)
+    elif label_type == 'bold':
+        for sub in sub_list:
+            if 'func' in sub:
+                all_scans = [
+                    sub['func'][scan].get('scan') for scan in sub['func']]
+                new_func = {}
+                for entities in label:
+                    matched_scans = bids_match_entities(all_scans, entities,
+                                                        label_type)
+                    for scan in matched_scans:
+                        new_func = {
+                            **new_func,
+                            **_match_functional_scan(sub['func'], scan)
+                        }
+                if shortest_entity:
+                    new_func = {
+                        **new_func,
+                        **_match_functional_scan(
+                            sub['func'], bids_shortest_entity(all_scans)
+                        )
+                    }
+                sub['func'] = new_func
+
+    return sub_list
+
+
+def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
+    """Function to subset a scan from a sub_list_func_dict by a scan filename
+
+    Parameters
+    ---------
+    sub_list_func_dict : dict
+        sub_list[sub]['func']
+
+    scan_file_to_match : str
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> from CPAC.pipeline.test.sample_data import sub_list
+    >>> matched = _match_functional_scan(
+    ...     sub_list[0]['func'],
+    ...     '/fake/data/sub-0001/ses-NFB3/func/'
+    ...     'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz')
+    >>> matched.keys()
+    dict_keys(['PEER1'])
+    >>> all([key in matched['PEER1'] for key in [
+    ...     'fmap_mag', 'fmap_phase', 'scan', 'scan_parameters'
+    ... ]])
+    True
+    """
+    return {
+        entity: sub_list_func_dict[entity] for entity in
+        sub_list_func_dict if
+        sub_list_func_dict[entity].get('scan') == scan_file_to_match
+    }
 
 
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):

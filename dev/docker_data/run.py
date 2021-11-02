@@ -19,7 +19,8 @@ from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
                                   bids_shortest_entity, \
                                   collect_bids_files_configs, \
                                   create_cpac_data_config, \
-                                  load_cpac_data_config
+                                  load_cpac_data_config, \
+                                  sub_list_filter_by_labels
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -128,110 +129,6 @@ def resolve_aws_credential(source):
             "Could not find aws credentials {0}"
             .format(source)
         )
-
-
-def sub_list_filter_by_label(sub_list, label_type, label):
-    """Function to filter a sub_list by a CLI-provided label.
-
-    Parameters
-    ----------
-    sub_list : list
-
-    label_type : str
-        'T1w' or 'bold'
-
-    label : str or list
-
-    Returns
-    -------
-    list
-
-    Examples
-    --------
-    >>> from CPAC.pipeline.test.sample_data import sub_list
-    >>> sub_list_filter_by_label(sub_list, 'bold', 'PEER1')[
-    ...     0]['func'].keys()
-    dict_keys(['PEER1'])
-    """
-    if isinstance(label, str):
-        label = [label]
-    if label_type in label:
-        shortest_entity = True
-        label.remove(label_type)
-    else:
-        shortest_entity = False
-
-    if label_type == 'T1w':
-        for sub in sub_list:
-            if 'anat' in sub:
-                if not isinstance(sub['anat'], list):
-                    sub['anat'] = [sub['anat']]
-                if shortest_entity:
-                    sub['anat'] = bids_shortest_entity(sub['anat'])
-                else:
-                    if not isinstance(sub['anat'], list):
-                        sub['anat'] = [sub['anat']]
-                    sub['anat'] = bids_match_entities(sub['anat'], label[0],
-                                                      label_type)
-    elif label_type == 'bold':
-        for sub in sub_list:
-            if 'func' in sub:
-                all_scans = [
-                    sub['func'][scan].get('scan') for scan in sub['func']]
-                new_func = {}
-                for entities in label:
-                    matched_scans = bids_match_entities(all_scans, entities,
-                                                        label_type)
-                    for scan in matched_scans:
-                        new_func = {
-                            **new_func,
-                            **_match_functional_scan(sub['func'], scan)
-                        }
-                if shortest_entity:
-                    new_func = {
-                        **new_func,
-                        **_match_functional_scan(
-                            sub['func'], bids_shortest_entity(all_scans)
-                        )
-                    }
-                sub['func'] = new_func
-
-    return sub_list
-
-
-def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
-    """Function to subset a scan from a sub_list_func_dict by a scan filename
-
-    Parameters
-    ---------
-    sub_list_func_dict : dict
-        sub_list[sub]['func']
-
-    scan_file_to_match : str
-
-    Returns
-    -------
-    dict
-
-    Examples
-    --------
-    >>> from CPAC.pipeline.test.sample_data import sub_list
-    >>> matched = _match_functional_scan(
-    ...     sub_list[0]['func'],
-    ...     '/fake/data/sub-0001/ses-NFB3/func/'
-    ...     'sub-0001_ses-NFB3_task-PEER1_bold.nii.gz')
-    >>> matched.keys()
-    dict_keys(['PEER1'])
-    >>> all([key in matched['PEER1'] for key in [
-    ...     'fmap_mag', 'fmap_phase', 'scan', 'scan_parameters'
-    ... ]])
-    True
-    """
-    return {
-        entity: sub_list_func_dict[entity] for entity in
-        sub_list_func_dict if
-        sub_list_func_dict[entity].get('scan') == scan_file_to_match
-    }
 
 
 def run_main():
@@ -779,20 +676,15 @@ def run_main():
                                              args.participant_label,
                                              args.aws_input_creds)
 
-        if args.T1w_label:
-            sub_list = sub_list_filter_by_label(
-                sub_list, 'T1w', args.T1w_label)
+        sub_list = sub_list_filter_by_labels(sub_list,
+                                             {'T1w': args.T1w_label,
+                                              'bold': args.bold_label})
 
         # C-PAC only handles single anatomical images (for now)
         # so we take just the first as a string if we have a list
         for i, sub in enumerate(sub_list):
             while (isinstance(sub.get('anat'), list) and len(sub['anat'])):
                 sub_list[i]['anat'] = sub['anat'][0]
-
-        if args.bold_label:
-            args.bold_label = cl_strip_brackets(args.bold_label)
-            sub_list = sub_list_filter_by_label(
-                sub_list, 'bold', args.bold_label)
 
         if args.participant_ndx is not None:
 
