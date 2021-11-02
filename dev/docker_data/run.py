@@ -13,7 +13,6 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
                                   bids_match_entities, \
                                   bids_shortest_entity, \
@@ -710,7 +709,7 @@ def run_main():
             CPAC.pipeline.cpac_runner.run(
                 data_config_file,
                 pipeline_config_file,
-                plugin=MultiProcPlugin(plugin_args) if plugin_args[
+                plugin='MultiProc' if plugin_args[
                     'n_procs'
                 ] > 1 else 'Linear',
                 plugin_args=plugin_args,
