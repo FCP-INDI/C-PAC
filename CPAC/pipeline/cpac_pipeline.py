@@ -232,6 +232,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    if plugin is not None and not isinstance(plugin, str):
+        raise TypeError(
+            'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
+            'string for the optional "plugin" argument, but a '
+            f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
+            'was provided.')
     exitcode = 0
 
     # Assure that changes on config will not affect other parts

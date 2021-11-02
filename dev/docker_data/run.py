@@ -13,7 +13,6 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -718,7 +717,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin=MultiProcPlugin(plugin_args) if plugin_args[
+            plugin='MultiProc' if plugin_args[
                 'n_procs'
             ] > 1 else 'Linear',
             plugin_args=plugin_args,
