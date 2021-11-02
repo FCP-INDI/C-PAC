@@ -1,6 +1,10 @@
+"""Tests for bids_utils"""
 import os
 import pytest
-from CPAC.utils.bids_utils import create_cpac_data_config
+from CPAC.utils.bids_utils import create_cpac_data_config, \
+                                  load_cpac_data_config, \
+                                  sub_list_filter_by_labels
+from CPAC.utils.utils import cl_strip_brackets
 
 
 def create_sample_bids_structure(root_dir):
@@ -47,3 +51,78 @@ def test_create_cpac_data_config_only_one_anat(tmp_path, only_one_anat):
         create_cpac_data_config(
             str(tmp_path), only_one_anat=only_one_anat
         )[0]['anat']['T1w'], str if only_one_anat else list)
+
+
+@pytest.mark.parametrize('t1w_label', ['acq-VNavNorm', None])
+@pytest.mark.parametrize('bold_label', [
+    'task-peer_run-1',
+    '[task-peer_run-1 task-peer_run-2]',
+    None])
+@pytest.mark.parametrize('participant_label', ['NDARAA504CRN', 'NDARAC462DZH',
+                                               None])
+def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
+    """Tests for sub_list_filter_by_labels"""
+    if participant_label:
+        participant_label = [
+            'sub-' + pt if not pt.startswith('sub-') else pt for
+            pt in participant_label
+        ]
+    sub_list = load_cpac_data_config(
+        '/code/CPAC/pipeline/test/issue_1606_data_config.yml',
+        participant_label.split(' ') if
+        isinstance(participant_label, str) else None,
+        None)
+    bold_labels = bold_label.split(' ') if bold_label is not None else None
+    expect_lookup_error = (
+        t1w_label is not None and participant_label != 'NDARAA504CRN'
+    )
+    if expect_lookup_error:
+        with pytest.raises(LookupError) as e:
+            sub_list = sub_list_filter_by_labels(
+                sub_list, {
+                    'T1w': t1w_label,
+                    'bold': bold_labels
+                }
+            )
+    else:
+        sub_list = sub_list_filter_by_labels(
+            sub_list, {
+                'T1w': t1w_label,
+                'bold': bold_labels
+            }
+        )
+    print(sub_list)
+    if t1w_label is not None:
+        if participant_label == 'NDARAA504CRN':
+            assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
+                   'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
+                   'T1w.nii.gz' in [sub.get('anat') for sub in sub_list]
+        else:
+            no_t1w_match = 'acq-VNavNorm' in str(e.value)
+            assert no_t1w_match
+    else:
+        assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
+                   'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
+                   'T1w.nii.gz' not in [sub.get('anat') for sub in sub_list]
+    if bold_label is not None:
+        if participant_label == 'NDARAC462DZH':
+            bold_labels = cl_strip_brackets(bold_labels)
+            # all functional scans in data config
+            func_scans = [scan for scan in [
+                sub.get('func').get(task, {}).get('scan') for task in [
+                    task for scan in [
+                        sub.get('func').keys() for sub in sub_list
+                    ] for task in scan
+                ] for sub in sub_list
+            ] if scan]
+            for label in bold_labels:
+                assert any(label in func for func in func_scans)
+        elif t1w_label is not None:
+            assert no_t1w_match
+        else:
+            assert all(
+                len(sub.get('func')) in [0, len(bold_labels)] for
+                sub in sub_list
+            )
+    else:
+        assert all(len(sub.get('func')) in [0, 5] for sub in sub_list)

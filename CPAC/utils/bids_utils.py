@@ -878,11 +878,13 @@ def sub_list_filter_by_labels(sub_list, labels):
     -------
     list
     """
+    print(labels)
     if labels.get('T1w'):
         sub_list = _sub_list_filter_by_label(sub_list, 'T1w', labels['T1w'])
     if labels.get('bold'):
         labels['bold'] = cl_strip_brackets(labels['bold'])
         sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
+    print(labels)
     return sub_list
 
 
@@ -909,11 +911,10 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
     ...     0]['func'].keys()
     dict_keys(['PEER1'])
     """
-    if isinstance(label, str):
-        label = [label]
-    if label_type in label:
+    label_list = [label] if isinstance(label, str) else list(label)
+    if label_type in label_list:
         shortest_entity = True
-        label.remove(label_type)
+        label_list.remove(label_type)
     else:
         shortest_entity = False
 
@@ -927,7 +928,8 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
                 else:
                     if not isinstance(sub['anat'], list):
                         sub['anat'] = [sub['anat']]
-                    sub['anat'] = bids_match_entities(sub['anat'], label[0],
+                    sub['anat'] = bids_match_entities(sub['anat'],
+                                                      label_list[0],
                                                       label_type)
     elif label_type == 'bold':
         for sub in sub_list:
@@ -935,7 +937,7 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
                 all_scans = [
                     sub['func'][scan].get('scan') for scan in sub['func']]
                 new_func = {}
-                for entities in label:
+                for entities in label_list:
                     matched_scans = bids_match_entities(all_scans, entities,
                                                         label_type)
                     for scan in matched_scans:
