@@ -20,6 +20,7 @@ from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
                                   collect_bids_files_configs, \
                                   create_cpac_data_config, \
                                   load_cpac_data_config, \
+                                  load_yaml_config, \
                                   sub_list_filter_by_labels
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
@@ -39,45 +40,6 @@ if not os.path.exists(DEFAULT_PIPELINE):
         os.path.dirname(os.path.realpath(__file__)),
         "default_pipeline.yml"
     )
-
-
-def load_yaml_config(config_filename, aws_input_creds):
-
-    if config_filename.lower().startswith('data:'):
-        try:
-            header, encoded = config_filename.split(",", 1)
-            config_content = b64decode(encoded)
-            config_data = yaml.safe_load(config_content)
-            return config_data
-        except:
-            print("Error! Could not find load config from data URI")
-            raise
-
-    if config_filename.lower().startswith("s3://"):
-        # s3 paths begin with s3://bucket/
-        bucket_name = config_filename.split('/')[2]
-        s3_prefix = '/'.join(config_filename.split('/')[:3])
-        prefix = config_filename.replace(s3_prefix, '').lstrip('/')
-
-        if aws_input_creds:
-            if not os.path.isfile(aws_input_creds):
-                raise IOError("Could not find aws_input_creds (%s)" %
-                              (aws_input_creds))
-
-        from indi_aws import fetch_creds
-        bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
-        downloaded_config = '/tmp/' + os.path.basename(config_filename)
-        bucket.download_file(prefix, downloaded_config)
-        config_filename = downloaded_config
-
-    config_filename = os.path.realpath(config_filename)
-
-    try:
-        config_data = yaml.safe_load(open(config_filename, 'r'))
-        return config_data
-    except IOError:
-        print("Error! Could not find config file {0}".format(config_filename))
-        raise
 
 
 def run(command, env={}):
