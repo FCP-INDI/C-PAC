@@ -12,11 +12,14 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.datasource import create_roi_mask_dataflow
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.netcorr import NetCorr
 
 logger = logging.getLogger('nipype.workflow')
 methods = {
+    'AFNI': {'Pearson': '', 'Partial': '-part_corr'},
     'Nilearn': {'Pearson': 'correlation', 'Partial': 'partial correlation'}
 }
+tools = {'afni': 'AFNI', 'nilearn': 'Nilearn'}
 
 
 def _connectome_name(time_series, method):
@@ -44,23 +47,25 @@ def _connectome_name(time_series, method):
     ))
 
 
-def _get_nilearn_method(method):
-    """Helper function to get Nilearn method string
+def _get_method(method, tool):
+    """Helper function to get tool's method string
 
     Parameters
     ----------
     method : str
 
+    tool : str
+
     Returns
     -------
     str or NotImplemented
     """
-    cm_method = methods['Nilearn'].get(method)
-    if cm_method is None:
+    tool = tools[tool.lower()]  # make case-insensitive
+    cm_method = methods[tool].get(method, NotImplemented)
+    if cm_method is NotImplemented:
         logger.warning(NotImplementedError(
-            f'{method} has not yet been implemented for Nilearn in C-PAC.'
+            f'{method} has not yet been implemented for {tool} in C-PAC.'
         ))
-        return NotImplemented
     return cm_method
 
 
@@ -97,7 +102,7 @@ def compute_correlation(time_series, method):
     else:
         matrix_file = _connectome_name(time_series, method)
 
-    method = _get_nilearn_method(method)
+    method = _get_method(method, 'Nilearn')
     if method is NotImplemented:
         return NotImplemented
 
@@ -128,7 +133,7 @@ def compute_connectome_nilearn(parcellation, timeseries, method):
     numpy.ndarray or NotImplemented
     """
     output = _connectome_name(timeseries, f'Nilearn{method}')
-    method = _get_nilearn_method(method)
+    method = _get_method(method, 'Nilearn')
     if method is NotImplemented:
         return NotImplemented
     masker = NiftiLabelsMasker(labels_img=parcellation,
@@ -222,24 +227,37 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data(["timeseries"])
     for measure in cfg['connectivity_matrix', 'measure']:
         if measure in valid_options['connectivity_matrix']['measure']:
-            if opt == "Nilearn":
-                timeseries_correlation = pe.Node(Function(
-                    input_names=['parcellation', 'timeseries'],
-                    output_names=['connectomeNilearn'],
-                    function=create_connectome_nilearn,
-                    as_module=True
-                ), name=f'connectomeNilearn{measure}_{pipe_num}')
-
+            if opt in ['AFNI', 'Nilearn']:
+                implementation = _get_method(measure, opt)
+                if implementation is NotImplemented:
+                    continue
                 roi_dataflow = create_roi_mask_dataflow(
-                    cfg.timeseries_extraction['tse_atlases']['Avg'],
-                    f'roi_dataflow_{pipe_num}')
+                        cfg.timeseries_extraction['tse_atlases']['Avg'],
+                        f'roi_dataflow_{pipe_num}')
                 roi_dataflow.inputs.inputspec.set(
                     creds_path=cfg.pipeline_setup['input_creds_path'],
                     dl_dir=cfg.pipeline_setup['working_directory']['path']
                 )
 
+                if opt == 'Nilearn':
+                    timeseries_correlation = pe.Node(Function(
+                        input_names=['parcellation', 'timeseries'],
+                        output_names=['connectomeNilearn'],
+                        function=create_connectome_nilearn,
+                        as_module=True
+                    ), name=f'connectomeNilearn{measure}_{pipe_num}')
+                    timeseries_correlation.inputs.measure = measure
+
+                elif opt == "AFNI":
+                    timeseries_correlation = pe.Node(
+                        NetCorr(),
+                        name=f'connectomeAFNI{measure}_{pipe_num}')
+                    if implementation:
+                        timeseries_correlation.inputs.measure = implementation
+
                 wf.connect(roi_dataflow, 'outputspec.out_file',
                            timeseries_correlation, 'parcellation')
+
             else:
                 timeseries_correlation = pe.Node(Function(
                     input_names=['timeseries', 'measure'],
@@ -247,12 +265,8 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                     function=create_connectome,
                     as_module=True
                 ), name=f'connectome{measure}_{pipe_num}')
+
         wf.connect(node, out,
                    timeseries_correlation, 'timeseries')
-        outputs[f'desc-{opt}{measure}_connectome'] = (
-            timeseries_correlation, 'outputspec.connectome'
-        )
-
-        timeseries_correlation.inputs.measure = measure
 
     return (wf, outputs)
