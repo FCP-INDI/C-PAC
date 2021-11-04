@@ -209,7 +209,7 @@ RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
-RUN pip install --upgrade setuptools
+RUN pip install --upgrade "setuptools<58.5"
 RUN pip install --upgrade pip
 RUN pip install --upgrade docutils
 RUN pip install -r /opt/requirements.txt
