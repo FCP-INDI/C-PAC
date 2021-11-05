@@ -230,7 +230,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # if we have an image parameter dictionary at this level, use it to
     # initialize our configuration we look for "RepetitionTime", because
     #  according to the spec it is a mandatory parameter for JSON
-    # sidecare files
+    # sidecar files
 
     if dbg:
         print(t_dict)
@@ -528,6 +528,18 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
     subdict = {}
 
     for p in paths_list:
+        if bids_dir in p:
+           str_list = p.split(bids_dir)
+           val = str_list[0]
+           val = val.rsplit('/')
+           val = val[0]   
+        else:
+           str_list = p.split('/')
+           val = str_list[0]
+           
+        if 'sub-' not in val:
+           continue
+     
         p = p.rstrip()
         f = os.path.basename(p)
 
@@ -542,10 +554,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                     print("Did not receive any parameters for %s," % (p) +
                           " is this a problem?")
 
-                task_info = {"scan": os.path.join(bids_dir,p),
+                task_info = {"scan": os.path.join(bids_dir, p),
                              "scan_parameters": t_params.copy()}
             else:
-                task_info = os.path.join(bids_dir ,p)
+                task_info = os.path.join(bids_dir, p)
 
             if "ses" not in f_dict:
                 f_dict["ses"] = "1"
@@ -565,6 +577,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                      "site_id": "-".join(["site", f_dict["site"]]),
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
+
             if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"] :
                 if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
@@ -652,7 +665,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
     sublist = []
     for ksub, sub in subdict.items():
         for kses, ses in sub.items():
-            if "anat" in ses and "func" in ses:
+            if "anat" in ses or "func" in ses:
                 sublist.append(ses)
             else:
                 if "anat" not in ses:
@@ -725,9 +738,12 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                             file_paths += [os.path.join(root, f).replace(bids_dir,'')
                                    .lstrip('/')]
                         if f.endswith('json') and suf in f:
-                            config_dict.update(
-                                {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
-                                     json.load(open(os.path.join(root, f), 'r'))})
+                            try:
+                                config_dict.update(
+                                    {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
+                                         json.load(open(os.path.join(root, f), 'r'))})
+                            except UnicodeDecodeError:
+                                raise Exception("Could not decode {0}".format(os.path.join(root, f)))
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "
@@ -1014,3 +1030,4 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
         sub_list_func_dict if
         sub_list_func_dict[entity].get('scan') == scan_file_to_match
     }
+
