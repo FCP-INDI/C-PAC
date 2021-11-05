@@ -675,10 +675,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, process_gm, 'inputspec.brain_mask')
     wf.connect(node, out, process_wm, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data(xfm)
-    wf.connect(node, out, process_csf, 'inputspec.template_to_T1_xfm')
-    wf.connect(node, out, process_gm, 'inputspec.template_to_T1_xfm')
-    wf.connect(node, out, process_wm, 'inputspec.template_to_T1_xfm')
+    if use_priors:
+        node, out = strat_pool.get_data(xfm)
+        wf.connect(node, out, process_csf, 'inputspec.template_to_T1_xfm')
+        wf.connect(node, out, process_gm, 'inputspec.template_to_T1_xfm')
+        wf.connect(node, out, process_wm, 'inputspec.template_to_T1_xfm')
 
     wf.connect(segment, ('tissue_class_files', pick_wm_class_0),
                process_csf, 'inputspec.tissue_class_file')
