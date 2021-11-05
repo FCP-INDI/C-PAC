@@ -517,12 +517,15 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     :param aws_input_creds:
     :return:
     """
+    from datetime import datetime
 
     file_paths = []
     config_dict = {}
 
     suffixes = ['T1w', 'bold', '_epi', 'phasediff', 'magnitude',
                 'magnitude1', 'magnitude2']
+
+    time0 = datetime.now()
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -571,6 +574,10 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                                          json.load(open(os.path.join(root, f), 'r'))})
                             except UnicodeDecodeError:
                                 raise Exception("Could not decode {0}".format(os.path.join(root, f)))
+
+    time1 = datetime.now()
+    time_diff = (time1-time0).total_seconds()
+    print(f"Parsing Time: {time_diff}s")
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "
