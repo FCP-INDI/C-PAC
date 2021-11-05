@@ -604,11 +604,13 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     use_priors = cfg['segmentation']['tissue_segmentation'][
         'FSL-FAST']['use_priors']['run']
 
+    long = ''
+    if 'space-longitudinal' in resource:
+        long = 'space-longitudinal_'
+    
     if use_priors: 
-        long = ''
         xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
         if 'space-longitudinal' in resource:
-            long = 'space-longitudinal_'
             xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
         xfm_prov = strat_pool.get_cpac_provenance(xfm)
         reg_tool = check_prov_for_regtool(xfm_prov)
