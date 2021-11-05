@@ -103,8 +103,6 @@ commands:
       - run:
           name: "Configuring git user"
           command: |
-            sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 78BD65473CB3BD13
-            curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install git -y
             git config --global user.email "CMI_CPAC_Support@childmind.org"
@@ -205,7 +203,7 @@ commands:
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
               if [[ -f ${DOCKERFILE} ]]
               then
-                sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
+                sed -i "s|c-pac:latest|c-pac:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
               fi
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"

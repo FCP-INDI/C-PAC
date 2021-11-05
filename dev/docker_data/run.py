@@ -13,7 +13,6 @@ from urllib import request
 from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -140,7 +139,7 @@ def create_cpac_data_config(bids_dir, participant_label=None,
                 participant_label in file_path
                 for participant_label in participant_labels
             )
-            ]
+        ]
 
     if not file_paths:
         print("Did not find data for {0}".format(
@@ -640,6 +639,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     participant_labels = []
     if args.participant_label:
+        args.participant_label[0] = args.participant_label[0].lstrip('[')
+        args.participant_label[-1] = args.participant_label[-1].rstrip(']')
         participant_labels = [
             'sub-' + pt if not pt.startswith('sub-') else pt
             for pt in args.participant_label
@@ -717,7 +718,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         CPAC.pipeline.cpac_runner.run(
             data_config_file,
             pipeline_config_file,
-            plugin=MultiProcPlugin(plugin_args) if plugin_args[
+            plugin='MultiProc' if plugin_args[
                 'n_procs'
             ] > 1 else 'Linear',
             plugin_args=plugin_args,
