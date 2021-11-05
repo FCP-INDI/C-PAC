@@ -523,23 +523,24 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
     # otherwise parse the information in the sidecar json files into a dict
     # we can use to extract data for our nifti files
     if config_dict:
-        bids_config_dict = bids_parse_sidecar(config_dict, raise_error=raise_error)
+        bids_config_dict = bids_parse_sidecar(config_dict,
+                                              raise_error=raise_error)
 
     subdict = {}
 
     for p in paths_list:
         if bids_dir in p:
-           str_list = p.split(bids_dir)
-           val = str_list[0]
-           val = val.rsplit('/')
-           val = val[0]   
+            str_list = p.split(bids_dir)
+            val = str_list[0]
+            val = val.rsplit('/')
+            val = val[0]
         else:
-           str_list = p.split('/')
-           val = str_list[0]
-           
+            str_list = p.split('/')
+            val = str_list[0]
+
         if 'sub-' not in val:
-           continue
-     
+            continue
+
         p = p.rstrip()
         f = os.path.basename(p)
 
@@ -578,7 +579,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
-            if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"] :
+            if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"]:
                 if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
                             subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -718,8 +719,9 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                 if suf in str(s3_obj.key):
                     if str(s3_obj.key).endswith("json"):
                         try:
-                            config_dict[s3_obj.key.replace(prefix, "").lstrip('/')] \
-                                = json.loads(s3_obj.get()["Body"].read())
+                            config_dict[s3_obj.key.replace(prefix, "")
+                                        .lstrip('/')] = json.loads(
+                                            s3_obj.get()["Body"].read())
                         except Exception as e:
                             print("Error retrieving %s (%s)" %
                                   (s3_obj.key.replace(prefix, ""),
@@ -735,15 +737,19 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                 for f in files:
                     for suf in suffixes:
                         if 'nii' in f and suf in f:
-                            file_paths += [os.path.join(root, f).replace(bids_dir,'')
-                                   .lstrip('/')]
+                            file_paths += [os.path.join(root, f)
+                                           .replace(bids_dir, '').lstrip('/')]
                         if f.endswith('json') and suf in f:
                             try:
                                 config_dict.update(
-                                    {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
-                                         json.load(open(os.path.join(root, f), 'r'))})
+                                    {os.path.join(root.replace(bids_dir, '')
+                                     .lstrip('/'), f):
+                                         json.load(
+                                             open(os.path.join(root, f), 'r')
+                                         )})
                             except UnicodeDecodeError:
-                                raise Exception("Could not decode {0}".format(os.path.join(root, f)))
+                                raise Exception("Could not decode {0}".format(
+                                    os.path.join(root, f)))
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "
@@ -1030,4 +1036,3 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
         sub_list_func_dict if
         sub_list_func_dict[entity].get('scan') == scan_file_to_match
     }
-

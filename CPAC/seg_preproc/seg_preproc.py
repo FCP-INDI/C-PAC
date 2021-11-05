@@ -607,8 +607,8 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     long = ''
     if 'space-longitudinal' in resource:
         long = 'space-longitudinal_'
-    
-    if use_priors: 
+
+    if use_priors:
         xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
         if 'space-longitudinal' in resource:
             xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
