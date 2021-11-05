@@ -373,10 +373,20 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     # we can use to extract data for our nifti files
     if config_dict:
         bids_config_dict = bids_parse_sidecar(config_dict, raise_error=raise_error)
-
     subdict = {}
-
     for p in paths_list:
+        if bids_dir in p:
+           str_list = p.split(bids_dir)
+           val = str_list[0]
+           val = val.rsplit('/')
+           val = val[0]   
+        else:
+           str_list = p.split('/')
+           val = str_list[0]
+           
+        if 'sub-' not in val:
+           continue
+     
         p = p.rstrip()
         f = os.path.basename(p)
 
@@ -539,7 +549,6 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
         print(f"gathering files from S3 bucket ({bucket}) for {prefix}")
-
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
