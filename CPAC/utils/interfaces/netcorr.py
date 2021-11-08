@@ -11,8 +11,8 @@ class NetCorrInputSpec(AFNICommandInputSpec):
     'automask', based on when non-uniformly-zero time series are", this
     interface requires an ROI mask."""
     out_file = File(name_template='%s_connectome', position=0,
-                    desc='output image file name',
-                    argstr=f'-prefix $PWD/%s',
+                    desc='output file name',
+                    argstr=f'-prefix %s',
                     name_source=['timeseries'])
     measure = Str(desc='if not Pearson', argstr='%s', position=1,
                   mandatory=False) or None
@@ -26,13 +26,17 @@ class NetCorrInputSpec(AFNICommandInputSpec):
                         argstr='-automask_off', usedefault=True)
 
 
+class NetCorrOutputSpec(AFNICommandOutputSpec):
+    out_file = File(desc='output file')
+
+
 class NetCorr(AFNICommand):
     """3dNetCorr interface. For complete details, see the `3dNetCorr Documentation.
     https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNetCorr.html>`_
     """
     _cmd = '3dNetCorr'
     input_spec = NetCorrInputSpec
-    output_spec = AFNICommandOutputSpec
+    output_spec = NetCorrOutputSpec
     # def _gen_filename(self, name):  # this doesn't seem to do anything?
     #     return '_'.join([*self.inputs.timeseries.split('_')[:-1],
     #                       'connectome.netcc'])
