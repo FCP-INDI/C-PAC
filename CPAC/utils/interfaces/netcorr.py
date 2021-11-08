@@ -202,7 +202,7 @@ class NetCorr(AFNICommand):
 
         if (
             isdefined(self.inputs.ts_wb_corr) or
-            isdefined(self.inputs.ts_Z_corr)
+            isdefined(self.inputs.ts_wb_Z)
         ):
             corrdir = os.path.join(odir, prefix + "_000_INDIV")
             outputs["out_corr_maps"] = glob.glob(
