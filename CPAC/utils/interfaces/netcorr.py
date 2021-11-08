@@ -8,13 +8,13 @@ from traits.api import Bool, List
 
 
 class NetCorrInputSpec(AFNICommandInputSpec):
-    in_file = File(
+    timeseries = File(
         desc="input time series file (4D data set)",
         exists=True,
         argstr="-inset %s",
         mandatory=True,
     )
-    in_rois = File(
+    parcellation = File(
         desc="input set of ROIs, each labelled with distinct integers",
         exists=True,
         argstr="-in_rois %s",
