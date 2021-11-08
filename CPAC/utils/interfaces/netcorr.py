@@ -27,6 +27,12 @@ class NetCorrInputSpec(AFNICommandInputSpec):
         exists=True,
         argstr="-mask %s",
     )
+    automask_off = Bool(
+        True,
+        desc='If you want to neither put in a mask '
+             '*nor* have the automasking occur',
+        argstr='-automask_off', usedefault=True
+    )
     weight_ts = File(
         desc="input a 1D file WTS of weights that will be applied "
         "multiplicatively to each ROI's average time series. "
