@@ -973,7 +973,23 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         inputspec, 'linear_reg_matrix',
         bbreg_func_to_anat, 'in_matrix_file')
 
- 
+    def convert_pedir(pedir):
+        # FSL Flirt requires pedir input encoded as an int
+        conv_dct = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
+                    'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
+                    '-x': -1, '-i': -1, '-y': -2,
+                    '-j': -2, '-z': -3, '-k': -3}
+        
+        if isinstance(pedir, bytes):
+            pedir = pedir.decode()
+        if not isinstance(pedir, str):
+            raise Exception("\n\nPhase-encoding direction must be a "
+                            "string value.\n\nValue: {0}"
+                            "\n\n".format(pedir))
+        if pedir not in conv_dct.keys():
+            raise Exception("\n\nInvalid phase-encoding direction "
+                            "entered: {0}\n\n".format(pedir))
+        return conv_dct[pedir]
 
     if phase_diff_distcor:
         register_bbregister_func_to_anat.connect(
