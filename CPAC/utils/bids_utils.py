@@ -972,11 +972,18 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
                 if shortest_entity:
                     sub['anat'] = bids_shortest_entity(sub['anat'])
                 else:
-                    if not isinstance(sub['anat'], list):
-                        sub['anat'] = [sub['anat']]
-                    sub['anat'] = bids_match_entities(sub['anat'],
-                                                      label_list[0],
-                                                      label_type)
+                    if isinstance(sub['anat'], dict):
+                        if 'T1w' in sub['anat']:
+                            sub['anat']['T1w'] = bids_match_entities(
+                                sub['anat']['T1w'], label_list[0],
+                                label_type
+                            )
+                    else:
+                        if not isinstance(sub['anat'], list):
+                            sub['anat'] = [sub['anat']]
+                        sub['anat'] = bids_match_entities(sub['anat'],
+                                                          label_list[0],
+                                                          label_type)
     elif label_type == 'bold':
         for sub in sub_list:
             if 'func' in sub:

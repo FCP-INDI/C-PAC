@@ -7,17 +7,12 @@ import subprocess
 import sys
 import time
 import shutil
-import yaml
-from base64 import b64decode
 from urllib import request
 from urllib.error import HTTPError
+import yaml
 
 from CPAC import __version__
-from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
-                                  bids_match_entities, \
-                                  bids_shortest_entity, \
-                                  collect_bids_files_configs, \
-                                  create_cpac_data_config, \
+from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
@@ -644,7 +639,13 @@ def run_main():
         # C-PAC only handles single anatomical images (for now)
         # so we take just the first as a string if we have a list
         for i, sub in enumerate(sub_list):
-            while (isinstance(sub.get('anat'), list) and len(sub['anat'])):
+            if isinstance(sub.get('anat'), dict) and 'T1w' in sub['anat']:
+                while (
+                    isinstance(sub['anat']['T1w'], list) and
+                    len(sub['anat']['T1w'])
+                ):
+                    sub['anat']['T1w'] = sub['anat']['T1w'][0]
+            while isinstance(sub.get('anat'), list) and len(sub['anat']):
                 sub_list[i]['anat'] = sub['anat'][0]
 
         if args.participant_ndx is not None:
