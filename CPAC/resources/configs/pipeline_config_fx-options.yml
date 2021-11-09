@@ -15,6 +15,14 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_fx-options
 
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcp_qc_files: On
+
 nuisance_corrections: 
 
   2-nuisance_regression: 

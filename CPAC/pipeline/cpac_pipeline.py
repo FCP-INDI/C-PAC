@@ -1292,8 +1292,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             any([cfg.network_centrality[option]['weight_options'] for option in valid_options['centrality']['method_options']]):
         pipeline_blocks += [network_centrality]
 
-    if cfg.pipeline_setup['output_directory'][
-        'generate_quality_control_images']:
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_quality_control_images'
+    ]:
         qc_stack, qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(cfg)
         pipeline_blocks += qc_stack

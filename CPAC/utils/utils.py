@@ -2191,7 +2191,9 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     'write_func_outputs': False,
     ...     'write_debugging_outputs': False,
     ...     'output_tree': 'default',
-    ...     'generate_quality_control_images': True},
+    ...     'quality_control': {,
+    ...         'generate_quality_control_images': True,
+    ...         'generate_xcp_qc_files': True}},
     ...     'working_directory': {'path': '/tmp', 'remove_working_dir': True},
     ...     'log_directory': {'run_logging': True, 'path': '/logs'},
     ...     'system_config': {'maximum_memory_per_participant': 1,
@@ -2207,7 +2209,9 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {
     ...         'path': '/output', 'write_func_outputs': False,
     ...         'write_debugging_outputs': False, 'output_tree': 'default',
-    ...         'generate_quality_control_images': True
+    ...         'quality_control': {
+    ...             'generate_quality_control_images': True,
+    ...             'generate_xcp_qc_files': True}
     ...     }, 'working_directory': {
     ...        'path': '/tmp', 'remove_working_dir': True
     ...     }, 'log_directory': {'run_logging': True, 'path': '/logs'},
