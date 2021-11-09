@@ -187,7 +187,7 @@ from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.utils import generate_qc_pages
+from CPAC.qc.xcp import qc_xcp
 
 from CPAC.utils.utils import (
     check_config_resources,
@@ -1289,8 +1289,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             vmhc]
 
     if not rpool.check_rpool('centrality') and \
-            any([cfg.network_centrality[option]['weight_options'] for option in valid_options['centrality']['method_options']]):
+            any(cfg.network_centrality[option]['weight_options'] for
+                option in valid_options['centrality']['method_options']):
         pipeline_blocks += [network_centrality]
+
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_xcp_qc_files'
+    ]:
+        pipeline_blocks += [qc_xcp]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'

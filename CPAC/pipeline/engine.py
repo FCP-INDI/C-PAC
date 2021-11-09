@@ -938,7 +938,11 @@ class ResourcePool(object):
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                wf.connect(node, out, nii_name, 'in_file')
+                try:
+                    wf.connect(node, out, nii_name, 'in_file')
+                except OSError as os_error:
+                    logger.warning(os_error)
+                    continue
 
                 write_json_imports = ['import os', 'import json']
                 write_json = pe.Node(Function(input_names=['json_data',
