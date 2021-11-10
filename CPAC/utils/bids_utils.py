@@ -934,6 +934,30 @@ def sub_list_filter_by_labels(sub_list, labels):
     return sub_list
 
 
+def _t1w_filter(anat, shortest_entity, label):
+    """Helper function to filter T1w paths
+
+    Parameters
+    ----------
+    anat: list or str
+
+    shortest_entity: bool
+
+    label: str
+
+    Returns
+    -------
+    anat: list
+    """
+    if not isinstance(anat, list):
+        anat = [anat]
+    if shortest_entity:
+        anat = bids_shortest_entity(anat)
+    else:
+        anat = bids_match_entities(anat, label, 'T1w')
+    return anat
+
+
 def _sub_list_filter_by_label(sub_list, label_type, label):
     """Function to filter a sub_list by a CLI-provided label.
 
@@ -965,47 +989,38 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
         shortest_entity = False
 
     if label_type == 'T1w':
-        for sub in sub_list:
-            if 'anat' in sub:
-                if not isinstance(sub['anat'], list):
-                    sub['anat'] = [sub['anat']]
-                if shortest_entity:
-                    sub['anat'] = bids_shortest_entity(sub['anat'])
-                else:
-                    if isinstance(sub['anat'], dict):
-                        if 'T1w' in sub['anat']:
-                            sub['anat']['T1w'] = bids_match_entities(
-                                sub['anat']['T1w'], label_list[0],
-                                label_type
-                            )
-                    else:
-                        if not isinstance(sub['anat'], list):
-                            sub['anat'] = [sub['anat']]
-                        sub['anat'] = bids_match_entities(sub['anat'],
-                                                          label_list[0],
-                                                          label_type)
+        for sub in [sub for sub in sub_list if 'anat' in sub]:
+            if isinstance(sub['anat'], dict):
+                if 'T1w' in sub['anat']:
+                    sub['anat']['T1w'] = _t1w_filter(sub['anat']['T1w'],
+                                                     shortest_entity,
+                                                     label_list[0])
+            else:
+                sub['anat'] = _t1w_filter(sub['anat'],
+                                          shortest_entity,
+                                          label_list[0])
+
     elif label_type == 'bold':
-        for sub in sub_list:
-            if 'func' in sub:
-                all_scans = [
-                    sub['func'][scan].get('scan') for scan in sub['func']]
-                new_func = {}
-                for entities in label_list:
-                    matched_scans = bids_match_entities(all_scans, entities,
-                                                        label_type)
-                    for scan in matched_scans:
-                        new_func = {
-                            **new_func,
-                            **_match_functional_scan(sub['func'], scan)
-                        }
-                if shortest_entity:
+        for sub in [sub for sub in sub_list if 'func' in sub]:
+            all_scans = [
+                sub['func'][scan].get('scan') for scan in sub['func']]
+            new_func = {}
+            for entities in label_list:
+                matched_scans = bids_match_entities(all_scans, entities,
+                                                    label_type)
+                for scan in matched_scans:
                     new_func = {
                         **new_func,
-                        **_match_functional_scan(
-                            sub['func'], bids_shortest_entity(all_scans)
-                        )
+                        **_match_functional_scan(sub['func'], scan)
                     }
-                sub['func'] = new_func
+            if shortest_entity:
+                new_func = {
+                    **new_func,
+                    **_match_functional_scan(
+                        sub['func'], bids_shortest_entity(all_scans)
+                    )
+                }
+            sub['func'] = new_func
 
     return sub_list
 
