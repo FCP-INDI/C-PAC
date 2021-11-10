@@ -21,7 +21,7 @@ pipeline_setup:
     quality_control:
 
       # Generate eXtensible Connectivity Pipeline-style quality control files
-      generate_xcp_qc_files: On
+      generate_xcpqc_files: On
 
 nuisance_corrections: 
 

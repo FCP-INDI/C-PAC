@@ -1294,7 +1294,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [network_centrality]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
-        'generate_xcp_qc_files'
+        'generate_xcpqc_files'
     ]:
         pipeline_blocks += [qc_xcp]
 

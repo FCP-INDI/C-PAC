@@ -351,7 +351,7 @@ latest_schema = Schema({
             'output_tree': str,
             'quality_control': {
                 'generate_quality_control_images': bool,
-                'generate_xcp_qc_files': bool,
+                'generate_xcpqc_files': bool,
             },
         },
         'working_directory': {

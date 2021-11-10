@@ -135,7 +135,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     """
     {'name': 'qc_xcp',
      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcp_qc_files'],
+     'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
      'inputs': ['bold', 'desc-preproc_bold'],

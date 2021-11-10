@@ -53,7 +53,7 @@ pipeline_setup:
       generate_quality_control_images: True
 
       # Generate eXtensible Connectivity Pipeline-style quality control files
-      generate_xcp_qc_files: False
+      generate_xcpqc_files: False
 
   working_directory:
 
