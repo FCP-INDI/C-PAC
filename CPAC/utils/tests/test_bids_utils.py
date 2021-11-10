@@ -97,24 +97,12 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
         isinstance(participant_label, str) else None,
         None)
     bold_labels = bold_label.split(' ') if bold_label is not None else None
-    expect_lookup_error = (
-        t1w_label is not None and participant_label != 'NDARAA504CRN'
+    sub_list = sub_list_filter_by_labels(
+        sub_list, {
+            'T1w': t1w_label,
+            'bold': bold_labels
+        }
     )
-    if expect_lookup_error:
-        with pytest.raises(LookupError) as e:
-            sub_list = sub_list_filter_by_labels(
-                sub_list, {
-                    'T1w': t1w_label,
-                    'bold': bold_labels
-                }
-            )
-    else:
-        sub_list = sub_list_filter_by_labels(
-            sub_list, {
-                'T1w': t1w_label,
-                'bold': bold_labels
-            }
-        )
     print(sub_list)
     if t1w_label is not None:
         if participant_label == 'NDARAA504CRN':
@@ -122,8 +110,7 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
                    'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
                    'T1w.nii.gz' in [sub.get('anat') for sub in sub_list]
         else:
-            no_t1w_match = 'acq-VNavNorm' in str(e.value)
-            assert no_t1w_match
+            assert sub_list == []
     else:
         assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
                    'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
@@ -142,7 +129,7 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
             for label in bold_labels:
                 assert any(label in func for func in func_scans)
         elif t1w_label is not None:
-            assert no_t1w_match
+            assert sub_list == []
         else:
             assert all(
                 len(sub.get('func')) in [0, len(bold_labels)] for

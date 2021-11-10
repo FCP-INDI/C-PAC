@@ -2,13 +2,13 @@ import json
 import os
 import re
 import sys
+from warnings import warn
+
 import yaml
 from CPAC.utils.utils import cl_strip_brackets
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
-    import re
-
     f_dict = {}
 
     fname = os.path.basename(file_path)
@@ -48,7 +48,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
     else:
         f_dict["site"] = "none"
 
-    f_dict["site"] = re.sub('[\s\-\_]+', '', f_dict["site"])
+    f_dict["site"] = re.sub(r'[\s\-\_]+', '', f_dict["site"])
 
     fname = fname.split(".")[0]
     # convert the filename string into a dictionary to pull out the other
@@ -958,6 +958,34 @@ def _t1w_filter(anat, shortest_entity, label):
     return anat
 
 
+def _sub_anat_filter(anat, shortest_entity, label):
+    """Helper function to filter anat paths in sub_list
+
+    Parameters
+    ----------
+    anat : list or dict
+
+    shortest_entity : bool
+
+    label : str
+
+    Returns
+    -------
+    list or dict
+        same type as 'anat' parameter
+    """
+    print(f'sub_anat_filter: {anat}')
+    if isinstance(anat, dict):
+        if 'T1w' in anat:
+            anat['T1w'] = _t1w_filter(anat['T1w'],
+                                      shortest_entity,
+                                      label)
+        print(f'sub_anat_filter (after): {anat}')
+        return anat
+    print(f'sub_anat_filter (after): {anat}')
+    return _t1w_filter(anat, shortest_entity, label)
+
+
 def _sub_list_filter_by_label(sub_list, label_type, label):
     """Function to filter a sub_list by a CLI-provided label.
 
@@ -982,47 +1010,49 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
     dict_keys(['PEER1'])
     """
     label_list = [label] if isinstance(label, str) else list(label)
+    new_sub_list = []
     if label_type in label_list:
         shortest_entity = True
         label_list.remove(label_type)
     else:
         shortest_entity = False
-
     if label_type == 'T1w':
         for sub in [sub for sub in sub_list if 'anat' in sub]:
-            if isinstance(sub['anat'], dict):
+            try:
+                sub['anat'] = _sub_anat_filter(sub['anat'],
+                                               shortest_entity,
+                                               label_list[0])
                 if 'T1w' in sub['anat']:
-                    sub['anat']['T1w'] = _t1w_filter(sub['anat']['T1w'],
-                                                     shortest_entity,
-                                                     label_list[0])
-            else:
-                sub['anat'] = _t1w_filter(sub['anat'],
-                                          shortest_entity,
-                                          label_list[0])
+                    new_sub_list.append(sub)
+            except LookupError as lookup_error:
+                warn(str(lookup_error))
 
     elif label_type == 'bold':
         for sub in [sub for sub in sub_list if 'func' in sub]:
-            all_scans = [
-                sub['func'][scan].get('scan') for scan in sub['func']]
-            new_func = {}
-            for entities in label_list:
-                matched_scans = bids_match_entities(all_scans, entities,
-                                                    label_type)
-                for scan in matched_scans:
+            try:
+                all_scans = [sub['func'][scan].get('scan') for
+                             scan in sub['func']]
+                new_func = {}
+                for entities in label_list:
+                    matched_scans = bids_match_entities(all_scans, entities,
+                                                        label_type)
+                    for scan in matched_scans:
+                        new_func = {
+                            **new_func,
+                            **_match_functional_scan(sub['func'], scan)
+                        }
+                if shortest_entity:
                     new_func = {
                         **new_func,
-                        **_match_functional_scan(sub['func'], scan)
+                        **_match_functional_scan(
+                            sub['func'], bids_shortest_entity(all_scans)
+                        )
                     }
-            if shortest_entity:
-                new_func = {
-                    **new_func,
-                    **_match_functional_scan(
-                        sub['func'], bids_shortest_entity(all_scans)
-                    )
-                }
-            sub['func'] = new_func
-
-    return sub_list
+                sub['func'] = new_func
+                new_sub_list.append(sub)
+            except LookupError as lookup_error:
+                warn(str(lookup_error))
+    return new_sub_list
 
 
 def _match_functional_scan(sub_list_func_dict, scan_file_to_match):

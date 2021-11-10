@@ -631,20 +631,28 @@ def run_main():
             sub_list = load_cpac_data_config(args.data_config_file,
                                              args.participant_label,
                                              args.aws_input_creds)
-
+        way_orig_sublist = list(sub_list)
         sub_list = sub_list_filter_by_labels(sub_list,
                                              {'T1w': args.T1w_label,
                                               'bold': args.bold_label})
+        raise Exception(sub_list)
 
         # C-PAC only handles single anatomical images (for now)
         # so we take just the first as a string if we have a list
+        original_sub_list = list(sub_list)
         for i, sub in enumerate(sub_list):
-            if isinstance(sub.get('anat'), dict) and 'T1w' in sub['anat']:
-                while (
-                    isinstance(sub['anat']['T1w'], list) and
-                    len(sub['anat']['T1w'])
-                ):
-                    sub['anat']['T1w'] = sub['anat']['T1w'][0]
+            try:
+                if isinstance(sub.get('anat'), dict) and 'T1w' in sub['anat']:
+                    while (
+                        isinstance(sub['anat']['T1w'], list) and
+                        len(sub['anat']['T1w'])
+                    ):
+                        sub['anat']['T1w'] = sub['anat']['T1w'][0]
+            except AttributeError as attribute_error:
+                raise Exception('\n'.join([
+                    # str(way_orig_sublist),
+                    # str(original_sub_list),
+                    str(sub), str(sub_list)])) from attribute_error
             while isinstance(sub.get('anat'), list) and len(sub['anat']):
                 sub_list[i]['anat'] = sub['anat'][0]
 
