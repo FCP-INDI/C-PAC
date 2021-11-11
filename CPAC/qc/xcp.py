@@ -1,4 +1,4 @@
-"""Generate eXtensible Connectivity Pipeline-style quality control files
+"""`Generate eXtensible Connectivity Pipeline-style quality control files <https://fcp-indi.github.io/docs/user/xcpqc>`_
 
 Columns
 -------
@@ -48,13 +48,6 @@ normCrossCorr : float
     :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normCoverage : float
     :cite:`cite-Ciri19` :cite:`cite-Penn19`
-
-.. rubric References
-
-.. bibliography:: /references/xcpqc_citation.bib
-   :style: cpac_docs_style
-   :cited:
-   :keyprefix: cite-
 """  # noqa E501  # pylint: disable=line-too-long
 import os
 import re
@@ -75,7 +68,7 @@ from CPAC.utils.interfaces.function import Function
 #                          **kwargs)
 
 
-def generate_desc_qc(original, final):
+def generate_desc_qc(original, final_anat, final_func):
     """Function to generate an RBC-style QC CSV
 
     Parameters
@@ -83,16 +76,11 @@ def generate_desc_qc(original, final):
     original : str
         path to original image
 
-    final : str
-        path to final image
+    final_anat : str
+        path to 'desc-preproc_T1w' image
 
-    coreg : nipype.interfaces.base.specs.DynamicTraitedSpec
-        Output of OverlapInterface (with attributes Dice, Jaccard,
-        CrossCorr, and Coverage)
-
-    norm : nipype.interfaces.base.specs.DynamicTraitedSpec
-        Output of OverlapInterface (with attributes Dice, Jaccard,
-        CrossCorr, and Coverage)
+    final_bold : str
+        path to 'desc-preproc_bold' image
 
     Returns
     -------
@@ -109,11 +97,12 @@ def generate_desc_qc(original, final):
 
     images = {
         'original': nb.load(original),
-        'final': nb.load(final)
+        'final_anat': nb.load(final_anat),
+        'final_func': nb.load(final_func)
     }
 
     # `sub` through `space`
-    final_filename = final.split('/')[-1]
+    final_filename = final_func.split('/')[-1]
     bids_entities = final_filename.split('_')
     from_bids = dict(
         tuple(entity.split('-', 1)) if '-' in entity else
@@ -124,7 +113,7 @@ def generate_desc_qc(original, final):
         from_bids['space'] = ['native']
 
     # `nVolCensored` & `nVolsRemoved`
-    if images['original'].shape == images['final'].shape:
+    if images['original'].shape == images['final_anat'].shape:
         shape_diff = 0
     else:
         shape_diff = 'qc log not yet implemented'  # TODO
@@ -132,26 +121,26 @@ def generate_desc_qc(original, final):
                     shape_key in {'nVolCensored', 'nVolsRemoved'}}
 
     # `meanFD (Jenkinson)`
-    if isinstance(final, BufferedReader):
-        final = final.name
-    qc_filepath = _generate_filename(final)
+    if isinstance(final_func, BufferedReader):
+        final_func = final_func.name
+    qc_filepath = _generate_filename(final_func)
 
-    desc_span = re.search(r'_desc-.*_', final)
+    desc_span = re.search(r'_desc-.*_', final_func)
     if desc_span:
         desc_span = desc_span.span()
-        final = '_'.join([
-            final[:desc_span[0]],
-            final[desc_span[1]:]
+        final_func = '_'.join([
+            final_func[:desc_span[0]],
+            final_func[desc_span[1]:]
         ])
     del desc_span
     power_params = {'meanFD': np.mean(np.loadtxt('_'.join([
-        *final.split('_')[:-1],
+        *final_func.split('_')[:-1],
         'framewise-displacement-jenkinson.1D'
     ])))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
     mot = np.genfromtxt('_'.join([
-        *final.split('_')[:-1],
+        *final_func.split('_')[:-1],
         'movement-parameters.1D'
     ])).T
     # Relative RMS of translation
@@ -167,7 +156,7 @@ def generate_desc_qc(original, final):
     # Overlap
     images = {variable: image.get_fdata().ravel() for
               variable, image in images.items()}
-    intersect = images['original'] * images['final']
+    intersect = images['original'] * images['final_func']
     vols = {variable: np.sum(image) for variable, image in images.items()}
     vol_intersect = np.sum(intersect)
     vol_sum = sum(vols.values())
@@ -236,15 +225,19 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ['bold', 'desc-preproc_bold'],
+     'inputs': ['bold', 'desc-preproc_bold', 'desc-preproc_T1w'],
      'outputs': ['xcp-qc']}
     """
     original = {}
-    final = {}
+    final = {'anat': {}, 'func': {}}
     original['node'], original['out'] = strat_pool.get_data('bold')
-    final['node'], final['out'] = strat_pool.get_data('desc-preproc_bold')
+    final['anat']['node'], final['anat']['out'] = strat_pool.get_data(
+        'desc-preproc_T1w')
+    final['func']['node'], final['func']['out'] = strat_pool.get_data(
+        'desc-preproc_bold')
 
-    qc_file = pe.Node(Function(input_names=['original', 'final'],
+    qc_file = pe.Node(Function(input_names=['original', 'final_func',
+                                            'final_anat'],
                                output_names=['qc_file'],
                                function=generate_desc_qc,
                                as_module=True),
@@ -252,8 +245,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(original['node'], original['out'],
                qc_file, 'original')
-    wf.connect(final['node'], final['out'],
-               qc_file, 'final')
+    wf.connect(final['anat']['node'], final['anat']['out'],
+               qc_file, 'final_anat')
+    wf.connect(final['func']['node'], final['func']['out'],
+               qc_file, 'final_func')
 
     outputs = {
         'xcp-qc': (qc_file, 'qc_file'),
