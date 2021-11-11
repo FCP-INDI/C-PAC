@@ -1,4 +1,60 @@
-"""Generate eXtensible Connectivity Pipeline-style quality control files"""
+"""Generate eXtensible Connectivity Pipeline-style quality control files
+
+Columns
+-------
+sub : str
+    subject label :cite:`cite-BIDS21`
+ses : str
+    session label :cite:`cite-BIDS21`
+task : str
+    task label :cite:`cite-BIDS21`
+run : int
+    run index :cite:`cite-BIDS21`
+desc : str
+    description :cite:`cite-BIDS21`
+space : str
+    space label :cite:`cite-BIDS21`
+meanFD : float
+    mean Jenkinson framewise displacement :cite:`cite-Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J`
+relMeansRMSMotion
+
+relMaxRMSMotion
+
+meanDVInit
+
+meanDVFinal
+
+nVolCensored
+
+nVolsRemoved
+
+motionDVCorrInit
+
+motionDVCorrFinal
+
+coregDice
+
+coregJaccard
+
+coregCrossCorr
+
+coregCoverag
+
+normDice
+
+normJaccard
+
+normCrossCorr
+
+normCoverage
+
+.. rubric References
+
+.. bibliography:: /references/xcpqc_citation.bib
+   :style: cpac_docs_style
+   :cited:
+   :keyprefix: cite-
+"""  # noqa E501  # pylint: disable=line-too-long
 import os
 import re
 from io import BufferedReader
@@ -53,7 +109,7 @@ def generate_desc_qc(original, final):
     shape_params = {shape_key: [shape_diff] for
                     shape_key in {'nVolCensored', 'nVolsRemoved'}}
 
-    # `meanFD`
+    # `meanFD (Jenkinson)`
     if isinstance(final, BufferedReader):
         final = final.name
     qc_filepath = _generate_filename(final)
@@ -66,12 +122,10 @@ def generate_desc_qc(original, final):
             final[desc_span[1]:]
         ])
     del desc_span
-    power_params = {'meanFD': pd.read_csv(
-        '_'.join([
-            *final.split('_')[:-1],
-            'power-params.txt'
-        ])
-    ).to_dict(orient='list').get('MeanFD_Power')}
+    power_params = {'meanFD': np.mean(np.loadtxt('_'.join([
+        *final.split('_')[:-1],
+        'framewise-displacement-jenkinson.1D'
+    ])))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
     mot = np.genfromtxt('_'.join([
