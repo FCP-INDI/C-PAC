@@ -1107,12 +1107,11 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
-    # using: ['PhaseDiff', 'Blip']
+    # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
     #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
-    #   NOTE:
-    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
-    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    #
+    #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     using: ['PhaseDiff', 'Blip']
 
     # option parameters

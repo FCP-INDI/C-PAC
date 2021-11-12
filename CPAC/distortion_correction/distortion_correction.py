@@ -460,4 +460,34 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+    
+    
+def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Execute FSL TOPUP to calculate the distortion "unwarp" for
+    phase encoding direction EPI field map distortion correction.
+
+    Node Block:
+    {"name": "distcor_blip_fsl_topup",
+     "config": ["functional_preproc", "distortion_correction"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "Blip-FSL-TOPUP",
+     "inputs": ["desc-mean_bold",
+                "epi_1",
+                "epi_1_scan_params",
+                "epi_2",
+                "epi_2_scan_params",
+                "pe_direction"],
+     "outputs": ["desc-mean_bold",
+                 "space-bold_desc-brain_mask",
+                 "blip-warp"]}
+    '''
+
+    outputs = {
+        'desc-mean_bold': (),
+        'space-bold_desc-brain_mask': (),
+        'blip-warp': ()
+    }
+
+    return (wf, outputs)
 
