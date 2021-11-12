@@ -1018,7 +1018,8 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
             try:
                 sub['anat'] = _sub_anat_filter(sub['anat'],
                                                shortest_entity,
-                                               label_list[0])
+                                               label_list[0] if not
+                                               shortest_entity else None)
                 if 'T1w' in sub['anat']:
                     new_sub_list.append(sub)
             except LookupError as lookup_error:
