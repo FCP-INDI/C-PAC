@@ -109,29 +109,37 @@ def gather_nuisance(functional_file_path,
                     custom_file_paths=None,
                     censor_file_path=None):
     """
-    Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
-    input into 3dTproject
+    Gathers the various nuisance regressors together into a single tab-
+    separated values file that is an appropriate for input into
+    3dTproject
 
-    :param functional_file_path: path to file that the regressors are being calculated for, is used to calculate
-           the length of the regressors for error checking and in particular for calculating spike regressors
-    :param output_file_path: path to output TSV that will contain the various nuisance regressors as columns
-    :param grey_matter_summary_file_path: path to TSV that includes summary of grey matter time courses, e.g. output of
+    :param functional_file_path: path to file that the regressors are
+        being calculated for, is used to calculate the length of the
+        regressors for error checking and in particular for calculating
+        spike regressors
+    :param output_file_path: path to output TSV that will contain the
+        various nuisance regressors as columns
+    :param grey_matter_summary_file_path: path to TSV that includes
+        summary of grey matter time courses, e.g. output of
         mask_summarize_time_course
-    :param white_matter_summary_file_path: path to TSV that includes summary of white matter time courses, e.g. output
-        of mask_summarize_time_course
-    :param csf_summary_file_path: path to TSV that includes summary of csf time courses, e.g. output
-        of mask_summarize_time_course
-    :param acompcor_file_path: path to TSV that includes acompcor time courses, e.g. output
-        of mask_summarize_time_course
-    :param tcompcor_file_path: path to TSV that includes tcompcor time courses, e.g. output
-        of mask_summarize_time_course
-    :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output
-        of mask_summarize_time_course
-    :param motion_parameters_file_path: path to TSV that includes motion parameters
+    :param white_matter_summary_file_path: path to TSV that includes
+        summary of white matter time courses, e.g. output of
+        mask_summarize_time_course
+    :param csf_summary_file_path: path to TSV that includes summary of
+        csf time courses, e.g. output of mask_summarize_time_course
+    :param acompcor_file_path: path to TSV that includes acompcor time
+        courses, e.g. output of mask_summarize_time_course
+    :param tcompcor_file_path: path to TSV that includes tcompcor time
+        courses, e.g. output of mask_summarize_time_course
+    :param global_summary_file_path: path to TSV that includes summary
+        of global time courses, e.g. output of mask_summarize_time_course
+    :param motion_parameters_file_path: path to TSV that includes
+        motion parameters
     :param custom_file_paths: path to CSV/TSV files to use as regressors
-    :param censor_file_path: path to TSV with a single column with 1's for indices that should be retained and 0's
-              for indices that should be censored
-    :return:
+    :param censor_file_path: path to TSV with a single column with '1's
+        for indices that should be retained and '0's for indices that
+        should be censored
+    :return: out_file (str), n_vols_censored (int)
     """
 
     # Basic checks for the functional image
@@ -412,7 +420,7 @@ def gather_nuisance(functional_file_path,
         nuisance_regressors = np.array(nuisance_regressors)
         np.savetxt(ofd, nuisance_regressors.T, fmt='%.18f', delimiter='\t')
 
-    return output_file_path
+    return output_file_path, len(censor_indices)
 
 
 def create_regressor_workflow(nuisance_selectors,
@@ -697,7 +705,8 @@ def create_regressor_workflow(nuisance_selectors,
         'tr',
     ]), name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path']),
+    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path',
+                                                        'n_vols_censored']),
                          name='outputspec')
 
     functional_mean = pe.Node(interface=afni_utils.TStat(),
@@ -1356,7 +1365,7 @@ def create_regressor_workflow(nuisance_selectors,
                      'motion_parameters_file_path',
                      'custom_file_paths',
                      'censor_file_path'],
-        output_names=['out_file'],
+        output_names=['out_file', 'n_vols_censored'],
         function=gather_nuisance,
         as_module=True
     ), name="build_nuisance_regressors")
@@ -1429,6 +1438,8 @@ def create_regressor_workflow(nuisance_selectors,
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
+    nuisance_wf.connect(build_nuisance_regressors, 'n_vols_censored',
+                        outputspec, 'n_vols_censored')
 
     return nuisance_wf
 

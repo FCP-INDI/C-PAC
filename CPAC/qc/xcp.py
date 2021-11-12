@@ -17,37 +17,38 @@ space : str
 meanFD : float
     mean Jenkinson framewise displacement :cite:`cite-Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J`
 relMeansRMSMotion : float
-    # TODO
+    "mean value of RMS motion" :cite:`cite-Ciri19`
 relMaxRMSMotion : float
-    # TODO
+    "maximum vaue of RMS motion" :cite:`cite-Ciri19`
 meanDVInit : float
-    # TODO
+    "mean DVARS" :cite:`cite-Ciri19`
 meanDVFinal : float
-    # TODO
+    "mean DVARS" :cite:`cite-Ciri19`
 nVolCensored : int
-    # TODO
+    "total number of volume(s) censored :cite:`cite-Ciri19`
 nVolsRemoved : int
-    # TODO
+    number of volumes in derivative minus number of volumes in original
+    functional scan
 motionDVCorrInit : float
-    # TODO
+    "correlation of RMS and DVARS before regresion" :cite:`cite-Ciri19`
 motionDVCorrFinal : float
-    # TODO
+    "correlation of RMS and DVARS after regresion" :cite:`cite-Ciri19`
 coregDice : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Dice index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 coregJaccard : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Jaccard index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 coregCrossCorr : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] cross correlation" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 coregCoverag : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normDice : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Dice index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normJaccard : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Jaccard index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normCrossCorr : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] cross correlation" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normCoverage : float
-    :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 """  # noqa E501  # pylint: disable=line-too-long
 import os
 import re
@@ -60,27 +61,28 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 
 
-# class OverlapInterface(IdentityInterface):
-#     """XCP QC interface for overlap measures :cite:`cite-Ciri19` :cite:`cite-Penn19`."""  # noqa E501  # pylint: disable=line-too-long
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args,
-#                          fields=['Dice', 'Jaccard', 'CrossCorr', 'Coverage'],
-#                          **kwargs)
-
-
-def generate_desc_qc(original, final_anat, final_func):
+def generate_desc_qc(original_anat, final_anat, original_func, final_func,
+                     n_vols_censored, space_T1w_bold):
     """Function to generate an RBC-style QC CSV
 
     Parameters
     ----------
-    original : str
-        path to original image
+    original_anat : str
+        path to original 'T1w' image
 
     final_anat : str
         path to 'desc-preproc_T1w' image
 
+    original_func : str
+        path to original 'bold' image
+
     final_bold : str
         path to 'desc-preproc_bold' image
+
+    n_vols_censored : int
+
+    space_T1w_bold : str
+        path to 'space-T1w_desc-mean_bold' image
 
     Returns
     -------
@@ -96,9 +98,11 @@ def generate_desc_qc(original, final_anat, final_func):
     )
 
     images = {
-        'original': nb.load(original),
+        'original_anat': nb.load(original_anat),
+        'original_func': nb.load(original_func),
         'final_anat': nb.load(final_anat),
-        'final_func': nb.load(final_func)
+        'final_func': nb.load(final_func),
+        'space-T1w_bold': nb.load(space_T1w_bold)
     }
 
     # `sub` through `space`
@@ -113,12 +117,9 @@ def generate_desc_qc(original, final_anat, final_func):
         from_bids['space'] = ['native']
 
     # `nVolCensored` & `nVolsRemoved`
-    if images['original'].shape == images['final_anat'].shape:
-        shape_diff = 0
-    else:
-        shape_diff = 'qc log not yet implemented'  # TODO
-    shape_params = {shape_key: [shape_diff] for
-                    shape_key in {'nVolCensored', 'nVolsRemoved'}}
+    shape_params = {'nVolCensored': n_vols_censored,
+                    'nVolsRemoved': images['final_func'].shape[3] -
+                    images['original_func'].shape[3]}
 
     # `meanFD (Jenkinson)`
     if isinstance(final_func, BufferedReader):
@@ -154,10 +155,13 @@ def generate_desc_qc(original, final_anat, final_func):
     # ?
 
     # Overlap
-    images = {variable: image.get_fdata().ravel() for
-              variable, image in images.items()}
-    intersect = images['original'] * images['final_func']
-    vols = {variable: np.sum(image) for variable, image in images.items()}
+    overlap_images = {variable: image.get_fdata().ravel() for
+                      variable, image in images.items() if
+                      variable in ['space-T1w_bold', 'original_anat']}
+    intersect = overlap_images['space-T1w_bold'] * overlap_images[
+        'original_anat']
+    vols = {variable: np.sum(image) for
+            variable, image in overlap_images.items()}
     vol_intersect = np.sum(intersect)
     vol_sum = sum(vols.values())
     vol_union = vol_sum - vol_intersect
@@ -165,8 +169,8 @@ def generate_desc_qc(original, final_anat, final_func):
         'coregDice': 2 * vol_intersect / vol_sum,
         'coregJaccard': vol_intersect / vol_union,
         'coregCrossCorr': np.corrcoef(
-            images['original'],
-            images['final'])[0, 1],
+            overlap_images['space-T1w_bold'],
+            overlap_images['original_anat'])[0, 1],
         'coregCoverage': vol_intersect / min(vols.values()),
         'normDice': 'N/A: native space',
         'normJaccard': 'N/A: native space',
@@ -225,33 +229,52 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ['bold', 'desc-preproc_bold', 'desc-preproc_T1w'],
-     'outputs': ['xcp-qc']}
+     'inputs': ['bold', 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
+                'space-T1w_desc-mean_bold'],
+     'outputs': ['xcpqc']}
     """
-    original = {}
+    original = {'anat': {}, 'func': {}}
     final = {'anat': {}, 'func': {}}
-    original['node'], original['out'] = strat_pool.get_data('bold')
+    t1w_bold = {}
+    original['anat']['node'], original['anat']['out'] = strat_pool.get_data(
+        'T1w')
+    original['func']['node'], original['func']['out'] = strat_pool.get_data(
+        'bold')
     final['anat']['node'], final['anat']['out'] = strat_pool.get_data(
         'desc-preproc_T1w')
     final['func']['node'], final['func']['out'] = strat_pool.get_data(
         'desc-preproc_bold')
+    t1w_bold['node'], t1w_bold['out'] = strat_pool.get_data(
+        'space-T1w_desc-mean_bold')
 
-    qc_file = pe.Node(Function(input_names=['original', 'final_func',
-                                            'final_anat'],
+    qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
+                                            'original_anat', 'final_anat',
+                                            'space_T1w_bold',
+                                            'n_vols_censored'],
                                output_names=['qc_file'],
                                function=generate_desc_qc,
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
 
-    wf.connect(original['node'], original['out'],
-               qc_file, 'original')
+    try:
+        censor_node, n_vols_censored = strat_pool.get_data('n_vols_censored')
+        wf.connect(censor_node, n_vols_censored, qc_file, 'n_vols_censored')
+    except LookupError:
+        qc_file.inputs.n_vols_censored = 'unknown'
+
+    wf.connect(original['anat']['node'], original['anat']['out'],
+               qc_file, 'original_anat')
+    wf.connect(original['func']['node'], original['func']['out'],
+               qc_file, 'original_func')
     wf.connect(final['anat']['node'], final['anat']['out'],
                qc_file, 'final_anat')
     wf.connect(final['func']['node'], final['func']['out'],
                qc_file, 'final_func')
+    wf.connect(t1w_bold['node'], t1w_bold['out'],
+               qc_file, 'space_T1w_bold')
 
     outputs = {
-        'xcp-qc': (qc_file, 'qc_file'),
+        'xcpqc': (qc_file, 'qc_file'),
     }
 
     return (wf, outputs)
