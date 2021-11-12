@@ -974,15 +974,12 @@ def _sub_anat_filter(anat, shortest_entity, label):
     list or dict
         same type as 'anat' parameter
     """
-    print(f'sub_anat_filter: {anat}')
     if isinstance(anat, dict):
         if 'T1w' in anat:
             anat['T1w'] = _t1w_filter(anat['T1w'],
                                       shortest_entity,
                                       label)
-        print(f'sub_anat_filter (after): {anat}')
         return anat
-    print(f'sub_anat_filter (after): {anat}')
     return _t1w_filter(anat, shortest_entity, label)
 
 
