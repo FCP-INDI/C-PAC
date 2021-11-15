@@ -483,6 +483,336 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                  "blip-warp"]}
     '''
 
+    wf = pe.Workflow(name="dcan_topup")
+    wf_dir = os.path.join(os.getcwd(), "dcan_topup_wf")
+    wf.base_dir = wf_dir
+    wf.config["execution"] = {"hash_method": "timestamp", "crashdump_dir": wf_dir}
+
+    phase_imgs = [
+        "/data3/cnl/data/hbn/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.nii.gz",
+        "/data3/cnl/data/hbn/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-PA_acq-fMRI_epi.nii.gz",
+    ]
+
+    GradientDistortionCoeffs = None
+    if GradientDistortionCoeffs != None:
+        grad_outs = []
+        gdc_phase_outs = []
+        for idx, phase_img in enumerate(phase_imgs):
+            wf, out_warpmask, out_applywarp = gradient_distortion_correction(
+                wf, phase_img, f"phase-{idx}"
+            )
+            grad_outs.append(out_warpmask)
+            gdc_phase_outs.append(out_applywarp)
+            phaseone_gdc = gdc_phase_outs[0][1]
+            phasetwo_gdc = gdc_phase_outs[1][1]
+
+        # Make a conservative (eroded) intersection of the two masks
+        Mask = pe.Node(interface=fsl.maths.ApplyMask(), name="Mask")
+        Mask.inputs.args = "-bin -ero"
+
+        wf.connect(grad_outs[0][0], grad_outs[0][1], Mask, "in_file")
+        wf.connect(grad_outs[1][0], grad_outs[1][1], Mask, "mask_file")
+
+        # Merge both sets of images
+        create_list = pe.Node(interface=utility.Merge(2), name="create_list")
+
+        wf.connect(gdc_phase_outs[0][0], gdc_phase_outs[0][1], create_list, "in1")
+        wf.connect(gdc_phase_outs[1][0], gdc_phase_outs[1][1], create_list, "in2")
+
+        merge_image = pe.Node(interface=fsl.Merge(), name="merge_image")
+        merge_image.inputs.dimension = "t"
+        merge_image.inputs.output_type = "NIFTI_GZ"
+
+        wf.connect(create_list, "out", merge_image, "in_files")
+
+    else:
+        phaseone_gdc = phase_imgs[0]
+        phasetwo_gdc = phase_imgs[1]
+        create_list = pe.Node(interface=utility.Merge(2), name="create_list")
+        create_list.inputs.in1 = phase_imgs[0]
+        create_list.inputs.in2 = phase_imgs[1]
+
+        merge_image = pe.Node(interface=fsl.Merge(), name="merge_image")
+        merge_image.inputs.dimension = "t"
+        merge_image.inputs.output_type = "NIFTI_GZ"
+
+        wf.connect(create_list, "out", merge_image, "in_files")
+
+        Mask = pe.Node(interface=fsl.maths.BinaryMaths(), name="Mask")
+
+        Mask.inputs.in_file = phase_imgs[0]
+        Mask.inputs.operand_value = 0
+        Mask.inputs.operation = "mul"
+
+        Mask.args = "-add 1"
+
+    zpad_phases = z_pad("zpad_phases")
+    wf.connect(merge_image, "merged_file", zpad_phases, "inputspec.input_image")
+
+    zpad_mask = z_pad("zpad_mask")
+    wf.connect(Mask, "out_file", zpad_mask, "inputspec.input_image")
+
+    # extrapolate existing values beyond the mask
+    extrap_vals = pe.Node(interface=fsl_maths.MathsCommand(), name="extrap_vals")
+    extrap_vals.inputs.args = "-abs -add 1 -dilM -dilM -dilM -dilM -dilM"
+    wf.connect(zpad_phases, "outputspec.output_image" extrap_vals, "in_file")
+    wf.connect(zpad_mask, "outputspec.output_image", extrap_vals, "mask_file")
+
+    # phase encoding
+    phase_encode_imports = [
+        "import os",
+        "import subprocess",
+        "import numpy as np",
+        "import nibabel",
+        "import sys"
+    ]
+    phase_encoding = pe.Node(
+        util.Function(
+            input_names=[
+                "unwarp_dir",
+                "phase_one",
+                "phase_two",
+                "dwell_time",
+                "fsl_dir"
+            ],
+            output_names=["acq_params"],
+            function=phase_encode,
+            imports=phase_encode_imports,
+        ),
+        name="phase_encoding",
+    )
+    # hard-coded for now
+    phase_encoding.inputs.unwarp_dir = "j"
+    phase_encoding.inputs.phase_one = phase_imgs[0]
+    phase_encoding.inputs.phase_two = phase_imgs[1]
+    phase_encoding.inputs.dwell_time = 0.00049999
+    phase_encoding.inputs.fsl_dir = "/usr/local/fsl"
+
+    # run topup
+    run_topup = pe.Node(interface=TOPUP(), name="run_topup")
+    run_topup.inputs.out_base = "Coefficients"
+    run_topup.inputs.args = "-v"
+    run_topup.inputs.out_mat_prefix = "MotionMatrix"
+    run_topup.inputs.out_jac_prefix = "Jacobian"
+    run_topup.inputs.out_warp_prefix = "WarpField"
+
+    # TODO - allow for custom topup config
+    wf.connect(phase_encoding, "acq_params", run_topup, "encoding_file")
+    wf.connect(extrap_vals, "out_file", run_topup, "in_file")
+
+    unwarp_dir = phase_encoding.inputs.unwarp_dir
+
+    choose_phase = pe.Node(
+       util.Function(
+            input_names=["phase_imgs", "unwarp_dir"],
+            output_names=["out_phase_image", "vnum"],
+            function=choose_phase_image
+      ),
+        name="choose_phase",
+    )
+
+    choose_phase.inputs.phase_imgs = phase_imgs
+    choose_phase.inputs.unwarp_dir = unwarp_dir
+
+    node, out = strat_pool.get_data("pe_direction")
+    wf.connect(node, out, chose_phase, "unwarp_dir")
+
+    vnum_base_imports = ["import os", "import subprocess"]
+    vnum_base = pe.Node(
+       util.Function(
+            input_names=["vnum","name","motion_mat_list","jac_matrix_list","warp_field_list"],
+            output_names=["out_motion_mat", "out_jacobian", "out_warp_field"],
+            function=find_vnum_base,
+            imports=vnum_base_imports,
+      ),
+        name="Motion_Jac_Warp_matrices",
+    ) 
+
+    wf.connect(choose_phase, 'vnum', vnum_base, 'vnum')
+    wf.connect(run_topup,'out_mats', vnum_base, 'motion_mat_list')
+    wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
+    wf.connect(run_topup,'out_warps', vnum_base, 'warp_field_list')
+
+    mean_img = pe.Node(interface=fsl.MeanImage(),
+                       name="mean_img")
+    mean_img.inputs.in_file = '/data3/cnl/data/hbn/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-rest_run-1_bold.nii.gz'
+    mean_img.inputs.dimension = 'T'
+    mean_img.inputs.out_file = 'SBRef.nii.gz'
+
+    #fsl_flirt
+    flirt = pe.Node(interface=fsl.FLIRT(), name="flirt")
+    flirt.inputs.dof = 6
+    flirt.inputs.interp = 'spline'
+    flirt.inputs.out_matrix_file = 'SBRef2PhaseTwo_gdc.mat'
+
+    wf.connect(mean_img, 'out_file', flirt, 'in_file')
+    wf.connect(choose_phase, 'out_phase_image', flirt, 'reference')
+  
+    #fsl_convert_xfm
+    convert_xfm = pe.Node(interface=fsl.ConvertXFM(), name="convert_xfm")
+    convert_xfm.inputs.concat_xfm = True
+    convert_xfm.inputs.out_file = 'SBRef2WarpField.mat'
+
+    wf.connect(flirt, 'out_matrix_file', convert_xfm,'in_file') #in_file = ${WD}/SBRef2PhaseTwo_gdc.mat
+    wf.connect(vnum_base,'out_motion_mat', convert_xfm,'in_file2') #MotionMatrix_{vnum}.mat
+
+    #fsl_convert_warp
+    convert_warp = pe.Node(interface=fsl.ConvertWarp(),
+                           name = "convert_warp")
+    convert_warp.inputs.relwarp = True
+    convert_warp.inputs.out_relwarp = True
+    convert_warp.inputs.out_file = 'WarpField.nii.gz'
+
+    wf.connect(choose_phase, 'out_phase_image', convert_warp, 'reference')
+    wf.connect(vnum_base, 'out_warp_field', convert_warp, 'warp1') #WarpField_{vnum}
+    wf.connect(convert_xfm, 'out_file' ,convert_warp, 'premat') # premat = ${WD}/SBRef2WarpField.mat
+
+    out_convert_warp = (convert_warp,'out_file') #WarpField.nii.gz
+    out_mean_img = (mean_img,'out_file')
+
+    VolumeNumber = 1+1
+    vnum = str(VolumeNumber).zfill(2)
+    name = "PhaseTwo_aw"
+
+    vnum_base_imports = ["import os", "import subprocess"]
+    vnum_base = pe.Node(
+       util.Function(
+            input_names=["vnum","name","motion_mat_list","jac_matrix_list","warp_field_list"],
+            output_names=["out_motion_mat", "out_jacobian", "out_warp_field"],
+            function=find_vnum_base,
+            imports=vnum_base_imports,
+      ),
+        name=f"Motion_Jac_Warp_matrices_{name}",
+    ) 
+    vnum_base.inputs.vnum = vnum
+    vnum_base.inputs.name = name
+
+    wf.connect(run_topup,'out_mats', vnum_base, 'motion_mat_list')
+    wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
+    wf.connect(run_topup,'out_warps', vnum_base, 'warp_field_list')
+
+    # fsl_applywarp
+    aw_two = pe.Node(interface=fsl.ApplyWarp(),name = "aw_two")
+    aw_two.inputs.relwarp = True
+    aw_two.inputs.interp = 'spline'
+    aw_two.inputs.in_file = phasetwo_gdc
+    aw_two.inputs.ref_file = phasetwo_gdc
+
+    wf.connect(vnum_base,'out_motion_mat',aw_two,'premat') #MotionMatrix_{vnum}.mat
+    wf.connect(vnum_base,'out_warp_field',aw_two,'field_file') #WarpField_${vnum}
+
+    mul_phase_two = pe.Node(interface = fsl.BinaryMaths(),name = "mul_phase_two")
+    mul_phase_two.inputs.operation = 'mul'
+    mul_phase_two.inputs.out_file = 'PhaseTwo_gdc_dc_jac'
+
+    wf.connect(aw_two, 'out_file', mul_phase_two, 'in_file') #PhaseTwo_gdc_dc
+    wf.connect(vnum_base,'out_jacobian',mul_phase_two,'operand_file') #Jacobian_${vnum}
+    
+    # PhaseOne (first vol) - warp and Jacobian modulate to get distortion corrected output
+    VolumeNumber= 0 + 1
+    vnum = str(VolumeNumber).zfill(2)
+    name = "PhaseOne_aw"
+
+    vnum_base_imports = ["import os", "import subprocess"]
+    vnum_base = pe.Node(
+       util.Function(
+            input_names=["vnum","name","motion_mat_list","jac_matrix_list","warp_field_list"],
+            output_names=["out_motion_mat", "out_jacobian", "out_warp_field"],
+            function=find_vnum_base,
+            imports=vnum_base_imports,
+      ),
+        name=f"Motion_Jac_Warp_matrices_{name}",
+    ) 
+    vnum_base.inputs.vnum = vnum
+    vnum_base.inputs.name = name
+
+    wf.connect(run_topup,'out_mats', vnum_base, 'motion_mat_list')
+    wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
+    wf.connect(run_topup,'out_warps', vnum_base, 'warp_field_list')
+
+    # fsl_applywarp to phaseOne
+    aw_one = pe.Node(interface=fsl.ApplyWarp(),name = "aw_one")
+    aw_one.inputs.relwarp = True
+    aw_one.inputs.interp = 'spline'
+    aw_one.inputs.in_file = phaseone_gdc
+    aw_one.inputs.ref_file = phaseone_gdc
+
+    wf.connect(vnum_base,'out_motion_mat',aw_one,'premat') #MotionMatrix_{vnum}
+    wf.connect(vnum_base,'out_warp_field',aw_one,'field_file') #WarpField_${vnum}
+
+    mul_phase_one = pe.Node(interface = fsl.BinaryMaths(),name = "mul_phase_one")
+    mul_phase_one.inputs.operation = 'mul'
+    mul_phase_one.inputs.out_file = 'PhaseOne_gdc_dc_jac'
+
+    wf.connect(aw_one, 'out_file', mul_phase_one, 'in_file') #phaseOne_gdc_dc
+    wf.connect(vnum_base,'out_jacobian',mul_phase_one,'operand_file') #Jacobian_${vnum}
+
+    # Scout - warp and Jacobian modulate to get distortion corrected output
+    aw_jac = pe.Node(interface=fsl.ApplyWarp(),name = "aw_jac")
+    aw_jac.inputs.relwarp = True
+    aw_jac.inputs.interp = 'spline'
+
+    wf.connect(out_mean_img[0],out_mean_img[1],aw_jac,'in_file') #SBRef.nii.gz
+    wf.connect(out_mean_img[0],out_mean_img[1],aw_jac,'ref_file') #SBRef.nii.gz
+    wf.connect(out_convert_warp[0],out_convert_warp[1],aw_jac,'field_file') #WarpField.nii.gz
+
+    if unwarp_dir in ["x","i","y","j"]:
+        # select the first volume from PhaseTwo
+        name = "PhaseTwo_jac"
+        VolumeNumber = 1+1
+        vnum = str(VolumeNumber).zfill(2)
+    else:
+        name = "PhaseOne"
+        VolumeNumber = 0 + 1
+        vnum = str(VolumeNumber).zfill(2)
+
+    vnum_base_imports = ["import os", "import subprocess"]
+    vnum_base = pe.Node(
+            util.Function(
+            input_names=["vnum","name","motion_mat_list","jac_matrix_list","warp_field_list"],
+            output_names=["out_motion_mat", "out_jacobian", "out_warp_field"],
+            function=find_vnum_base,
+            imports=vnum_base_imports,
+      ),
+        name=f"Motion_Jac_Warp_matrices_{name}",
+    ) 
+    vnum_base.inputs.vnum = vnum
+    vnum_base.inputs.name = name
+
+    wf.connect(run_topup,'out_mats', vnum_base, 'motion_mat_list')
+    wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
+    wf.connect(run_topup,'out_warps', vnum_base, 'warp_field_list')
+
+    mul_jac = pe.Node(interface = fsl.BinaryMaths(),name = "mul_jac")
+    mul_jac.inputs.operation = 'mul'
+    mul_jac.inputs.out_file = "SBRef_dc_jac.nii.gz"
+
+    wf.connect(aw_jac, 'out_file', mul_jac, 'in_file')
+    wf.connect(vnum_base,'out_jacobian',mul_jac,'operand_file') #Jacobian.nii.gz
+
+    #Calculate Equivalent Field Map
+    tp_field_map = pe.Node(interface = fsl.BinaryMaths(),name = "tp_field_map")
+    tp_field_map.inputs.operation = 'mul'
+    tp_field_map.inputs.operand_value = 6.283
+    tp_field_map.inputs.out_file = 'TopupField'
+
+    wf.connect(run_topup, 'out_field', tp_field_map, 'in_file') #TopupField
+
+    mag_field_map = pe.Node(interface = fsl.MeanImage(),name = "mag_field_map")
+    mag_field_map.inputs.dimension = 'T'
+    mag_field_map.inputs.out_file = 'Magnitude.nii.gz'
+
+    wf.connect(run_topup, 'out_corrected', mag_field_map, 'in_file') #Magnitudes
+
+    #fsl_bet
+    bet = pe.Node(interface = fsl.BET(), name="bet")
+    bet.inputs.out_file = 'Magnitude_brain'
+    bet.inputs.frac = 0.35
+    bet.inputs.mask = True
+
+    wf.connect(mag_field_map,'out_file',bet,'in_file') #Magnitude
+
+
     outputs = {
         'desc-mean_bold': (),
         'space-bold_desc-brain_mask': (),
