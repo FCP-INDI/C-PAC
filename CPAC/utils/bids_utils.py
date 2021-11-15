@@ -152,9 +152,11 @@ def bids_match_entities(file_list, entities, suffix):
     - task-PEER2
     """
     matches = [
-        file for file in file_list if f'_{entities}_' in '_'.join(
-            bids_entities_from_filename(file)
-        ) and bids_entities_from_filename(file)[-1] == suffix
+        file for file in file_list if (
+            f'_{entities}_' in '_'.join(
+                bids_entities_from_filename(file)
+            ) and bids_entities_from_filename(file)[-1] == suffix
+        ) or bids_entities_from_filename(file)[-1] != suffix
     ]
     if file_list and not matches:
         pp_file_list = '\n'.join([f'- {file}' for file in file_list])
@@ -1020,7 +1022,7 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
                                                shortest_entity,
                                                label_list[0] if not
                                                shortest_entity else None)
-                if 'T1w' in sub['anat']:
+                if sub['anat']:
                     new_sub_list.append(sub)
             except LookupError as lookup_error:
                 warn(str(lookup_error))

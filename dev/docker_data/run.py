@@ -631,6 +631,7 @@ def run_main():
             sub_list = load_cpac_data_config(args.data_config_file,
                                              args.participant_label,
                                              args.aws_input_creds)
+        prefilter = list(sub_list)
         sub_list = sub_list_filter_by_labels(sub_list,
                                              {'T1w': args.T1w_label,
                                               'bold': args.bold_label})
@@ -638,13 +639,15 @@ def run_main():
         # C-PAC only handles single anatomical images (for now)
         # so we take just the first as a string if we have a list
         for i, sub in enumerate(sub_list):
-            if isinstance(sub.get('anat'), dict) and 'T1w' in sub['anat']:
-                while (
-                    isinstance(sub['anat']['T1w'], list) and
-                    len(sub['anat']['T1w'])
-                ):
-                    sub['anat']['T1w'] = sub['anat']['T1w'][0]
-            while isinstance(sub.get('anat'), list) and len(sub['anat']):
+            if isinstance(sub.get('anat'), dict):
+                for anat_key in sub['anat']:
+                    if(
+                        isinstance(sub['anat'][anat_key], list) and
+                        len(sub['anat'][anat_key])
+                    ):
+                        sub_list[i]['anat'][
+                            anat_key] = sub['anat'][anat_key][0]
+            if isinstance(sub.get('anat'), list) and len(sub['anat']):
                 sub_list[i]['anat'] = sub['anat'][0]
 
         if args.participant_ndx is not None:
