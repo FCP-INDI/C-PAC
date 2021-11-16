@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `master` branch renamed `main`
+- Packaged templates in https://github.com/FCP-INDI/C-PAC_templates
 
 ### Deprecated
 
