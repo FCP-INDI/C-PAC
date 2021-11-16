@@ -207,7 +207,7 @@ def create_connectome_nilearn(name='connectomeNilearn'):
         (inputspec, node, [('parcellation', 'parcellation')]),
         (inputspec, node, [('timeseries', 'timeseries')]),
         (inputspec, node, [('method', 'method')]), #was measure,measure
-        (node, outputspec, [('corr_matrix', 'corr_matrix')]), #was connectome,connectome
+        (node, outputspec, [('connectome', 'connectome')]), #was connectome,connectome
     ])
     return wf
 
