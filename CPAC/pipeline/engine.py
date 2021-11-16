@@ -255,6 +255,77 @@ class ResourcePool(object):
                 return self.rpool[resource][pipe_idx]
             return self.rpool[resource]
 
+    def get_all(self, resource, pipe_idx=None, report_fetched=False,
+                optional=False):
+        # NOTE!!!
+        #   if this is the main rpool, this will return a dictionary of
+        #   strats, and inside those, are dictionaries like {'data':
+        #   (node, out), 'json': info} BUT, if this is a sub rpool
+        #   (i.e. a strat_pool), this will return a one-level
+        #   dictionary of {'data': (node, out), 'json': info} WITHOUT
+        #   THE LEVEL OF STRAT KEYS ABOVE IT
+        r_dct = {}
+        label_list = []
+        if isinstance(resource, str):
+            resource = [resource]
+        if isinstance(resource, list):
+            for label in resource:
+                for rpool_key in self.rpool.keys():
+                    if rpool_key.endswith(f'_{label}'):
+                        if report_fetched:
+                            r_dct = {**r_dct, **self.rpool[rpool_key]}
+                            label_list.append(rpool_key)
+                        else:
+                            r_dct = {**r_dct, **self.rpool[rpool_key]}
+            if r_dct:
+                return (r_dct, label_list) if label_list else r_dct
+        for rpool_key in self.rpool.keys():
+            for single_resource in resource:
+                if rpool_key.endswith(f'_{single_resource}'):
+                    if report_fetched:
+                        if pipe_idx:
+                            r_dct = {**r_dct,
+                                     **self.rpool[rpool_key][pipe_idx]}
+                            label_list.append(rpool_key)
+                        else:
+                            r_dct = {**r_dct, **self.rpool[rpool_key]}
+                            label_list.append(rpool_key)
+                    elif pipe_idx:
+                        r_dct = {**r_dct, **self.rpool[rpool_key][pipe_idx]}
+                    else:
+                        r_dct = {**r_dct, **self.rpool[rpool_key]}
+        if r_dct:
+            return (r_dct, label_list) if label_list else r_dct
+        elif optional:
+            if report_fetched:
+                return (None, None)
+            return None
+        raise LookupError("\n[!] C-PAC says: None of the listed "
+                          "resources are in the resource pool:\n"
+                          f"{resource}\n")
+
+    def update_total_pool(self, resource, variant_pool, total_pool):
+        rp_dct, fetched_resources = self.get_all(resource, report_fetched=True,
+                                                 optional=True)
+        if fetched_resources:
+            for strat in rp_dct.keys():
+                for fetched_resource in fetched_resources:
+                    sub_pool = []
+                    json_info = self.get_json(fetched_resource, strat)
+                    cpac_prov = json_info['CpacProvenance']
+                    sub_pool.append(cpac_prov)
+                    if fetched_resource not in variant_pool:
+                        variant_pool[fetched_resource] = []
+                    if 'CpacVariant' in json_info:
+                        for key, val in json_info['CpacVariant'].items():
+                            if val not in variant_pool[fetched_resource]:
+                                variant_pool[fetched_resource] += val
+                                variant_pool[fetched_resource].append(
+                                    f'NO-{val[0]}')
+                    if sub_pool:
+                        total_pool.append(sub_pool)
+        return(total_pool, variant_pool)
+
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
         if report_fetched:
@@ -386,27 +457,31 @@ class ResourcePool(object):
         variant_pool = {}
         len_inputs = len(resource_list)
         for resource in resource_list:
+            fetched_resources = None
             rp_dct, fetched_resource = self.get(resource,
-                                                report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
-                                                optional=True)                   # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
+                                                report_fetched=True,
+                                                # <---- rp_dct has the strats/
+                                                # pipe_idxs as the keys on
+                                                # first level, then 'data' and
+                                                # 'json' on each strat level
+                                                # underneath
+                                                optional=True)
+                                                # oh, and we make the resource
+                                                # fetching in get_strats
+                                                # optional so we can have
+                                                # optional inputs, but they
+                                                # won't be optional in the
+                                                # node block unless we want
+                                                # them to be
             if not rp_dct:
                 len_inputs -= 1
                 continue
-            sub_pool = []
 
-            for strat in rp_dct.keys():
-                json_info = self.get_json(fetched_resource, strat)
-                cpac_prov = json_info['CpacProvenance']
-                sub_pool.append(cpac_prov)
-                if fetched_resource not in variant_pool:
-                    variant_pool[fetched_resource] = []
-                if 'CpacVariant' in json_info:
-                    for key, val in json_info['CpacVariant'].items():
-                        if val not in variant_pool[fetched_resource]:
-                            variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f'NO-{val[0]}')
-
-            total_pool.append(sub_pool)
+        if not fetched_resources:
+            for resource in resources:
+                total_pool, variant_pool = self.update_total_pool(resource,
+                                                                  variant_pool,
+                                                                  total_pool)
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
