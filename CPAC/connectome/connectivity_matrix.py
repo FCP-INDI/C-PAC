@@ -219,7 +219,7 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["AFNI", "Nilearn"],
-     "inputs": ["timeseries", ""],
+     "inputs": ["timeseries", "method", "parcellation"],
      "outputs": ["connectome"]}
     '''
     # pylint: disable=invalid-name,unused-argument
