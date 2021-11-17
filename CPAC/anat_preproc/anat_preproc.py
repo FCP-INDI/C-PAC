@@ -2047,7 +2047,7 @@ def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T2w_ACPC_template"], 
-     "outputs": ["desc-preproc_T1w"]}
+     "outputs": ["desc-preproc_T2w"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
