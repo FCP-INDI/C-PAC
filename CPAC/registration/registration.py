@@ -774,9 +774,9 @@ def create_register_func_to_anat_use_T2(config, name='register_func_to_anat_use_
     register_func_to_anat_use_T2 = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'T1_brain',
-                                                        'T2_head',
-                                                        'T2_brain']),
+                                                       'T1_brain',
+                                                       'T2_head',
+                                                       'T2_brain']),
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm_nobbreg', 
@@ -2158,7 +2158,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "ANTS",
      "inputs": [(["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
                  ["space-T1w_desc-brain_mask",
-                  "space-longitudinal_desc-brain_mask"],
+                  "space-longitudinal_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"],
                  ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]),
                 "T1w-template",
@@ -2246,7 +2247,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, ants, 'inputspec.reference_head')
 
     node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
-                                     "space-longitudinal_desc-brain_mask"])
+                                     "space-longitudinal_desc-brain_mask",
+                                     "space-T1w_desc-acpcbrain_mask"])
     wf.connect(node, out, ants, 'inputspec.input_mask')
 
     if strat_pool.check_rpool('T1w-brain-template-mask'):
@@ -2772,7 +2774,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             strat_pool.check_rpool("fieldmap_mask"):
         diff_complete = True
     
-    if strat_pool.check_rpool('T2w'):
+    if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
         # monkey data
         func_to_anat = create_register_func_to_anat_use_T2(cfg, 
                                                     f'func_to_anat_FLIRT_'
@@ -2817,13 +2819,13 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
-    if cfg.registration_workflows['functional_registration'][
-        'coregistration']['reference'] == 'brain':
-        node, out = strat_pool.get_data('desc-brain_T1w')
-    elif cfg.registration_workflows['functional_registration'][
-        'coregistration']['reference'] == 'restore-brain':
-        node, out = strat_pool.get_data('desc-restore-brain_T1w')
-    wf.connect(node, out, func_to_anat, 'inputspec.anat')
+        if cfg.registration_workflows['functional_registration'][
+            'coregistration']['reference'] == 'brain':
+            node, out = strat_pool.get_data('desc-brain_T1w')
+        elif cfg.registration_workflows['functional_registration'][
+            'coregistration']['reference'] == 'restore-brain':
+            node, out = strat_pool.get_data('desc-restore-brain_T1w')
+        wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
 
     if diff_complete:
@@ -2870,7 +2872,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
         func_to_anat_bbreg.inputs.inputspec.bbr_wm_mask_args = \
             cfg.registration_workflows['functional_registration'][
-                'coregistration']['boundary_based_registration']['bbr_wm_mask_args']
+                'coregistration']['boundary_based_registration'][
+                'bbr_wm_mask_args']
 
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
@@ -2897,10 +2900,12 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         else:
             if cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'probability_map':
-                node, out = strat_pool.get_data(["label-WM_probseg", "label-WM_mask"])
+                node, out = strat_pool.get_data(["label-WM_probseg", 
+                                                 "label-WM_mask"])
             elif cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration']['bbr_wm_map'] == 'partial_volume_map':
-                node, out = strat_pool.get_data(["label-WM_pveseg", "label-WM_mask"])
+                node, out = strat_pool.get_data(["label-WM_pveseg", 
+                                                 "label-WM_mask"])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 

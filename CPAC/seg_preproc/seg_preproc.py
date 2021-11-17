@@ -855,7 +855,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "ANTs_Prior_Based",
      "inputs": [("desc-brain_T1w",
-                 "space-T1w_desc-brain_mask")],
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -889,7 +890,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, seg_preproc_ants_prior_based,
                'inputspec.anatomical_brain_mask')
 

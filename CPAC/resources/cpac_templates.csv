@@ -33,3 +33,5 @@ unet-model,"anatomical_preproc, brain_extraction, UNet, unet_model",,
 WM-path,"segmentation, tissue_segmentation, FSL-FAST, use_priors, WM_path",Template-space WM tissue prior,
 template-eye-mask,"PyPEER, eye_mask_path",,"registration_workflows, functional_registration, func_registration_to_template, output_resolution, func_preproc_outputs"
 T1w-brain-template-mask-ccs,"anatomical_preproc, brain_extraction, FreeSurfer-BET, T1w_brain_template_mask_ccs",,
+T2w-ACPC-template,"anatomical_preproc, acpc_alignment, T2w_ACPC_template",Whole-head template for use in ACPC-alignment,
+T2w-brain-ACPC-template,"anatomical_preproc, acpc_alignment, T2w_brain_ACPC_template",Brain-only template for use in ACPC-alignment,
