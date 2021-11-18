@@ -232,8 +232,7 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
         )
         if analysis is None:
             continue
-        node, out = strat_pool.get_data(f'atlas-{atlas}_desc-{analysis}_'
-                                        'timeseries')
+        node, out = strat_pool.get_data('timeseries')
         for measure in cfg['connectivity_matrix', 'measure']:
             if measure in valid_options['connectivity_matrix']['measure']:
                 if opt in ['AFNI', 'Nilearn']:

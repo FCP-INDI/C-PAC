@@ -219,15 +219,13 @@ class ResourcePool(object):
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        rp_keys = self.rpool.keys()
         if isinstance(resource, list):
             # if a list of potential inputs are given, pick the first one
             # found
             for label in resource:
-                if label in self.rpool.keys():
-                    if report_fetched:
-                        return (self.rpool[label], label)
-                    return self.rpool[label]
-            else:
+                if label in rp_keys:
+                    return self.get(label, pipe_idx, report_fetched, optional)
                 if optional:
                     if report_fetched:
                         return (None, None)
@@ -236,7 +234,12 @@ class ResourcePool(object):
                                 "resources are in the resource pool:\n"
                                 f"{resource}\n")
         else:
-            if resource not in self.rpool.keys():
+            if resource not in rp_keys:
+                # If no exact match, try for a partial
+                for rp_key in rp_keys:
+                    if rp_key.endswith(f'_{resource}'):
+                        return self.get(rp_key, pipe_idx, report_fetched,
+                                        optional)
                 if optional:
                     if report_fetched:
                         return (None, None)
@@ -272,6 +275,38 @@ class ResourcePool(object):
                 if rpool_key.endswith(f'_{single_resource}'):
                     label_list.append(rpool_key)
         return label_list
+
+    def get_partial_match_prov(self, resource, cpac_prov):
+        """Method to update the final entry in a prov string to include
+        additional information
+
+        Parameters
+        ----------
+        resource : str
+
+        cpac_prov : tuple
+            (resource, provenance)
+
+        Returns
+        -------
+        list
+
+        Examples
+        --------
+        >>> ResourcePool().get_partial_match_prov(
+        ...     'atlas-CC200_desc-Mean_timeseries',
+        ...     ('desc-Mean_timeseries',
+        ...     '["space-template_desc-brain_bold:single_step_'
+        ...     'resample_timeseries_to_T1template", "desc-Mean_'
+        ...     'timeseries:timeseries_extraction_AVG"]'))[-1]
+        'atlas-CC200_desc-Mean_timeseries:timeseries_extraction_AVG'
+        """
+        prov_string, prov_list = cpac_prov
+        if isinstance(prov_list, str):
+            prov_list = self.generate_prov_list(prov_list)
+        if resource.endswith(prov_string) and resource != prov_string:
+            prov_list[-1] = prov_list[-1].replace(prov_string, resource)
+        return prov_list
 
     def update_total_pool(self, resource, total_pool, variant_pool,
                           len_inputs):
@@ -313,15 +348,9 @@ class ResourcePool(object):
         sub_pool = []
         for strat in rp_dct.keys():
             json_info = self.get_json(fetched_resource, strat)
-            cpac_prov = json_info['CpacProvenance']
-            prov_string = self.generate_prov_string(cpac_prov)[0]
-            if (
-                fetched_resource.endswith(prov_string) and
-                fetched_resource != prov_string
-            ):
-                cpac_prov[-1] = cpac_prov[-1].replace(
-                    prov_string, fetched_resource)
-            sub_pool.append(cpac_prov)
+            sub_pool.append(self.get_partial_match_prov(
+                fetched_resource, self.generate_prov_string(
+                    json_info['CpacProvenance'])))
             if fetched_resource not in variant_pool:
                 variant_pool[fetched_resource] = []
             if 'CpacVariant' in json_info:
@@ -389,17 +418,17 @@ class ResourcePool(object):
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
         #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
         if not isinstance(prov, list):
-            raise Exception('\n[!] Developer info: the CpacProvenance '
+            raise TypeError('\n[!] Developer info: the CpacProvenance '
                             f'entry for {prov} has to be a list.\n')
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
-            raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+            raise TypeError('\n[!] Developer info: the CpacProvenance '
+                            f'entry for {prov_str} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -612,7 +641,22 @@ class ResourcePool(object):
             for resource_strat_list in total_pool:       # total_pool will have only one list of strats, for the one input
                 for cpac_prov in resource_strat_list:     # <------- cpac_prov here doesn't need to be modified, because it's not merging with other inputs
                     resource, pipe_idx = self.generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][pipe_idx]   # <----- remember, this is the dct of 'data' and 'json'.
+                    try:
+                        rpool_resource = self.rpool[resource]
+                    except KeyError as key_error:
+                        resource_keys = [rpk for rpk in list(self.rpool.keys())
+                                         if rpk != 'json']
+                        if len(resource_keys):
+                            resource_key = resource_keys[0]
+                            del resource_keys
+                        else:
+                            raise key_error
+                        rpool_resource = self.rpool[resource_key]
+                    rpool_resource_keys = list(rpool_resource.keys())
+                    if len(rpool_resource_keys) == 1:
+                        pipe_idx = rpool_resource_keys[0]
+                    del rpool_resource_keys
+                    resource_strat_dct = rpool_resource[pipe_idx]   # <----- remember, this is the dct of 'data' and 'json'.
                     new_strats[pipe_idx] = ResourcePool(rpool={resource: resource_strat_dct})   # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                     # placing JSON info at one level higher only for copy convenience
                     new_strats[pipe_idx].rpool['json'] = resource_strat_dct['json']  # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
@@ -1626,7 +1670,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         #    raise Exception('\n\n[!] Possibly wrong participant or '
         #                    'session in this directory?\n\nDirectory: '
         #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
-        suffix = data_label.split('_')[-1]
+
         desc_val = None
         for tag in data_label.split('_'):
             if 'desc-' in tag:
