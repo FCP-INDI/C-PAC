@@ -260,13 +260,6 @@ class ResourcePool(object):
 
     def get_all(self, resource, pipe_idx=None, report_fetched=False,
                 optional=False):
-        # NOTE!!!
-        #   if this is the main rpool, this will return a dictionary of
-        #   strats, and inside those, are dictionaries like {'data':
-        #   (node, out), 'json': info} BUT, if this is a sub rpool
-        #   (i.e. a strat_pool), this will return a one-level
-        #   dictionary of {'data': (node, out), 'json': info} WITHOUT
-        #   THE LEVEL OF STRAT KEYS ABOVE IT
         label_list = []
         if isinstance(resource, str):
             resource = [resource]
