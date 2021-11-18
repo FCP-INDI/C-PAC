@@ -253,7 +253,11 @@ def run_main():
                              'C-PAC will choose the first T1w it finds if '
                              'the user does not provide this flag, or '
                              'if multiple T1w files match the --T1w_label '
-                             'provided.')
+                             'provided.\nIf multiple T2w files are present '
+                             'and a comparable filter is possible, T2w '
+                             'files will be filtered as well. If no T2w files '
+                             'match this --T1w_label, T2w files will be '
+                             'processed as if no --T1w_label were provided.')
     parser.add_argument('--bold_label',
                         help='To include a specified subset of available '
                              'BOLD files, use this flag to specify any '
