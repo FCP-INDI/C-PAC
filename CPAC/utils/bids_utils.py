@@ -384,10 +384,12 @@ def bids_shortest_entity(file_list):
 
     shortest_len = min([len(entity_list) for entity_list in entity_lists])
 
-    return [
+    shortest_list = [
         file_list[i] for i in range(len(file_list)) if
         len(entity_lists[i]) == shortest_len
-    ][0]
+    ]
+
+    return shortest_list[0] if len(shortest_list) == 1 else shortest_list
 
 
 def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
@@ -957,6 +959,13 @@ def _t1w_filter(anat, shortest_entity, label):
         anat = bids_shortest_entity(anat)
     else:
         anat = bids_match_entities(anat, label, 'T1w')
+        # pylint: disable=invalid-name
+        try:
+            anat_T2 = bids_match_entities(anat, label, 'T2w')
+        except LookupError:
+            anat_T2 = None
+        if anat_T2 is not None:
+            anat = anat_T2
     return anat
 
 
