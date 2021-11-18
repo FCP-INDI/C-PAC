@@ -366,7 +366,7 @@ def bids_shortest_entity(file_list):
 
     Returns
     -------
-    str
+    str or None
 
     Examples
     --------
@@ -382,7 +382,10 @@ def bids_shortest_entity(file_list):
         bids_entities_from_filename(filename) for filename in file_list
     ]
 
-    shortest_len = min([len(entity_list) for entity_list in entity_lists])
+    if not entity_lists:
+        return None
+
+    shortest_len = min(len(entity_list) for entity_list in entity_lists)
 
     shortest_list = [
         file_list[i] for i in range(len(file_list)) if

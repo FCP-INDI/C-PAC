@@ -77,10 +77,11 @@ def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
     assert sublist
 
 
-@pytest.mark.parametrize('t1w_label', ['acq-VNavNorm', None])
+@pytest.mark.parametrize('t1w_label', ['acq-HCP', 'acq-VNavNorm', 'T1w', None])
 @pytest.mark.parametrize('bold_label', [
     'task-peer_run-1',
     '[task-peer_run-1 task-peer_run-2]',
+    'bold',
     None])
 @pytest.mark.parametrize('participant_label', ['NDARAA504CRN', 'NDARAC462DZH',
                                                None])
@@ -106,18 +107,22 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
     print(sub_list)
     if t1w_label is not None:
         if participant_label == 'NDARAA504CRN':
-            assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
-                   'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
-                   'T1w.nii.gz' in [sub.get('anat') for sub in sub_list]
+            anat_sub_list = [sub.get('anat') for sub in sub_list]
+            assert any('T2w' in filepath for filepath in anat_sub_list)
+            if t1w_label != 'T1w':
+                assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
+                    f'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_{t1w_label}_' \
+                    'T1w.nii.gz' in anat_sub_list
+            else:
+                assert any('T1w' in filepath for filepath in anat_sub_list)
         else:
-            assert sub_list == []
+            assert 1 <= len(sub_list) <= 2
     else:
         assert 's3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/' \
                    'sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_' \
                    'T1w.nii.gz' not in [sub.get('anat') for sub in sub_list]
     if bold_label is not None:
         if participant_label == 'NDARAC462DZH':
-            bold_labels = cl_strip_brackets(bold_labels)
             # all functional scans in data config
             func_scans = [scan for scan in [
                 sub.get('func').get(task, {}).get('scan') for task in [
@@ -126,10 +131,14 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
                     ] for task in scan
                 ] for sub in sub_list
             ] if scan]
-            for label in bold_labels:
-                assert any(label in func for func in func_scans)
+            if bold_label == 'bold':
+                assert any('bold' in filepath for filepath in func_scans)
+            else:
+                bold_labels = cl_strip_brackets(bold_labels)
+                for label in bold_labels:
+                    assert any(label in func for func in func_scans)
         elif t1w_label is not None:
-            assert sub_list == []
+            assert 1 <= len(sub_list) <= 2
         else:
             assert all(
                 len(sub.get('func')) in [0, len(bold_labels)] for
