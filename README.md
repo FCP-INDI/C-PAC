@@ -1,7 +1,7 @@
 
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
-[![OpenNeuro](https://raw.githubusercontent.com/bids-standard/bids-website/gh-pages/old_website/openneuro_badge.svg?sanitize=true)](https://openneuro.org) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
+[![OpenNeuro](https://raw.githubusercontent.com/bids-standard/bids-website/3a32919e069e6bf57ba5fd2bf18afd1534800841/openneuro_badge.svg?sanitize=true)](https://openneuro.org) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
 
 
 A configurable, open-source, Nipype-based, automated processing pipeline for resting state fMRI data.
