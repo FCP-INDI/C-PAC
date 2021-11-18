@@ -269,15 +269,6 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                     wf.connect(roi_dataflow, 'outputspec.out_file',
                                timeseries_correlation, 'parcellation')
 
-                else:
-                    timeseries_correlation = pe.Node(Function(
-                        input_names=['parcellation', 'timeseries', 'method'],
-                        output_names=['connectomeNilearn'],
-                        function=create_connectome_nilearn,
-                        as_module=True
-                    ), name=f'connectomeNilearn{measure}_{pipe_num}')
-                    timeseries_correlation.inputs.measure = measure
-
                 elif opt == "AFNI":
                     timeseries_correlation = pe.Node(
                         NetCorr(),
@@ -286,6 +277,14 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                         timeseries_correlation.inputs.part_corr = (
                             measure == 'Partial'
                         )
+                else:
+                    timeseries_correlation = pe.Node(Function(
+                        input_names=['parcellation', 'timeseries', 'method'],
+                        output_names=['connectomeNilearn'],
+                        function=create_connectome_nilearn,
+                        as_module=True
+                    ), name=f'connectomeNilearn{measure}_{pipe_num}')
+                    timeseries_correlation.inputs.measure = measure
 
                 wf.connect(roi_dataflow, 'outputspec.out_file',
                            timeseries_correlation, 'parcellation')
