@@ -145,41 +145,7 @@ def compute_connectome_nilearn(parcellation, timeseries, method):
     corr_matrix = correlation_measure.fit_transform([timeser])[0]
     np.fill_diagonal(corr_matrix, 0)
     np.savetxt(output, corr_matrix)
-    return output #was corr_matrix
-
-
-def create_connectome(name='connectome'):
-
-    wf = pe.Workflow(name=name)
-
-    inputspec = pe.Node(
-        util.IdentityInterface(fields=[
-            'timeseries',
-            'method' #was measure
-        ]),
-        name='inputspec'
-    )
-
-    outputspec = pe.Node(
-        util.IdentityInterface(fields=[
-            'connectome', #can be matrix_file instead. Need to test
-        ]),
-        name='outputspec'
-    )
-
-    node = pe.Node(Function(input_names=['timeseries', 'method'], #measure to method
-                            output_names=['connectome'], 
-                            function=compute_correlation,
-                            as_module=True),
-                   name='connectome')
-
-    wf.connect([
-        (inputspec, node, [('timeseries', 'timeseries')]),
-        (inputspec, node, [('method', 'method')]), #was meaure,measure
-        (node, outputspec, [('connectome', 'connectome')]), #was connectome,connectome
-    ])
-
-    return wf
+    return output  # was corr_matrix
 
 
 def create_connectome_nilearn(name='connectomeNilearn'):
@@ -232,49 +198,44 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
         )
         if analysis is None:
             continue
-        node, out = strat_pool.get_data('timeseries')
+        # Find the relevant timeseries
+        try:
+            node, out = strat_pool.get_data(f'atlas-{atlas}_desc-{analysis}_'
+                                            'timeseries')
+        except LookupError:
+            continue
         for measure in cfg['connectivity_matrix', 'measure']:
-            if measure in valid_options['connectivity_matrix']['measure']:
-                if opt in ['AFNI', 'Nilearn']:
-                    implementation = _get_method(measure, opt)
-                    if implementation is NotImplemented:
-                        continue
-                    roi_dataflow = create_roi_mask_dataflow(
-                            cfg.timeseries_extraction['tse_atlases']['Avg'],
-                            f'roi_dataflow_{pipe_num}')
-                    roi_dataflow.inputs.inputspec.set(
-                        creds_path=cfg.pipeline_setup['input_creds_path'],
-                        dl_dir=cfg.pipeline_setup['working_directory']['path']
+            implementation = _get_method(measure, opt)
+            if implementation is NotImplemented:
+                continue
+            roi_dataflow = create_roi_mask_dataflow(
+                    cfg.timeseries_extraction['tse_atlases']['Avg'],
+                    f'roi_dataflow_{pipe_num}')
+            roi_dataflow.inputs.inputspec.set(
+                creds_path=cfg.pipeline_setup['input_creds_path'],
+                dl_dir=cfg.pipeline_setup['working_directory']['path']
+            )
+
+            if opt == 'Nilearn':
+                timeseries_correlation = pe.Node(Function(
+                    input_names=['parcellation', 'timeseries'],
+                    output_names=['connectomeNilearn'],
+                    function=create_connectome_nilearn,
+                    as_module=True
+                ), name=f'connectomeNilearn{measure}_{pipe_num}')
+                timeseries_correlation.inputs.measure = measure
+
+            elif opt == "AFNI":
+                timeseries_correlation = pe.Node(
+                    NetCorr(),
+                    name=f'connectomeAFNI{measure}_{pipe_num}')
+                if implementation:
+                    timeseries_correlation.inputs.part_corr = (
+                        measure == 'Partial'
                     )
 
-                    if opt == 'Nilearn':
-                        timeseries_correlation = pe.Node(Function(
-                            input_names=['parcellation', 'timeseries'],
-                            output_names=['connectomeNilearn'],
-                            function=create_connectome_nilearn,
-                            as_module=True
-                        ), name=f'connectomeNilearn{measure}_{pipe_num}')
-                        timeseries_correlation.inputs.measure = measure
-
-                    elif opt == "AFNI":
-                        timeseries_correlation = pe.Node(
-                            NetCorr(),
-                            name=f'connectomeAFNI{measure}_{pipe_num}')
-                        if implementation:
-                            timeseries_correlation.inputs.part_corr = (
-                                measure == 'Partial'
-                            )
-
-                    wf.connect(roi_dataflow, 'outputspec.out_file',
-                               timeseries_correlation, 'parcellation')
-
-                else:
-                    timeseries_correlation = pe.Node(Function(
-                        input_names=['timeseries', 'measure'],
-                        output_names=['connectome'],
-                        function=create_connectome,
-                        as_module=True
-                    ), name=f'connectome{measure}_{pipe_num}')
+            wf.connect(roi_dataflow, 'outputspec.out_file',
+                       timeseries_correlation, 'parcellation')
 
             wf.connect(node, out,
                        timeseries_correlation, 'timeseries')
