@@ -256,7 +256,7 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                         timeseries_correlation.inputs.part_corr = (
                             measure == 'Partial'
                         )
-
+                        
                 wf.connect(roi_dataflow, 'outputspec.out_file',
                            timeseries_correlation, 'parcellation')
 
