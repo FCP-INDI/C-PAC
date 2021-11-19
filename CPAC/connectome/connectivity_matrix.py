@@ -39,13 +39,23 @@ def _connectome_name(time_series, method):
     str
     """
     method = method.replace(' ', '+')
-    return os.path.abspath(os.path.join(
-        os.path.dirname(time_series),
-        time_series.replace(
-            '_timeseries.1D',
-            f'_desc-{method}_connectome.npy'
-        )
-    ))
+    if time_series.endswith('.1D'):
+        return os.path.abspath(os.path.join(
+            os.path.dirname(time_series),
+            time_series.replace(
+                '_timeseries.1D',
+                f'_desc-{method}_connectome.npy'
+            )
+        ))
+    new_filename_parts = time_series.split('_')[:-1][::-1]
+    if any(filename_part.startswith('desc-') for filename_part in
+            new_filename_parts):
+        for i, filename_part in enumerate(new_filename_parts):
+            if filename_part.startswith('desc-'):
+                new_filename_parts[-i] = (
+                    filename_part + method.capitalize())
+                break
+    return '_'.join([*new_filename_parts[::-1], 'connectome.npy'])
 
 
 def _get_method(method, tool):
@@ -186,9 +196,18 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["AFNI", "Nilearn"],
-     "inputs": ["desc-Mean_timeseries"],
+     "inputs": [(["desc-Mean_timeseries"],
+                 ["space-template_desc-cleaned_bold",
+                  "space-template_desc-brain_bold",
+                  "space-template_desc-motion_bold",
+                  "space-template_desc-preproc_bold",
+                  "space-template_bold"])],
      "outputs": ["connectome"]}
     '''  # pylint: disable=invalid-name,unused-argument
+    """
+    NOTE: Nilearn calculates its own timeseries output instead of using
+    the preexisting AFNI-generated '*_timeseries.1D' file
+    """
     outputs = {}
     for timeseries_analysis in cfg['timeseries_extraction', 'tse_roi_paths']:
         atlas = timeseries_analysis.split('/')[
@@ -200,8 +219,9 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
             continue
         # Find the relevant timeseries
         try:
-            node, out = strat_pool.get_data(f'atlas-{atlas}_desc-{analysis}_'
-                                            'timeseries')
+            timeseries_node, out = strat_pool.get_data(f'atlas-{atlas}_desc-'
+                                                       f'{analysis}_'
+                                                       'timeseries')
         except LookupError:
             continue
         for measure in cfg['connectivity_matrix', 'measure']:
@@ -210,20 +230,23 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                 continue
             roi_dataflow = create_roi_mask_dataflow(
                     cfg.timeseries_extraction['tse_atlases']['Avg'],
-                    f'roi_dataflow_{pipe_num}')
+                    f'roi_dataflow_{opt}-{measure}-{pipe_num}')
             roi_dataflow.inputs.inputspec.set(
                 creds_path=cfg.pipeline_setup['input_creds_path'],
                 dl_dir=cfg.pipeline_setup['working_directory']['path']
             )
 
             if opt == 'Nilearn':
-                timeseries_correlation = pe.Node(Function(
-                    input_names=['parcellation', 'timeseries'],
-                    output_names=['connectomeNilearn'],
-                    function=create_connectome_nilearn,
-                    as_module=True
-                ), name=f'connectomeNilearn{measure}_{pipe_num}')
-                timeseries_correlation.inputs.measure = measure
+                timeseries_correlation = create_connectome_nilearn(
+                    name=f'connectomeNilearn{measure}_{pipe_num}'
+                )
+                timeseries_correlation.inputs.inputspec.method = measure
+                timeseries_node, out = strat_pool.get_data([
+                    "space-template_desc-cleaned_bold",
+                    "space-template_desc-brain_bold",
+                    "space-template_desc-motion_bold",
+                    "space-template_desc-preproc_bold",
+                    "space-template_bold"])
 
             elif opt == "AFNI":
                 timeseries_correlation = pe.Node(
@@ -235,9 +258,9 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
                     )
 
             wf.connect(roi_dataflow, 'outputspec.out_file',
-                       timeseries_correlation, 'parcellation')
+                       timeseries_correlation, 'inputspec.parcellation')
 
-            wf.connect(node, out,
-                       timeseries_correlation, 'timeseries')
+            wf.connect(timeseries_node, out,
+                       timeseries_correlation, 'inputspec.timeseries')
 
     return (wf, outputs)
