@@ -154,7 +154,7 @@ def compute_connectome_nilearn(parcellation, timeseries, method):
     correlation_measure = ConnectivityMeasure(kind=method)
     corr_matrix = correlation_measure.fit_transform([timeser])[0]
     np.fill_diagonal(corr_matrix, 0)
-    np.savetxt(output, corr_matrix)
+    np.save(output, corr_matrix)
     return output  # was corr_matrix
 
 
