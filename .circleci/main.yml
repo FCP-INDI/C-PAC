@@ -56,23 +56,23 @@ commands:
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
-      - when:
-          condition:
-            not:
-              equal: [ << parameters.variant >>, fMRIPrep-LTS ]
-          steps:
-          - run:
-              name: "Starting local registry"
-              command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-          - get-singularity
-          - run:
-              name: "Building Singularity image from Docker image"
-              command: |
-                docker load < ${DOCKER_TARBALL}.tar.gz
-                docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-                docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-                SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
-              no_output_timeout: 5h
+      # - when:
+      #     condition:
+      #       not:
+      #         equal: [ << parameters.variant >>, fMRIPrep-LTS ]
+      #     steps:
+      #     - run:
+      #         name: "Starting local registry"
+      #         command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+      #     - get-singularity
+      #     - run:
+      #         name: "Building Singularity image from Docker image"
+      #         command: |
+      #           docker load < ${DOCKER_TARBALL}.tar.gz
+      #           docker tag fcpindi/c-pac:${DOCKER_TAG} localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+      #           docker push localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+      #           SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${DOCKER_TAG}
+      #         no_output_timeout: 5h
   check-updated:
     steps:
       - restore_cache:
@@ -232,13 +232,13 @@ jobs:
       - build-images
       - store_artifacts:
           path: cpac-docker-image.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image.simg
+      # - store_artifacts:
+      #     path: cpac-singularity-image.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
             - project/cpac-docker-image.tar.gz
-            - project/cpac-singularity-image.simg
+            # - project/cpac-singularity-image.simg
   build-ABCD-HCP:
     machine:
       image: ubuntu-2004:202010-01
@@ -250,13 +250,13 @@ jobs:
           variant: ABCD-HCP
       - store_artifacts:
           path: cpac-docker-image-ABCD-HCP.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-ABCD-HCP.simg
+      # - store_artifacts:
+      #     path: cpac-singularity-image-ABCD-HCP.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
             - project/cpac-docker-image-ABCD-HCP.tar.gz
-            - project/cpac-singularity-image-ABCD-HCP.simg
+            # - project/cpac-singularity-image-ABCD-HCP.simg
   build-fMRIPrep-LTS:
     machine:
       image: ubuntu-2004:202010-01
@@ -268,13 +268,13 @@ jobs:
           variant: fMRIPrep-LTS
       - store_artifacts:
           path: cpac-docker-image-fMRIPrep-LTS.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-fMRIPrep-LTS.simg
+      # - store_artifacts:
+      #     path: cpac-singularity-image-fMRIPrep-LTS.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
             - project/cpac-docker-image-fMRIPrep-LTS.tar.gz
-            - project/cpac-singularity-image-fMRIPrep-LTS.simg
+            # - project/cpac-singularity-image-fMRIPrep-LTS.simg
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
@@ -286,13 +286,13 @@ jobs:
           variant: lite
       - store_artifacts:
           path: cpac-docker-image-lite.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-lite.simg
+      # - store_artifacts:
+      #     path: cpac-singularity-image-lite.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
             - project/cpac-docker-image-lite.tar.gz
-            - project/cpac-singularity-image-lite.simg
+            # - project/cpac-singularity-image-lite.simg
   check-version:
     machine:
       image: ubuntu-2004:202010-01
@@ -336,16 +336,16 @@ jobs:
       - check-updated
       - restore_cache:
           key: coverage-docker--{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity--{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity--{{ .Revision }}
       - restore_cache:
           key: coverage-docker-ABCD-HCP-{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity-ABCD-HCP-{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity-ABCD-HCP-{{ .Revision }}
       - restore_cache:
           key: coverage-docker-lite-{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity-lite-{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
       - store_artifacts:
@@ -431,11 +431,11 @@ workflows:
           name: "Combine coverage"
           requires:
             - "Test in Docker"
-            - "Test in Singularity"
+            # - "Test in Singularity"
             - "Test lite variant in Docker"
-            - "Test lite variant in Singularity"
+            # - "Test lite variant in Singularity"
             - "Test ABCD-HCP variant in Docker"
-            - "Test ABCD-HCP variant in Singularity"
+            # - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
       - pytest-docker:
           name: "Test in Docker"
@@ -456,17 +456,17 @@ workflows:
           requires:
             - "Build lite variant images"
           variant: lite
-      - pytest-singularity:
-          name: "Test in Singularity"
-          requires:
-            - "Build images"
-      - pytest-singularity:
-          name: "Test ABCD-HCP variant in Singularity"
-          requires:
-            - "Build ABCD-HCP variant images"
-          variant: ABCD-HCP
-      - pytest-singularity:
-          name: "Test lite variant in Singularity"
-          requires:
-            - "Build lite variant images"
-          variant: lite
+      # - pytest-singularity:
+      #     name: "Test in Singularity"
+      #     requires:
+      #       - "Build images"
+      # - pytest-singularity:
+      #     name: "Test ABCD-HCP variant in Singularity"
+      #     requires:
+      #       - "Build ABCD-HCP variant images"
+      #     variant: ABCD-HCP
+      # - pytest-singularity:
+      #     name: "Test lite variant in Singularity"
+      #     requires:
+      #       - "Build lite variant images"
+      #     variant: lite
