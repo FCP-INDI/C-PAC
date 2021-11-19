@@ -413,14 +413,14 @@ workflows:
           name: "Build images"
           requires:
             - "Checking for updated version"
-      - build-ABCD-HCP:
-          name: "Build ABCD-HCP variant images"
-          requires:
-            - "Checking for updated version"
-      - build-fMRIPrep-LTS:
-          name: "Build fMRIPrep-LTS variant images"
-          requires:
-            - "Checking for updated version"
+      # - build-ABCD-HCP:
+      #     name: "Build ABCD-HCP variant images"
+      #     requires:
+      #       - "Checking for updated version"
+      # - build-fMRIPrep-LTS:
+      #     name: "Build fMRIPrep-LTS variant images"
+      #     requires:
+      #       - "Checking for updated version"
       - build-lite:
           name: "Build lite variant images"
           requires:
@@ -434,23 +434,23 @@ workflows:
             # - "Test in Singularity"
             - "Test lite variant in Docker"
             # - "Test lite variant in Singularity"
-            - "Test ABCD-HCP variant in Docker"
+            # - "Test ABCD-HCP variant in Docker"
             # - "Test ABCD-HCP variant in Singularity"
-            - "Test fMRIPrep-LTS variant in Docker"
+            # - "Test fMRIPrep-LTS variant in Docker"
       - pytest-docker:
           name: "Test in Docker"
           requires:
             - "Build images"
-      - pytest-docker:
-          name: "Test ABCD-HCP variant in Docker"
-          requires:
-            - "Build ABCD-HCP variant images"
-          variant: ABCD-HCP
-      - pytest-docker:
-          name: "Test fMRIPrep-LTS variant in Docker"
-          requires:
-            - "Build fMRIPrep-LTS variant images"
-          variant: fMRIPrep-LTS
+      # - pytest-docker:
+      #     name: "Test ABCD-HCP variant in Docker"
+      #     requires:
+      #       - "Build ABCD-HCP variant images"
+      #     variant: ABCD-HCP
+      # - pytest-docker:
+      #     name: "Test fMRIPrep-LTS variant in Docker"
+      #     requires:
+      #       - "Build fMRIPrep-LTS variant images"
+      #     variant: fMRIPrep-LTS
       - pytest-docker:
           name: "Test lite variant in Docker"
           requires:
