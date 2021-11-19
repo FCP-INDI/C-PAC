@@ -145,7 +145,7 @@ def compute_connectome_nilearn(parcellation, timeseries, method):
     corr_matrix = correlation_measure.fit_transform([timeser])[0]
     np.fill_diagonal(corr_matrix, 0)
     np.savetxt(output, corr_matrix)
-    return corr_matrix
+    return output #was corr_matrix
 
 
 def create_connectome(name='connectome'):
@@ -155,28 +155,28 @@ def create_connectome(name='connectome'):
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
             'timeseries',
-            'measure'
+            'method' #was measure
         ]),
         name='inputspec'
     )
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'connectome',
+            'connectome', #can be matrix_file instead. Need to test
         ]),
         name='outputspec'
     )
 
-    node = pe.Node(Function(input_names=['timeseries', 'measure'],
-                            output_names=['connectome'],
+    node = pe.Node(Function(input_names=['timeseries', 'method'], #measure to method
+                            output_names=['connectome'], 
                             function=compute_correlation,
                             as_module=True),
                    name='connectome')
 
     wf.connect([
         (inputspec, node, [('timeseries', 'timeseries')]),
-        (inputspec, node, [('measure', 'measure')]),
-        (node, outputspec, [('connectome', 'connectome')]),
+        (inputspec, node, [('method', 'method')]), #was meaure,measure
+        (node, outputspec, [('connectome', 'connectome')]), #was connectome,connectome
     ])
 
     return wf
@@ -188,27 +188,27 @@ def create_connectome_nilearn(name='connectomeNilearn'):
         util.IdentityInterface(fields=[
             'parcellation',
             'timeseries',
-            'measure'
+            'method' #was measure
         ]),
         name='inputspec'
     )
     outputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'connectome',
+            'connectome', 
         ]),
         name='outputspec'
     )
     node = pe.Node(Function(input_names=['parcellation', 'timeseries',
-                                         'measure'],
-                            output_names=['connectome'],
+                                         'method'], #was measure
+                            output_names=['connectome'], #was connectome
                             function=compute_connectome_nilearn,
                             as_module=True),
                    name='connectome')
     wf.connect([
         (inputspec, node, [('parcellation', 'parcellation')]),
         (inputspec, node, [('timeseries', 'timeseries')]),
-        (inputspec, node, [('measure', 'measure')]),
-        (node, outputspec, [('connectome', 'connectome')]),
+        (inputspec, node, [('method', 'method')]), #was measure,measure
+        (node, outputspec, [('connectome', 'connectome')]), #was connectome,connectome
     ])
     return wf
 
