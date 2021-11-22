@@ -1459,6 +1459,16 @@ timeseries_extraction:
   #           check your data if you see issues
   realignment: 'ROI_to_func'
 
+  connectivity_matrix:
+    # Create a connectivity matrix from timeseries data
+
+    # Options:
+    #  ['AFNI', 'Nilearn']
+    using:
+    # Options:
+    #  ['Pearson', 'Partial', 'Spearman']
+    measure:
+
 
 seed_based_correlation_analysis:
 
@@ -1483,17 +1493,6 @@ seed_based_correlation_analysis:
 
   # Normalize each time series before running Dual Regression SCA.
   norm_timeseries_for_DR: True
-
-
-connectivity_matrix:
-  # Create a connectivity matrix from timeseries data
-
-  # Options:
-  #  ['AFNI', 'Nilearn']
-  using:
-  # Options:
-  #  ['Pearson', 'Partial', 'Spearman']
-  measure:
 
 
 amplitude_low_frequency_fluctuation:

@@ -744,13 +744,6 @@ def gather_extraction_maps(c):
                 x.strip() for x in tsa_roi_dict[roi_path].split(",")
                 ]
 
-            if (
-                c['connectivity_matrix', 'using'] and
-                c['connectivity_matrix', 'measure'] and
-                "Avg" not in ts_analysis_to_run
-            ):
-                ts_analysis_to_run += ["Avg"]
-
             for analysis_type in ts_analysis_to_run:
                 if analysis_type not in ts_analysis_dict.keys():
                     ts_analysis_dict[analysis_type] = []

@@ -970,6 +970,10 @@ latest_schema = Schema({
                 'tse_roi_paths', valid_options['timeseries']['roi_paths'])
         ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
+        'connectivity_matrix': {
+            option: Maybe([In(valid_options['connectivity_matrix'][option])])
+            for option in ['using', 'measure']
+        },
     },
     'seed_based_correlation_analysis': {
         'run': bool,
@@ -986,10 +990,6 @@ latest_schema = Schema({
                 'sca_roi_paths', valid_options['sca']['roi_paths'])
         ),
         'norm_timeseries_for_DR': bool,
-    },
-    'connectivity_matrix': {
-        option: Maybe([In(valid_options['connectivity_matrix'][option])])
-        for option in ['using', 'measure']
     },
     'network_centrality': {
         'run': bool,

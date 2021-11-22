@@ -1,6 +1,7 @@
 """Interface for AFNI 3dNetCorr"""
 import glob
 import os
+import subprocess
 from nipype.interfaces.afni.base import AFNICommand, AFNICommandInputSpec, \
                                         AFNICommandOutputSpec
 from nipype.interfaces.base import File, isdefined
@@ -28,7 +29,7 @@ class NetCorrInputSpec(AFNICommandInputSpec):
         argstr="-mask %s",
     )
     automask_off = Bool(
-        True,
+        False,
         desc='If you want to neither put in a mask '
              '*nor* have the automasking occur',
         argstr='-automask_off', usedefault=True
@@ -215,3 +216,11 @@ class NetCorr(AFNICommand):
                 os.path.join(corrdir, "*.nii.gz"))
 
         return outputs
+
+
+def strip_afni_output_header(filepath):
+    """Function to rewrite a file with all but the first 6 lines"""
+    subprocess.run(f'tail -n +7 {filepath} > {filepath}.tmp', shell=True,
+                   check=True)
+    subprocess.run(f'mv {filepath}.tmp {filepath}', shell=True, check=True)
+    return filepath

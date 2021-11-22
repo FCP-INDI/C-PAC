@@ -156,7 +156,7 @@ desc-Mean_timeseries	timeseries		func	1D
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
 desc-Voxel_timeseries	timeseries		func	1D					
-_connectome	matrix		func	npy	        				
+connectome	matrix		func	TSV	        				Yes
 space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
