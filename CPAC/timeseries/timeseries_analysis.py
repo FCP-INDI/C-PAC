@@ -766,11 +766,11 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
+     "inputs": [[["space-template_desc-cleaned_bold",
                  "space-template_desc-brain_bold",
                  "space-template_desc-motion_bold",
                  "space-template_desc-preproc_bold",
-                 "space-template_bold"]],
+                 "space-template_bold"]]],
      "outputs": ["desc-Mean_timeseries",
                  "desc-ndmg_correlations",
                  "atlas_name"]}

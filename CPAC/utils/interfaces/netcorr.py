@@ -8,13 +8,13 @@ from traits.api import Bool, List
 
 
 class NetCorrInputSpec(AFNICommandInputSpec):
-    timeseries = File(
+    in_file = File(
         desc="input time series file (4D data set)",
         exists=True,
         argstr="-inset %s",
         mandatory=True,
     )
-    parcellation = File(
+    in_rois = File(
         desc="input set of ROIs, each labelled with distinct integers",
         exists=True,
         argstr="-in_rois %s",
@@ -175,7 +175,7 @@ class NetCorr(AFNICommand):
 
     Examples
     --------
-    >>> from nipype.interfaces import afni
+    >>> from CPAC.utils.interfaces import NetCorr
     >>> ncorr = afni.NetCorr()
     >>> ncorr.inputs.in_file = 'functional.nii'
     >>> ncorr.inputs.mask = 'mask.nii'

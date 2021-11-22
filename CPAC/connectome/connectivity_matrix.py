@@ -215,7 +215,7 @@ def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
         analysis = tse_analyses.get(
             cfg['timeseries_extraction', 'tse_roi_paths', timeseries_analysis]
         )
-        if analysis is None:
+        if analysis != "Avg":
             continue
         # Find the relevant timeseries
         try:

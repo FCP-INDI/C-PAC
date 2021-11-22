@@ -226,13 +226,13 @@ class ResourcePool(object):
             for label in resource:
                 if label in rp_keys:
                     return self.get(label, pipe_idx, report_fetched, optional)
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise Exception("\n[!] C-PAC says: None of the listed "
+            if optional:
+                if report_fetched:
+                    return (None, None)
+                return None
+            raise LookupError("\n[!] C-PAC says: None of the listed "
                                 "resources are in the resource pool:\n"
-                                f"{resource}\n")
+                                f"{resource}\n{list(rp_keys)}")
         else:
             if resource not in rp_keys:
                 # If no exact match, try for a partial
@@ -379,7 +379,17 @@ class ResourcePool(object):
         # NOTE: resource_strat_dct has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if strat:
-            resource_strat_dct = self.rpool[resource][strat]
+            try:
+                resource_strat_dct = self.rpool[resource][strat]
+            except KeyError as key_error:
+                rp_keys = list(self.rpool[resource].keys())
+                if len(rp_keys) == 1:
+                    self.rpool[resource][strat] = self.rpool[resource][
+                        rp_keys[0]]
+                    resource_strat_dct = self.rpool[resource][rp_keys[0]]
+                    del rp_keys
+                else:
+                    raise key_error
         else:
             # for strat_pools mainly, where there is no 'strat' key level
             resource_strat_dct = self.rpool[resource]
