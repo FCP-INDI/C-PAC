@@ -314,19 +314,13 @@ class ResourcePool(object):
         """
         rp_dct, fetched_resource = self.get(resource,
                                             report_fetched=True,
-                                            # <---- rp_dct has the strats/
-                                            # pipe_idxs as the keys on
-                                            # first level, then 'data' and
-                                            # 'json' on each strat level
-                                            # underneath
                                             optional=True)
-                                            # oh, and we make the resource
-                                            # fetching in get_strats
-                                            # optional so we can have
-                                            # optional inputs, but they
-                                            # won't be optional in the
-                                            # node block unless we want
-                                            # them to be
+        # <---- rp_dct has the strats/pipe_idxs as the keys on first
+        # level, then 'data' and 'json' on each strat level underneath
+        #
+        # oh, and we make the resource fetching in get_strats optional
+        # so we can have optional inputs, but they won't be optional in
+        # the node block unless we want them to be
 
         if not rp_dct:
             labels = self.get_all(resource, report_fetched=True,

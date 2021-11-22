@@ -191,23 +191,23 @@ def create_connectome_nilearn(name='connectomeNilearn'):
 
 def timeseries_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
+    NOTE: Nilearn calculates its own timeseries output instead of using
+    the preexisting AFNI-generated '*_timeseries.1D' file
+
+    Node Block:
     {"name": "timeseries_connectivity_matrix",
      "config": ["connectivity_matrix"],
      "switch": "None",
      "option_key": "using",
      "option_val": ["AFNI", "Nilearn"],
-     "inputs": [(["desc-Mean_timeseries"],
-                 ["space-template_desc-cleaned_bold",
-                  "space-template_desc-brain_bold",
-                  "space-template_desc-motion_bold",
-                  "space-template_desc-preproc_bold",
-                  "space-template_bold"])],
+     "inputs": (["desc-Mean_timeseries"],
+                ["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-motion_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_bold"]),
      "outputs": ["connectome"]}
     '''  # pylint: disable=invalid-name,unused-argument
-    """
-    NOTE: Nilearn calculates its own timeseries output instead of using
-    the preexisting AFNI-generated '*_timeseries.1D' file
-    """
     outputs = {}
     for timeseries_analysis in cfg['timeseries_extraction', 'tse_roi_paths']:
         atlas = timeseries_analysis.split('/')[
