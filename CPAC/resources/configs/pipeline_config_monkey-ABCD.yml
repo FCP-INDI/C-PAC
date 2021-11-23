@@ -80,6 +80,8 @@ pipeline_setup:
 
 anatomical_preproc: 
 
+  run_t2: On
+
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering: False
 
@@ -430,7 +432,7 @@ functional_preproc:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
     # this is a fork point
-    using: [Anatomical_Refined] #HJ Note: this should be 'Anatomical_Based'
+    using: [Anatomical_Based]
 
 nuisance_corrections: 
 
