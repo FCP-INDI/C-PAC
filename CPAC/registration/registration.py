@@ -2841,7 +2841,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data("fieldmap_mask")
         wf.connect(node, out, func_to_anat, 'inputspec.fieldmapmask')
 
-    if strat_pool.check_rpool('T2w'):
+    if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
         outputs = {
             'space-T1w_desc-mean_bold':
                 (func_to_anat, 'outputspec.anat_func_nobbreg'),

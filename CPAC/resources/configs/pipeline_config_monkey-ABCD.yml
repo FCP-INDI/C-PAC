@@ -80,6 +80,8 @@ pipeline_setup:
 
 anatomical_preproc: 
 
+  run_t2: On
+
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering: False
 
