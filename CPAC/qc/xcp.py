@@ -315,17 +315,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f'gen_motion_stats_after_{pipe_num}',
         motion_correct_tool=motion_correct_tool)
 
-    gen_motion_stats.inputs.inputspec.mask = _get_other_func(
-        final['func'], 'space-bold_desc-brain_mask.nii.gz')
-    gen_motion_stats.inputs.inputspec.movement_parameters = _get_other_func(
-        final['func'], 'movement-parameters.1D')
-    gen_motion_stats.inputs.inputspec.max_displacement = _get_other_func(
-        final['func'], 'max-displacement.rms')
-    gen_motion_stats.inputs.inputspec.rels_displacement = _get_other_func(
-        final['func'], 'rels-displacement.rms')
-    gen_motion_stats.inputs.inputspec.transformations = _get_other_func(
-        final['func'], 'transformations.rms')
-
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
@@ -343,6 +332,27 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     except LookupError:
         qc_file.inputs.n_vols_censored = 'unknown'
 
+    other_func = Function(input_names=['final_func', 'suffix_dot_filetype'],
+                          output_names=['filepath'],
+                          function=_get_other_func)
+
+    after_funcs = {'mask': pe.Node(other_func,
+                                   name=f'func_mask_after_{pipe_num}'),
+                   'mp': pe.Node(other_func,
+                                 name=f'func_mp_after_{pipe_num}'),
+                   'max': pe.Node(other_func,
+                                  name=f'func_max_after_{pipe_num}'),
+                   'rels': pe.Node(other_func,
+                                   name=f'func_rels_after_{pipe_num}'),
+                   'tran': pe.Node(other_func,
+                                   name=f'func_tran_after_{pipe_num}')}
+    after_funcs['mask'].inputs.suffix_dot_filetype = \
+        'space-bold_desc-brain_mask.nii.gz'
+    after_funcs['mp'].inputs.suffix_dot_filetype = 'movement-parameters.1D'
+    after_funcs['max'].inputs.suffix_dot_filetype = 'max-displacement.rms'
+    after_funcs['rels'].inputs.suffix_dot_filetype = 'rels-displacement.rms'
+    after_funcs['tran'].inputs.suffix_dot_filetype = 'transformations.rms'
+
     wf.connect([
         (original['anat']['node'], qc_file, [
             (original['anat']['out'], 'original_anat')]),
@@ -356,6 +366,16 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (from_bids, gen_motion_stats, [('sub', 'inputspec.subject_id'),
                                        ('run', 'inputspec.scan'),
                                        ('func', 'inputspec.motion_correct')]),
+        (original['func']['node'], after_funcs['mask'], [
+            (original['func']['out'], 'final_func')]),
+        (original['func']['node'], after_funcs['mp'], [
+            (original['func']['out'], 'final_func')]),
+        (original['func']['node'], after_funcs['max'], [
+            (original['func']['out'], 'final_func')]),
+        (original['func']['node'], after_funcs['rels'], [
+            (original['func']['out'], 'final_func')]),
+        (original['func']['node'], after_funcs['tran'], [
+            (original['func']['out'], 'final_func')]),
         (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
                                      ('FDJ_1D', 'fdj_after')])])
 
