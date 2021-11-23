@@ -39,7 +39,8 @@ def connectome_name(timeseries, atlas_name, method):
     str
     """
     method = ''.join(word.capitalize() for word in method.split(' '))
-    new_filename_parts = timeseries.split('_')[:-1][::-1]
+    new_filename_parts = [part for part in timeseries.split('_')[:-1][::-1] if
+                          not part.startswith('space-')]
     atlas_index = len(new_filename_parts) - 1
     if any(filename_part.startswith('desc-') for filename_part in
             new_filename_parts):
@@ -47,9 +48,9 @@ def connectome_name(timeseries, atlas_name, method):
             if filename_part.startswith('desc-'):
                 new_filename_parts[-i] = (
                     filename_part + method.capitalize())
-                atlas_index = i - 1
+                atlas_index = -(i - 1)
                 break
-    new_filename_parts.insert(atlas_index, atlas_name)
+    new_filename_parts.insert(atlas_index, f'atlas-{atlas_name}')
     return '_'.join([*new_filename_parts[::-1], 'connectome.tsv'])
 
 

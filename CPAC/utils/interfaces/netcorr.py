@@ -218,9 +218,8 @@ class NetCorr(AFNICommand):
         return outputs
 
 
-def strip_afni_output_header(filepath):
+def strip_afni_output_header(in_file, out_file):
     """Function to rewrite a file with all but the first 6 lines"""
-    subprocess.run(f'tail -n +7 {filepath} > {filepath}.tmp', shell=True,
+    subprocess.run(f'tail -n +7 {in_file} > {out_file}', shell=True,
                    check=True)
-    subprocess.run(f'mv {filepath}.tmp {filepath}', shell=True, check=True)
-    return filepath
+    return out_file
