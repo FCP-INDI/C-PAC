@@ -187,7 +187,10 @@ def motion_power_statistics(name='motion_stats',
                                                          'FDJ_1D',
                                                          'DVARS_1D',
                                                          'power_params',
-                                                         'motion_params']),
+                                                         'motion_params',
+                                                         'motion'
+                                                         'desc_summary_motion' ])
+                                                    
                           name='outputspec')
 
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
@@ -207,21 +210,23 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(input_node, 'mask', cal_DVARS, 'mask')
     wf.connect(cal_DVARS, 'out_file', cal_DVARS_strip, 'file_1D')
     wf.connect(cal_DVARS_strip, 'out_file', output_node, 'DVARS_1D')
+    wf.connect(calculate_DVARS, 'motion_dvars', output_node, 'motion')
 
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(Function(input_names=['in_file'],
-                                     output_names=['out_file'],
+                                     output_names=['out_file','motion_FDP'],
                                      function=calculate_FD_P,
                                      as_module=True),
                             name='calculate_FD')
 
     wf.connect(input_node, 'movement_parameters', calculate_FDP, 'in_file')
     wf.connect(calculate_FDP, 'out_file', output_node, 'FDP_1D')
+    wf.connect(calculate_FDP, 'motion_FDP', output_node, 'motion')
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
                                                   'motion_correct_tool'],
-                                     output_names=['out_file'],
+                                     output_names=['out_file','motion_FDJ'],
                                      function=calculate_FD_J,
                                      as_module=True),
                             name='calculate_FDJ')
@@ -233,13 +238,14 @@ def motion_power_statistics(name='motion_stats',
         wf.connect(input_node, 'rels_displacement', calculate_FDJ, 'in_file')
 
     wf.connect(calculate_FDJ, 'out_file', output_node, 'FDJ_1D')
+    wf.connect(calculate_FDJ, 'motion_FDJ', output_node, 'motion')
 
     calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
                                                            'scan_id',
                                                            'movement_parameters',
                                                            'max_displacement',
                                                            'motion_correct_tool'],
-                                              output_names=['out_file'],
+                                              output_names=['out_file','max_disp','summary_motion_params','rels_disp'],
                                               function=gen_motion_parameters,
                                               as_module=True),
                                      name='calc_motion_parameters')
@@ -256,6 +262,14 @@ def motion_power_statistics(name='motion_stats',
 
     wf.connect(calc_motion_parameters, 'out_file',
                output_node, 'motion_params')
+    wf.connect(calc_motion_parameters, 'summary_motion_params',
+               output_node, 'desc_summary_motion')
+    wf.connect(calc_motion_parameters, 'max_disp',
+               output_node, 'motion')
+    wf.connect(calc_motion_parameters, 'rels_disp',
+               output_node, 'motion')       
+               
+               
 
     calc_power_parameters = pe.Node(Function(input_names=['subject_id',
                                                           'scan_id',
@@ -263,7 +277,7 @@ def motion_power_statistics(name='motion_stats',
                                                           'fdj',
                                                           'dvars',
                                                           'motion_correct_tool'],
-                                             output_names=['out_file'],
+                                             output_names=['out_file','power_summary_params'],
                                              function=gen_power_parameters,
                                              as_module=True),
                                     name='calc_power_parameters')
@@ -285,6 +299,8 @@ def motion_power_statistics(name='motion_stats',
 
     wf.connect(calc_power_parameters, 'out_file',
                output_node, 'power_params')
+    wf.connect(calc_power_parameters, 'power_summary_params',
+               output_node, 'desc_summary_motion'')
 
     return wf
 
@@ -292,18 +308,15 @@ def motion_power_statistics(name='motion_stats',
 def calculate_FD_P(in_file):
     """
     Method to calculate Framewise Displacement (FD)  as per Power et al., 2012
-
     Parameters
     ----------
     in_file : string
         movement parameters vector file path
-
     Returns
     -------
     out_file : string
         Frame-wise displacement mat
         file path
-
     """
 
     motion_params = np.genfromtxt(in_file).T
@@ -315,27 +328,25 @@ def calculate_FD_P(in_file):
          (50 * np.pi / 180) * np.sum(rotations, axis=1)
 
     fd = np.insert(fd, 0, 0)
-
     out_file = os.path.join(os.getcwd(), 'FD.1D')
     np.savetxt(out_file, fd)
-
-    return out_file
+    
+    motion_FDP = os.path.join(os.getcwd(),'motion.tsv')
+    motion_FDP['Framewise Displacement Power'] = fd
+    return out_file, motion_FDP
 
 
 def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
-
     Parameters
     ----------
     in_file : string
         matrix transformations from volume alignment file path
-
     Returns
     -------
     out_file : string
         Frame-wise displacement file path
-
     """
 
     if motion_correct_tool == '3dvolreg':
@@ -368,18 +379,21 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     elif motion_correct_tool == 'mcflirt':
         rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
-
+        
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
+ 
+    motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
+    
+    motion_FDJ['Framewise Displacement Jenkinson '] = fd
+    motion_FDJ.to_csv('motion.tsv', mode='w',index=False)
+    return out_file,motion_FDJ
 
-    return out_file
-
-
-def gen_motion_parameters(subject_id, scan_id, movement_parameters,
-                          max_displacement, motion_correct_tool):
+def gen_motion_parameters(movement_parameters,
+                          max_displacement, motion_correct_tool,rels_displacement=None):
+   
     """
     Method to calculate all the movement parameters
-
     Parameters
     ----------
     subject_id : string
@@ -391,14 +405,12 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     movement_parameters : string
         path of 1D file containing six movement/motion parameters(3 Translation,
         3 Rotations) in different columns (roll pitch yaw dS  dL  dP)
-
     Returns
     -------
     out_file : string
         path to csv file containing various motion parameters
-
     """
-
+    
     mot = np.genfromtxt(movement_parameters).T
 
     # Relative RMS of translation
@@ -408,10 +420,19 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     # max displacement file. AFNI adds information to the file
     if motion_correct_tool == '3dvolreg':
         maxdisp = np.loadtxt(max_displacement)
-
+        relsdisp = []
+        rels_disp = pd.DataFrame(relsdisp)
+        
     elif motion_correct_tool == 'mcflirt':
-        maxdisp = np.loadtxt(max_displacement)  # TODO: mcflirt outputs absdisp, instead of maxdisp
-
+          maxdisp = np.loadtxt(max_displacement)  # TODO: mcflirt outputs absdisp, instead of maxdisp
+          relsdisp = np.loadtxt(rels_displacement)  # rels_disp output only for mcflirt
+          
+          rels_disp = os.path.join(os.getcwd(),'motion.tsv')
+          rels_disp['Rels Displacement '] = relsdisp
+        
+        
+        
+    
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
     avg_relative = lambda v: np.mean(abs_relative(v))
@@ -419,8 +440,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     avg_abs = lambda v: np.mean(np.abs(v))
 
     info = [
-        ('Subject', subject_id),
-        ('Scan', scan_id),
+        
         ('Mean_Relative_RMS_Displacement', avg_relative(rms)),
         ('Max_Relative_RMS_Displacement', max_relative(rms)),
         ('Movements_gt_threshold', np.sum(abs_relative(rms) > 0.1)),
@@ -454,23 +474,39 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         ('Mean_Abs_dL-R', avg_abs(mot[4])),
         ('Mean_Abs_dP-A', avg_abs(mot[5])),
     ]
-
+    
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
+
     with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')
         f.write(','.join(
             v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
         f.write('\n')
+        
+    summary_motion_params = pd.DataFrame(info)
+    summary_motion_params.columns = ['Parameters', 'Values']
 
-    return out_file
+     with open(summary_motion_params, 'w') as f:
+        f.write(','.join(t for t, v in summary_motion_params))
+        f.write('\n')
+        f.write(','.join(
+            v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
+        f.write('\n')
+   
+
+    max_disp = os.path.join(os.getcwd(),'motion.tsv')
+    max_disp['Maximum Displacement'] = maxdisp
+   
+    return out_file, max_disp, summary_motion_params, rels_disp
+    
 
 
-def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
+def gen_power_parameters(fdp=None, fdj=None, dvars=None,
                          motion_correct_tool='3dvolreg'):
+							 
     """
     Method to generate Power parameters for scrubbing
-
     Parameters
     ----------
     subject_id : string
@@ -486,39 +522,46 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
         by default the value is set to 1.0
     DVARS : string
         path to numpy file containing DVARS
-
     Returns
     -------
     out_file : string (csv file)
         path to csv file containing all the pow parameters
     """
+    import numpy as np
+    import pandas as pd
+    meanFD_Power = []
+    meanDVARS = []
+    meanFD_Jenkinson = []
+    rmsFDJ = []
+    FDJquartile = []
+         
+    if fdp:
+       fdp_data = np.loadtxt(fdp)
+       dvars_data = np.loadtxt(dvars)
+    
+       # Mean (across time/frames) of the absolute values
+       # for Framewise Displacement (FD)
+       meanFD_Power = np.mean(fdp_data)
 
-    fdp_data = np.loadtxt(fdp)
-    dvars_data = np.loadtxt(dvars)
+       # Mean DVARS
+       meanDVARS = np.mean(dvars_data)
 
-    # Mean (across time/frames) of the absolute values
-    # for Framewise Displacement (FD)
-    meanFD_Power = np.mean(fdp_data)
+       if motion_correct_tool == '3dvolreg':
+          if fdj:
+             fdj_data = np.loadtxt(fdj)
 
-    # Mean DVARS
-    meanDVARS = np.mean(dvars_data)
+             # Mean FD Jenkinson
+             meanFD_Jenkinson = np.mean(fdj_data)
 
-    if motion_correct_tool == '3dvolreg':
+             # Root mean square (RMS; across time/frames)
+             # of the absolute values for FD
+             rmsFDJ = np.sqrt(np.mean(fdj_data))
 
-        fdj_data = np.loadtxt(fdj)
+             # Mean of the top quartile of FD is $FDquartile
+             quat = int(len(fdj_data) / 4)
+             FDJquartile = np.mean(np.sort(fdj_data)[::-1][:quat])
 
-        # Mean FD Jenkinson
-        meanFD_Jenkinson = np.mean(fdj_data)
-
-        # Root mean square (RMS; across time/frames)
-        # of the absolute values for FD
-        rmsFDJ = np.sqrt(np.mean(fdj_data))
-
-        # Mean of the top quartile of FD is $FDquartile
-        quat = int(len(fdj_data) / 4)
-        FDJquartile = np.mean(np.sort(fdj_data)[::-1][:quat])
-
-        info = [
+             info = [
             ('Subject', subject_id),
             ('Scan', scan_id),
             ('MeanFD_Power', meanFD_Power),
@@ -537,15 +580,27 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
         ]
 
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
-    with open(out_file, 'w') as f:
+    with open(out_file, 'a') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')
         f.write(','.join(
             v if type(v) == str else '{0:.4f}'.format(v) for t, v in info))
         f.write('\n')
+        
+    summary_motion_params = pd.DataFrame(info)
+    summary_motion_params.columns = ['Parameters', 'Values']
 
-    return out_file
+     with open(summary_motion_params, 'w') as f:
+        f.write(','.join(t for t, v in summary_motion_params))
+        f.write('\n')
+        f.write(','.join(
+            v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
+        f.write('\n')
+   
 
+    return out_file,summary_motion_params
+  
+    
 
 def DVARS_strip_t0(file_1D):
     x = np.loadtxt(file_1D)
@@ -593,23 +648,24 @@ class ImageTo1D(AFNICommand):
     output_spec = ImageTo1DOutputSpec
 
 
+
+
 def calculate_DVARS(func_brain, mask):
     """
     Method to calculate DVARS as per power's method
-
     Parameters
     ----------
     func_brain : string (nifti file)
         path to motion correct functional data
     mask : string (nifti file)
         path to brain only mask for functional data
-
     Returns
     -------
     out_file : string (numpy mat file)
         path to file containing array of DVARS calculation for each voxel
     """
-
+    import numpy as np
+    import nibabel as nb
     rest_data = nb.load(func_brain).get_data().astype(np.float32)
     mask_data = nb.load(mask).get_data().astype('bool')
 
@@ -621,7 +677,12 @@ def calculate_DVARS(func_brain, mask):
 
     # square root and mean across all timepoints inside mask
     dvars = np.sqrt(np.mean(data, axis=0))
-
     out_file = os.path.join(os.getcwd(), 'DVARS.txt')
     np.savetxt(out_file, dvars)
-    return out_file
+    
+    dvars = np.insert(dvars,0,0)
+    
+    motion_dvars = os.path.join(os.getcwd(),'motion.tsv')
+    motion_dvars ['Dvars'] = dvars
+    
+    return out_file,motion_dvars
