@@ -20,7 +20,7 @@ connectome_methods = {
 }
 
 
-def connectome_name(timeseries, atlas_name, method):
+def connectome_name(timeseries, atlas_name, tool, method):
     """Helper function to create connectome file filename
 
     Parameters
@@ -31,6 +31,9 @@ def connectome_name(timeseries, atlas_name, method):
     atlas_name : str
         atlas name
 
+    tool : str
+        connectome tool
+
     method : str
         BIDS entity value for `desc-` key
 
@@ -38,7 +41,7 @@ def connectome_name(timeseries, atlas_name, method):
     -------
     str
     """
-    method = ''.join(word.capitalize() for word in method.split(' '))
+    method = ''.join(word.capitalize() for word in [tool, method])
     new_filename_parts = [part for part in timeseries.split('_')[:-1][::-1] if
                           not part.startswith('space-')]
     atlas_index = len(new_filename_parts) - 1
@@ -107,8 +110,9 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     -------
     numpy.ndarray or NotImplemented
     """
-    output = connectome_name(in_file, atlas_name, f'Nilearn {method}')
-    method = get_connectome_method(method, 'Nilearn')
+    tool = 'Nilearn'
+    output = connectome_name(in_file, atlas_name, tool, method)
+    method = get_connectome_method(method, tool)
     if method is NotImplemented:
         return NotImplemented
     masker = NiftiLabelsMasker(labels_img=in_rois,
@@ -142,22 +146,25 @@ def create_connectome_afni(name, method, pipe_num):
     )
 
     timeseries_correlation = pe.Node(NetCorr(), name=name)
-    timeseries_correlation.inputs.out_file = 'afni.temp'
     if method:
         timeseries_correlation.inputs.part_corr = (method == 'Partial')
 
     strip_header_node = pe.Node(Function(
         input_names=['in_file', 'out_file'], output_names=['out_file'],
+        imports=['import subprocess'],
         function=strip_afni_output_header),
                                 name='netcorrStripHeader'
                                      f'{method}_{pipe_num}')
+    strip_header_node.inputs.in_file = timeseries_correlation.inputs.out_file
 
     name_output_node = pe.Node(Function(input_names=['timeseries',
                                                      'atlas_name',
+                                                     'tool',
                                                      'method'],
                                         output_names=['filename'],
                                         function=connectome_name),
                                name=f'connectomeName{method}_{pipe_num}')
+    name_output_node.inputs.tool = 'Afni'
 
     wf.connect([
         (inputspec, timeseries_correlation, [('in_rois', 'in_rois'),
@@ -166,8 +173,6 @@ def create_connectome_afni(name, method, pipe_num):
         (inputspec, name_output_node, [('in_file', 'timeseries'),
                                        ('atlas_name', 'atlas_name'),
                                        ('method', 'method')]),
-        (timeseries_correlation, strip_header_node, [
-            ('out_file', 'in_file')]),
         (name_output_node, strip_header_node, [('filename', 'out_file')]),
         (strip_header_node, outputspec, [('out_file', 'out_file')])])
     return wf
