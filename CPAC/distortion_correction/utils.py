@@ -140,7 +140,8 @@ def gradient_distortion_correction(wf, inp_image, name):
     return (wf, out_warpmask, out_applywarp)
 
 
-def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time, fsl_dir):
+def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one, 
+                 dwell_time_two):
     """
 
     Calculate readout time and populate parameter file
@@ -154,8 +155,10 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time, fsl_dir):
         $WD/PhaseOne
     phase_two
         $WD/PhaseTwo
-    dwell_time
-        echo spacing
+    dwell_time_one
+        echo spacing of phase one
+    dwell_time_two
+        echo spacing of phase two
     fsl_dir
         FSL directory
 
@@ -170,22 +173,30 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time, fsl_dir):
     # create text file
     acq_params = os.path.join(os.getcwd(), "acqparams.txt")
 
+    if isinstance(unwarp_dir, bytes):
+        unwarp_dir = unwarp_dir.decode()
+
     if unwarp_dir in ["x", "x-", "-x","i","-i","i-"]:
         dim = nibabel.load(phase_one).shape[0]
-        ro_times = ["-1 0 0 ", "1 0 0 "]
+        n_PE_steps = dim - 1
+        ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+        ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
     elif unwarp_dir in ["y", "y-", "-y","j","-j","j-"]:
         dim = nibabel.load(phase_one).shape[1]
-        ro_times = ["0 -1 0 ", "0 1 0 "]
+        n_PE_steps = dim - 1
+        ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+        ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
     else:
         raise Exception(f"unwarp_dir={unwarp_dir} is unsupported.")
 
-    n_PE_steps = dim - 1
-    ro_time = np.round(dwell_time * n_PE_steps, 6)
+
 
     # get number of volumes
     dims = [
-        int(subprocess.check_output([f"{fsl_dir}/bin/fslval",phase_one,"dim4"]).decode(sys.stdout.encoding)),
-        int(subprocess.check_output([f"{fsl_dir}/bin/fslval",phase_two,"dim4"]).decode(sys.stdout.encoding))
+        int(subprocess.check_output([f"fslval", phase_one, "dim4"]).decode(sys.stdout.encoding)),
+        int(subprocess.check_output([f"fslval", phase_two, "dim4"]).decode(sys.stdout.encoding))
     ]
 
     # add read out times to text file
@@ -194,57 +205,10 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time, fsl_dir):
         while i <= d:
             # write to text file
             with open(acq_params, "a") as fp:
-                fp.write(ro + f"{ro_time}\n")
+                fp.write(f"{ro}\n")
             i += 1
 
     return acq_params
-
-
-def z_pad(both_phases, mask, fsl_dir):
-    """
-
-    Pad in Z by one slice if odd so that topup does not complain
-    (slice consists of zeros that will be dilated by following step)
-
-    Parameters
-    __________
-
-    both_phases
-        $WD/BothPhases
-    mask
-        $WD/Mask
-    fsl_dir
-        FSL directory
-
-    Returns
-    _______
-
-    N/A
-
-    """
-
-    num_slices = nibabel.load(both_phases).shape[2]
-
-    # odd # of slices
-    if num_slices % 2 != 0:
-        for img in [both_phases, mask]:
-            _ = subprocess.check_output(
-                [f"{fsl_dir}/bin/fslroi", img, "slice.nii.gz", "0 -1 0 -1 0 1 0 -1"]
-            )
-            _ = subprocess.check_output(
-                [
-                    f"{fsl_dir}/bin/fslmaths",
-                    "slice.nii.gz",
-                    "-mul=0",
-                    "slice.nii.gz",
-                ]
-            )
-            _ = subprocess.check_output(
-                [f"{fsl_dir}/bin/fslmerge", "-z", img, img, "slice.nii.gz"]
-            )
-            _ = subprocess.check_output(["rm slice.nii.gz"])
-
-    return
 
 
 def z_pad(name="z_pad"):
@@ -260,18 +224,21 @@ def z_pad(name="z_pad"):
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
                          name='outputspec')
 
-    fslroi = pe.Node(interface=fsl_utils.ExtractROI,
+
+
+    fslroi = pe.Node(interface=fsl_utils.ExtractROI(),
                      name=f"fslroi_{name}")
     fslroi.inputs.args = "0 -1 0 -1 0 1 0 -1"
 
     wf.connect(inputspec, 'input_image', fslroi, 'in_file')
 
-    fslmaths = pe.Node(interface=fsl_maths.MathsCommand,
+    fslmaths = pe.Node(interface=fsl_maths.BinaryMaths(),
                        name=f"fslmaths_{name}")
-    fslmaths.inputs.op_string = "-mul=0"
+    fslmaths.inputs.operand_value = 0
+    fslmaths.inputs.operation = "mul"
 
-    wf.connect(fslroi, 'out_file', fslmaths, 'in_file')
-    wf.connect(fslroi, 'out_file', fslmaths, 'in_file2')
+    wf.connect(fslroi, 'roi_file', fslmaths, 'in_file')
+    wf.connect(fslroi, 'roi_file', fslmaths, 'operand_file')
 
     files_list = pe.Node(interface=utility.Merge(2),
                          name=f"create_list_{name}")
@@ -279,7 +246,7 @@ def z_pad(name="z_pad"):
     wf.connect(inputspec, 'input_image', files_list, 'in1')
     wf.connect(fslmaths, 'out_file', files_list, 'in2')
 
-    fslmerge = pe.Node(interface=fsl_utils.Merge,
+    fslmerge = pe.Node(interface=fsl_utils.Merge(),
                        name=f"fslmerge_{name}")
     fslmerge.inputs.dimension = 'z'
 
@@ -290,6 +257,9 @@ def z_pad(name="z_pad"):
 
 
 def choose_phase_image(phase_imgs, unwarp_dir):
+
+    if isinstance(unwarp_dir, bytes):
+        unwarp_dir = unwarp_dir.decode()
 
     if unwarp_dir in ["x","i","y","j"]:
         # select the first volume from PhaseTwo
@@ -304,6 +274,49 @@ def choose_phase_image(phase_imgs, unwarp_dir):
         out_phase_image = phase_imgs[0]
 
     return (out_phase_image, vnum)
+
+
+def run_fsl_topup(merged_file, acqparams):
+
+    out_basename = "topup_out"
+    jac_basename = "topup_jac"
+    xfm_basename = "topup_xfm"
+    warp_basename = "topup_warpfield"
+
+    out_fieldcoef = os.path.join(os.getcwd(), 
+                                 f"{out_basename}_fieldcoef.nii.gz")
+                                 
+    out_movpar = os.path.join(os.getcwd(), 
+                              f"{out_basename}_movpar.txt")
+
+    corrected_outfile = os.path.join(os.getcwd(), 
+                                     f"{out_basename}_corrected.nii.gz")
+                                     
+    field_out = os.path.join(os.getcwd(), 
+                             f"{out_basename}_field.nii.gz")
+                             
+    out_jacs = [os.path.join(os.getcwd(), f"{jac_basename}_01.nii.gz"),
+                os.path.join(os.getcwd(), f"{jac_basename}_02.nii.gz")]
+                
+    log_out = os.path.join(os.getcwd(), 
+                           f"{out_basename}_log.log")
+                           
+    out_xfms = [os.path.join(os.getcwd(), f"{xfm_basename}_01.nii.gz"),
+                os.path.join(os.getcwd(), f"{xfm_basename}_02.nii.gz")]
+
+    out_warps = [os.path.join(os.getcwd(), f"{warp_basename}_01.nii.gz"),
+                 os.path.join(os.getcwd(), f"{warp_basename}_02.nii.gz")]
+
+    cmd = ["topup", f"--datain={acqparams}", f"--imain={merged_file}", 
+           f"--out={out_basename}", f"--iout={corrected_outfile}", 
+           f"--fout={field_out}" f"--jacout={jac_basename}",
+           f"--logout={log_out}", f"--rbmout={xfm_basename}",
+           f"--dfout={warp_basename}"]
+    
+    retcode = subprocess.check_output(cmd)
+    
+    return (out_fieldcoef, out_movpar, corrected_outfile, field_out, out_jacs,
+            log_out, out_xfms, out_warps)
 
 
 def find_vnum_base(vnum,name,motion_mat_list,jac_matrix_list,warp_field_list):
@@ -322,4 +335,5 @@ def find_vnum_base(vnum,name,motion_mat_list,jac_matrix_list,warp_field_list):
         if f'WarpField_{vnum}' in i:
             out_warp_field.append(i)
     
-    return(out_motion_mat[0], out_jacobian[0], out_warp_field[0])   
+    return(out_motion_mat[0], out_jacobian[0], out_warp_field[0])
+    

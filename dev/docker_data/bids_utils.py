@@ -487,17 +487,20 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffmag"] = task_info
 
             if "epi" in f_dict["scantype"]:
-                pe_dir = f_dict["dir"]
+                if "dir" in f_dict:
+                    label = f_dict["dir"]
+                elif "run" in f_dict:
+                    label = f_dict["run"]
                 if "acq" in f_dict:
                     if "fMRI" in f_dict["acq"]:
                         if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if "epi_{0}".format(
-                            pe_dir
+                            label
                         ) not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
                             subdict[f_dict["sub"]][
                                 f_dict["ses"]
-                            ]["fmap"]["epi_{0}".format(pe_dir)] = task_info
+                            ]["fmap"]["epi_{0}".format(label)] = task_info
 
     sublist = []
     for ksub, sub in subdict.items():

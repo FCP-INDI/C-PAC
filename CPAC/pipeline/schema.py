@@ -726,6 +726,7 @@ latest_schema = Schema({
             'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
+            'run': bool,
             'motion_estimates': {
                 'calculate_motion_first': bool,
                 'calculate_motion_after': bool,
@@ -794,12 +795,28 @@ latest_schema = Schema({
         },
         'distortion_correction': {
             'run': forkable,
-            'using': [In(['PhaseDiff', 'Blip'])],
+            'using': [In(['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP'])],
             'PhaseDiff': {
                 'fmap_skullstrip_option': In(['BET', 'AFNI']),
                 'fmap_skullstrip_BET_frac': float,
                 'fmap_skullstrip_AFNI_threshold': float,
             },
+            'Blip-FSL-TOPUP': {
+                'warpres': int,
+                'subsamp': int,
+                'fwhm': int,
+                'miter': int,
+                'lambda': int,
+                'ssqlambda': int,
+                'regmod': In({'bending_energy', 'membrane_energy'}),
+                'estmov': int,
+                'minmet': int,
+                'splineorder': int,
+                'numprec': str,
+                'interp': In({'spline', 'linear'}),
+                'scale': int,
+                'regrid': int                
+            }
         },
         'func_masking': {
             'using': [In(

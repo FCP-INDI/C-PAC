@@ -20,6 +20,7 @@ from CPAC.unet.function import predict_volumes
 
 from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
 
+
 def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
                    wf_name='acpc_align'):
     preproc = pe.Workflow(name=wf_name)
@@ -1270,8 +1271,9 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_head",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"],
+                ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1305,8 +1307,9 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_head_with_mask",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"],
+                ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1352,8 +1355,9 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_brain",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"],
+                ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1397,8 +1401,9 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
 def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "acpc_alignment_brain_with_mask",
-     "config": ["anatomical_preproc", "acpc_alignment"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "acpc_alignment", "run"],
+                ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -1481,8 +1486,9 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
 def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "nlm_filtering",
-     "config": ["anatomical_preproc", "non_local_means_filtering"],
-     "switch": ["run"],
+     "config": "None",
+     "switch": [["anatomical_preproc", "non_local_means_filtering", "run"],
+                ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["T1w"],
@@ -2047,7 +2053,7 @@ def acpc_align_head_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
                 "T2w_ACPC_template"], 
-     "outputs": ["desc-preproc_T1w"]}
+     "outputs": ["desc-preproc_T2w"]}
     '''
 
     acpc_align = acpc_alignment(config=cfg,
@@ -2359,7 +2365,7 @@ def brain_mask_acpc_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None)
                                                       pipe_num, opt)
 
     outputs = {
-        'space-T1w_desc-acpcbrain_mask':
+        'space-T2w_desc-acpcbrain_mask':
             wf_outputs['space-T2w_desc-brain_mask']
     }
 

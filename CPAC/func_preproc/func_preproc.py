@@ -1078,10 +1078,11 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "get_motion_ref",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "motion_correction_reference",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "motion_correction_reference"],
      "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
      "inputs": [["desc-preproc_bold", "bold"],
                  "bold"],
@@ -1151,10 +1152,11 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1175,10 +1177,11 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimates",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1209,10 +1212,11 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction_only",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
