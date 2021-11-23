@@ -77,7 +77,29 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def _from_bids(final_func):
+def strings_from_bids(final_func):
+    """
+    Function to gather BIDS entities into a dictionary
+
+    Parameters
+    ----------
+    final_func : str
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> fake_path = (
+    ...     '/path/to/sub-fakeSubject_ses-fakeSession_task-peer_run-3_'
+    ...     'atlas-Schaefer400_space-MNI152NLin6_res-1x1x1_'
+    ...     'desc-NilearnPearson_connectome.tsv')
+    >>> strings_from_bids(fake_path)['desc']
+    'NilearnPearson'
+    >>> strings_from_bids(fake_path)['space']
+    'MNI152NLin6'
+    """
     from_bids = dict(
         tuple(entity.split('-', 1)) if '-' in entity else
         ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
@@ -89,7 +111,7 @@ def _from_bids(final_func):
 
 
 def _from_bids_node(final_func):
-    from_bids = _from_bids(final_func)
+    from_bids = strings_from_bids(final_func)
     return from_bids['sub'], from_bids['run'], from_bids['func']
 
 
@@ -146,7 +168,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
     }
 
     # `sub` through `space`
-    from_bids = _from_bids(final_func)
+    from_bids = strings_from_bids(final_func)
 
     # `nVolCensored` & `nVolsRemoved`
     shape_params = {'nVolCensored': n_vols_censored,
@@ -154,7 +176,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
                     images['original_func'].shape[3]}
 
     # `meanFD (Jenkinson)`
-    fdj = _get_other_func(final_func, 'framewise-displacement-jenkinson.1D')
+    fdj = get_other_func(final_func, 'framewise-displacement-jenkinson.1D')
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
     qc_filepath = _generate_filename(final_func)
@@ -168,13 +190,13 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
         ])
     del desc_span
     power_params = {'meanFD': np.mean(np.loadtxt(
-        _get_other_func(final_func,
-                        'framewise-displacement-jenkinson.1D')
+        get_other_func(final_func,
+                       'framewise-displacement-jenkinson.1D')
     ))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
-    mot = np.genfromtxt(_get_other_func(final_func,
-                                        'movement-parameters.1D')).T
+    mot = np.genfromtxt(get_other_func(final_func,
+                                       'movement-parameters.1D')).T
     # Relative RMS of translation
     rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
     rms_params = {
@@ -183,7 +205,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
     }
 
     # `meanDVInit` & `meanDVFinal`
-    dvars = _get_other_func(final_func, 'dvars.1D')
+    dvars = get_other_func(final_func, 'dvars.1D')
     meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
     try:
         meanDV['motionDVCorrInit'] = dvcorr(dvars, fdj)
@@ -269,11 +291,35 @@ def _generate_filename(final):
     ]))
 
 
-def _get_other_func(final_func, suffix_dot_filetype):
+def get_other_func(final_func, suffix_dot_filetype):
+    """
+    Function to get another filepath given a final functional file
+    and a suffix-dot-extension
+
+    Parameters
+    ----------
+    final_func : str
+        full path
+
+    suffix_dot_filetype: str
+        e.g., 'timeseries.1D'
+    
+    Returns
+    -------
+    str
+        full path
+    """
     return '_'.join([
         *final_func.split('_')[:(-2 if 'desc' in final_func else -1)],
         suffix_dot_filetype
     ])
+
+
+def _get_motion_correct_tool(final_func):
+    with open(get_other_func(final_func, 'movement-parameters.json'),
+              'r') as mp_json:
+        return check_prov_for_motion_tool(
+            json.loads(mp_json.read()).get('CpacProvenance'))
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -302,18 +348,24 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     t1w_bold['node'], t1w_bold['out'] = strat_pool.get_data(
         'space-T1w_desc-mean_bold')
 
-    with open(_get_other_func(final['func'], 'movement-parameters.json'),
-              'r') as mp_json:
-        motion_correct_tool = check_prov_for_motion_tool(
-            json.loads(mp_json.read()).get('CpacProvenance'))
-
     from_bids = pe.Node(Function(input_names=['final_func'],
                                  output_names=['sub', 'run', 'func'],
                                  function=_from_bids_node),
                         name=f'motion_stats_from_bids_{pipe_num}')
-    gen_motion_stats = motion_power_statistics(
-        name=f'gen_motion_stats_after_{pipe_num}',
-        motion_correct_tool=motion_correct_tool)
+
+    motion_tool = pe.Node(Function(input_names=['final_func'],
+                                   output_names=['motion_correct_tool'],
+                                   function=_get_motion_correct_tool),
+                          name=f'get_motion_correct_tool_{pipe_num}')
+
+    gen_motion_stats = pe.Node(Function(input_names=['name',
+                                                     'motion_correct_tool'],
+                                        output_names=['mps_wf'],
+                                        function=motion_power_statistics),
+                               name=f'gen_motion_stats_wf_{pipe_num}')
+
+    gen_motion_stats.inputs.name = \
+        f'gen_motion_stats_after_{pipe_num}'
 
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
@@ -334,7 +386,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     other_func = Function(input_names=['final_func', 'suffix_dot_filetype'],
                           output_names=['filepath'],
-                          function=_get_other_func)
+                          function=get_other_func)
 
     after_funcs = {'mask': pe.Node(other_func,
                                    name=f'func_mask_after_{pipe_num}'),
@@ -362,20 +414,28 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (final['anat']['out'], 'final_anat')]),
         (final['func']['node'], qc_file, [
             (final['func']['out'], 'final_func')]),
+        (final['func']['node'], motion_tool, [
+            (final['func']['out'], 'final_func')
+        ]),
+        (final['func']['node'], from_bids, [
+            (final['func']['out'], 'final_func')
+        ]),
         (t1w_bold['node'], qc_file, [(t1w_bold['out'], 'space_T1w_bold')]),
         (from_bids, gen_motion_stats, [('sub', 'inputspec.subject_id'),
                                        ('run', 'inputspec.scan'),
                                        ('func', 'inputspec.motion_correct')]),
+        (motion_tool, gen_motion_stats, [
+            ('motion_correct_tool', 'inputspec.motion_correct_tool')]),
         (original['func']['node'], after_funcs['mask'], [
-            (original['func']['out'], 'final_func')]),
+            (original['func']['out'], 'final')]),
         (original['func']['node'], after_funcs['mp'], [
-            (original['func']['out'], 'final_func')]),
+            (original['func']['out'], 'final')]),
         (original['func']['node'], after_funcs['max'], [
-            (original['func']['out'], 'final_func')]),
+            (original['func']['out'], 'final')]),
         (original['func']['node'], after_funcs['rels'], [
-            (original['func']['out'], 'final_func')]),
+            (original['func']['out'], 'final')]),
         (original['func']['node'], after_funcs['tran'], [
-            (original['func']['out'], 'final_func')]),
+            (original['func']['out'], 'final')]),
         (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
                                      ('FDJ_1D', 'fdj_after')])])
 
