@@ -1324,7 +1324,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "framewise-displacement-jenkinson",
                  "dvars",
                  "power-params",
-                 "motion-params"]}
+                 "motion-params",
+                 "motion",
+                 "desc-summary_motion]}
     '''
 
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
@@ -1380,7 +1382,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power-params': (gen_motion_stats, 'outputspec.power_params'),
         'motion-params': (gen_motion_stats, 'outputspec.motion_params')
-    }
+        'motion':(gen_motion_stats, 'outputspec.motion')
+        'desc-summary_motion':(gen_motion_stats, 'output.spec. 'desc_summary_motion')
 
     return (wf, outputs)
 
