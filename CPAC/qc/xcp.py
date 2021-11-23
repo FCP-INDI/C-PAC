@@ -50,6 +50,7 @@ normCrossCorr : float
 normCoverage : float
     "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 """  # noqa E501  # pylint: disable=line-too-long
+import json
 import os
 import re
 from io import BufferedReader
@@ -57,12 +58,45 @@ from io import BufferedReader
 import nibabel as nb
 import numpy as np
 import pandas as pd
+from CPAC.generate_motion_statistics.generate_motion_statistics import \
+    motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.utils import check_prov_for_motion_tool
+
+
+def dvcorr(dvars, fdj):
+    """Function to correlate DVARS and FD-J"""
+    dvars = np.loadtxt(dvars)
+    fdj = np.loadtxt(fdj)
+    if len(dvars) != len(fdj) - 1:
+        raise ValueError(
+            'len(DVARS) should be 1 less than len(FDJ), but their respective '
+            f'lengths are {len(dvars)} and {len(fdj)}.'
+        )
+    return np.corrcoef(dvars, fdj[1:])[0, 1]
+
+
+def _from_bids(final_func):
+    from_bids = dict(
+        tuple(entity.split('-', 1)) if '-' in entity else
+        ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
+    )
+    from_bids = {k: [from_bids[k]] for k in from_bids}
+    if 'space' not in from_bids:
+        from_bids['space'] = ['native']
+    return from_bids
+
+
+def _from_bids_node(final_func):
+    from_bids = _from_bids(final_func)
+    return from_bids['sub'], from_bids['run'], from_bids['func']
 
 
 def generate_desc_qc(original_anat, final_anat, original_func, final_func,
-                     n_vols_censored, space_T1w_bold):
+                     n_vols_censored, space_T1w_bold, dvars_after=None,
+                     fdj_after=None):
+    # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
     Parameters
@@ -83,6 +117,12 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
 
     space_T1w_bold : str
         path to 'space-T1w_desc-mean_bold' image
+
+    dvars_after : str
+        path to DVARS on final 'bold' image
+
+    fdj_after : str
+        path to framewise displacement (Jenkinson) on final 'bold' image
 
     Returns
     -------
@@ -106,15 +146,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
     }
 
     # `sub` through `space`
-    final_filename = final_func.split('/')[-1]
-    bids_entities = final_filename.split('_')
-    from_bids = dict(
-        tuple(entity.split('-', 1)) if '-' in entity else
-        ('suffix', entity) for entity in bids_entities
-    )
-    from_bids = {k: [from_bids[k]] for k in from_bids}
-    if 'space' not in from_bids:
-        from_bids['space'] = ['native']
+    from_bids = _from_bids(final_func)
 
     # `nVolCensored` & `nVolsRemoved`
     shape_params = {'nVolCensored': n_vols_censored,
@@ -122,6 +154,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
                     images['original_func'].shape[3]}
 
     # `meanFD (Jenkinson)`
+    fdj = _get_other_func(final_func, 'framewise-displacement-jenkinson.1D')
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
     qc_filepath = _generate_filename(final_func)
@@ -134,16 +167,14 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
             final_func[desc_span[1]:]
         ])
     del desc_span
-    power_params = {'meanFD': np.mean(np.loadtxt('_'.join([
-        *final_func.split('_')[:-1],
-        'framewise-displacement-jenkinson.1D'
-    ])))}
+    power_params = {'meanFD': np.mean(np.loadtxt(
+        _get_other_func(final_func,
+                        'framewise-displacement-jenkinson.1D')
+    ))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
-    mot = np.genfromtxt('_'.join([
-        *final_func.split('_')[:-1],
-        'movement-parameters.1D'
-    ])).T
+    mot = np.genfromtxt(_get_other_func(final_func,
+                                        'movement-parameters.1D')).T
     # Relative RMS of translation
     rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
     rms_params = {
@@ -151,8 +182,23 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
         'relMaxRMSMotion': [np.max(rms)]
     }
 
-    # `meanDVinit` & `meanDVFinal`
-    # ?
+    # `meanDVInit` & `meanDVFinal`
+    dvars = _get_other_func(final_func, 'dvars.1D')
+    meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
+    try:
+        meanDV['motionDVCorrInit'] = dvcorr(dvars, fdj)
+    except ValueError:
+        meanDV['motionDVCorrInit'] = 'ValueError'
+    if dvars_after:
+        if not fdj_after:
+            fdj_after = fdj
+        dvars_after = np.loadtxt(dvars_after)
+        fdj_after = np.loadtxt(fdj_after)
+        meanDV['meanDVFinal'] = np.mean(dvars_after)
+        try:
+            meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+        except ValueError:
+            meanDV['motionDVCorrFinal'] = 'ValueError'
 
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
@@ -183,7 +229,8 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
         **power_params,
         **rms_params,
         **shape_params,
-        **overlap_params
+        **overlap_params,
+        **meanDV
     }
     df = pd.DataFrame(qc_dict, columns=columns)
     df.to_csv(qc_filepath, sep='\t', index=False)
@@ -222,7 +269,15 @@ def _generate_filename(final):
     ]))
 
 
+def _get_other_func(final_func, suffix_dot_filetype):
+    return '_'.join([
+        *final_func.split('_')[:(-2 if 'desc' in final_func else -1)],
+        suffix_dot_filetype
+    ])
+
+
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=unused-argument, invalid-name
     """
     {'name': 'qc_xcp',
      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
@@ -247,31 +302,62 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     t1w_bold['node'], t1w_bold['out'] = strat_pool.get_data(
         'space-T1w_desc-mean_bold')
 
+    with open(_get_other_func(final['func'], 'movement-parameters.json'),
+              'r') as mp_json:
+        motion_correct_tool = check_prov_for_motion_tool(
+            json.loads(mp_json.read()).get('CpacProvenance'))
+
+    from_bids = pe.Node(Function(input_names=['final_func'],
+                                 output_names=['sub', 'run', 'func'],
+                                 function=_from_bids_node),
+                        name=f'motion_stats_from_bids_{pipe_num}')
+    gen_motion_stats = motion_power_statistics(
+        name=f'gen_motion_stats_after_{pipe_num}',
+        motion_correct_tool=motion_correct_tool)
+
+    gen_motion_stats.inputs.inputspec.mask = _get_other_func(
+        final['func'], 'space-bold_desc-brain_mask.nii.gz')
+    gen_motion_stats.inputs.inputspec.movement_parameters = _get_other_func(
+        final['func'], 'movement-parameters.1D')
+    gen_motion_stats.inputs.inputspec.max_displacement = _get_other_func(
+        final['func'], 'max-displacement.rms')
+    gen_motion_stats.inputs.inputspec.rels_displacement = _get_other_func(
+        final['func'], 'rels-displacement.rms')
+    gen_motion_stats.inputs.inputspec.transformations = _get_other_func(
+        final['func'], 'transformations.rms')
+
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
-                                            'n_vols_censored'],
+                                            'n_vols_censored', 'dvars_after',
+                                            'fdj_after'],
                                output_names=['qc_file'],
                                function=generate_desc_qc,
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
 
     try:
-        censor_node, n_vols_censored = strat_pool.get_data('n_vols_censored')
-        wf.connect(censor_node, n_vols_censored, qc_file, 'n_vols_censored')
+        n_vols_censored = strat_pool.get_data('n_vols_censored')
+        wf.connect(n_vols_censored[0], n_vols_censored[1],
+                   qc_file, 'n_vols_censored')
     except LookupError:
         qc_file.inputs.n_vols_censored = 'unknown'
 
-    wf.connect(original['anat']['node'], original['anat']['out'],
-               qc_file, 'original_anat')
-    wf.connect(original['func']['node'], original['func']['out'],
-               qc_file, 'original_func')
-    wf.connect(final['anat']['node'], final['anat']['out'],
-               qc_file, 'final_anat')
-    wf.connect(final['func']['node'], final['func']['out'],
-               qc_file, 'final_func')
-    wf.connect(t1w_bold['node'], t1w_bold['out'],
-               qc_file, 'space_T1w_bold')
+    wf.connect([
+        (original['anat']['node'], qc_file, [
+            (original['anat']['out'], 'original_anat')]),
+        (original['func']['node'], qc_file, [
+            (original['func']['out'], 'original_func')]),
+        (final['anat']['node'], qc_file, [
+            (final['anat']['out'], 'final_anat')]),
+        (final['func']['node'], qc_file, [
+            (final['func']['out'], 'final_func')]),
+        (t1w_bold['node'], qc_file, [(t1w_bold['out'], 'space_T1w_bold')]),
+        (from_bids, gen_motion_stats, [('sub', 'inputspec.subject_id'),
+                                       ('run', 'inputspec.scan'),
+                                       ('func', 'inputspec.motion_correct')]),
+        (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
+                                     ('FDJ_1D', 'fdj_after')])])
 
     outputs = {
         'xcpqc': (qc_file, 'qc_file'),
