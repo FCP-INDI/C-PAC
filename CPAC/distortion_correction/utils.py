@@ -22,7 +22,7 @@ def run_HCP_gradient_unwarp(phase_vol, input_coeffs):
     trilinear = os.path.join(os.getcwd(), "trilinear.nii.gz")
 
     cmd = [
-        "/home/tgeorge/gradunwarp/gradunwarp/core/gradient_unwarp.py",
+        "../gradunwarp/core/gradient_unwarp.py",
         phase_vol,
         trilinear,
         "siemens",
@@ -309,7 +309,7 @@ def run_fsl_topup(merged_file, acqparams):
 
     cmd = ["topup", f"--datain={acqparams}", f"--imain={merged_file}", 
            f"--out={out_basename}", f"--iout={corrected_outfile}", 
-           f"--fout={field_out}" f"--jacout={jac_basename}",
+           f"--fout={field_out}", f"--jacout={jac_basename}",
            f"--logout={log_out}", f"--rbmout={xfm_basename}",
            f"--dfout={warp_basename}"]
     
@@ -319,20 +319,21 @@ def run_fsl_topup(merged_file, acqparams):
             log_out, out_xfms, out_warps)
 
 
-def find_vnum_base(vnum,name,motion_mat_list,jac_matrix_list,warp_field_list):
+def find_vnum_base(vnum, motion_mat_list, jac_matrix_list, warp_field_list):
+
     out_motion_mat = []
     for i in motion_mat_list:
-        if f'MotionMatrix_{vnum}.mat' in i:
+        if f'topup_xfm_{vnum}.mat' in i:
             out_motion_mat.append(i)
 
     out_jacobian = []
     for i in jac_matrix_list:
-        if f'Jacobian_{vnum}' in i:
+        if f'topup_jac_{vnum}' in i:
             out_jacobian.append(i)
 
     out_warp_field = []
     for i in warp_field_list:
-        if f'WarpField_{vnum}' in i:
+        if f'topup_warpfield_{vnum}' in i:
             out_warp_field.append(i)
     
     return(out_motion_mat[0], out_jacobian[0], out_warp_field[0])
