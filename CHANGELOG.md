@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated possible inputs for T2w processing and ACPC-alignment blocks to increase the modularity of these pipeline options.
 - `master` branch renamed `main`
 
 ### Deprecated
