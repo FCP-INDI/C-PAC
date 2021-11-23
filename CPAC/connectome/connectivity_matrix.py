@@ -46,8 +46,7 @@ def connectome_name(timeseries, atlas_name, method):
             new_filename_parts):
         for i, filename_part in enumerate(new_filename_parts):
             if filename_part.startswith('desc-'):
-                new_filename_parts[-i] = (
-                    filename_part + method.capitalize())
+                new_filename_parts[-i] = f'desc-{method}'
                 atlas_index = -(i - 1)
                 break
     new_filename_parts.insert(atlas_index, f'atlas-{atlas_name}')
@@ -108,7 +107,7 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     -------
     numpy.ndarray or NotImplemented
     """
-    output = connectome_name(in_file, atlas_name, f'Nilearn{method}')
+    output = connectome_name(in_file, atlas_name, f'Nilearn {method}')
     method = get_connectome_method(method, 'Nilearn')
     if method is NotImplemented:
         return NotImplemented
@@ -143,6 +142,7 @@ def create_connectome_afni(name, method, pipe_num):
     )
 
     timeseries_correlation = pe.Node(NetCorr(), name=name)
+    timeseries_correlation.inputs.out_file = 'afni.temp'
     if method:
         timeseries_correlation.inputs.part_corr = (method == 'Partial')
 
@@ -166,9 +166,9 @@ def create_connectome_afni(name, method, pipe_num):
         (inputspec, name_output_node, [('in_file', 'timeseries'),
                                        ('atlas_name', 'atlas_name'),
                                        ('method', 'method')]),
-        (name_output_node, strip_header_node, [('filename', 'out_file')]),
         (timeseries_correlation, strip_header_node, [
             ('out_file', 'in_file')]),
+        (name_output_node, strip_header_node, [('filename', 'out_file')]),
         (strip_header_node, outputspec, [('out_file', 'out_file')])])
     return wf
 
