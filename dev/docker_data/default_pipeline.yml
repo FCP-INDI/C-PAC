@@ -1465,9 +1465,12 @@ timeseries_extraction:
     # Options:
     #  ['AFNI', 'Nilearn']
     using:
+      - Nilearn
     # Options:
-    #  ['Pearson', 'Partial', 'Spearman']
+    #  ['Pearson', 'Partial']
     measure:
+      - Pearson
+      - Partial
 
 
 seed_based_correlation_analysis:
