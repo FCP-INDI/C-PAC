@@ -176,7 +176,7 @@ class NetCorr(AFNICommand):
 
     Examples
     --------
-    >>> from CPAC.utils.interfaces import NetCorr
+    >>> from CPAC.utils.interfaces.netcorr import NetCorr
     >>> ncorr = afni.NetCorr()
     >>> ncorr.inputs.in_file = 'functional.nii'
     >>> ncorr.inputs.mask = 'mask.nii'

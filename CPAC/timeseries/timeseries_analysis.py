@@ -865,7 +865,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
             output_desc = ''.join(term.lower().capitalize() for term in [
                 cm_measure, cm_tool])
             matrix_outputs[f'desc-{output_desc}_connectome'] = (
-                timeseries_correlation, 'out_file')
+                timeseries_correlation, 'outputspec.out_file')
 
     # - NDMG
     from CPAC.utils.ndmg_utils import ndmg_create_graphs
