@@ -155,7 +155,6 @@ def create_connectome_afni(name, method, pipe_num):
         function=strip_afni_output_header),
                                 name='netcorrStripHeader'
                                      f'{method}_{pipe_num}')
-    strip_header_node.inputs.in_file = timeseries_correlation.inputs.out_file
 
     name_output_node = pe.Node(Function(input_names=['timeseries',
                                                      'atlas_name',
@@ -173,6 +172,8 @@ def create_connectome_afni(name, method, pipe_num):
         (inputspec, name_output_node, [('in_file', 'timeseries'),
                                        ('atlas_name', 'atlas_name'),
                                        ('method', 'method')]),
+        (timeseries_correlation, strip_header_node, [
+            ('out_corr_matrix', 'in_file')]),
         (name_output_node, strip_header_node, [('filename', 'out_file')]),
         (strip_header_node, outputspec, [('out_file', 'out_file')])])
     return wf
