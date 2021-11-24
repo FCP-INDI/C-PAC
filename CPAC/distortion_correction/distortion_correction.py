@@ -645,8 +645,6 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("pe_direction")
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
-    vnum_base_imports = ["import os",
-                         "import subprocess"]
     vnum_base = pe.Node(
        util.Function(
             input_names=["vnum", 
@@ -656,8 +654,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
             output_names=["out_motion_mat",
                           "out_jacobian",
                           "out_warp_field"],
-            function=find_vnum_base,
-            imports=vnum_base_imports,
+            function=find_vnum_base
       ),
         name="Motion_Jac_Warp_matrices",
     ) 
@@ -701,7 +698,6 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     vnum = str(VolumeNumber).zfill(2)
     name = "PhaseTwo_aw"
 
-    vnum_base_imports = ["import os", "import subprocess"]
     vnum_base_two = pe.Node(
        util.Function(
             input_names=["vnum",
@@ -711,8 +707,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
             output_names=["out_motion_mat", 
                           "out_jacobian", 
                           "out_warp_field"],
-            function=find_vnum_base,
-            imports=vnum_base_imports,
+            function=find_vnum_base
       ),
         name=f"Motion_Jac_Warp_matrices_{name}",
     ) 
@@ -731,23 +726,22 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, aw_two, 'in_file')
     wf.connect(node, out, aw_two, 'ref_file')
 
-    wf.connect(vnum_base_two, 'out_motion_mat', aw_two, 'premat') #MotionMatrix_{vnum}.mat
-    wf.connect(vnum_base_two, 'out_warp_field', aw_two, 'field_file') #WarpField_${vnum}
+    wf.connect(vnum_base_two, 'out_motion_mat', aw_two, 'premat')
+    wf.connect(vnum_base_two, 'out_warp_field', aw_two, 'field_file')
 
     mul_phase_two = pe.Node(interface=fsl.BinaryMaths(),
                             name="mul_phase_two")
     mul_phase_two.inputs.operation = 'mul'
     mul_phase_two.inputs.out_file = 'PhaseTwo_gdc_dc_jac'
 
-    wf.connect(aw_two, 'out_file', mul_phase_two, 'in_file') #PhaseTwo_gdc_dc
-    wf.connect(vnum_base_two, 'out_jacobian', mul_phase_two, 'operand_file') #Jacobian_${vnum}
+    wf.connect(aw_two, 'out_file', mul_phase_two, 'in_file')
+    wf.connect(vnum_base_two, 'out_jacobian', mul_phase_two, 'operand_file')
     
     # PhaseOne (first vol) - warp and Jacobian modulate to get distortion corrected output
     VolumeNumber= 0 + 1
     vnum = str(VolumeNumber).zfill(2)
     name = "PhaseOne_aw"
 
-    vnum_base_imports = ["import os", "import subprocess"]
     vnum_base_one = pe.Node(
        util.Function(
             input_names=["vnum",
@@ -757,8 +751,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
             output_names=["out_motion_mat",
                           "out_jacobian",
                           "out_warp_field"],
-            function=find_vnum_base,
-            imports=vnum_base_imports,
+            function=find_vnum_base
       ),
         name=f"Motion_Jac_Warp_matrices_{name}",
     ) 
@@ -777,15 +770,15 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, aw_one, 'in_file')
     wf.connect(node, out, aw_one, 'ref_file')
 
-    wf.connect(vnum_base_one, 'out_motion_mat', aw_one, 'premat') #MotionMatrix_{vnum}
-    wf.connect(vnum_base_one, 'out_warp_field', aw_one, 'field_file') #WarpField_${vnum}
+    wf.connect(vnum_base_one, 'out_motion_mat', aw_one, 'premat')
+    wf.connect(vnum_base_one, 'out_warp_field', aw_one, 'field_file')
 
     mul_phase_one = pe.Node(interface = fsl.BinaryMaths(),name = "mul_phase_one")
     mul_phase_one.inputs.operation = 'mul'
     mul_phase_one.inputs.out_file = 'PhaseOne_gdc_dc_jac'
 
-    wf.connect(aw_one, 'out_file', mul_phase_one, 'in_file') #phaseOne_gdc_dc
-    wf.connect(vnum_base_one, 'out_jacobian', mul_phase_one, 'operand_file') #Jacobian_${vnum}
+    wf.connect(aw_one, 'out_file', mul_phase_one, 'in_file')
+    wf.connect(vnum_base_one, 'out_jacobian', mul_phase_one, 'operand_file')
 
     # Scout - warp and Jacobian modulate to get distortion corrected output
     aw_jac = pe.Node(interface=fsl.ApplyWarp(), name="aw_jac")
@@ -795,29 +788,28 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-mean_bold')
     wf.connect(node, out, aw_jac, 'in_file') #SBRef.nii.gz
     wf.connect(node, out, aw_jac, 'ref_file') #SBRef.nii.gz
-    wf.connect(convert_warp, 'out_file', aw_jac, 'field_file') #WarpField.nii.gz
+    wf.connect(convert_warp, 'out_file', aw_jac, 'field_file')
 
     mul_jac = pe.Node(interface = fsl.BinaryMaths(),name = "mul_jac")
     mul_jac.inputs.operation = 'mul'
     mul_jac.inputs.out_file = "SBRef_dc_jac.nii.gz"
 
     wf.connect(aw_jac, 'out_file', mul_jac, 'in_file')
-    wf.connect(vnum_base, 'out_jacobian', mul_jac, 'operand_file') #Jacobian.nii.gz
+    wf.connect(vnum_base, 'out_jacobian', mul_jac, 'operand_file')
 
     #Calculate Equivalent Field Map
     tp_field_map = pe.Node(interface = fsl.BinaryMaths(),name = "tp_field_map")
     tp_field_map.inputs.operation = 'mul'
     tp_field_map.inputs.operand_value = 6.283
-    tp_field_map.inputs.out_file = 'TopupField'
 
-    wf.connect(run_topup, 'out_field', tp_field_map, 'in_file') #TopupField
+    wf.connect(run_topup, 'out_fieldcoef', tp_field_map, 'in_file')
 
     mag_field_map = pe.Node(interface=fsl.MeanImage(),
                             name="mag_field_map")
     mag_field_map.inputs.dimension = 'T'
     mag_field_map.inputs.out_file = 'Magnitude.nii.gz'
 
-    wf.connect(run_topup, 'corrected_outfile', mag_field_map, 'in_file') #Magnitudes
+    wf.connect(run_topup, 'corrected_outfile', mag_field_map, 'in_file')
 
     #fsl_bet
     bet = pe.Node(interface = fsl.BET(), name="bet")

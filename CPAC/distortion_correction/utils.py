@@ -301,8 +301,8 @@ def run_fsl_topup(merged_file, acqparams):
     log_out = os.path.join(os.getcwd(), 
                            f"{out_basename}_log.log")
                            
-    out_xfms = [os.path.join(os.getcwd(), f"{xfm_basename}_01.nii.gz"),
-                os.path.join(os.getcwd(), f"{xfm_basename}_02.nii.gz")]
+    out_xfms = [os.path.join(os.getcwd(), f"{xfm_basename}_01.mat"),
+                os.path.join(os.getcwd(), f"{xfm_basename}_02.mat")]
 
     out_warps = [os.path.join(os.getcwd(), f"{warp_basename}_01.nii.gz"),
                  os.path.join(os.getcwd(), f"{warp_basename}_02.nii.gz")]
@@ -321,20 +321,20 @@ def run_fsl_topup(merged_file, acqparams):
 
 def find_vnum_base(vnum, motion_mat_list, jac_matrix_list, warp_field_list):
 
-    out_motion_mat = []
     for i in motion_mat_list:
         if f'topup_xfm_{vnum}.mat' in i:
-            out_motion_mat.append(i)
+            out_motion_mat = i
+            break
 
-    out_jacobian = []
     for i in jac_matrix_list:
         if f'topup_jac_{vnum}' in i:
-            out_jacobian.append(i)
+            out_jacobian = i
+            break
 
-    out_warp_field = []
     for i in warp_field_list:
         if f'topup_warpfield_{vnum}' in i:
-            out_warp_field.append(i)
+            out_warp_field = i
+            break
     
-    return(out_motion_mat[0], out_jacobian[0], out_warp_field[0])
+    return(out_motion_mat, out_jacobian, out_warp_field)
     
