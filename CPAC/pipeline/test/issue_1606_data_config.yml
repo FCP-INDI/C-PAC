@@ -1,0 +1,31 @@
+- anat:
+  - s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-HCP_T1w.nii.gz
+  - s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_T1w.nii.gz
+  - s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_T2w.nii.gz
+  - s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNav_T1w.nii.gz
+  - s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNav_T2w.nii.gz
+  fmap: {}
+  func: {}
+  site: Site-CBIC
+  subject_id: NDARAA504CRN
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/anat/sub-NDARAC462DZH_acq-HCP_T1w.nii.gz
+  func:
+    movieDM:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-movieDM_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-movieDM_bold.json
+    movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-movieTP_bold.json
+    peer1:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-1_bold.json
+    peer2:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-2_bold.json
+    peer3:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-3_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-RU/sub-NDARAC462DZH/func/sub-NDARAC462DZH_task-peer_run-3_bold.json
+  site: site-RU
+  subject_id: NDARAC462DZH
+  unique_id: '1'

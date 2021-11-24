@@ -95,7 +95,7 @@ anatomical_preproc:
     brain_size: 70
 
     # ACPC aligned template
-    T1w_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm.nii.gz
+    T1w_ACPC_template: /cpac_templates/MacaqueYerkes19_T1w_0.5mm.nii.gz
 
   brain_extraction: 
 
@@ -185,11 +185,11 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+    T1w_brain_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -199,7 +199,7 @@ registration_workflows:
       FSL-FNIRT: 
 
         # Reference mask for FSL registration.
-        ref_mask: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
+        ref_mask: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
 
   functional_registration: 
 
@@ -259,11 +259,11 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain.nii.gz
+          T1w_brain_template_funcreg: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm.nii.gz
+          T1w_template_funcreg: /cpac_templates/MacaqueYerkes19_T1w_2mm.nii.gz
 
 functional_preproc: 
 
@@ -370,24 +370,24 @@ voxel_mirrored_homotopic_connectivity:
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_brain_template_symmetric: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+    T1w_brain_template_symmetric: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
 
     # A reference symmetric brain template for resampling
-    T1w_brain_template_symmetric_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_brain_template_symmetric_for_resample: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_template_symmetric: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template_symmetric: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # A reference symmetric skull template for resampling
-    T1w_template_symmetric_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template_symmetric_for_resample: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    dilated_symmetric_brain_mask: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
+    dilated_symmetric_brain_mask: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
 
     # A reference symmetric brain mask template for resampling
-    dilated_symmetric_brain_mask_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
+    dilated_symmetric_brain_mask_for_resample: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
 
 network_centrality: 
 

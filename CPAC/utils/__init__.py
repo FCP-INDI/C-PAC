@@ -27,6 +27,7 @@ from .utils import (
     correlation,
     check,
     check_random_state,
+    cl_strip_brackets,
     try_fetch_parameter,
     get_scan_params,
     get_tr,

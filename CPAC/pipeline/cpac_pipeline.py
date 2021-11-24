@@ -859,7 +859,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
              brain_mask_freesurfer_abcd,
              brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
-            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
@@ -1290,9 +1289,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'Voxel' in tse_atlases:
         pipeline_blocks += [timeseries_extraction_Voxel]
 
-    # if not rpool.check_rpool('desc-SpatReg_timeseries') and \
-    #                 'SpatialReg' in tse_atlases:
-    #     pipeline_blocks += [spatial_regression]
+    if not rpool.check_rpool('desc-SpatReg_timeseries') and \
+                    'SpatialReg' in tse_atlases:
+        pipeline_blocks += [spatial_regression]
 
     if not rpool.check_rpool('desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:
