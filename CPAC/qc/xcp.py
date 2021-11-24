@@ -110,11 +110,6 @@ def strings_from_bids(final_func):
     return from_bids
 
 
-def _from_bids_node(final_func):
-    from_bids = strings_from_bids(final_func)
-    return from_bids['sub'], from_bids['run'], from_bids['func']
-
-
 def generate_desc_qc(original_anat, final_anat, original_func, final_func,
                      n_vols_censored, space_T1w_bold, dvars_after=None,
                      fdj_after=None):
@@ -303,7 +298,7 @@ def get_other_func(final_func, suffix_dot_filetype):
 
     suffix_dot_filetype: str
         e.g., 'timeseries.1D'
-    
+
     Returns
     -------
     str
@@ -330,7 +325,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ['bold', 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
+     'inputs': ['bold', 'subject', 'scan', 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold'],
      'outputs': ['xcpqc']}
     """
@@ -348,19 +343,25 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     t1w_bold['node'], t1w_bold['out'] = strat_pool.get_data(
         'space-T1w_desc-mean_bold')
 
-    from_bids = pe.Node(Function(input_names=['final_func'],
-                                 output_names=['sub', 'run', 'func'],
-                                 function=_from_bids_node),
-                        name=f'motion_stats_from_bids_{pipe_num}')
-
     motion_tool = pe.Node(Function(input_names=['final_func'],
                                    output_names=['motion_correct_tool'],
+                                   imports=['import json',
+                                            'from CPAC.qc.xcp import '
+                                            'check_prov_for_motion_tool, '
+                                            'get_other_func'],
                                    function=_get_motion_correct_tool),
                           name=f'get_motion_correct_tool_{pipe_num}')
 
     gen_motion_stats = pe.Node(Function(input_names=['name',
                                                      'motion_correct_tool'],
                                         output_names=['mps_wf'],
+                                        imports=[
+        'import nipype.interfaces.utility as util',
+        'from CPAC.generate_motion_statistics.generate_motion_statistics '
+        'import calculate_FD_J, calculate_FD_P, DVARS_strip_t0, '
+        'gen_power_parameters, gen_motion_parameters, ImageTo1D',
+        'from CPAC.pipeline import nipype_pipeline_engine as pe',
+        'from CPAC.utils.interfaces.function import Function'],
                                         function=motion_power_statistics),
                                name=f'gen_motion_stats_wf_{pipe_num}')
 
@@ -372,6 +373,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                             'space_T1w_bold',
                                             'n_vols_censored', 'dvars_after',
                                             'fdj_after'],
+                               imports=['from CPAC.qc.xcp import *'],
                                output_names=['qc_file'],
                                function=generate_desc_qc,
                                as_module=True),
@@ -405,6 +407,12 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     after_funcs['rels'].inputs.suffix_dot_filetype = 'rels-displacement.rms'
     after_funcs['tran'].inputs.suffix_dot_filetype = 'transformations.rms'
 
+    sub = {}
+    sub['node'], sub['out'] = strat_pool.get_data('subject')
+
+    scan = {}
+    scan['node'], scan['out'] = strat_pool.get_data('scan')
+
     wf.connect([
         (original['anat']['node'], qc_file, [
             (original['anat']['out'], 'original_anat')]),
@@ -417,13 +425,14 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (final['func']['node'], motion_tool, [
             (final['func']['out'], 'final_func')
         ]),
-        (final['func']['node'], from_bids, [
+        *[(final['func']['node'], after_funcs[after_func], [
             (final['func']['out'], 'final_func')
-        ]),
+        ]) for after_func in after_funcs],
         (t1w_bold['node'], qc_file, [(t1w_bold['out'], 'space_T1w_bold')]),
-        (from_bids, gen_motion_stats, [('sub', 'inputspec.subject_id'),
-                                       ('run', 'inputspec.scan'),
-                                       ('func', 'inputspec.motion_correct')]),
+        (sub['node'], gen_motion_stats, [(sub['out'], 'inputspec.subject_id')]),
+        (scan['node'], gen_motion_stats, [(scan['out'], 'inputspec.scan')]),
+        (final['func']['node'], gen_motion_stats, [
+            (final['func']['out'], 'inputspec.motion_correct')]),
         (motion_tool, gen_motion_stats, [
             ('motion_correct_tool', 'inputspec.motion_correct_tool')]),
         (original['func']['node'], after_funcs['mask'], [
@@ -436,8 +445,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (original['func']['out'], 'final')]),
         (original['func']['node'], after_funcs['tran'], [
             (original['func']['out'], 'final')]),
-        (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
-                                     ('FDJ_1D', 'fdj_after')])])
+        (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
+                                     ('outputspec.FDJ_1D', 'fdj_after')])])
 
     outputs = {
         'xcpqc': (qc_file, 'qc_file'),
