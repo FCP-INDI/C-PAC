@@ -162,6 +162,9 @@ surface_analysis:
 
     # Add extra arguments to recon-all command
     reconall_args: None
+    
+    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
+    freesurfer_dir: None
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer: 

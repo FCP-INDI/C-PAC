@@ -30,8 +30,8 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
 
     if len(sub) > 1:
         print("Odd that there is more than one subject directory" +
-               "in (%s), does the filename conform to" % file_path +
-               " BIDS format?")
+              "in (%s), does the filename conform to" % file_path +
+              " BIDS format?")
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
