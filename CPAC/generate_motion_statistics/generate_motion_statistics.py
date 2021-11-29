@@ -189,7 +189,7 @@ def motion_power_statistics(name='motion_stats',
                                                          'power_params',
                                                          'motion_params',
                                                          'motion'
-                                                         'desc_summary_motion' ])
+                                                         'desc_summary_motion' ]),
                                                     
                           name='outputspec')
 
