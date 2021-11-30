@@ -300,7 +300,7 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(calc_power_parameters, 'out_file',
                output_node, 'power_params')
     wf.connect(calc_power_parameters, 'power_summary_params',
-               output_node, 'desc_summary_motion'')
+               output_node, 'desc_summary_motion')
 
     return wf
 
