@@ -1,14 +1,14 @@
-from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
-
-from nipype.interfaces import fsl
-from nipype.interfaces import afni
-from nipype import logging
-
+from nipype.interfaces import afni, fsl
 from nipype.interfaces.utility import Function
 
+from CPAC.connectome.connectivity_matrix import create_connectome_afni, \
+                                                create_connectome_nilearn, \
+                                                get_connectome_method
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import create_roi_mask_dataflow, \
-    create_spatial_map_dataflow, resample_func_roi
+                                  create_spatial_map_dataflow, \
+                                  resample_func_roi
 
 
 def get_voxel_timeseries(wf_name='voxel_timeseries'):
@@ -773,9 +773,12 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_bold"]],
      "outputs": ["desc-Mean_timeseries",
                  "desc-ndmg_correlations",
-                 "atlas_name"]}
+                 "atlas_name",
+                 "desc-PearsonAfni_connectome",
+                 "desc-PartialAfni_connectome",
+                 "desc-PearsonNilearn_connectome",
+                 "desc-PartialNilearn_connectome"]}
     '''
-
     resample_functional_roi = pe.Node(Function(input_names=['in_func',
                                                             'in_roi',
                                                             'realignment',
@@ -824,7 +827,47 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(resample_functional_roi, 'out_func',
                roi_timeseries, 'inputspec.rest')
 
-    # create the graphs
+    # create the graphs:
+    # - connectivity matrix
+    matrix_outputs = {}
+    for cm_measure in cfg['timeseries_extraction', 'connectivity_matrix',
+                          'measure']:
+        for cm_tool in cfg['timeseries_extraction', 'connectivity_matrix',
+                           'using']:
+            implementation = get_connectome_method(cm_measure, cm_tool)
+            if implementation is NotImplemented:
+                continue
+
+            if cm_tool == 'Nilearn':
+                timeseries_correlation = create_connectome_nilearn(
+                    name=f'connectomeNilearn{cm_measure}_{pipe_num}'
+                )
+
+            elif cm_tool == "AFNI":
+                timeseries_correlation = create_connectome_afni(
+                    name=f'connectomeAfni{cm_measure}_{pipe_num}',
+                    method=cm_measure,
+                    pipe_num=pipe_num
+                )
+                brain_mask_node, brain_mask_out = strat_pool.get_data([
+                    'space-template_desc-brain_bold'])
+                wf.connect(brain_mask_node, brain_mask_out,
+                           timeseries_correlation, 'inputspec.mask')
+
+            timeseries_correlation.inputs.inputspec.method = cm_measure
+            wf.connect([
+                (roi_dataflow, timeseries_correlation, [
+                    ('outputspec.out_name', 'inputspec.atlas_name')]),
+                (resample_functional_roi, timeseries_correlation, [
+                    ('out_roi', 'inputspec.in_rois'),
+                    ('out_func', 'inputspec.in_file')])])
+
+            output_desc = ''.join(term.lower().capitalize() for term in [
+                cm_measure, cm_tool])
+            matrix_outputs[f'desc-{output_desc}_connectome'] = (
+                timeseries_correlation, 'outputspec.out_file')
+
+    # - NDMG
     from CPAC.utils.ndmg_utils import ndmg_create_graphs
 
     ndmg_graph_imports = ['import os',
@@ -845,7 +888,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_csv'),
         'desc-ndmg_correlations': (ndmg_graph, 'out_file'),
-        'atlas_name': (roi_dataflow, 'outputspec.out_name')
+        'atlas_name': (roi_dataflow, 'outputspec.out_name'),
+        **matrix_outputs
     }
 
     return (wf, outputs)
@@ -934,12 +978,12 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["space-template_desc-cleaned_bold",
+     "inputs": [["space-template_desc-cleaned_bold",
                   "space-template_desc-brain_bold",
                   "space-template_desc-motion_bold",
                   "space-template_desc-preproc_bold",
                   "space-template_bold"],
-                 "space-template_desc-bold_mask")],
+                 "space-template_desc-bold_mask"],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''

@@ -1,6 +1,7 @@
 """Interface for AFNI 3dNetCorr"""
 import glob
 import os
+import subprocess
 from nipype.interfaces.afni.base import AFNICommand, AFNICommandInputSpec, \
                                         AFNICommandOutputSpec
 from nipype.interfaces.base import File, isdefined
@@ -8,13 +9,13 @@ from traits.api import Bool, List
 
 
 class NetCorrInputSpec(AFNICommandInputSpec):
-    timeseries = File(
+    in_file = File(
         desc="input time series file (4D data set)",
         exists=True,
         argstr="-inset %s",
         mandatory=True,
     )
-    parcellation = File(
+    in_rois = File(
         desc="input set of ROIs, each labelled with distinct integers",
         exists=True,
         argstr="-in_rois %s",
@@ -28,7 +29,7 @@ class NetCorrInputSpec(AFNICommandInputSpec):
         argstr="-mask %s",
     )
     automask_off = Bool(
-        True,
+        False,
         desc='If you want to neither put in a mask '
              '*nor* have the automasking occur',
         argstr='-automask_off', usedefault=True
@@ -175,16 +176,16 @@ class NetCorr(AFNICommand):
 
     Examples
     --------
-    >>> from nipype.interfaces import afni
-    >>> ncorr = afni.NetCorr()
-    >>> ncorr.inputs.in_file = 'functional.nii'
-    >>> ncorr.inputs.mask = 'mask.nii'
-    >>> ncorr.inputs.in_rois = 'maps.nii'
+    >>> from CPAC.utils.interfaces.netcorr import NetCorr
+    >>> ncorr = NetCorr()
+    >>> ncorr.inputs.in_file = 'functional.nii'  # doctest: +SKIP
+    >>> ncorr.inputs.mask = 'mask.nii'  # doctest: +SKIP
+    >>> ncorr.inputs.in_rois = 'maps.nii'  # doctest: +SKIP
     >>> ncorr.inputs.ts_wb_corr = True
     >>> ncorr.inputs.ts_wb_Z = True
     >>> ncorr.inputs.fish_z = True
     >>> ncorr.inputs.out_file = 'sub0.tp1.ncorr'
-    >>> ncorr.cmdline
+    >>> ncorr.cmdline  # doctest: +SKIP
     '3dNetCorr -prefix sub0.tp1.ncorr -fish_z -inset functional.nii -in_rois maps.nii -mask mask.nii -ts_wb_Z -ts_wb_corr'
     >>> res = ncorr.run()  # doctest: +SKIP
 
@@ -215,3 +216,10 @@ class NetCorr(AFNICommand):
                 os.path.join(corrdir, "*.nii.gz"))
 
         return outputs
+
+
+def strip_afni_output_header(in_file, out_file):
+    """Function to rewrite a file with all but the first 6 lines"""
+    subprocess.run(f'tail -n +7 {in_file} > {out_file}', shell=True,
+                   check=True)
+    return out_file

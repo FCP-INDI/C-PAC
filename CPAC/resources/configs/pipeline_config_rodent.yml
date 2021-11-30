@@ -230,7 +230,7 @@ nuisance_corrections:
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
-    lateral_ventricles_mask: /template/chd8_functional_template_ventricles_ag.nii.gz
+    lateral_ventricles_mask: /cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------

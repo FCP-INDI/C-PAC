@@ -160,10 +160,6 @@ from CPAC.timeseries.timeseries_analysis import (
     spatial_regression
 )
 
-from CPAC.connectome.connectivity_matrix import (
-    timeseries_connectivity_matrix
-)
-
 from CPAC.sca.sca import (
     SCA_AVG,
     dual_regression,
@@ -863,7 +859,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
              brain_mask_freesurfer_abcd,
              brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
-            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
@@ -989,7 +984,36 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
+def list_blocks(pipeline_blocks, indent=None):
+    """Function to list node blocks line by line
+
+    Parameters
+    ----------
+    pipeline_blocks : list or tuple
+
+    indent : int or None
+       number of spaces after a tab indent
+
+    Returns
+    -------
+    str
+    """
+    blockstring = yaml.dump([
+        getattr(block, '__name__', getattr(block, 'name', yaml.safe_load(
+            list_blocks(list(block))) if
+            isinstance(block, (tuple, list, set)) else str(block))
+        ) for block in pipeline_blocks
+    ])
+    if isinstance(indent, int):
+        blockstring = '\n'.join([
+            '\t' + ' ' * indent + line for line in blockstring.split('\n')])
+    return blockstring
+
+
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+    logger.info('\n'.join([
+        'Connecting pipeline blocks:',
+        list_blocks(pipeline_blocks, indent=1)]))
 
     for block in pipeline_blocks:
         try:
@@ -1268,16 +1292,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('desc-SpatReg_timeseries') and \
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
-
-    if (
-        cfg['connectivity_matrix', 'using'] and
-        cfg['connectivity_matrix', 'measure']
-    ):
-        #  If we want a connectivity matrix but don't have any
-        #  timeseries, get mean timeseries
-        if not rpool.check_rpool('timeseries'):
-            pipeline_blocks += [timeseries_extraction_AVG]
-        pipeline_blocks += [timeseries_connectivity_matrix]
 
     if not rpool.check_rpool('desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:

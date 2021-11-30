@@ -510,8 +510,8 @@ segmentation:
 
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
       template_brain_list :
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_T1w_brain.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_T1w_brain.nii.gz
 
       # The atlas segmentation images.
       # For performing ANTs Prior-based segmentation method
@@ -524,8 +524,8 @@ segmentation:
       #   - segmentation1.nii.gz
       #   - segmentation1.nii.gz
       template_segmentation_list:
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_Segmentation.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_Segmentation.nii.gz
 
       # Label values corresponding to CSF/GM/WM in atlas file
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
@@ -1459,6 +1459,19 @@ timeseries_extraction:
   #           check your data if you see issues
   realignment: 'ROI_to_func'
 
+  connectivity_matrix:
+    # Create a connectivity matrix from timeseries data
+
+    # Options:
+    #  ['AFNI', 'Nilearn']
+    using:
+      - Nilearn
+    # Options:
+    #  ['Pearson', 'Partial']
+    measure:
+      - Pearson
+      - Partial
+
 
 seed_based_correlation_analysis:
 
@@ -1483,17 +1496,6 @@ seed_based_correlation_analysis:
 
   # Normalize each time series before running Dual Regression SCA.
   norm_timeseries_for_DR: True
-
-
-connectivity_matrix:
-  # Create a connectivity matrix from timeseries data
-
-  # Options:
-  #  ['AFNI', 'Nilearn']
-  using:
-  # Options:
-  #  ['Pearson', 'Partial', 'Spearman']
-  measure:
 
 
 amplitude_low_frequency_fluctuation:
