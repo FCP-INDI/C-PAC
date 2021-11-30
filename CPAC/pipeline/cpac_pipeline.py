@@ -151,6 +151,7 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldGM,
     erode_mask_boldWM
 )
+from CPAC.nuisance.utils.datatype import report_as_float
 
 from CPAC.surface.surf_preproc import surface_preproc
 
@@ -1184,6 +1185,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 'func_registration_to_template']['apply_transform']['using'] == 'abcd':
                 nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "bold")))
                 nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
+
+        nuisance += [report_as_float]
 
         pipeline_blocks += nuisance
 
