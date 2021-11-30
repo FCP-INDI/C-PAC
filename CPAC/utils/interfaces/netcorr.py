@@ -177,15 +177,15 @@ class NetCorr(AFNICommand):
     Examples
     --------
     >>> from CPAC.utils.interfaces.netcorr import NetCorr
-    >>> ncorr = afni.NetCorr()
-    >>> ncorr.inputs.in_file = 'functional.nii'
-    >>> ncorr.inputs.mask = 'mask.nii'
-    >>> ncorr.inputs.in_rois = 'maps.nii'
+    >>> ncorr = NetCorr()
+    >>> ncorr.inputs.in_file = 'functional.nii'  # doctest: +SKIP
+    >>> ncorr.inputs.mask = 'mask.nii'  # doctest: +SKIP
+    >>> ncorr.inputs.in_rois = 'maps.nii'  # doctest: +SKIP
     >>> ncorr.inputs.ts_wb_corr = True
     >>> ncorr.inputs.ts_wb_Z = True
     >>> ncorr.inputs.fish_z = True
     >>> ncorr.inputs.out_file = 'sub0.tp1.ncorr'
-    >>> ncorr.cmdline
+    >>> ncorr.cmdline  # doctest: +SKIP
     '3dNetCorr -prefix sub0.tp1.ncorr -fish_z -inset functional.nii -in_rois maps.nii -mask mask.nii -ts_wb_Z -ts_wb_corr'
     >>> res = ncorr.run()  # doctest: +SKIP
 
