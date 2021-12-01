@@ -2646,8 +2646,9 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_input_prep", "input"],
      "option_val": "Selected_Functional_Volume",
-     "inputs": ["desc-brain_bold",
-                "desc-motion_bold"],
+     "inputs": [("desc-brain_bold",
+                 ["desc-motion_bold", "bold"],
+                 "desc-reginput_bold")],
      "outputs": ["desc-reginput_bold"]}
     '''
 
@@ -2667,7 +2668,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         # TODO check which file is functional_skull_leaf
         # TODO add a function to choose brain or skull?
-        node, out = strat_pool.get_data("desc-motion_bold")
+        node, out = strat_pool.get_data(["desc-motion_bold", "bold"])
 
     wf.connect(node, out, get_func_volume, 'in_file_a')
 
@@ -2807,7 +2808,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         func_to_anat = create_register_func_to_anat(cfg, diff_complete,
                                                     f'func_to_anat_FLIRT_'
                                                     f'{pipe_num}')
-        # func_to_anat.inputs.inputspec.interp = 'trilinear'
         
         func_to_anat.inputs.inputspec.dof = cfg.registration_workflows[
         'functional_registration']['coregistration']['dof']
