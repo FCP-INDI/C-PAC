@@ -25,7 +25,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
     #  warp_nipe file, an output_dir which can be either be mentioned
     #  or if it is set to none will write it in the current working
     #  directory.
-    #  The argument run can either be tset to true(default) or to
+    #  The argument run can either be set to true(default) or to
     #  false. If set to false, it should connect to the nipype workflow
     #  and return the workflow object instead
     #  What all should it return?: if the run had been set to true, it
