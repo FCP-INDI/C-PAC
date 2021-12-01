@@ -61,6 +61,7 @@ import pandas as pd
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.engine import NodeData
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
@@ -273,7 +274,7 @@ def _generate_filename(final):
         desc_parts = desc_parts[1][::-1].split('_')[-1][::-1] if (
                      '_' in desc_parts[1]) else None
         desc_string = '_'.join([part for part in [
-            f'desc-{delimiter.split("-", 1)[-1].rstrip("_")}+xcpqc',
+            f'desc-{delimiter.split("-", 1)[-1].rstrip("_")}Xcpqc',
             desc_parts,
             'bold.tsv'
         ] if part])
@@ -317,74 +318,25 @@ def _get_motion_correct_tool(final_func):
             json.loads(mp_json.read()).get('CpacProvenance'))
 
 
-def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
-    # pylint: disable=unused-argument, invalid-name
+def _get_motion_stats(name, motion_correct_tool, strat_pool, final):
     """
-    {'name': 'qc_xcp',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': ['bold', 'subject', 'scan', 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
-                'space-T1w_desc-mean_bold'],
-     'outputs': ['xcpqc']}
+    Parameters
+    ----------
+    name : str
+
+    motion_correct_tool : str
+
+    strat_pool : CPAC.pipeline.engine.ResourePool
+
+    final : CPAC.pipeline.engine.NodeData
+        functional
     """
-    original = {'anat': {}, 'func': {}}
-    final = {'anat': {}, 'func': {}}
-    t1w_bold = {}
-    original['anat']['node'], original['anat']['out'] = strat_pool.get_data(
-        'T1w')
-    original['func']['node'], original['func']['out'] = strat_pool.get_data(
-        'bold')
-    final['anat']['node'], final['anat']['out'] = strat_pool.get_data(
-        'desc-preproc_T1w')
-    final['func']['node'], final['func']['out'] = strat_pool.get_data(
-        'desc-preproc_bold')
-    t1w_bold['node'], t1w_bold['out'] = strat_pool.get_data(
-        'space-T1w_desc-mean_bold')
+    pipe_num = name.split('_')[-1]
+    wf = pe.Workflow(name=f'_{name}_afterNuisance')
+    gen_motion_stats = motion_power_statistics(name, motion_correct_tool)
 
-    motion_tool = pe.Node(Function(input_names=['final_func'],
-                                   output_names=['motion_correct_tool'],
-                                   imports=['import json',
-                                            'from CPAC.qc.xcp import '
-                                            'check_prov_for_motion_tool, '
-                                            'get_other_func'],
-                                   function=_get_motion_correct_tool),
-                          name=f'get_motion_correct_tool_{pipe_num}')
-
-    gen_motion_stats = pe.Node(Function(input_names=['name',
-                                                     'motion_correct_tool'],
-                                        output_names=['mps_wf'],
-                                        imports=[
-        'import nipype.interfaces.utility as util',
-        'from CPAC.generate_motion_statistics.generate_motion_statistics '
-        'import calculate_FD_J, calculate_FD_P, DVARS_strip_t0, '
-        'gen_power_parameters, gen_motion_parameters, ImageTo1D',
-        'from CPAC.pipeline import nipype_pipeline_engine as pe',
-        'from CPAC.utils.interfaces.function import Function'],
-                                        function=motion_power_statistics),
-                               name=f'gen_motion_stats_wf_{pipe_num}')
-
-    gen_motion_stats.inputs.name = \
-        f'gen_motion_stats_after_{pipe_num}'
-
-    qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
-                                            'original_anat', 'final_anat',
-                                            'space_T1w_bold',
-                                            'n_vols_censored', 'dvars_after',
-                                            'fdj_after'],
-                               imports=['from CPAC.qc.xcp import *'],
-                               output_names=['qc_file'],
-                               function=generate_desc_qc,
-                               as_module=True),
-                      name=f'xcpqc_{pipe_num}')
-
-    try:
-        n_vols_censored = strat_pool.get_data('n_vols_censored')
-        wf.connect(n_vols_censored[0], n_vols_censored[1],
-                   qc_file, 'n_vols_censored')
-    except LookupError:
-        qc_file.inputs.n_vols_censored = 'unknown'
+    sub = NodeData(strat_pool, 'subject')
+    scan = NodeData(strat_pool, 'scan')
 
     other_func = Function(input_names=['final_func', 'suffix_dot_filetype'],
                           output_names=['filepath'],
@@ -407,46 +359,100 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     after_funcs['rels'].inputs.suffix_dot_filetype = 'rels-displacement.rms'
     after_funcs['tran'].inputs.suffix_dot_filetype = 'transformations.rms'
 
-    sub = {}
-    sub['node'], sub['out'] = strat_pool.get_data('subject')
+    wf.connect([
+        (sub.node, gen_motion_stats, [(sub.out, 'inputspec.subject_id')]),
+        (scan.node, gen_motion_stats, [(scan.out, 'inputspec.scan_id')]),
+        *[(final.node, after_func, [(final.out, 'final_func')])
+          for _, after_func in after_funcs.items()],
+        (after_funcs['mp'], gen_motion_stats, [
+            ('filepath', 'inputspec.movement_parameters')]),
+        (after_funcs['max'], gen_motion_stats, [
+            ('filepath', 'inputspec.max_displacement')]),
+        (after_funcs['rels'], gen_motion_stats, [
+            ('filepath', 'inputspec.rels_displacement')]),
+        (after_funcs['mask'], gen_motion_stats, [
+            ('filepath', 'inputspec.mask')]),
+        (after_funcs['tran'], gen_motion_stats, [
+            ('filepath', 'inputspec.transformations')]),
+    ])
 
-    scan = {}
-    scan['node'], scan['out'] = strat_pool.get_data('scan')
+    result = wf.run()
+
+    return result.outputs.DVARS_1D, result.outputs.FDJ_1D
+
+
+def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=unused-argument, invalid-name
+    """
+    {'name': 'qc_xcp',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': ['bold', 'subject', 'scan', 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
+                'space-T1w_desc-mean_bold'],
+     'outputs': ['xcpqc']}
+    """
+    original = {}
+    final = {}
+    original['anat'] = NodeData(strat_pool, 'T1w')
+    original['func'] = NodeData(strat_pool, 'bold')
+    final['anat'] = NodeData(strat_pool, 'desc-preproc_T1w')
+    final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
+    t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
+
+    motion_tool = pe.Node(Function(input_names=['final_func'],
+                                   output_names=['motion_correct_tool'],
+                                   function=_get_motion_correct_tool,
+                                   as_module=True),
+                          name=f'get_motion_correct_tool_{pipe_num}')
+
+    gen_motion_stats = pe.Node(Function(input_names=['name',
+                                                     'motion_correct_tool',
+                                                     'strat_pool', 'final'],
+                                        output_names=['DVARS_1D', 'FDJ_1D'],
+                                        function=_get_motion_stats,
+                                        as_module=True),
+                               name=f'gen_motion_stats_wf_{pipe_num}')
+
+    gen_motion_stats.inputs.name = f'gen_motion_stats_after_{pipe_num}'
+    gen_motion_stats.inputs.strat_pool = strat_pool
+    gen_motion_stats.inputs.final = final['func']
+
+    qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
+                                            'original_anat', 'final_anat',
+                                            'space_T1w_bold',
+                                            'n_vols_censored', 'dvars_after',
+                                            'fdj_after'],
+                               output_names=['qc_file'],
+                               function=generate_desc_qc,
+                               as_module=True),
+                      name=f'xcpqc_{pipe_num}')
+
+    try:
+        n_vols_censored = NodeData(strat_pool, 'n_vols_censored')
+        wf.connect(n_vols_censored.node, n_vols_censored.out,
+                   qc_file, 'n_vols_censored')
+    except LookupError:
+        qc_file.inputs.n_vols_censored = 'unknown'
 
     wf.connect([
-        (original['anat']['node'], qc_file, [
-            (original['anat']['out'], 'original_anat')]),
-        (original['func']['node'], qc_file, [
-            (original['func']['out'], 'original_func')]),
-        (final['anat']['node'], qc_file, [
-            (final['anat']['out'], 'final_anat')]),
-        (final['func']['node'], qc_file, [
-            (final['func']['out'], 'final_func')]),
-        (final['func']['node'], motion_tool, [
-            (final['func']['out'], 'final_func')
+        (original['anat'].node, qc_file, [
+            (original['anat'].out, 'original_anat')]),
+        (original['func'].node, qc_file, [
+            (original['func'].out, 'original_func')]),
+        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
+        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
+        (final['func'].node, motion_tool, [
+            (final['func'].out, 'final_func')
         ]),
-        *[(final['func']['node'], after_funcs[after_func], [
-            (final['func']['out'], 'final_func')
-        ]) for after_func in after_funcs],
-        (t1w_bold['node'], qc_file, [(t1w_bold['out'], 'space_T1w_bold')]),
-        (sub['node'], gen_motion_stats, [(sub['out'], 'inputspec.subject_id')]),
-        (scan['node'], gen_motion_stats, [(scan['out'], 'inputspec.scan')]),
-        (final['func']['node'], gen_motion_stats, [
-            (final['func']['out'], 'inputspec.motion_correct')]),
+        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
         (motion_tool, gen_motion_stats, [
-            ('motion_correct_tool', 'inputspec.motion_correct_tool')]),
-        (original['func']['node'], after_funcs['mask'], [
-            (original['func']['out'], 'final')]),
-        (original['func']['node'], after_funcs['mp'], [
-            (original['func']['out'], 'final')]),
-        (original['func']['node'], after_funcs['max'], [
-            (original['func']['out'], 'final')]),
-        (original['func']['node'], after_funcs['rels'], [
-            (original['func']['out'], 'final')]),
-        (original['func']['node'], after_funcs['tran'], [
-            (original['func']['out'], 'final')]),
-        (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
-                                     ('outputspec.FDJ_1D', 'fdj_after')])])
+            ('motion_correct_tool', 'motion_correct_tool')]),
+        (final['func'].node, gen_motion_stats, [
+            (final['func'].out, 'inputspec.motion_correct')]),
+        (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
+                                     ('FDJ_1D', 'fdj_after')])])
 
     outputs = {
         'xcpqc': (qc_file, 'qc_file'),

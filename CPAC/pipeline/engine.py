@@ -1914,3 +1914,43 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+
+
+class NodeData():
+    r"""Class to hold outputs of
+    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
+
+    ``node_data = NodeData(strat_pool, resource)`` and have
+    ``node_data.node`` and ``node_data.out`` instead of doing
+    ``node, out = strat_pool.get_data(resource)`` and needing two
+    variables (``node`` and ``out``) to store that information.
+
+    Examples
+    --------
+    >>> NodeData(None, None)
+    NotImplemented (NotImplemented)
+
+    >>> rp = ResourcePool()
+    >>> rp.set_data('test',
+    ...             pe.Node(Function(input_names=[]), 'test'),
+    ...             'b', [], 0, 'test')
+    >>> NodeData(rp, 'test')
+    test (b)
+    >>> NodeData(rp, 'test').out
+    'b'
+
+    >>> try:
+    ...     NodeData(rp, 'b')
+    ... except LookupError as lookup_error:
+    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
+    [!] C-PAC says: The listed resource is not in the resource pool: b
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, strat_pool=None, resource=None, **kwargs):
+        self.node = NotImplemented
+        self.out = NotImplemented
+        if strat_pool is not None and resource is not None:
+            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+
+    def __repr__(self):
+        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
