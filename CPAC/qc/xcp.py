@@ -376,9 +376,11 @@ def _get_motion_stats(name, motion_correct_tool, strat_pool, final):
             ('filepath', 'inputspec.transformations')]),
     ])
 
-    result = wf.run()
-
-    return result.outputs.DVARS_1D, result.outputs.FDJ_1D
+    output = getattr(wf.outputs, name)
+    if output is not None:
+        
+        return output.outputspec.DVARS_1D, output.outputspec.FDJ_1D
+    return None, None
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
