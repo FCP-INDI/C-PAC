@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import nibabel as nb
+import pandas as pd
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -188,8 +189,12 @@ def motion_power_statistics(name='motion_stats',
                                                          'DVARS_1D',
                                                          'power_params',
                                                          'motion_params',
-                                                         'motion'
-                                                         'desc_summary_motion' ]),
+                                                         'motion_FDP',
+                                                         'motion_FDJ',
+                                                         'motion_relsdisp',
+                                                         'motion_maxdisp',
+                                                         'desc_summary_motion_motion',
+                                                         'desc_summary_motion_power' ]),
                                                     
                           name='outputspec')
 
@@ -210,8 +215,7 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(input_node, 'mask', cal_DVARS, 'mask')
     wf.connect(cal_DVARS, 'out_file', cal_DVARS_strip, 'file_1D')
     wf.connect(cal_DVARS_strip, 'out_file', output_node, 'DVARS_1D')
-    wf.connect(calculate_DVARS, 'motion_dvars', output_node, 'motion')
-
+    
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file','motion_FDP'],
@@ -221,7 +225,7 @@ def motion_power_statistics(name='motion_stats',
 
     wf.connect(input_node, 'movement_parameters', calculate_FDP, 'in_file')
     wf.connect(calculate_FDP, 'out_file', output_node, 'FDP_1D')
-    wf.connect(calculate_FDP, 'motion_FDP', output_node, 'motion')
+    wf.connect(calculate_FDP, 'motion_FDP', output_node, 'motion_FDP')
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
@@ -238,11 +242,9 @@ def motion_power_statistics(name='motion_stats',
         wf.connect(input_node, 'rels_displacement', calculate_FDJ, 'in_file')
 
     wf.connect(calculate_FDJ, 'out_file', output_node, 'FDJ_1D')
-    wf.connect(calculate_FDJ, 'motion_FDJ', output_node, 'motion')
+    wf.connect(calculate_FDJ, 'motion_FDJ', output_node, 'motion_FDJ')
 
-    calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
-                                                           'scan_id',
-                                                           'movement_parameters',
+    calc_motion_parameters = pe.Node(Function(input_names= ['movement_parameters',
                                                            'max_displacement',
                                                            'motion_correct_tool'],
                                               output_names=['out_file','max_disp','summary_motion_params','rels_disp'],
@@ -251,10 +253,7 @@ def motion_power_statistics(name='motion_stats',
                                      name='calc_motion_parameters')
 
     calc_motion_parameters.inputs.motion_correct_tool = motion_correct_tool
-    wf.connect(input_node, 'subject_id',
-               calc_motion_parameters, 'subject_id')
-    wf.connect(input_node, 'scan_id',
-               calc_motion_parameters, 'scan_id')
+    
     wf.connect(input_node, 'movement_parameters',
                calc_motion_parameters, 'movement_parameters')
     wf.connect(input_node, 'max_displacement',
@@ -263,17 +262,15 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(calc_motion_parameters, 'out_file',
                output_node, 'motion_params')
     wf.connect(calc_motion_parameters, 'summary_motion_params',
-               output_node, 'desc_summary_motion')
+               output_node, 'desc_summary_motion_motion')
     wf.connect(calc_motion_parameters, 'max_disp',
-               output_node, 'motion')
+               output_node, 'motion_maxdisp')
     wf.connect(calc_motion_parameters, 'rels_disp',
-               output_node, 'motion')       
+               output_node, 'motion_relsdisp')       
                
                
 
-    calc_power_parameters = pe.Node(Function(input_names=['subject_id',
-                                                          'scan_id',
-                                                          'fdp',
+    calc_power_parameters = pe.Node(Function(input_names=['fdp',
                                                           'fdj',
                                                           'dvars',
                                                           'motion_correct_tool'],
@@ -283,11 +280,7 @@ def motion_power_statistics(name='motion_stats',
                                     name='calc_power_parameters')
 
     calc_power_parameters.inputs.motion_correct_tool = motion_correct_tool
-    wf.connect(input_node, 'subject_id',
-               calc_power_parameters, 'subject_id')
-    wf.connect(input_node, 'scan_id',
-               calc_power_parameters, 'scan_id')
-
+   
     wf.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'dvars')
 
@@ -300,7 +293,7 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(calc_power_parameters, 'out_file',
                output_node, 'power_params')
     wf.connect(calc_power_parameters, 'power_summary_params',
-               output_node, 'desc_summary_motion')
+               output_node, 'desc_summary_motion_power')
 
     return wf
 
@@ -332,7 +325,9 @@ def calculate_FD_P(in_file):
     np.savetxt(out_file, fd)
     
     motion_FDP = os.path.join(os.getcwd(),'motion.tsv')
+    motion_FDP=np.loadtxt(motion_FDP)
     motion_FDP['Framewise Displacement Power'] = fd
+    motion_FDP.to_csv('motion.tsv', mode='w',index=False)
     return out_file, motion_FDP
 
 
@@ -383,9 +378,11 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
  
-    motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
-    
-    motion_FDJ['Framewise Displacement Jenkinson '] = fd
+    #motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
+    #motion_FDJ=np.loadtxt(motion_FDJ)
+    motion_FDJ=pd.DataFrame(fd)
+    motion_FDJ.columns=['Framewise Displacement Jenkinson ']
+    #motion_FDJ['Framewise Displacement Jenkinson '] = fd
     motion_FDJ.to_csv('motion.tsv', mode='w',index=False)
     return out_file,motion_FDJ
 
@@ -429,6 +426,7 @@ def gen_motion_parameters(movement_parameters,
           
           rels_disp = os.path.join(os.getcwd(),'motion.tsv')
           rels_disp['Rels Displacement '] = relsdisp
+          rels_disp.to_csv('motion.tsv', mode='a',index=False)
         
         
         
@@ -487,7 +485,7 @@ def gen_motion_parameters(movement_parameters,
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
 
-     with open(summary_motion_params, 'w') as f:
+    with open(summary_motion_params, 'w') as f:
         f.write(','.join(t for t, v in summary_motion_params))
         f.write('\n')
         f.write(','.join(
@@ -497,6 +495,7 @@ def gen_motion_parameters(movement_parameters,
 
     max_disp = os.path.join(os.getcwd(),'motion.tsv')
     max_disp['Maximum Displacement'] = maxdisp
+    max_disp.to_csv('motion.tsv', mode='a',index=False)
    
     return out_file, max_disp, summary_motion_params, rels_disp
     
@@ -590,7 +589,7 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
 
-     with open(summary_motion_params, 'w') as f:
+    with open(summary_motion_params, 'w') as f:
         f.write(','.join(t for t, v in summary_motion_params))
         f.write('\n')
         f.write(','.join(
@@ -683,6 +682,8 @@ def calculate_DVARS(func_brain, mask):
     dvars = np.insert(dvars,0,0)
     
     motion_dvars = os.path.join(os.getcwd(),'motion.tsv')
+    motion_dvars=np.loadtxt(motion_dvars)
     motion_dvars ['Dvars'] = dvars
+    motion_dvars.to_csv('motion.tsv', mode='a',index=False)
     
     return out_file,motion_dvars

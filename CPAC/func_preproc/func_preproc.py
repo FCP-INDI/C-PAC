@@ -1325,8 +1325,12 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars",
                  "power-params",
                  "motion-params",
-                 "motion",
-                 "desc-summary_motion]}
+                 "motion_FDP",
+                 "motion_FDJ",
+                 "motion_relsdisp",
+                 "motion_maxdisp",
+                 "desc-summary_motion_motion",
+                 "desc-summary_motion_power"]}
     '''
 
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
@@ -1382,8 +1386,12 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power-params': (gen_motion_stats, 'outputspec.power_params'),
         'motion-params': (gen_motion_stats, 'outputspec.motion_params'),
-        'motion':(gen_motion_stats, 'outputspec.motion'),
-        'desc-summary_motion':(gen_motion_stats, 'outputspec.desc_summary_motion')}
+        'motion_FDP':(gen_motion_stats, 'outputspec.motion_FDP'),
+        'motion_FDJ':(gen_motion_stats, 'outputspec.motion_FDJ'),
+        'motion_relsdisp':(gen_motion_stats, 'outputspec.motion_relsdisp'),
+        'motion_maxdisp':(gen_motion_stats, 'outputspec.motion_maxdisp'),
+        'desc-summary_motion_motion':(gen_motion_stats, 'outputspec.desc_summary_motion_motion'),
+        'desc-summary_motion_power':(gen_motion_stats, 'outputspec.desc_summary_motion_power')}
 
     return (wf, outputs)
 
