@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added changelog
 - Added CHD8 mouse template (`/cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz`) 
 - Added commandline flags `--T1w_label` and `--bold_label`
+- Added the ability to ingress an entire FreeSurfer output directory to bypass surface analysis if already completed elsewhere
 
 ### Changed
 
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved memory management for multi-core node allocation.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1548) where `--participant_label [A B C]` would skip first and last labels (`A` and `C`).
 - Stripped the ABI tag note (which was preventing the library from loading dynamically on some host operating systems) from `libQt5Core.so.5` in the ABCD-HCP variant image.
+- Fixed an issue blocking non-C-PAC output data from being read in without sidecar meta-data.
 
 ## [1.8.1] - 2021-09-17
 
