@@ -42,8 +42,13 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
-                      'PartialCorr'},
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
+    },
+    'connectivity_matrix': {
+        'using': {'AFNI', 'Nilearn'},
+        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
+                    # 'TangentEmbed'  # "Skip tangent embedding for now"
+                    },
     },
     'Regressors': {
         'CompCor': {
@@ -982,8 +987,11 @@ latest_schema = Schema({
                 'tse_roi_paths', valid_options['timeseries']['roi_paths'])
         ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
+        'connectivity_matrix': {
+            option: Maybe([In(valid_options['connectivity_matrix'][option])])
+            for option in ['using', 'measure']
+        },
     },
-
     'seed_based_correlation_analysis': {
         'run': bool,
         Optional('roi_paths_fully_specified'): bool,
