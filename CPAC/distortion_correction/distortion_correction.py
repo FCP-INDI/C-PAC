@@ -602,7 +602,6 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('epi_2')
     wf.connect(node, out, phase_encoding, 'phase_two')
     
-    # TODO - which one?
     node, out = strat_pool.get_data('pe_direction')
     wf.connect(node, out, phase_encoding, 'unwarp_dir')
         
@@ -644,7 +643,6 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     
     wf.connect(create_list, 'out', choose_phase, 'phase_imgs')
 
-    # TODO - which one?
     node, out = strat_pool.get_data("pe_direction")
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
