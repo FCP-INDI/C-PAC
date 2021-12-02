@@ -310,6 +310,14 @@ functional_preproc:
       # Choose motion correction reference volume
       motion_correction_reference_volume: 0
 
+  distortion_correction:
+
+    # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    using: ['PhaseDiff', 'Blip-FSL-TOPUP']
+
   func_masking: 
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled']

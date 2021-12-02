@@ -1014,6 +1014,8 @@ functional_preproc:
     tzero: None
 
   motion_estimates_and_correction:
+  
+    run: On
 
     motion_estimates: 
 
@@ -1107,12 +1109,10 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
-    # using: ['PhaseDiff', 'Blip']
+    # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
     #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
-    #   NOTE:
-    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
-    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     using: ['PhaseDiff', 'Blip']
 
     # option parameters
@@ -1129,6 +1129,50 @@ functional_preproc:
       # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.6.
       fmap_skullstrip_AFNI_threshold:  0.6
+      
+    Blip-FSL-TOPUP:
+      
+      # (approximate) resolution (in mm) of warp basis for the different sub-sampling levels, default 10
+      warpres: 10
+      
+      # sub-sampling scheme, default 1
+      subsamp: 1
+      
+      # FWHM (in mm) of gaussian smoothing kernel, default 8
+      fwhm: 8
+      
+      # Max # of non-linear iterations, default 5
+      miter: 5
+      
+      # Weight of regularisation, default depending on --ssqlambda and --regmod switches. See user documentation.
+      lambda: 1
+      
+      # If set (=1), lambda is weighted by current ssq, default 1
+      ssqlambda: 1
+      
+      # Model for regularisation of warp-field [membrane_energy bending_energy], default bending_energy
+      regmod: bending_energy
+      
+      # Estimate movements if set, default 1 (true)
+      estmov: 1
+      
+      # Minimisation method 0=Levenberg-Marquardt, 1=Scaled Conjugate Gradient, default 0 (LM)
+      minmet: 0
+      
+      # Order of spline, 2->Qadratic spline, 3->Cubic spline. Default=3
+      splineorder: 3
+      
+      # Precision for representing Hessian, double or float. Default double
+      numprec: double
+      
+      # Image interpolation model, linear or spline. Default spline
+      interp: spline
+      
+      # If set (=1), the images are individually scaled to a common mean, default 0 (false)
+      scale: 0
+      
+      # If set (=1), the calculations are done in a different grid, default 1 (true)
+      regrid: 1
 
   func_masking:
 

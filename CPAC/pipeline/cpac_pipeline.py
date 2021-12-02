@@ -131,7 +131,8 @@ from CPAC.func_preproc.func_preproc import (
 
 from CPAC.distortion_correction.distortion_correction import (
     distcor_phasediff_fsl_fugue,
-    distcor_blip_afni_qwarp
+    distcor_blip_afni_qwarp,
+    distcor_blip_fsl_topup
 )
 
 from CPAC.nuisance.nuisance import (
@@ -1096,8 +1097,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             bold_masking,
             calc_motion_stats,
             func_mean,
-            func_normalize#,
-            #func_mask_normalize
+            func_normalize
         ]
 
         # Distortion/Susceptibility Correction
@@ -1106,7 +1106,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
+            distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:

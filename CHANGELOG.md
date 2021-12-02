@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 
 
+- Added FSL-TOPUP as an option for distortion correction.
 - Added changelog
 - Added CHD8 mouse template (`/cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz`) 
 - Added commandline flags `--T1w_label` and `--bold_label`
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Expanded meta-data ingress for EPI field maps to include more fields when parsing BIDS sidecar JSONs.
 - Updated possible inputs for T2w processing and ACPC-alignment blocks to increase the modularity of these pipeline options.
 - `master` branch renamed `main`
 - Packaged templates in https://github.com/FCP-INDI/C-PAC_templates
