@@ -860,7 +860,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
              brain_mask_freesurfer_abcd,
              brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
-            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 

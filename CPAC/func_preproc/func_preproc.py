@@ -1761,8 +1761,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Anatomical_Refined",
      "inputs": ["bold",
                 ["desc-preproc_bold", "bold"],
-                "desc-brain_T1w",
-                "space-T1w_desc-brain_mask"],
+                ("desc-brain_T1w",
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1771,7 +1772,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
                                   name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, anat_brain_mask_bin, 'in_file')
 
     # fill holes of anat mask
@@ -2065,8 +2067,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
 
     # Extract 8th volume as func ROI
@@ -2076,8 +2078,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_size = 1
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_roi, 'in_file')
 
     # Apply func initial mask on func ROI volume
