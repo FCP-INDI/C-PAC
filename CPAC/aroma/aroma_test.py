@@ -7,7 +7,7 @@ It accepts as its arguments the input whihc you'd give the warp_nipe
 file, an output_dir which can be either be mentioned or if it is set to
 None will write it in the current working directory.
 
-The argument run can either be tset to true(default) or to false. If
+The argument run can either be set to true(default) or to false. If
 set to False, it should connect to the nipype workflow and return the
 workflow object instead.
 

@@ -131,7 +131,8 @@ from CPAC.func_preproc.func_preproc import (
 
 from CPAC.distortion_correction.distortion_correction import (
     distcor_phasediff_fsl_fugue,
-    distcor_blip_afni_qwarp
+    distcor_blip_afni_qwarp,
+    distcor_blip_fsl_topup
 )
 
 from CPAC.nuisance.nuisance import (
@@ -987,7 +988,36 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
+def list_blocks(pipeline_blocks, indent=None):
+    """Function to list node blocks line by line
+
+    Parameters
+    ----------
+    pipeline_blocks : list or tuple
+
+    indent : int or None
+       number of spaces after a tab indent
+
+    Returns
+    -------
+    str
+    """
+    blockstring = yaml.dump([
+        getattr(block, '__name__', getattr(block, 'name', yaml.safe_load(
+            list_blocks(list(block))) if
+            isinstance(block, (tuple, list, set)) else str(block))
+        ) for block in pipeline_blocks
+    ])
+    if isinstance(indent, int):
+        blockstring = '\n'.join([
+            '\t' + ' ' * indent + line for line in blockstring.split('\n')])
+    return blockstring
+
+
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+    logger.info('\n'.join([
+        'Connecting pipeline blocks:',
+        list_blocks(pipeline_blocks, indent=1)]))
 
     for block in pipeline_blocks:
         try:
@@ -1082,7 +1112,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
+            distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:

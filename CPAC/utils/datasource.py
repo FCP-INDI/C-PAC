@@ -409,31 +409,31 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_rp_list.append(key)
 
+            get_fmap_metadata_imports = ['import json']
+            get_fmap_metadata = pe.Node(Function(
+                input_names=['data_config_scan_params'],
+                output_names=['echo_time',
+                              'dwell_time',
+                              'pe_direction'],
+                function=get_fmap_phasediff_metadata,
+                imports=get_fmap_metadata_imports),
+                name=f'{key}_get_metadata')
+
+            wf.connect(gather_fmap, 'outputspec.scan_params',
+                       get_fmap_metadata, 'data_config_scan_params')
+
+            rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
+                           {}, "", "fmap_TE_ingress")
+            rpool.set_data(f'{key}_dwell', get_fmap_metadata,
+                           'dwell_time', {}, "", "fmap_dwell_ingress")
+            rpool.set_data(f'{key}_pedir', get_fmap_metadata,
+                           'pe_direction', {}, "", "fmap_pedir_ingress")
+
+            fmap_TE_list.append(f"{key}_TE")
+
             keywords = ['diffphase', 'diffmag']
             if key in keywords:
                 diff = True
-
-                get_fmap_metadata_imports = ['import json']
-                get_fmap_metadata = pe.Node(Function(
-                    input_names=['data_config_scan_params'],
-                    output_names=['echo_time',
-                                  'dwell_time',
-                                  'pe_direction'],
-                    function=get_fmap_phasediff_metadata,
-                    imports=get_fmap_metadata_imports),
-                    name=f'{key}_get_metadata')
-
-                wf.connect(gather_fmap, 'outputspec.scan_params',
-                           get_fmap_metadata, 'data_config_scan_params')
-
-                rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
-                               {}, "", "fmap_TE_ingress")
-                rpool.set_data(f'{key}_dwell', get_fmap_metadata,
-                               'dwell_time', {}, "", "fmap_dwell_ingress")
-                rpool.set_data(f'{key}_pedir', get_fmap_metadata,
-                               'pe_direction', {}, "", "fmap_pedir_ingress")
-
-                fmap_TE_list.append(f"{key}_TE")
 
             if orig_key == "epi_AP" or orig_key == "epi_PA":
                 blip = True
@@ -743,13 +743,6 @@ def gather_extraction_maps(c):
             ts_analysis_to_run = [
                 x.strip() for x in tsa_roi_dict[roi_path].split(",")
                 ]
-
-            if any(
-                            corr in ts_analysis_to_run for corr in [
-                        "PearsonCorr", "PartialCorr"
-                    ]
-            ) and "Avg" not in ts_analysis_to_run:
-                ts_analysis_to_run += ["Avg"]
 
             for analysis_type in ts_analysis_to_run:
                 if analysis_type not in ts_analysis_dict.keys():

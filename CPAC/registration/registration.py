@@ -2648,8 +2648,9 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["func_input_prep", "input"],
      "option_val": "Selected_Functional_Volume",
-     "inputs": ["desc-brain_bold",
-                "desc-motion_bold"],
+     "inputs": [("desc-brain_bold",
+                 ["desc-motion_bold", "bold"],
+                 "desc-reginput_bold")],
      "outputs": ["desc-reginput_bold"]}
     '''
 
@@ -2669,7 +2670,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         # TODO check which file is functional_skull_leaf
         # TODO add a function to choose brain or skull?
-        node, out = strat_pool.get_data("desc-motion_bold")
+        node, out = strat_pool.get_data(["desc-motion_bold", "bold"])
 
     wf.connect(node, out, get_func_volume, 'in_file_a')
 
@@ -2809,7 +2810,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         func_to_anat = create_register_func_to_anat(cfg, diff_complete,
                                                     f'func_to_anat_FLIRT_'
                                                     f'{pipe_num}')
-        # func_to_anat.inputs.inputspec.interp = 'trilinear'
         
         func_to_anat.inputs.inputspec.dof = cfg.registration_workflows[
         'functional_registration']['coregistration']['dof']
@@ -3117,7 +3117,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "abcd",
-     "inputs": [(["desc-cleaned_bold", "desc-brain_bold",
+     "inputs": [["desc-cleaned_bold", "desc-brain_bold",
                   "desc-motion_bold", "desc-preproc_bold", "bold"],
                  "bold",
                  "motion-basefile",
@@ -3125,10 +3125,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
+                 "blip-warp",
                  "desc-preproc_T1w",
                  "space-template_res-bold_desc-brain_T1w",
                  "space-template_desc-bold_mask",
-                 "T1w-brain-template-funcreg")],
+                 "T1w-brain-template-funcreg"],
      "outputs": ["space-template_desc-brain_bold",
                  "space-template_desc-scout_bold",
                  "space-template_desc-head_bold"]}
@@ -3145,11 +3146,18 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_func_to_anat_linear_warp.inputs.out_relwarp = True
     convert_func_to_anat_linear_warp.inputs.relwarp = True
     
-    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
-    wf.connect(node, out, convert_func_to_anat_linear_warp, 'premat')
+    if strat_pool.check_rpool('blip-warp'):
+        node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+        wf.connect(node, out, convert_func_to_anat_linear_warp, 'postmat')
+
+        node, out = strat_pool.get_data('blip-warp')
+        wf.connect(node, out, convert_func_to_anat_linear_warp, 'warp1')
+    else:
+        node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+        wf.connect(node, out, convert_func_to_anat_linear_warp, 'premat')
     
-    node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
+        node, out = strat_pool.get_data('desc-preproc_T1w')
+        wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L140
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
