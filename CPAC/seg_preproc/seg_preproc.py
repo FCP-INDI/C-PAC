@@ -178,6 +178,8 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
         # probability map
         input_1, value_1 = (inputNode, 'probability_tissue_map')
 
+
+
     if use_priors:
         apply_xfm = apply_transform(f'seg_tissue_priors_template_to_T1',
                                     reg_tool=reg_tool)
@@ -594,11 +596,6 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, segment, 'in_files')
 
-    long = ''
-    xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
-    if 'space-longitudinal' in resource:
-        long = 'space-longitudinal_'
-        xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
 
     use_custom_threshold = cfg['segmentation']['tissue_segmentation'][
                                'FSL-FAST']['thresholding'][
@@ -607,8 +604,21 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     use_priors = cfg['segmentation']['tissue_segmentation'][
         'FSL-FAST']['use_priors']['run']
 
-    xfm_prov = strat_pool.get_cpac_provenance(xfm)
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    long = ''
+    if 'space-longitudinal' in resource:
+        long = 'space-longitudinal_'
+
+    if use_priors:
+        xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
+        if 'space-longitudinal' in resource:
+            xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
+        xfm_prov = strat_pool.get_cpac_provenance(xfm)
+        reg_tool = check_prov_for_regtool(xfm_prov)
+    else:
+        xfm_prov = None
+        reg_tool = None
+        xfm = None
+
 
     process_csf = process_segment_map(f'CSF_{pipe_num}', use_priors,
                                       use_custom_threshold, reg_tool)
@@ -667,10 +677,11 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, process_gm, 'inputspec.brain_mask')
     wf.connect(node, out, process_wm, 'inputspec.brain_mask')
 
-    node, out = strat_pool.get_data(xfm)
-    wf.connect(node, out, process_csf, 'inputspec.template_to_T1_xfm')
-    wf.connect(node, out, process_gm, 'inputspec.template_to_T1_xfm')
-    wf.connect(node, out, process_wm, 'inputspec.template_to_T1_xfm')
+    if use_priors:
+        node, out = strat_pool.get_data(xfm)
+        wf.connect(node, out, process_csf, 'inputspec.template_to_T1_xfm')
+        wf.connect(node, out, process_gm, 'inputspec.template_to_T1_xfm')
+        wf.connect(node, out, process_wm, 'inputspec.template_to_T1_xfm')
 
     wf.connect(segment, ('tissue_class_files', pick_wm_class_0),
                process_csf, 'inputspec.tissue_class_file')
@@ -844,7 +855,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "ANTs_Prior_Based",
      "inputs": [("desc-brain_T1w",
-                 "space-T1w_desc-brain_mask")],
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -878,7 +890,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, seg_preproc_ants_prior_based,
                'inputspec.anatomical_brain_mask')
 

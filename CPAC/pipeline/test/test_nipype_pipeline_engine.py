@@ -28,9 +28,13 @@ def test_Node():
     res = square_node.run()
     assert res.outputs.f_x == 4
 
+
+def get_sample_data(filepath):
+    return filepath
+
+
 def test_Workflow(tmpdir):
     example_filepath = os.path.join(data_path, 'example4d.nii.gz')
-    get_sample_data = lambda filepath: filepath
     pass_in_filepath = IdentityInterface(fields=['x'])
     pass_in_filepath.inputs.x = example_filepath
     node_1 = Node(pass_in_filepath, 'pass_in_filepath')
@@ -38,19 +42,19 @@ def test_Workflow(tmpdir):
     # This node just returns the filepath given. We're testing the
     # just-in-time memory allocation
     node_2 = Node(Function(['filepath'], ['filepath'], get_sample_data),
-         name='get_sample_data',
-         inputs=['filepath'],
-         outputs=['filepath'])
+                  name='get_sample_data',
+                  inputs=['filepath'],
+                  outputs=['filepath'])
 
     assert node_2.mem_gb == DEFAULT_MEM_GB
 
     node_2 = Node(Function(['filepath'], ['filepath'], get_sample_data),
-         name='get_sample_data',
-         inputs=['filepath'],
-         outputs=['filepath'],
-         mem_x=(0.1, 'filepath'))
+                  name='get_sample_data',
+                  inputs=['filepath'],
+                  outputs=['filepath'],
+                  mem_x=(0.1, 'filepath'))
     with pytest.raises(FileNotFoundError):
-        node_2.mem_gb
+        assert node_2.mem_gb
 
     wf = Workflow('example_workflow', base_dir=tmpdir)
     wf.connect(node_1, 'x', node_2, 'filepath')
@@ -60,4 +64,4 @@ def test_Workflow(tmpdir):
     out = wf.run()
 
     assert list(out.nodes)[0].mem_gb == DEFAULT_MEM_GB + get_data_size(
-        example_filepath) * 0.1
+        example_filepath, 'xyzt') * 0.1

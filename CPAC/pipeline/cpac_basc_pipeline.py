@@ -1,12 +1,13 @@
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.io as nio
-from CPAC.utils import Configuration
-
 import re
 import os
 import sys
 import glob
+import nipype.interfaces.utility as util
+import nipype.interfaces.io as nio
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.utils import Configuration
+
 
 def prep_basc_workflow(c, subject_infos):
     print('Preparing BASC workflow')
@@ -46,8 +47,9 @@ def prep_basc_workflow(c, subject_infos):
     wf.connect(b, 'outputspec.ismap_imgs',
                ds, 'ismap_imgs')
 
-    wf.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+    plugin_args = {'n_procs': c.numCoresPerSubject}
+    wf.run(plugin=MultiProcPlugin(plugin_args),
+           plugin_args=plugin_args)
 
 
 def run(config, subject_infos):

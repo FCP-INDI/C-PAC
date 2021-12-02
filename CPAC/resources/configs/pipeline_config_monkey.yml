@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.1
+# Version 1.8.2.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -100,10 +100,10 @@ anatomical_preproc:
     FOV_crop: flirt
 
     # ACPC aligned template
-    T1w_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm.nii.gz
-    T1w_brain_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz
-    T2w_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T2w_0.5mm.nii.gz
-    T2w_brain_ACPC_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T2w_0.5mm_brain.nii.gz
+    T1w_ACPC_template: /cpac_templates/MacaqueYerkes19_T1w_0.5mm.nii.gz
+    T1w_brain_ACPC_template: /cpac_templates/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz
+    T2w_ACPC_template: /cpac_templates/MacaqueYerkes19_T2w_0.5mm.nii.gz
+    T2w_brain_ACPC_template: /cpac_templates/MacaqueYerkes19_T2w_0.5mm_brain.nii.gz
 
   brain_extraction: 
 
@@ -195,11 +195,11 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+    T1w_brain_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -209,7 +209,7 @@ registration_workflows:
       FSL-FNIRT: 
 
         # Reference mask for FSL registration.
-        ref_mask: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
+        ref_mask: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
 
   functional_registration: 
 
@@ -278,11 +278,11 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain.nii.gz
+          T1w_brain_template_funcreg: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm.nii.gz
+          T1w_template_funcreg: /cpac_templates/MacaqueYerkes19_T1w_2mm.nii.gz
 
 functional_preproc: 
 
@@ -347,7 +347,7 @@ timeseries_extraction:
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
-  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg
   tse_roi_paths: 
     s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
     s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
@@ -389,24 +389,24 @@ voxel_mirrored_homotopic_connectivity:
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_brain_template_symmetric: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+    T1w_brain_template_symmetric: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
 
     # A reference symmetric brain template for resampling
-    T1w_brain_template_symmetric_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_brain_template_symmetric_for_resample: /cpac_templates/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_template_symmetric: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template_symmetric: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # A reference symmetric skull template for resampling
-    T1w_template_symmetric_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_1.0mm.nii.gz
+    T1w_template_symmetric_for_resample: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    dilated_symmetric_brain_mask: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
+    dilated_symmetric_brain_mask: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
 
     # A reference symmetric brain mask template for resampling
-    dilated_symmetric_brain_mask_for_resample: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
+    dilated_symmetric_brain_mask_for_resample: /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
 
 network_centrality: 
 

@@ -1,6 +1,8 @@
 import os
 import fnmatch
 import pandas
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
+from CPAC.utils.monitoring import log_nodes_cb
 
 
 def load_config_yml(config_file, individual=False):
@@ -1798,8 +1800,10 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isc_wf.inputs.inputspec.permutations = permutations
                 isc_wf.inputs.inputspec.std = std_filter
                 isc_wf.inputs.inputspec.collapse_subj = False
-                isc_wf.run(plugin='MultiProc',
-                           plugin_args={'n_procs': num_cpus})
+                plugin_args = {'n_procs': num_cpus,
+                               'status_callback': log_nodes_cb}
+                isc_wf.run(plugin=MultiProcPlugin(plugin_args),
+                           plugin_args=plugin_args)
 
         if isfc:
             for df_scan in df_dct.keys():
@@ -1828,8 +1832,10 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf.inputs.inputspec.permutations = permutations
                 isfc_wf.inputs.inputspec.std = std_filter
                 isfc_wf.inputs.inputspec.collapse_subj = False
-                isfc_wf.run(plugin='MultiProc',
-                            plugin_args={'n_procs': num_cpus})
+                plugin_args = {'n_procs': num_cpus,
+                               'status_callback': log_nodes_cb}
+                isfc_wf.run(plugin=MultiProcPlugin(plugin_args),
+                            plugin_args=plugin_args)
 
 
 def run_isc(pipeline_config):

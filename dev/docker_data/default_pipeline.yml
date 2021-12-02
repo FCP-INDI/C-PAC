@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.1
+# Version 1.8.2.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -162,6 +162,9 @@ surface_analysis:
 
     # Add extra arguments to recon-all command
     reconall_args: None
+    
+    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
+    freesurfer_dir: None
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer: 
@@ -275,10 +278,14 @@ anatomical_preproc:
     #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
     acpc_target: 'whole-head'
 
+    # Run ACPC alignment on brain mask 
+    # If the brain mask is in native space, turn it on
+    # If the brain mask is ACPC aligned, turn it off
+    align_brain_mask: Off
+
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-
-    T1w_brain_ACPC_template: None
+    T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
     T2w_ACPC_template: None
     T2w_brain_ACPC_template: None
 
@@ -506,8 +513,8 @@ segmentation:
 
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
       template_brain_list :
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_T1w_brain.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_T1w_brain.nii.gz
 
       # The atlas segmentation images.
       # For performing ANTs Prior-based segmentation method
@@ -520,8 +527,8 @@ segmentation:
       #   - segmentation1.nii.gz
       #   - segmentation1.nii.gz
       template_segmentation_list:
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_Segmentation.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_Segmentation.nii.gz
 
       # Label values corresponding to CSF/GM/WM in atlas file
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
@@ -1010,6 +1017,8 @@ functional_preproc:
     tzero: None
 
   motion_estimates_and_correction:
+  
+    run: On
 
     motion_estimates: 
 
@@ -1103,12 +1112,10 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
-    # using: ['PhaseDiff', 'Blip']
+    # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
     #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
-    #   NOTE:
-    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
-    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     using: ['PhaseDiff', 'Blip']
 
     # option parameters
@@ -1125,6 +1132,50 @@ functional_preproc:
       # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.6.
       fmap_skullstrip_AFNI_threshold:  0.6
+      
+    Blip-FSL-TOPUP:
+      
+      # (approximate) resolution (in mm) of warp basis for the different sub-sampling levels, default 10
+      warpres: 10
+      
+      # sub-sampling scheme, default 1
+      subsamp: 1
+      
+      # FWHM (in mm) of gaussian smoothing kernel, default 8
+      fwhm: 8
+      
+      # Max # of non-linear iterations, default 5
+      miter: 5
+      
+      # Weight of regularisation, default depending on --ssqlambda and --regmod switches. See user documentation.
+      lambda: 1
+      
+      # If set (=1), lambda is weighted by current ssq, default 1
+      ssqlambda: 1
+      
+      # Model for regularisation of warp-field [membrane_energy bending_energy], default bending_energy
+      regmod: bending_energy
+      
+      # Estimate movements if set, default 1 (true)
+      estmov: 1
+      
+      # Minimisation method 0=Levenberg-Marquardt, 1=Scaled Conjugate Gradient, default 0 (LM)
+      minmet: 0
+      
+      # Order of spline, 2->Qadratic spline, 3->Cubic spline. Default=3
+      splineorder: 3
+      
+      # Precision for representing Hessian, double or float. Default double
+      numprec: double
+      
+      # Image interpolation model, linear or spline. Default spline
+      interp: spline
+      
+      # If set (=1), the images are individually scaled to a common mean, default 0 (false)
+      scale: 0
+      
+      # If set (=1), the calculations are done in a different grid, default 1 (true)
+      regrid: 1
 
   func_masking:
 
@@ -1415,7 +1466,7 @@ timeseries_extraction:
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
-  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg
   tse_roi_paths:
     /cpac_templates/CC400.nii.gz: Avg
     /cpac_templates/aal_mask_pad.nii.gz: Avg
@@ -1454,6 +1505,19 @@ timeseries_extraction:
   #           result in small misalignments for very small ROIs - please double
   #           check your data if you see issues
   realignment: 'ROI_to_func'
+
+  connectivity_matrix:
+    # Create a connectivity matrix from timeseries data
+
+    # Options:
+    #  ['AFNI', 'Nilearn']
+    using:
+      - Nilearn
+    # Options:
+    #  ['Pearson', 'Partial']
+    measure:
+      - Pearson
+      - Partial
 
 
 seed_based_correlation_analysis:

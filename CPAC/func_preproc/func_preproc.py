@@ -17,7 +17,9 @@ from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 # niworkflows
-from ..utils.interfaces.ants import AI
+from ..utils.interfaces.ants import AI, \
+    CopyImageHeaderInformation  # noqa: E402
+
 
 def collect_arguments(*args):
     command_args = []
@@ -631,7 +633,8 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
             wf.connect(split, 'split_funcs', out_split_func, 'out_file')
 
             func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
-                                             name=f'func_generate_ref_{pipe_num}',
+                                             name='func_generate_'
+                                                  f'ref_{pipe_num}',
                                              iterfield=['in_file'])
 
             wf.connect(out_split_func, 'out_file',
@@ -1056,10 +1059,8 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
                             name=f'func_reorient_{pipe_num}',
-                            mem_gb=0.68,
-                            mem_x=(9005234470657405 /
-                                   1208925819614629174706176,
-                                   'in_file'))
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1077,10 +1078,11 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "get_motion_ref",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "motion_correction_reference",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "motion_correction_reference"],
      "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
      "inputs": [["desc-preproc_bold", "bold"],
                  "bold"],
@@ -1150,10 +1152,11 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1174,10 +1177,11 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimates",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1208,10 +1212,11 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction_only",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1661,7 +1666,13 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"pre_mask_dilate_{pipe_num}",
     )
 
-    # Run N4 normally, force num_threads=1 for stability (images are small, no need for >1)
+    # Fix precision errors
+    # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
+    restore_header = pe.Node(CopyImageHeaderInformation(),
+                             name=f'restore_header_{pipe_num}')
+
+    # Run N4 normally, force num_threads=1 for stability (images are
+    # small, no need for >1)
     n4_correct = pe.Node(
         ants.N4BiasFieldCorrection(
             dimension=3, copy_header=True, bspline_fitting_distance=200
@@ -1704,14 +1715,18 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect([(node, init_aff, [(out, "moving_image")]),
                 (node, map_brainmask, [(out, "reference_image")]),
                 (node, norm, [(out, "moving_image")]),
-                (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+                (node, restore_header, [(out, "refimage")]),
+                (init_aff, norm, [
+                    ("output_transform", "initial_moving_transform")]),
                 (norm, map_brainmask, [
                     ("reverse_invert_flags", "invert_transform_flags"),
                     ("reverse_transforms", "transforms"),
                 ]),
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
-                (pre_dilate, n4_correct, [("out_file", "mask_image")]),
+                (pre_dilate, restore_header, [
+                    ("out_file", "imagetocopyrefimageinfoto")]),
+                (restore_header, n4_correct, [("imageout", "mask_image")]),
                 (node, n4_correct, [(out, "input_image")]),
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
@@ -1746,8 +1761,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Anatomical_Refined",
      "inputs": ["bold",
                 ["desc-preproc_bold", "bold"],
-                "desc-brain_T1w",
-                "space-T1w_desc-brain_mask"],
+                ("desc-brain_T1w",
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1756,7 +1772,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
                                   name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, anat_brain_mask_bin, 'in_file')
 
     # fill holes of anat mask
@@ -1780,7 +1797,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'raw_func_reorient_{pipe_num}')
+                            name=f'raw_func_reorient_{pipe_num}',
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -1998,11 +2017,14 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, anat_brain_mask_to_func_res, 'in_file')
 
     wf.connect(anat_brain_to_func_res, 'out_file',
-        anat_brain_mask_to_func_res, 'ref_file')
+               anat_brain_mask_to_func_res, 'ref_file')
 
     # Resample func mask in template space back to native space
-    func_mask_template_to_native = pe.Node(interface=afni.Resample(),
-                                    name=f'resample_func_mask_to_native_{pipe_num}')
+    func_mask_template_to_native = pe.Node(
+        interface=afni.Resample(),
+        name=f'resample_func_mask_to_native_{pipe_num}',
+        mem_gb=0,
+        mem_x=(0.0115, 'in_file', 't'))
     func_mask_template_to_native.inputs.resample_mode = 'NN'
     func_mask_template_to_native.inputs.outputtype = 'NIFTI_GZ'
 
@@ -2045,8 +2067,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
 
     # Extract 8th volume as func ROI
@@ -2056,8 +2078,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_size = 1
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_roi, 'in_file')
 
     # Apply func initial mask on func ROI volume

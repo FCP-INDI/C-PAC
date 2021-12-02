@@ -116,7 +116,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, surf, 'scout_bold')
 
     outputs = {
-        'space-fsLR_den-32k_bold.dtseries': (surf, 'out_file')
+        'space-fsLR_den-32k_bold-dtseries': (surf, 'out_file')
     }
 
     return wf, outputs
@@ -136,7 +136,7 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-template_to-T1w_mode-image_xfm",
                 "space-template_desc-brain_bold",
                 "space-template_desc-scout_bold"],
-     "outputs": ["space-fsLR_den-32k_bold.dtseries"]}
+     "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
     '''
 
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)

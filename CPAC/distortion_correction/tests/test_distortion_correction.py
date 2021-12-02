@@ -5,7 +5,7 @@ import pytest
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.test_resources import setup_test_wf
 # from CPAC.func_preproc.func_preproc import create_func_preproc
 # from CPAC.distortion_correction.distortion_correction import blip_distcor_wf
@@ -25,7 +25,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
     #  warp_nipe file, an output_dir which can be either be mentioned
     #  or if it is set to none will write it in the current working
     #  directory.
-    #  The argument run can either be tset to true(default) or to
+    #  The argument run can either be set to true(default) or to
     #  false. If set to false, it should connect to the nipype workflow
     #  and return the workflow object instead
     #  What all should it return?: if the run had been set to true, it
@@ -93,8 +93,9 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
     warp_workflow.connect(
         t_node, 'outputspec.anat_func', dataSink, 'anat_func')
     if run is True:
-        warp_workflow.run(plugin='MultiProc', plugin_args={
-            'n_procs': num_of_cores})
+        plugin_args = {'n_procs': num_of_cores}
+        warp_workflow.run(plugin=MultiProcPlugin(plugin_args),
+                          plugin_args=plugin_args)
         # outpath = glob.glob(
         #     os.path.join(workflow_dir, "EPI_DistCorr","*"))[0]
         # return outpath

@@ -1,9 +1,11 @@
 import os
+import sys
 import time
 import csv
 import shutil
 import pickle
 import copy
+import faulthandler
 import yaml
 
 import logging as cb_logging
@@ -11,7 +13,8 @@ from time import strftime
 
 import nipype
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.plugins import LegacyMultiProcPlugin
+from CPAC.pipeline.nipype_pipeline_engine.plugins import \
+    LegacyMultiProcPlugin, MultiProcPlugin
 from nipype import config
 from nipype import logging
 
@@ -128,7 +131,8 @@ from CPAC.func_preproc.func_preproc import (
 
 from CPAC.distortion_correction.distortion_correction import (
     distcor_phasediff_fsl_fugue,
-    distcor_blip_afni_qwarp
+    distcor_blip_afni_qwarp,
+    distcor_blip_fsl_topup
 )
 
 from CPAC.nuisance.nuisance import (
@@ -191,10 +195,11 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
+faulthandler.enable()
 
 # config.enable_debug_mode()
 
@@ -216,9 +221,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         list of pipeline info for reporting timing information
     p_name : string (optional); default=None
         name of pipeline
-    plugin : string (optional); defaule='MultiProc'
+    plugin : string (optional); default='MultiProc'
         nipype plugin to utilize when the workflow is ran
-    plugin_args : dictionary (optional); default=None
+    plugin_args : dictionary (optional);
+                  default={'status_callback': log_nodes_cb}
         plugin-specific arguments for the workflow plugin
 
     Returns
@@ -227,6 +233,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    if plugin is not None and not isinstance(plugin, str):
+        raise TypeError(
+            'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
+            'string for the optional "plugin" argument, but a '
+            f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
+            'was provided.')
+    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -267,14 +280,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # number of subjects
 
     # Check pipeline config resources
-    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(
-        c)
+    (
+        sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
+    ) = check_config_resources(c)
 
-    if plugin_args:
-        plugin_args['memory_gb'] = sub_mem_gb
-        plugin_args['n_procs'] = num_cores_per_sub
-    else:
-        plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+    if not plugin_args:
+        plugin_args = {}
+
+    plugin_args['memory_gb'] = sub_mem_gb
+    plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
@@ -322,6 +337,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Run command: {run_command}
 
     C-PAC version: {cpac_version}
 
@@ -350,6 +366,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 """
 
     logger.info(information.format(
+        run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
@@ -421,8 +438,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         #             shutil.rmtree(f)
 
         if hasattr(c, 'trim') and c.trim:
-            logger.warn("""
-Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
+            logger.warning("""
+Trimming is an experimental feature, and if used wrongly, it can
+lead to unreproducible results.
 It is useful for performance optimization, but only if used correctly.
 Please, make yourself aware of how it works and its assumptions:
     - The pipeline configuration has not changed;
@@ -479,9 +497,10 @@ Please, make yourself aware of how it works and its assumptions:
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
-
-            if not plugin:
+            if not plugin or plugin == 'LegacyMultiProc':
                 plugin = LegacyMultiProcPlugin(plugin_args)
+            elif plugin == 'MultiProc':
+                plugin = MultiProcPlugin(plugin_args)
 
             try:
                 # Actually run the pipeline now, for the current subject
@@ -663,7 +682,8 @@ Please, make yourself aware of how it works and its assumptions:
                     logger.error(err_msg, log_dir, exc)
 
         except Exception as e:
-            import traceback;
+            import traceback
+            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -704,8 +724,10 @@ CPAC run error:
                                         working_dir)
                             shutil.rmtree(working_dir)
                     except (FileNotFoundError, PermissionError):
-                        logger.warn('Could not remove working directory %s',
-                                    working_dir)
+                        logger.warning(
+                            'Could not remove working directory %s',
+                            working_dir
+                        )
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
@@ -769,7 +791,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    pipeline_blocks += [freesurfer_preproc]
+    if not rpool.check_rpool('freesurfer-subject-dir'):
+        pipeline_blocks += [freesurfer_preproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -784,7 +807,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
                 acpc_blocks.append(
                     [brain_mask_acpc_freesurfer_fsl_tight,
-                    brain_mask_acpc_freesurfer_fsl_loose]
+                     brain_mask_acpc_freesurfer_fsl_loose]
                 )
             else:
                 acpc_blocks = [
@@ -800,7 +823,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
         elif cfg.anatomical_preproc['acpc_alignment'][
             'acpc_target'] == 'whole-head':
-            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
+            if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
+                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
                     cfg.surface_analysis['freesurfer']['run']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
@@ -823,8 +847,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anat_blocks = anat_preproc_blocks + acpc_blocks
 
         pipeline_blocks += anat_blocks
-
-        pipeline_blocks += [freesurfer_abcd_preproc]
+    
+        if not rpool.check_rpool('freesurfer-subject-dir'):
+            pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
@@ -837,7 +862,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
              brain_mask_freesurfer_abcd,
              brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
-            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
@@ -926,9 +950,11 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-             overwrite_transform_anat_to_template,
-             correct_restore_brain_intensity_abcd # ABCD-options pipeline
+             overwrite_transform_anat_to_template
         ]
+        
+    if not rpool.check_rpool('desc-restore-brain_T1w'):
+        reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
@@ -949,7 +975,6 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
-             #tissue_seg_freesurfer
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -963,7 +988,36 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
+def list_blocks(pipeline_blocks, indent=None):
+    """Function to list node blocks line by line
+
+    Parameters
+    ----------
+    pipeline_blocks : list or tuple
+
+    indent : int or None
+       number of spaces after a tab indent
+
+    Returns
+    -------
+    str
+    """
+    blockstring = yaml.dump([
+        getattr(block, '__name__', getattr(block, 'name', yaml.safe_load(
+            list_blocks(list(block))) if
+            isinstance(block, (tuple, list, set)) else str(block))
+        ) for block in pipeline_blocks
+    ])
+    if isinstance(indent, int):
+        blockstring = '\n'.join([
+            '\t' + ' ' * indent + line for line in blockstring.split('\n')])
+    return blockstring
+
+
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+    logger.info('\n'.join([
+        'Connecting pipeline blocks:',
+        list_blocks(pipeline_blocks, indent=1)]))
 
     for block in pipeline_blocks:
         try:
@@ -1025,10 +1079,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     pipeline_blocks = build_segmentation_stack(rpool, cfg, pipeline_blocks)
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if cfg.functional_preproc['run'] and \
-            (not rpool.check_rpool('desc-brain_bold') or
-             not rpool.check_rpool('space-bold_desc-brain_mask') or
-             not rpool.check_rpool('movement-parameters')):
+    if cfg.functional_preproc['run']:
         func_init_blocks = [
             func_scaling,
             func_truncate
@@ -1038,16 +1089,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_slice_time,
             func_reorient
         ]
+        
+        if not rpool.check_rpool('desc-mean_bold'):
+            func_preproc_blocks.append(func_mean)
+        
+        func_mask_blocks = []
+        if not rpool.check_rpool('space-bold_desc-brain_mask'):
+            func_mask_blocks = [
+                [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
+                 bold_mask_anatomical_refined, bold_mask_anatomical_based,
+                 bold_mask_anatomical_resampled, bold_mask_ccs],
+                bold_masking]
+            
         func_prep_blocks = [
-            [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based,
-             bold_mask_anatomical_resampled,
-             bold_mask_ccs],
-            bold_masking,
             calc_motion_stats,
-            func_mean,
-            func_normalize#,
-            #func_mask_normalize
+            func_normalize
         ]
 
         # Distortion/Susceptibility Correction
@@ -1056,31 +1112,39 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
+            distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:
                 distcor_blocks = [distcor_blocks]
             func_prep_blocks += distcor_blocks
 
-        if cfg['functional_preproc']['motion_estimates_and_correction'][
-            'motion_estimates']['calculate_motion_first']:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_estimates,
-                motion_estimate_filter
-            ]
-            func_blocks = func_init_blocks + func_motion_blocks + \
-                          func_preproc_blocks + [func_motion_correct_only] + \
-                          func_prep_blocks
+        func_motion_blocks = []
+        if not rpool.check_rpool('movement-parameters'):
+            if cfg['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first']:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_estimates,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_motion_blocks + \
+                              func_preproc_blocks + [func_motion_correct_only] + \
+                              func_mask_blocks + func_prep_blocks
+            else:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_correct,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_preproc_blocks + \
+                              func_motion_blocks + func_mask_blocks + \
+                              func_prep_blocks
         else:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_correct,
-                motion_estimate_filter
-            ]
             func_blocks = func_init_blocks + func_preproc_blocks + \
-                          func_motion_blocks + func_prep_blocks
+                          func_motion_blocks + func_mask_blocks + \
+                          func_prep_blocks
 
         pipeline_blocks += func_blocks
 

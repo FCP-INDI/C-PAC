@@ -2,7 +2,7 @@ import os
 
 import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
-
+from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
 
 
@@ -37,8 +37,9 @@ def prep_cwas_workflow(c, subject_infos):
     wf.connect(cw, 'outputspec.p_map',
                ds, 'p_map')
 
-    wf.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+    plugin_args = {'n_procs': c.numCoresPerSubject}
+    wf.run(plugin=MultiProcPlugin(plugin_args),
+           plugin_args=plugin_args)
 
 
 def run(config, subject_infos):

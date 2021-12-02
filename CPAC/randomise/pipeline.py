@@ -56,7 +56,7 @@ def create_randomise(name='randomise',working_dir=None,crash_dir=None):
     outputspec = pe.Node(util.IdentityInterface(fields=['tstat_files' ,'t_corrected_p_files','index_file','threshold_file','localmax_txt_file','localmax_vol_file','max_file','mean_file','pval_file','size_file']), name='outputspec')
     
     
-    #merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
+    #merge = pe.Node(interface=fslMerge(), name='fsl_merge')
     #merge.inputs.dimension = 't'
     #merge.inputs.merged_file = "randomise_merged.nii.gz"
 
