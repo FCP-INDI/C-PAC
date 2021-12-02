@@ -791,7 +791,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    pipeline_blocks += [freesurfer_preproc]
+    if not rpool.check_rpool('freesurfer-subject-dir'):
+        pipeline_blocks += [freesurfer_preproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -806,7 +807,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
                 acpc_blocks.append(
                     [brain_mask_acpc_freesurfer_fsl_tight,
-                    brain_mask_acpc_freesurfer_fsl_loose]
+                     brain_mask_acpc_freesurfer_fsl_loose]
                 )
             else:
                 acpc_blocks = [
@@ -846,8 +847,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anat_blocks = anat_preproc_blocks + acpc_blocks
 
         pipeline_blocks += anat_blocks
-
-        pipeline_blocks += [freesurfer_abcd_preproc]
+    
+        if not rpool.check_rpool('freesurfer-subject-dir'):
+            pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
@@ -948,9 +950,11 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-             overwrite_transform_anat_to_template,
-             correct_restore_brain_intensity_abcd # ABCD-options pipeline
+             overwrite_transform_anat_to_template
         ]
+        
+    if not rpool.check_rpool('desc-restore-brain_T1w'):
+        reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
@@ -971,7 +975,6 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
-             #tissue_seg_freesurfer
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -1076,10 +1079,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     pipeline_blocks = build_segmentation_stack(rpool, cfg, pipeline_blocks)
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if cfg.functional_preproc['run'] and \
-            (not rpool.check_rpool('desc-brain_bold') or
-             not rpool.check_rpool('space-bold_desc-brain_mask') or
-             not rpool.check_rpool('movement-parameters')):
+    if cfg.functional_preproc['run']:
         func_init_blocks = [
             func_scaling,
             func_truncate
@@ -1089,14 +1089,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_slice_time,
             func_reorient
         ]
+        
+        if not rpool.check_rpool('desc-mean_bold'):
+            func_preproc_blocks.append(func_mean)
+        
+        func_mask_blocks = []
+        if not rpool.check_rpool('space-bold_desc-brain_mask'):
+            func_mask_blocks = [
+                [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
+                 bold_mask_anatomical_refined, bold_mask_anatomical_based,
+                 bold_mask_anatomical_resampled, bold_mask_ccs],
+                bold_masking]
+            
         func_prep_blocks = [
-            [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based,
-             bold_mask_anatomical_resampled,
-             bold_mask_ccs],
-            bold_masking,
             calc_motion_stats,
-            func_mean,
             func_normalize
         ]
 
@@ -1114,24 +1120,31 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 distcor_blocks = [distcor_blocks]
             func_prep_blocks += distcor_blocks
 
-        if cfg['functional_preproc']['motion_estimates_and_correction'][
-            'motion_estimates']['calculate_motion_first']:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_estimates,
-                motion_estimate_filter
-            ]
-            func_blocks = func_init_blocks + func_motion_blocks + \
-                          func_preproc_blocks + [func_motion_correct_only] + \
-                          func_prep_blocks
+        func_motion_blocks = []
+        if not rpool.check_rpool('movement-parameters'):
+            if cfg['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first']:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_estimates,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_motion_blocks + \
+                              func_preproc_blocks + [func_motion_correct_only] + \
+                              func_mask_blocks + func_prep_blocks
+            else:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_correct,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_preproc_blocks + \
+                              func_motion_blocks + func_mask_blocks + \
+                              func_prep_blocks
         else:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_correct,
-                motion_estimate_filter
-            ]
             func_blocks = func_init_blocks + func_preproc_blocks + \
-                          func_motion_blocks + func_prep_blocks
+                          func_motion_blocks + func_mask_blocks + \
+                          func_prep_blocks
 
         pipeline_blocks += func_blocks
 

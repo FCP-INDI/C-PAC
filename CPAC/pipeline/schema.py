@@ -687,6 +687,7 @@ latest_schema = Schema({
         'freesurfer': {
             'run': bool,
             'reconall_args': Maybe(str),
+            'freesurfer_dir': Maybe(str)
         },
         'post_freesurfer': {
             'run': bool,
