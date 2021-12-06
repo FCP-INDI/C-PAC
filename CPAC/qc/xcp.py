@@ -110,9 +110,10 @@ def strings_from_bids(final_func):
     return from_bids
 
 
-def generate_desc_qc(original_anat, final_anat, original_func, final_func,
-                     n_vols_censored, space_T1w_bold, dvars_after=None,
-                     fdj_after=None):
+def generate_desc_qc(original_anat, final_anat, original_func,
+                     final_func, n_vols_censored, space_T1w_bold,
+                     movement_parameters, dvars,
+                     framewise_displacement_jenkinson, dvars_after, fdj_after):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
@@ -134,6 +135,15 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
 
     space_T1w_bold : str
         path to 'space-T1w_desc-mean_bold' image
+
+    movement_parameters: str
+        path to movement parameters
+
+    dvars : str
+        path to DVARS before motion correction
+
+    framewise_displacement_jenkinson : str
+        path to framewise displacement (Jenkinson) before motion correction
 
     dvars_after : str
         path to DVARS on final 'bold' image
@@ -171,7 +181,6 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
                     images['original_func'].shape[3]}
 
     # `meanFD (Jenkinson)`
-    fdj = get_other_func(final_func, 'framewise-displacement-jenkinson.1D')
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
     qc_filepath = _generate_filename(final_func)
@@ -185,13 +194,10 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
         ])
     del desc_span
     power_params = {'meanFD': np.mean(np.loadtxt(
-        get_other_func(final_func,
-                       'framewise-displacement-jenkinson.1D')
-    ))}
+        framewise_displacement_jenkinson))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
-    mot = np.genfromtxt(get_other_func(final_func,
-                                       'movement-parameters.1D')).T
+    mot = np.genfromtxt(movement_parameters).T
     # Relative RMS of translation
     rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
     rms_params = {
@@ -200,20 +206,20 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
     }
 
     # `meanDVInit` & `meanDVFinal`
-    dvars = get_other_func(final_func, 'dvars.1D')
     meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
     try:
-        meanDV['motionDVCorrInit'] = dvcorr(dvars, fdj)
+        meanDV['motionDVCorrInit'] = dvcorr(
+            dvars, framewise_displacement_jenkinson)
     except ValueError:
-        meanDV['motionDVCorrInit'] = 'ValueError'
+        meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
     if dvars_after:
         if not fdj_after:
-            fdj_after = fdj
+            fdj_after = framewise_displacement_jenkinson
         meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
         try:
             meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
-        except ValueError:
-            meanDV['motionDVCorrFinal'] = 'ValueError'
+        except ValueError as value_error:
+            meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
 
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
@@ -284,30 +290,6 @@ def _generate_filename(final):
     ]))
 
 
-def get_other_func(final_func, suffix_dot_filetype):
-    """
-    Function to get another filepath given a final functional file
-    and a suffix-dot-extension
-
-    Parameters
-    ----------
-    final_func : str
-        full path
-
-    suffix_dot_filetype: str
-        e.g., 'timeseries.1D'
-
-    Returns
-    -------
-    str
-        full path
-    """
-    return '_'.join([
-        *final_func.split('_')[:(-2 if 'desc' in final_func else -1)],
-        suffix_dot_filetype
-    ])
-
-
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=unused-argument, invalid-name
     """
@@ -319,7 +301,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'inputs': ('bold', 'subject', 'scan', 'desc-preproc_bold',
                 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
-                'movement-parameters', 'max-displacement',
+                'movement-parameters', 'max-displacement', 'dvars',
+                'framewise-displacement-jenkinson',
                 ['rels-displacement', 'coordinate-transformation']),
      'outputs': ['xcpqc']}
     """
@@ -334,8 +317,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
-                                            'n_vols_censored', 'dvars_after',
-                                            'fdj_after'],
+                                            'movement_parameters',
+                                            'n_vols_censored', 'dvars',
+                                            'framewise_displacement_jenkinson',
+                                            'dvars_after', 'fdj_after'],
                                output_names=['qc_file'],
                                function=generate_desc_qc,
                                as_module=True),
@@ -350,7 +335,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     nodes = {
         node_data: NodeData(strat_pool, node_data) for node_data in [
             'subject', 'scan', 'space-bold_desc-brain_mask',
-            'movement-parameters', 'max-displacement'
+            'movement-parameters', 'max-displacement', 'dvars',
+            'framewise-displacement-jenkinson'
         ]
     }
     if motion_correct_tool == '3dvolreg':
@@ -394,6 +380,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (nodes['max-displacement'].out, 'inputspec.max_displacement')]),
         (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
             (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
+        *[(nodes[node].node, qc_file, [
+            (nodes[node].out, node.replace('-', '_'))
+        ]) for node in ['movement-parameters', 'dvars',
+                        'framewise-displacement-jenkinson']],
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
 
