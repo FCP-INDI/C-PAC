@@ -1,3 +1,14 @@
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y git
+
+# add DCAN dependencies
+RUN mkdir -p /opt/dcan-tools
+# DCAN HCP code
+RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
