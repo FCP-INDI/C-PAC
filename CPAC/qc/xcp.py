@@ -50,7 +50,6 @@ normCrossCorr : float
 normCoverage : float
     "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 """  # noqa E501  # pylint: disable=line-too-long
-import json
 import os
 import re
 from io import BufferedReader
@@ -312,13 +311,6 @@ def get_other_func(final_func, suffix_dot_filetype):
     ])
 
 
-def _get_motion_correct_tool(final_func):
-    with open(get_other_func(final_func, 'movement-parameters.json'),
-              'r') as mp_json:
-        return check_prov_for_motion_tool(
-            json.loads(mp_json.read()).get('CpacProvenance'))
-
-
 def _get_motion_stats(name, strat_pool, final):
     """
     Parameters
@@ -332,12 +324,6 @@ def _get_motion_stats(name, strat_pool, final):
     """
     wf = pe.Workflow(name=f'_{name}_afterNuisance')
 
-    input_node = pe.Node(util.IdentityInterface(fields=['motion_correct_'
-                                                        'tool']),
-                         name='inputspec')
-    
-    motion_correct_tool = input_node.inputs.motion_correct_tool
-
     output_node = pe.Node(util.IdentityInterface(fields=['DVARS_1D',
                                                          'FDJ_1D']),
                           name='outputspec')
@@ -349,23 +335,20 @@ def _get_motion_stats(name, strat_pool, final):
         ]
     }
 
+    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
+    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+
     gen_motion_stats = motion_power_statistics(name, motion_correct_tool)
 
     if motion_correct_tool == '3dvolreg':
-        nodes['coordinate-transformation'] = NodeData(
-            strat_pool, 'coordinate-transformation')
-        nodes['rels-displacement'] = NodeData()
-        (nodes['rels-displacement'].node,
-         nodes['rels-displacement'].out) = (None, None)
+        nodes['coordinate-transformation'] = NodeData(strat_pool,
+                                                      'coordinate-'
+                                                      'transformation')
         wf.connect(nodes['coordinate-transformation'].node,
                    nodes['coordinate-transformation'].out,
                    gen_motion_stats, 'inputspec.transformations')
     elif motion_correct_tool == 'mcflirt':
-        nodes['rels-displacement'] = NodeData(
-            strat_pool, 'rels-displacement')
-        nodes['coordinate-transformation'] = NodeData()
-        (nodes['coordinate-transformation'].node,
-         nodes['coordinate-transformation'].out) = (None, None)
+        nodes['rels-displacement'] = NodeData(strat_pool, 'rels-displacement')
         wf.connect(nodes['rels-displacement'].node,
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
@@ -388,7 +371,7 @@ def _get_motion_stats(name, strat_pool, final):
                                          ('outputspec.FDJ_1D', 'outputspec.FDJ_1D')])
     ])
 
-    return wf
+    return output_node
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -413,12 +396,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     final['anat'] = NodeData(strat_pool, 'desc-preproc_T1w')
     final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
     t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
-
-    motion_tool = pe.Node(Function(input_names=['final_func'],
-                                   output_names=['motion_correct_tool'],
-                                   function=_get_motion_correct_tool,
-                                   as_module=True),
-                          name=f'get_motion_correct_tool_{pipe_num}')
 
     gen_motion_stats = _get_motion_stats(name='gen_motion_stats_after_'
                                               f'{pipe_num}',
@@ -449,14 +426,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (original['func'].out, 'original_func')]),
         (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
         (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
-        (final['func'].node, motion_tool, [
-            (final['func'].out, 'final_func')
-        ]),
         (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
-        (motion_tool, gen_motion_stats, [
-            ('motion_correct_tool', 'inputspec.motion_correct_tool')]),
-        (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
-                                     ('outputspec.FDJ_1D', 'fdj_after')])])
+        (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
+                                     ('FDJ_1D', 'fdj_after')])])
 
     outputs = {
         'xcpqc': (qc_file, 'qc_file'),
