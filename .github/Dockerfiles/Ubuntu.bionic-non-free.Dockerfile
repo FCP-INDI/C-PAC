@@ -136,7 +136,8 @@ RUN pip install xvfbwrapper
 RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
-ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global/templates /opt/dcan-tools/pipeline/global/templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
