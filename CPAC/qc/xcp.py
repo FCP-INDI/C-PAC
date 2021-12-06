@@ -57,7 +57,6 @@ from io import BufferedReader
 import nibabel as nb
 import numpy as np
 import pandas as pd
-import nipype.interfaces.utility as util
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -210,9 +209,7 @@ def generate_desc_qc(original_anat, final_anat, original_func, final_func,
     if dvars_after:
         if not fdj_after:
             fdj_after = fdj
-        dvars_after = np.loadtxt(dvars_after)
-        fdj_after = np.loadtxt(fdj_after)
-        meanDV['meanDVFinal'] = np.mean(dvars_after)
+        meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
         try:
             meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
         except ValueError:
@@ -311,69 +308,6 @@ def get_other_func(final_func, suffix_dot_filetype):
     ])
 
 
-def _get_motion_stats(name, strat_pool, final):
-    """
-    Parameters
-    ----------
-    name : str
-
-    strat_pool : CPAC.pipeline.engine.ResourePool
-
-    final : CPAC.pipeline.engine.NodeData
-        functional
-    """
-    wf = pe.Workflow(name=f'_{name}_afterNuisance')
-
-    output_node = pe.Node(util.IdentityInterface(fields=['DVARS_1D',
-                                                         'FDJ_1D']),
-                          name='outputspec')
-
-    nodes = {
-        node_data: NodeData(strat_pool, node_data) for node_data in [
-            'subject', 'scan', 'space-bold_desc-brain_mask',
-            'movement-parameters', 'max-displacement'
-        ]
-    }
-
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
-
-    gen_motion_stats = motion_power_statistics(name, motion_correct_tool)
-
-    if motion_correct_tool == '3dvolreg':
-        nodes['coordinate-transformation'] = NodeData(strat_pool,
-                                                      'coordinate-'
-                                                      'transformation')
-        wf.connect(nodes['coordinate-transformation'].node,
-                   nodes['coordinate-transformation'].out,
-                   gen_motion_stats, 'inputspec.transformations')
-    elif motion_correct_tool == 'mcflirt':
-        nodes['rels-displacement'] = NodeData(strat_pool, 'rels-displacement')
-        wf.connect(nodes['rels-displacement'].node,
-                   nodes['rels-displacement'].out,
-                   gen_motion_stats, 'inputspec.rels_displacement')
-
-    wf.connect([
-        (final.node, gen_motion_stats, [
-            (final.out, 'inputspec.motion_correct')]),
-        (nodes['subject'].node, gen_motion_stats, [
-            (nodes['subject'].out, 'inputspec.subject_id')]),
-        (nodes['scan'].node, gen_motion_stats, [
-            (nodes['scan'].out, 'inputspec.scan_id')]),
-        (nodes['movement-parameters'].node, gen_motion_stats, [
-            (nodes['movement-parameters'].out,
-             'inputspec.movement_parameters')]),
-        (nodes['max-displacement'].node, gen_motion_stats, [
-            (nodes['max-displacement'].out, 'inputspec.max_displacement')]),
-        (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
-            (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
-        (gen_motion_stats, output_node, [('outputspec.DVARS_1D', 'outputspec.DVARS_1D'),
-                                         ('outputspec.FDJ_1D', 'outputspec.FDJ_1D')])
-    ])
-
-    return output_node
-
-
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=unused-argument, invalid-name
     """
@@ -397,11 +331,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
     t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
 
-    gen_motion_stats = _get_motion_stats(name='gen_motion_stats_after_'
-                                              f'{pipe_num}',
-                                         strat_pool=strat_pool,
-                                         final=final['func'])
-
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
@@ -411,6 +340,31 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                function=generate_desc_qc,
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
+
+    # motion "Final"
+    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
+    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+    gen_motion_stats = motion_power_statistics('motion_stats-after_'
+                                               f'{pipe_num}',
+                                               motion_correct_tool)
+    nodes = {
+        node_data: NodeData(strat_pool, node_data) for node_data in [
+            'subject', 'scan', 'space-bold_desc-brain_mask',
+            'movement-parameters', 'max-displacement'
+        ]
+    }
+    if motion_correct_tool == '3dvolreg':
+        nodes['coordinate-transformation'] = NodeData(strat_pool,
+                                                      'coordinate-'
+                                                      'transformation')
+        wf.connect(nodes['coordinate-transformation'].node,
+                   nodes['coordinate-transformation'].out,
+                   gen_motion_stats, 'inputspec.transformations')
+    elif motion_correct_tool == 'mcflirt':
+        nodes['rels-displacement'] = NodeData(strat_pool, 'rels-displacement')
+        wf.connect(nodes['rels-displacement'].node,
+                   nodes['rels-displacement'].out,
+                   gen_motion_stats, 'inputspec.rels_displacement')
 
     try:
         n_vols_censored = NodeData(strat_pool, 'n_vols_censored')
@@ -427,8 +381,21 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
         (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
         (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
-        (gen_motion_stats, qc_file, [('DVARS_1D', 'dvars_after'),
-                                     ('FDJ_1D', 'fdj_after')])])
+        (final['func'].node, gen_motion_stats, [
+            (final['func'].out, 'inputspec.motion_correct')]),
+        (nodes['subject'].node, gen_motion_stats, [
+            (nodes['subject'].out, 'inputspec.subject_id')]),
+        (nodes['scan'].node, gen_motion_stats, [
+            (nodes['scan'].out, 'inputspec.scan_id')]),
+        (nodes['movement-parameters'].node, gen_motion_stats, [
+            (nodes['movement-parameters'].out,
+             'inputspec.movement_parameters')]),
+        (nodes['max-displacement'].node, gen_motion_stats, [
+            (nodes['max-displacement'].out, 'inputspec.max_displacement')]),
+        (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
+            (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
+        (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
+                                     ('outputspec.FDJ_1D', 'fdj_after')])])
 
     outputs = {
         'xcpqc': (qc_file, 'qc_file'),
