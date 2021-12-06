@@ -172,7 +172,8 @@ def motion_power_statistics(name='motion_stats',
            and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
 
     """
-
+    motion_params = os.path.join(os.getcwd(),'motion.tsv')
+    summary_motion_params = os.path.join(os.getcwd(),'summary_motion_params.tsv')
     wf = pe.Workflow(name=name)
     input_node = pe.Node(util.IdentityInterface(fields=['subject_id',
                                                         'scan_id',
@@ -327,7 +328,7 @@ def calculate_FD_P(in_file):
     motion_FDP = os.path.join(os.getcwd(),'motion.tsv')
     motion_FDP=np.loadtxt(motion_FDP)
     motion_FDP['Framewise Displacement Power'] = fd
-    motion_FDP.to_csv('motion.tsv', mode='w',index=False)
+    motion_FDP.to_csv('motion.tsv', mode='a',index=False)
     return out_file, motion_FDP
 
 
@@ -378,12 +379,10 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
  
-    #motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
-    #motion_FDJ=np.loadtxt(motion_FDJ)
-    motion_FDJ=pd.DataFrame(fd)
-    motion_FDJ.columns=['Framewise Displacement Jenkinson ']
-    #motion_FDJ['Framewise Displacement Jenkinson '] = fd
-    motion_FDJ.to_csv('motion.tsv', mode='w',index=False)
+    motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
+    motion_FDJ=np.loadtxt(motion_FDJ)
+    motion_FDJ['Framewise Displacement Jenkinson '] = fd
+    motion_FDJ.to_csv('motion.tsv', mode='a',index=False)
     return out_file,motion_FDJ
 
 def gen_motion_parameters(movement_parameters,
@@ -485,12 +484,8 @@ def gen_motion_parameters(movement_parameters,
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
 
-    with open(summary_motion_params, 'w') as f:
-        f.write(','.join(t for t, v in summary_motion_params))
-        f.write('\n')
-        f.write(','.join(
-            v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
-        f.write('\n')
+    summary_motion_params.to_csv('summary_motion_params.tsv', mode='a',index=False)
+      
    
 
     max_disp = os.path.join(os.getcwd(),'motion.tsv')
@@ -588,13 +583,7 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
         
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
-
-    with open(summary_motion_params, 'w') as f:
-        f.write(','.join(t for t, v in summary_motion_params))
-        f.write('\n')
-        f.write(','.join(
-            v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
-        f.write('\n')
+    summary_motion_params.to_csv('summary_motion_params.tsv', mode='a',index=False)
    
 
     return out_file,summary_motion_params
