@@ -49,6 +49,7 @@ class ResourcePool(object):
             self.pipe_list = pipe_list
 
         self.name = name
+        self.info = {}
 
         if cfg:
             self.cfg = cfg
@@ -96,6 +97,12 @@ class ResourcePool(object):
 
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
+
+    def get_pool_info(self):
+        return self.info
+
+    def set_pool_info(self, info_dct):
+        self.info.update(info_dct)
 
     def get_entire_rpool(self):
         return self.rpool
@@ -151,6 +158,8 @@ class ResourcePool(object):
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
         # list, with the two separated by a colon :
+        if not len(prov):
+            return None
         if isinstance(prov[-1], list):
             return prov[-1][-1].split(':')[0]
         elif isinstance(prov[-1], str):
@@ -248,9 +257,6 @@ class ResourcePool(object):
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
-        if quick_single:
-            for key, val in self.get(resource).items():
-                return val['data']
         if report_fetched:
             if pipe_idx:
                 connect, fetched = self.get(resource, pipe_idx=pipe_idx,
@@ -259,8 +265,11 @@ class ResourcePool(object):
             connect, fetched =self.get(resource,
                                        report_fetched=report_fetched)
             return (connect['data'], fetched)
-        if pipe_idx:
+        elif pipe_idx:
             return self.get(resource, pipe_idx=pipe_idx)['data']
+        elif quick_single or len(self.get(resource)) == 1:
+            for key, val in self.get(resource).items():
+                return val['data']
         return self.get(resource)['data']
 
     def copy_resource(self, resource, new_name):
@@ -1196,8 +1205,12 @@ class NodeBlock(object):
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
                         
-                        wf, outs = block_function(wf, cfg, strat_pool,
-                                                  pipe_x, opt)
+                        try:
+                            wf, outs = block_function(wf, cfg, strat_pool,
+                                                      pipe_x, opt)
+                        except IOError as e:  # duplicate node
+                            logger.warning(e)
+                            continue
 
                         if not outs:
                             continue
@@ -1345,17 +1358,26 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
         # the next node.
 
     """
-
     for block in node_blocks:
-        new_pool = copy.deepcopy(strat_pool)
-        for input, val in interface.items():
+        #new_pool = copy.deepcopy(strat_pool)
+        for in_resource, val in interface.items():
             if isinstance(val, tuple):
-                new_pool.set_data(input, val[0], val[1], {}, "", "")
-        wf, outputs = block(wf, cfg, new_pool, pipe_num, opt)
+                strat_pool.set_data(in_resource, val[0], val[1], {}, "", "",
+                                    fork=True)#
+        if 'sub_num' not in strat_pool.get_pool_info():
+            strat_pool.set_pool_info({'sub_num': 0})
+        sub_num = strat_pool.get_pool_info()['sub_num']
+        
+        wf, outputs = block(wf, cfg, strat_pool, f'{pipe_num}-{sub_num}', opt)#
         for out, val in outputs.items():
-            if out in interface and isinstance(val, str):
+            if out in interface and isinstance(interface[out], str):
+                strat_pool.set_data(interface[out], outputs[out][0], outputs[out][1],
+                                    {}, "", "")
+            else:
                 strat_pool.set_data(out, outputs[out][0], outputs[out][1],
                                     {}, "", "")
+        sub_num += 1
+        strat_pool.set_pool_info({'sub_num': sub_num})
 
     return (wf, strat_pool)
 
@@ -1428,16 +1450,15 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'], ses_id)
 
-    # Memoize largest (x * y * z * t) functional image size in workflow
+    # Memoize list of local functional scans
     # TODO: handle S3 files
     # Skip S3 files for now
-    functional_scan_sizes = [get_data_size(
-        func_paths_dct[scan]['scan']
-    ) for scan in func_paths_dct.keys() if not
+    local_func_scans = [
+        func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
-    if functional_scan_sizes:
-        wf._largest_func = max(functional_scan_sizes)
-    del functional_scan_sizes
+    if local_func_scans:
+        wf._local_func_scans = local_func_scans
+    del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)
 
@@ -1445,6 +1466,12 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
+    
+    if not os.path.isdir(out_dir):
+        print(f"\nOutput directory {out_dir} does not exist yet, "
+              "initializing.")
+        os.makedirs(out_dir)
+    
     source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
@@ -1499,7 +1526,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.mgz']
 
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
@@ -1541,10 +1568,6 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
         unique_data_label = str(data_label)
 
-        #if 'sub-' in data_label or 'ses-' in data_label:
-        #    raise Exception('\n\n[!] Possibly wrong participant or '
-        #                    'session in this directory?\n\nDirectory: '
-        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
         desc_val = None
         for tag in data_label.split('_'):
@@ -1557,16 +1580,21 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         jsonpath = f"{jsonpath}.json"
 
         if not os.path.exists(jsonpath):
-            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
-                  f'{jsonpath}..\n\n')
+            print(f'\n\n[!] No JSON found for file {filepath}.')
+            if not source:
+                print(f'Creating {jsonpath}..\n\n')
+            else:
+                print('Creating meta-data for the data..\n\n')
             json_info = {
+                'CpacProvenance': [f'{data_label}:Non-C-PAC Origin'],
                 'Description': 'This data was generated elsewhere and '
                                'supplied by the user into this C-PAC run\'s '
                                'output directory. This JSON file was '
                                'automatically generated by C-PAC because a '
                                'JSON file was not supplied with the data.'
             }
-            write_output_json(json_info, jsonpath)
+            if not source:
+                write_output_json(json_info, jsonpath)
         else:        
             json_info = read_json(jsonpath)
             
@@ -1643,7 +1671,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             res_keys = [x.lstrip() for x in resolution.split(',')]
             tag = res_keys[-1]
     
-        json_info = {} 
+        json_info = {}
 
         if '$FSLDIR' in val:
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
@@ -1701,7 +1729,20 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-            
+
+    # Freesurfer directory, not a template, so not in cpac_templates.tsv
+    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
+        fs_ingress = create_general_datasource(f'gather_freesurfer_dir')
+        fs_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
+                    creds_path=creds_path,
+                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+        )
+        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data', 
+                       json_info, "", f"freesurfer_config_ingress")
+
+
     # templates, resampling from config
     '''
     template_keys = [
@@ -1867,7 +1908,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
     rpool = initiate_rpool(cfg, data_paths)
 
-    wf = pe.Workflow(name=f'node_blocks')
+    wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',

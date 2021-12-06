@@ -102,7 +102,8 @@ RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubu
     APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys DCC9EFBF77E11517 && \
     printf '\ndeb http://httpredir.debian.org/debian/ buster main non-free' >> /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install connectome-workbench=1.3.2-1 -y
+    apt-get install connectome-workbench=1.3.2-1 -y && \
+    strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
 
 # Installing and setting up c3d
 RUN mkdir -p /opt/c3d && \
@@ -125,10 +126,9 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
         ln -svf $libs_path/libgsl.so.23.0.0 $libs_path/libgsl.so.0; \
     elif [ -f $libs_path/libgsl.so ]; then \
         ln -svf $libs_path/libgsl.so $libs_path/libgsl.so.0; \
-    fi && \
-    LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
-    export LD_LIBRARY_PATH && \
-    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
+    fi
+ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+RUN curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
     tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
     ldconfig
 
@@ -264,7 +264,7 @@ RUN pip install xvfbwrapper
 RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
 
 # install cpac templates
-ADD dev/docker_data/cpac_templates.tar.gz /
+COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs

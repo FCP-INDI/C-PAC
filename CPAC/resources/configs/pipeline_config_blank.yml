@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2.dev
+# Version 1.8.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -458,8 +458,8 @@ segmentation:
 
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
       template_brain_list :
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_T1w_brain.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_T1w_brain.nii.gz
 
       # The atlas segmentation images.
       # For performing ANTs Prior-based segmentation method
@@ -472,8 +472,8 @@ segmentation:
       #   - segmentation1.nii.gz
       #   - segmentation1.nii.gz
       template_segmentation_list:
-        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
-        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_Segmentation.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_Segmentation.nii.gz
 
       # Label values corresponding to CSF/GM/WM in atlas file
       # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
@@ -1198,7 +1198,7 @@ timeseries_extraction:
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
-  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg
   tse_roi_paths:
     /cpac_templates/CC400.nii.gz: Avg
     /cpac_templates/aal_mask_pad.nii.gz: Avg

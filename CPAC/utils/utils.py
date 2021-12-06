@@ -96,6 +96,32 @@ def check_prov_for_motion_tool(prov):
             return None
 
 
+def cl_strip_brackets(arg_list):
+    """Removes '[' from before first and ']' from after final
+    arguments in a list of commandline arguments
+
+    Parameters
+    ----------
+    arg_list : list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> cl_strip_brackets('[a b c]'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('a b c'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('[ a b c ]'.split(' '))
+    ['a', 'b', 'c']
+    """
+    arg_list[0] = arg_list[0].lstrip('[')
+    arg_list[-1] = arg_list[-1].rstrip(']')
+    return [arg for arg in arg_list if arg]
+
+
 def get_flag(in_flag):
     return in_flag
 
@@ -1468,7 +1494,7 @@ def load_preconfig(pipeline_label):
             )
         )
 
-    print("Running the '{0}' pre-configured pipeline.".format(pipeline_label))
+    print("Loading the '{0}' pre-configured pipeline.".format(pipeline_label))
 
     return pipeline_file
 

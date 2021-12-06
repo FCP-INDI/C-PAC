@@ -42,8 +42,13 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg', 'PearsonCorr',
-                      'PartialCorr'},
+        'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
+    },
+    'connectivity_matrix': {
+        'using': {'AFNI', 'Nilearn'},
+        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
+                    # 'TangentEmbed'  # "Skip tangent embedding for now"
+                    },
     },
     'Regressors': {
         'CompCor': {
@@ -416,6 +421,7 @@ latest_schema = Schema({
                 'brain_size': Maybe(int),
                 'FOV_crop': Maybe(In({'robustfov', 'flirt'})),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
+                'align_brain_mask': Maybe(bool),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
                 'T2w_ACPC_template': Maybe(str),
@@ -426,6 +432,7 @@ latest_schema = Schema({
                 'brain_size': int,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][1],
+                'align_brain_mask': Maybe(bool),
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
                 'T2w_ACPC_template': Maybe(str),
@@ -436,6 +443,7 @@ latest_schema = Schema({
                 'brain_size': int,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][0],
+                'align_brain_mask': Maybe(bool),
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
                 'T2w_ACPC_template': Maybe(str),
@@ -679,6 +687,7 @@ latest_schema = Schema({
         'freesurfer': {
             'run': bool,
             'reconall_args': Maybe(str),
+            'freesurfer_dir': Maybe(str)
         },
         'post_freesurfer': {
             'run': bool,
@@ -723,6 +732,7 @@ latest_schema = Schema({
             'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
+            'run': bool,
             'motion_estimates': {
                 'calculate_motion_first': bool,
                 'calculate_motion_after': bool,
@@ -791,12 +801,28 @@ latest_schema = Schema({
         },
         'distortion_correction': {
             'run': forkable,
-            'using': [In(['PhaseDiff', 'Blip'])],
+            'using': [In(['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP'])],
             'PhaseDiff': {
                 'fmap_skullstrip_option': In(['BET', 'AFNI']),
                 'fmap_skullstrip_BET_frac': float,
                 'fmap_skullstrip_AFNI_threshold': float,
             },
+            'Blip-FSL-TOPUP': {
+                'warpres': int,
+                'subsamp': int,
+                'fwhm': int,
+                'miter': int,
+                'lambda': int,
+                'ssqlambda': int,
+                'regmod': In({'bending_energy', 'membrane_energy'}),
+                'estmov': int,
+                'minmet': int,
+                'splineorder': int,
+                'numprec': str,
+                'interp': In({'spline', 'linear'}),
+                'scale': int,
+                'regrid': int                
+            }
         },
         'func_masking': {
             'using': [In(
@@ -962,8 +988,11 @@ latest_schema = Schema({
                 'tse_roi_paths', valid_options['timeseries']['roi_paths'])
         ),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
+        'connectivity_matrix': {
+            option: Maybe([In(valid_options['connectivity_matrix'][option])])
+            for option in ['using', 'measure']
+        },
     },
-
     'seed_based_correlation_analysis': {
         'run': bool,
         Optional('roi_paths_fully_specified'): bool,

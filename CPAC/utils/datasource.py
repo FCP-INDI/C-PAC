@@ -382,6 +382,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     fmap_TE_list = []
 
     if "fmap" in sub_dict:
+        second = False
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                  f"fmap_gather_{key}_"
@@ -393,11 +394,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             )
             gather_fmap.inputs.inputnode.scan = key
 
-            second = False
-            if 'epi' in key:
+            orig_key = key
+            if 'epi' in key and not second:
                 key = 'epi_1'
                 second = True
-            if 'epi' in key and second:
+            elif 'epi' in key and second:
                 key = 'epi_2'
 
             rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
@@ -408,33 +409,33 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_rp_list.append(key)
 
-            if key == "diff_phase" or key == "diff_mag_one" or \
-                            key == "diff_mag_two":
+            get_fmap_metadata_imports = ['import json']
+            get_fmap_metadata = pe.Node(Function(
+                input_names=['data_config_scan_params'],
+                output_names=['echo_time',
+                              'dwell_time',
+                              'pe_direction'],
+                function=get_fmap_phasediff_metadata,
+                imports=get_fmap_metadata_imports),
+                name=f'{key}_get_metadata')
+
+            wf.connect(gather_fmap, 'outputspec.scan_params',
+                       get_fmap_metadata, 'data_config_scan_params')
+
+            rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
+                           {}, "", "fmap_TE_ingress")
+            rpool.set_data(f'{key}_dwell', get_fmap_metadata,
+                           'dwell_time', {}, "", "fmap_dwell_ingress")
+            rpool.set_data(f'{key}_pedir', get_fmap_metadata,
+                           'pe_direction', {}, "", "fmap_pedir_ingress")
+
+            fmap_TE_list.append(f"{key}_TE")
+
+            keywords = ['diffphase', 'diffmag']
+            if key in keywords:
                 diff = True
 
-                get_fmap_metadata_imports = ['import json']
-                get_fmap_metadata = pe.Node(Function(
-                    input_names=['data_config_scan_params'],
-                    output_names=['echo_time',
-                                  'dwell_time',
-                                  'pe_direction'],
-                    function=get_fmap_phasediff_metadata,
-                    imports=get_fmap_metadata_imports),
-                    name=f'{key}_get_metadata')
-
-                wf.connect(gather_fmap, 'outputspec.scan_params',
-                           get_fmap_metadata, 'data_config_scan_params')
-
-                rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
-                               {}, "", "fmap_TE_ingress")
-                rpool.set_data(f'{key}_dwell', get_fmap_metadata,
-                               'dwell_time', {}, "", "fmap_dwell_ingress")
-                rpool.set_data(f'{key}_pedir', get_fmap_metadata,
-                               'pe_direction', {}, "", "fmap_pedir_ingress")
-
-                fmap_TE_list.append(f"{key}_TE")
-
-            if key == "epi_AP" or key == "epi_PA":
+            if orig_key == "epi_AP" or orig_key == "epi_PA":
                 blip = True
 
         if diff:
@@ -447,8 +448,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-            node, out_file = rpool.get('diff_phase_dwell')[
-                "['diff_phase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
+            node, out_file = rpool.get('diffphase_dwell')[
+                "['diffphase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
@@ -668,9 +669,9 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
                           % (bucket_name, exc)
                 raise Exception(err_msg)
 
-    # Otherwise just return what was passed in
+    # Otherwise just return what was passed in, resolving if a link
     else:
-        local_path = file_path
+        local_path = os.path.realpath(file_path)
 
     # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
@@ -742,13 +743,6 @@ def gather_extraction_maps(c):
             ts_analysis_to_run = [
                 x.strip() for x in tsa_roi_dict[roi_path].split(",")
                 ]
-
-            if any(
-                            corr in ts_analysis_to_run for corr in [
-                        "PearsonCorr", "PartialCorr"
-                    ]
-            ) and "Avg" not in ts_analysis_to_run:
-                ts_analysis_to_run += ["Avg"]
 
             for analysis_type in ts_analysis_to_run:
                 if analysis_type not in ts_analysis_dict.keys():
@@ -827,7 +821,10 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             resolution = (float(resolution.replace('mm', '')),) * 3
 
-        resample = pe.Node(interface=afni.Resample(), name=template_name)
+        resample = pe.Node(interface=afni.Resample(),
+                           name=template_name,
+                           mem_gb=0,
+                           mem_x=(0.0115, 'in_file', 't'))
         resample.inputs.voxel_size = resolution
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'
