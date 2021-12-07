@@ -154,7 +154,7 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     Returns
     -------
     str
-        path to XCP QC TSV
+        path to desc-xcp_quality TSV
     """
     columns = (
         'sub,ses,task,run,desc,space,meanFD,relMeansRMSMotion,'
@@ -272,7 +272,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'movement-parameters', 'max-displacement', 'dvars',
                 'framewise-displacement-jenkinson',
                 ['rels-displacement', 'coordinate-transformation']),
-     'outputs': ['xcpqc']}
+     'outputs': ['desc-xcp_quality']}
     """
     original = {}
     final = {}
@@ -356,7 +356,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
 
     outputs = {
-        'xcpqc': (qc_file, 'qc_file'),
+        'desc-xcp_quality': (qc_file, 'qc_file'),
     }
 
     return (wf, outputs)
