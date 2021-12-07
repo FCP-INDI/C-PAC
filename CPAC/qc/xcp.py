@@ -183,7 +183,7 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     # `meanFD (Jenkinson)`
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
-    qc_filepath = _generate_filename(final_func)
+    qc_filepath = os.path.join(os.getcwd(), 'xcpqc.tsv')
 
     desc_span = re.search(r'_desc-.*_', final_func)
     if desc_span:
@@ -210,7 +210,7 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     try:
         meanDV['motionDVCorrInit'] = dvcorr(
             dvars, framewise_displacement_jenkinson)
-    except ValueError:
+    except ValueError as value_error:
         meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
     if dvars_after:
         if not fdj_after:
@@ -256,38 +256,6 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     df = pd.DataFrame(qc_dict, columns=columns)
     df.to_csv(qc_filepath, sep='\t', index=False)
     return qc_filepath
-
-
-def _generate_filename(final):
-    """Function to generate an XCP QC filename
-
-    Parameters
-    ----------
-    final : str
-        filepath of input
-
-    Returns
-    -------
-    str
-        QC filepath
-    """
-    if '_desc-' in final:
-        delimiter = re.search(r'_desc-.*_', final).group()
-        desc_parts = final.split(delimiter)
-        desc_parts = desc_parts[1][::-1].split('_')[-1][::-1] if (
-                     '_' in desc_parts[1]) else None
-        desc_string = '_'.join([part for part in [
-            f'desc-{delimiter.split("-", 1)[-1].rstrip("_")}Xcpqc',
-            desc_parts,
-            'bold.tsv'
-        ] if part])
-        del delimiter, desc_parts
-    else:
-        desc_string = 'desc-xcpqc_bold.tsv'
-    return os.path.join(os.getcwd(), '_'.join([
-        *[part for part in final.split('_')[:-1] if 'desc' not in part],
-        desc_string
-    ]))
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
