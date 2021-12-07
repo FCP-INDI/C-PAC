@@ -1078,10 +1078,11 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "get_motion_ref",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "motion_correction_reference",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "motion_correction_reference"],
      "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
      "inputs": [["desc-preproc_bold", "bold"],
                  "bold"],
@@ -1151,10 +1152,11 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1175,10 +1177,11 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimates",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1209,10 +1212,11 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction_only",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_correction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+                "run"],
+     "option_key": ["functional_preproc", "motion_estimates_and_correction",
+                    "motion_correction", "using"],
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [(["desc-preproc_bold", "bold"],
                  "motion-basefile")],
@@ -1757,8 +1761,9 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Anatomical_Refined",
      "inputs": ["bold",
                 ["desc-preproc_bold", "bold"],
-                "desc-brain_T1w",
-                "space-T1w_desc-brain_mask"],
+                ("desc-brain_T1w",
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
@@ -1767,7 +1772,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
                                   name=f'anat_brain_mask_bin_{pipe_num}')
     anat_brain_mask_bin.inputs.op_string = '-bin'
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, anat_brain_mask_bin, 'in_file')
 
     # fill holes of anat mask
@@ -2061,8 +2067,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
 
     # Extract 8th volume as func ROI
@@ -2072,8 +2078,8 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_size = 1
 
     node, out = strat_pool.get_data(["desc-motion_bold", 
-                                    "desc-preproc_bold",
-                                    "bold"])
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_roi, 'in_file')
 
     # Apply func initial mask on func ROI volume

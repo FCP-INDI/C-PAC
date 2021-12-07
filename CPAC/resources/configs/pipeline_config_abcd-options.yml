@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2.dev
+# Version 1.8.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -53,6 +53,20 @@ pipeline_setup:
     # - It is recommended that you set this to a value that when multiplied by
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 10.0
+
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer: 
+
+    run: On
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer: 
+
+    run: On
 
 anatomical_preproc: 
 
@@ -310,6 +324,14 @@ functional_preproc:
 
       # Choose motion correction reference volume
       motion_correction_reference_volume: 0
+
+  distortion_correction:
+
+    # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    using: ['PhaseDiff', 'Blip-FSL-TOPUP']
 
   func_masking: 
 

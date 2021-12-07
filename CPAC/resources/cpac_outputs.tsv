@@ -141,6 +141,7 @@ rh-pial-surface-mesh	surface-derived		anat
 raw-average	surface-derived		anat						
 lh-smoothed-surface-mesh	surface-derived		anat						
 rh-smoothed-surface-mesh	surface-derived		anat						
+space-fsLR_den-32k_bold-dtseries	surface-derived		anat						
 lh-spherical-surface-mesh	surface-derived		anat						Yes
 rh-spherical-surface-mesh	surface-derived		anat						Yes
 lh-sulcal-depth-surface-maps	surface-derived		anat						Yes
@@ -149,15 +150,22 @@ lh-surface-curvature	surface-derived		anat
 rh-surface-curvature	surface-derived		anat						
 lh-white-matter-surface-mesh	surface-derived		anat						Yes
 rh-white-matter-surface-mesh	surface-derived		anat						Yes
+wmparc	surface-derived		anat						Yes
 space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
 desc-brain_T1w	T1w	T1w	anat	NIfTI					
 desc-preproc_T1w	T1w	T1w	anat	NIfTI					
 desc-reorient_T1w	T1w	T1w	anat	NIfTI					
+desc-restore_T1w	T1w	T1w	anat	NIfTI					
+desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
 desc-Mean_timeseries	timeseries		func	1D					
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
 desc-Voxel_timeseries	timeseries		func	1D					
+desc-PearsonAfni_connectome	matrix		func	tsv					
+desc-PartialAfni_connectome	matrix		func	tsv					
+desc-PearsonNilearn_connectome	matrix		func	tsv					
+desc-PartialNilearn_connectome	matrix		func	tsv					
 space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
