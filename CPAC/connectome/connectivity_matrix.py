@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Functions for creating connectome connectivity matrices."""
+import os
 from warnings import warn
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
@@ -53,7 +54,10 @@ def connectome_name(timeseries, atlas_name, tool, method):
                 atlas_index = -(i - 1)
                 break
     new_filename_parts.insert(atlas_index, f'atlas-{atlas_name}')
-    return '_'.join([*new_filename_parts[::-1], 'connectome.tsv'])
+    new_filename = '_'.join([*new_filename_parts[::-1], 'connectome.tsv'])
+    if '/' in new_filename:  # make parent directory if it doesn't exist
+        os.makedirs(new_filename[::-1].split('/', 1)[1][::-1], exist_ok=True)
+    return new_filename
 
 
 def get_connectome_method(method, tool):
