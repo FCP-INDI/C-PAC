@@ -2,10 +2,6 @@ name: Check updated version
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - CI/GitHub-workflows
 
 jobs:
   check-updated-version:
