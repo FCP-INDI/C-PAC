@@ -62,7 +62,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.0
- - fsl-base 2111.8
+ - fsl-base 2111.9
  - fsl-basil v4.0.4
  - fsl-basisfield 2111.1
  - fsl-baycest 2111.0
