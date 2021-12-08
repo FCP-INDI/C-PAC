@@ -22,6 +22,8 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
           then
+            git config --global user.email "CMI_CPAC_Support@childmind.org"
+            git config --global user.name "Theodore (Machine User)"
             cd $HOME/work/C-PAC/C-PAC/CPAC
             VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
             cd ..
