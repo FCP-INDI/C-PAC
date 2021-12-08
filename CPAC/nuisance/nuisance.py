@@ -320,6 +320,7 @@ def gather_nuisance(functional_file_path,
             column_names.append(custom_file_path)
             nuisance_regressors.append(custom_regressor)
 
+    censor_indices = []
     # Add spike regressors
     if selector.get('Censor', {}).get('method') == 'SpikeRegression':
 
