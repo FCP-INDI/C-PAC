@@ -3,11 +3,8 @@
 name: Build stages
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-      - CI/GitHub-workflows
+  workflow_dispatch:
+
 
 jobs:
   Ubuntu:

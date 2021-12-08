@@ -1,0 +1,51 @@
+name: Check updated version
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - CI/GitHub-workflows
+
+jobs:
+  check-updated-version:
+    name: Check if version updated
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Check if version updated
+        run: |
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
+          then
+            cd $HOME/work/C-PAC/C-PAC/CPAC
+            VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+            cd ..
+            echo "v${VERSION}" > version
+            sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
+            find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+            git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+            if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
+            then
+              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+              git push origin HEAD:${GITHUB_BRANCH} || true
+            fi
+            cd ..
+          fi
+
+  trigger-next-workflow:
+    needs: check-updated-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Build and test C-PAC
+        run: echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+        env:
+          ACTIONS_WORKFLOW_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
