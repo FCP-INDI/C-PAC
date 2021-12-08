@@ -148,6 +148,6 @@ jobs:
         with:
           fetch-depth: 2
       - name: Build and test C-PAC
-        run: gh workflow run "Build and test C-PAC" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+        run: echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build and test C-PAC" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
         env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          ACTIONS_WORKFLOW_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
