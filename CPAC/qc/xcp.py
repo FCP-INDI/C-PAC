@@ -270,7 +270,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
-                'framewise-displacement-jenkinson',
+                'framewise-displacement-jenkinson', 'n_vols_censored',
                 ['rels-displacement', 'coordinate-transformation']),
      'outputs': ['desc-xcp_quality']}
     """
@@ -320,12 +320,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
 
-    try:
-        n_vols_censored = NodeData(strat_pool, 'n_vols_censored')
-        wf.connect(n_vols_censored.node, n_vols_censored.out,
-                   qc_file, 'n_vols_censored')
-    except LookupError:
-        qc_file.inputs.n_vols_censored = 'unknown'
+    n_vols_censored = NodeData(strat_pool, 'n_vols_censored')
 
     wf.connect([
         (original['anat'].node, qc_file, [
@@ -352,6 +347,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (nodes[node].out, node.replace('-', '_'))
         ]) for node in ['movement-parameters', 'dvars',
                         'framewise-displacement-jenkinson']],
+        (n_vols_censored.node, qc_file, [(
+            n_vols_censored.out, 'n_vols_censored'
+        )]),
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
 

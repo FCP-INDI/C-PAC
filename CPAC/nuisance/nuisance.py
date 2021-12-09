@@ -2130,7 +2130,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors"]}
+     "outputs": ["regressors", "n_vols_censored"]}
     '''
 
     use_ants = None
@@ -2236,7 +2236,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path')
+        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'n_vols_censored': (regressors, 'outputspec.n_vols_censored')
     }
 
     return (wf, outputs)
