@@ -23,10 +23,6 @@ jobs:
       - name: Get changed files using defaults
         id: ubuntu-dockerfile-changed
         uses: tj-actions/changed-files@v6.2
-        with:
-          # regex
-          files: |
-            \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
       - name: Clear up some space on runner
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
@@ -81,11 +77,6 @@ jobs:
       - name: Get changed files using defaults
         id: dockerfile-changed
         uses: tj-actions/changed-files@v6.2
-        with:
-          # regex
-          files: |
-            \.github/Dockerfiles/${{ matrix.Dockerfile }}\.Dockerfile
-            \.github/workflows/build_stages\.yml
       - name: Clear up some space on runner
         if: contains(steps.dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
