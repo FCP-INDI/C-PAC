@@ -24,7 +24,9 @@ jobs:
         id: ubuntu-dockerfile-changed
         uses: tj-actions/changed-files@v11.9
         with:
-          since_last_remote_commit: true
+          base_sha: ${GITHUB_BASE_REF}
+          files: |
+            \.github/Dockerfiles/*
       - name: Clear up some space on runner
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
@@ -80,7 +82,9 @@ jobs:
         id: dockerfile-changed
         uses: tj-actions/changed-files@v11.9
         with:
-          since_last_remote_commit: true
+          base_sha: ${GITHUB_BASE_REF}
+          files: |
+            \.github/Dockerfiles/*
       - name: Clear up some space on runner
         if: contains(steps.dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
