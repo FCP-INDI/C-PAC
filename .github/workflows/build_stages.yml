@@ -19,12 +19,12 @@ jobs:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Get changed files using defaults
         id: ubuntu-dockerfile-changed
         uses: tj-actions/changed-files@v6.2
         with:
-          base_sha: ${GITHUB_BASE_REF}
+          since_last_remote_commit: true
       - name: Clear up some space on runner
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
@@ -75,12 +75,12 @@ jobs:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Get changed files using defaults
         id: dockerfile-changed
         uses: tj-actions/changed-files@v6.2
         with:
-          base_sha: ${GITHUB_BASE_REF}
+          since_last_remote_commit: true
       - name: Clear up some space on runner
         if: contains(steps.dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
