@@ -18,7 +18,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
-    chown -R c-pac_user:c-pac /home/c-pac_user
+    chown -R c-pac_user:c-pac /home/c-pac_user && \
+    chmod 777 /
 
 # allow users to update / create themselves
 RUN chmod ugo+w /etc/passwd
