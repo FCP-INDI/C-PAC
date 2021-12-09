@@ -78,11 +78,11 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
     chmod +x /code/run-with-freesurfer.sh
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
-# link libraries
-RUN ldconfig
-
-# clean up
-RUN apt-get clean && \
+# link libraries & clean up
+RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh && \
+    ldconfig && \
+    chmod 777 / && \
+    apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
