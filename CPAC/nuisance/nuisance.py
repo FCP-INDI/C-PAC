@@ -33,8 +33,42 @@ from CPAC.nuisance.utils.compcor import (
 from CPAC.seg_preproc.utils import erosion, mask_erosion
 
 from CPAC.utils.datasource import check_for_s3
-from .bandpass import (bandpass_voxels, afni_1dBandpass)
 from CPAC.utils.utils import check_prov_for_regtool
+from .bandpass import (bandpass_voxels, afni_1dBandpass)
+
+
+def choose_nuisance_blocks(cfg, generate_only=False):
+    '''
+    Function to handle selecting appropriate blocks based on
+    existing config and resource pool
+
+    Parameters
+    ----------
+    cfg : CPAC.utils.configuration.Configuration
+
+    generate_only : boolean
+        generate but don't run
+
+    Returns
+    -------
+    nuisance : list
+    '''
+    nuisance = []
+    to_template_cfg = cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']
+    out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
+           'single_step_resampling': ("desc-preproc_bold", "desc-stc_bold"),
+           'abcd': ("desc-preproc_bold", "bold")
+           }[to_template_cfg['apply_transform']['using']]
+    if 'T1_template' in to_template_cfg['target_template']['using']:
+        nuisance.append((nuisance_regressors_generation, out))
+    if 'EPI_template' in to_template_cfg['target_template']['using']:
+        nuisance.append((nuisance_regressors_generation_EPItemplate, out))
+
+    if not generate_only:
+        nuisance.append((nuisance_regression, out))
+
+    return nuisance
 
 
 def erode_mask(name, segmentmap=True):
@@ -2130,7 +2164,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors", "n_vols_censored"]}
+     "outputs": ["regressors", "n-vols-censored"]}
     '''
 
     use_ants = None
@@ -2237,7 +2271,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'regressors': (regressors, 'outputspec.regressors_file_path'),
-        'n_vols_censored': (regressors, 'outputspec.n_vols_censored')
+        'n-vols-censored': (regressors, 'outputspec.n_vols_censored')
     }
 
     return (wf, outputs)
@@ -2535,7 +2569,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors"]}
+     "outputs": ["regressors", "n-vols-censored"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -2623,7 +2657,8 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path')
+        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'n-vols-censored': (regressors, 'outputspec.n_vols_censored')
     }
 
     return (wf, outputs)

@@ -246,7 +246,8 @@ class ResourcePool(object):
                                   "Developer Note: This may be due to a mis"
                                   "match between the node block's docstring "
                                   "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n")
+                                  "call within the block function.\n"
+                                  f"{self.rpool.keys()}\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)

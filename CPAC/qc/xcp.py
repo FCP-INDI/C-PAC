@@ -270,8 +270,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
-                'framewise-displacement-jenkinson', 'n_vols_censored',
-                ['rels-displacement', 'coordinate-transformation']),
+                'framewise-displacement-jenkinson', 'n-vols-censored',
+                'regressors', ['rels-displacement',
+                'coordinate-transformation']),
      'outputs': ['desc-xcp_quality']}
     """
     original = {}
@@ -320,7 +321,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
 
-    n_vols_censored = NodeData(strat_pool, 'n_vols_censored')
+    n_vols_censored = NodeData(strat_pool, 'n-vols-censored')
 
     wf.connect([
         (original['anat'].node, qc_file, [
@@ -348,7 +349,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         ]) for node in ['movement-parameters', 'dvars',
                         'framewise-displacement-jenkinson']],
         (n_vols_censored.node, qc_file, [(
-            n_vols_censored.out, 'n_vols_censored'
+            n_vols_censored.out, 'n-vols-censored'
         )]),
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
