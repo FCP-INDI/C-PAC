@@ -23,6 +23,8 @@ jobs:
       - name: Get changed files using defaults
         id: ubuntu-dockerfile-changed
         uses: tj-actions/changed-files@v6.2
+        with:
+          base_sha: ${GITHUB_BASE_REF}
       - name: Clear up some space on runner
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
@@ -77,6 +79,8 @@ jobs:
       - name: Get changed files using defaults
         id: dockerfile-changed
         uses: tj-actions/changed-files@v6.2
+        with:
+          base_sha: ${GITHUB_BASE_REF}
       - name: Clear up some space on runner
         if: contains(steps.dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile)
         run: |
