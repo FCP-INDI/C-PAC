@@ -1,4 +1,3 @@
-# Last updated 2021-12-09
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 
 FROM ubuntu:xenial-20200114 AS dcan-hcp

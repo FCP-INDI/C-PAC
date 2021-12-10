@@ -63,7 +63,7 @@ jobs:
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Build and push Docker image
         if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
         uses: docker/build-push-action@v2.7.0
