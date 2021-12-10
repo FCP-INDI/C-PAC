@@ -59,7 +59,7 @@ commands:
           name: "Creating Docker container"
           command: |
             docker pull ${DOCKER_TAG}
-            docker run --user=$(id -u):c-pac -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}
+            docker run -v /etc/passwd:/etcpasswd --user=$(id -u):c-pac -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}
   get-sample-bids-data:
     steps:
       - run:
@@ -107,7 +107,7 @@ commands:
           coverage-file: .coverage.docker${VARIANT}
       - run:
           name: Running pytest in Docker image
-          command: docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
+          command: docker exec --user $(id -u) docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
   set-python-version:
     steps:
       - run:
@@ -234,6 +234,7 @@ jobs:
       - run:
           command: singularity pull cpac-singularity-image${VARIANT}.sif docker://${DOCKER_TAG}
           name: "Pull Singularity image"
+          no_output_timeout: 1h
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.sif /code/dev/circleci_data/test_in_image.sh"
