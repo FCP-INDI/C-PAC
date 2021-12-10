@@ -47,6 +47,9 @@ jobs:
             TAG=latest
             DOCKERFILE=Dockerfile
           fi
+          if [[ "${{ strategy.matrix.variant }}" != "" ]]
+            # TODO
+          fi
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}:$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
