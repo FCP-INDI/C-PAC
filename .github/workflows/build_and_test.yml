@@ -48,7 +48,8 @@ jobs:
             DOCKERFILE=Dockerfile
           fi
           if [[ "${{ strategy.matrix.variant }}" != "" ]]
-            # TODO
+          then
+            TAG=$TAG-${{ strategy.matrix.variant }}
           fi
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}:$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
