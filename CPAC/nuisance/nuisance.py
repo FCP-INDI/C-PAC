@@ -173,7 +173,7 @@ def gather_nuisance(functional_file_path,
     :param censor_file_path: path to TSV with a single column with '1's
         for indices that should be retained and '0's for indices that
         should be censored
-    :return: out_file (str), n_vols_censored (int)
+    :return: out_file (str)
     """
 
     # Basic checks for the functional image
@@ -438,6 +438,8 @@ def gather_nuisance(functional_file_path,
                 spike_regressor_index = np.zeros(regressor_length)
                 spike_regressor_index[censor_index] = 1
                 nuisance_regressors.append(spike_regressor_index.flatten())
+            column_names.append("CensoredVolumes")
+            nuisance_regressors.append(censor_volumes)
 
     if len(nuisance_regressors) == 0:
         return None
@@ -740,12 +742,11 @@ def create_regressor_workflow(nuisance_selectors,
         'tr',
     ]), name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path',
-                                                        'n_vols_censored']),
-                         name='outputspec')
+    outputspec = pe.Node(util.IdentityInterface(
+        fields=['regressors_file_path']), name='outputspec')
 
     functional_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='functional_mean')
+                              name='functional_mean')
 
     functional_mean.inputs.options = '-mean'
     functional_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -1400,7 +1401,7 @@ def create_regressor_workflow(nuisance_selectors,
                      'motion_parameters_file_path',
                      'custom_file_paths',
                      'censor_file_path'],
-        output_names=['out_file', 'n_vols_censored'],
+        output_names=['out_file'],
         function=gather_nuisance,
         as_module=True
     ), name="build_nuisance_regressors")
@@ -1473,8 +1474,6 @@ def create_regressor_workflow(nuisance_selectors,
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
-    nuisance_wf.connect(build_nuisance_regressors, 'n_vols_censored',
-                        outputspec, 'n_vols_censored')
 
     return nuisance_wf
 
@@ -2164,7 +2163,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors", "n-vols-censored"]}
+     "outputs": ["regressors"]}
     '''
 
     use_ants = None
@@ -2270,8 +2269,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path'),
-        'n-vols-censored': (regressors, 'outputspec.n_vols_censored')
+        'regressors': (regressors, 'outputspec.regressors_file_path')
     }
 
     return (wf, outputs)
@@ -2569,7 +2567,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors", "n-vols-censored"]}
+     "outputs": ["regressors"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -2657,8 +2655,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path'),
-        'n-vols-censored': (regressors, 'outputspec.n_vols_censored')
+        'regressors': (regressors, 'outputspec.regressors_file_path')
     }
 
     return (wf, outputs)
