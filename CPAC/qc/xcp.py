@@ -111,7 +111,7 @@ def strings_from_bids(final_func):
 
 
 def generate_desc_qc(original_anat, final_anat, original_func,
-                     final_func, n_vols_censored, space_T1w_bold,
+                     final_func, space_T1w_bold,
                      movement_parameters, dvars,
                      framewise_displacement_jenkinson, dvars_after, fdj_after):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
@@ -130,8 +130,6 @@ def generate_desc_qc(original_anat, final_anat, original_func,
 
     final_bold : str
         path to 'desc-preproc_bold' image
-
-    n_vols_censored : int
 
     space_T1w_bold : str
         path to 'space-T1w_desc-mean_bold' image
@@ -176,6 +174,10 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     from_bids = strings_from_bids(final_func)
 
     # `nVolCensored` & `nVolsRemoved`
+    # regressors = pd.read_csv(regressors, header=2, sep='\t')
+    # n_vols_censored = regressors['CensoredVolumes'].sum(
+    # ) if 'CensoredVolumes' in regressors.columns else 0
+    n_vols_censored = 'unknown'
     shape_params = {'nVolCensored': n_vols_censored,
                     'nVolsRemoved': images['final_func'].shape[3] -
                     images['original_func'].shape[3]}
@@ -271,7 +273,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
                 'framewise-displacement-jenkinson',
-                'regressors', ['rels-displacement',
+                ['rels-displacement',
                 'coordinate-transformation']),
      'outputs': ['desc-xcp_quality']}
     """
@@ -325,8 +327,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(nodes['rels-displacement'].node,
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
-
-    qc_file.inputs.n_vols_censored = 0  # TODO
 
     wf.connect([
         (original['anat'].node, qc_file, [

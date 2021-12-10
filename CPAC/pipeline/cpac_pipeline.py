@@ -1303,11 +1303,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        if True not in cfg.nuisance_corrections['2-nuisance_regression'][
-                'run']:
-            cfg.nuisance_corrections['2-nuisance_regression'][
-                'create_regressors'] = True
-            pipeline_blocks += choose_nuisance_blocks(cfg, generate_only=True)
         pipeline_blocks += [qc_xcp]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
