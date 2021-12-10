@@ -308,15 +308,20 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             'framewise-displacement-jenkinson'
         ]
     }
-    if strat_pool.check_rpool('coordinate-transformation'):
+    if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
+        'coordinate-transformation'
+    ):
         nodes['coordinate-transformation'] = NodeData(strat_pool,
                                                       'coordinate-'
                                                       'transformation')
         wf.connect(nodes['coordinate-transformation'].node,
                    nodes['coordinate-transformation'].out,
                    gen_motion_stats, 'inputspec.transformations')
-    if strat_pool.check_rpool('rels-displacement'):
-        nodes['rels-displacement'] = NodeData(strat_pool, 'rels-displacement')
+    elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
+        'rels-displacement'
+    ):
+        nodes['rels-displacement'] = NodeData(strat_pool,
+                                              'rels-displacement')
         wf.connect(nodes['rels-displacement'].node,
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
