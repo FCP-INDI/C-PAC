@@ -112,7 +112,7 @@ def strings_from_bids(final_func):
 
 def generate_desc_qc(original_anat, final_anat, original_func,
                      final_func, space_T1w_bold,
-                     movement_parameters, dvars,
+                     movement_parameters, dvars, censor_indices,
                      framewise_displacement_jenkinson, dvars_after, fdj_after):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
@@ -139,6 +139,9 @@ def generate_desc_qc(original_anat, final_anat, original_func,
 
     dvars : str
         path to DVARS before motion correction
+
+    censor_indices : list
+        list of indices of censored volumes
 
     framewise_displacement_jenkinson : str
         path to framewise displacement (Jenkinson) before motion correction
@@ -177,7 +180,7 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     # regressors = pd.read_csv(regressors, header=2, sep='\t')
     # n_vols_censored = regressors['CensoredVolumes'].sum(
     # ) if 'CensoredVolumes' in regressors.columns else 0
-    n_vols_censored = 'unknown'
+    n_vols_censored = len(censor_indices) if censor_indices else 'unknown'
     shape_params = {'nVolCensored': n_vols_censored,
                     'nVolsRemoved': images['final_func'].shape[3] -
                     images['original_func'].shape[3]}
@@ -272,7 +275,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
-                'framewise-displacement-jenkinson',
+                'framewise-displacement-jenkinson', 'censor-indices',
                 ['rels-displacement',
                 'coordinate-transformation']),
      'outputs': ['desc-xcp_quality']}
@@ -307,7 +310,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         node_data: NodeData(strat_pool, node_data) for node_data in [
             'subject', 'scan', 'space-bold_desc-brain_mask',
             'movement-parameters', 'max-displacement', 'dvars',
-            'framewise-displacement-jenkinson'
+            'framewise-displacement-jenkinson', 'censor-indices'
         ]
     }
     if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
@@ -351,7 +354,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
-        ]) for node in ['movement-parameters', 'dvars',
+        ]) for node in ['movement-parameters', 'dvars', 'censor-indices',
                         'framewise-displacement-jenkinson']],
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
