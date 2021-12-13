@@ -150,7 +150,8 @@ def create_connectome_afni(name, method, pipe_num):
                                                      'method'],
                                         output_names=['filename'],
                                         function=connectome_name),
-                               name=f'connectomeName{method}_{pipe_num}')
+                               name=f'connectomeName{method}_{pipe_num}',
+                               as_module=True)
     name_output_node.inputs.tool = 'Afni'
 
     wf.connect([
