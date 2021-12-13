@@ -6,13 +6,9 @@ USER root
 ENTRYPOINT ["/code/run.py"]
 
 # remove FreeSurfer, link libraries & clean up
-RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh 
-RUN apt-get update
-RUN apt-get clean
-RUN apt-get autoremove -y
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN ldconfig
-RUN chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    ldconfig && \
+    chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user
