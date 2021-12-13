@@ -77,9 +77,9 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get clean
+RUN apt-get autoremove -y
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN ldconfig
 RUN chmod 777 $(ls / | grep -v sys | grep -v proc)
 
