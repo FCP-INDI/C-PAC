@@ -77,12 +77,11 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh && \
-    apt-get clean && \
+RUN apt-get clean && \
     apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig
+RUN chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user
