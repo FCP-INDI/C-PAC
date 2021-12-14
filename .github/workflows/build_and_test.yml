@@ -11,6 +11,7 @@ jobs:
         variant:
           - ''
           - lite
+          - fMRIPrep-LTS
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
