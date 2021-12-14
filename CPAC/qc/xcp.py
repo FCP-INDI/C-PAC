@@ -180,7 +180,8 @@ def generate_desc_qc(original_anat, final_anat, original_func,
     # regressors = pd.read_csv(regressors, header=2, sep='\t')
     # n_vols_censored = regressors['CensoredVolumes'].sum(
     # ) if 'CensoredVolumes' in regressors.columns else 0
-    n_vols_censored = len(censor_indices) if censor_indices else 'unknown'
+    n_vols_censored = len(
+        censor_indices) if censor_indices is not None else 'unknown'
     shape_params = {'nVolCensored': n_vols_censored,
                     'nVolsRemoved': images['final_func'].shape[3] -
                     images['original_func'].shape[3]}
