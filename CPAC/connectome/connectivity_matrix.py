@@ -149,6 +149,7 @@ def create_connectome_afni(name, method, pipe_num):
                                                      'tool',
                                                      'method'],
                                         output_names=['filename'],
+                                        imports=['import os'],
                                         function=connectome_name),
                                name=f'connectomeName{method}_{pipe_num}',
                                as_module=True)
