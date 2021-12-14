@@ -104,9 +104,9 @@ def strings_from_bids(final_func):
         tuple(entity.split('-', 1)) if '-' in entity else
         ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
     )
-    from_bids = {k: [from_bids[k]] for k in from_bids}
+    from_bids = {k: from_bids[k] for k in from_bids}
     if 'space' not in from_bids:
-        from_bids['space'] = ['native']
+        from_bids['space'] = 'native'
     return from_bids
 
 
