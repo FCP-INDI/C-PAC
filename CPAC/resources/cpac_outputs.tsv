@@ -29,6 +29,10 @@ desc-DualReg_correlations	correlation	template	func	NIfTI
 desc-MeanSCA_correlations	correlation	template	func	NIfTI					
 desc-MultReg_correlations	correlation	template	func	NIfTI					
 desc-ndmg_correlations	correlation	template	func	NIfTI					
+desc-PearsonAfni_correlations	correlation	template	func	tsv					
+desc-PartialAfni_correlations	correlation	template	func	tsv					
+desc-PearsonNilearn_correlations	correlation	template	func	tsv					
+desc-PartialNilearn_correlations	correlation	template	func	tsv					
 space-template_desc-binarized_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
 space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
 space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
@@ -161,10 +165,6 @@ desc-Mean_timeseries	timeseries		func	1D
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
 desc-Voxel_timeseries	timeseries		func	1D					
-desc-PearsonAfni_connectome	matrix		func	tsv					
-desc-PartialAfni_connectome	matrix		func	tsv					
-desc-PearsonNilearn_connectome	matrix		func	tsv					
-desc-PartialNilearn_connectome	matrix		func	tsv					
 space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
