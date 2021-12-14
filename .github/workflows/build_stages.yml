@@ -15,6 +15,8 @@ jobs:
         - Ubuntu.bionic-non-free
         - Ubuntu.xenial-20200114
     runs-on: ubuntu-latest
+    outputs:
+      rebuilt: ${{ steps.dockerfile-changed.changed }}
     steps:
       - name: Check out C-PAC (depth 2)
         if: ${{ env.GITHUB_BASE_REF }}
@@ -42,30 +44,39 @@ jobs:
           files: |
             \.github/Dockerfiles/*
           since_last_remote_commit: ${{ true }}
+      - name: Determine if Dockerfile changed
+        id: dockerfile-changed
+        run: |
+          if [[ *${{ matrix.Dockerfile }}* == "{{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          then
+            echo "::set-output name=changed::true"
+          else
+            echo "::set-output name=changed::false"
+          fi
       - name: Clear up some space on runner
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/setup-buildx-action@v1
       - name: Log in to GitHub Container Registry
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set tag
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Build and push Docker image
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/build-push-action@v2.7.0
         with:
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
@@ -115,25 +126,34 @@ jobs:
           files: |
             \.github/Dockerfiles/*
           since_last_remote_commit: ${{ true }}
+      - name: Determine if Dockerfile changed
+        id: dockerfile-changed
+        run: |
+          if ${{ needs.Ubuntu.outputs.rebuilt }} || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          then
+            echo "::set-output name=changed::true"
+          else
+            echo "::set-output name=changed::false"
+          fi
       - name: Clear up some space on runner
-        if: contains(steps.dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/setup-buildx-action@v1
       - name: Log in to GitHub Container Registry
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set tag
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }})
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
@@ -143,20 +163,20 @@ jobs:
             .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }}
             cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: See Dockerfile
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: Set up Docker Buildx
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/setup-buildx-action@v1
       - name: Log in to GitHub Container Registry
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
-        if: contains(steps.ubuntu-dockerfile-changed.outputs.all_modified_files, matrix.Dockerfile) || contains(steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files, matrix.Dockerfile)
+        if: ${{ steps.dockerfile-changed.changed }}
         uses: docker/build-push-action@v2.7.0
         with:
           context: .
