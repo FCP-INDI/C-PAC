@@ -33,11 +33,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set tag & Dockerfile
         run: |
-          if [[ "${{ strategy.matrix.variant }}" != "" ]]
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ strategy.matrix.variant }}
+            VARIANT=-${{ matrix.variant }}
           fi
-          if [[ "${{ strategy.matrix.variant }}" == "fMRIPrep-LTS" ]]
+          if [[ "${{ matrix.variant }}" == "fMRIPrep-LTS" ]]
           then
             OS=xenial
           else
