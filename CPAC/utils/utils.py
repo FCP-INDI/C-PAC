@@ -162,15 +162,7 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
 
     if atlas_id:
         if '_' in atlas_id:
-            if '_space' in atlas_id:
-                atlas_id_parts = atlas_id.split('_space')
-                atlas_id = '_'.join([
-                    *[part.replace('_', '') for part in atlas_id_parts[:-1]],
-                    f'_space{atlas_id_parts[:-1]}'
-                ])
-                del atlas_id_parts
-            else:
-                atlas_id = atlas_id.replace('_', '')
+            atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
     if 'sub-' not in unique_id:
