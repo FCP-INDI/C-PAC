@@ -129,7 +129,12 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          if ${{ needs.Ubuntu.outputs.rebuilt }} || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          REBUILT=${{ needs.Ubuntu.outputs.rebuilt }}
+          if [[ $REBUILT == "" ]]
+          then
+            REBUILT=false
+          fi
+          if $REBUILT || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
           then
             echo "::set-output name=changed::true"
           else
