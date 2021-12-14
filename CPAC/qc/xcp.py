@@ -292,7 +292,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
                                             'movement_parameters',
-                                            'n_vols_censored', 'dvars',
+                                            'censor_indices', 'dvars',
                                             'framewise_displacement_jenkinson',
                                             'dvars_after', 'fdj_after'],
                                output_names=['qc_file'],
