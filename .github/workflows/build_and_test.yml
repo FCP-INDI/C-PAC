@@ -33,24 +33,36 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set tag & Dockerfile
         run: |
+          if [[ "${{ strategy.matrix.variant }}" != "" ]]
+          then
+            VARIANT=-${{ strategy.matrix.variant }}
+          fi
+          if [[ "${{ strategy.matrix.variant }}" == "fMRIPrep-LTS" ]]
+          then
+            OS=xenial
+          else
+            OS=bionic
+          fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=${GITHUB_BRANCH//\//_}
-            DOCKERFILE=.github/Dockerfiles/C-PAC.develop-bionic.Dockerfile
+            DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=nightly
-            DOCKERFILE=.github/Dockerfiles/C-PAC.develop-bionic.Dockerfile
+            TAG=nightly$VARIANT
+            DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
           elif [[ $GITHUB_BRANCH == 'main' ]]
           then
-            TAG=latest
-            DOCKERFILE=Dockerfile
+            TAG=latest$VARIANT
+            if [[ $VARIANT == "" ]]
+            then
+              DOCKERFILE=Dockerfile
+            else
+              DOCKERFILE=variant$VARIANT.Dockerfile
+            fi
           fi
-          if [[ "${{ strategy.matrix.variant }}" != "" ]]
-          then
-            TAG=$TAG-${{ strategy.matrix.variant }}
-          fi
+          TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}:$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
