@@ -129,7 +129,7 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          REBUILT=${{ jobs.Ubuntu.outputs.rebuilt }}
+          REBUILT=${{ needs.Ubuntu.outputs.rebuilt }}
           if [[ $REBUILT == "" ]]
           then
             REBUILT=false
