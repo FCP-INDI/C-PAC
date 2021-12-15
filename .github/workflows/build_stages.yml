@@ -36,6 +36,7 @@ jobs:
           base_sha: ${{ env.GITHUB_BASE_REF }}
           files: |
             \.github/Dockerfiles/*
+            \.github/workflows/build_stages\.yml
       - name: Get changed files vs. last remote commit
         if: ${{ env.GITHUB_BASE_REF }}=="" || !${{ env.GITHUB_BASE_REF}}
         id: ubuntu-dockerfile-changed
@@ -43,11 +44,12 @@ jobs:
         with:
           files: |
             \.github/Dockerfiles/*
+            \.github/workflows/build_stages\.yml
           since_last_remote_commit: ${{ true }}
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          if [[ *${{ matrix.Dockerfile }}* == "{{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          if [[ *${{ matrix.Dockerfile }}* == "${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]] || [[ *.github/workflows/build_stages.yml* == "${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *.github/workflows/build_stages.yml* == "${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]]
           then
             echo "::set-output name=changed::true"
           else
@@ -139,7 +141,7 @@ jobs:
           then
             REBUILT=false
           fi
-          if $REBUILT || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "{{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          if $REBUILT || [[ *${{ matrix.Dockerfile }}* == "${{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "${{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
           then
             echo "::set-output name=changed::true"
           else
