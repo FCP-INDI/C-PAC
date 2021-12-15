@@ -335,16 +335,12 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 ['space-T1w_desc-mean_bold', 'space-template_desc-mean_bold'],
                 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
-                'framewise-displacement-jenkinson', 'censor-indices',
-                ['rels-displacement', 'coordinate-transformation']),
+                'framewise-displacement-jenkinson', ('censor-indices',
+                'regressors'), ['rels-displacement',
+                'coordinate-transformation']),
                 'space-template_desc-brain_bold'],
      'outputs': ['desc-xcp_quality']}
     """
-    nodes = {
-        node_data: strat_pool.node_data(node_data) for node_data in [
-            'regressors', 'censor-indices'
-        ]
-    }
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc',
                                             'original_func', 'final_func',
@@ -359,6 +355,17 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
     output_key = None
+
+    try:
+        nodes = {
+            node_data: strat_pool.node_data(node_data) for node_data in [
+                'regressors', 'censor-indices'
+            ]
+        }
+        wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
+                   qc_file, 'censor_indices')
+    except LookupError:
+        qc_file.inputs.censor_indices = []
 
     original = {}
     final = {}
@@ -440,7 +447,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
-        ]) for node in ['movement-parameters', 'dvars', 'censor-indices',
+        ]) for node in ['movement-parameters', 'dvars',
                         'framewise-displacement-jenkinson']],
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
