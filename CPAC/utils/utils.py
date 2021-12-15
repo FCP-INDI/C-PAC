@@ -2217,7 +2217,7 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     'write_func_outputs': False,
     ...     'write_debugging_outputs': False,
     ...     'output_tree': 'default',
-    ...     'quality_control': {,
+    ...     'quality_control': {
     ...         'generate_quality_control_images': True,
     ...         'generate_xcpqc_files': True}},
     ...     'working_directory': {'path': '/tmp', 'remove_working_dir': True},
