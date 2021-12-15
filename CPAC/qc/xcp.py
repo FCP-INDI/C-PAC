@@ -164,7 +164,7 @@ def generate_xcp_qc(space, desc, original_anat,
                     final_anat, original_func, final_func, space_T1w_bold,
                     movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, fdj_after,
-                    template):
+                    template=None):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
@@ -342,7 +342,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
-                                            'space', 'desc',
+                                            'space', 'desc', 'template',
                                             'original_func', 'final_func',
                                             'original_anat', 'final_anat',
                                             'space_T1w_bold',
