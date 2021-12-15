@@ -89,15 +89,20 @@ jobs:
     needs: Ubuntu
     strategy:
       matrix:
-        Dockerfile: 
+        Dockerfile:
+        - AFNI.16.2.07-xenial
         - AFNI.20.0.04-bionic
         - AFNI.update.afni.binaries-bionic
+        - ANTs.2.3.4.neurodocker-xenial
         - ANTs.2.3.4.neurodocker-bionic
         - ANTs.2.3.5-bionic
+        - c3d.1.0.0-xenial
         - c3d.1.0.0-bionic
         - FreeSurfer.6.0.0-min.neurodocker-bionic
+        - FSL.5.0.9-5.neurodebian-xenial
         - FSL.neurodebian-bionic
         - ICA-AROMA.0.4.3-beta-bionic
+        - msm.2.0-bionic
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC (depth 2)
