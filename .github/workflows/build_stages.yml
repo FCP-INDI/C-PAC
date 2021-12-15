@@ -47,12 +47,21 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          if [[ *${{ matrix.Dockerfile }}* == "${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]] || [[ *.github/workflows/build_stages.yml* == "${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *.github/workflows/build_stages.yml* == "${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}" ]]
-          then
-            echo "::set-output name=changed::true"
-          else
-            echo "::set-output name=changed::false"
-          fi
+          echo "::set-output name=changed::false"
+          for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}
+          do
+            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+            then
+              echo "::set-output name=changed::true"
+            fi
+          done
+          for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}
+          do
+            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+            then
+              echo "::set-output name=changed::true"
+            fi
+          done
       - name: Clear up some space on runner
         if: ${{ steps.dockerfile-changed.changed }}
         run: |
@@ -134,16 +143,25 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          REBUILT=${{ needs.Ubuntu.outputs.rebuilt }}
-          if [[ $REBUILT == "" ]]
-          then
-            REBUILT=false
-          fi
-          if $REBUILT || [[ *${{ matrix.Dockerfile }}* == "${{ steps.dockerfile-changed.outputs.all_modified_files }}" ]] || [[ *${{ matrix.Dockerfile }}* == "${{ steps.dockerfile-changed-base.outputs.all_modified_files }}" ]]
+          echo "::set-output name=changed::false"
+          if [[ ${{ needs.Ubuntu.outputs.rebuilt }} ]]
           then
             echo "::set-output name=changed::true"
           else
-            echo "::set-output name=changed::false"
+            for CHANGED_FILE in ${{ steps.dockerfile-changed-base.outputs.all_modified_files }}
+            do
+              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+              then
+                echo "::set-output name=changed::true"
+              fi
+            done
+            for CHANGED_FILE in ${{ steps.dockerfile-changed.outputs.all_modified_files }}
+            do
+              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+              then
+                echo "::set-output name=changed::true"
+              fi
+            done
           fi
       - name: Clear up some space on runner
         if: ${{ steps.dockerfile-changed.changed }}
