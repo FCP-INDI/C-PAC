@@ -974,6 +974,19 @@ class ResourcePool(object):
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
 
+    def node_data(self, resource, **kwargs):
+        '''Factory function to create NodeData objects
+
+        Parameters
+        ----------
+        resource : str
+
+        Returns
+        -------
+        NodeData
+        '''
+        return NodeData(self, resource, **kwargs)
+
 
 class NodeBlock(object):
     def __init__(self, node_block_functions):
@@ -1937,31 +1950,31 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     wf.run()
 
 
-class NodeData():
+class NodeData:
     r"""Class to hold outputs of
     CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
 
-    ``node_data = NodeData(strat_pool, resource)`` and have
+    ``node_data = strat_pool.node_data(resource)`` and have
     ``node_data.node`` and ``node_data.out`` instead of doing
     ``node, out = strat_pool.get_data(resource)`` and needing two
     variables (``node`` and ``out``) to store that information.
 
     Examples
     --------
-    >>> NodeData(None, None)
+    >>> rp = ResourcePool()
+    >>> rp.node_data(None)
     NotImplemented (NotImplemented)
 
-    >>> rp = ResourcePool()
     >>> rp.set_data('test',
     ...             pe.Node(Function(input_names=[]), 'test'),
     ...             'b', [], 0, 'test')
-    >>> NodeData(rp, 'test')
+    >>> rp.node_data('test')
     test (b)
-    >>> NodeData(rp, 'test').out
+    >>> rp.node_data('test').out
     'b'
 
     >>> try:
-    ...     NodeData(rp, 'b')
+    ...     rp.node_data('b')
     ... except LookupError as lookup_error:
     ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
     [!] C-PAC says: The listed resource is not in the resource pool: b

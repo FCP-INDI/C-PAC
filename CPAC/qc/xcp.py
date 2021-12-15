@@ -60,7 +60,6 @@ import pandas as pd
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import NodeData
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
@@ -243,9 +242,6 @@ def generate_xcp_qc(space, desc, original_anat,
     }
 
     # `nVolCensored` & `nVolsRemoved`
-    # regressors = pd.read_csv(regressors, header=2, sep='\t')
-    # n_vols_censored = regressors['CensoredVolumes'].sum(
-    # ) if 'CensoredVolumes' in regressors.columns else 0
     n_vols_censored = len(
         censor_indices) if censor_indices is not None else 'unknown'
     shape_params = {'nVolCensored': n_vols_censored,
@@ -335,15 +331,20 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': ['bold', 'subject', 'scan', ['desc-preproc_bold',
-                 'space-template_desc-preproc_bold], 'desc-preproc_T1w', 'T1w',
-                 ['space-T1w_desc-mean_bold', 'space-template_desc-mean_bold],
-                 'space-bold_desc-brain_mask',
-                 'movement-parameters', 'max-displacement', 'dvars',
-                 'framewise-displacement-jenkinson', 'censor-indices',
-                 ['rels-displacement', 'coordinate-transformation'],
-                 'space-template_desc-brain_bold'],
+                'space-template_desc-preproc_bold], 'desc-preproc_T1w', 'T1w',
+                ['space-T1w_desc-mean_bold', 'space-template_desc-mean_bold],
+                'space-bold_desc-brain_mask',
+                'movement-parameters', 'max-displacement', 'dvars',
+                'framewise-displacement-jenkinson', 'censor-indices',
+                ['rels-displacement', 'coordinate-transformation'],
+                'space-template_desc-brain_bold'],
      'outputs': ['desc-xcp_quality']}
     """
+    nodes = {
+        node_data: strat_pool.node_data(node_data) for node_data in [
+            'regressors', 'censor-indices'
+        ]
+    }
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc',
                                             'original_func', 'final_func',
@@ -361,14 +362,14 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     original = {}
     final = {}
-    original['anat'] = NodeData(strat_pool, 'T1w')
-    original['func'] = NodeData(strat_pool, 'bold')
-    final['anat'] = NodeData(strat_pool, 'desc-preproc_T1w')
+    original['anat'] = strat_pool.node_data('T1w')
+    original['func'] = strat_pool.node_data('bold')
+    final['anat'] = strat_pool.node_data('desc-preproc_T1w')
     if strat_pool.check_rpool(
         'desc-preproc_bold'
     ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
-        final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
-        t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
+        final['func'] = strat_pool.node_data('desc-preproc_bold')
+        t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
         qc_file.inputs.space = 'native'
         output_key = 'desc-xcp_quality'
     elif strat_pool.check_rpool(
@@ -376,10 +377,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     ) and strat_pool.check_rpool(
         'space-template_desc-mean_bold'
     ) and strat_pool.check_rpool('space-template_desc-brain_bold'):
-        final['func'] = NodeData(strat_pool,
-                                 'space-template_desc-preproc_bold')
-        t1w_bold = NodeData(strat_pool, 'space-template_desc-mean_bold')
-        template = NodeData(strat_pool, 'space-template_desc-brain_bold')
+        final['func'] = strat_pool.node_data(
+            'space-template_desc-preproc_bold')
+        t1w_bold = strat_pool.node_data('space-template_desc-mean_bold')
+        template = strat_pool.node_data('space-template_desc-brain_bold')
         wf.connect(template.node, template.out, qc_file, 'template')
         qc_file.inputs.space = 'template'
         output_key = 'space-template_desc-xcp_quality'
@@ -393,26 +394,25 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                                f'{pipe_num}',
                                                motion_correct_tool)
     nodes = {
-        node_data: NodeData(strat_pool, node_data) for node_data in [
+        **nodes,
+        **{node_data: strat_pool.node_data(node_data) for node_data in [
             'subject', 'scan', 'space-bold_desc-brain_mask',
             'movement-parameters', 'max-displacement', 'dvars',
-            'framewise-displacement-jenkinson', 'censor-indices'
-        ]
+            'framewise-displacement-jenkinson'
+        ]}
     }
     if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
         'coordinate-transformation'
     ):
-        nodes['coordinate-transformation'] = NodeData(strat_pool,
-                                                      'coordinate-'
-                                                      'transformation')
+        nodes['coordinate-transformation'] = strat_pool.node_data(
+            'coordinate-transformation')
         wf.connect(nodes['coordinate-transformation'].node,
                    nodes['coordinate-transformation'].out,
                    gen_motion_stats, 'inputspec.transformations')
     elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
         'rels-displacement'
     ):
-        nodes['rels-displacement'] = NodeData(strat_pool,
-                                              'rels-displacement')
+        nodes['rels-displacement'] = strat_pool.node_data('rels-displacement')
         wf.connect(nodes['rels-displacement'].node,
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
