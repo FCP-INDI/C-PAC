@@ -334,13 +334,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', ['desc-preproc_bold',
+     'inputs': ['bold', 'subject', 'scan', ['desc-preproc_bold',
                  'space-template_desc-preproc_bold], 'desc-preproc_T1w', 'T1w',
                  ['space-T1w_desc-mean_bold', 'space-template_desc-mean_bold],
                  'space-bold_desc-brain_mask',
                  'movement-parameters', 'max-displacement', 'dvars',
                  'framewise-displacement-jenkinson', 'censor-indices',
-                 ['rels-displacement', 'coordinate-transformation']),
+                 ['rels-displacement', 'coordinate-transformation'],
                  'space-template_desc-brain_bold'],
      'outputs': ['desc-xcp_quality']}
     """
