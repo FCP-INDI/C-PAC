@@ -77,7 +77,40 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(subject, scan, task, run, space, desc, original_anat,
+def strings_from_bids(final_func):
+    """
+    Function to gather BIDS entities into a dictionary
+
+    Parameters
+    ----------
+    final_func : str
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> fake_path = (
+    ...     '/path/to/sub-fakeSubject_ses-fakeSession_task-peer_run-3_'
+    ...     'atlas-Schaefer400_space-MNI152NLin6_res-1x1x1_'
+    ...     'desc-NilearnPearson_connectome.tsv')
+    >>> strings_from_bids(fake_path)['desc']
+    'NilearnPearson'
+    >>> strings_from_bids(fake_path)['space']
+    'MNI152NLin6'
+    """
+    from_bids = dict(
+        tuple(entity.split('-', 1)) if '-' in entity else
+        ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
+    )
+    from_bids = {k: from_bids[k] for k in from_bids}
+    if 'space' not in from_bids:
+        from_bids['space'] = 'native'
+    return from_bids
+
+
+def generate_xcp_qc(space, desc, original_anat,
                     final_anat, original_func, final_func, space_T1w_bold,
                     movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, fdj_after):
@@ -86,14 +119,6 @@ def generate_xcp_qc(subject, scan, task, run, space, desc, original_anat,
 
     Parameters
     ----------
-    subject : str
-
-    scan : str
-
-    task : str
-
-    run : str
-
     space : str
 
     desc : str
@@ -155,10 +180,7 @@ def generate_xcp_qc(subject, scan, task, run, space, desc, original_anat,
 
     # `sub` through `desc`
     from_bids = {
-        'sub': subject,
-        'scan': scan,
-        'task': task,
-        'run': run,
+        **strings_from_bids(original_func),
         'space': space,
         'desc': desc
     }
@@ -259,7 +281,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ('bold', 'subject', 'scan', 'task', 'run',
+     'inputs': ('bold', 'subject', 'scan',
                 'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'max-displacement', 'dvars',
@@ -276,7 +298,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
     t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
 
-    qc_file = pe.Node(Function(input_names=['subject', 'scan', 'task', 'run',
+    qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc',
                                             'original_func', 'final_func',
                                             'original_anat', 'final_anat',
@@ -301,7 +323,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                                motion_correct_tool)
     nodes = {
         node_data: NodeData(strat_pool, node_data) for node_data in [
-            'subject', 'scan', 'task', 'run', 'space-bold_desc-brain_mask',
+            'subject', 'scan', 'space-bold_desc-brain_mask',
             'movement-parameters', 'max-displacement', 'dvars',
             'framewise-displacement-jenkinson', 'censor-indices'
         ]
@@ -348,8 +370,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
         ]) for node in ['movement-parameters', 'dvars', 'censor-indices',
-                        'framewise-displacement-jenkinson', 'subject', 'scan',
-                        'task', 'run']],
+                        'framewise-displacement-jenkinson']],
         (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
 
