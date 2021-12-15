@@ -50,14 +50,14 @@ jobs:
           echo "::set-output name=changed::false"
           for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}
           do
-            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
               echo "::set-output name=changed::true"
             fi
           done
           for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}
           do
-            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+            if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
               echo "::set-output name=changed::true"
             fi
@@ -150,14 +150,14 @@ jobs:
           else
             for CHANGED_FILE in ${{ steps.dockerfile-changed-base.outputs.all_modified_files }}
             do
-              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
               then
                 echo "::set-output name=changed::true"
               fi
             done
             for CHANGED_FILE in ${{ steps.dockerfile-changed.outputs.all_modified_files }}
             do
-              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE"} ]]
+              if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
               then
                 echo "::set-output name=changed::true"
               fi
