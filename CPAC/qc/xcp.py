@@ -110,15 +110,18 @@ def strings_from_bids(final_func):
     return from_bids
 
 
-def generate_desc_qc(original_anat, final_anat, original_func,
-                     final_func, space_T1w_bold,
-                     movement_parameters, dvars, censor_indices,
-                     framewise_displacement_jenkinson, dvars_after, fdj_after):
+def generate_xcp_qc(desc, original_anat, final_anat, original_func,
+                    final_func, space_T1w_bold,
+                    movement_parameters, dvars, censor_indices,
+                    framewise_displacement_jenkinson, dvars_after, fdj_after):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
     Parameters
     ----------
+    desc : str
+        description string
+
     original_anat : str
         path to original 'T1w' image
 
@@ -253,6 +256,7 @@ def generate_desc_qc(original_anat, final_anat, original_func,
 
     qc_dict = {
         **from_bids,
+        'desc': desc,
         **power_params,
         **rms_params,
         **shape_params,
@@ -291,15 +295,17 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     qc_file = pe.Node(Function(input_names=['original_func', 'final_func',
                                             'original_anat', 'final_anat',
-                                            'space_T1w_bold',
+                                            'space_T1w_bold', 'desc',
                                             'movement_parameters',
                                             'censor_indices', 'dvars',
                                             'framewise_displacement_jenkinson',
                                             'dvars_after', 'fdj_after'],
                                output_names=['qc_file'],
-                               function=generate_desc_qc,
+                               function=generate_xcp_qc,
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
+
+    qc_file.inputs.desc = 'preproc'
 
     # motion "Final"
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
