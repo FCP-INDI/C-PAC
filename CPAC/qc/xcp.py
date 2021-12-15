@@ -65,6 +65,57 @@ from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 
+def calculate_overlap(image_pair):
+    '''
+    Function to calculate Dice, Jaccard, CrossCorr and Coverage from a
+    pair of arrays
+
+    Parameters
+    ----------
+    image_pair : 2-tuple
+        array to calculate overlaps metrics of
+
+    Returns
+    -------
+    dice : float
+        Dice index
+
+    jaccard : float
+        Jaccard index
+
+    cross_corr : float
+        cross-correlation
+
+    coverage : float
+        coverage index
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> a1 = np.array([1, 2, 3, 4, 5, 6])
+    >>> a2 = np.array([2, 3, 4, 5, 3, 4])
+    >>> calculate_overlap((a1, a2))
+    (3.761904761904762, -2.135135135135135, 0.560611910581388, 3.761904761904762)
+    >>> calculate_overlap((a1, a1))
+    (4.333333333333333, -1.8571428571428572, 1.0, 4.333333333333333)
+    >>> calculate_overlap((a2, a2))
+    (3.761904761904762, -2.135135135135135, 1.0, 3.761904761904762)
+    '''  # noqa E501  # pylint: disable=line-too-long
+    if len(image_pair) != 2:
+        raise IndexError('`calculate_overlap` requires 2 images, but '
+                         f'{len(image_pair)} were provided')
+    intersect = image_pair[0] * image_pair[1]
+    vols = [np.sum(image) for image in image_pair]
+    vol_intersect = np.sum(intersect)
+    vol_sum = sum(vols)
+    vol_union = vol_sum - vol_intersect
+    dice = 2 * vol_intersect / vol_sum
+    jaccard = vol_intersect / vol_union
+    cross_corr = np.corrcoef(image_pair)[0, 1]
+    coverage = vol_intersect / min(vols)
+    return dice, jaccard, cross_corr, coverage
+
+
 def dvcorr(dvars, fdj):
     """Function to correlate DVARS and FD-J"""
     dvars = np.loadtxt(dvars)
@@ -113,7 +164,8 @@ def strings_from_bids(final_func):
 def generate_xcp_qc(space, desc, original_anat,
                     final_anat, original_func, final_func, space_T1w_bold,
                     movement_parameters, dvars, censor_indices,
-                    framewise_displacement_jenkinson, dvars_after, fdj_after):
+                    framewise_displacement_jenkinson, dvars_after, fdj_after,
+                    template):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
@@ -157,6 +209,9 @@ def generate_xcp_qc(space, desc, original_anat,
     fdj_after : str
         path to framewise displacement (Jenkinson) on final 'bold' image
 
+    template : str
+        path to template
+
     Returns
     -------
     str
@@ -177,6 +232,8 @@ def generate_xcp_qc(space, desc, original_anat,
         'final_func': nb.load(final_func),
         'space-T1w_bold': nb.load(space_T1w_bold)
     }
+    if template is not None:
+        images['template'] = nb.load(template)
 
     # `sub` through `desc`
     from_bids = {
@@ -239,26 +296,22 @@ def generate_xcp_qc(space, desc, original_anat,
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
                       variable, image in images.items() if
-                      variable in ['space-T1w_bold', 'original_anat']}
-    intersect = overlap_images['space-T1w_bold'] * overlap_images[
-        'original_anat']
-    vols = {variable: np.sum(image) for
-            variable, image in overlap_images.items()}
-    vol_intersect = np.sum(intersect)
-    vol_sum = sum(vols.values())
-    vol_union = vol_sum - vol_intersect
-    overlap_params = {
-        'coregDice': 2 * vol_intersect / vol_sum,
-        'coregJaccard': vol_intersect / vol_union,
-        'coregCrossCorr': np.corrcoef(
-            overlap_images['space-T1w_bold'],
-            overlap_images['original_anat'])[0, 1],
-        'coregCoverage': vol_intersect / min(vols.values()),
-        'normDice': 'N/A: native space',
-        'normJaccard': 'N/A: native space',
-        'normCrossCorr': 'N/A: native space',
-        'normCoverage': 'N/A: native space'
-    }
+                      variable in ['space-T1w_bold', 'original_anat',
+                                   'template']}
+    overlap_params = {}
+    (overlap_params['coregDice'], overlap_params['coregJaccard'],
+     overlap_params['coregCrossCorr'], overlap_params['coregCoverage']
+     ) = calculate_overlap(
+        (overlap_images['space-T1w_bold'], overlap_images['original_anat']))
+    if desc == 'preproc':
+        for key in ['normDice', 'normJaccard', 'normCrossCorr',
+                    'normCoverage']:
+            overlap_params[key] = 'N/A: native space'
+    else:
+        (overlap_params['normDice'], overlap_params['normJaccard'],
+         overlap_params['normCrossCorr'], overlap_params['normCoverage']
+         ) = calculate_overlap(
+            (overlap_images['space-T1w_bold'], overlap_images['template']))
 
     qc_dict = {
         **from_bids,
@@ -281,23 +334,16 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ('bold', 'subject', 'scan',
-                'desc-preproc_bold', 'desc-preproc_T1w', 'T1w',
-                'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
-                'movement-parameters', 'max-displacement', 'dvars',
-                'framewise-displacement-jenkinson', 'censor-indices',
-                ['rels-displacement',
-                'coordinate-transformation']),
+     'inputs': [('bold', 'subject', 'scan', ['desc-preproc_bold',
+                 'space-template_desc-preproc_bold], 'desc-preproc_T1w', 'T1w',
+                 ['space-T1w_desc-mean_bold', 'space-template_desc-mean_bold],
+                 'space-bold_desc-brain_mask',
+                 'movement-parameters', 'max-displacement', 'dvars',
+                 'framewise-displacement-jenkinson', 'censor-indices',
+                 ['rels-displacement', 'coordinate-transformation']),
+                 'space-template_desc-brain_bold'],
      'outputs': ['desc-xcp_quality']}
     """
-    original = {}
-    final = {}
-    original['anat'] = NodeData(strat_pool, 'T1w')
-    original['func'] = NodeData(strat_pool, 'bold')
-    final['anat'] = NodeData(strat_pool, 'desc-preproc_T1w')
-    final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
-    t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
-
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc',
                                             'original_func', 'final_func',
@@ -311,8 +357,33 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                function=generate_xcp_qc,
                                as_module=True),
                       name=f'xcpqc_{pipe_num}')
+    output_key = None
 
-    qc_file.inputs.space = 'native'
+    original = {}
+    final = {}
+    original['anat'] = NodeData(strat_pool, 'T1w')
+    original['func'] = NodeData(strat_pool, 'bold')
+    final['anat'] = NodeData(strat_pool, 'desc-preproc_T1w')
+    if strat_pool.check_rpool(
+        'desc-preproc_bold'
+    ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
+        final['func'] = NodeData(strat_pool, 'desc-preproc_bold')
+        t1w_bold = NodeData(strat_pool, 'space-T1w_desc-mean_bold')
+        qc_file.inputs.space = 'native'
+        output_key = 'desc-xcp_quality'
+    elif strat_pool.check_rpool(
+        'space-template_desc-preproc_bold'
+    ) and strat_pool.check_rpool(
+        'space-template_desc-mean_bold'
+    ) and strat_pool.check_rpool('space-template_desc-brain_bold'):
+        final['func'] = NodeData(strat_pool,
+                                 'space-template_desc-preproc_bold')
+        t1w_bold = NodeData(strat_pool, 'space-template_desc-mean_bold')
+        template = NodeData(strat_pool, 'space-template_desc-brain_bold')
+        wf.connect(template.node, template.out, qc_file, 'template')
+        qc_file.inputs.space = 'template'
+        output_key = 'space-template_desc-xcp_quality'
+
     qc_file.inputs.desc = 'preproc'
 
     # motion "Final"
@@ -375,7 +446,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                      ('outputspec.FDJ_1D', 'fdj_after')])])
 
     outputs = {
-        'desc-xcp_quality': (qc_file, 'qc_file'),
+        output_key: (qc_file, 'qc_file'),
     }
 
     return (wf, outputs)

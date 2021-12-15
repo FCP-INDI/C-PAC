@@ -124,6 +124,7 @@ bold-snr-sagittal-qc	qc		func	png
 bold-snr-hist-qc	qc		func	png					
 bold-snr-qc	qc		func	png					
 desc-xcp_quality	qc		func	tsv					
+space-template_desc-xcp_quality	qc		func	tsv					
 regressors	regressors		func	1D					
 desc-sm_reho	reho	functional	func	NIfTI		Yes			
 desc-sm-zstd_reho	reho	functional	func	NIfTI					
