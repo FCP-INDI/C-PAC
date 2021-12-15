@@ -93,7 +93,10 @@ from CPAC.registration.registration import (
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
+    warp_timeseries_to_T1template_dcan_nhp,
+    warp_T1mask_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp
+    
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -950,9 +953,11 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-             overwrite_transform_anat_to_template
+            overwrite_transform_anat_to_template,
+            warp_T1mask_to_T1template
         ]
-        
+    
+      
     if not rpool.check_rpool('desc-restore-brain_T1w'):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 

@@ -4207,3 +4207,63 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+    
+    
+    
+    
+def warp_T1mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_T1_to_template",
+     "config": "None",
+     "switch": ["registration_workflows", "anatomical_registration", "run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("label-CSF_mask",
+                 "MNI152_T1_2mm_brain"),
+                "T1w_to-template_mode-image_xfm"],
+     "outputs": {
+         "space-T1_to_template": {
+             "Description": "T1 transformed to template space.",
+                            
+             "Template": "MNI152_T1_2mm_brain"}}
+    }
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-T1w_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_T1_to_T1template_{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        applyxfm.inputs.interp='nearestneighbour'
+    elif reg_tool == 'fsl':
+        applyxfm.inputs.interp='nearestneighbour'
+
+    node, out = strat_pool.get_data("label-CSF_mask")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("MNI152_T1_2mm_brain")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("T1w_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'from_CSFmask_to_template_mode_image':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+    
+
