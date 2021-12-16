@@ -76,43 +76,51 @@ def calculate_overlap(image_pair):
 
     Returns
     -------
-    dice : float
-        Dice index
+    coefficents : dict
+        coeffiecients['dice'] : float
+            Dice index
 
-    jaccard : float
-        Jaccard index
+        coeffiecients['jaccard'] : float
+            Jaccard index
 
-    cross_corr : float
-        cross-correlation
+        coeffiecients['cross_corr'] : float
+            cross-correlation
 
-    coverage : float
-        coverage index
+        coeffiecients['coverage'] : float
+            coverage index
 
     Examples
     --------
     >>> import numpy as np
-    >>> a1 = np.array([1, 2, 3, 4, 5, 6])
-    >>> a2 = np.array([2, 3, 4, 5, 3, 4])
-    >>> calculate_overlap((a1, a2))
-    (3.761904761904762, -2.135135135135135, 0.560611910581388, 3.761904761904762)
-    >>> calculate_overlap((a1, a1))
-    (4.333333333333333, -1.8571428571428572, 1.0, 4.333333333333333)
-    >>> calculate_overlap((a2, a2))
-    (3.761904761904762, -2.135135135135135, 1.0, 3.761904761904762)
+    >>> a1 = np.array([0, 0, 0, 1, 1, 1])
+    >>> a2 = np.array([0, 0, 1, 1, 0, 1])
+    >>> tuple(calculate_overlap((a1, a2)).values())
+    (0.6666666666666666, 0.5, 0.33333333333333326, 0.6666666666666666)
+    >>> tuple(calculate_overlap((a1, a1)).values())
+    (1.0, 1.0, 0.9999999999999998, 1.0)
+    >>> tuple(calculate_overlap((a2, a2)).values())
+    (1.0, 1.0, 0.9999999999999998, 1.0)
     '''  # noqa E501  # pylint: disable=line-too-long
     if len(image_pair) != 2:
         raise IndexError('`calculate_overlap` requires 2 images, but '
                          f'{len(image_pair)} were provided')
+    image_pair = tuple(image.astype(bool) for image in image_pair)
     intersect = image_pair[0] * image_pair[1]
     vols = [np.sum(image) for image in image_pair]
     vol_intersect = np.sum(intersect)
     vol_sum = sum(vols)
     vol_union = vol_sum - vol_intersect
-    dice = 2 * vol_intersect / vol_sum
-    jaccard = vol_intersect / vol_union
-    cross_corr = np.corrcoef(image_pair)[0, 1]
-    coverage = vol_intersect / min(vols)
-    return dice, jaccard, cross_corr, coverage
+    coefficients = {
+        'dice': 2 * vol_intersect / vol_sum,
+        'jaccard': vol_intersect / vol_union,
+        'cross_corr': np.corrcoef(image_pair)[0, 1],
+        'coverage': vol_intersect / min(vols)
+    }
+    for name, coefficient in coefficients.items():
+        if not 1 >= coefficient >= 0:
+            raise ValueError(f'Valid range for {name} is [0, 1] but value '
+                             f'{coefficient} was calculated.')
+    return coefficients
 
 
 def dvcorr(dvars, fdj):
@@ -298,7 +306,8 @@ def generate_xcp_qc(space, desc, original_anat,
     (overlap_params['coregDice'], overlap_params['coregJaccard'],
      overlap_params['coregCrossCorr'], overlap_params['coregCoverage']
      ) = calculate_overlap(
-        (overlap_images['space-T1w_bold'], overlap_images['original_anat']))
+        (overlap_images['space-T1w_bold'], overlap_images['original_anat'])
+    ).values()
     if desc == 'preproc':
         for key in ['normDice', 'normJaccard', 'normCrossCorr',
                     'normCoverage']:
@@ -307,7 +316,8 @@ def generate_xcp_qc(space, desc, original_anat,
         (overlap_params['normDice'], overlap_params['normJaccard'],
          overlap_params['normCrossCorr'], overlap_params['normCoverage']
          ) = calculate_overlap(
-            (overlap_images['space-T1w_bold'], overlap_images['template']))
+            (overlap_images['space-T1w_bold'], overlap_images['template'])
+        ).values()
 
     qc_dict = {
         **from_bids,
