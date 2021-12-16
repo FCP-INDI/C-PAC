@@ -66,13 +66,13 @@ from CPAC.utils.utils import check_prov_for_motion_tool
 
 def calculate_overlap(image_pair):
     '''
-    Function to calculate Dice, Jaccard, CrossCorr and Coverage from a
+    Function to calculate Dice, Jaccard, CrossCorr and Coverage:cite:`cite-Penn19` from a
     pair of arrays
 
     Parameters
     ----------
     image_pair : 2-tuple
-        array to calculate overlaps metrics of
+        array of which to calculate overlaps metrics
 
     Returns
     -------
@@ -347,7 +347,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'movement-parameters', 'max-displacement', 'dvars',
                 'framewise-displacement-jenkinson', ['rels-displacement',
                 'coordinate-transformation']), ('censor-indices',
-                'regressors'), 'T1w-brain-template-funcreg'],
+                'regressors')],
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
@@ -381,6 +381,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     original['anat'] = strat_pool.node_data('T1w')
     original['func'] = strat_pool.node_data('bold')
     final['anat'] = strat_pool.node_data('desc-preproc_T1w')
+    t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
     if strat_pool.check_rpool(
         'space-template_desc-preproc_bold'
     ) and strat_pool.check_rpool(
@@ -388,8 +389,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     ) and strat_pool.check_rpool('space-template_desc-brain_bold'):
         final['func'] = strat_pool.node_data(
             'space-template_desc-preproc_bold')
-        t1w_bold = strat_pool.node_data('space-template_desc-mean_bold')
-        template = strat_pool.node_data('T1w-brain-template-funcreg')
+        template = strat_pool.node_data('space-template_desc-mean_bold')
         wf.connect(template.node, template.out, qc_file, 'template')
         qc_file.inputs.space = 'template'
         output_key = 'space-template_desc-xcp_quality'
@@ -397,7 +397,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-preproc_bold'
     ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
         final['func'] = strat_pool.node_data('desc-preproc_bold')
-        t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
         qc_file.inputs.space = 'native'
         output_key = 'desc-xcp_quality'
 
