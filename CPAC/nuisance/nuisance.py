@@ -2287,6 +2287,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
                  "regressors",
+                 "censor-indices",
                  "space-bold_desc-brain_mask",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
@@ -2294,8 +2295,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                 "TR"],
      "outputs": ["desc-preproc_bold",
                  "desc-cleaned_bold",
-                 "regressors",
-                 "censor-indices"]}
+                 "regressors"]}
     '''
 
     regressor_prov = strat_pool.get_cpac_provenance('regressors')
