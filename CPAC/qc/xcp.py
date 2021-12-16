@@ -347,7 +347,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'movement-parameters', 'max-displacement', 'dvars',
                 'framewise-displacement-jenkinson', ['rels-displacement',
                 'coordinate-transformation']), ('censor-indices',
-                'regressors'), 'space-template_desc-brain_bold'],
+                'regressors'), 'T1w-brain-template-funcreg'],
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
@@ -396,7 +396,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         final['func'] = strat_pool.node_data(
             'space-template_desc-preproc_bold')
         t1w_bold = strat_pool.node_data('space-template_desc-mean_bold')
-        template = strat_pool.node_data('space-template_desc-brain_bold')
+        template = strat_pool.node_data('T1w-brain-template-funcreg')
         wf.connect(template.node, template.out, qc_file, 'template')
         qc_file.inputs.space = 'template'
         output_key = 'space-template_desc-xcp_quality'
