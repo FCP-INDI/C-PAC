@@ -94,7 +94,7 @@ from CPAC.registration.registration import (
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
-    warp_T1mask_to_T1template,
+    warp_Tissuemask_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp
     
 )
@@ -954,7 +954,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-            warp_T1mask_to_T1template
+            warp_Tissuemask_to_T1template
         ]
     
       
