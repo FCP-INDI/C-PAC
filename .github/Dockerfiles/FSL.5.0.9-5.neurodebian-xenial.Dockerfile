@@ -16,7 +16,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
                     fsl-core=5.0.9-5~nd16.04+1 \
-                    fsl-mni152-templates=5.0.7-2 \
+                    fsl-mni152-templates=5.0.7-2 && \
     ldconfig && \
     apt-get clean && \
     apt-get autoremove -y && \
