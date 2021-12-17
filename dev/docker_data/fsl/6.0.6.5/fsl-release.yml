@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 1.6.0
+installer: 1.7.1
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -56,13 +56,13 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 2.8.0
- - fsleyes 1.3.0
+ - fsleyes 1.3.2
  - fslpy 3.7.1
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.0
- - fsl-base 2111.9
+ - fsl-base 2112.4
  - fsl-basil v4.0.4
  - fsl-basisfield 2111.1
  - fsl-baycest 2111.0
@@ -159,7 +159,7 @@ packages:
  - fsl-ptx2-cuda-11.0 2111.0
  - fsl-ptx2-cuda-11.1 2111.0
  - fsl-ptx2-cuda-11.3 2111.0
- - fsl-pyfeeds 0.9.9
+ - fsl-pyfeeds 0.9.10
  - fsl-pyfeeds-tests 2111.0
  - fsl-qboot 2111.0
  - fsl-randomise 2111.1
