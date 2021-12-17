@@ -47,19 +47,19 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          echo "::set-output name=changed::false"
+          echo '::set-output name=changed::false'
           for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}
           do
             if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
-              echo "::set-output name=changed::true"
+              echo '::set-output name=changed::true'
             fi
           done
           for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed.outputs.all_modified_files }}
           do
             if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
-              echo "::set-output name=changed::true"
+              echo '::set-output name=changed::true'
             fi
           done
       - name: Clear up some space on runner
@@ -143,23 +143,23 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          echo "::set-output name=changed::false"
+          echo '::set-output name=changed::false'
           if [[ ${{ needs.Ubuntu.outputs.rebuilt }} ]]
           then
-            echo "::set-output name=changed::true"
+            echo '::set-output name=changed::true'
           else
             for CHANGED_FILE in ${{ steps.dockerfile-changed-base.outputs.all_modified_files }}
             do
               if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
               then
-                echo "::set-output name=changed::true"
+                echo '::set-output name=changed::true'
               fi
             done
             for CHANGED_FILE in ${{ steps.dockerfile-changed.outputs.all_modified_files }}
             do
               if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
               then
-                echo "::set-output name=changed::true"
+                echo '::set-output name=changed::true'
               fi
             done
           fi
