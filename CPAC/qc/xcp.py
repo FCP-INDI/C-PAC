@@ -348,7 +348,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'framewise-displacement-jenkinson', ['rels-displacement',
                 'coordinate-transformation']), ('censor-indices', 'regressors')
                 ],
-     'outputs': ['desc-xcp_quality']}
+     'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc', 'template',
