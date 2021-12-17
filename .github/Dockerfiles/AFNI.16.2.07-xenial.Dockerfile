@@ -1,4 +1,4 @@
-FROM ghcr.io/shnizzedy/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
 
 USER root
 

@@ -2,7 +2,7 @@
 FROM freesurfer/freesurfer:6.0 AS Freesurfer
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 
-FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07 as AFNI
+FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07-xenial as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-xenial as c3d
 FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.9-5.neurodebian-xenial as FSL
