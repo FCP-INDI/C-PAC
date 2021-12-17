@@ -386,9 +386,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
     if strat_pool.check_rpool(
         'space-template_desc-preproc_bold'
-    ) and strat_pool.check_rpool(
-        'space-template_desc-mean_bold'
-    ) and strat_pool.check_rpool('space-template_desc-brain_bold'):
+    ) and strat_pool.check_rpool('space-template_desc-mean_bold'):
         final['func'] = strat_pool.node_data(
             'space-template_desc-preproc_bold')
         template = strat_pool.node_data('space-template_desc-mean_bold')
