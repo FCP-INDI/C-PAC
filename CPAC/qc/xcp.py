@@ -371,6 +371,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'regressors', 'censor-indices'
             ]
         }
+        if nodes['censor-indices'].variant != nodes['regressors'].variant:
+            # Don't mix and match
+            return wf, {}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
                    qc_file, 'censor_indices')
     except LookupError:
