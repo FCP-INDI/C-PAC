@@ -340,14 +340,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan',
+     'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
                 ['space-template_desc-preproc_bold', 'desc-preproc_bold'],
-                'desc-preproc_T1w', 'T1w', ['space-template_desc-mean_bold',
-                'space-T1w_desc-mean_bold'], 'space-bold_desc-brain_mask',
-                'movement-parameters', 'max-displacement', 'dvars',
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold', 
+                'space-bold_desc-brain_mask', 'movement-parameters',
                 'framewise-displacement-jenkinson', ['rels-displacement',
-                'coordinate-transformation']), ('censor-indices', 'regressors')
-                ],
+                'coordinate-transformation']), 'space-template_desc-mean_bold',
+                ('censor-indices', 'regressors')],
      'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
