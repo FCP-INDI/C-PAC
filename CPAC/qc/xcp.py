@@ -364,6 +364,30 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                       name=f'xcpqc_{pipe_num}')
     output_key = None
 
+    original = {}
+    final = {}
+    original['anat'] = strat_pool.node_data('T1w')
+    original['func'] = strat_pool.node_data('bold')
+    final['anat'] = strat_pool.node_data('desc-preproc_T1w')
+    t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
+    if strat_pool.check_rpool(
+        'space-template_desc-preproc_bold'
+    ) and strat_pool.check_rpool('space-template_desc-mean_bold'):
+        final['func'] = strat_pool.node_data(
+            'space-template_desc-preproc_bold')
+        template = strat_pool.node_data('space-template_desc-mean_bold')
+        wf.connect(template.node, template.out, qc_file, 'template')
+        qc_file.inputs.space = 'template'
+        output_key = 'space-template_desc-xcp_quality'
+    elif strat_pool.check_rpool(
+        'desc-preproc_bold'
+    ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
+        final['func'] = strat_pool.node_data('desc-preproc_bold')
+        qc_file.inputs.space = 'native'
+        output_key = 'desc-xcp_quality'
+    else:
+        return wf, {}
+
     try:
         nodes = {
             node_data: strat_pool.node_data(node_data) for node_data in [
@@ -377,31 +401,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                    qc_file, 'censor_indices')
     except LookupError:
         qc_file.inputs.censor_indices = []
-
-    original = {}
-    final = {}
-    original['anat'] = strat_pool.node_data('T1w')
-    original['func'] = strat_pool.node_data('bold')
-    final['anat'] = strat_pool.node_data('desc-preproc_T1w')
-    t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
-    # if strat_pool.check_rpool(
-    #     'space-template_desc-preproc_bold'
-    # ) and strat_pool.check_rpool('space-template_desc-mean_bold'):
-    #     final['func'] = strat_pool.node_data(
-    #         'space-template_desc-preproc_bold')
-    #     template = strat_pool.node_data('space-template_desc-mean_bold')
-    #     wf.connect(template.node, template.out, qc_file, 'template')
-    #     qc_file.inputs.space = 'template'
-    #     output_key = 'space-template_desc-xcp_quality'
-    # el
-    if strat_pool.check_rpool(
-        'desc-preproc_bold'
-    ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
-        final['func'] = strat_pool.node_data('desc-preproc_bold')
-        qc_file.inputs.space = 'native'
-        output_key = 'desc-xcp_quality'
-    else:
-        return wf, {}
 
     qc_file.inputs.desc = 'preproc'
 
