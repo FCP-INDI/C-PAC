@@ -341,11 +341,11 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
-                ['space-template_desc-preproc_bold', 'desc-preproc_bold'],
-                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold', 
-                'space-bold_desc-brain_mask', 'movement-parameters',
-                'framewise-displacement-jenkinson', ['rels-displacement',
-                'coordinate-transformation']), 'space-template_desc-mean_bold',
+                ['desc-preproc_bold', ('space-template_desc-preproc_bold',
+                'T1w-brain-template-funcreg')], 'desc-preproc_T1w', 'T1w',
+                'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
+                'movement-parameters', 'framewise-displacement-jenkinson',
+                ['rels-displacement', 'coordinate-transformation']),
                 ('censor-indices', 'regressors')],
      'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
     """
@@ -372,10 +372,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
     if strat_pool.check_rpool(
         'space-template_desc-preproc_bold'
-    ) and strat_pool.check_rpool('space-template_desc-mean_bold'):
+    ) and strat_pool.check_rpool('T1w-brain-template-funcreg'):
         final['func'] = strat_pool.node_data(
             'space-template_desc-preproc_bold')
-        template = strat_pool.node_data('space-template_desc-mean_bold')
+        template = strat_pool.node_data('T1w-brain-template-funcreg')
         wf.connect(template.node, template.out, qc_file, 'template')
         qc_file.inputs.space = 'template'
         output_key = 'space-template_desc-xcp_quality'
