@@ -341,12 +341,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
+                (['desc-preproc_bold', ('space-template_desc-preproc_bold',
+                'T1w-brain-template-funcreg')], 'censor-indices'),
                 ['desc-preproc_bold', ('space-template_desc-preproc_bold',
                 'T1w-brain-template-funcreg')], 'desc-preproc_T1w', 'T1w',
                 'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
                 'movement-parameters', 'framewise-displacement-jenkinson',
-                ['rels-displacement', 'coordinate-transformation']),
-                ('censor-indices', 'regressors')],
+                ['rels-displacement', 'coordinate-transformation'])],
      'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
@@ -379,9 +380,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(template.node, template.out, qc_file, 'template')
         qc_file.inputs.space = 'template'
         output_key = 'space-template_desc-xcp_quality'
-    elif strat_pool.check_rpool(
-        'desc-preproc_bold'
-    ) and strat_pool.check_rpool('space-T1w_desc-mean_bold'):
+    elif strat_pool.check_rpool('desc-preproc_bold'):
         final['func'] = strat_pool.node_data('desc-preproc_bold')
         qc_file.inputs.space = 'native'
         output_key = 'desc-xcp_quality'
@@ -389,14 +388,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         return wf, {}
 
     try:
-        nodes = {
-            node_data: strat_pool.node_data(node_data) for node_data in [
-                'regressors', 'censor-indices'
-            ]
-        }
-        if nodes['censor-indices'].variant != nodes['regressors'].variant:
-            # Don't mix and match
-            return wf, {}
+        nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
                    qc_file, 'censor_indices')
     except LookupError:
