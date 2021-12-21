@@ -63,6 +63,9 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
+motion_params = ['movement-parameters', 'dvars',
+                 'framewise-displacement-jenkinson']
+
 
 def calculate_overlap(image_pair):
     '''
@@ -337,24 +340,7 @@ def generate_xcp_qc(space, desc, original_anat,
     return qc_filepath
 
 
-def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
-    # pylint: disable=unused-argument, invalid-name
-    """
-    {'name': 'qc_xcp',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'max-displacement',
-                ['space-template_desc-preproc_bold',
-                'desc-preproc_bold'], 'T1w-brain-template-funcreg',
-                'censor-indices', 'dvars',
-                'space-bold_desc-brain_mask',
-                'framewise-displacement-jenkinson', 'movement-parameters',
-                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
-                ['rels-displacement', 'coordinate-transformation'])],
-     'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
-    """
+def _prep_qc_xcp(strat_pool, pipe_num, space):
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc', 'template',
                                             'original_func', 'final_func',
@@ -367,55 +353,42 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                output_names=['qc_file'],
                                function=generate_xcp_qc,
                                as_module=True),
-                      name=f'xcpqc_{pipe_num}')
-    output_key = None
-
+                      name=f'xcpqc-{space}_{pipe_num}')
+    qc_file.inputs.desc = 'preproc'
+    qc_file.inputs.space = space
     original = {}
     final = {}
     original['anat'] = strat_pool.node_data('T1w')
     original['func'] = strat_pool.node_data('bold')
     final['anat'] = strat_pool.node_data('desc-preproc_T1w')
     t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
-    if strat_pool.check_rpool(
-        'space-template_desc-preproc_bold'
-    ) and strat_pool.check_rpool('T1w-brain-template-funcreg'):
-        final['func'] = strat_pool.node_data(
-            'space-template_desc-preproc_bold')
-        template = strat_pool.node_data('T1w-brain-template-funcreg')
-        wf.connect(template.node, template.out, qc_file, 'template')
-        qc_file.inputs.space = 'template'
-        output_key = 'space-template_desc-xcp_quality'
-    elif strat_pool.check_rpool('desc-preproc_bold'):
-        final['func'] = strat_pool.node_data('desc-preproc_bold')
-        qc_file.inputs.space = 'native'
-        output_key = 'desc-xcp_quality'
-    else:
-        return wf, {}
+    return qc_file, original, final, t1w_bold
 
+
+def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                 output_key, pipe_num):
+    # pylint: disable=invalid-name, too-many-arguments
     try:
         nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
                    qc_file, 'censor_indices')
     except LookupError:
+        nodes = {}
         qc_file.inputs.censor_indices = []
-
-    qc_file.inputs.desc = 'preproc'
-
     # motion "Final"
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
     gen_motion_stats = motion_power_statistics('motion_stats-after_'
                                                f'{pipe_num}',
                                                motion_correct_tool)
-    motion_params = ['movement-parameters', 'dvars',
-                     'framewise-displacement-jenkinson']
-    nodes = {node_data: strat_pool.node_data(node_data) for node_data in [
-        'subject', 'scan', 'space-bold_desc-brain_mask', 'max-displacement',
-        *motion_params
-    ]}
-    motion_stats = any(nodes[key].node is NotImplemented for
-                       key in ['max-displacement', *motion_params])
-    if motion_stats:
+    nodes = {
+        **nodes,
+        **{node_data: strat_pool.node_data(node_data) for node_data in [
+            'subject', 'scan', 'space-bold_desc-brain_mask',
+            'max-displacement', *motion_params
+        ]}}
+    if not any(nodes[key].node is NotImplemented for
+               key in ['max-displacement', *motion_params]):
         if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
             'coordinate-transformation'
         ):
@@ -432,20 +405,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             wf.connect(nodes['rels-displacement'].node,
                        nodes['rels-displacement'].out,
                        gen_motion_stats, 'inputspec.rels_displacement')
-
-    wf.connect([
-        (original['anat'].node, qc_file, [
-            (original['anat'].out, 'original_anat')]),
-        (original['func'].node, qc_file, [
-            (original['func'].out, 'original_func')]),
-        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
-        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
-        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
-        *[(nodes[node].node, qc_file, [
-            (nodes[node].out, node.replace('-', '_'))
-        ]) for node in motion_params]])
-
-    if motion_stats:
         wf.connect([
             (final['func'].node, gen_motion_stats, [
                 (final['func'].out, 'inputspec.motion_correct')]),
@@ -467,9 +426,69 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         qc_file.inputs.dvars_after = None
         qc_file.inputs.fdj_after = None
-
+    wf.connect([
+        (original['anat'].node, qc_file, [
+            (original['anat'].out, 'original_anat')]),
+        (original['func'].node, qc_file, [
+            (original['func'].out, 'original_func')]),
+        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
+        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
+        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
+        *[(nodes[node].node, qc_file, [
+            (nodes[node].out, node.replace('-', '_'))
+        ]) for node in motion_params]])
     outputs = {
         output_key: (qc_file, 'qc_file'),
     }
+    return wf, outputs
 
-    return (wf, outputs)
+
+def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=invalid-name, unused-argument
+    """
+    {'name': 'qc_xcp',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
+                'censor-indices', 'desc-preproc_bold',
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
+                'space-bold_desc-brain_mask', 'movement-parameters',
+                'framewise-displacement-jenkinson', 'rels-displacement',
+                'coordinate-transformation')],
+     'outputs': ['desc-xcp_quality']}
+    """
+    space = 'native'
+    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
+                                                      space)
+    final['func'] = strat_pool.node_data('desc-preproc_bold')
+    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                        'desc-xcp_quality', pipe_num)
+
+
+def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=invalid-name, unused-argument
+    """
+    {'name': 'qc_xcp',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
+                'censor-indices', 'space-template_desc-preproc_bold',
+                'T1w-brain-template-funcreg', 'censor-indices',
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
+                'space-bold_desc-brain_mask', 'movement-parameters',
+                'framewise-displacement-jenkinson', 'rels-displacement',
+                'coordinate-transformation')],
+     'outputs': ['space-template_desc-xcp_quality']}
+    """
+    space = 'template'
+    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
+                                                      space)
+    final['func'] = strat_pool.node_data('space-template_desc-preproc_bold')
+    template = strat_pool.node_data('T1w-brain-template-funcreg')
+    wf.connect(template.node, template.out, qc_file, 'template')
+    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                        'space-template_desc-xcp_quality', pipe_num)
