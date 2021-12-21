@@ -282,20 +282,25 @@ def generate_xcp_qc(space, desc, original_anat,
     }
 
     # `meanDVInit` & `meanDVFinal`
-    meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
-    try:
-        meanDV['motionDVCorrInit'] = dvcorr(
-            dvars, framewise_displacement_jenkinson)
-    except ValueError as value_error:
-        meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
-    if dvars_after:
-        if not fdj_after:
-            fdj_after = framewise_displacement_jenkinson
-        meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
+    if dvars:
+        meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
         try:
-            meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+            meanDV['motionDVCorrInit'] = dvcorr(
+                dvars, framewise_displacement_jenkinson)
         except ValueError as value_error:
-            meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
+            meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
+        if dvars_after:
+            if not fdj_after:
+                fdj_after = framewise_displacement_jenkinson
+            meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
+            try:
+                meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+            except ValueError as value_error:
+                meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
+    else:
+        meanDV = {key: 'n/a' for key in [
+            f'{dv}DV{ts}' for dv in ['mean', 'motion']
+            for ts in ['Init', 'Final']]}
 
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
@@ -417,26 +422,31 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     gen_motion_stats = motion_power_statistics('motion_stats-after_'
                                                f'{pipe_num}',
                                                motion_correct_tool)
+    motion_params = ['movement-parameters', 'dvars',
+                     'framewise-displacement-jenkinson']
     nodes = {node_data: strat_pool.node_data(node_data) for node_data in [
-        'subject', 'scan', 'space-bold_desc-brain_mask',
-        'movement-parameters', 'max-displacement', 'dvars',
-        'framewise-displacement-jenkinson'
+        'subject', 'scan', 'space-bold_desc-brain_mask', 'max-displacement',
+        *motion_params
     ]}
-    if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
-        'coordinate-transformation'
-    ):
-        nodes['coordinate-transformation'] = strat_pool.node_data(
-            'coordinate-transformation')
-        wf.connect(nodes['coordinate-transformation'].node,
-                   nodes['coordinate-transformation'].out,
-                   gen_motion_stats, 'inputspec.transformations')
-    elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
-        'rels-displacement'
-    ):
-        nodes['rels-displacement'] = strat_pool.node_data('rels-displacement')
-        wf.connect(nodes['rels-displacement'].node,
-                   nodes['rels-displacement'].out,
-                   gen_motion_stats, 'inputspec.rels_displacement')
+    motion_stats = any(nodes[key].node is NotImplemented for
+                       key in ['max-displacement', *motion_params])
+    if motion_stats:
+        if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
+            'coordinate-transformation'
+        ):
+            nodes['coordinate-transformation'] = strat_pool.node_data(
+                'coordinate-transformation')
+            wf.connect(nodes['coordinate-transformation'].node,
+                       nodes['coordinate-transformation'].out,
+                       gen_motion_stats, 'inputspec.transformations')
+        elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
+            'rels-displacement'
+        ):
+            nodes['rels-displacement'] = strat_pool.node_data(
+                'rels-displacement')
+            wf.connect(nodes['rels-displacement'].node,
+                       nodes['rels-displacement'].out,
+                       gen_motion_stats, 'inputspec.rels_displacement')
 
     wf.connect([
         (original['anat'].node, qc_file, [
@@ -446,25 +456,32 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
         (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
         (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
-        (final['func'].node, gen_motion_stats, [
-            (final['func'].out, 'inputspec.motion_correct')]),
-        (nodes['subject'].node, gen_motion_stats, [
-            (nodes['subject'].out, 'inputspec.subject_id')]),
-        (nodes['scan'].node, gen_motion_stats, [
-            (nodes['scan'].out, 'inputspec.scan_id')]),
-        (nodes['movement-parameters'].node, gen_motion_stats, [
-            (nodes['movement-parameters'].out,
-             'inputspec.movement_parameters')]),
-        (nodes['max-displacement'].node, gen_motion_stats, [
-            (nodes['max-displacement'].out, 'inputspec.max_displacement')]),
-        (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
-            (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
-        ]) for node in ['movement-parameters', 'dvars',
-                        'framewise-displacement-jenkinson']],
-        (gen_motion_stats, qc_file, [('outputspec.DVARS_1D', 'dvars_after'),
-                                     ('outputspec.FDJ_1D', 'fdj_after')])])
+        ]) for node in motion_params]])
+
+    if motion_stats:
+        wf.connect([
+            (final['func'].node, gen_motion_stats, [
+                (final['func'].out, 'inputspec.motion_correct')]),
+            (nodes['subject'].node, gen_motion_stats, [
+                (nodes['subject'].out, 'inputspec.subject_id')]),
+            (nodes['scan'].node, gen_motion_stats, [
+                (nodes['scan'].out, 'inputspec.scan_id')]),
+            (nodes['movement-parameters'].node, gen_motion_stats, [
+                (nodes['movement-parameters'].out,
+                 'inputspec.movement_parameters')]),
+            (nodes['max-displacement'].node, gen_motion_stats, [
+                (nodes['max-displacement'].out,
+                 'inputspec.max_displacement')]),
+            (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
+                (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
+            (gen_motion_stats, qc_file, [
+                ('outputspec.DVARS_1D', 'dvars_after'),
+                ('outputspec.FDJ_1D', 'fdj_after')])])
+    else:
+        qc_file.inputs.dvars_after = None
+        qc_file.inputs.fdj_after = None
 
     outputs = {
         output_key: (qc_file, 'qc_file'),
