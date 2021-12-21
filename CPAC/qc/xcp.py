@@ -446,7 +446,7 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
 def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=invalid-name, unused-argument
     """
-    {'name': 'qc_xcp',
+    {'name': 'qc_xcp_native',
      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
@@ -470,7 +470,7 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=invalid-name, unused-argument
     """
-    {'name': 'qc_xcp',
+    {'name': 'qc_xcp_template',
      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
