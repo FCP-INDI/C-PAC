@@ -340,14 +340,29 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ('bold', 'subject', 'scan', 'max-displacement', 'dvars',
-                [('desc-preproc_bold', 'censor-indices'),
-                ('space-template_desc-preproc_bold',
-                'T1w-brain-template-funcreg', 'censor-indices')],
+     'inputs': [('bold', 'subject', 'scan', 'max-displacement',
+                'space-template_desc-preproc_bold',
+                'T1w-brain-template-funcreg', 'censor-indices', 'dvars',
+                'space-bold_desc-brain_mask',
+                'framewise-displacement-jenkinson', 'movement-parameters',
                 'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
+                ['rels-displacement', 'coordinate-transformation']),
+                ('bold', 'subject', 'scan', 'max-displacement',
+                'desc-preproc_bold', 'censor-indices', 'dvars',
+                'space-bold_desc-brain_mask',
+                'framewise-displacement-jenkinson', 'movement-parameters',
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
+                ['rels-displacement', 'coordinate-transformation']), 
+                ('bold', 'subject', 'scan', 'max-displacement',
+                'space-template_desc-preproc_bold',
+                'T1w-brain-template-funcreg', 'space-bold_desc-brain_mask',
+                'movement-parameters', 'desc-preproc_T1w', 'T1w',
+                'space-T1w_desc-mean_bold', ['rels-displacement',
+                'coordinate-transformation']), ('bold', 'subject', 'scan',
+                'max-displacement', 'desc-preproc_bold',
                 'space-bold_desc-brain_mask', 'movement-parameters',
-                'framewise-displacement-jenkinson', ['rels-displacement',
-                'coordinate-transformation']),
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
+                ['rels-displacement', 'coordinate-transformation'])],
      'outputs': ['desc-xcp_quality', 'space-template_desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
@@ -402,14 +417,11 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     gen_motion_stats = motion_power_statistics('motion_stats-after_'
                                                f'{pipe_num}',
                                                motion_correct_tool)
-    nodes = {
-        **nodes,
-        **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', 'space-bold_desc-brain_mask',
-            'movement-parameters', 'max-displacement', 'dvars',
-            'framewise-displacement-jenkinson'
-        ]}
-    }
+    nodes = {node_data: strat_pool.node_data(node_data) for node_data in [
+        'subject', 'scan', 'space-bold_desc-brain_mask',
+        'movement-parameters', 'max-displacement', 'dvars',
+        'framewise-displacement-jenkinson'
+    ]}
     if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
         'coordinate-transformation'
     ):
