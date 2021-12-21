@@ -4175,7 +4175,6 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                 "EPI-template"],
      "outputs": ["space-EPItemplate_res-derivative_desc-bold_mask"]}
     '''
-
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-bold_to-EPItemplate_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -4214,7 +4213,7 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
 def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
-    {"name": "transform_Tissuemask_to_T1template,
+    {"name": "transform_Tissuemask_to_T1template",
      "config": "None",
      "switch": ["registration_workflows", "anatomical_registration", "run"],
      "option_key": "None",
@@ -4223,12 +4222,10 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "label-WM_mask",
                 "label-GM_mask",
                 "T1_template",
-                "T1w_to-template_mode-image_xfm"],
-     
+                "T1w_to-template_mode-image_xfm"], 
       "outputs": ["space-template_label-CSF_mask",
                   "space-template_label-WM_mask",
-                  "space-template_label-GM_mask" ]}
-    
+                  "space-template_label-GM_mask" ]} 
     '''
   
                  
