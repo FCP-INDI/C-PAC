@@ -376,35 +376,34 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
         nodes = {}
         qc_file.inputs.censor_indices = []
     # motion "Final"
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
-    gen_motion_stats = motion_power_statistics('motion_stats-after_'
-                                               f'{pipe_num}',
-                                               motion_correct_tool)
-    nodes = {
-        **nodes,
-        **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'max-displacement',
-            *motion_params
-        ]}}
-    if not any(nodes[key].node is NotImplemented for
-               key in ['max-displacement', *motion_params]):
+    if strat_pool.check_rpool('movement-parameters'):
+        motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
+        motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+        gen_motion_stats = motion_power_statistics('motion_stats-after_'
+                                                   f'{pipe_num}',
+                                                   motion_correct_tool)
+        nodes = {
+            **nodes,
+            **{node_data: strat_pool.node_data(node_data) for node_data in [
+                'subject', 'scan', brain_mask_key, 'max-displacement',
+                *motion_params
+            ]}}
         if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
             'coordinate-transformation'
         ):
             nodes['coordinate-transformation'] = strat_pool.node_data(
                 'coordinate-transformation')
             wf.connect(nodes['coordinate-transformation'].node,
-                       nodes['coordinate-transformation'].out,
-                       gen_motion_stats, 'inputspec.transformations')
+                        nodes['coordinate-transformation'].out,
+                        gen_motion_stats, 'inputspec.transformations')
         elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
             'rels-displacement'
         ):
             nodes['rels-displacement'] = strat_pool.node_data(
                 'rels-displacement')
             wf.connect(nodes['rels-displacement'].node,
-                       nodes['rels-displacement'].out,
-                       gen_motion_stats, 'inputspec.rels_displacement')
+                        nodes['rels-displacement'].out,
+                        gen_motion_stats, 'inputspec.rels_displacement')
         wf.connect([
             (final['func'].node, gen_motion_stats, [
                 (final['func'].out, 'inputspec.motion_correct')]),
@@ -414,10 +413,10 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                 (nodes['scan'].out, 'inputspec.scan_id')]),
             (nodes['movement-parameters'].node, gen_motion_stats, [
                 (nodes['movement-parameters'].out,
-                 'inputspec.movement_parameters')]),
+                    'inputspec.movement_parameters')]),
             (nodes['max-displacement'].node, gen_motion_stats, [
                 (nodes['max-displacement'].out,
-                 'inputspec.max_displacement')]),
+                    'inputspec.max_displacement')]),
             (nodes[brain_mask_key].node, gen_motion_stats, [
                 (nodes[brain_mask_key].out, 'inputspec.mask')]),
             (gen_motion_stats, qc_file, [
@@ -466,6 +465,23 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
     return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                         'space-bold_desc-brain_mask', 'desc-xcp_quality',
                         pipe_num)
+
+
+def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=invalid-name, unused-argument
+    r"""
+    Same as ``qc_xcp_native`` except no motion inputs.
+    Node Block:
+    {'name': 'qc_xcp_native',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': [('bold', 'subject', 'scan', 'desc-preproc_bold',
+                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold')],
+     'outputs': ['desc-xcp_quality']}
+    """
+    return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
 
 
 def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
