@@ -47,13 +47,11 @@ jobs:
       - name: Determine if Dockerfile changed
         id: dockerfile-changed
         run: |
-          echo "checking if Dockerfile changed"
           echo '::set-output name=changed::false'
           for CHANGED_FILE in ${{ steps.ubuntu-dockerfile-changed-base.outputs.all_modified_files }}
           do
             if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
-              echo "yep"
               echo '::set-output name=changed::true'
             fi
           done
@@ -61,7 +59,6 @@ jobs:
           do
             if [[ *${{ matrix.Dockerfile }}* == "${CHANGED_FILE}" ]] || [[ ".github/workflows/build_stages.yml" == "${CHANGED_FILE}" ]]
             then
-              echo "yep"
               echo '::set-output name=changed::true'
             fi
           done
@@ -167,10 +164,6 @@ jobs:
               fi
             done
           fi
-      - name: Check check
-        run: |
-          echo ${{ needs.Ubuntu.outputs.rebuilt }}
-          echo ${{ steps.dockerfile-changed.outputs.changed }}
       - name: Clear up some space on runner
         if: ${{ steps.dockerfile-changed.outputs.changed == 'true' }}
         run: |
