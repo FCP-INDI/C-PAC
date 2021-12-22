@@ -179,6 +179,7 @@ def generate_xcp_qc(space, desc, original_anat,
     Parameters
     ----------
     space : str
+        'native' or 'template'
 
     desc : str
         description string
@@ -313,7 +314,7 @@ def generate_xcp_qc(space, desc, original_anat,
      ) = calculate_overlap(
         (overlap_images['space-T1w_bold'], overlap_images['original_anat'])
     ).values()
-    if desc == 'preproc':
+    if space == 'native':
         for key in ['normDice', 'normJaccard', 'normCrossCorr',
                     'normCoverage']:
             overlap_params[key] = 'N/A: native space'
