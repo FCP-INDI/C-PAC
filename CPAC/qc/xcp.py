@@ -63,9 +63,6 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
-motion_params = ['movement-parameters', 'dvars',
-                 'framewise-displacement-jenkinson']
-
 
 def calculate_overlap(image_pair):
     '''
@@ -366,8 +363,10 @@ def _prep_qc_xcp(strat_pool, pipe_num, space):
 
 
 def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                 output_key, pipe_num):
+                 brain_mask_key, output_key, pipe_num):
     # pylint: disable=invalid-name, too-many-arguments
+    motion_params = ['movement-parameters', 'dvars',
+                     'framewise-displacement-jenkinson']
     try:
         nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
@@ -384,8 +383,8 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
     nodes = {
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', 'space-bold_desc-brain_mask',
-            'max-displacement', *motion_params
+            'subject', 'scan', brain_mask_key, 'max-displacement',
+            *motion_params
         ]}}
     if not any(nodes[key].node is NotImplemented for
                key in ['max-displacement', *motion_params]):
@@ -418,8 +417,8 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
             (nodes['max-displacement'].node, gen_motion_stats, [
                 (nodes['max-displacement'].out,
                  'inputspec.max_displacement')]),
-            (nodes['space-bold_desc-brain_mask'].node, gen_motion_stats, [
-                (nodes['space-bold_desc-brain_mask'].out, 'inputspec.mask')]),
+            (nodes[brain_mask_key].node, gen_motion_stats, [
+                (nodes[brain_mask_key].out, 'inputspec.mask')]),
             (gen_motion_stats, qc_file, [
                 ('outputspec.DVARS_1D', 'dvars_after'),
                 ('outputspec.FDJ_1D', 'fdj_after')])])
@@ -464,7 +463,8 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
                                                       space)
     final['func'] = strat_pool.node_data('desc-preproc_bold')
     return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                        'desc-xcp_quality', pipe_num)
+                        'space-bold_desc-brain_mask', 'desc-xcp_quality',
+                        pipe_num)
 
 
 def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -479,7 +479,7 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 'censor-indices', 'space-template_desc-preproc_bold',
                 'T1w-brain-template-funcreg', 'censor-indices',
                 'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
-                'space-bold_desc-brain_mask', 'movement-parameters',
+                'space-template_desc-bold_mask', 'movement-parameters',
                 'framewise-displacement-jenkinson', 'rels-displacement',
                 'coordinate-transformation')],
      'outputs': ['space-template_desc-xcp_quality']}
@@ -491,4 +491,5 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
     template = strat_pool.node_data('T1w-brain-template-funcreg')
     wf.connect(template.node, template.out, qc_file, 'template')
     return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                        'space-template_desc-bold_mask',
                         'space-template_desc-xcp_quality', pipe_num)

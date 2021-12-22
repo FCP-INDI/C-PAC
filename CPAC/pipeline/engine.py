@@ -1986,11 +1986,8 @@ class NodeData:
     def __init__(self, strat_pool=None, resource=None, **kwargs):
         self.node = NotImplemented
         self.out = NotImplemented
-        self.variant = None
         if strat_pool is not None and resource is not None:
             self.node, self.out = strat_pool.get_data(resource, **kwargs)
-            self.variant = strat_pool.rpool.get(resource, {}).get(
-                'json', {}).get('CpacVariant', {}).get(resource)
 
     def __repr__(self):
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
