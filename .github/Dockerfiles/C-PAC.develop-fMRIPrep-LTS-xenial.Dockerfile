@@ -1,11 +1,11 @@
 # Choose versions
-FROM freesurfer/freesurfer:6.0 AS Freesurfer
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 
 FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07-xenial as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-xenial as c3d
 FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.9-5.neurodebian-xenial as FSL
+FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.1-xenial as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 
 # using Ubuntu 16.04 LTS as parent image
@@ -62,7 +62,8 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 # install FreeSurfer
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 
 # install C-PAC & set up runscript
 COPY . /code
@@ -76,8 +77,7 @@ RUN pip install -e /code && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh && \
-    apt-get clean && \
+RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ldconfig && \
