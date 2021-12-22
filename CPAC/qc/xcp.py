@@ -273,20 +273,21 @@ def generate_xcp_qc(space, desc, original_anat,
             final_func[desc_span[1]:]
         ])
     del desc_span
-    power_params = {'meanFD': np.mean(np.loadtxt(
-        framewise_displacement_jenkinson))}
 
-    # `relMeansRMSMotion` & `relMaxRMSMotion`
-    mot = np.genfromtxt(movement_parameters).T
-    # Relative RMS of translation
-    rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
-    rms_params = {
-        'relMeansRMSMotion': [np.mean(rms)],
-        'relMaxRMSMotion': [np.max(rms)]
-    }
-
-    # `meanDVInit` & `meanDVFinal`
     if dvars:
+        power_params = {'meanFD': np.mean(np.loadtxt(
+            framewise_displacement_jenkinson))}
+
+        # `relMeansRMSMotion` & `relMaxRMSMotion`
+        mot = np.genfromtxt(movement_parameters).T
+        # Relative RMS of translation
+        rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
+        rms_params = {
+            'relMeansRMSMotion': [np.mean(rms)],
+            'relMaxRMSMotion': [np.max(rms)]
+        }
+
+        # `meanDVInit` & `meanDVFinal`
         meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
         try:
             meanDV['motionDVCorrInit'] = dvcorr(
@@ -302,9 +303,10 @@ def generate_xcp_qc(space, desc, original_anat,
             except ValueError as value_error:
                 meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
     else:
-        meanDV = {key: 'n/a' for key in [
-            f'{dv}DV{ts}' for dv in ['mean', 'motion']
-            for ts in ['Init', 'Final']]}
+        meanDV = _na_dict([f'{dv}DV{ts}' for dv in ['mean', 'motion']
+                           for ts in ['Init', 'Final']])
+        power_params = {'meanFD': 'n/a'}
+        rms_params = _na_dict(['relMeansRMSMotion', 'relMaxRMSMotion'])
 
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
@@ -321,12 +323,15 @@ def generate_xcp_qc(space, desc, original_anat,
         for key in ['normDice', 'normJaccard', 'normCrossCorr',
                     'normCoverage']:
             overlap_params[key] = 'N/A: native space'
-    else:
+    elif template is not None:
         (overlap_params['normDice'], overlap_params['normJaccard'],
          overlap_params['normCrossCorr'], overlap_params['normCoverage']
          ) = calculate_overlap(
             (overlap_images['space-T1w_bold'], overlap_images['template'])
         ).values()
+    else:
+        overlap_params = _na_dict(['normDice', 'normJaccard', 'normCrossCorr',
+                                   'normCoverage'])
 
     qc_dict = {
         **from_bids,
@@ -426,12 +431,17 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                  brain_mask_key, output_key, pipe_num):
     # pylint: disable=invalid-name, too-many-arguments
     # motion "Final"
-    if strat_pool.check_rpool('movement-parameters'):
+    if (
+        strat_pool.check_rpool('movement-parameters') and
+        strat_pool.check_rpool(brain_mask_key)
+    ):
         wf = _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final,
                              pipe_num)
     else:
         qc_file.inputs.censor_indices = []
-        for key in [*motion_params, 'dvars_after', 'fdj_after']:
+        for key in [*motion_params, 'movement_parameters',
+                    'framewise_displacement_jenkinson', 'dvars_after',
+                    'fdj_after']:
             setattr(qc_file.inputs, key, None)
     wf.connect([
         (original['anat'].node, qc_file, [
@@ -443,6 +453,10 @@ def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
         (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')])])
     outputs = {output_key: (qc_file, 'qc_file')}
     return wf, outputs
+
+
+def _na_dict(keys):
+    return {key: 'n/a' for key in keys}
 
 
 def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -499,9 +513,8 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 'censor-indices', 'space-template_desc-preproc_bold',
                 'T1w-brain-template-funcreg', 'censor-indices',
                 'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
-                'space-template_desc-bold_mask', 'movement-parameters',
-                'framewise-displacement-jenkinson', 'rels-displacement',
-                'coordinate-transformation')],
+                'movement-parameters', 'framewise-displacement-jenkinson',
+                'rels-displacement', 'coordinate-transformation')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
     space = 'template'
