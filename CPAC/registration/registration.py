@@ -4213,16 +4213,16 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
 def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
-    {"name": "transform_Tissuemask_to_T1template",
+    {"name": "warp_Tissuemask_to_T1template",
      "config": "None",
      "switch": ["registration_workflows", "anatomical_registration", "run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["label-CSF_mask",
-                "label-WM_mask",
-                "label-GM_mask",
-                "T1_template",
-                "T1w_to-template_mode-image_xfm"], 
+     "inputs": [("label-CSF_mask", 
+                 "label-WM_mask", 
+                 "label-GM_mask",
+                 "from-T1w_to-template_mode-image_xfm"),
+                "T1w-template"],          
       "outputs": ["space-template_label-CSF_mask",
                   "space-template_label-WM_mask",
                   "space-template_label-GM_mask" ]} 
@@ -4238,51 +4238,65 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_Tissuemask_to_T1template{pipe_num}',
+    apply_xfm_CSF = apply_transform(f'warp_Tissuemask_to_T1template_CSF{pipe_num}',
                                 reg_tool, time_series=False,
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
-
+                                
+    apply_xfm_WM= apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+                                 
+    apply_xfm_GM= apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
+                                reg_tool, time_series=False,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+                                
     if reg_tool == 'ants':
-        applyxfm.inputs.interp='nearestneighbour'
+        apply_xfm_CSF.inputs.inputspec.interpolation = 'NearestNeighbor'
+        apply_xfm_WM.inputs.inputspec.interpolation = 'NearestNeighbor'
+        apply_xfm_GM.inputs.inputspec.interpolation = 'NearestNeighbor'
     elif reg_tool == 'fsl':
-        applyxfm.inputs.interp='nearestneighbour'
+        apply_xfm_CSF.inputs.inputspec.interpolation = 'nn'
+        apply_xfm_WM.inputs.inputspec.interpolation = 'nn'
+        apply_xfm_GM.inputs.inputspec.interpolation = 'nn'
         
     if strat_pool.check_rpool('label-CSF_mask'):
        node, out = strat_pool.get_data("label-CSF_mask")
-       wf.connect(node, out, apply_xfm, 'inputspec.input_image')
-       node, out = strat_pool.get_data("T1_template")
-       wf.connect(node, out, apply_xfm, 'inputspec.reference')
-       node, out = strat_pool.get_data("T1w_to-template_mode-image_xfm")
-       wf.connect(node, out, apply_xfm, 'inputspec.transform')
+       wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
+       node, out = strat_pool.get_data("T1w-template")
+       wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
+       node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
+       wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
        outputs = {
         f'space-template_label-CSF_mask':
-            (apply_xfm, 'outputspec.output_image')}
+            (apply_xfm_CSF, 'outputspec.output_image')}
             
     
  
     if strat_pool.check_rpool('label-WM_mask'):
        node, out = strat_pool.get_data("label-WM_mask")
-       wf.connect(node, out, apply_xfm, 'inputspec.input_image')
-       node, out = strat_pool.get_data("T1_template")
-       wf.connect(node, out, apply_xfm, 'inputspec.reference')
-       node, out = strat_pool.get_data("T1w_to-template_mode-image_xfm")
-       wf.connect(node, out, apply_xfm, 'inputspec.transform')
+       wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
+       node, out = strat_pool.get_data("T1w-template")
+       wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
+       node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
+       wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
        outputs = {
         f'space-template_label-WM_mask':
-            (apply_xfm, 'outputspec.output_image')}
+            (apply_xfm_WM, 'outputspec.output_image')}
        
         
     if strat_pool.check_rpool('label-GM_mask'):
        node, out = strat_pool.get_data("label-GM_mask")
-       wf.connect(node, out, apply_xfm, 'inputspec.input_image')
-       node, out = strat_pool.get_data("T1_template")
-       wf.connect(node, out, apply_xfm, 'inputspec.reference')
-       node, out = strat_pool.get_data("T1w_to-template_mode-image_xfm")
-       wf.connect(node, out, apply_xfm, 'inputspec.transform')
+       wf.connect(node, out, apply_xfm_GM, 'inputspec.input_image')
+       node, out = strat_pool.get_data("T1w-template")
+       wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
+       node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
+       wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
        outputs = {
         f'space-template_label-GM_mask':
-            (apply_xfm, 'outputspec.output_image')}
+            (apply_xfm_GM, 'outputspec.output_image')}
        
    
 

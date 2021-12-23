@@ -954,7 +954,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-            warp_Tissuemask_to_T1template
+            
         ]
     
       
@@ -989,7 +989,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             seg_blocks.append(tissue_seg_EPI_template_based)
             
         pipeline_blocks += seg_blocks
-
+    pipeline_blocks.append(warp_Tissuemask_to_T1template)
     return pipeline_blocks
 
 
