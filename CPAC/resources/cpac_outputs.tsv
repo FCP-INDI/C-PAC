@@ -195,6 +195,6 @@ from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI
 from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
-space-template_label-CSF_mask   	T1w		anat	NIfTI					
-space-template_label-WM_mask   	T1w		anat	NIfTI					
-space-template_label-GM_mask   	T1w		anat	NIfTI					
+space-template_label-CSF_mask   	mask	template	anat	NIfTI					
+space-template_label-WM_mask   	mask	template	anat	NIfTI					
+space-template_label-GM_mask   	mask	template	anat	NIfTI					
