@@ -50,6 +50,7 @@ class ResourcePool(object):
 
         self.name = name
         self.info = {}
+        self.rtable = {}
 
         if cfg:
             self.cfg = cfg
@@ -165,6 +166,14 @@ class ResourcePool(object):
         elif isinstance(prov[-1], str):
             return prov[-1].split(':')[0]
 
+    def parse_bids_tags(self, resource):
+        resource_tags = resource.split('_')
+        resource_type = resource_tags.pop(-1)
+        tag_dct = {}
+        for tag in resource_tags:
+            tag_dct[tag.split('-')[0]] = tag.split('-')[1]
+        return (resource_type, tag_dct)
+
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
         json_info = json_info.copy()
@@ -210,12 +219,57 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+        
+        resource_type, tag_dct = self.parse_bids_tags(resource)
+        
+        if resource_type not in self.rtable:
+            self.rtable[resource_type] = {}
+        for tag, val in tag_dct.iteritems():
+            if tag not in self.rtable[resource_type]:
+                self.rtable[resource_type][tag] = {val: []}
+            if resource not in self.rtable[resource_type][tag][val]:
+                self.rtable[resource_type][tag][val].append(resource)
+        
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
+    def intersect(lst1, lst2):
+        return list(set(lst1) & set(lst2))
+
+    def pull_all(self, resource):
+        resource_type, tag_dct = self.parse_bids_tags(resource)
+        combined = []
+        for tag, val in tag_dct.iteritems():
+            for other, other_val in tag_dct.iteritems():
+                combined.append(intersect(self.rtable[resource_type][tag][val],
+                                          self.rtable[resource_type][other][other_val))
+        combined = list(set(combined))
+        subpool = copy.deepcopy(self.rpool)
+        for label in combined:
+            for pipe_idx in subpool[label]:
+                if pipe_idx not in subpool[resource]:
+                    subpool[resource][pipe_idx] = subpool[label][pipe_idx]
+        return subpool[resource]
+        
+    def pull_only(self, resource):
+        return self.rpool[resource]   
+
     def get(self, resource, pipe_idx=None, report_fetched=False,
             optional=False):
+            
+        info_msg = "\n[!] C-PAC says: None of the listed resources are in " \
+                   f"the resource pool:\n{resource}\n\n Options:\n- You can " \
+                   "enable a node block earlier in the pipeline which " \
+                   "produces these resources. Check the 'outputs:' field in " \
+                   "a node block's documentation.\n- You can directly " \
+                   "provide this required data by pulling it from another " \
+                   "BIDS directory using 'source_outputs_dir:' in the " \
+                   "pipeline configuration, or by placing it directly in " \
+                   "your C-PAC output directory.\n- If you have done these, " \
+                   "and you still get this message, please let us know " \
+                   "through any of our support channels at: " \
+                   "https://fcp-indi.github.io/\n"
+        pull = self.pull_all
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
@@ -224,36 +278,35 @@ class ResourcePool(object):
             # found
             for label in resource:
                 if label in self.rpool.keys():
+                    if label[0] == '!':
+                        pull = self.pull_only
+                        label.lstrip('!')
                     if report_fetched:
-                        return (self.rpool[label], label)
-                    return self.rpool[label]
+                        return (pull(label), label)
+                    return pull(label)
             else:
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n[!] C-PAC says: None of the listed "
-                                "resources are in the resource pool:\n"
-                                f"{resource}\n")
+                raise Exception(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
-                                  f"not in the resource pool:\n{resource}\n\n"
-                                  "Developer Note: This may be due to a mis"
-                                  "match between the node block's docstring "
-                                  "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n")
+                raise LookupError(info_msg)
+            if resource[0] == '!':
+                pull = self.pull_only
+                resource.lstrip('!')
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
-                return (self.rpool[resource], resource)
+                return (pull(resource), resource)
             if pipe_idx:
                 return self.rpool[resource][pipe_idx]
-            return self.rpool[resource]
+            return pull(resource)
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
@@ -407,6 +460,12 @@ class ResourcePool(object):
                             variant_pool[fetched_resource].append(f'NO-{val[0]}')
 
             total_pool.append(sub_pool)
+
+        if not total_pool:
+            raise Exception('\n\n[!] C-PAC says: None of the listed resources'\
+                            ' in the node block being connected exist in the '\
+                            f'resource pool.\n\nResources:\n{resource_list}' \
+                            '\n\n')
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -1294,6 +1353,18 @@ class NodeBlock(object):
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
+                              
+                            # TODO  
+                            # update/turn into a function, the tag parser - and make it separate by res- etc., an additional level
+                            # check the output label here for tags, match the data type (_bold, etc.)
+                            # if no tags are being overwritten, transfer the tags over to the linked input-outputs.
+                            resource_type, tag_dct = self.parse_bids_tags(label)
+                            for inlabel in strat_pool:
+                                input_type, input_tags = self.parse_bids_tags(inlabel)
+                                if resource_type == input_type:
+                                    for tag in input_tags:
+                                        if tag not in tag_dct:
+                                            label = f'{tag}-{input_tags[tag]}_{label}'
 
                             rpool.set_data(label,
                                            connection[0],
@@ -1517,8 +1588,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if not os.listdir(out_dir):
                 raise Exception(f"\nSource directory {out_dir} does not exist!")
         
-        cpac_dir = os.path.join(out_dir,
-                                unique_id)
+        cpac_dir = os.path.join(out_dir, unique_id)
+        if not os.path.isdir(cpac_dir):
+            unique_id = unique_id.split('_')[0]
+            cpac_dir = os.path.join(out_dir, unique_id)
 
     print(f"\nPulling outputs from {cpac_dir}.\n")
 
@@ -1535,6 +1608,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if ext in filename:
                     all_output_dir.append(os.path.join(cpac_dir_anat,
                                                        filename))
+
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
             for ext in exts:
@@ -1627,7 +1701,14 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = ""
         else:
-            pipe_idx = ""
+            json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin']
+            if not 'Description' in json_info:
+                json_info['Description'] = 'This data was generated elsewhere and ' \
+                                           'supplied by the user into this C-PAC run\'s '\
+                                           'output directory. This JSON file was '\
+                                           'automatically generated by C-PAC because a '\
+                                           'JSON file was not supplied with the data.'
+            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = f"{data_label}_ingress"
 
         resource = data_label
