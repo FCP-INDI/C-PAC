@@ -754,7 +754,7 @@ class ResourcePool(object):
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
             substring_excl.append(['desc-reginput', 'bold'])
             excl += Outputs.debugging
-
+        print(self.rpool.keys)
         for resource in self.rpool.keys():
         
             if resource not in Outputs.any:

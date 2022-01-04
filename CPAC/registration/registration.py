@@ -4262,6 +4262,7 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         apply_xfm_WM.inputs.inputspec.interpolation = 'nn'
         apply_xfm_GM.inputs.inputspec.interpolation = 'nn'
         
+    outputs = {}    
     if strat_pool.check_rpool('label-CSF_mask'):
        node, out = strat_pool.get_data("label-CSF_mask")
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
@@ -4269,12 +4270,12 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
-       outputs = {
+       output_csf = {
         f'space-template_label-CSF_mask':
             (apply_xfm_CSF, 'outputspec.output_image')}
-            
+       outputs.update(output_csf)     
     
- 
+    outputs = {}    
     if strat_pool.check_rpool('label-WM_mask'):
        node, out = strat_pool.get_data("label-WM_mask")
        wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
@@ -4282,10 +4283,10 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
        wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
-       outputs = {
+       output_WM = {
         f'space-template_label-WM_mask':
             (apply_xfm_WM, 'outputspec.output_image')}
-       
+       outputs.update(output_WM)     
         
     if strat_pool.check_rpool('label-GM_mask'):
        node, out = strat_pool.get_data("label-GM_mask")
@@ -4294,10 +4295,10 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
        wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
-       outputs = {
+       output_GM = {
         f'space-template_label-GM_mask':
             (apply_xfm_GM, 'outputspec.output_image')}
-       
+       outputs.update(output_GM) 
    
 
     
