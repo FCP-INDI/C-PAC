@@ -86,7 +86,7 @@ packages:
  - fsl-data_linearmni 1.0.0
  - fsl-data_possum 2106.0
  - fsl-data_standard 2006.0
- - fsl-deface 1.2.0
+ - fsl-deface 1.3.0
  - fsl-discreteopt 2008.0
  - fsl-dpm 2111.0
  - fsl-dwssfp 2111.0
@@ -115,10 +115,10 @@ packages:
  - fsl-fdt-cuda-11.0 2111.0
  - fsl-fdt-cuda-11.1 2111.0
  - fsl-fdt-cuda-11.3 2111.0
- - fsl-feat5 2111.0
+ - fsl-feat5 2201.0
  - fsl-film 2111.0
  - fsl-filmbabe 2111.0
- - fsl-first 2111.0
+ - fsl-first 2201.0
  - fsl-first_lib 2111.0
  - fsl-flameo 2111.0
  - fsl-flirt 2111.0
@@ -140,7 +140,7 @@ packages:
  - fsl-misc_scripts 2111.0
  - fsl-misc_tcl 2111.0
  - fsl-miscmaths 2111.1
- - fsl-miscvis 2111.0
+ - fsl-miscvis 2201.0
  - fsl-mist 2111.0
  - fsl-mm 2111.0
  - fsl_mrs 1.1.8
@@ -200,8 +200,8 @@ linux-64-packages: []
 
 # List of additional packages that
 # are added to macos-64 installations.
-macos-64-packages: 
- # pyobjc has problems on 
+macos-64-packages:
+ # pyobjc has problems on
  # certain macOS installs
  # (https://github.com/conda-forge/pyobjc-core-feedstock/issues/37)
  - pyobjc-core            7.1
