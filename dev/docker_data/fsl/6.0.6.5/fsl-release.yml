@@ -62,7 +62,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.0
- - fsl-base 2112.4
+ - fsl-base 2201.2
  - fsl-basil v4.0.4
  - fsl-basisfield 2111.1
  - fsl-baycest 2111.0
@@ -70,7 +70,7 @@ packages:
  - fsl-bianca 2201.0
  - fsl-biancaData 2006.0
  - fsl-bint 2111.0
- - fsl-cluster 2111.0
+ - fsl-cluster 2201.0
  - fsl-copain 2111.1
  - fsl-cprob 2111.0
  - fsl-cudabasisfield-cuda-9.2 1.1.0
