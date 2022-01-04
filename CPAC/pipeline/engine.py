@@ -210,7 +210,7 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
@@ -407,6 +407,12 @@ class ResourcePool(object):
                             variant_pool[fetched_resource].append(f'NO-{val[0]}')
 
             total_pool.append(sub_pool)
+
+        if not total_pool:
+            raise Exception('\n\n[!] C-PAC says: None of the listed resources'\
+                            ' in the node block being connected exist in the '\
+                            f'resource pool.\n\nResources:\n{resource_list}' \
+                            '\n\n')
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
