@@ -185,7 +185,6 @@ packages:
  - fsl-xtract 1.5.1
  - fsl-xtract_data 1.3.4
  - fsl-znzlib 2111.0
- - fmrib-unpack 2.8.0
  - ghalton 0.6.1
  - hlsvdpropy 2.0.1
  - libopenblas 0.3.18 *openmp*
@@ -200,12 +199,7 @@ linux-64-packages: []
 
 # List of additional packages that
 # are added to macos-64 installations.
-macos-64-packages:
- # pyobjc has problems on
- # certain macOS installs
- # (https://github.com/conda-forge/pyobjc-core-feedstock/issues/37)
- - pyobjc-core            7.1
- - pyobjc-framework-cocoa 7.1
+macos-64-packages: []
 
 # List of additional packages that
 # are added to macos-M1 installations.
