@@ -141,7 +141,7 @@ def calculate_overlap(image_pair):
         'coverage': vol_intersect / min(vols)
     }
     for name, coefficient in coefficients.items():
-        if not 1 >= coefficient >= 0:
+        if not 1 >= coefficient >= 0 and not np.isnan(coefficient):
             raise ValueError(f'Valid range for {name} is [0, 1] but value '
                              f'{coefficient} was calculated.')
     return coefficients
@@ -337,19 +337,19 @@ def generate_xcp_qc(space, desc, original_anat,
     overlap_params = {}
     (overlap_params['coregDice'], overlap_params['coregJaccard'],
      overlap_params['coregCrossCorr'], overlap_params['coregCoverage']
-     ) = calculate_overlap(
+     ) = [[item] for item in calculate_overlap(
         (overlap_images['space-T1w_bold'], overlap_images['original_anat'])
-    ).values()
+    ).values()]
     if space == 'native':
         for key in ['normDice', 'normJaccard', 'normCrossCorr',
                     'normCoverage']:
-            overlap_params[key] = 'N/A: native space'
+            overlap_params[key] = ['N/A: native space']
     elif template is not None:
         (overlap_params['normDice'], overlap_params['normJaccard'],
          overlap_params['normCrossCorr'], overlap_params['normCoverage']
-         ) = calculate_overlap(
+         ) = [[item] for item in calculate_overlap(
             (images['final_func'].get_fdata().ravel(),
-             overlap_images['template'])).values()
+             overlap_images['template'])).values()]
     else:
         overlap_params = _na_dict(['normDice', 'normJaccard', 'normCrossCorr',
                                    'normCoverage'])
