@@ -311,8 +311,8 @@ def generate_xcp_qc(space, desc, original_anat,
     # Overlap
     overlap_images = {variable: image.get_fdata().ravel() for
                       variable, image in images.items() if
-                      variable in ['space-T1w_bold', 'original_anat',
-                                   'template']}
+                      variable in ['space-T1w_bold',
+                                   'original_anat', 'template']}
     overlap_params = {}
     (overlap_params['coregDice'], overlap_params['coregJaccard'],
      overlap_params['coregCrossCorr'], overlap_params['coregCoverage']
@@ -327,8 +327,8 @@ def generate_xcp_qc(space, desc, original_anat,
         (overlap_params['normDice'], overlap_params['normJaccard'],
          overlap_params['normCrossCorr'], overlap_params['normCoverage']
          ) = calculate_overlap(
-            (overlap_images['space-T1w_bold'], overlap_images['template'])
-        ).values()
+            (images['final_func'].get_fdata().ravel(),
+             overlap_images['template'])).values()
     else:
         overlap_params = _na_dict(['normDice', 'normJaccard', 'normCrossCorr',
                                    'normCoverage'])
