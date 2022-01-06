@@ -186,7 +186,7 @@ from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.xcp import qc_xcp_native, qc_xcp_template
+from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
 
 from CPAC.utils.utils import (
     check_config_resources,
@@ -1303,7 +1303,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        pipeline_blocks += [qc_xcp_native, qc_xcp_template]
+        pipeline_blocks += [qc_xcp_native, qc_xcp_skullstripped,
+                            qc_xcp_template]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
