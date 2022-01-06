@@ -67,6 +67,25 @@ motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
 
 
+def _repeat_shorter(images):
+    '''
+    Parameters
+    ----------
+    images : 2-tuple
+
+    Returns
+    -------
+    images : 2-tuple
+    '''
+    lens = (len(images[0]), len(images[1]))
+    if lens[1] > lens[0] and lens[1] % lens[0] == 0:
+        return (np.tile(images[0], lens[1] // lens[0]), images[1])
+    if lens[0] > lens[1] and lens[0] % lens[1] == 0:
+        return (images[0], np.tile(images[1], lens[0] // lens[1]))
+    raise ValueError('operands could not be broadcast together with shapes '
+                     f'({lens[0]},) ({lens[1]},)')
+
+
 def calculate_overlap(image_pair):
     '''
     Function to calculate Dice, Jaccard, CrossCorr and Coverage:cite:`cite-Penn19` from a
@@ -107,6 +126,8 @@ def calculate_overlap(image_pair):
     if len(image_pair) != 2:
         raise IndexError('`calculate_overlap` requires 2 images, but '
                          f'{len(image_pair)} were provided')
+    if len(image_pair[0]) != len(image_pair[1]):
+        image_pair = _repeat_shorter(image_pair)
     image_pair = tuple(image.astype(bool) for image in image_pair)
     intersect = image_pair[0] * image_pair[1]
     vols = [np.sum(image) for image in image_pair]
