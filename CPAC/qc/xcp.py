@@ -76,6 +76,13 @@ def _repeat_shorter(images):
     Returns
     -------
     images : 2-tuple
+
+    Examples
+    --------
+    >>> _repeat_shorter((np.array([1, 2, 3]), np.array([1])))
+    (array([1, 2, 3]), array([1, 1, 1]))
+    >>> _repeat_shorter((np.array([0, 0]), (np.array([1, 1, 2, 2, 3, 4]))))
+    (array([0, 0, 0, 0, 0, 0]), array([1, 1, 2, 2, 3, 4]))
     '''
     lens = (len(images[0]), len(images[1]))
     if lens[1] > lens[0] and lens[1] % lens[0] == 0:
