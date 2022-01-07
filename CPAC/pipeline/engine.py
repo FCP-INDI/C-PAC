@@ -1400,9 +1400,40 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     return (wf, strat_pool)
 
 
+def get_node_block_config(node_block, key):
+    '''
+    Function to collect a NodeBlock configuration item without
+    initializing a NodeBlock.
+
+    Returns value for a given key for a NodeBlock's configration.
+
+    If simplified is True, removes outer single-item iterables.
+
+    Parameters
+    ----------
+    node_block : NodeBlock function
+
+    key : str
+
+    Returns
+    -------
+    any
+        value for given key in given node_block's docstring config
+
+    Examples
+    --------
+    >>> from CPAC.anat_preproc.anat_preproc import anatomical_init
+    >>> get_node_block_config(anatomical_init, 'inputs')
+    ['T1w']
+    >>> get_node_block_config(anatomical_init, 'name')
+    'anatomical_init'
+    '''
+    return NodeBlock([]).grab_docstring_dct(node_block.__doc__)[key]
+
+
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-                          
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool

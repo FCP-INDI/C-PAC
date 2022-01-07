@@ -60,11 +60,14 @@ import pandas as pd
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.engine import get_node_block_config
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
+raw_resources = ['bold', 'subject', 'scan', 'T1w',
+                 'T1w-brain-template-funcreg']
 
 
 def calculate_overlap(image_pair):
@@ -435,14 +438,17 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('max-displacement', 'dvars', 'censor-indices',
-                'desc-preproc_bold', 'desc-preproc_T1w',
-                'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
-                'movement-parameters', 'framewise-displacement-jenkinson',
-                'rels-displacement', 'coordinate-transformation')],
+     'inputs': [('bold', 'subject', 'scan', 'T1w', 'max-displacement',
+                'dvars', 'censor-indices', 'desc-preproc_bold',
+                'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
+                'space-bold_desc-brain_mask', 'movement-parameters',
+                'framewise-displacement-jenkinson', 'rels-displacement',
+                'coordinate-transformation')],
      'outputs': ['desc-xcp_quality']}
     """
-    if not strat_pool.check_rpool(['bold', 'subject', 'scan', 'T1w']):
+    if not strat_pool.check_rpool([resource for resource in raw_resources if
+                                  resource in get_node_block_config(
+                                      qc_xcp_native, 'inputs')[0]]):
         return wf, {}
     space = 'native'
     qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
@@ -463,10 +469,14 @@ def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('desc-preproc_bold', 'desc-preproc_T1w',
-                'space-T1w_desc-mean_bold')],
+     'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
+                'desc-preproc_T1w', 'space-T1w_desc-mean_bold')],
      'outputs': ['desc-xcp_quality']}
     """
+    if not strat_pool.check_rpool([resource for resource in raw_resources if
+                                  resource in get_node_block_config(
+                                      qc_xcp_skullstripped, 'inputs')[0]]):
+        return wf, {}
     return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
 
 
@@ -478,15 +488,17 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('max-displacement', 'dvars', 'censor-indices',
-                'space-template_desc-preproc_bold',
+     'inputs': [('bold', 'subject', 'scan', 'T1w',
+                'T1w-brain-template-funcreg', 'max-displacement', 'dvars',
+                'censor-indices', 'space-template_desc-preproc_bold',
                 'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
                 'movement-parameters', 'framewise-displacement-jenkinson',
                 'rels-displacement', 'coordinate-transformation')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
-    if not strat_pool.check_rpool(['bold', 'subject', 'scan', 'T1w',
-                                  'T1w-brain-template-funcreg']):
+    if not strat_pool.check_rpool([resource for resource in raw_resources if
+                                  resource in get_node_block_config(
+                                      qc_xcp_template, 'inputs')[0]]):
         return wf, {}
     space = 'template'
     qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
