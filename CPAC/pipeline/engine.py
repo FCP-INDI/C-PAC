@@ -170,6 +170,8 @@ class ResourcePool(object):
         resource_tags = resource.split('_')
         resource_type = resource_tags.pop(-1)
         tag_dct = {}
+        # grab everything for resources with no BIDS tags
+        tag_dct['None'] = 'None'
         for tag in resource_tags:
             tag_dct[tag.split('-')[0]] = tag.split('-')[1]
         return (resource_type, tag_dct)
@@ -221,45 +223,47 @@ class ResourcePool(object):
             self.pipe_list.append(new_pipe_idx)
         
         resource_type, tag_dct = self.parse_bids_tags(resource)
-        
+
         if resource_type not in self.rtable:
             self.rtable[resource_type] = {}
-        for tag, val in tag_dct.iteritems():
+        for tag, val in tag_dct.items():
             if tag not in self.rtable[resource_type]:
                 self.rtable[resource_type][tag] = {val: []}
             if resource not in self.rtable[resource_type][tag][val]:
                 self.rtable[resource_type][tag][val].append(resource)
-        
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    def intersect(lst1, lst2):
+    def intersect(self, lst1, lst2):
         return list(set(lst1) & set(lst2))
 
     def pull_all(self, resource):
         resource_type, tag_dct = self.parse_bids_tags(resource)
-        combined = []
-        for tag, val in tag_dct.iteritems():
-            for other, other_val in tag_dct.iteritems():
-                combined.append(intersect(self.rtable[resource_type][tag][val],
-                                          self.rtable[resource_type][other][other_val))
-        combined = list(set(combined))
-        subpool = copy.deepcopy(self.rpool)
+        if self.rtable:
+            combined = []
+            for tag, val in tag_dct.items():
+                for other, other_val in tag_dct.items():
+                    combined += self.intersect(self.rtable[resource_type][tag][val],
+                                               self.rtable[resource_type][other][other_val])
+            combined = list(set(combined))
+        else:
+            combined = [resource]
         for label in combined:
-            for pipe_idx in subpool[label]:
-                if pipe_idx not in subpool[resource]:
-                    subpool[resource][pipe_idx] = subpool[label][pipe_idx]
-        return subpool[resource]
+            for pipe_idx in self.get_pipe_idxs(label):
+                if pipe_idx not in self.get_pipe_idxs(resource):
+                    # this is intended for strat_pools only
+                    self.update_resource(label, resource)
+        return self.rpool[resource]
         
     def pull_only(self, resource):
         return self.rpool[resource]   
 
     def get(self, resource, pipe_idx=None, report_fetched=False,
             optional=False):
-            
-        info_msg = "\n[!] C-PAC says: None of the listed resources are in " \
-                   f"the resource pool:\n{resource}\n\n Options:\n- You can " \
-                   "enable a node block earlier in the pipeline which " \
+        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
+                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
+                   "can enable a node block earlier in the pipeline which " \
                    "produces these resources. Check the 'outputs:' field in " \
                    "a node block's documentation.\n- You can directly " \
                    "provide this required data by pulling it from another " \
@@ -277,10 +281,10 @@ class ResourcePool(object):
             # if a list of potential inputs are given, pick the first one
             # found
             for label in resource:
+                if label[0] == '!':
+                    pull = self.pull_only
+                    label = label.lstrip('!')
                 if label in self.rpool.keys():
-                    if label[0] == '!':
-                        pull = self.pull_only
-                        label.lstrip('!')
                     if report_fetched:
                         return (pull(label), label)
                     return pull(label)
@@ -291,15 +295,15 @@ class ResourcePool(object):
                     return None
                 raise Exception(info_msg)
         else:
+            if resource[0] == '!':
+                pull = self.pull_only
+                resource = resource.lstrip('!')
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
                 raise LookupError(info_msg)
-            if resource[0] == '!':
-                pull = self.pull_only
-                resource.lstrip('!')
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -330,6 +334,10 @@ class ResourcePool(object):
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
             raise Exception(f"[!] {resource} not in the resource pool.")
+
+    def update_resource(self, resource, new_name):
+        # move over any new pipe_idx's
+        self.rpool[new_name].update(self.rpool[resource])
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -1514,7 +1522,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                    "func_ingress")
     rpool.set_data('bold', func_wf, 'outputspec.rest', {}, "", "func_ingress")
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
-    rpool.set_data('scan_params', func_wf, 'outputspec.scan_params', {}, "",
+    rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
 
     wf, rpool, diff, blip, fmap_rp_list = \
