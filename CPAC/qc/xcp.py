@@ -480,10 +480,10 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
                 'censor-indices', 'space-template_desc-preproc_bold',
-                'T1w-brain-template-funcreg', 'censor-indices',
-                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
-                'movement-parameters', 'framewise-displacement-jenkinson',
-                'rels-displacement', 'coordinate-transformation')],
+                'T1w-brain-template-funcreg', 'desc-preproc_T1w', 'T1w',
+                'space-T1w_desc-mean_bold', 'movement-parameters',
+                'framewise-displacement-jenkinson', 'rels-displacement',
+                'coordinate-transformation')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
     space = 'template'
