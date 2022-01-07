@@ -187,7 +187,6 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
 def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                  brain_mask_key, output_key, pipe_num):
     # pylint: disable=invalid-name, too-many-arguments
-    # motion "Final"
     if (
         strat_pool.check_rpool('movement-parameters') and
         strat_pool.check_rpool(brain_mask_key)
@@ -436,14 +435,15 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
-                'censor-indices', 'desc-preproc_bold',
-                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold',
-                'space-bold_desc-brain_mask', 'movement-parameters',
-                'framewise-displacement-jenkinson', 'rels-displacement',
-                'coordinate-transformation')],
+     'inputs': [('max-displacement', 'dvars', 'censor-indices',
+                'desc-preproc_bold', 'desc-preproc_T1w',
+                'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
+                'movement-parameters', 'framewise-displacement-jenkinson',
+                'rels-displacement', 'coordinate-transformation')],
      'outputs': ['desc-xcp_quality']}
     """
+    if not strat_pool.check_rpool(['bold', 'subject', 'scan', 'T1w']):
+        return wf, {}
     space = 'native'
     qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
                                                       space)
@@ -463,8 +463,8 @@ def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'desc-preproc_bold',
-                'desc-preproc_T1w', 'T1w', 'space-T1w_desc-mean_bold')],
+     'inputs': [('desc-preproc_bold', 'desc-preproc_T1w',
+                'space-T1w_desc-mean_bold')],
      'outputs': ['desc-xcp_quality']}
     """
     return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
@@ -478,14 +478,16 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'max-displacement', 'dvars',
-                'censor-indices', 'space-template_desc-preproc_bold',
-                'T1w-brain-template-funcreg', 'desc-preproc_T1w', 'T1w',
-                'space-T1w_desc-mean_bold', 'movement-parameters',
-                'framewise-displacement-jenkinson', 'rels-displacement',
-                'coordinate-transformation')],
+     'inputs': [('max-displacement', 'dvars', 'censor-indices',
+                'space-template_desc-preproc_bold',
+                'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
+                'movement-parameters', 'framewise-displacement-jenkinson',
+                'rels-displacement', 'coordinate-transformation')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
+    if not strat_pool.check_rpool(['bold', 'subject', 'scan', 'T1w',
+                                  'T1w-brain-template-funcreg']):
+        return wf, {}
     space = 'template'
     qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
                                                       space)
