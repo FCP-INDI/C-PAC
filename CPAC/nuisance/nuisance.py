@@ -418,6 +418,7 @@ def gather_nuisance(functional_file_path,
 def create_regressor_workflow(nuisance_selectors,
                               use_ants,
                               ventricle_mask_exist,
+                              csf_mask_exist,
                               all_bold=False,
                               name='nuisance_regressors'):
     """
@@ -2130,9 +2131,11 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
         use_ants = reg_tool == 'ants'
     
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
+    csf_mask = strat_pool.check_rpool('csf_mask')
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
+                                           csf_mask_exist = csf_mask,
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
