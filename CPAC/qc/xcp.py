@@ -67,32 +67,6 @@ motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
 
 
-def _repeat_shorter(images):
-    '''
-    Parameters
-    ----------
-    images : 2-tuple
-
-    Returns
-    -------
-    images : 2-tuple
-
-    Examples
-    --------
-    >>> _repeat_shorter((np.array([1, 2, 3]), np.array([1])))
-    (array([1, 2, 3]), array([1, 1, 1]))
-    >>> _repeat_shorter((np.array([0, 0]), (np.array([1, 1, 2, 2, 3, 4]))))
-    (array([0, 0, 0, 0, 0, 0]), array([1, 1, 2, 2, 3, 4]))
-    '''
-    lens = (len(images[0]), len(images[1]))
-    if lens[1] > lens[0] and lens[1] % lens[0] == 0:
-        return (np.tile(images[0], lens[1] // lens[0]), images[1])
-    if lens[0] > lens[1] and lens[0] % lens[1] == 0:
-        return (images[0], np.tile(images[1], lens[0] // lens[1]))
-    raise ValueError('operands could not be broadcast together with shapes '
-                     f'({lens[0]},) ({lens[1]},)')
-
-
 def calculate_overlap(image_pair):
     '''
     Function to calculate Dice, Jaccard, CrossCorr and Coverage:cite:`cite-Penn19` from a
@@ -154,6 +128,90 @@ def calculate_overlap(image_pair):
     return coefficients
 
 
+def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
+    # pylint: disable=invalid-name, too-many-arguments
+    try:
+        nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
+        wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
+                   qc_file, 'censor_indices')
+    except LookupError:
+        nodes = {}
+        qc_file.inputs.censor_indices = []
+    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
+    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+    gen_motion_stats = motion_power_statistics('motion_stats-after_'
+                                               f'{pipe_num}',
+                                               motion_correct_tool)
+    nodes = {
+        **nodes,
+        **{node_data: strat_pool.node_data(node_data) for node_data in [
+            'subject', 'scan', brain_mask_key, 'max-displacement',
+            *motion_params]}}
+    if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
+            'coordinate-transformation'):
+        nodes['coordinate-transformation'] = strat_pool.node_data(
+            'coordinate-transformation')
+        wf.connect(nodes['coordinate-transformation'].node,
+                   nodes['coordinate-transformation'].out,
+                   gen_motion_stats, 'inputspec.transformations')
+    elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
+            'rels-displacement'):
+        nodes['rels-displacement'] = strat_pool.node_data('rels-displacement')
+        wf.connect(nodes['rels-displacement'].node,
+                   nodes['rels-displacement'].out,
+                   gen_motion_stats, 'inputspec.rels_displacement')
+    wf.connect([
+        (final['func'].node, gen_motion_stats, [
+            (final['func'].out, 'inputspec.motion_correct')]),
+        (nodes['subject'].node, gen_motion_stats, [
+            (nodes['subject'].out, 'inputspec.subject_id')]),
+        (nodes['scan'].node, gen_motion_stats, [
+            (nodes['scan'].out, 'inputspec.scan_id')]),
+        (nodes['movement-parameters'].node, gen_motion_stats, [
+            (nodes['movement-parameters'].out,
+                'inputspec.movement_parameters')]),
+        (nodes['max-displacement'].node, gen_motion_stats, [
+            (nodes['max-displacement'].out,
+                'inputspec.max_displacement')]),
+        (nodes[brain_mask_key].node, gen_motion_stats, [
+            (nodes[brain_mask_key].out, 'inputspec.mask')]),
+        (gen_motion_stats, qc_file, [
+            ('outputspec.DVARS_1D', 'dvars_after'),
+            ('outputspec.FDJ_1D', 'fdj_after')]),
+        *[(nodes[node].node, qc_file, [
+            (nodes[node].out, node.replace('-', '_'))
+        ]) for node in motion_params]])
+    return wf
+
+
+def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                 brain_mask_key, output_key, pipe_num):
+    # pylint: disable=invalid-name, too-many-arguments
+    # motion "Final"
+    if (
+        strat_pool.check_rpool('movement-parameters') and
+        strat_pool.check_rpool(brain_mask_key)
+    ):
+        wf = _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final,
+                             pipe_num)
+    else:
+        qc_file.inputs.censor_indices = []
+        for key in [*motion_params, 'movement_parameters',
+                    'framewise_displacement_jenkinson', 'dvars_after',
+                    'fdj_after']:
+            setattr(qc_file.inputs, key, None)
+    wf.connect([
+        (original['anat'].node, qc_file, [
+            (original['anat'].out, 'original_anat')]),
+        (original['func'].node, qc_file, [
+            (original['func'].out, 'original_func')]),
+        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
+        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
+        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')])])
+    outputs = {output_key: (qc_file, 'qc_file')}
+    return wf, outputs
+
+
 def dvcorr(dvars, fdj):
     """Function to correlate DVARS and FD-J"""
     dvars = np.loadtxt(dvars)
@@ -164,39 +222,6 @@ def dvcorr(dvars, fdj):
             f'lengths are {len(dvars)} and {len(fdj)}.'
         )
     return np.corrcoef(dvars, fdj[1:])[0, 1]
-
-
-def strings_from_bids(final_func):
-    """
-    Function to gather BIDS entities into a dictionary
-
-    Parameters
-    ----------
-    final_func : str
-
-    Returns
-    -------
-    dict
-
-    Examples
-    --------
-    >>> fake_path = (
-    ...     '/path/to/sub-fakeSubject_ses-fakeSession_task-peer_run-3_'
-    ...     'atlas-Schaefer400_space-MNI152NLin6_res-1x1x1_'
-    ...     'desc-NilearnPearson_connectome.tsv')
-    >>> strings_from_bids(fake_path)['desc']
-    'NilearnPearson'
-    >>> strings_from_bids(fake_path)['space']
-    'MNI152NLin6'
-    """
-    from_bids = dict(
-        tuple(entity.split('-', 1)) if '-' in entity else
-        ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
-    )
-    from_bids = {k: from_bids[k] for k in from_bids}
-    if 'space' not in from_bids:
-        from_bids['space'] = 'native'
-    return from_bids
 
 
 def generate_xcp_qc(space, desc, original_anat,
@@ -374,6 +399,10 @@ def generate_xcp_qc(space, desc, original_anat,
     return qc_filepath
 
 
+def _na_dict(keys):
+    return {key: 'n/a' for key in keys}
+
+
 def _prep_qc_xcp(strat_pool, pipe_num, space):
     qc_file = pe.Node(Function(input_names=['subject', 'scan',
                                             'space', 'desc', 'template',
@@ -397,94 +426,6 @@ def _prep_qc_xcp(strat_pool, pipe_num, space):
     final['anat'] = strat_pool.node_data('desc-preproc_T1w')
     t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
     return qc_file, original, final, t1w_bold
-
-
-def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
-    # pylint: disable=invalid-name, too-many-arguments
-    try:
-        nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
-        wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
-                   qc_file, 'censor_indices')
-    except LookupError:
-        nodes = {}
-        qc_file.inputs.censor_indices = []
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
-    gen_motion_stats = motion_power_statistics('motion_stats-after_'
-                                               f'{pipe_num}',
-                                               motion_correct_tool)
-    nodes = {
-        **nodes,
-        **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'max-displacement',
-            *motion_params]}}
-    if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
-            'coordinate-transformation'):
-        nodes['coordinate-transformation'] = strat_pool.node_data(
-            'coordinate-transformation')
-        wf.connect(nodes['coordinate-transformation'].node,
-                   nodes['coordinate-transformation'].out,
-                   gen_motion_stats, 'inputspec.transformations')
-    elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
-            'rels-displacement'):
-        nodes['rels-displacement'] = strat_pool.node_data('rels-displacement')
-        wf.connect(nodes['rels-displacement'].node,
-                   nodes['rels-displacement'].out,
-                   gen_motion_stats, 'inputspec.rels_displacement')
-    wf.connect([
-        (final['func'].node, gen_motion_stats, [
-            (final['func'].out, 'inputspec.motion_correct')]),
-        (nodes['subject'].node, gen_motion_stats, [
-            (nodes['subject'].out, 'inputspec.subject_id')]),
-        (nodes['scan'].node, gen_motion_stats, [
-            (nodes['scan'].out, 'inputspec.scan_id')]),
-        (nodes['movement-parameters'].node, gen_motion_stats, [
-            (nodes['movement-parameters'].out,
-                'inputspec.movement_parameters')]),
-        (nodes['max-displacement'].node, gen_motion_stats, [
-            (nodes['max-displacement'].out,
-                'inputspec.max_displacement')]),
-        (nodes[brain_mask_key].node, gen_motion_stats, [
-            (nodes[brain_mask_key].out, 'inputspec.mask')]),
-        (gen_motion_stats, qc_file, [
-            ('outputspec.DVARS_1D', 'dvars_after'),
-            ('outputspec.FDJ_1D', 'fdj_after')]),
-        *[(nodes[node].node, qc_file, [
-            (nodes[node].out, node.replace('-', '_'))
-        ]) for node in motion_params]])
-    return wf
-
-
-def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                 brain_mask_key, output_key, pipe_num):
-    # pylint: disable=invalid-name, too-many-arguments
-    # motion "Final"
-    if (
-        strat_pool.check_rpool('movement-parameters') and
-        strat_pool.check_rpool(brain_mask_key)
-    ):
-        wf = _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final,
-                             pipe_num)
-    else:
-        qc_file.inputs.censor_indices = []
-        for key in [*motion_params, 'movement_parameters',
-                    'framewise_displacement_jenkinson', 'dvars_after',
-                    'fdj_after']:
-            setattr(qc_file.inputs, key, None)
-    wf.connect([
-        (original['anat'].node, qc_file, [
-            (original['anat'].out, 'original_anat')]),
-        (original['func'].node, qc_file, [
-            (original['func'].out, 'original_func')]),
-        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
-        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
-        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')])])
-    outputs = {output_key: (qc_file, 'qc_file')}
-    return wf, outputs
-
-
-def _na_dict(keys):
-    return {key: 'n/a' for key in keys}
 
 
 def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -554,3 +495,62 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                         'space-template_desc-bold_mask',
                         'space-template_desc-xcp_quality', pipe_num)
+
+
+def _repeat_shorter(images):
+    '''
+    Parameters
+    ----------
+    images : 2-tuple
+
+    Returns
+    -------
+    images : 2-tuple
+
+    Examples
+    --------
+    >>> _repeat_shorter((np.array([1, 2, 3]), np.array([1])))
+    (array([1, 2, 3]), array([1, 1, 1]))
+    >>> _repeat_shorter((np.array([0, 0]), (np.array([1, 1, 2, 2, 3, 4]))))
+    (array([0, 0, 0, 0, 0, 0]), array([1, 1, 2, 2, 3, 4]))
+    '''
+    lens = (len(images[0]), len(images[1]))
+    if lens[1] > lens[0] and lens[1] % lens[0] == 0:
+        return (np.tile(images[0], lens[1] // lens[0]), images[1])
+    if lens[0] > lens[1] and lens[0] % lens[1] == 0:
+        return (images[0], np.tile(images[1], lens[0] // lens[1]))
+    raise ValueError('operands could not be broadcast together with shapes '
+                     f'({lens[0]},) ({lens[1]},)')
+
+
+def strings_from_bids(final_func):
+    """
+    Function to gather BIDS entities into a dictionary
+
+    Parameters
+    ----------
+    final_func : str
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> fake_path = (
+    ...     '/path/to/sub-fakeSubject_ses-fakeSession_task-peer_run-3_'
+    ...     'atlas-Schaefer400_space-MNI152NLin6_res-1x1x1_'
+    ...     'desc-NilearnPearson_connectome.tsv')
+    >>> strings_from_bids(fake_path)['desc']
+    'NilearnPearson'
+    >>> strings_from_bids(fake_path)['space']
+    'MNI152NLin6'
+    """
+    from_bids = dict(
+        tuple(entity.split('-', 1)) if '-' in entity else
+        ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
+    )
+    from_bids = {k: from_bids[k] for k in from_bids}
+    if 'space' not in from_bids:
+        from_bids['space'] = 'native'
+    return from_bids
