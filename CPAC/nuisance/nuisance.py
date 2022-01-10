@@ -1085,6 +1085,7 @@ def create_regressor_workflow(nuisance_selectors,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
+                        csf_mask_exist,
                         use_ants=use_ants,
                         ventricle_mask_exist=ventricle_mask_exist,
                         all_bold=all_bold
@@ -2131,7 +2132,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
         use_ants = reg_tool == 'ants'
     
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
-    csf_mask = strat_pool.check_rpool('csf_mask')
+    csf_mask = strat_pool.check_rpool(["label-CSF_desc-eroded_mask", "label-CSF_desc-preproc_mask", "label-CSF_mask"])
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,

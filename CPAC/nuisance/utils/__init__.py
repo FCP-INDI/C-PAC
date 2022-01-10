@@ -271,6 +271,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    pipeline_resource_pool,
                                    regressor_descriptor,
                                    regressor_selector,
+                                   csf_mask_exist,
                                    use_ants=True,
                                    ventricle_mask_exist=True,
                                    all_bold=False):
@@ -370,6 +371,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     regressor_descriptor,
                     regressor_selector,
                     node_mask_key,
+                    csf_mask_exist,
                     use_ants,
                     ventricle_mask_exist
                 )
@@ -400,27 +402,10 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       csf_mask_exist,
                                                       use_ants=True,
                                                       ventricle_mask_exist=True):
-    #raise Exception(strat_pool)
-    #raise Exception(pipeline_resource_pool)
-    raise Exception(csf_mask_exist)
+    
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
-
-        if 'CerebrospinalFluid' in pipeline_resource_pool:
-            #raise Exception(pipeline_resource_pool)
-            # reduce CSF mask to the lateral ventricles
-            mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
-            mask_csf_with_lat_ven.inputs.expr = 'a*b'
-            mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
-
-        else:
-
-            mask_with_lat_ven = pe.Node(interface=afni.Copy(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
-            #mask_csf_with_lat_ven.inputs.expr = 'a*b'
-            #mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
-
-        ###############################################################
 
         if ventricle_mask_exist:
             ventricles_key = 'VentriclesToAnat'
@@ -463,8 +448,6 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
-                    raise Exception(ventricles_key)
-
                 else:
                     # perform the transform using FLIRT
                     lat_ven_mni_to_anat = pe.Node(interface=fsl.ApplyWarp(),
@@ -477,20 +460,24 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
 
-                    raise Exception(ventricles_key)
-            ####################################################        
-            if 'CerebrospinalFluid' in pipeline_resource_pool:
+            if csf_mask_exist:
+                # reduce CSF mask to the lateral ventricles
+                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
+                mask_csf_with_lat_ven.inputs.expr = 'a*b'
+                mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
+                
                 nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
                 nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
 
                 pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
                 pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
+
             else:
-                nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_with_lat_ven, 'in_file')))
-                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]
-            ################################################
-        else :
-            pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key] # may not need bc suggesting no lat vent mask
+
+                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]    
+
+        #else :
+         #   pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key] # may not need bc suggesting no lat vent mask
 
         return pipeline_resource_pool
 
