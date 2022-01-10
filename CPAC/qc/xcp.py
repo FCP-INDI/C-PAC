@@ -441,7 +441,8 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
                 'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
                 'max-displacement', 'dvars', 'rels-displacement',
-                'coordinate-transformation')],
+                'coordinate-transformation',
+                'framewise-displacement-jenkinson',)],
      'outputs': ['desc-xcp_quality']}
     """
     if not strat_pool.check_rpool([resource for resource in raw_resources if
@@ -455,27 +456,6 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
     return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
                         'space-bold_desc-brain_mask', 'desc-xcp_quality',
                         pipe_num)
-
-
-# def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
-#     # pylint: disable=invalid-name, unused-argument
-#     r"""
-#     Same as ``qc_xcp_native`` except no motion inputs.
-#     Node Block:
-#     {'name': 'qc_xcp_native',
-#      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-#      'switch': ['generate_xcpqc_files'],
-#      'option_key': 'None',
-#      'option_val': 'None',
-#      'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
-#                 'desc-preproc_T1w', 'space-T1w_desc-mean_bold')],
-#      'outputs': ['desc-xcp_quality']}
-#     """
-#     if not strat_pool.check_rpool([resource for resource in raw_resources if
-#                                   resource in get_node_block_config(
-#                                       qc_xcp_skullstripped, 'inputs')[0]]):
-#         return wf, {}
-#     return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
 
 
 def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
