@@ -95,6 +95,7 @@ from CPAC.registration.registration import (
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
     warp_Tissuemask_to_T1template,
+    warp_Tissuemask_to_EPItemplate,
     warp_timeseries_to_T1template_dcan_nhp
     
 )
@@ -990,6 +991,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             
         pipeline_blocks += seg_blocks
     pipeline_blocks.append(warp_Tissuemask_to_T1template)
+    pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
     return pipeline_blocks
 
 

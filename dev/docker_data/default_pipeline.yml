@@ -783,7 +783,7 @@ registration_workflows:
       # directly register the mean functional to an EPI template
       #   instead of applying the anatomical T1-to-template transform to the functional data that has been
       #   coregistered to anatomical/T1 space
-      run: Off
+      run: On
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
