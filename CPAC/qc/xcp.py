@@ -438,11 +438,9 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w', 'max-displacement',
-                'dvars', 'desc-preproc_bold', 'desc-preproc_T1w',
-                'space-T1w_desc-mean_bold', 'space-bold_desc-brain_mask',
-                'movement-parameters', 'framewise-displacement-jenkinson',
-                'rels-displacement', 'coordinate-transformation')],
+     'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
+                'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
+                'desc-motion_bold')],
      'outputs': ['desc-xcp_quality']}
     """
     if not strat_pool.check_rpool([resource for resource in raw_resources if
