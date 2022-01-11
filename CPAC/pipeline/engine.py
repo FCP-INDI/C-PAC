@@ -30,9 +30,9 @@ from CPAC.utils.datasource import (
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
-from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
 logger = logging.getLogger('workflow')
+verbose_logger = logging.getLogger('engine')
 
 
 class ResourcePool(object):
@@ -246,7 +246,8 @@ class ResourcePool(object):
                                   "Developer Note: This may be due to a mis"
                                   "match between the node block's docstring "
                                   "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n")
+                                  "call within the block function.\n(keys in "
+                                  f"resource pool are {self.rpool.keys()})\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -355,15 +356,17 @@ class ResourcePool(object):
                     flat_prov.append(entry)
             return flat_prov
 
-    def get_strats(self, resources):
+    def get_strats(self, resources, debug=False):
 
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
         import itertools
-        
+
         linked_resources = []
         resource_list = []
+        if debug:
+            verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
@@ -385,6 +388,10 @@ class ResourcePool(object):
         total_pool = []
         variant_pool = {}
         len_inputs = len(resource_list)
+        if debug:
+            verbose_logger.debug('linked_resources: %s',
+                                 linked_resources)
+            verbose_logger.debug('resource_list: %s', resource_list)
         for resource in resource_list:
             rp_dct, fetched_resource = self.get(resource,
                                                 report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
@@ -404,8 +411,11 @@ class ResourcePool(object):
                     for key, val in json_info['CpacVariant'].items():
                         if val not in variant_pool[fetched_resource]:
                             variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f'NO-{val[0]}')
+                            variant_pool[fetched_resource].append(
+                                f'NO-{val[0]}')
 
+            if debug:
+                verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
         # TODO: right now total_pool is:
@@ -1059,6 +1069,7 @@ class NodeBlock(object):
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
+        debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
         for name, block_dct in self.node_blocks.items():
             opts = []
@@ -1183,8 +1194,9 @@ class NodeBlock(object):
                     switch = [switch]
 
             if True in switch:
-                print(f"Connecting {name}...\n")
-                for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                logger.info('Connecting %s...', name)
+                for pipe_idx, strat_pool in rpool.get_strats(
+                        inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
@@ -1220,22 +1232,28 @@ class NodeBlock(object):
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
 
-                        if cfg.pipeline_setup['Debugging']['verbose']:
-                            print('\n=======================')
-                            print(f'Node name: {node_name}')
+                        if debug:
+                            verbose_logger.debug('\n=======================')
+                            verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
-                                rpool.get_resource_strats_from_prov(ast.literal_eval(pipe_idx))
+                                rpool.get_resource_strats_from_prov(
+                                    ast.literal_eval(pipe_idx))
                             for key, val in prov_dct.items():
-                                print('-------------------')
-                                print(f'Input - {key}:')
+                                verbose_logger.debug('-------------------')
+                                verbose_logger.debug('Input - %s:', key)
                                 sub_prov_dct = \
                                     rpool.get_resource_strats_from_prov(val)
                                 for sub_key, sub_val in sub_prov_dct.items():
                                     sub_sub_dct = \
-                                    rpool.get_resource_strats_from_prov(sub_val)
-                                    print(f'  sub-input - {sub_key}:')
-                                    print(f'    prov = {sub_val}')
-                                    print(f'    sub_sub_inputs = {sub_sub_dct.keys()}')
+                                        rpool.get_resource_strats_from_prov(
+                                            sub_val)
+                                    verbose_logger.debug('  sub-input - %s:',
+                                                         sub_key)
+                                    verbose_logger.debug('    prov = %s',
+                                                         sub_val)
+                                    verbose_logger.debug(
+                                        '    sub_sub_inputs = %s',
+                                        sub_sub_dct.keys())
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
@@ -1384,7 +1402,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-                          
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
