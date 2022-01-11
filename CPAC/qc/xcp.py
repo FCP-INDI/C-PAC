@@ -440,9 +440,7 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
                 'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
-                'max-displacement', 'dvars', 'rels-displacement',
-                'coordinate-transformation',
-                'framewise-displacement-jenkinson',)],
+                'space-bold_desc-brain_mask')],
      'outputs': ['desc-xcp_quality']}
     """
     if not strat_pool.check_rpool([resource for resource in raw_resources if
@@ -467,11 +465,9 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'T1w',
-                'T1w-brain-template-funcreg', 'max-displacement', 'dvars',
+                'T1w-brain-template-funcreg', 'space-T1w_desc-mean_bold',
                 'space-template_desc-preproc_bold', 'desc-preproc_T1w',
-                'space-T1w_desc-mean_bold', 'movement-parameters',
-                'framewise-displacement-jenkinson', 'rels-displacement',
-                'coordinate-transformation')],
+                'space-template_desc-bold_mask')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
     if not strat_pool.check_rpool([resource for resource in raw_resources if
