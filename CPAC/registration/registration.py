@@ -4316,7 +4316,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("label-CSF_mask", 
                  "label-WM_mask", 
                  "label-GM_mask",
-                 "from-bold_to-template_mode-image_xfm"),
+                 "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],          
      "outputs": ["space-EPItemplate_label-CSF_mask",
                  "space-EPItemplate_label-WM_mask",
@@ -4324,7 +4324,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
                  
     xfm_prov = strat_pool.get_cpac_provenance(
-        'from-bold_to-template_mode-image_xfm')
+        'from-bold_to-EPItemplate_mode-image_xfm')
 
     num_cpus = cfg.pipeline_setup['system_config'][
         'max_cores_per_participant']
@@ -4361,7 +4361,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
        node, out = strat_pool.get_data("EPI-template")
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
-       node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+       node, out = strat_pool.get_data("from-bold_to-EPItemplate_mode-image_xfm")
        wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
        outputs.update({
         f'space-EPItemplate_label-CSF_mask':
@@ -4375,7 +4375,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
        node, out = strat_pool.get_data("EPI-template")
        wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
-       node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+       node, out = strat_pool.get_data("from-bold_to-EPItemplate_mode-image_xfm")
        wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
 
        outputs.update({
@@ -4388,7 +4388,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
        wf.connect(node, out, apply_xfm_GM, 'inputspec.input_image')
        node, out = strat_pool.get_data("EPI-template")
        wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
-       node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+       node, out = strat_pool.get_data("from-bold_to-EPItemplate_mode-image_xfm")
        wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
 
        outputs.update({

@@ -990,8 +990,20 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             seg_blocks.append(tissue_seg_EPI_template_based)
             
         pipeline_blocks += seg_blocks
-    pipeline_blocks.append(warp_Tissuemask_to_T1template)
-    pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
+    
+    #if cfg.registration_workflows['registration_workflows']['anatomical_registration']['run']:
+       #pipeline_blocks.append(warp_Tissuemask_to_T1template)
+    
+    #if cfg.registration_workflows['functional_registration']['EPI_registration']['run']:
+      # pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
+       
+    
+    if 'T1_Template' in cfg.segmentation['tissue_segmentation']['Template_Based'][
+       'template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+    if 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based'][
+       'template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
     return pipeline_blocks
 
 
