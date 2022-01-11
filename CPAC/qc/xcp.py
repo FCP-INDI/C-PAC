@@ -440,7 +440,7 @@ def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
                 'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
-                'space-bold_desc-brain_mask')],
+                'space-bold_desc-brain_mask', 'dvars')],
      'outputs': ['desc-xcp_quality']}
     """
     if not strat_pool.check_rpool([resource for resource in raw_resources if
