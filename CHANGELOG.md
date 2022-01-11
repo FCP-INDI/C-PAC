@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added XCP-style quality control file
+- Added `engine.log` (when verbose debugging is on)
 
 ### Changed
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`

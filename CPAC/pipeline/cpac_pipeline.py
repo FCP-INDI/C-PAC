@@ -8,7 +8,6 @@ import copy
 import faulthandler
 import yaml
 
-import logging as cb_logging
 from time import strftime
 
 import nipype
@@ -193,7 +192,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -254,8 +253,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-    # TODO ASH Enforce c.run_logging to be boolean
-    # TODO ASH Schema validation
+    if c.pipeline_setup['Debugging']['verbose']:
+        set_up_logger('engine', level='debug', log_dir=log_dir)
+
     config.update_config({
         'logging': {
             'log_directory': log_dir,
@@ -478,10 +478,7 @@ Please, make yourself aware of how it works and its assumptions:
                 pass
 
             # Add handler to callback log file
-            cb_logger = cb_logging.getLogger('callback')
-            cb_logger.setLevel(cb_logging.DEBUG)
-            handler = cb_logging.FileHandler(cb_log_filename)
-            cb_logger.addHandler(handler)
+            set_up_logger('callback', cb_log_filename, 'debug', log_dir)
 
             # Log initial information from all the nodes
             log_nodes_initial(workflow)
