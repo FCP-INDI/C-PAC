@@ -1,5 +1,5 @@
 # using Ubuntu 16.04 LTS as parent image
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS FreeSurfer
 
 USER root
 
@@ -42,3 +42,7 @@ RUN ldconfig && \
 
 # set user
 USER c-pac_user
+
+# Only keep what we need
+FROM scratch
+COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/

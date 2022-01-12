@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS ICA-AROMA
 
 USER root
 
@@ -19,3 +19,7 @@ RUN apt-get clean && \
 
 # set user
 USER c-pac_user
+
+# Only keep what we need
+FROM scratch
+COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

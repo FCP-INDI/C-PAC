@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS c3d
 
 USER root
 
@@ -15,3 +15,8 @@ ENTRYPOINT ["/bin/bash"]
 
 # set user
 USER c-pac_user
+
+# Only keep what we need
+FROM scratch
+COPY --from=c3d /usr/bin/c3d/ /usr/bin/c3d/
+COPY --from=c3d /usr/lib/c3d* /usr/lib/

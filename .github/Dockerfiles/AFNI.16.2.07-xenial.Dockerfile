@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS AFNI
 
 USER root
 
@@ -16,3 +16,7 @@ ENTRYPOINT ["/bin/bash"]
 
 # set user
 USER c-pac_user
+
+# Only keep what we need
+FROM scratch
+COPY --from=AFNI /usr/lib/afni/ /usr/lib/afni/

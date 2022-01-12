@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS ANTS
 
 USER root
 
@@ -36,3 +36,9 @@ RUN apt-get clean && \
 
 # set user
 USER c-pac_user
+
+# Only keep what we need
+FROM scratch
+COPY --from=ANTs /ants_template/ /ants_template/
+COPY --from=ANTs /etc/locale.gen /etc/
+COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
