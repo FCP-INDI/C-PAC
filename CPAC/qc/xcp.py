@@ -355,7 +355,8 @@ def generate_xcp_qc(space, desc, original_anat,
             except ValueError as value_error:
                 meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
     else:
-        meanDV = _na_dict([f'{dv}DV{ts}' for dv in ['mean', 'motion']
+        meanDV = _na_dict([f'{dv}DV{"Corr" + ts if dv == "motion" else ts}'
+                           for dv in ['mean', 'motion']
                            for ts in ['Init', 'Final']])
         power_params = {'meanFD': 'n/a'}
         rms_params = _na_dict(['relMeansRMSMotion', 'relMaxRMSMotion'])
