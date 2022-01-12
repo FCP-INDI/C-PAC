@@ -115,14 +115,14 @@ def calculate_overlap(image_pair):
     vol_intersect = np.sum(intersect)
     vol_sum = sum(vols)
     vol_union = vol_sum - vol_intersect
-    coefficients = {key: abs(value) for key, value in {
+    coefficients = {
         'dice': 2 * vol_intersect / vol_sum,
         'jaccard': vol_intersect / vol_union,
         'cross_corr': np.corrcoef(image_pair)[0, 1],
         'coverage': vol_intersect / min(vols)
-    }.items()}
+    }
     for name, coefficient in coefficients.items():
-        if not 1 >= coefficient >= 0 and not np.isnan(coefficient):
+        if not 1 >= abs(coefficient) >= 0 and not np.isnan(coefficient):
             raise ValueError(f'Valid range for {name} is [0, 1] but value '
                              f'{coefficient} was calculated.')
     return coefficients
