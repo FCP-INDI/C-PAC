@@ -1,5 +1,5 @@
 '''Module to import Nipype Pipeline engine and override some Classes.
-See https://fcp-indi.github.com/docs/developer/nodes
+See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.

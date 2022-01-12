@@ -1,6 +1,6 @@
 '''Module to customize Nipype's process monitoring for use in C-PAC
 
-See https://fcp-indi.github.com/docs/developer/nodes for C-PAC-specific documentation.
+See https://fcp-indi.github.io/docs/developer/nodes for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.profiler.html for Nipype's documentation.'''  # noqa E501
 from .custom_logging import set_up_logger
 from .monitoring import LoggingHTTPServer, LoggingRequestHandler, \
