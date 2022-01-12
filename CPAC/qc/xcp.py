@@ -467,6 +467,10 @@ def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-bold_desc-brain_mask')],
      'outputs': ['desc-xcp_quality']}
     """
+    # If strat has dvars, it should be captured by 'qc_xcp_native'
+    if 'dvars' in strat_pool.get('desc-preproc_bold').get(
+            'json', {}).get('Sources', {}):
+        return wf, {}
     return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
 
 
