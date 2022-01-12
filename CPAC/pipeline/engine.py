@@ -31,7 +31,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -1212,8 +1212,6 @@ class NodeBlock(object):
 
             if True in switch:
                 logger.info('Connecting %s...', name)
-                if debug:
-                    verbose_logger.debug('Connecting %s...', name)
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }

@@ -5,7 +5,7 @@ from nipype import logging
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
