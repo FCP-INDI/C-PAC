@@ -315,7 +315,6 @@ def generate_xcp_qc(space, desc, original_anat,
                     'nVolsRemoved': images['final_func'].shape[3] -
                     images['original_func'].shape[3]}
 
-    # `meanFD (Jenkinson)`
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
     qc_filepath = os.path.join(os.getcwd(), 'xcpqc.tsv')
@@ -330,6 +329,7 @@ def generate_xcp_qc(space, desc, original_anat,
     del desc_span
 
     if dvars:
+        # `meanFD (Jenkinson)`
         power_params = {'meanFD': np.mean(np.loadtxt(
             framewise_displacement_jenkinson))}
 
