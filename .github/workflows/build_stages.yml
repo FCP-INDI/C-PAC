@@ -62,6 +62,8 @@ jobs:
               echo '::set-output name=changed::true'
             fi
           done
+      - name: Check
+        run: echo "${{ steps.dockerfile-changed.outputs.changed }}"
       - name: Clear up some space on runner
         if: ${{ steps.dockerfile-changed.outputs.changed == 'true' }}
         run: |
