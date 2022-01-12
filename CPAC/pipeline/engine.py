@@ -233,34 +233,14 @@ class ResourcePool(object):
                 self.rtable[resource_type][tag][val].append(resource)
 
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info
-
-    def intersect(self, lst1, lst2):
-        return list(set(lst1) & set(lst2))
-
-    def pull_all(self, resource):
-        resource_type, tag_dct = self.parse_bids_tags(resource)
-        if self.rtable:
-            combined = []
-            for tag, val in tag_dct.items():
-                for other, other_val in tag_dct.items():
-                    combined += self.intersect(self.rtable[resource_type][tag][val],
-                                               self.rtable[resource_type][other][other_val])
-            combined = list(set(combined))
-        else:
-            combined = [resource]
-        for label in combined:
-            for pipe_idx in self.get_pipe_idxs(label):
-                if pipe_idx not in self.get_pipe_idxs(resource):
-                    # this is intended for strat_pools only
-                    self.update_resource(label, resource)
-        return self.rpool[resource]
-        
-    def pull_only(self, resource):
-        return self.rpool[resource]   
+        self.rpool[resource][new_pipe_idx]['json'] = json_info 
 
     def get(self, resource, pipe_idx=None, report_fetched=False,
             optional=False):
+        # NOTE!!!
+        #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
+        #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        
         info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
                    f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
                    "can enable a node block earlier in the pipeline which " \
@@ -273,21 +253,15 @@ class ResourcePool(object):
                    "and you still get this message, please let us know " \
                    "through any of our support channels at: " \
                    "https://fcp-indi.github.io/\n"
-        pull = self.pull_all
-        # NOTE!!!
-        #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
-        #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        
         if isinstance(resource, list):
             # if a list of potential inputs are given, pick the first one
             # found
             for label in resource:
-                if label[0] == '!':
-                    pull = self.pull_only
-                    label = label.lstrip('!')
                 if label in self.rpool.keys():
                     if report_fetched:
-                        return (pull(label), label)
-                    return pull(label)
+                        return (self.rpool[label], label)
+                    return self.rpool[label]
             else:
                 if optional:
                     if report_fetched:
@@ -295,9 +269,6 @@ class ResourcePool(object):
                     return None
                 raise Exception(info_msg)
         else:
-            if resource[0] == '!':
-                pull = self.pull_only
-                resource = resource.lstrip('!')
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
@@ -307,10 +278,10 @@ class ResourcePool(object):
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
-                return (pull(resource), resource)
+                return (self.rpool[resource], resource)
             if pipe_idx:
                 return self.rpool[resource][pipe_idx]
-            return pull(resource)
+            return self.rpool[resource]
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
@@ -1361,18 +1332,6 @@ class NodeBlock(object):
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
-                              
-                            # TODO  
-                            # update/turn into a function, the tag parser - and make it separate by res- etc., an additional level
-                            # check the output label here for tags, match the data type (_bold, etc.)
-                            # if no tags are being overwritten, transfer the tags over to the linked input-outputs.
-                            resource_type, tag_dct = self.parse_bids_tags(label)
-                            for inlabel in strat_pool:
-                                input_type, input_tags = self.parse_bids_tags(inlabel)
-                                if resource_type == input_type:
-                                    for tag in input_tags:
-                                        if tag not in tag_dct:
-                                            label = f'{tag}-{input_tags[tag]}_{label}'
 
                             rpool.set_data(label,
                                            connection[0],
