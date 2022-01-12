@@ -1300,7 +1300,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        pipeline_blocks += [qc_xcp_native, qc_xcp_skullstripped,
+        pipeline_blocks += [qc_xcp_skullstripped, qc_xcp_native,
                             qc_xcp_template]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
