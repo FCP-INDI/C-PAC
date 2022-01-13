@@ -1016,6 +1016,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
         'Connecting pipeline blocks:',
         list_blocks(pipeline_blocks, indent=1)]))
 
+    previous_nb = None
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block)
@@ -1030,6 +1031,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"'{NodeBlock(block).get_name()}' "
                 f"to workflow '{wf}' " + previous_nb_str + e.args[0],
             )
+            if cfg.pipeline_setup['Debugging']['verbose']:
+                verbose_logger = logging.getLogger('engine')
+                verbose_logger.debug(e.args[0])
+                verbose_logger.debug(rpool)
             raise
         previous_nb = nb
 

@@ -232,22 +232,26 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n[!] C-PAC says: None of the listed "
-                                "resources are in the resource pool:\n"
-                                f"{resource}\n")
+                lookup_message = ("\n[!] C-PAC says: None of the listed "
+                                  "resources are in the resource pool:\n"
+                                  f"{resource}\n")
+                verbose_logger.debug(lookup_message)
+                raise Exception(lookup_message)
         else:
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                lookup_message = ("\n\n[!] C-PAC says: The listed resource is "
                                   f"not in the resource pool:\n{resource}\n\n"
                                   "Developer Note: This may be due to a mis"
                                   "match between the node block's docstring "
                                   "'input' field and a strat_pool.get_data() "
                                   "call within the block function.\n(keys in "
                                   f"resource pool are {self.rpool.keys()})\n")
+                verbose_logger.debug(lookup_message)
+                raise LookupError(lookup_message)
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -520,7 +524,7 @@ class ResourcePool(object):
                                             if in_current_strat:
                                                 drop = True
                                                 break
-                                            
+
                                     if in_other_strat:
                                         if in_other_spread:
                                             if not in_current_strat:
