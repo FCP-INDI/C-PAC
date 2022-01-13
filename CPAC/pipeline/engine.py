@@ -811,8 +811,8 @@ class ResourcePool(object):
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-        print(Outputs.any)
-        print(self.rpool.keys())
+        #print(Outputs.any)
+        #print(self.rpool.keys())
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
