@@ -80,6 +80,13 @@ pipeline_setup:
 
   system_config:
 
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random state used by each process.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process.
+    # If set to 'random', a random seed will be generated and recorded for each process.
+    random_seed:
+
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid:
