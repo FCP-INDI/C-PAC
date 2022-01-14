@@ -1,12 +1,18 @@
 '''Functions to set, check, and log random seed'''
 import os
 import random
+from logging import getLogger
 
 import numpy as np
+from nipype.interfaces.freesurfer.preprocess import ReconAll
 
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 _seed = {'seed': None}
+random_seed_flags = {
+    # sequence matters here! Only the first match will be applied
+    ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}']
+}
 
 
 def random_random_seed():
@@ -90,3 +96,4 @@ def set_up_random_state(seed, log_dir=None):
     if log_dir is None:
         log_dir = os.getcwd()
     set_up_logger('random', level='info', log_dir=log_dir)
+    getLogger('random').info('node\tseed\tapplied')
