@@ -410,13 +410,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(
             c.pipeline_setup['output_directory']['path'])
 
-    workflow = build_workflow(
-        subject_id, sub_dict, c, p_name, num_ants_cores
-    )
-
     if c.pipeline_setup['system_config']['random_seed'] is not None:
         set_up_random_state(c.pipeline_setup['system_config']['random_seed'],
                             log_dir)
+
+    workflow = build_workflow(
+        subject_id, sub_dict, c, p_name, num_ants_cores
+    )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
