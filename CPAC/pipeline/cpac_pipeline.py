@@ -415,9 +415,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     )
 
     if c.pipeline_setup['system_config']['random_seed'] is not None:
-        workflow = set_up_random_state(
-            workflow, c.pipeline_setup['system_config']['random_seed'],
-            log_dir)
+        set_up_random_state(c.pipeline_setup['system_config']['random_seed'],
+                            log_dir)
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '

@@ -79,11 +79,14 @@ def set_up_random_state(seed, log_dir=None):
     if seed is not None:
         if (seed != 'random' and not (
             isinstance(seed, int) and
-            (0 < seed <= np.iinfo(np.int32).max)
+            (0 < int(seed) <= np.iinfo(np.int32).max)
         )):
             raise ValueError('Valid random seeds are positive integers up to '
                              f'2147483647, "random", or None, not {seed}')
-    _seed['seed'] = seed
+    try:
+        _seed['seed'] = int(seed)
+    except (TypeError, ValueError):
+        _seed['seed'] = seed
     if log_dir is None:
         log_dir = os.getcwd()
     set_up_logger('random', level='info', log_dir=log_dir)
