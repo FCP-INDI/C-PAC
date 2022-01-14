@@ -12,6 +12,7 @@ from nibabel import load
 from nipype import logging
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
+from nipype.interfaces.freesurfer.preprocess import ReconAll
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -19,6 +20,8 @@ from traits.trait_handlers import TraitListObject
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
+
+random_state_logger = logging.getLogger('random')
 
 
 def _doctest_skiplines(docstring, lines_to_skip):
@@ -61,8 +64,14 @@ class Node(pe.Node):
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+        from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = logging.getLogger("nipype.workflow")
+        self.seed = random_seed()
+        if self.seed is not None:
+            random_state_logger.info('%s: %s', self.name, self.seed)
+            if isinstance(self.interface, ReconAll):
+                self._add_flags(['-norandomness', f'-rng-seed {self.seed}'])
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
@@ -133,6 +142,16 @@ class Node(pe.Node):
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
             * 't' (temporal)''']))  # noqa E501
+
+    def _add_flags(self, flags):
+        '''
+        Parameters
+        ----------
+        flags : list
+        '''
+        if isinstance(self.inputs.flags, list):
+            self.inputs.flags += flags
+        self.inputs.flags = flags
 
     @property
     def mem_gb(self):
