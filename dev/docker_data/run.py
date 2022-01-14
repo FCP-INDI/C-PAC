@@ -204,7 +204,16 @@ def run_main():
                              'speed up this preprocessing step. This '
                              'number cannot be greater than the number of '
                              'cores per participant.')
-
+    parser.add_argument('--random_seed', type=str,
+                        help='Random seed used to fix the state of execution. '
+                             'If unset, each process uses its own default. If '
+                             'set, a `random.log` file will be generated '
+                             'logging the random state used by each process. '
+                             'If set to a positive integer (up to 2147483647'
+                             '), that integer will be used to seed each '
+                             'process. If set to \'random\', a random seed '
+                             'will be generated and recorded for each '
+                             'process.')
     parser.add_argument('--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
@@ -552,6 +561,9 @@ def run_main():
             int(c['pipeline_setup']['system_config']['num_ants_threads'])
         )
 
+        if args.random_seed:
+            c['pipeline_setup']['system_config']['random_seed'] = \
+                args.random_seed
         c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
