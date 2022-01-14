@@ -473,7 +473,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
 
             else:
-
+                pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
                 pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]    
 
         #else :
