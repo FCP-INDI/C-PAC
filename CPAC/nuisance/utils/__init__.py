@@ -323,46 +323,47 @@ def generate_summarize_tissue_mask(nuisance_wf,
         
             if all_bold:
                 pass
-        
-            mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                  name='{}_flirt'
-                                       .format(node_mask_key),
-                        mem_gb=3.63,
-                        mem_x=(3767129957844731 / 1208925819614629174706176,
+            
+            if csf_mask_exist:
+                mask_to_epi = pe.Node(interface=fsl.FLIRT(),
+                                    name='{}_flirt'
+                                        .format(node_mask_key),
+                            mem_gb=3.63,
+                            mem_x=(3767129957844731 / 1208925819614629174706176,
                                'in_file'))
 
-            mask_to_epi.inputs.interp = 'nearestneighbour'
+                mask_to_epi.inputs.interp = 'nearestneighbour'
 
-            if regressor_selector['extraction_resolution'] == "Functional":
-                # apply anat2func matrix
-                mask_to_epi.inputs.apply_xfm = True
-                mask_to_epi.inputs.output_type = 'NIFTI_GZ'
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional_mean'] +
-                    (mask_to_epi, 'reference')
-                ))
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
-                    (mask_to_epi, 'in_matrix_file')
-                ))
+                if regressor_selector['extraction_resolution'] == "Functional":
+                    # apply anat2func matrix
+                    mask_to_epi.inputs.apply_xfm = True
+                    mask_to_epi.inputs.output_type = 'NIFTI_GZ'
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Functional_mean'] +
+                        (mask_to_epi, 'reference')
+                    ))
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
+                        (mask_to_epi, 'in_matrix_file')
+                    ))
 
-            else:
-                resolution = regressor_selector['extraction_resolution']
-                mask_to_epi.inputs.apply_isoxfm = resolution
+                else:
+                    resolution = regressor_selector['extraction_resolution']
+                    mask_to_epi.inputs.apply_isoxfm = resolution
 
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Anatomical_{}mm'
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Anatomical_{}mm'
                                            .format(resolution)] +
-                    (mask_to_epi, 'reference')
+                        (mask_to_epi, 'reference')
+                    ))
+
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool[prev_mask_key] +
+                    (mask_to_epi, 'in_file')
                 ))
 
-            nuisance_wf.connect(*(
-                pipeline_resource_pool[prev_mask_key] +
-                (mask_to_epi, 'in_file')
-            ))
-
-            pipeline_resource_pool[mask_key] = \
-                (mask_to_epi, 'out_file')
+                pipeline_resource_pool[mask_key] = \
+                    (mask_to_epi, 'out_file')
 
             if full_mask_key.startswith('CerebrospinalFluid'):
                 pipeline_resource_pool = generate_summarize_tissue_mask_ventricles_masking(
