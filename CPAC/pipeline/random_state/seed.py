@@ -6,11 +6,14 @@ from logging import getLogger
 import numpy as np
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 
+from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 _seed = {'seed': None}
 random_seed_flags = {
     # sequence matters here! Only the first match will be applied
+    # ANTs
+    AI: [f'--random-seed {_seed["seed"]}'],
     # FreeSurfer
     ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
     ApplyVolTransform: [f'-seed {_seed["seed"]}']
