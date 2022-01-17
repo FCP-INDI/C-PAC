@@ -71,8 +71,8 @@ class Node(pe.Node):
         self.seed_applied = False
         if self.seed is not None:
             self._apply_random_seed()
-            random_state_logger.info('%s\t%s\t%s', self.name, self.seed,
-                                     self.seed_applied)
+            if self.seed_applied:
+                random_state_logger.info('%s', self.name)
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
