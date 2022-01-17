@@ -4325,6 +4325,7 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                  
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-bold_to-EPItemplate_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup['system_config'][
         'max_cores_per_participant']
