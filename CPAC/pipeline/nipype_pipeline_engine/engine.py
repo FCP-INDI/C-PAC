@@ -11,8 +11,10 @@ from logging import getLogger
 from inspect import Parameter, Signature, signature
 from nibabel import load
 from nipype import logging
+from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
+from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -156,8 +158,16 @@ class Node(pe.Node):
 
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
+        # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed_flags
-        for rsf, flags in random_seed_flags.items():
+        if isinstance(self.interface, Function):
+            for rsf, flags in random_seed_flags['functions'].items():
+                if self.interface.inputs.function_str == getsource(rsf):
+                    self.interface.inputs.function_str = flags(
+                        self.interface.inputs.function_str)
+                    self.seed_applied = True
+                    return
+        for rsf, flags in random_seed_flags['interfaces'].items():
             if isinstance(self.interface, rsf):
                 self._add_flags(flags)
                 self.seed_applied = True

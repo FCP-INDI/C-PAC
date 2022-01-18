@@ -7,6 +7,7 @@ import numpy as np
 from nipype.interfaces.ants.registration import Registration
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 
+from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
@@ -16,17 +17,25 @@ _reusable_flags = {
 }
 random_seed_flags = {
     # sequence matters here! Only the first match will be applied
-    # ANTs
-    # NOTE: Atropos gives the option "Initialize internal random number
-    #       generator with a random seed. Otherwise, initialize with a
-    #       constant seed number," so for Atropos nodes, the built-in
-    #       Atropos constant seed is used if a seed is specified for
-    #       C-PAC
-    AI: _reusable_flags['ANTs'],
-    Registration: _reusable_flags['ANTs'],
-    # FreeSurfer
-    ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
-    ApplyVolTransform: [f'-seed {_seed["seed"]}']
+    'functions': {
+        hardcoded_reg: lambda x: x.replace(
+            'regcmd = ["antsRegistration"]',
+            f'regcmd = ["antsRegistration", \"--random-seed {_seed["seed"]}\"]'
+        )
+    },
+    'interfaces': {
+        # ANTs
+        # NOTE: Atropos gives the option "Initialize internal random number
+        #       generator with a random seed. Otherwise, initialize with a
+        #       constant seed number," so for Atropos nodes, the built-in
+        #       Atropos constant seed is used if a seed is specified for
+        #       C-PAC
+        AI: _reusable_flags['ANTs'],
+        Registration: _reusable_flags['ANTs'],
+        # FreeSurfer
+        ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
+        ApplyVolTransform: [f'-seed {_seed["seed"]}']
+    }
 }
 
 
