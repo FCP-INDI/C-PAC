@@ -6,6 +6,7 @@ from logging import getLogger
 import numpy as np
 from nipype.interfaces.ants.registration import Registration
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
+from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
 
 from CPAC.registration.utils import hardcoded_reg
@@ -38,7 +39,8 @@ random_seed_flags = {
         ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
         ApplyVolTransform: _reusable_flags['FSL'],
         # FSL
-        ImageMaths: _reusable_flags['FSL']
+        ImageMaths: _reusable_flags['FSL'],
+        MathsCommand: _reusable_flags['FSL']
     }
 }
 
