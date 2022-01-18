@@ -6,6 +6,7 @@ from logging import getLogger
 import numpy as np
 from nipype.interfaces.ants.registration import Registration
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
+from nipype.interfaces.fsl.utils import ImageMaths
 
 from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
@@ -13,12 +14,13 @@ from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 _seed = {'seed': None}
 _reusable_flags = {
-    'ANTs': [f'--random-seed {_seed["seed"]}']
+    'ANTs': [f'--random-seed {_seed["seed"]}'],
+    'FSL': [f'-seed {_seed["seed"]}']
 }
 random_seed_flags = {
     # sequence matters here! Only the first match will be applied
     'functions': {
-        hardcoded_reg: lambda x: x.replace(
+        hardcoded_reg: lambda fn_string: fn_string.replace(
             'regcmd = ["antsRegistration"]',
             f'regcmd = ["antsRegistration", \"--random-seed {_seed["seed"]}\"]'
         )
@@ -34,7 +36,9 @@ random_seed_flags = {
         Registration: _reusable_flags['ANTs'],
         # FreeSurfer
         ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
-        ApplyVolTransform: [f'-seed {_seed["seed"]}']
+        ApplyVolTransform: _reusable_flags['FSL'],
+        # FSL
+        ImageMaths: _reusable_flags['FSL']
     }
 }
 
