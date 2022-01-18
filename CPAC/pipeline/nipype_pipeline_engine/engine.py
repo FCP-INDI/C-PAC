@@ -152,9 +152,15 @@ class Node(pe.Node):
         ----------
         flags : list
         '''
-        if isinstance(self.inputs.flags, list):
-            self.inputs.flags += flags
-        self.inputs.flags = flags
+        def _apply(attr):
+            if isinstance(getattr(self.inputs, attr), list):
+                setattr(self.inputs, attr, getattr(self.inputs, attr) + flags)
+            else:
+                setattr(self.inputs, attr, flags)
+        if hasattr(self.inputs, 'flags'):
+            _apply('flags')
+        else:
+            _apply('args')
 
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
