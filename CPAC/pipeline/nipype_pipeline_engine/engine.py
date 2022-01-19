@@ -71,10 +71,6 @@ class Node(pe.Node):
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
-        if self.seed is not None:
-            self._apply_random_seed()
-            if self.seed_applied:
-                random_state_logger.info('%s', self.name)
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
@@ -335,12 +331,21 @@ class Node(pe.Node):
         """Get dict of 'multiplier' (memory multiplier), 'file' (input file)
         and multiplier mode (spatial * temporal, spatial only or
         temporal only). Returns ``None`` if already consumed or not set."""
-        if hasattr(self, '_mem_x'):
-            return self._mem_x
-        return None
+        return getattr(self, '_mem_x', None)
+
+    def run(self, updatehash=False):
+        if self.seed is not None:
+            self._apply_random_seed()
+            if self.seed_applied:
+                random_state_logger.info('%s',
+                                         '%s  # (Atropos constant)' %
+                                         self.name if 'atropos' in
+                                         self.name else self.name)
+        super().run(updatehash)
 
 
 class MapNode(Node, pe.MapNode):
+    # pylint: disable=empty-docstring
     __doc__ = _doctest_skiplines(
         pe.MapNode.__doc__,
         {"    ...                           'functional3.nii']"}
