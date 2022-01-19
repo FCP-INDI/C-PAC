@@ -123,7 +123,7 @@ def set_up_random_state(seed, log_dir=None):
     '''  # noqa E501  # pylint: disable=line-too-long
     if seed is not None:
         if seed == 'random':
-            _seed['seed'] = random_random_seed()
+            seed = random_random_seed()
         if (seed != 'random' and not (
             isinstance(seed, int) and
             (0 < int(seed) <= np.iinfo(np.int32).max)
@@ -137,4 +137,4 @@ def set_up_random_state(seed, log_dir=None):
     if log_dir is None:
         log_dir = os.getcwd()
     set_up_logger('random', level='info', log_dir=log_dir)
-    getLogger('random').info(_seed['seed'])
+    getLogger('random').info(random_seed())
