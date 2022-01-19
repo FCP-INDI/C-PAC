@@ -15,43 +15,6 @@ from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 _seed = {'seed': None}
-_reusable_flags = {
-    'ANTs': [f'--random-seed {_seed["seed"]}'],
-    'FSL': [f'-seed {_seed["seed"]}']
-}
-random_seed_flags = {
-    # sequence matters here! Only the first match will be applied
-    'functions': {
-        # function: lambda function to apply to function source
-        hardcoded_reg: lambda fn_string: fn_string.replace(
-            'regcmd = ["antsRegistration"]',
-            f'regcmd = ["antsRegistration", \"--random-seed {_seed["seed"]}\"]'
-        )
-    },
-    'interfaces': {
-        # interface: [flags to apply]
-        # OR
-        # interface: ([flags to apply], [flags to remove])
-        #
-        # ANTs
-        # NOTE: Atropos gives the option "Initialize internal random number
-        #       generator with a random seed. Otherwise, initialize with a
-        #       constant seed number," so for Atropos nodes, the built-in
-        #       Atropos constant seed is used if a seed is specified for
-        #       C-PAC
-        AI: _reusable_flags['ANTs'],
-        Registration: _reusable_flags['ANTs'],
-        Atropos: (['--use-random-seed 0'],
-                  [flag for one in ['', ' 1'] for flag in
-                  [f'--use-random-seed{one}', f'-r{one}']]),
-        # FreeSurfer
-        ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
-        ApplyVolTransform: _reusable_flags['FSL'],
-        # FSL
-        ImageMaths: _reusable_flags['FSL'],
-        MathsCommand: _reusable_flags['FSL']
-    }
-}
 
 
 def random_random_seed():
@@ -87,6 +50,56 @@ def random_seed():
     if _seed['seed'] == 'random':
         _seed['seed'] = random_random_seed()
     return _seed['seed']
+
+
+def random_seed_flags():
+    '''Function to return dictionary of flags with current random seed.
+
+    Developer note: sequence matters here! Only the first match will be
+    applied!'''
+    seed = random_seed()
+    if seed is None:
+        return {'functions': {}, 'interfaces': {}}
+    return {
+        'functions': {
+            # function: lambda function to apply to function source
+            hardcoded_reg: lambda fn_string: fn_string.replace(
+                'regcmd = ["antsRegistration"]',
+                f'regcmd = ["antsRegistration", \"--random-seed {seed}\"]'
+            )
+        },
+        'interfaces': {
+            # interface: [flags to apply]
+            # OR
+            # interface: ([flags to apply], [flags to remove])
+            #
+            # ANTs
+            # NOTE: Atropos gives the option "Initialize internal random number
+            #       generator with a random seed. Otherwise, initialize with a
+            #       constant seed number," so for Atropos nodes, the built-in
+            #       Atropos constant seed is used if a seed is specified for
+            #       C-PAC
+            AI: _reusable_flags()['ANTs'],
+            Registration: _reusable_flags()['ANTs'],
+            Atropos: (['--use-random-seed 0'],
+                      [flag for one in ['', ' 1'] for flag in
+                      [f'--use-random-seed{one}', f'-r{one}']]),
+            # FreeSurfer
+            ReconAll: ['-norandomness', f'-rng-seed {seed}'],
+            ApplyVolTransform: _reusable_flags()['FSL'],
+            # FSL
+            ImageMaths: _reusable_flags()['FSL'],
+            MathsCommand: _reusable_flags()['FSL']
+        }
+    }
+
+
+def _reusable_flags():
+    seed = random_seed()
+    return {
+        'ANTs': [f'--random-seed {seed}'],
+        'FSL': [f'-seed {seed}']
+    }
 
 
 def set_up_random_state(seed, log_dir=None):

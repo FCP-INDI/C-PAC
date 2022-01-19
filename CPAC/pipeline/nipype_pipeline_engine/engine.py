@@ -182,13 +182,13 @@ class Node(pe.Node):
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed_flags
         if isinstance(self.interface, Function):
-            for rsf, flags in random_seed_flags['functions'].items():
+            for rsf, flags in random_seed_flags()['functions'].items():
                 if self.interface.inputs.function_str == getsource(rsf):
                     self.interface.inputs.function_str = flags(
                         self.interface.inputs.function_str)
                     self.seed_applied = True
                     return
-        for rsf, flags in random_seed_flags['interfaces'].items():
+        for rsf, flags in random_seed_flags()['interfaces'].items():
             if isinstance(self.interface, rsf):
                 self._add_flags(flags)
                 self.seed_applied = True
