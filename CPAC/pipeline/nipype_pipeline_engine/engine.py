@@ -159,12 +159,15 @@ class Node(pe.Node):
                 new_flags = flags[0]
             else:
                 new_flags = flags
-            if isinstance(getattr(self.inputs, attr), list):
-                setattr(self.inputs, attr, [
-                    flag for flag in getattr(self.inputs, attr) if
-                    flag not in to_remove] + new_flags)
-            else:
-                setattr(self.inputs, attr, new_flags)
+            old_flags = getattr(self.inputs, attr)
+            if isinstance(old_flags, str):
+                old_flags = [old_flags]
+            if isinstance(old_flags, list):
+                new_flags = [flag for flag in old_flags if
+                             flag not in to_remove] + new_flags
+            if attr == 'args':
+                new_flags = ' '.join(new_flags)
+            setattr(self.inputs, attr, new_flags)
         if hasattr(self.inputs, 'flags'):
             _apply('flags')
         else:
