@@ -152,7 +152,7 @@ class Node(pe.Node):
         ----------
         flags : list
         '''
-        def _apply(attr):
+        def prep_flags(attr):
             to_remove = []
             if isinstance(flags, tuple):
                 to_remove += flags[1]
@@ -171,11 +171,11 @@ class Node(pe.Node):
                              flag not in to_remove] + new_flags
             if attr == 'args':
                 new_flags = ' '.join(new_flags)
-            setattr(self.inputs, attr, new_flags)
+            return new_flags
         if hasattr(self.inputs, 'flags'):
-            _apply('flags')
+            self.inputs.flags = prep_flags('flags')
         else:
-            _apply('args')
+            self.inputs.args = prep_flags('args')
 
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
