@@ -161,6 +161,10 @@ class Node(pe.Node):
                 new_flags = flags
             old_flags = getattr(self.inputs, attr)
             if isinstance(old_flags, str):
+                to_remove.sort(key=lambda x: -x.count(' '))
+                for flag in to_remove:
+                    if f' {flag} ' in old_flags:
+                        old_flags = old_flags.replace(f' {flag}', '')
                 old_flags = [old_flags]
             if isinstance(old_flags, list):
                 new_flags = [flag for flag in old_flags if
