@@ -153,10 +153,18 @@ class Node(pe.Node):
         flags : list
         '''
         def _apply(attr):
-            if isinstance(getattr(self.inputs, attr), list):
-                setattr(self.inputs, attr, getattr(self.inputs, attr) + flags)
+            to_remove = []
+            if isinstance(flags, tuple):
+                to_remove += flags[1]
+                new_flags = flags[0]
             else:
-                setattr(self.inputs, attr, flags)
+                new_flags = flags
+            if isinstance(getattr(self.inputs, attr), list):
+                setattr(self.inputs, attr, [
+                    flag for flag in getattr(self.inputs, attr) if
+                    flag not in to_remove] + new_flags)
+            else:
+                setattr(self.inputs, attr, new_flags)
         if hasattr(self.inputs, 'flags'):
             _apply('flags')
         else:

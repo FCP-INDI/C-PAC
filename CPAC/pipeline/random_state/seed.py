@@ -5,6 +5,7 @@ from logging import getLogger
 
 import numpy as np
 from nipype.interfaces.ants.registration import Registration
+from nipype.interfaces.ants.segmentation import Atropos
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
@@ -21,12 +22,17 @@ _reusable_flags = {
 random_seed_flags = {
     # sequence matters here! Only the first match will be applied
     'functions': {
+        # function: lambda function to apply to function source
         hardcoded_reg: lambda fn_string: fn_string.replace(
             'regcmd = ["antsRegistration"]',
             f'regcmd = ["antsRegistration", \"--random-seed {_seed["seed"]}\"]'
         )
     },
     'interfaces': {
+        # interface: [flags to apply]
+        # OR
+        # interface: ([flags to apply], [flags to remove])
+        #
         # ANTs
         # NOTE: Atropos gives the option "Initialize internal random number
         #       generator with a random seed. Otherwise, initialize with a
@@ -35,6 +41,9 @@ random_seed_flags = {
         #       C-PAC
         AI: _reusable_flags['ANTs'],
         Registration: _reusable_flags['ANTs'],
+        Atropos: (['--use-random-seed 0'],
+                  [flag for one in ['', ' 1'] for flag in
+                  [f'--use-random-seed{one}', f'-r{one}']]),
         # FreeSurfer
         ReconAll: ['-norandomness', f'-rng-seed {_seed["seed"]}'],
         ApplyVolTransform: _reusable_flags['FSL'],
