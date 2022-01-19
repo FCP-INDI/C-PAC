@@ -343,7 +343,7 @@ class Node(pe.Node):
                                          '%s  # (Atropos constant)' %
                                          self.name if 'atropos' in
                                          self.name else self.name)
-        super().run(updatehash)
+        return super().run(updatehash)
 
 
 class MapNode(Node, pe.MapNode):
