@@ -167,6 +167,8 @@ class Node(pe.Node):
                              flag not in to_remove] + new_flags
             if attr == 'args':
                 new_flags = ' '.join(new_flags)
+                while '  ' in new_flags:
+                    new_flags = new_flags.replace('  ', ' ')
             return new_flags
         if hasattr(self.inputs, 'flags'):
             self.inputs.flags = prep_flags('flags')
