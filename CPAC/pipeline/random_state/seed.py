@@ -65,7 +65,7 @@ def random_seed_flags():
             # function: lambda function to apply to function source
             hardcoded_reg: lambda fn_string: fn_string.replace(
                 'regcmd = ["antsRegistration"]',
-                f'regcmd = ["antsRegistration", \"--random-seed {seed}\"]'
+                f'regcmd = ["antsRegistration", "--random-seed", \"{seed}\"]'
             )
         },
         'interfaces': {
@@ -150,4 +150,4 @@ def set_up_random_state(seed, log_dir=None):
     if log_dir is None:
         log_dir = os.getcwd()
     set_up_logger('random', level='info', log_dir=log_dir)
-    getLogger('random').info(random_seed())
+    getLogger('random').info('seed: %s', random_seed())
