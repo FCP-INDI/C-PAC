@@ -55,8 +55,43 @@ def random_seed():
 def random_seed_flags():
     '''Function to return dictionary of flags with current random seed.
 
-    Developer note: sequence matters here! Only the first match will be
-    applied!'''
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    dict of {'functions': {function: function}, 'interfaces': {list or tuple}}
+        Developer note: sequence matters here! Only the first match
+        will be applied!
+
+        In the 'functions' sub-dictionary, each key should be a function
+        used in a :py:class:`CPAC.utils.interfaces.function.Function`,
+        and each value should be a function that takes a single
+        parameter (a function) to apply to the key-function such that,
+        once the value-function is applied, the random seed is applied
+        when the key-function is run.
+
+        In the 'interfaces' sub-dictionary, each key should be an
+        :py:class:`nipype.interfaces.base.core.Interface`, and each
+        value should be either a list of strings to add to the
+        interface's flags/args or a tuple of (list of strings to add to,
+        list of strings to remove from) the interface's flags/args.
+
+    Examples
+    --------
+    >>> list(random_seed_flags().keys())
+    ['functions', 'interfaces']
+    >>> all([isinstance(random_seed_flags()[key], dict) for key in [
+    ...     'functions', 'interfaces']])
+    True
+    >>> set_up_random_state('random')
+    >>> list(random_seed_flags().keys())
+    ['functions', 'interfaces']
+    >>> all([isinstance(random_seed_flags()[key], dict) for key in [
+    ...     'functions', 'interfaces']])
+    True
+    '''
     seed = random_seed()
     if seed is None:
         return {'functions': {}, 'interfaces': {}}
