@@ -4242,12 +4242,12 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
                                 
-    apply_xfm_WM= apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
+    apply_xfm_WM = apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
                                 reg_tool, time_series=False,
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
                                  
-    apply_xfm_GM= apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
+    apply_xfm_GM = apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
                                 reg_tool, time_series=False,
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
@@ -4337,12 +4337,12 @@ def warp_Tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
                                 
-    apply_xfm_WM= apply_transform(f'warp_Tissuemask_to_EPItemplate_WM{pipe_num}',
+    apply_xfm_WM = apply_transform(f'warp_Tissuemask_to_EPItemplate_WM{pipe_num}',
                                 reg_tool, time_series=False,
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
                                  
-    apply_xfm_GM= apply_transform(f'warp_Tissuemask_to_EPItemplate_GM{pipe_num}',
+    apply_xfm_GM = apply_transform(f'warp_Tissuemask_to_EPItemplate_GM{pipe_num}',
                                 reg_tool, time_series=False,
                                 num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
