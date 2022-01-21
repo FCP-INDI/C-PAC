@@ -179,7 +179,7 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
-from CPAC.pipeline.random_state import set_up_random_state
+from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
@@ -411,8 +411,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             c.pipeline_setup['output_directory']['path'])
 
     if c.pipeline_setup['system_config']['random_seed'] is not None:
-        set_up_random_state(c.pipeline_setup['system_config']['random_seed'],
-                            log_dir)
+        set_up_random_state_logger(log_dir)
 
     workflow = build_workflow(
         subject_id, sub_dict, c, p_name, num_ants_cores

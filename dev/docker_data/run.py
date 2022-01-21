@@ -12,6 +12,7 @@ from urllib.error import HTTPError
 import yaml
 
 from CPAC import __version__
+from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
@@ -564,6 +565,12 @@ def run_main():
         if args.random_seed:
             c['pipeline_setup']['system_config']['random_seed'] = \
                 args.random_seed
+
+        if c['pipeline_setup']['system_config']['random_seed'] is not None:
+            c['pipeline_setup']['system_config']['random_seed'] =  \
+                set_up_random_state(c['pipeline_setup']['system_config'][
+                    'random_seed'])
+
         c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
