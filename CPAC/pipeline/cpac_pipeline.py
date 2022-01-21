@@ -344,7 +344,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     Setting MKL_NUM_THREADS to 1
     Setting ANTS/ITK thread usage to {ants_threads}
     Maximum potential number of cores that might be used during this run: {max_cores}
-{random_state}
+{random_seed}
 """  # noqa E501
 
     execution_info = """
@@ -371,7 +371,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         omp_threads=c.pipeline_setup['system_config']['num_OMP_threads'],
         ants_threads=c.pipeline_setup['system_config']['num_ants_threads'],
         max_cores=max_core_usage,
-        random_state=(
+        random_seed=(
             '    Random seed: %s' %
             c.pipeline_setup['system_config']['random_seed']) if
         c.pipeline_setup['system_config']['random_seed'] is not None else ''
