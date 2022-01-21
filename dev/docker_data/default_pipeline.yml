@@ -82,9 +82,9 @@ pipeline_setup:
 
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.
-    # If set, a `random.log` file will be generated logging the random state used by each process.
-    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process.
-    # If set to 'random', a random seed will be generated and recorded for each process.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
     random_seed:
 
     # Select Off if you intend to run CPAC on a single machine.
