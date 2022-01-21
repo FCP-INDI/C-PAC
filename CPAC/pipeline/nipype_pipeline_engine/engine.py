@@ -143,10 +143,15 @@ class Node(pe.Node):
             * 't' (temporal)''']))  # noqa E501
 
     def _add_flags(self, flags):
-        '''
+        r'''
         Parameters
         ----------
-        flags : list
+        flags : list or tuple
+            If a list, add ``flags`` to ``self.inputs.flags`` or
+            ``self.inputs.args``
+
+            If a tuple, remove ``flags[1]`` from and add ``flags[0]``
+            to ``self.inputs.flags`` or ``self.inputs.args``
         '''
         def prep_flags(attr):
             to_remove = []
