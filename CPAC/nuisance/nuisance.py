@@ -33,8 +33,42 @@ from CPAC.nuisance.utils.compcor import (
 from CPAC.seg_preproc.utils import erosion, mask_erosion
 
 from CPAC.utils.datasource import check_for_s3
-from .bandpass import (bandpass_voxels, afni_1dBandpass)
 from CPAC.utils.utils import check_prov_for_regtool
+from .bandpass import (bandpass_voxels, afni_1dBandpass)
+
+
+def choose_nuisance_blocks(cfg, generate_only=False):
+    '''
+    Function to handle selecting appropriate blocks based on
+    existing config and resource pool
+
+    Parameters
+    ----------
+    cfg : CPAC.utils.configuration.Configuration
+
+    generate_only : boolean
+        generate but don't run
+
+    Returns
+    -------
+    nuisance : list
+    '''
+    nuisance = []
+    to_template_cfg = cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']
+    out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
+           'single_step_resampling': ("desc-preproc_bold", "desc-stc_bold"),
+           'abcd': ("desc-preproc_bold", "bold")
+           }[to_template_cfg['apply_transform']['using']]
+    if 'T1_template' in to_template_cfg['target_template']['using']:
+        nuisance.append((nuisance_regressors_generation, out))
+    if 'EPI_template' in to_template_cfg['target_template']['using']:
+        nuisance.append((nuisance_regressors_generation_EPItemplate, out))
+
+    if not generate_only:
+        nuisance.append((nuisance_regression, out))
+
+    return nuisance
 
 
 def erode_mask(name, segmentmap=True):
@@ -109,29 +143,37 @@ def gather_nuisance(functional_file_path,
                     custom_file_paths=None,
                     censor_file_path=None):
     """
-    Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
-    input into 3dTproject
+    Gathers the various nuisance regressors together into a single tab-
+    separated values file that is an appropriate for input into
+    3dTproject
 
-    :param functional_file_path: path to file that the regressors are being calculated for, is used to calculate
-           the length of the regressors for error checking and in particular for calculating spike regressors
-    :param output_file_path: path to output TSV that will contain the various nuisance regressors as columns
-    :param grey_matter_summary_file_path: path to TSV that includes summary of grey matter time courses, e.g. output of
+    :param functional_file_path: path to file that the regressors are
+        being calculated for, is used to calculate the length of the
+        regressors for error checking and in particular for calculating
+        spike regressors
+    :param output_file_path: path to output TSV that will contain the
+        various nuisance regressors as columns
+    :param grey_matter_summary_file_path: path to TSV that includes
+        summary of grey matter time courses, e.g. output of
         mask_summarize_time_course
-    :param white_matter_summary_file_path: path to TSV that includes summary of white matter time courses, e.g. output
-        of mask_summarize_time_course
-    :param csf_summary_file_path: path to TSV that includes summary of csf time courses, e.g. output
-        of mask_summarize_time_course
-    :param acompcor_file_path: path to TSV that includes acompcor time courses, e.g. output
-        of mask_summarize_time_course
-    :param tcompcor_file_path: path to TSV that includes tcompcor time courses, e.g. output
-        of mask_summarize_time_course
-    :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output
-        of mask_summarize_time_course
-    :param motion_parameters_file_path: path to TSV that includes motion parameters
+    :param white_matter_summary_file_path: path to TSV that includes
+        summary of white matter time courses, e.g. output of
+        mask_summarize_time_course
+    :param csf_summary_file_path: path to TSV that includes summary of
+        csf time courses, e.g. output of mask_summarize_time_course
+    :param acompcor_file_path: path to TSV that includes acompcor time
+        courses, e.g. output of mask_summarize_time_course
+    :param tcompcor_file_path: path to TSV that includes tcompcor time
+        courses, e.g. output of mask_summarize_time_course
+    :param global_summary_file_path: path to TSV that includes summary
+        of global time courses, e.g. output of mask_summarize_time_course
+    :param motion_parameters_file_path: path to TSV that includes
+        motion parameters
     :param custom_file_paths: path to CSV/TSV files to use as regressors
-    :param censor_file_path: path to TSV with a single column with 1's for indices that should be retained and 0's
-              for indices that should be censored
-    :return:
+    :param censor_file_path: path to TSV with a single column with '1's
+        for indices that should be retained and '0's for indices that
+        should be censored
+    :return: out_file (str), censor_indices (list)
     """
 
     # Basic checks for the functional image
@@ -312,6 +354,7 @@ def gather_nuisance(functional_file_path,
             column_names.append(custom_file_path)
             nuisance_regressors.append(custom_regressor)
 
+    censor_indices = []
     # Add spike regressors
     if selector.get('Censor', {}).get('method') == 'SpikeRegression':
 
@@ -412,7 +455,7 @@ def gather_nuisance(functional_file_path,
         nuisance_regressors = np.array(nuisance_regressors)
         np.savetxt(ofd, nuisance_regressors.T, fmt='%.18f', delimiter='\t')
 
-    return output_file_path
+    return output_file_path, censor_indices
 
 
 def create_regressor_workflow(nuisance_selectors,
@@ -634,6 +677,8 @@ def create_regressor_workflow(nuisance_selectors,
             Path of residual file in nifti format
         outputspec.regressors_file_path : string (TSV file)
             Path of TSV file of regressors used. Column name indicates the regressors included .
+        outputspec.censor_indices : list
+            Indices of censored volumes
 
     Nuisance Procedure:
 
@@ -697,11 +742,11 @@ def create_regressor_workflow(nuisance_selectors,
         'tr',
     ]), name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path']),
-                         name='outputspec')
+    outputspec = pe.Node(util.IdentityInterface(
+        fields=['regressors_file_path', 'censor_indices']), name='outputspec')
 
     functional_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='functional_mean')
+                              name='functional_mean')
 
     functional_mean.inputs.options = '-mean'
     functional_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -1356,7 +1401,7 @@ def create_regressor_workflow(nuisance_selectors,
                      'motion_parameters_file_path',
                      'custom_file_paths',
                      'censor_file_path'],
-        output_names=['out_file'],
+        output_names=['out_file', 'censor_indices'],
         function=gather_nuisance,
         as_module=True
     ), name="build_nuisance_regressors")
@@ -1427,8 +1472,9 @@ def create_regressor_workflow(nuisance_selectors,
                 voxel_nuisance_regressors_merge, "in{}".format(i + 1)
             )
 
-    nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                        outputspec, 'regressors_file_path')
+    nuisance_wf.connect([(build_nuisance_regressors, outputspec, [
+        ('out_file', 'regressors_file_path'),
+        ('censor_indices', 'censor_indices')])])
 
     return nuisance_wf
 
@@ -2118,7 +2164,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors"]}
+     "outputs": ["regressors", "censor-indices"]}
     '''
 
     use_ants = None
@@ -2224,7 +2270,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path')
+        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'censor-indices': (regressors, 'outputspec.censor_indices')
     }
 
     return (wf, outputs)
@@ -2249,12 +2296,12 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-cleaned_bold",
                  "regressors"]}
     '''
-    
+
     regressor_prov = strat_pool.get_cpac_provenance('regressors')
     regressor_strat_name = regressor_prov[-1].split('_')[-1]
-    
+
     for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
-        'Regressors']:
+            'Regressors']:
         if regressor_dct['Name'] == regressor_strat_name:
             opt = regressor_dct
             break
@@ -2328,10 +2375,10 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         node, out = strat_pool.get_data("desc-preproc_bold")
         wf.connect(node, out, nuis, 'inputspec.functional_file_path')
-        
+
         outputs = {
             'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
-            'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path')
+            'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
         }
 
     return (wf, outputs)
@@ -2522,7 +2569,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors"]}
+     "outputs": ["regressors", "censor-indices"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -2610,7 +2657,8 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path')
+        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'censor-indices': (regressors, 'outputspec.censor_indices')
     }
 
     return (wf, outputs)

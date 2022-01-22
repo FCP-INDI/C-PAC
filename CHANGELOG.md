@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
+- Added XCP-style quality control file
 - Added `engine.log` (when verbose debugging is on)
 
+### Changed
+- Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
+- Moved some ephemeral logging statements into `pypeline.log`
+
 ### Fixed
-- Broken links in README
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1638) in which working connectivity matrix filepaths were generated incorrectly, preventing generating matrices depending on container bindings
+- Fixed broken links in README
 
 ## [1.8.2] - 2021-12-02
 

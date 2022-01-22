@@ -34,7 +34,7 @@ for pallete in palletes:
 def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_snr_plot",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -86,7 +86,7 @@ def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_motion_plot",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -114,7 +114,7 @@ def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_fd_plot",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -138,7 +138,7 @@ def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_brain_extraction",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -171,7 +171,7 @@ def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_brain_extraction",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -214,7 +214,7 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_segmentation",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -259,7 +259,7 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_epi_segmentation",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -304,7 +304,7 @@ def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_carpet_plot",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -356,7 +356,7 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
 def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_coregistration",
-     "config": ["pipeline_setup", "output_directory"],
+     "config": ["pipeline_setup", "output_directory", "quality_control"],
      "switch": ["generate_quality_control_images"],
      "option_key": "None",
      "option_val": "None",
@@ -399,7 +399,7 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_bold_registration",
      "config": "None",
-     "switch": [["pipeline_setup", "output_directory", 
+     "switch": [["pipeline_setup", "output_directory", "quality_control",
                  "generate_quality_control_images"],
                 ["registration_workflows", "anatomical_registration", "run"]],
      "option_key": "None",
@@ -444,7 +444,7 @@ def qc_bold_EPI_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "qc_bold_EPI_registration",
      "config": "None",
-     "switch": [["pipeline_setup", "output_directory", 
+     "switch": [["pipeline_setup", "output_directory", "quality_control",
                  "generate_quality_control_images"],
                 ["registration_workflows", "functional_registration",
                  "func_registration_to_template", "run_EPI"]],

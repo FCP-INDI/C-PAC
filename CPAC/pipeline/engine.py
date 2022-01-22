@@ -952,7 +952,11 @@ class ResourcePool(object):
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                wf.connect(node, out, nii_name, 'in_file')
+                try:
+                    wf.connect(node, out, nii_name, 'in_file')
+                except OSError as os_error:
+                    logger.warning(os_error)
+                    continue
 
                 write_json_imports = ['import os', 'import json']
                 write_json = pe.Node(Function(input_names=['json_data',
@@ -982,6 +986,19 @@ class ResourcePool(object):
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
+
+    def node_data(self, resource, **kwargs):
+        '''Factory function to create NodeData objects
+
+        Parameters
+        ----------
+        resource : str
+
+        Returns
+        -------
+        NodeData
+        '''
+        return NodeData(self, resource, **kwargs)
 
 
 class NodeBlock(object):
@@ -1952,3 +1969,53 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+
+
+class NodeData:
+    r"""Class to hold outputs of
+    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
+
+    ``node_data = strat_pool.node_data(resource)`` and have
+    ``node_data.node`` and ``node_data.out`` instead of doing
+    ``node, out = strat_pool.get_data(resource)`` and needing two
+    variables (``node`` and ``out``) to store that information.
+
+    Also includes ``variant`` attribute providing the resource's self-
+    keyed value within its ``CpacVariant`` dictionary.
+
+    Examples
+    --------
+    >>> rp = ResourcePool()
+    >>> rp.node_data(None)
+    NotImplemented (NotImplemented)
+
+    >>> rp.set_data('test',
+    ...             pe.Node(Function(input_names=[]), 'test'),
+    ...             'b', [], 0, 'test')
+    >>> rp.node_data('test')
+    test (b)
+    >>> rp.node_data('test').out
+    'b'
+
+    >>> try:
+    ...     rp.node_data('b')
+    ... except LookupError as lookup_error:
+    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
+    [!] C-PAC says: The listed resource is not in the resource pool: b
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, strat_pool=None, resource=None, **kwargs):
+        self.node = NotImplemented
+        self.out = NotImplemented
+        self.variant = None
+        if strat_pool is not None and resource is not None:
+            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+            if (
+                hasattr(strat_pool, 'rpool') and
+                isinstance(strat_pool.rpool, dict)
+            ):
+                self.variant = strat_pool.rpool.get(resource, {}).get(
+                    'json', {}).get('CpacVariant', {}).get(resource)
+
+    def __repr__(self):
+        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
