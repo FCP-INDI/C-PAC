@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2
+# Version 1.8.3.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -47,8 +47,13 @@ pipeline_setup:
     # Options: default, ndmg
     output_tree: "default"
 
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: True
+    # Quality control outputs
+    quality_control:
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: True
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: False
 
   working_directory:
 

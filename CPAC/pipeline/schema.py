@@ -354,7 +354,10 @@ latest_schema = Schema({
             'write_func_outputs': bool,
             'write_debugging_outputs': bool,
             'output_tree': str,
-            'generate_quality_control_images': bool,
+            'quality_control': {
+                'generate_quality_control_images': bool,
+                'generate_xcpqc_files': bool,
+            },
         },
         'working_directory': {
             'path': str,

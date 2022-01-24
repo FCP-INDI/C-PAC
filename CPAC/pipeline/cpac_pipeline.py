@@ -8,7 +8,6 @@ import copy
 import faulthandler
 import yaml
 
-import logging as cb_logging
 from time import strftime
 
 import nipype
@@ -136,17 +135,15 @@ from CPAC.distortion_correction.distortion_correction import (
 )
 
 from CPAC.nuisance.nuisance import (
+    choose_nuisance_blocks,
     ICA_AROMA_ANTsreg,
     ICA_AROMA_FSLreg,
     ICA_AROMA_ANTsEPIreg,
     ICA_AROMA_FSLEPIreg,
-    nuisance_regressors_generation,
-    nuisance_regression,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
     erode_mask_WM,
-    nuisance_regressors_generation_EPItemplate,
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
@@ -188,14 +185,14 @@ from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.utils import generate_qc_pages
+from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
 
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
 )
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
@@ -256,8 +253,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-    # TODO ASH Enforce c.run_logging to be boolean
-    # TODO ASH Schema validation
+    if c.pipeline_setup['Debugging']['verbose']:
+        set_up_logger('engine', level='debug', log_dir=log_dir)
+
     config.update_config({
         'logging': {
             'log_directory': log_dir,
@@ -480,10 +478,7 @@ Please, make yourself aware of how it works and its assumptions:
                 pass
 
             # Add handler to callback log file
-            cb_logger = cb_logging.getLogger('callback')
-            cb_logger.setLevel(cb_logging.DEBUG)
-            handler = cb_logging.FileHandler(cb_log_filename)
-            cb_logger.addHandler(handler)
+            set_up_logger('callback', cb_log_filename, 'debug', log_dir)
 
             # Log initial information from all the nodes
             log_nodes_initial(workflow)
@@ -1006,11 +1001,11 @@ def list_blocks(pipeline_blocks, indent=None):
         getattr(block, '__name__', getattr(block, 'name', yaml.safe_load(
             list_blocks(list(block))) if
             isinstance(block, (tuple, list, set)) else str(block))
-        ) for block in pipeline_blocks
-    ])
+        ) for block in pipeline_blocks])
     if isinstance(indent, int):
         blockstring = '\n'.join([
-            '\t' + ' ' * indent + line for line in blockstring.split('\n')])
+            '\t' + ' ' * indent + line.replace('- - ', '- ') for
+            line in blockstring.split('\n')])
     return blockstring
 
 
@@ -1019,6 +1014,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
         'Connecting pipeline blocks:',
         list_blocks(pipeline_blocks, indent=1)]))
 
+    previous_nb = None
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block)
@@ -1033,6 +1029,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"'{NodeBlock(block).get_name()}' "
                 f"to workflow '{wf}' " + previous_nb_str + e.args[0],
             )
+            if cfg.pipeline_setup['Debugging']['verbose']:
+                verbose_logger = logging.getLogger('engine')
+                verbose_logger.debug(e.args[0])
+                verbose_logger.debug(rpool)
             raise
         previous_nb = nb
 
@@ -1193,40 +1193,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks
-
-        if 'T1_template' in \
-            cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template']['using']:
-            if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
-
-        if 'EPI_template' in \
-            cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template'][
-                'using']:
-            if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "desc-stc_bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg)
 
         pipeline_blocks += nuisance
 
@@ -1331,11 +1298,19 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             vmhc]
 
     if not rpool.check_rpool('centrality') and \
-            any([cfg.network_centrality[option]['weight_options'] for option in valid_options['centrality']['method_options']]):
+            any(cfg.network_centrality[option]['weight_options'] for
+                option in valid_options['centrality']['method_options']):
         pipeline_blocks += [network_centrality]
 
-    if cfg.pipeline_setup['output_directory'][
-        'generate_quality_control_images']:
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_xcpqc_files'
+    ]:
+        pipeline_blocks += [qc_xcp_skullstripped, qc_xcp_native,
+                            qc_xcp_template]
+
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_quality_control_images'
+    ]:
         qc_stack, qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(cfg)
         pipeline_blocks += qc_stack
