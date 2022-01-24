@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added XCP-style quality control file
+- Added RBC-options pipeline preconfiguration
 - Added `engine.log` (when verbose debugging is on)
 - Added ability to fix random seed for
     - `antsAI`
