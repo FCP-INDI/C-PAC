@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added XCP-style quality control file
 - Added `engine.log` (when verbose debugging is on)
+- Added ability to fix random seed for
+    - `antsAI`
+    - `antsRegistration`
+    - `Atropos` (fixed but not specified)
+    - `fslmaths`
+    - `mri_vol2vol`
+    - `recon-all`
 
 ### Changed
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`

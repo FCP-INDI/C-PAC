@@ -21,7 +21,7 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block 
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     freesurfer_abcd_preproc,
@@ -177,6 +177,7 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
+from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.utils.datasource import (
     gather_extraction_maps
 )
@@ -187,13 +188,12 @@ from CPAC.utils import Configuration
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
 
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
+from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
 )
-
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
-from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
 faulthandler.enable()
@@ -345,8 +345,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     Setting MKL_NUM_THREADS to 1
     Setting ANTS/ITK thread usage to {ants_threads}
     Maximum potential number of cores that might be used during this run: {max_cores}
-
-"""
+{random_seed}
+"""  # noqa E501
 
     execution_info = """
 
@@ -361,9 +361,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         System time of start:      {run_start}
         System time of completion: {run_finish}
 
-"""
+"""  # noqa E501
 
-    logger.info(information.format(
+    logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
@@ -371,7 +371,11 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'num_participants_at_once'],
         omp_threads=c.pipeline_setup['system_config']['num_OMP_threads'],
         ants_threads=c.pipeline_setup['system_config']['num_ants_threads'],
-        max_cores=max_core_usage
+        max_cores=max_core_usage,
+        random_seed=(
+            '    Random seed: %s' %
+            c.pipeline_setup['system_config']['random_seed']) if
+        c.pipeline_setup['system_config']['random_seed'] is not None else ''
     ))
 
     subject_info = {}
@@ -406,6 +410,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if 's3://' not in c.pipeline_setup['output_directory']['path']:
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(
             c.pipeline_setup['output_directory']['path'])
+
+    if c.pipeline_setup['system_config']['random_seed'] is not None:
+        set_up_random_state_logger(log_dir)
 
     workflow = build_workflow(
         subject_id, sub_dict, c, p_name, num_ants_cores
