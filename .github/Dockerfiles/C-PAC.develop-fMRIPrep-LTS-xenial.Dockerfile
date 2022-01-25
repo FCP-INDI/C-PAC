@@ -81,6 +81,8 @@ RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ldconfig && \
+    chown c-pac_user /usr/local/miniconda/lib/python3.7/site-packages \
+    chmod ugo+w /usr/local/miniconda/lib/python3.7/site-packages \
     chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
