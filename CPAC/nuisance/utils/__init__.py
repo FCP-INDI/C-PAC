@@ -404,7 +404,6 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       use_ants=True,
                                                       ventricle_mask_exist=True):
     
-
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
 
@@ -448,8 +447,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     if csf_mask_exist:
                         nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
                     else:
-                        nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'reference_image')))
-                    
+                        resolution = regressor_selector['extraction_resolution']
+                        nuisance_wf.connect(*(pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
