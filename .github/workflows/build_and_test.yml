@@ -20,16 +20,11 @@ jobs:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
+          root-reserve-mb: 30000
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Clear up some space on runner
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Log in to GitHub Container Registry
