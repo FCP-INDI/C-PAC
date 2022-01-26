@@ -1913,10 +1913,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
-
-        wf, rpool, diff, blip, fmap_rp_list = \
-            ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                  part_id, ses_id)
+        if 'func' in data_paths:
+            wf, rpool, diff, blip, fmap_rp_list = \
+                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                      part_id, ses_id)
 
     # grab already-processed data from the output directory
     rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
