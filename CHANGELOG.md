@@ -5,11 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [unreleased]
+
+### Added
+- Added XCP-style quality control file
+- Added RBC-options pipeline preconfiguration
+- Added `engine.log` (when verbose debugging is on)
+- Added ability to fix random seed for
+    - `antsAI`
+    - `antsRegistration`
+    - `Atropos` (fixed but not specified)
+    - `fslmaths`
+    - `mri_vol2vol`
+    - `recon-all`
+
+### Changed
+- Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
+- Moved some ephemeral logging statements into `pypeline.log`
 
 ### Fixed
-
-- Broken links in README
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1638) in which working connectivity matrix filepaths were generated incorrectly, preventing generating matrices depending on container bindings
+- Fixed broken links in README
 
 ## [1.8.2] - 2021-12-02
 
@@ -48,5 +64,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
 [unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.2...develop
-[1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
+[1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1
