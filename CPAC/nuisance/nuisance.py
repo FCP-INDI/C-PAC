@@ -2535,10 +2535,12 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
 
     use_ants = reg_tool == 'ants'
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
+    csf_mask = strat_pool.check_rpool([ "space-bold_label-CSF_desc-eroded_mask", "space-bold_label-CSF_desc-preproc_mask", "space-bold_label-CSF_mask"])
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
                                            all_bold=True,
+                                            csf_mask_exist = None,
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
