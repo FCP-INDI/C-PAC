@@ -50,7 +50,6 @@ class ResourcePool(object):
 
         self.name = name
         self.info = {}
-        self.rtable = {}
 
         if cfg:
             self.cfg = cfg
@@ -166,16 +165,6 @@ class ResourcePool(object):
         elif isinstance(prov[-1], str):
             return prov[-1].split(':')[0]
 
-    def parse_bids_tags(self, resource):
-        resource_tags = resource.split('_')
-        resource_type = resource_tags.pop(-1)
-        tag_dct = {}
-        # grab everything for resources with no BIDS tags
-        tag_dct['None'] = 'None'
-        for tag in resource_tags:
-            tag_dct[tag.split('-')[0]] = tag.split('-')[1]
-        return (resource_type, tag_dct)
-
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
         json_info = json_info.copy()
@@ -221,16 +210,6 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-        
-        resource_type, tag_dct = self.parse_bids_tags(resource)
-
-        if resource_type not in self.rtable:
-            self.rtable[resource_type] = {}
-        for tag, val in tag_dct.items():
-            if tag not in self.rtable[resource_type]:
-                self.rtable[resource_type][tag] = {val: []}
-            if resource not in self.rtable[resource_type][tag][val]:
-                self.rtable[resource_type][tag][val].append(resource)
 
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info 
