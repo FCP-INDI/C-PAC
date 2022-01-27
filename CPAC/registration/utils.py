@@ -57,9 +57,10 @@ def generate_inverse_transform_flags(transform_list):
     return inverse_transform_flags
 
 
-def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull, 
-                  ants_para, moving_mask=None, reference_mask=None,
-                  fixed_image_mask=None, interp=None, reg_with_skull=0):
+def hardcoded_reg(moving_brain, reference_brain, moving_skull,
+                  reference_skull, ants_para, moving_mask=None,
+                  reference_mask=None, fixed_image_mask=None, interp=None,
+                  reg_with_skull=0):
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]

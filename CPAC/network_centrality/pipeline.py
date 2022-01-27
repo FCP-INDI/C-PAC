@@ -9,7 +9,7 @@ from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
 from CPAC.pipeline.schema import valid_options
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 
 def connect_centrality_workflow(workflow, c, resample_functional_to_template,

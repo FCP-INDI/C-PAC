@@ -687,22 +687,19 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # Skull-stripping using niworkflows-ants
-    anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=
-                                                    cfg.anatomical_preproc[
-                                                        'brain_extraction'][
-                                                        'niworkflows-ants'][
-                                                        'template_path'],
-                                                    tpl_mask_path=
-                                                    cfg.anatomical_preproc[
-                                                        'brain_extraction'][
-                                                        'niworkflows-ants'][
-                                                        'mask_path'],
-                                                    tpl_regmask_path=
-                                                    cfg.anatomical_preproc[
-                                                        'brain_extraction'][
-                                                        'niworkflows-ants'][
-                                                        'regmask_path'],
-                                                    name='anat_skullstrip_ants')
+    anat_skullstrip_ants = init_brain_extraction_wf(
+        tpl_target_path=cfg.anatomical_preproc['brain_extraction'][
+                                               'niworkflows-ants'][
+                                               'template_path'],
+        tpl_mask_path=cfg.anatomical_preproc['brain_extraction'][
+                                             'niworkflows-ants'][
+                                             'mask_path'],
+        tpl_regmask_path=cfg.anatomical_preproc['brain_extraction'][
+                                                'niworkflows-ants'][
+                                                'regmask_path'],
+        name='anat_skullstrip_ants',
+        atropos_use_random_seed=cfg.pipeline_setup['system_config'][
+            'random_seed'] is None)
 
     if strat_pool.check_rpool('desc-preproc_T1w') or \
         strat_pool.check_rpool('desc-reorient_T1w') or \

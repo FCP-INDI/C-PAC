@@ -5,7 +5,7 @@ from nipype import logging
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
@@ -717,13 +717,13 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
 
         if img_type == 'anat':
             if len(img_nii.shape) != 3:
-                raise IOError('File: %s must be an anatomical image with 3 ' \
+                raise IOError('File: %s must be an anatomical image with 3 '
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
         elif img_type == 'func':
-            if len(img_nii.shape) != 4:
-                raise IOError('File: %s must be a functional image with 4 ' \
-                              'dimensions but %d dimensions found!'
+            if len(img_nii.shape) not in [3, 4]:
+                raise IOError('File: %s must be a functional image with 3 or '
+                              '4 dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
 
     return local_path

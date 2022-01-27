@@ -30,9 +30,9 @@ from CPAC.utils.datasource import (
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
-from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
+verbose_logger = logging.getLogger('engine')
 
 
 class ResourcePool(object):
@@ -387,15 +387,17 @@ class ResourcePool(object):
                     flat_prov.append(entry)
             return flat_prov
 
-    def get_strats(self, resources):
+    def get_strats(self, resources, debug=False):
 
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
         import itertools
-        
+
         linked_resources = []
         resource_list = []
+        if debug:
+            verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
@@ -417,6 +419,10 @@ class ResourcePool(object):
         total_pool = []
         variant_pool = {}
         len_inputs = len(resource_list)
+        if debug:
+            verbose_logger.debug('linked_resources: %s',
+                                 linked_resources)
+            verbose_logger.debug('resource_list: %s', resource_list)
         for resource in resource_list:
             rp_dct, fetched_resource = self.get(resource,
                                                 report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
@@ -436,8 +442,11 @@ class ResourcePool(object):
                     for key, val in json_info['CpacVariant'].items():
                         if val not in variant_pool[fetched_resource]:
                             variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f'NO-{val[0]}')
+                            variant_pool[fetched_resource].append(
+                                f'NO-{val[0]}')
 
+            if debug:
+                verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
         if not total_pool:
@@ -548,7 +557,7 @@ class ResourcePool(object):
                                             if in_current_strat:
                                                 drop = True
                                                 break
-                                            
+
                                     if in_other_strat:
                                         if in_other_spread:
                                             if not in_current_strat:
@@ -976,7 +985,11 @@ class ResourcePool(object):
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                wf.connect(node, out, nii_name, 'in_file')
+                try:
+                    wf.connect(node, out, nii_name, 'in_file')
+                except OSError as os_error:
+                    logger.warning(os_error)
+                    continue
 
                 write_json_imports = ['import os', 'import json']
                 write_json = pe.Node(Function(input_names=['json_data',
@@ -1006,6 +1019,19 @@ class ResourcePool(object):
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
+
+    def node_data(self, resource, **kwargs):
+        '''Factory function to create NodeData objects
+
+        Parameters
+        ----------
+        resource : str
+
+        Returns
+        -------
+        NodeData
+        '''
+        return NodeData(self, resource, **kwargs)
 
 
 class NodeBlock(object):
@@ -1097,6 +1123,7 @@ class NodeBlock(object):
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
+        debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
         for name, block_dct in self.node_blocks.items():
             opts = []
@@ -1221,8 +1248,9 @@ class NodeBlock(object):
                     switch = [switch]
 
             if True in switch:
-                print(f"Connecting {name}...\n")
-                for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                logger.info('Connecting %s...', name)
+                for pipe_idx, strat_pool in rpool.get_strats(
+                        inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
@@ -1258,22 +1286,28 @@ class NodeBlock(object):
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
 
-                        if cfg.pipeline_setup['Debugging']['verbose']:
-                            print('\n=======================')
-                            print(f'Node name: {node_name}')
+                        if debug:
+                            verbose_logger.debug('\n=======================')
+                            verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
-                                rpool.get_resource_strats_from_prov(ast.literal_eval(pipe_idx))
+                                rpool.get_resource_strats_from_prov(
+                                    ast.literal_eval(pipe_idx))
                             for key, val in prov_dct.items():
-                                print('-------------------')
-                                print(f'Input - {key}:')
+                                verbose_logger.debug('-------------------')
+                                verbose_logger.debug('Input - %s:', key)
                                 sub_prov_dct = \
                                     rpool.get_resource_strats_from_prov(val)
                                 for sub_key, sub_val in sub_prov_dct.items():
                                     sub_sub_dct = \
-                                    rpool.get_resource_strats_from_prov(sub_val)
-                                    print(f'  sub-input - {sub_key}:')
-                                    print(f'    prov = {sub_val}')
-                                    print(f'    sub_sub_inputs = {sub_sub_dct.keys()}')
+                                        rpool.get_resource_strats_from_prov(
+                                            sub_val)
+                                    verbose_logger.debug('  sub-input - %s:',
+                                                         sub_key)
+                                    verbose_logger.debug('    prov = %s',
+                                                         sub_val)
+                                    verbose_logger.debug(
+                                        '    sub_sub_inputs = %s',
+                                        sub_sub_dct.keys())
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
@@ -1422,11 +1456,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-                          
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
-                          
+
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
@@ -1978,3 +2012,53 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+
+
+class NodeData:
+    r"""Class to hold outputs of
+    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
+
+    ``node_data = strat_pool.node_data(resource)`` and have
+    ``node_data.node`` and ``node_data.out`` instead of doing
+    ``node, out = strat_pool.get_data(resource)`` and needing two
+    variables (``node`` and ``out``) to store that information.
+
+    Also includes ``variant`` attribute providing the resource's self-
+    keyed value within its ``CpacVariant`` dictionary.
+
+    Examples
+    --------
+    >>> rp = ResourcePool()
+    >>> rp.node_data(None)
+    NotImplemented (NotImplemented)
+
+    >>> rp.set_data('test',
+    ...             pe.Node(Function(input_names=[]), 'test'),
+    ...             'b', [], 0, 'test')
+    >>> rp.node_data('test')
+    test (b)
+    >>> rp.node_data('test').out
+    'b'
+
+    >>> try:
+    ...     rp.node_data('b')
+    ... except LookupError as lookup_error:
+    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
+    [!] C-PAC says: The listed resource is not in the resource pool: b
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, strat_pool=None, resource=None, **kwargs):
+        self.node = NotImplemented
+        self.out = NotImplemented
+        self.variant = None
+        if strat_pool is not None and resource is not None:
+            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+            if (
+                hasattr(strat_pool, 'rpool') and
+                isinstance(strat_pool.rpool, dict)
+            ):
+                self.variant = strat_pool.rpool.get(resource, {}).get(
+                    'json', {}).get('CpacVariant', {}).get(resource)
+
+    def __repr__(self):
+        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
