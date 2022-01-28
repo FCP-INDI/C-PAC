@@ -504,7 +504,7 @@ segmentation:
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
       # Options: ['T1_Template', 'EPI_Template']
-      template_for_segmentation: ['EPI_Template']
+      template_for_segmentation: ['T1_Template']
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -795,7 +795,7 @@ registration_workflows:
       # directly register the mean functional to an EPI template
       #   instead of applying the anatomical T1-to-template transform to the functional data that has been
       #   coregistered to anatomical/T1 space
-      run: On
+      run: Off
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
