@@ -7,7 +7,8 @@ CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
 DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 
-from CPAC.__main__ import utils as CPAC_main_utils  # noqa: E402
+from CPAC.__main__ import utils as CPAC_main_utils \
+    # noqa: E402  # pylint: disable=wrong-import-position
 
 
 def test_build_data_config(cli_runner):
@@ -103,8 +104,8 @@ def _delete_test_yaml(test_yaml):
 
 
 def _test_repickle(pickle_path, gzipped=False):
+    # pylint: disable=import-outside-toplevel,unused-import
     backup = _Backup(pickle_path)
     if gzipped:
         import gzip  # noqa: F401
-
     backup.restore()

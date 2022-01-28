@@ -78,7 +78,8 @@ class RegressionTester(object):
 
         # Read in list of subject functionals
         subjects_list = [
-            l.strip().strip('"') for l in open(sfile).readlines()  # noqa: E741
+            l.strip().strip('"') for  # noqa: E741
+            l in open(sfile).readlines()  # pylint: disable=consider-using-with
         ]
 
         # Read in design/regressor file
@@ -93,7 +94,7 @@ class RegressionTester(object):
         c.inputs.inputspec.f_samples = nperms
         c.inputs.inputspec.parallel_nodes = 4
         # c.base_dir = op.join(obase, 'results_fs%i_pn%i' % \
-        #                (c.inputs.inputspec.f_samples, c.inputs.inputspec.parallel_nodes))  # noqa: E501
+        #                (c.inputs.inputspec.f_samples, c.inputs.inputspec.parallel_nodes))  # noqa: E501  # pylint: disable=line-too-long
         c.base_dir = op.join(self.base, "results_%s.py" % self.name)
 
         # export MKL_NUM_THREADS=X # in command line
