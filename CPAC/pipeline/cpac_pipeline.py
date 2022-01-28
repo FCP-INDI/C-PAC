@@ -92,7 +92,11 @@ from CPAC.registration.registration import (
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
+    warp_timeseries_to_T1template_dcan_nhp,
+    warp_Tissuemask_to_T1template,
+    warp_Tissuemask_to_EPItemplate,
     warp_timeseries_to_T1template_dcan_nhp
+
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -838,7 +842,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
 
         anat_preproc_blocks = [
-            (non_local_means, ('T1w', ['desc-preproc_T1w', 
+            (non_local_means, ('T1w', ['desc-preproc_T1w',
                                        'desc-reorient_T1w',
                                        'T1w'])),
             n4_bias_correction
@@ -849,7 +853,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anat_blocks = anat_preproc_blocks + acpc_blocks
 
         pipeline_blocks += anat_blocks
-    
+
         if not rpool.check_rpool('freesurfer-subject-dir'):
             pipeline_blocks += [freesurfer_abcd_preproc]
 
@@ -868,14 +872,14 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_brain_mask_blocks
 
     # T2w Anatomical Preprocessing
-    if rpool.check_rpool('T2w'): 
+    if rpool.check_rpool('T2w'):
         if not rpool.check_rpool('desc-reorient_T2w'):
             anat_init_blocks_T2 = [
-                anatomical_init_T2                    
+                anatomical_init_T2
             ]
             pipeline_blocks += anat_init_blocks_T2
-        
-        # TODO: T2 freesurfer_preproc? 
+
+        # TODO: T2 freesurfer_preproc?
         # pipeline_blocks += [freesurfer_preproc]
 
         if not rpool.check_rpool('desc-preproc_T2w'):
@@ -908,7 +912,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     ]
 
             anat_preproc_blocks_T2 = [
-                registration_T2w_to_T1w, 
+                registration_T2w_to_T1w,
                 non_local_means_T2,
                 n4_bias_correction_T2,
                 t1t2_bias_correction
@@ -919,7 +923,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 anat_blocks_T2 = anat_preproc_blocks_T2 + acpc_blocks_T2
 
             pipeline_blocks += anat_blocks_T2
-    
+
     # Anatomical T1 brain extraction
     if not rpool.check_rpool('desc-brain_T1w'):
         anat_brain_blocks = [
@@ -952,9 +956,11 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-             overwrite_transform_anat_to_template
+            overwrite_transform_anat_to_template,
+
         ]
-        
+
+
     if not rpool.check_rpool('desc-restore-brain_T1w'):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 
@@ -984,8 +990,13 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
             seg_blocks.append(tissue_seg_EPI_template_based)
-            
+
         pipeline_blocks += seg_blocks
+
+    if cfg.registration_workflows['anatomical_registration']['run'] and 'T1_Template' in cfg.segmentation[
+    'tissue_segmentation']['Template_Based']['template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+
 
     return pipeline_blocks
 
@@ -1096,10 +1107,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_slice_time,
             func_reorient
         ]
-        
+
         if not rpool.check_rpool('desc-mean_bold'):
             func_preproc_blocks.append(func_mean)
-        
+
         func_mask_blocks = []
         if not rpool.check_rpool('space-bold_desc-brain_mask'):
             func_mask_blocks = [
@@ -1107,7 +1118,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                  bold_mask_anatomical_refined, bold_mask_anatomical_based,
                  bold_mask_anatomical_resampled, bold_mask_ccs],
                 bold_masking]
-            
+
         func_prep_blocks = [
             calc_motion_stats,
             func_normalize
@@ -1119,7 +1130,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp) 
+            distcor_blocks.append(distcor_blip_afni_qwarp)
             distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
@@ -1174,6 +1185,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             [register_ANTs_EPI_to_template, register_FSL_EPI_to_template]
         ]
         pipeline_blocks += EPI_reg_blocks
+
+    if cfg.registration_workflows['functional_registration']['EPI_registration']['run'
+    ] and 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
+
+
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
@@ -1255,7 +1272,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if apply_func_warp:
         pipeline_blocks += [warp_timeseries_to_EPItemplate,
                             warp_bold_mean_to_EPItemplate]
-                            
+
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
