@@ -3,7 +3,7 @@ See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.
-'''  # noqa E501
+'''  # noqa: E501
 import os
 import re
 import warnings
@@ -140,7 +140,7 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)''']))  # noqa E501
+            * 't' (temporal)''']))  # noqa: E501
 
     def _add_flags(self, flags):
         r'''
@@ -415,7 +415,7 @@ class Workflow(pe.Workflow):
                 self._local_func_scans)  # pylint: disable=no-member
         else:
             # TODO: handle S3 files
-            node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
+            node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
 
 
 def get_data_size(filepath, mode='xyzt'):

@@ -46,7 +46,7 @@ def pick_wm_prob_0(probability_maps):
 
     file : string
         Path to segment_prob_0.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -70,7 +70,7 @@ def pick_wm_prob_1(probability_maps):
 
     file : string
         Path to segment_prob_1.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -94,7 +94,7 @@ def pick_wm_prob_2(probability_maps):
 
     file : string
         Path to segment_prob_2.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -118,7 +118,7 @@ def pick_wm_class_0(tissue_class_files):
 
     file : string
         Path to segment_seg_0.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -142,7 +142,7 @@ def pick_wm_class_1(tissue_class_files):
 
     file : string
         Path to segment_seg_1.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -166,7 +166,7 @@ def pick_wm_class_2(tissue_class_files):
 
     file : string
         Path to segment_seg_2.nii.gz is returned
-    """  # noqa
+    """  # noqa:
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -363,7 +363,7 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask,
     bash_cmd = str.join(cmd)
 
     try:
-        retcode = subprocess.check_output(bash_cmd, shell=True)  # noqa F841
+        retcode = subprocess.check_output(bash_cmd, shell=True)  # noqa: F841
     except Exception as e:
         raise Exception('[!] antsJointLabel segmentation method did not '
                         'complete successfully.\n\nError '
@@ -414,7 +414,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
     gm_mask : string (nifti file)
 
     wm_mask : string (nifti file)
-    """  # noqa
+    """  # noqa:
     import os
     import nibabel as nb
     import numpy as np

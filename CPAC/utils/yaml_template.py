@@ -76,7 +76,7 @@ def create_yaml_from_template(
         ...         'run': ([True], False),
         ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
         {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
-        '''  # noqa
+        '''  # noqa:
         if isinstance(diff, tuple) and len(diff) == 2:
             return diff[1]
         if isinstance(diff, dict):
@@ -112,7 +112,7 @@ def create_yaml_from_template(
         '''
         return f'\n{" " * level * 2}{key}: '
 
-    def _format_list_items(l, line_level):  # noqa E741
+    def _format_list_items(l, line_level):  # noqa: E741
         '''Helper method to handle lists in the YAML
 
         Parameters
@@ -131,7 +131,7 @@ def create_yaml_from_template(
         '  - 1\n  - 2\n  - nested: 3'
         >>> _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1)
         '    - 1\n    - 2\n    - nested:\n      - 3\n      - deep:\n        - 4'
-        '''  # noqa
+        '''  # noqa:
         # keep short, simple lists in square brackets
         if all([any([isinstance(item, item_type) for item_type in {
             str, bool, int, float

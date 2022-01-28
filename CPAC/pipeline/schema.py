@@ -173,7 +173,7 @@ def permutation_message(key, options):
 
     Returns
     -------
-    msg: str'''  # noqa E501
+    msg: str'''  # noqa: E501
     return f'''
 
 \'{key}\' takes a dictionary with paths to region-of-interest (ROI)
