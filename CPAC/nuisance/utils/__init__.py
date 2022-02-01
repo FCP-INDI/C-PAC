@@ -595,8 +595,7 @@ class NuisanceRegressor(object):
                     res = "%.2gmm" % s['extraction_resolution']
                     if s.get('erode_mask'):
                         res += 'E'
-                    pieces += [res]
-                raise Exception(r)        
+                    pieces += [res]      
 
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
