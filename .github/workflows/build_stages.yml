@@ -164,6 +164,8 @@ jobs:
               fi
             done
           fi
+      - name: Check if changed
+        run: echo ${{ steps.dockerfile-changed.outputs.changed }}
       - name: Clear up some space on runner
         if: ${{ steps.dockerfile-changed.outputs.changed == 'true' }}
         run: |
