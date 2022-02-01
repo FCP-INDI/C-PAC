@@ -403,7 +403,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       csf_mask_exist,
                                                       use_ants=True,
                                                       ventricle_mask_exist=True):
-    
+
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
 
@@ -444,11 +444,14 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
+                    resolution = regressor_selector['extraction_resolution']
+
                     if csf_mask_exist:
                         nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
+                    elif resolution == 'Functional':
+                        nuisance_wf.connect(*(pipeline_resource_pool[resolution] + (lat_ven_mni_to_anat, 'reference_image')))
                     else:
-                        resolution = regressor_selector['extraction_resolution']
-                        nuisance_wf.connect(*(pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
+                        nuisance_wf.connect(*(pipeline_resource_pool['Functional_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
@@ -477,9 +480,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
 
             else:
-                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]    
+                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]  
+        
 
         return pipeline_resource_pool
+
 
 
 class NuisanceRegressor(object):
@@ -591,6 +596,7 @@ class NuisanceRegressor(object):
                     if s.get('erode_mask'):
                         res += 'E'
                     pieces += [res]
+                raise Exception(r)        
 
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
