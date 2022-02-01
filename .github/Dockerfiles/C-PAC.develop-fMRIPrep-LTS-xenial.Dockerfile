@@ -1,9 +1,6 @@
 # Choose versions
-FROM nipreps/fmriprep:20.2.7 as fmriprep 
-# ^ includes c3d, AFNI, FSL, wb_command ^
-FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as ANTs
-FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.1-xenial as FreeSurfer
-FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/fmriprep:20.2.7-xenial as fmriprep 
+# ^ includes AFNI, AFNI, c3d, Freesurfer, FSL, wb_command ^
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
@@ -28,21 +25,14 @@ ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
     ANTSPATH="/usr/lib/ants" \
     PATH="/usr/lib/ants:$PATH"
-COPY --from=ANTs /ants_template/ /ants_template/
-COPY --from=ANTs /etc/locale.gen /etc/
-COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
-RUN dpkg-reconfigure --frontend=noninteractive locales \
-    && update-locale LANG="en_US.UTF-8" \
-    && chmod 777 /opt && chmod a+s /opt
+COPY --from=fmriprep /usr/lib/ants/ /usr/lib/ants/
 
 # install ICA-AROMA
-COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
-RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1 && \
-    chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+COPY --from=fmriprep /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install FreeSurfer
-COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
+COPY --from=fmriprep /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH" \
     NO_FSFAST=1

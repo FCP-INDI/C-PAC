@@ -103,17 +103,13 @@ jobs:
     strategy:
       matrix:
         Dockerfile:
-        - AFNI.16.2.07-xenial
         - AFNI.20.0.04-bionic
         - AFNI.update.afni.binaries-bionic
-        - ANTs.2.3.4.neurodocker-xenial
         - ANTs.2.3.4.neurodocker-bionic
         - ANTs.2.3.5-bionic
-        - c3d.1.0.0-xenial
         - c3d.1.0.0-bionic
+        - fMRIPrep.20.2.7-xenial
         - FreeSurfer.6.0.0-min.neurodocker-bionic
-        - FreeSurfer.6.0.1-xenial
-        - FSL.5.0.9-5.neurodebian-xenial
         - FSL.neurodebian-bionic
         - ICA-AROMA.0.4.3-beta-bionic
         - msm.2.0-bionic
