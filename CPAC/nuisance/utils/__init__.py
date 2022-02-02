@@ -483,7 +483,6 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
             else:
                 pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]  
         
-
         return pipeline_resource_pool
 
 
