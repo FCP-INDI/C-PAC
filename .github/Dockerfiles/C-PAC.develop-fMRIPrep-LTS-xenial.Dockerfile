@@ -32,7 +32,7 @@ COPY --from=fmriprep /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install FreeSurfer
-COPY --from=fmriprep /usr/lib/freesurfer/ /usr/lib/freesurfer/
+COPY --from=fmriprep /opt/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH" \
     NO_FSFAST=1
