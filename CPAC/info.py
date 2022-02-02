@@ -161,6 +161,5 @@ REQUIREMENTS        = [
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",
-    "pathlib==1.0.1",
     "voluptuous>=0.12.0",
 ]
