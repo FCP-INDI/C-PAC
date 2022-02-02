@@ -1340,7 +1340,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += qc_stack
 
     # Connect the entire pipeline!
-    wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+    try:
+        wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+    except LookupError as lookup_error:
+        errorstrings = lookup_error.args[0].split('\n')
+        missing_key = errorstrings[
+            errorstrings.index('[!] C-PAC says: The listed resource is not '
+                               'in the resource pool:') + 1]
+        if missing_key.endswith('_bold') and 'func' not in sub_dict:
+            raise FileNotFoundError(
+                'The provided pipeline configuration requires functional '
+                'data but no functional data were found for ' +
+                '/'.join([sub_dict[key] for key in ['site', 'subject_id',
+                         'unique_id'] if key in sub_dict]) + '. Please check '
+                'your data and pipeline configurations.') from lookup_error
+        raise lookup_error
 
     # Write out the data
     # TODO enforce value with schema validation
