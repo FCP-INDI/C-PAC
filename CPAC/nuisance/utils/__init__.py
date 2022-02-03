@@ -445,14 +445,13 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     resolution = regressor_selector['extraction_resolution']
-
+                    
                     if csf_mask_exist:
                         nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
-                    #elif resolution == 'Functional':
-                    else:
+                    elif resolution == 'Functional':
                         nuisance_wf.connect(*(pipeline_resource_pool['Functional_mean'] + (lat_ven_mni_to_anat, 'reference_image')))
-                    #else:
-                        #nuisance_wf.connect(*(pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
+                    else:
+                        nuisance_wf.connect(*(pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
