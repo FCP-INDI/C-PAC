@@ -6,11 +6,13 @@ import shutil
 import pickle
 import copy
 import faulthandler
-import yaml
 
+from logging import getLogger
 from time import strftime
 
 import nipype
+import yaml
+
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
@@ -1048,7 +1050,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"to workflow '{wf}' " + previous_nb_str + e.args[0],
             )
             if cfg.pipeline_setup['Debugging']['verbose']:
-                verbose_logger = logging.getLogger('engine')
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug(e.args[0])
                 verbose_logger.debug(rpool)
             raise
