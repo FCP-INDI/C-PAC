@@ -404,7 +404,8 @@ class ResourcePool(object):
                 len_inputs -= 1
                 continue
             sub_pool = []
-
+            if debug:
+                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -447,6 +448,9 @@ class ResourcePool(object):
                     strat_str_list.append(strat_str)
                     strat_list_list.append(strat_list)
 
+            if debug:
+                verbose_logger.debug('len(strat_list_list): %s\n',
+                                     len(strat_list_list))
             for strat_list in strat_list_list:
 
                 json_dct = {}
