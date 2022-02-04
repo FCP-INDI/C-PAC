@@ -49,7 +49,7 @@ normCrossCorr : float
     "Normalization of T1w/Functional to Template:[…] cross correlation" :cite:`cite-Ciri19` :cite:`cite-Penn19`
 normCoverage : float
     "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
-"""  # noqa E501  # pylint: disable=line-too-long
+"""  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
 from io import BufferedReader
@@ -103,7 +103,7 @@ def calculate_overlap(image_pair):
     (1.0, 1.0, 0.9999999999999998, 1.0)
     >>> tuple(calculate_overlap((a2, a2)).values())
     (1.0, 1.0, 0.9999999999999998, 1.0)
-    '''  # noqa E501  # pylint: disable=line-too-long
+    '''  # noqa: E501  # pylint: disable=line-too-long
     if len(image_pair) != 2:
         raise IndexError('`calculate_overlap` requires 2 images, but '
                          f'{len(image_pair)} were provided')

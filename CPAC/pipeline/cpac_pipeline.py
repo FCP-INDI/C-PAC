@@ -352,7 +352,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     Setting ANTS/ITK thread usage to {ants_threads}
     Maximum potential number of cores that might be used during this run: {max_cores}
 {random_seed}
-"""  # noqa E501
+"""  # noqa: E501
 
     execution_info = """
 
@@ -367,7 +367,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         System time of start:      {run_start}
         System time of completion: {run_finish}
 
-"""  # noqa E501
+"""  # noqa: E501
 
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),

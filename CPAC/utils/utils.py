@@ -251,8 +251,8 @@ def get_zscore(map_node=False, wf_name='z_score'):
     >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
     >>> wf.run()  # doctest: +SKIP
-    """  # noqa
-
+    """  # noqa: E501  # pylint: disable=line-too-long
+    # pylint: disable=import-outside-toplevel,redefined-outer-name,reimported
     from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
@@ -1666,7 +1666,7 @@ def dct_diff(dct1, dct2):
     ...     'pipeline_config_fmriprep-options.yml')
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''  # noqa
+    '''
     diff = {}
     for key in dct1:
         if isinstance(dct1[key], dict):
@@ -1697,7 +1697,8 @@ def dct_diff(dct1, dct2):
     return {}
 
 
-def list_item_replace(l, old, new):  # noqa E741
+def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
+                      old, new):
     '''Function to replace an item in a list
 
     Parameters
@@ -1725,7 +1726,7 @@ def list_item_replace(l, old, new):  # noqa E741
     if isinstance(l, list) and old in l:
         l[l.index(old)] = new
     elif isinstance(l, str):
-        l = l.replace(old, new)  # noqa E741
+        l = l.replace(old, new)  # noqa: E741
     return l
 
 
@@ -1917,14 +1918,15 @@ def update_config_dict(old_dict):
 
     Examples
     --------
-    >>> a, b, c = update_config_dict({'pipelineName': 'example-pipeline', '2': None})
+    >>> a, b, c = update_config_dict({
+    ...     'pipelineName': 'example-pipeline', '2': None})
     >>> a
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}}
     >>> b
     {'2': None}
     >>> c
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
-    ''' # noqa
+    '''
     def _append_to_list(current_value, new_value):
         '''Helper function to add new_value to the current_value list
         or create a list if one does not exist. Skips falsy elements
@@ -2288,7 +2290,7 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     '/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'
     ... }, 'realignment': 'ROI_to_func'}})
     True
-    """  # noqa
+    """  # noqa: E501  # pylint: disable=line-too-long
 
     # short-circuit if d_update has `*_roi_paths` and
     # `roi_paths_fully_specified` children
@@ -2330,8 +2332,9 @@ def update_pipeline_values_1_8(d_old):
     >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
     ...     'using': ['FSL-FAST Thresholding']}}})
     {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Auto'}}}}}
-    '''  # noqa
-    from CPAC.pipeline.schema import valid_options
+    '''  # noqa: E501  # pylint: disable=line-too-long
+    from CPAC.pipeline.schema import valid_options \
+        # pylint: disable=import-outside-toplevel
 
     d = replace_in_strings(d_old.copy())
 
