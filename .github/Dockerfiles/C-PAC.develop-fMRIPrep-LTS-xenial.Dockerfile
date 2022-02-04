@@ -55,7 +55,9 @@ RUN pip install git+https://git@github.com/FCP-INDI/INDI-Tools.git@main && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN apt-get clean && \
+RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen && \
+    apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ldconfig && \
