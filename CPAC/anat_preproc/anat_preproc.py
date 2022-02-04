@@ -3188,7 +3188,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(node, out, merge_t1_acpc_to_list, 'in3')
 
     merge_t1_acpc = pe.Node(interface=fslMerge(),
-                            name='merge_t1_acpc')
+                            name=f'merge_t1_acpc_{pipe_num}')
 
     merge_t1_acpc.inputs.dimension = 't'
 
