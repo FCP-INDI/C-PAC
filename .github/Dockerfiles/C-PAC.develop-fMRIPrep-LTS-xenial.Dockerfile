@@ -42,6 +42,9 @@ COPY --from=fmriprep /usr/local/etc/neurodebian.gpg /usr/local/etc/
 # set up AFNI
 ENV PATH=/usr/lib/afni/bin:$PATH
 
+# Allow users to install Python packages
+RUN chmod -R ugo+w /usr/local/miniconda
+
 # install C-PAC & set up runscript
 COPY . /code
 COPY dev/docker_data /code/docker_data
