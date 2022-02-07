@@ -122,8 +122,8 @@ packages:
  - fsl-first_lib 2111.0
  - fsl-flameo 2111.0
  - fsl-flirt 2111.0
- - fsl-fnirt 2111.0
- - fsl-fugue 2111.0
+ - fsl-fnirt 2201.0
+ - fsl-fugue 2201.0
  - fsl-get_standard 0.1.0
  - fsl-giftiio 2111.0
  - fsl-gps 2111.0
