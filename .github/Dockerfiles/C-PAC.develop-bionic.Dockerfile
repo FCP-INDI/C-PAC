@@ -3,6 +3,7 @@ FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-bionic as oldANTS
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
+FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/fsl:neurodebian-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
@@ -23,6 +24,9 @@ ENV PATH $C3DPATH/bin:$PATH
 COPY --from=AFNI /opt/afni/ /opt/afni/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
+
+# install Connectome Workbench
+COPY --from=connectome-workbench /usr/ /usr/
 
 # install FSL
 COPY --from=FSL /usr/bin/tclsh /usr/bin/wish /usr/bin/
@@ -45,12 +49,15 @@ ENV LANG="en_US.UTF-8" \
     ANTSPATH="/opt/ants/bin" \
     PATH="/opt/ants/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
-COPY --from=oldANTS /ants_template/ /ants_template/
-COPY --from=oldANTS /etc/locale.gen /etc/
+COPY --from=oldANTS /etc/locale.gen /etc/locale.gen
+COPY --from=ANTS /ants_template/ /ants_template/
 COPY --from=ANTs /opt/ants/ /opt/ants/
 RUN dpkg-reconfigure --frontend=noninteractive locales \
     && update-locale LANG="en_US.UTF-8" \
     && chmod 777 /opt && chmod a+s /opt
+
+# install connectome-workbench
+COPY --from=connectome-workbench /opt/connectome-workbench/ /opt/connectome-workbench/
 
 # install ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

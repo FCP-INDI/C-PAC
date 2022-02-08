@@ -86,7 +86,6 @@ RUN apt-get install -y \
 
 # Install 16.04 dependencies
 RUN apt-get install -y \
-      connectome-workbench \
       dh-autoreconf \
       libgsl-dev \
       libmotif-dev \

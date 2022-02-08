@@ -67,6 +67,8 @@ jobs:
         - ANTs.2.3.4.neurodocker-bionic
         - ANTs.2.3.5-bionic
         - c3d.1.0.0-bionic
+        - connectome-workbench.1.3.2-1.neurodebian-bionic
+        - connectome-workbench.1.5.0.neurodebian-bionic
         - fMRIPrep.20.2.7-xenial
         - FreeSurfer.6.0.0-min.neurodocker-bionic
         - FSL.neurodebian-bionic

@@ -15,6 +15,11 @@ jobs:
     with:
       variant: lite
 
+  C-PAC-ABCD-HCP:
+    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
+    with:
+      variant: ABCD-HCP
+
   C-PAC-fMRIPrep-LTS:
     uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
     with:

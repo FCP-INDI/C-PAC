@@ -37,8 +37,16 @@ RUN mkdir -p /tmp/ants/build \
     && cd ANTS-build \
     && make install 2>&1 | tee install.log
 
+# download OASIS templates for niworkflows-ants skullstripping
+RUN mkdir /ants_template && \
+    curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
+    unzip /tmp/Oasis.zip -d /tmp &&\
+    mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
+    rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
+
 FROM ubuntu:bionic-20200112
 COPY --from=builder /opt/ants /opt/ants
+COPY --from=builder /ants_template /ants_template
 
 ENV ANTSPATH="/opt/ants/bin" \
     PATH="/opt/ants/bin:$PATH" \

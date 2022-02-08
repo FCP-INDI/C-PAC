@@ -26,6 +26,7 @@ ENV LANG="en_US.UTF-8" \
     ANTSPATH="/usr/lib/ants" \
     PATH="/usr/lib/ants:$PATH"
 COPY --from=fmriprep /usr/lib/ants/ /usr/lib/ants/
+COPY --from=fmriprep /ants_template /ants_template
 
 # install ICA-AROMA
 COPY --from=fmriprep /opt/ICA-AROMA/ /opt/ICA-AROMA/
