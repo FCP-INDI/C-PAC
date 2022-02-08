@@ -7,12 +7,15 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
+from nipype import logging
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+
+logger = logging.getLogger('nipype.workflow')
 
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
@@ -402,6 +405,10 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       csf_mask_exist,
                                                       use_ants=True,
                                                       ventricle_mask_exist=True):
+
+    if csf_mask_exist == False:
+        logger.warning('Segmentation is Off, - therefore will be using '
+                        'lateral_ventricle_mask as CerebrospinalFluid_mask.')
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
