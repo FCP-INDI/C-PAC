@@ -3,12 +3,21 @@ version: 2.1
 orbs:
   continuation: circleci/continuation@0.2.0
 parameters:
-  run_tests:
-    type: boolean
-    default: false
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Event:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 workflows:
   setup:
-    when: << pipeline.parameters.run_tests >>
+    when:  << pipeline.parameters.GHA_Action >>
     jobs:
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
