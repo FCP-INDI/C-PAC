@@ -577,6 +577,10 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     segment.inputs.segments = True
     segment.inputs.probability_maps = True
     segment.inputs.out_basename = 'segment'
+    standard2input = strat_pool.node_data(
+        'from-template_to-T1w_mode-image_xfm')
+    wf.connect(standard2input.node, standard2input.out,
+               segment, 'init_transform')
 
     check_wm = pe.Node(name='check_wm',
                        interface=Function(function=check_if_file_is_empty,

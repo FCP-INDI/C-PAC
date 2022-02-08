@@ -2953,7 +2953,8 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
                                                        'anat_brain',
-                                                       'anat_brain_mask']), 
+                                                       'anat_brain_mask',
+                                                       'init_transform']),
                         name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['anat_restore',
@@ -2967,23 +2968,23 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
     fast_bias_field_correction.inputs.img_type = 1
     fast_bias_field_correction.inputs.output_biasfield = True
     fast_bias_field_correction.inputs.output_biascorrected = True
+    preproc.connect([
+        (inputnode, fast_bias_field_correction, [
+            ('anat_brain', 'in_files'),
+            ('init_transform', 'init_transform')]),
+        (fast_bias_field_correction, outputnode, [
+            ('restored_image', 'anat_brain_restore'),
+            ('bias_field', 'bias_field')])
+    ])
 
-    preproc.connect(inputnode, 'anat_brain',
-                    fast_bias_field_correction, 'in_files')
+    # FAST does not output a non-brain extracted image so create an
+    # inverse mask, apply it to T1w_acpc_dc.nii.gz, insert the
+    # T1w_fast_restore to the skull of the T1w_acpc_dc.nii.gz and use
+    # that for the T1w_acpc_dc_restore head
 
-    preproc.connect(fast_bias_field_correction, 'restored_image',
-                    outputnode, 'anat_brain_restore')
-
-    preproc.connect(fast_bias_field_correction, 'bias_field',
-                    outputnode, 'bias_field')
-
-    # FAST does not output a non-brain extracted image so create an inverse mask, 
-    # apply it to T1w_acpc_dc.nii.gz, insert the T1w_fast_restore to the skull of 
-    # the T1w_acpc_dc.nii.gz and use that for the T1w_acpc_dc_restore head
-
-    # fslmaths ${T1wFolder}/T1w_acpc_brain_mask.nii.gz -mul -1 -add 1 ${T1wFolder}/T1w_acpc_inverse_brain_mask.nii.gz
+    # fslmaths ${T1wFolder}/T1w_acpc_brain_mask.nii.gz -mul -1 -add 1 ${T1wFolder}/T1w_acpc_inverse_brain_mask.nii.gz  # noqa: E501  # pylint: disable=line-too-long
     inverse_brain_mask = pe.Node(interface=fsl.ImageMaths(),
-                                    name='inverse_brain_mask')
+                                 name='inverse_brain_mask')
     inverse_brain_mask.inputs.op_string = '-mul -1 -add 1'
 
     preproc.connect(inputnode, 'anat_brain_mask',
@@ -3057,19 +3058,27 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fast bias field correction
     fast_correction = fast_bias_field_correction(config=cfg,
-                                                 wf_name=f'fast_bias_field_correction_{pipe_num}')
+                                                 wf_name='fast_bias_field_'
+                                                 f'correction_{pipe_num}')
+    standard2input = strat_pool.node_data(
+        'from-template_to-T1w_mode-image_xfm')
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, fast_correction, 'inputspec.anat_data')
 
-    wf.connect(brain_extraction, 'outputspec.anat_brain', fast_correction, 'inputspec.anat_brain')
+    wf.connect([
+        (node, fast_correction, [
+            (out, 'inputspec.anat_data')]),
+        (standard2input.node, fast_correction, [
+            (standard2input.out, 'inputspec.init_transform')]),
+        (brain_extraction, fast_correction, [
+            ('outputspec.anat_brain', 'inputspec.anat_brain'),
+            ('outputspec.anat_brain_mask', 'inputspec.anat_brain_mask')])
+    ])
 
-    wf.connect(brain_extraction, 'outputspec.anat_brain_mask', fast_correction, 'inputspec.anat_brain_mask')
+    ### ABCD Harmonization ###  # noqa: E266
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144  # noqa: E501  # pylint: disable=line-too-long
 
-    ### ABCD Harmonization ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
-
-    # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
+    # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz  # noqa: E501  # pylint: disable=line-too-long
     resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
                                 name=f'resample_anat_head_1mm_{pipe_num}')
     resample_head_1mm.inputs.interp = 'spline'
