@@ -51,8 +51,7 @@ RUN chmod -R ugo+w /usr/local/miniconda
 # install C-PAC & set up runscript
 COPY . /code
 COPY dev/docker_data /code/docker_data
-RUN pip install git+https://git@github.com/FCP-INDI/INDI-Tools.git@main && \
-    pip install -e /code && \
+RUN pip install -e /code && \
     rm -Rf /code/docker_data/Dockerfiles && \
     mv /code/docker_data/* /code && \
     rm -Rf /code/docker_data && \

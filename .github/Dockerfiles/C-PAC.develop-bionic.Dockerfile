@@ -65,9 +65,6 @@ RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz |
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
-# install PyPEER
-RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
-
 # install FreeSurfer
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
@@ -75,8 +72,7 @@ ENV FREESURFER_HOME="/usr/lib/freesurfer" \
 
 # install C-PAC
 COPY . /code
-RUN pip install git+https://git@github.com/FCP-INDI/INDI-Tools.git@main && \
-    pip install -e /code
+RUN pip install -e /code
 # set up runscript
 COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/Dockerfiles && \

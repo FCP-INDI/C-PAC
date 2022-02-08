@@ -57,8 +57,7 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install C-PAC
 COPY . /code
-RUN pip install git+https://git@github.com/FCP-INDI/INDI-Tools.git@main && \
-    pip install -e /code
+RUN pip install -e /code
 # set up runscript
 COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/Dockerfiles && \
