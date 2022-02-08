@@ -1,6 +1,6 @@
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/fmriprep:20.2.7-xenial as fmriprep 
-# ^ includes AFNI, AFNI, c3d, Freesurfer, FSL, wb_command ^
+# ^ includes AFNI, ANTs, c3d, Freesurfer, FSL, wb_command ^
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
@@ -41,7 +41,9 @@ ENV FREESURFER_HOME="/usr/lib/freesurfer" \
 # Installing and setting up AFNI, c3d, FSL & wb_command
 COPY --from=fmriprep /usr/local/etc/neurodebian.gpg /usr/local/etc/
 # set up AFNI
-ENV PATH=/usr/lib/afni/bin:$PATH
+ENV PATH=/usr/lib/afni/bin:$PATH \
+    AFNI_IMSAVE_WARNINGS="NO" \
+    AFNI_PLUGINPATH="/usr/lib/afni/bin"
 
 # Allow users to install Python packages
 RUN chmod -R ugo+w /usr/local/miniconda
