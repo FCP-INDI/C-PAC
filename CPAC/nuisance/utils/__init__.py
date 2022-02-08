@@ -323,14 +323,13 @@ def generate_summarize_tissue_mask(nuisance_wf,
         
             if all_bold:
                 pass
-            
+
             if csf_mask_exist:
                 mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                    name='{}_flirt'
-                                        .format(node_mask_key),
-                            mem_gb=3.63,
-                            mem_x=(3767129957844731 / 1208925819614629174706176,
-                               'in_file'))
+                                name='{}_flirt'.format(node_mask_key),
+                                mem_gb=3.63,
+                                mem_x=(3767129957844731 / 1208925819614629174706176,
+                                    'in_file'))
 
                 mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -445,13 +444,19 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     resolution = regressor_selector['extraction_resolution']
-                    
+
                     if csf_mask_exist:
-                        nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool[mask_key] +
+                            (lat_ven_mni_to_anat, 'reference_image')))
                     elif resolution == 'Functional':
-                        nuisance_wf.connect(*(pipeline_resource_pool['Functional_mean'] + (lat_ven_mni_to_anat, 'reference_image')))
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool['Functional_mean'] +
+                            (lat_ven_mni_to_anat, 'reference_image')))
                     else:
-                        nuisance_wf.connect(*(pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + (lat_ven_mni_to_anat, 'reference_image')))
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + 
+                            (lat_ven_mni_to_anat, 'reference_image')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
@@ -469,10 +474,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
             if csf_mask_exist:
                 # reduce CSF mask to the lateral ventricles
-                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
+                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'),
+                                                name='{}_Ventricles'.format(mask_key))
                 mask_csf_with_lat_ven.inputs.expr = 'a*b'
                 mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
-                
+
                 nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
                 nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
 
@@ -480,7 +486,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
 
             else:
-                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]  
+                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]
         
         return pipeline_resource_pool
 
