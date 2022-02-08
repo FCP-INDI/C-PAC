@@ -13,6 +13,15 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: RBC.options
 
+  system_config:
+
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
+    random_seed: 77742777
+
   output_directory:
     # Quality control outputs
     quality_control:
