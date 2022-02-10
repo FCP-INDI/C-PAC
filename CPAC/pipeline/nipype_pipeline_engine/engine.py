@@ -1,17 +1,20 @@
 '''Module to import Nipype Pipeline engine and override some Classes.
-See https://fcp-indi.github.com/docs/developer/nodes
+See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.
-'''  # noqa E501
+'''  # noqa: E501
 import os
 import re
 import warnings
+from logging import getLogger
 from inspect import Parameter, Signature, signature
 from nibabel import load
 from nipype import logging
+from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
+from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -19,6 +22,8 @@ from traits.trait_handlers import TraitListObject
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
+
+random_state_logger = getLogger('random')
 
 
 def _doctest_skiplines(docstring, lines_to_skip):
@@ -61,8 +66,11 @@ class Node(pe.Node):
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+        from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = logging.getLogger("nipype.workflow")
+        self.seed = random_seed()
+        self.seed_applied = False
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
@@ -132,7 +140,62 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)''']))  # noqa E501
+            * 't' (temporal)''']))  # noqa: E501
+
+    def _add_flags(self, flags):
+        r'''
+        Parameters
+        ----------
+        flags : list or tuple
+            If a list, add ``flags`` to ``self.inputs.flags`` or
+            ``self.inputs.args``
+
+            If a tuple, remove ``flags[1]`` from and add ``flags[0]``
+            to ``self.inputs.flags`` or ``self.inputs.args``
+        '''
+        def prep_flags(attr):
+            to_remove = []
+            if isinstance(flags, tuple):
+                to_remove += flags[1]
+                new_flags = flags[0]
+            else:
+                new_flags = flags
+            old_flags = getattr(self.inputs, attr)
+            if isinstance(old_flags, str):
+                to_remove.sort(key=lambda x: -x.count(' '))
+                for flag in to_remove:
+                    if f' {flag} ' in old_flags:
+                        old_flags = old_flags.replace(f' {flag}', '')
+                old_flags = [old_flags]
+            if isinstance(old_flags, list):
+                new_flags = [flag for flag in old_flags if
+                             flag not in to_remove] + new_flags
+            if attr == 'args':
+                new_flags = ' '.join(new_flags)
+                while '  ' in new_flags:
+                    new_flags = new_flags.replace('  ', ' ')
+            return new_flags
+        if hasattr(self.inputs, 'flags'):
+            self.inputs.flags = prep_flags('flags')
+        else:
+            self.inputs.args = prep_flags('args')
+
+    def _apply_random_seed(self):
+        '''Apply flags for the first matched interface'''
+        # pylint: disable=import-outside-toplevel
+        from CPAC.pipeline.random_state import random_seed_flags
+        if isinstance(self.interface, Function):
+            for rsf, flags in random_seed_flags()['functions'].items():
+                if self.interface.inputs.function_str == getsource(rsf):
+                    self.interface.inputs.function_str = flags(
+                        self.interface.inputs.function_str)
+                    self.seed_applied = True
+                    return
+        for rsf, flags in random_seed_flags()['interfaces'].items():
+            if isinstance(self.interface, rsf):
+                self._add_flags(flags)
+                self.seed_applied = True
+                return
 
     @property
     def mem_gb(self):
@@ -275,12 +338,21 @@ class Node(pe.Node):
         """Get dict of 'multiplier' (memory multiplier), 'file' (input file)
         and multiplier mode (spatial * temporal, spatial only or
         temporal only). Returns ``None`` if already consumed or not set."""
-        if hasattr(self, '_mem_x'):
-            return self._mem_x
-        return None
+        return getattr(self, '_mem_x', None)
+
+    def run(self, updatehash=False):
+        if self.seed is not None:
+            self._apply_random_seed()
+            if self.seed_applied:
+                random_state_logger.info('%s',
+                                         '%s  # (Atropos constant)' %
+                                         self.name if 'atropos' in
+                                         self.name else self.name)
+        return super().run(updatehash)
 
 
 class MapNode(Node, pe.MapNode):
+    # pylint: disable=empty-docstring
     __doc__ = _doctest_skiplines(
         pe.MapNode.__doc__,
         {"    ...                           'functional3.nii']"}
@@ -343,7 +415,7 @@ class Workflow(pe.Workflow):
                 self._local_func_scans)  # pylint: disable=no-member
         else:
             # TODO: handle S3 files
-            node._apply_mem_x(UNDEFINED_SIZE)  # noqa W0212
+            node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
 
 
 def get_data_size(filepath, mode='xyzt'):

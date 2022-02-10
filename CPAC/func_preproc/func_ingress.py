@@ -1,5 +1,5 @@
 from nipype import logging
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 

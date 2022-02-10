@@ -774,10 +774,10 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-Mean_timeseries",
                  "desc-ndmg_correlations",
                  "atlas_name",
-                 "desc-PearsonAfni_connectome",
-                 "desc-PartialAfni_connectome",
-                 "desc-PearsonNilearn_connectome",
-                 "desc-PartialNilearn_connectome"]}
+                 "desc-PearsonAfni_correlations",
+                 "desc-PartialAfni_correlations",
+                 "desc-PearsonNilearn_correlations",
+                 "desc-PartialNilearn_correlations"]}
     '''
     resample_functional_roi = pe.Node(Function(input_names=['in_func',
                                                             'in_roi',
@@ -864,7 +864,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
             output_desc = ''.join(term.lower().capitalize() for term in [
                 cm_measure, cm_tool])
-            matrix_outputs[f'desc-{output_desc}_connectome'] = (
+            matrix_outputs[f'desc-{output_desc}_correlations'] = (
                 timeseries_correlation, 'outputspec.out_file')
 
     # - NDMG

@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2
+# Version 1.8.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -47,8 +47,13 @@ pipeline_setup:
     # Options: default, ndmg
     output_tree: "default"
 
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: True
+    # Quality control outputs
+    quality_control:
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: True
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: False
 
   working_directory:
 
@@ -79,6 +84,13 @@ pipeline_setup:
     path: /crash
 
   system_config:
+
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
+    random_seed:
 
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
@@ -158,6 +170,7 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer: 
 
+    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
     run: Off
 
     # Add extra arguments to recon-all command

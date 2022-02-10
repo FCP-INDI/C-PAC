@@ -182,7 +182,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
         raise ValueError("Threshold value should be positive, instead of {0}."
                         .format(threshold_value))
 
-    if threshold_method is "PCT" and threshold_value >= 100.0:
+    if threshold_method == "PCT" and threshold_value >= 100.0:
         raise ValueError("Percentile should be less than 100, received {0}."
                         .format(threshold_value))
 
@@ -226,7 +226,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
         wf.connect(mapper_list, 'out', mapper, 'out_file')
         wf.connect(mask_mapper_list, 'out', mapper, 'mask_file')
 
-    if threshold_method is "PCT":
+    if threshold_method == "PCT":
         threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_pct'],
                                              output_names=['threshold'],
                                              function=compute_pct_threshold, as_module=True),
@@ -235,7 +235,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
         wf.connect(mapper, 'out_file', threshold_node, 'in_file')
         wf.connect(mapper, 'mask_file', threshold_node, 'mask')
 
-    elif threshold_method is "SD":
+    elif threshold_method == "SD":
         threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_sd'],
                                              output_names=['threshold'],
                                              function=compute_sd_threshold, as_module=True),
