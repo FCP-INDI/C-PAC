@@ -177,13 +177,13 @@ def fallback_svd(a, full_matrices=True, compute_uv=True):
     except np.linalg.LinAlgError:
         pass
 
-
     return svd(a, full_matrices=full_matrices, compute_uv=compute_uv, lapack_driver='gesvd')
+
 
 def TR_string_to_float(tr):
     if 'ms' in tr:
-        tr = float(tr.replace('ms',''))/1000
+        tr = float(tr.replace('ms', '')) / 1000
     else:
-        tr = float(tr.replace('s',''))
+        tr = float(tr.replace('s', ''))
 
     return tr

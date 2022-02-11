@@ -10,7 +10,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 2
+_version_micro = 3
 _version_extra = ''
 
 
@@ -87,15 +87,15 @@ of Nipype to users in a plug-and-play fashion; no programming required.
 Website
 -------
 
-CPAC website is located here:  http://fcp-indi.github.com/
+CPAC website is located here:  https://fcp-indi.github.io/
 
 
 Documentation
 -------------
 
-User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
+User documentation can be found here: https://fcp-indi.github.io/docs/user/index.html
 
-Developer documention can be found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documention can be found here: https://fcp-indi.github.io/docs/developer/index.html
 
 Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.3.0
 
@@ -161,6 +161,5 @@ REQUIREMENTS        = [
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",
-    "pathlib==1.0.1",
     "voluptuous>=0.12.0",
 ]

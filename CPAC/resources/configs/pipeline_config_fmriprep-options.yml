@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2
+# Version 1.8.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -23,8 +23,9 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: /outputs/output
 
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: False
+    quality_control:
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: False
 
   working_directory: 
 

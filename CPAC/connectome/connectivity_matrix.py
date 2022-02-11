@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Functions for creating connectome connectivity matrices."""
+import os
 from warnings import warn
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
@@ -20,13 +21,11 @@ connectome_methods = {
 }
 
 
-def connectome_name(timeseries, atlas_name, tool, method):
+def connectome_name(atlas_name, tool, method):
     """Helper function to create connectome file filename
 
     Parameters
     ----------
-    timeseries : str
-        path to input timeseries
 
     atlas_name : str
         atlas name
@@ -41,19 +40,9 @@ def connectome_name(timeseries, atlas_name, tool, method):
     -------
     str
     """
-    method = ''.join(word.capitalize() for word in [tool, method])
-    new_filename_parts = [part for part in timeseries.split('_')[:-1][::-1] if
-                          not part.startswith('space-')]
-    atlas_index = len(new_filename_parts) - 1
-    if any(filename_part.startswith('desc-') for filename_part in
-            new_filename_parts):
-        for i, filename_part in enumerate(new_filename_parts):
-            if filename_part.startswith('desc-'):
-                new_filename_parts[-i] = f'desc-{method}'
-                atlas_index = -(i - 1)
-                break
-    new_filename_parts.insert(atlas_index, f'atlas-{atlas_name}')
-    return '_'.join([*new_filename_parts[::-1], 'connectome.tsv'])
+    return os.path.join(os.getcwd(), '_'.join([
+        f'atlas-{atlas_name}', f'desc-{tool}{method}', 'connectome.tsv'
+    ]))
 
 
 def get_connectome_method(method, tool):
@@ -111,7 +100,7 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     numpy.ndarray or NotImplemented
     """
     tool = 'Nilearn'
-    output = connectome_name(in_file, atlas_name, tool, method)
+    output = connectome_name(atlas_name, tool, method)
     method = get_connectome_method(method, tool)
     if method is NotImplemented:
         return NotImplemented
@@ -156,21 +145,21 @@ def create_connectome_afni(name, method, pipe_num):
                                 name='netcorrStripHeader'
                                      f'{method}_{pipe_num}')
 
-    name_output_node = pe.Node(Function(input_names=['timeseries',
-                                                     'atlas_name',
+    name_output_node = pe.Node(Function(input_names=['atlas_name',
                                                      'tool',
                                                      'method'],
                                         output_names=['filename'],
+                                        imports=['import os'],
                                         function=connectome_name),
-                               name=f'connectomeName{method}_{pipe_num}')
+                               name=f'connectomeName{method}_{pipe_num}',
+                               as_module=True)
     name_output_node.inputs.tool = 'Afni'
 
     wf.connect([
         (inputspec, timeseries_correlation, [('in_rois', 'in_rois'),
                                              ('in_file', 'in_file'),
                                              ('mask', 'mask')]),
-        (inputspec, name_output_node, [('in_file', 'timeseries'),
-                                       ('atlas_name', 'atlas_name'),
+        (inputspec, name_output_node, [('atlas_name', 'atlas_name'),
                                        ('method', 'method')]),
         (timeseries_correlation, strip_header_node, [
             ('out_corr_matrix', 'in_file')]),

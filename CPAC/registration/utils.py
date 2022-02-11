@@ -57,9 +57,11 @@ def generate_inverse_transform_flags(transform_list):
     return inverse_transform_flags
 
 
-def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull, 
-                  ants_para, moving_mask=None, reference_mask=None,
-                  fixed_image_mask=None, interp=None, reg_with_skull=0):
+def hardcoded_reg(moving_brain, reference_brain, moving_skull,
+                  reference_skull, ants_para, moving_mask=None,
+                  reference_mask=None, fixed_image_mask=None, interp=None,
+                  reg_with_skull=0):
+
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]
@@ -104,14 +106,14 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull,
                 else:
                     regcmd.append("--collapse-output-transforms")
                     regcmd.append(str(ants_para[para_index][para_type]))
-            
-            elif para_type == 'winsorize-image-intensities': 
+
+            elif para_type == 'winsorize-image-intensities':
                 if ants_para[para_index][para_type]['lowerQuantile'] is None or ants_para[para_index][para_type]['upperQuantile'] is None:
                     err_msg = 'Please specifiy lowerQuantile and upperQuantile of ANTs parameters --winsorize-image-intensities in pipeline config. '
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--winsorize-image-intensities")
-                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'], 
+                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'],
                         ants_para[para_index][para_type]['upperQuantile']))
 
             elif para_type == 'initial-moving-transform':
@@ -123,7 +125,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull,
                     regcmd.append("--initial-moving-transform")
                     if reg_with_skull == 1:
                         regcmd.append("[{0},{1},{2}]".format(
-                            reference_skull, moving_skull, 
+                            reference_skull, moving_skull,
                             ants_para[para_index][para_type][
                                 'initializationFeature']))
                     else:
@@ -395,7 +397,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull, reference_skull,
                                 regcmd.append("[NULL,NULL]")
 
             elif para_type == 'masks':
-                # lesion preproc has 
+                # lesion preproc has
                 if fixed_image_mask is not None:
                     regcmd.append("--masks")
                     regcmd.append(str(fixed_image_mask))
@@ -588,7 +590,7 @@ def run_c3d(reference_file, source_file, transform_file):
 
 
 def run_c4d(input, output_name):
-    
+
     import os
 
     output1 = os.path.join(os.getcwd(), output_name+'1.nii.gz')

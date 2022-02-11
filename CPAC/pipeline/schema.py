@@ -1,7 +1,12 @@
+'''Validation schema for C-PAC pipeline configurations'''
+# pylint: disable=too-many-lines
 from itertools import chain, permutations
+
+import numpy as np
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
+
 from CPAC import __version__
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
@@ -168,7 +173,7 @@ def permutation_message(key, options):
 
     Returns
     -------
-    msg: str'''  # noqa E501
+    msg: str'''  # noqa: E501
     return f'''
 
 \'{key}\' takes a dictionary with paths to region-of-interest (ROI)
@@ -354,7 +359,10 @@ latest_schema = Schema({
             'write_func_outputs': bool,
             'write_debugging_outputs': bool,
             'output_tree': str,
-            'generate_quality_control_images': bool,
+            'quality_control': {
+                'generate_quality_control_images': bool,
+                'generate_xcpqc_files': bool,
+            },
         },
         'working_directory': {
             'path': str,
@@ -381,7 +389,10 @@ latest_schema = Schema({
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_OMP_threads': int,
-            'num_participants_at_once': int
+            'num_participants_at_once': int,
+            'random_seed': Maybe(Any(
+                'random',
+                All(int, Range(min=1, max=np.iinfo(np.int32).max))))
         },
         'Amazon-AWS': {
             'aws_output_bucket_credentials': Maybe(str),
