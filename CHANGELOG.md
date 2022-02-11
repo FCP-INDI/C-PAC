@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `fslmaths`
     - `mri_vol2vol`
     - `recon-all`
+- Added ability to use lateral ventricles mask in place of Cerebrospinal Fluid mask when when Segmentation is Off, specifically for the Rodent pipeline, but works on any dataset when Segmentation is Off. 
 
 ### Changed
 - In a given pipeline configuration, segmentation probability maps and binary tissue masks are warped to template space, and those warped masks are included in the output directory
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1638) in which working connectivity matrix filepaths were generated incorrectly, preventing generating matrices depending on container bindings
 - Fixed broken links in README
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1575) in which anatomical-only configurations required functional data directories
+- Fixed [bug] (https://github.com/FCP-INDI/C-PAC/issues/1532) in which nuisance regressors runs when Segmentation is Off by using Lateral Ventricles Mask as the CSF mask. 
 
 ## [1.8.2] - 2021-12-02
 
