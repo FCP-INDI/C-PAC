@@ -6,12 +6,12 @@ This script was borrowed from and inspired by nipype's info.py file.
 
 
 # CPAC version information.  An empty _version_extra corresponds to a
-# full release.  '.dev' as a _version_extra string means this is a development
+# full release.  'dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 3
-_version_extra = ''
+_version_micro = 4
+_version_extra = 'dev'
 
 
 def get_cpac_gitversion():
