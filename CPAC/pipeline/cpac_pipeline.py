@@ -497,9 +497,9 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.5.1'):
+            if nipype.__version__ not in ('1.7.0'):
                 err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.5.1\n" \
+                          "CPAC v%s, please install Nipype version 1.7.0\n" \
                           % (CPAC.__version__)
                 logger.error(err_msg)
 
