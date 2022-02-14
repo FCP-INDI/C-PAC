@@ -149,7 +149,7 @@ def test_build_workflow(pipe_config, bids_dir, test_dir):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
-# cfg = "/code/default_pipeline.yml"
+# cfg = "/code/CPAC/resources/configs/pipeline_config_default.yml"
 # bids_dir = "/Users/steven.giavasis/data/HBN-SI_dataset/rawdata"
 # test_dir = "/test_dir"
 

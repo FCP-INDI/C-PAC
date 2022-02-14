@@ -23,7 +23,7 @@ def test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id):
     run_T1w_longitudinal(sub_data_list, cfg)
 
 
-cfg = "/code/default_pipeline.yml"
+cfg = "/code/CPAC/resources/configs/pipeline_config_default.yml"
 bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
 test_dir = "/test_dir"
 part_id = "0025427"

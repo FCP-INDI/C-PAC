@@ -47,7 +47,7 @@ def overwrite_list(file_diff_stats):
         fd[0] for fd in file_diff_stats if ((
             re.match(config_pattern, fd[0]) or
             fd[0] in {
-                'dev/docker_data/default_pipeline.yml',
+                'CPAC/resources/configs/pipeline_config_default.yml',
                 'version'
             }
         ) and fd[1] == '2 +-')
