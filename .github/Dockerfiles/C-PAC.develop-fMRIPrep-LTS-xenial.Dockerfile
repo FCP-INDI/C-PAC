@@ -1,6 +1,7 @@
 # Choose versions
+FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07.neurodocker-xenial as AFNI
 FROM ghcr.io/fcp-indi/c-pac/fmriprep:20.2.7-xenial as fmriprep 
-# ^ includes AFNI, ANTs, c3d, Freesurfer, FSL, wb_command ^
+# ^ includes ANTs, c3d, Freesurfer, FSL, wb_command ^
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
@@ -38,12 +39,40 @@ ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH" \
     NO_FSFAST=1
 
-# Installing and setting up AFNI, c3d, FSL & wb_command
-COPY --from=fmriprep /usr/local/etc/neurodebian.gpg /usr/local/etc/
+# Installing and setting up AFNI
+COPY --from=AFNI /usr/lib/afni/bin/ /usr/lib/afni/bin/
 # set up AFNI
 ENV PATH=/usr/lib/afni/bin:$PATH \
+    AFNI_MODELPATH="/usr/lib/afni/models" \
     AFNI_IMSAVE_WARNINGS="NO" \
-    AFNI_PLUGINPATH="/usr/lib/afni/bin"
+    AFNI_TTATLAS_DATASET="/usr/share/afni/atlases" \
+    AFNI_PLUGINPATH="/usr/lib/afni/plugins"
+
+# Intalling and setting up c3d
+COPY --from=fmriprep /usr/bin/c*d /usr/bin/
+COPY --from=fmriprep /usr/share/doc/convert3d /usr/share/doc/convert3d
+COPY --from=fmriprep /usr/lib/c3d_gui-1.1.0/Convert3DGUI /usr/lib/c3d_gui-1.1.0/Convert3DGUI
+# Installing and setting up FSL 
+COPY --from=fmriprep /etc/fsl /etc/fsl
+COPY --from=fmriprep /usr/share/doc/fsl-core /usr/share/doc/fsl-core
+COPY --from=fmriprep /usr/share/man/man1/fsl* /usr/share/man/man1/
+COPY --from=fmriprep /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
+COPY --from=fmriprep /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
+COPY --from=fmriprep /usr/share/fsl /usr/share/fsl
+ENV FSLDIR="/usr/share/fsl/5.0" \
+    FSLOUTPUTTYPE="NIFTI_GZ" \
+    FSLMULTIFILEQUIT="TRUE" \
+    POSSUMDIR="/usr/share/fsl/5.0" \
+    LD_LIBRARY_PATH="/usr/lib/fsl/5.0:$LD_LIBRARY_PATH" \
+    FSLTCLSH="/usr/bin/tclsh" \
+    FSLWISH="/usr/bin/wish"
+# Installing and setting up wb_command
+COPY --from=fmriprep /usr/bin/wb_* /usr/bin/
+COPY --from=fmriprep /usr/share/applications/connectome-workbench.desktop /usr/share/applications/connectome-workbench.desktop
+COPY --from=fmriprep /usr/share/bash-completion/completions/wb* /usr/share/bash_completion/completions/
+COPY --from=fmriprep /usr/share/doc/connectome-workbench /usr/share/doc/connectome-workbench
+COPY --from=fmriprep /usr/share/man/man1/wb_* /usr/share/man/man1/
+COPY --from=fmriprep /usr/share/pixmaps/connectome-workbench.png /usr/share/pixmaps/connectome-workbench.png
 
 # Allow users to install Python packages
 RUN chmod -R ugo+w /usr/local/miniconda
