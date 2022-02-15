@@ -47,19 +47,19 @@ jobs:
           files: .github/Dockerfiles/*
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Build and push Docker image
         uses: docker/build-push-action@v2.7.0
         with:
@@ -69,7 +69,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
   
   stages:
     name: Build Docker stage images
@@ -117,7 +117,7 @@ jobs:
           since_last_remote_commit: "true"
           files: .github/Dockerfiles/*
       - name: Clear up some space on runner
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -125,27 +125,27 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Prep Dockerfiles for forked repository
-        if: github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
         run: |
             .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }}
             cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: See Dockerfile
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Build and push Docker image
         uses: docker/build-push-action@v2.7.0
         with:
@@ -156,7 +156,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        if: contains(steps.changed-files-base.outputs.all_changed_files, ${{ matrix.Dockerfile }}) || contains(steps.changed-files.outputs.all_changed_files, ${{ matrix.Dockerfile }})
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
 
   trigger-next-workflow:
     needs: stages
