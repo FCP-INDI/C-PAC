@@ -22,25 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC (depth 2)
-        if: ${{ github.event.inputs.base_ref != '' }}
+        if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Check out C-PAC (depth 0)
-        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
+        if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ github.event.inputs.base_ref != '' }}
+        if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
           base_sha: ${{ github.event.inputs.base_ref }}
           files: .github/Dockerfiles/*
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ github.event.inputs.base_ref }}=='' || !${{ github.event.inputs.base_ref }}
+        if: github.event.inputs.base_ref == ''
         id: changed-files
         with:
           since_last_remote_commit: "true"
@@ -93,25 +93,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC (depth 2)
-        if: ${{ github.event.inputs.base_ref != '' }}
+        if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Check out C-PAC (depth 0)
-        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
+        if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ github.event.inputs.base_ref != '' }}
+        if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
           base_sha: ${{ github.event.inputs.base_ref }}
           files: .github/Dockerfiles/*
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
+        if: github.event.inputs.base_ref == ''
         id: changed-files
         with:
           since_last_remote_commit: "true"
