@@ -3,7 +3,7 @@ name: Check updated version
 on:
   push:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
 
 jobs:
   check-updated-version:
