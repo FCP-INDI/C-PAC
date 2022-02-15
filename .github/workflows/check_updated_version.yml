@@ -62,9 +62,16 @@ jobs:
           fetch-depth: 2
       - name: Build and test C-PAC
         run: |
-          echo "github.event.pull_request.base.ref: ${{ github.event.pull_request.base.ref }}"
-          echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
-          echo "github.base_ref: ${{ github.base_ref }}"
-          echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-) -f base_ref="${{ github.event.pull_request.base.ref }}"
+          pip install PyGithub
+          BASE_REFS=$(python .github/scripts/get_pr_base_shas.py)
+          if [ -n "$BASE_REFS" ]
+          then
+            for REF in $BASE_REFS
+            do
+              echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-) -f base_ref="$REF"
+            done
+          else
+            echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          fi
         env:
           ACTIONS_WORKFLOW_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
