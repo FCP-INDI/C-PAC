@@ -4,6 +4,11 @@ name: Build stages
 
 on:
   workflow_dispatch:
+    inputs:
+      base_ref:
+        description: 'Base reference if triggered by a pull request'
+        required: false
+        default: ""
 
 
 jobs:
@@ -17,25 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC (depth 2)
-        if: ${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref != '' }}
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Check out C-PAC (depth 0)
-        if: ${{ env.GITHUB_BASE_REF }}=="" || !${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref != '' }}
         id: changed-files
         with:
-          base_sha: ${{ env.GITHUB_BASE_REF }}
+          base_sha: ${{ github.event.inputs.base_ref }}
           files: .github/Dockerfiles/*
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ env.GITHUB_BASE_REF }}=="" || !${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref }}=='' || !${{ github.event.inputs.base_ref }}
         id: changed-files
         with:
           since_last_remote_commit: "true"
@@ -87,25 +92,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC (depth 2)
-        if: ${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref != '' }}
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Check out C-PAC (depth 0)
-        if: ${{ env.GITHUB_BASE_REF }}=="" || !${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref != '' }}
         id: changed-files
         with:
-          base_sha: ${{ env.GITHUB_BASE_REF }}
+          base_sha: ${{ github.event.inputs.base_ref }}
           files: .github/Dockerfiles/*
       - name: Get changed files
         uses: tj-actions/changed-files@v15
-        if: ${{ env.GITHUB_BASE_REF }}=="" || !${{ env.GITHUB_BASE_REF }}
+        if: ${{ github.event.inputs.base_ref }} == '' || !${{ github.event.inputs.base_ref }}
         id: changed-files
         with:
           since_last_remote_commit: "true"
