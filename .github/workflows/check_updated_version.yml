@@ -1,9 +1,9 @@
 name: Check updated version
 
 on:
-  push:
   pull_request:
     types: [edited, opened, reopened, ready_for_review, synchronize]
+  push:
 
 jobs:
   check-updated-version:
@@ -61,6 +61,10 @@ jobs:
         with:
           fetch-depth: 2
       - name: Build and test C-PAC
-        run: echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-) -f base_ref="${{ github.event.pull_request.base.ref }}"
+        run: |
+          echo "github.event.pull_request.base.ref: ${{ github.event.pull_request.base.ref }}"
+          echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
+          echo "github.base_ref: ${{ github.base_ref }}"
+          echo "$ACTIONS_WORKFLOW_TOKEN" | gh auth login --with-token && gh workflow run "Build stages" --ref $(echo ${GITHUB_REF} | cut -d '/' -f 3-) -f base_ref="${{ github.event.pull_request.base.ref }}"
         env:
           ACTIONS_WORKFLOW_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
