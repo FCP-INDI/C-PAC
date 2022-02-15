@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
-- 
+- Added the ability to follow symlinks for BIDS directories
 
 ### Changed
 - 
