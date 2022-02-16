@@ -19,26 +19,24 @@ RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
     chown -R c-pac_user:c-pac /home/c-pac_user && \
-    chmod 777 /
-
-# allow users to update / create themselves
-RUN chmod ugo+w /etc/passwd
-
-RUN apt-get update
+    chmod 777 / && \
+    chmod ugo+w /etc/passwd && \
+    apt-get update && \
+    apt-get install -y apt-utils curl
 
 # Install the BIDS validator
-RUN apt-get install -y apt-utils curl && \
-     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
-
-RUN export NVM_DIR=$HOME/.nvm && \
+RUN export XDG_CONFIG_HOME=/usr/bin && \
+     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash && \
+     export NVM_DIR=/usr/bin/nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-     nvm install 11.15.0 && \
-     nvm use 11.15.0 && \
-     nvm alias default 11.15.0 && \
+     nvm install 12.12.0 && \
+     nvm use 12.12.0 && \
+     nvm alias default 12.12.0 && \
+     npm install --global npm@^7 && \
      npm install -g bids-validator
 
-ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
+ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \

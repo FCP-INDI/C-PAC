@@ -21,12 +21,12 @@ jobs:
         - Ubuntu.xenial-20200114
     runs-on: ubuntu-latest
     steps:
-      - name: Check out C-PAC (depth 2)
+      - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Check out C-PAC (depth 0)
+      - name: Check out C-PAC (depth 2)
         if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
@@ -92,12 +92,12 @@ jobs:
         - msm.2.0-bionic
     runs-on: ubuntu-latest
     steps:
-      - name: Check out C-PAC (depth 2)
+      - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Check out C-PAC (depth 0)
+      - name: Check out C-PAC (depth 2)
         if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
