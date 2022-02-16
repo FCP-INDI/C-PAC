@@ -25,12 +25,12 @@ jobs:
         if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - name: Get changed files
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref != ''
@@ -96,12 +96,12 @@ jobs:
         if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref == ''
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - name: Get changed files
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref != ''
