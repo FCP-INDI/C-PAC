@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 
 
 ### Fixed
-- 
+- Merge error preventing QC files copying to output directory and renaming connectome → connectivity matrix files
 
 ## [1.8.3] - 2022-02-11
 
