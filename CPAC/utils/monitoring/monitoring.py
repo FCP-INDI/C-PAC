@@ -77,6 +77,9 @@ def log_nodes_cb(node, status):
         'num_threads': node.n_procs,
     }
 
+    if hasattr(node, 'input_data_shape'):
+        status_dict['input_data_shape'] = node.input_data_shape
+
     if status_dict['start'] is None or status_dict['finish'] is None:
         status_dict['error'] = True
 
