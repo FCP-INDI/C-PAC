@@ -301,7 +301,7 @@ class Node(pe.Node):
                 self.verbose_logger.debug('%s multiplicand: %s', self.name,
                                           multiplicand)
             if isinstance(multiplicand, list):
-                return sum([parse_multiplicand(part) for part in multiplicand])
+                return max([parse_multiplicand(part) for part in multiplicand])
             if isinstance(multiplicand, (int, float)):
                 return multiplicand
             if (
