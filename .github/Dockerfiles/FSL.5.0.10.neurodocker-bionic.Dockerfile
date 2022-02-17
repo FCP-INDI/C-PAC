@@ -30,7 +30,8 @@ USER c-pac_user
 
 # Only keep what we need
 FROM scratch
-COPY --from=FSL /usr/bin/tclsh /usr/bin/wish /usr/bin/
+COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
+COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/data/ /usr/share/data/
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
