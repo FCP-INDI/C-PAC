@@ -15,7 +15,6 @@ RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubu
 USER c-pac_user
 
 FROM scratch
-
 COPY --from=base /usr/bin/wb_* /usr/bin/
 COPY --from=base /usr/share/applications/connectome-workbench.desktop /usr/share/applications/connectome-workbench.desktop
 COPY --from=base /usr/share/bash-completion/completions/wb* /usr/share/bash_completion/completions/

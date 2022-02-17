@@ -1,13 +1,13 @@
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs
-FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-bionic as oldANTS
+FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as oldANTS
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/fsl:neurodebian-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
-
+FROM ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 
 USER root
@@ -69,6 +69,11 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH"
+
+# install Multimodal Surface Matching
+COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
+ENV MSMBINDIR=/opt/msm/Ubuntu \
+    PATH=$PATH:/opt/msm/Ubuntu
 
 # install C-PAC
 COPY . /code

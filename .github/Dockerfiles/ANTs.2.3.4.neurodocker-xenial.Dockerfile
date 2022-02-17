@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as ANTs
 
 USER root
 
@@ -33,6 +33,11 @@ RUN ldconfig
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Only keep what we need
+FROM scratch
+COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ANTs /ants_template /ants_template
 
 # set user
 USER c-pac_user
