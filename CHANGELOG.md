@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to follow symlinks for BIDS directories
 
 ### Changed
-- 
+- Updated CI to only rebuild software dependencies on change
 
 ### Fixed
 - 
