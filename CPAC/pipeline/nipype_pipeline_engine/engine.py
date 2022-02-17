@@ -71,6 +71,8 @@ class Node(pe.Node):
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
+        self._debug = False
+        self.verbose_logger = None
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
@@ -270,7 +272,8 @@ class Node(pe.Node):
 
         Parameters
         ----------
-        multiplier : str or int or float or list thereof or 4-tuple or None
+        multiplicand : str or int or float or list thereof or
+                       3-or-4-tuple or None
             Any of
             * path to file(s) with shape to multiply by multiplier
             * multiplicand
@@ -294,6 +297,9 @@ class Node(pe.Node):
             -------
             int or float
             '''
+            if self._debug:
+                self.verbose_logger.debug('%s multiplicand: %s', self.name,
+                                          multiplicand)
             if isinstance(multiplicand, list):
                 return sum([parse_multiplicand(part) for part in multiplicand])
             if isinstance(multiplicand, (int, float)):
@@ -313,6 +319,9 @@ class Node(pe.Node):
             return 1
 
         if hasattr(self, '_mem_x'):
+            if self._debug:
+                self.verbose_logger.debug('%s.mem_x: %s', self.name,
+                                          self.mem_x)
             if multiplicand is None:
                 multiplicand = self._mem_x_file()
             self._mem_gb = (
@@ -330,7 +339,10 @@ class Node(pe.Node):
                     )
             except FileNotFoundError:
                 pass
-            del self._mem_x
+            del self._mem_x  # pylint: disable=no-member
+        if self._debug:
+            self.verbose_logger.debug('%s._mem_gb: %s', self.name,
+                                      self._mem_gb)
         return self._mem_gb
 
     @property
@@ -370,9 +382,34 @@ class MapNode(Node, pe.MapNode):
 
 
 class Workflow(pe.Workflow):
+    """Controls the setup and execution of a pipeline of processes."""
+
+    def __init__(self, name, base_dir=None, debug=False):
+        """Create a workflow object.
+        Parameters
+        ----------
+        name : alphanumeric string
+            unique identifier for the workflow
+        base_dir : string, optional
+            path to workflow storage
+        debug : boolean, optional
+            enable verbose debug-level logging
+        """
+        import networkx as nx
+
+        super().__init__(name, base_dir)
+        self._debug = debug
+        self.verbose_logger = getLogger('engine') if debug else None
+        self._graph = nx.DiGraph()
+
+        self._nodes_cache = set()
+        self._nested_workflows_cache = set()
+
     def _configure_exec_nodes(self, graph):
         """Ensure that each node knows where to get inputs from"""
         for node in graph.nodes():
+            node._debug = self._debug  # pylint: disable=protected-access
+            node.verbose_logger = self.verbose_logger
             node.input_source = {}
             for edge in graph.in_edges(node):
                 data = graph.get_edge_data(*edge)
