@@ -28,9 +28,20 @@ pipeline_setup:
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: On
 
+anatomical_preproc:
+  # N4 bias field correction via ANTs
+  n4_bias_field_correction:
+    # this is a fork option
+    run:
+      - On
+
 functional_preproc:
   despiking:
-    run: [On]
+    # Run AFNI 3dDespike
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: 
+      - On
 
 nuisance_corrections:
   2-nuisance_regression:
