@@ -5,7 +5,9 @@ USER root
 # install AFNI
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 SHELL ["/bin/bash", "-c"]
-RUN rm -rf /usr/lib/afni \
+RUN apt-get update && \
+    apt-get install -y curl && \
+    rm -rf /usr/lib/afni \
     && echo "Downloading AFNI ..." \
     && mkdir -p /opt/afni-latest \
     && curl -fsSL --retry 5 https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz \
