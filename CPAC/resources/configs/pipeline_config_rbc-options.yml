@@ -1,0 +1,137 @@
+%YAML 1.1
+---
+# CPAC Pipeline Configuration YAML file for RBC options
+# Version 1.8.4.dev
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+FROM: fx-options
+
+pipeline_setup:
+  # Name for this pipeline configuration - useful for identification.
+  pipeline_name: RBC.options
+
+  system_config:
+
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
+    random_seed: 77742777
+
+  output_directory:
+    # Quality control outputs
+    quality_control:
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
+functional_preproc:
+  despiking:
+    run: [On]
+
+nuisance_corrections:
+  2-nuisance_regression:
+    Regressors:
+      - Name: Regressor-with-GSR
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        GlobalSignal:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        PolyOrt:
+          degree: 2
+
+      - Name: Regressor-with-aCompCor
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        aCompCor:
+          summary:
+            method: DetrendPC
+            components: 5
+          tissues:
+            - WhiteMatter
+            - CerebrospinalFluid
+          extraction_resolution: 2
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        PolyOrt:
+          degree: 2
+
+timeseries_extraction:
+  run: On
+  connectivity_matrix:
+    using:
+      - Nilearn
+    measure:
+      - Pearson
+      - Partial
+  tse_roi_paths:
+    # AAL
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Atlases
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Slab
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # HO: Thresholded
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Jeulich
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # CC
+    /cpac_templates/CC200.nii.gz: Avg
+    /cpac_templates/CC400.nii.gz: Avg
+    # Shaefer
+    /ndmg_atlases/label/Human/Schaefer1000_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer200_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer300_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer400_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Networks
+    #  Yeo
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    #  Smith 2009  (to be included after https://github.com/FCP-INDI/C-PAC/issues/1640 is resolved)
+    # /cpac_templates/Smith_space-MNI152NLin6_res-3x3x3_desc-thresh3_mask.nii.gz: Avg

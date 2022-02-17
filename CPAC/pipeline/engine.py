@@ -30,9 +30,9 @@ from CPAC.utils.datasource import (
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
-from CPAC.pipeline.nipype_pipeline_engine import get_data_size
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
+verbose_logger = logging.getLogger('engine')
 
 
 class ResourcePool(object):
@@ -232,21 +232,26 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n[!] C-PAC says: None of the listed "
-                                "resources are in the resource pool:\n"
-                                f"{resource}\n")
+                lookup_message = ("\n[!] C-PAC says: None of the listed "
+                                  "resources are in the resource pool:\n"
+                                  f"{resource}\n")
+                verbose_logger.debug(lookup_message)
+                raise Exception(lookup_message)
         else:
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                lookup_message = ("\n\n[!] C-PAC says: The listed resource is "
                                   f"not in the resource pool:\n{resource}\n\n"
                                   "Developer Note: This may be due to a mis"
                                   "match between the node block's docstring "
                                   "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n")
+                                  "call within the block function.\n(keys in "
+                                  f"resource pool are {self.rpool.keys()})\n")
+                verbose_logger.debug(lookup_message)
+                raise LookupError(lookup_message)
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -355,15 +360,17 @@ class ResourcePool(object):
                     flat_prov.append(entry)
             return flat_prov
 
-    def get_strats(self, resources):
+    def get_strats(self, resources, debug=False):
 
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
         import itertools
-        
+
         linked_resources = []
         resource_list = []
+        if debug:
+            verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
@@ -385,6 +392,10 @@ class ResourcePool(object):
         total_pool = []
         variant_pool = {}
         len_inputs = len(resource_list)
+        if debug:
+            verbose_logger.debug('linked_resources: %s',
+                                 linked_resources)
+            verbose_logger.debug('resource_list: %s', resource_list)
         for resource in resource_list:
             rp_dct, fetched_resource = self.get(resource,
                                                 report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
@@ -393,7 +404,8 @@ class ResourcePool(object):
                 len_inputs -= 1
                 continue
             sub_pool = []
-
+            if debug:
+                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -404,8 +416,11 @@ class ResourcePool(object):
                     for key, val in json_info['CpacVariant'].items():
                         if val not in variant_pool[fetched_resource]:
                             variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f'NO-{val[0]}')
+                            variant_pool[fetched_resource].append(
+                                f'NO-{val[0]}')
 
+            if debug:
+                verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
         # TODO: right now total_pool is:
@@ -433,6 +448,9 @@ class ResourcePool(object):
                     strat_str_list.append(strat_str)
                     strat_list_list.append(strat_list)
 
+            if debug:
+                verbose_logger.debug('len(strat_list_list): %s\n',
+                                     len(strat_list_list))
             for strat_list in strat_list_list:
 
                 json_dct = {}
@@ -510,7 +528,7 @@ class ResourcePool(object):
                                             if in_current_strat:
                                                 drop = True
                                                 break
-                                            
+
                                     if in_other_strat:
                                         if in_other_spread:
                                             if not in_current_strat:
@@ -811,7 +829,8 @@ class ResourcePool(object):
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-
+        #print(Outputs.any)
+        #print(self.rpool.keys())
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
@@ -938,7 +957,11 @@ class ResourcePool(object):
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                wf.connect(node, out, nii_name, 'in_file')
+                try:
+                    wf.connect(node, out, nii_name, 'in_file')
+                except OSError as os_error:
+                    logger.warning(os_error)
+                    continue
 
                 write_json_imports = ['import os', 'import json']
                 write_json = pe.Node(Function(input_names=['json_data',
@@ -968,6 +991,19 @@ class ResourcePool(object):
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
+
+    def node_data(self, resource, **kwargs):
+        '''Factory function to create NodeData objects
+
+        Parameters
+        ----------
+        resource : str
+
+        Returns
+        -------
+        NodeData
+        '''
+        return NodeData(self, resource, **kwargs)
 
 
 class NodeBlock(object):
@@ -1059,6 +1095,7 @@ class NodeBlock(object):
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
+        debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
         for name, block_dct in self.node_blocks.items():
             opts = []
@@ -1183,8 +1220,9 @@ class NodeBlock(object):
                     switch = [switch]
 
             if True in switch:
-                print(f"Connecting {name}...\n")
-                for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                logger.info('Connecting %s...', name)
+                for pipe_idx, strat_pool in rpool.get_strats(
+                        inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
@@ -1220,22 +1258,28 @@ class NodeBlock(object):
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
 
-                        if cfg.pipeline_setup['Debugging']['verbose']:
-                            print('\n=======================')
-                            print(f'Node name: {node_name}')
+                        if debug:
+                            verbose_logger.debug('\n=======================')
+                            verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
-                                rpool.get_resource_strats_from_prov(ast.literal_eval(pipe_idx))
+                                rpool.get_resource_strats_from_prov(
+                                    ast.literal_eval(pipe_idx))
                             for key, val in prov_dct.items():
-                                print('-------------------')
-                                print(f'Input - {key}:')
+                                verbose_logger.debug('-------------------')
+                                verbose_logger.debug('Input - %s:', key)
                                 sub_prov_dct = \
                                     rpool.get_resource_strats_from_prov(val)
                                 for sub_key, sub_val in sub_prov_dct.items():
                                     sub_sub_dct = \
-                                    rpool.get_resource_strats_from_prov(sub_val)
-                                    print(f'  sub-input - {sub_key}:')
-                                    print(f'    prov = {sub_val}')
-                                    print(f'    sub_sub_inputs = {sub_sub_dct.keys()}')
+                                        rpool.get_resource_strats_from_prov(
+                                            sub_val)
+                                    verbose_logger.debug('  sub-input - %s:',
+                                                         sub_key)
+                                    verbose_logger.debug('    prov = %s',
+                                                         sub_val)
+                                    verbose_logger.debug(
+                                        '    sub_sub_inputs = %s',
+                                        sub_sub_dct.keys())
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
@@ -1384,11 +1428,11 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-                          
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
-                          
+
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
@@ -1466,12 +1510,6 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
-    
-    if not os.path.isdir(out_dir):
-        print(f"\nOutput directory {out_dir} does not exist yet, "
-              "initializing.")
-        os.makedirs(out_dir)
-    
     source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
@@ -1526,7 +1564,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.mgz']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
 
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
@@ -1568,6 +1606,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
         unique_data_label = str(data_label)
 
+        #if 'sub-' in data_label or 'ses-' in data_label:
+        #    raise Exception('\n\n[!] Possibly wrong participant or '
+        #                    'session in this directory?\n\nDirectory: '
+        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
         desc_val = None
         for tag in data_label.split('_'):
@@ -1580,21 +1622,16 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         jsonpath = f"{jsonpath}.json"
 
         if not os.path.exists(jsonpath):
-            print(f'\n\n[!] No JSON found for file {filepath}.')
-            if not source:
-                print(f'Creating {jsonpath}..\n\n')
-            else:
-                print('Creating meta-data for the data..\n\n')
+            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+                  f'{jsonpath}..\n\n')
             json_info = {
-                'CpacProvenance': [f'{data_label}:Non-C-PAC Origin'],
                 'Description': 'This data was generated elsewhere and '
                                'supplied by the user into this C-PAC run\'s '
                                'output directory. This JSON file was '
                                'automatically generated by C-PAC because a '
                                'JSON file was not supplied with the data.'
             }
-            if not source:
-                write_output_json(json_info, jsonpath)
+            write_output_json(json_info, jsonpath)
         else:        
             json_info = read_json(jsonpath)
             
@@ -1671,7 +1708,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             res_keys = [x.lstrip() for x in resolution.split(',')]
             tag = res_keys[-1]
     
-        json_info = {}
+        json_info = {} 
 
         if '$FSLDIR' in val:
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
@@ -1729,20 +1766,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-
-    # Freesurfer directory, not a template, so not in cpac_templates.tsv
-    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
-        fs_ingress = create_general_datasource(f'gather_freesurfer_dir')
-        fs_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
-                    creds_path=creds_path,
-                    dl_dir=cfg.pipeline_setup['working_directory']['path']
-        )
-        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data', 
-                       json_info, "", f"freesurfer_config_ingress")
-
-
+            
     # templates, resampling from config
     '''
     template_keys = [
@@ -1874,10 +1898,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
-
-        wf, rpool, diff, blip, fmap_rp_list = \
-            ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                  part_id, ses_id)
+        if 'func' in data_paths:
+            wf, rpool, diff, blip, fmap_rp_list = \
+                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                      part_id, ses_id)
 
     # grab already-processed data from the output directory
     rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
@@ -1930,3 +1954,53 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+
+
+class NodeData:
+    r"""Class to hold outputs of
+    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
+
+    ``node_data = strat_pool.node_data(resource)`` and have
+    ``node_data.node`` and ``node_data.out`` instead of doing
+    ``node, out = strat_pool.get_data(resource)`` and needing two
+    variables (``node`` and ``out``) to store that information.
+
+    Also includes ``variant`` attribute providing the resource's self-
+    keyed value within its ``CpacVariant`` dictionary.
+
+    Examples
+    --------
+    >>> rp = ResourcePool()
+    >>> rp.node_data(None)
+    NotImplemented (NotImplemented)
+
+    >>> rp.set_data('test',
+    ...             pe.Node(Function(input_names=[]), 'test'),
+    ...             'b', [], 0, 'test')
+    >>> rp.node_data('test')
+    test (b)
+    >>> rp.node_data('test').out
+    'b'
+
+    >>> try:
+    ...     rp.node_data('b')
+    ... except LookupError as lookup_error:
+    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
+    [!] C-PAC says: The listed resource is not in the resource pool: b
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, strat_pool=None, resource=None, **kwargs):
+        self.node = NotImplemented
+        self.out = NotImplemented
+        self.variant = None
+        if strat_pool is not None and resource is not None:
+            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+            if (
+                hasattr(strat_pool, 'rpool') and
+                isinstance(strat_pool.rpool, dict)
+            ):
+                self.variant = strat_pool.rpool.get(resource, {}).get(
+                    'json', {}).get('CpacVariant', {}).get(resource)
+
+    def __repr__(self):
+        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

@@ -136,7 +136,8 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
         :width: 1100
         :height: 480
 
-    """  # noqa
+    """
+    # pylint: disable=import-outside-toplevel,redefined-outer-name,reimported
     import nipype.interfaces.utility as util
 
     preproc = pe.Workflow(name=wf_name)
@@ -457,7 +458,7 @@ def create_seg_preproc_freesurfer(config=None,
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-    """  # noqa
+    """
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),

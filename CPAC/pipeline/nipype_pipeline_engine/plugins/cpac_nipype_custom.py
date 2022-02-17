@@ -130,7 +130,7 @@ class CpacNipypeCustomPluginMixin():
         Sends jobs to workers when system resources are available.
         Customized from https://github.com/nipy/nipype/commit/79e2fdfc38759bc0853e4051b99ba4c37587d65f
         to catch overhead deadlocks
-        """  # noqa E501  # pylint: disable=line-too-long
+        """  # noqa: E501  # pylint: disable=line-too-long
         # pylint: disable=too-many-branches, too-many-statements
         # Check to see if a job is available (jobs with all dependencies run)
         # See https://github.com/nipy/nipype/pull/2200#discussion_r141605722
