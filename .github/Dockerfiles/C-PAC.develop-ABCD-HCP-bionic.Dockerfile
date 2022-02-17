@@ -6,7 +6,7 @@ FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-1.neurodebian-bionic as c
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.10.neurodocker-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
-FROM ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic as MSM
+FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 

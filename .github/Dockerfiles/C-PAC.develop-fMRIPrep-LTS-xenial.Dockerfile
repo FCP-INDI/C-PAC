@@ -6,7 +6,7 @@ FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-2.neurodebian-xenial as c
 FROM ghcr.io/fcp-indi/c-pac/FreeSurfer:6.0.1-xenial as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/FSL:5.0.9-5.neurodebian-xenial as FSL
 FROM ghcr.io/fcp-indi/c-pac/ICA-AROMA:0.4.5-xenial as ICA-AROMA
-FROM ghcr.io/fcp-indi/c-pac/msm:v2.0-bionic as MSM
+FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
