@@ -3,7 +3,7 @@ import six
 import warnings
 import logging
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 
 class Strategy(object):

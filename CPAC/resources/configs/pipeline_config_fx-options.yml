@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2
+# Version 1.8.3.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -14,6 +14,14 @@ pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_fx-options
+
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
 
 nuisance_corrections: 
 

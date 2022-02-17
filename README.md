@@ -1,7 +1,7 @@
 
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
-[![OpenNeuro](https://raw.githubusercontent.com/bids-standard/bids-website/gh-pages/old_website/openneuro_badge.svg?sanitize=true)](https://openneuro.org) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
+<span title="Moving Beyond Processing and Analysis-Related Variation in Neuroscience">[![DOI for "Moving Beyond Processing and Analysis-Related Variation in Neuroscience"](https://zenodo.org/badge/DOI/10.1101/2021.12.01.470790.svg)](https://doi.org/10.1101/2021.12.01.470790)</span> <span title="FCP-INDI/C-PAC: CPAC Version 1.0.0 Beta">[![DOI for "FCP-INDI/C-PAC: CPAC Version 1.0.0 Beta"](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)</span>
 
 
 A configurable, open-source, Nipype-based, automated processing pipeline for resting state fMRI data.
@@ -11,7 +11,7 @@ of Nipype to users in a plug-and-play fashion; no programming required.
 Website
 -------
 
-The C-PAC website is located here: http://fcp-indi.github.com/
+The C-PAC website is located here: https://fcp-indi.github.io/
 
 How to Run
 ----------
@@ -38,4 +38,4 @@ Issue Tracker and Bugs
 
 This is a beta version of C-PAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, there will likely still be a few bugs that we did not catch. If you find a bug or would like to suggest a new feature, please open an issue on the the C-PAC Github issue tracker: https://github.com/FCP-INDI/C-PAC/issues?state=open
 
-If you would like to suggest revisions to the user documentation, please open an issue on the C-PAC website's GitHub issue tracker: https://github.com/FCP-INDI/fcp-indi.github.com/issues
+If you would like to suggest revisions to the user documentation, please open an issue on the C-PAC website's GitHub issue tracker: https://github.com/FCP-INDI/fcp-indi.github.io/issues
