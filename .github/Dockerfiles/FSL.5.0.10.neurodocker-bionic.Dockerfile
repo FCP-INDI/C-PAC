@@ -13,7 +13,9 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH
 
 # Installing and setting up FSL
-RUN echo "Downloading FSL ..." \
+RUN apt-get update && \
+    apt-get install -y tclsh wish && \
+    echo "Downloading FSL ..." \
     && mkdir -p /usr/share/fsl/5.0 \
     && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz \
     | tar zx -C /usr/share/fsl/5.0 --strip-components=1 \
