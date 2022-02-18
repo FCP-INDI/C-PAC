@@ -4,7 +4,7 @@ FROM ghcr.io/fcp-indi/c-pac/ants:2.2.0.neurodocker-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-1.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
-FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.10.neurodocker-bionic as FSL
+FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.10-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
