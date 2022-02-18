@@ -6,11 +6,13 @@ RUN apt-get update && \
                     build-essential \
                     apt-transport-https \
                     ca-certificates \
+                    curl \
                     gnupg \
                     software-properties-common \
                     wget \
                     ninja-build \
                     git \
+                    unzip \
                     zlib1g-dev
 
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
