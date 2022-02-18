@@ -90,7 +90,7 @@ jobs:
         - FreeSurfer.6.0.0-min.neurodocker-bionic
         - FreeSurfer.6.0.1-xenial
         - FSL.5.0.9-5.neurodebian-xenial
-        - FSL.5.0.10.neurodocker-bionic
+        - FSL.5.0.10-bionic
         - FSL.neurodebian-bionic
         - ICA-AROMA.0.4.3-beta-bionic
         - ICA-AROMA.0.4.5-xenial
