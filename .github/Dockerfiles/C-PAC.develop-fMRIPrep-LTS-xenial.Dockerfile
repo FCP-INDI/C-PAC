@@ -3,9 +3,9 @@ FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07.neurodocker-xenial as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-xenial as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-2.neurodebian-xenial as connectome-workbench
-FROM ghcr.io/fcp-indi/c-pac/FreeSurfer:6.0.1-xenial as FreeSurfer
-FROM ghcr.io/fcp-indi/c-pac/FSL:5.0.9-5.neurodebian-xenial as FSL
-FROM ghcr.io/fcp-indi/c-pac/ICA-AROMA:0.4.5-xenial as ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.1-xenial as FreeSurfer
+FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.9-5.neurodebian-xenial as FSL
+FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.5-xenial as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
 # using Ubuntu 16.04 LTS as parent image
