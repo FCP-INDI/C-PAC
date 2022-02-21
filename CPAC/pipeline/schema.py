@@ -386,6 +386,7 @@ latest_schema = Schema({
                 },
             },
             'maximum_memory_per_participant': Number,
+            'raise_insufficient': bool,
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_OMP_threads': int,

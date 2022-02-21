@@ -293,6 +293,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     plugin_args['memory_gb'] = sub_mem_gb
     plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['raise_insufficient'] = c['pipeline_setup', 'system_config',
+                                          'raise_insufficient']
     plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
