@@ -56,9 +56,6 @@ RUN dpkg-reconfigure --frontend=noninteractive locales \
     && update-locale LANG="en_US.UTF-8" \
     && chmod 777 /opt && chmod a+s /opt
 
-# install connectome-workbench
-COPY --from=connectome-workbench /opt/connectome-workbench/ /opt/connectome-workbench/
-
 # install ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
 RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
