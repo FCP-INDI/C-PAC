@@ -10,10 +10,14 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH \
     FSLTCLSH=/usr/bin/tclsh \
     FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/fsl/5.0:$PATH
+    PATH=/usr/lib/fsl/5.0:$PATH \
+    TZ=America/New_York
+
 
 # Installing and setting up FSL
-RUN apt-get update && \
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+     echo $TZ > /etc/timezone && \
+    apt-get update && \
     apt-get install -y tclsh wish && \
     echo "Downloading FSL ..." \
     && mkdir -p /usr/share/fsl/5.0 \
