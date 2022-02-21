@@ -38,6 +38,7 @@ RUN apt-get clean && \
 FROM scratch
 COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
 COPY --from=ANTs /ants_template /ants_template
+COPY --from=ANTS /etc/locale.gen /etc/locale.gen
 
 # set user
 USER c-pac_user
