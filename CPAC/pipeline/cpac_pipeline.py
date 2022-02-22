@@ -1335,15 +1335,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        if all(rpool.check_rpool(motion) for motion in [
-            'censor-indices', 'coordinate-transformation', 'dvars',
-            'framewise-displacement-jenkinson', 'max-displacement',
-            'movement-parameters', 'rels-displacement'
-        ]):
-            pipeline_blocks += [qc_xcp_native]
-        if apply_func_warp or rpool.check_rpool(template_funcs):
-            pipeline_blocks += [qc_xcp_template]
-        pipeline_blocks += [qc_xcp_skullstripped]
+        pipeline_blocks += [qc_xcp_skullstripped, qc_xcp_native,
+                            qc_xcp_template]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
