@@ -23,7 +23,8 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block
+from CPAC.pipeline.check_outputs import check_outputs
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     freesurfer_abcd_preproc,
@@ -50,11 +51,9 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
     brain_mask_acpc_freesurfer_abcd,
-    brain_extraction,
     correct_restore_brain_intensity_abcd,
     brain_mask_acpc_freesurfer_fsl_tight,
     brain_mask_acpc_freesurfer_fsl_loose,
-    brain_extraction,
     brain_extraction_temp,
     brain_extraction,
     anatomical_init_T2,
@@ -366,7 +365,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
         System time of start:      {run_start}
         System time of completion: {run_finish}
-
+        {output_check}
 """  # noqa: E501
 
     logger.info('%s', information.format(
@@ -704,6 +703,7 @@ CPAC run error:
     Elapsed run time (minutes): {elapsed}
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
+    {output_check}
 
 """
 
@@ -720,7 +720,9 @@ CPAC run error:
                     log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
-                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S"),
+                    output_check=check_outputs(c.pipeline_setup[
+                                 'output_directory']['path'])
                 ))
 
                 # Remove working directory when done

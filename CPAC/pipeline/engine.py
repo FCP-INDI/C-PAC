@@ -33,6 +33,57 @@ verbose_logger = logging.getLogger('engine')
 outputs_logger = set_up_logger('expected_outputs')
 
 
+class ExpectedOutputs:
+    '''Class to hold expected outputs for a pipeline
+
+    Attributes
+    ----------
+    expected_outputs : dict
+        dictionary of expected output subdirectories and files therein
+
+    Methods
+    -------
+    add(subdir, output)
+        Add an expected output to the expected outputs dictionary
+    '''
+    def __init__(self):
+        self.expected_outputs = {}
+
+    def __len__(self):
+        return len([filepath for subdir, filepaths in
+                    self.expected_outputs.items() for filepath in filepaths])
+
+    def __iadd__(self, other):
+        if not isinstance(other, tuple) or not len(other) == 2:
+            raise TypeError(
+                f'{self.__module__}.{self.__class__.__name__} requires a '
+                "tuple of ('subdir', 'output') for addition")
+        self.add(*other)
+        return self
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return yaml.dump(self.expected_outputs)
+
+    def add(self, subdir, output):
+        '''Add an expected output to the expected outputs dictionary
+
+        Parameters
+        ----------
+        subdir : str
+            subdirectory of expected output
+
+        output : str
+            filename of expected output
+        '''
+        if subdir in self.expected_outputs:
+            self.expected_outputs[subdir].append(output)
+        else:
+            self.expected_outputs[subdir] = [output]
+
+
 class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
@@ -752,44 +803,6 @@ class ResourcePool:
         return wf
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-        class ExpectedOutputs:
-            '''Class to hold expected outputs for a pipeline
-
-            Attributes
-            ----------
-            expected_outputs : dict
-                dictionary of expected output subdirectories and files therein
-
-            Methods
-            -------
-            add(subdir, output)
-                Add an expected output to the expected outputs dictionary
-            '''
-            def __init__(self):
-                self.expected_outputs = {}
-
-            def __repr__(self):
-                return self.__str__()
-
-            def __str__(self):
-                return yaml.dump(self.expected_outputs)
-
-            def add(self, subdir, output):
-                '''Add an expected output to the expected outputs dictionary
-
-                Parameters
-                ----------
-                subdir : str
-                    subdirectory of expected output
-
-                output : str
-                    filename of expected output
-                '''
-                if subdir in self.expected_outputs:
-                    self.expected_outputs[subdir].append(output)
-                else:
-                    self.expected_outputs[subdir] = [output]
-
         excl = []
         substring_excl = []
         expected_outputs = ExpectedOutputs()
@@ -934,7 +947,7 @@ class ResourcePool:
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
-                expected_outputs.add(out_dct['subdir'], out_dct['filename'])
+                expected_outputs += (out_dct['subdir'], out_dct['filename'])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
