@@ -91,7 +91,8 @@ class ExpectedOutputs:
         return self.__str__()
 
     def __str__(self):
-        return yaml.dump(self.expected_outputs)
+        return yaml.dump({subdir: list(filename) for subdir, filename in
+                          self.expected_outputs.items()})
 
     def add(self, subdir, output):
         '''Add an expected output to the expected outputs dictionary
@@ -105,6 +106,6 @@ class ExpectedOutputs:
             filename of expected output
         '''
         if subdir in self.expected_outputs:
-            self.expected_outputs[subdir].append(output)
+            self.expected_outputs[subdir].add(output)
         else:
-            self.expected_outputs[subdir] = [output]
+            self.expected_outputs[subdir] = {output}
