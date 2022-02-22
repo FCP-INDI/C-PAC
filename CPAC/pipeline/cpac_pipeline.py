@@ -1341,7 +1341,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             'movement-parameters', 'rels-displacement'
         ]):
             pipeline_blocks += [qc_xcp_native]
-        if rpool.check_rpool('space-template_desc-preproc_bold'):
+        if apply_func_warp or rpool.check_rpool(template_funcs):
             pipeline_blocks += [qc_xcp_template]
         pipeline_blocks += [qc_xcp_skullstripped]
 
