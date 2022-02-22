@@ -1,6 +1,8 @@
 """Test to check if all expected outputs were generated"""
+import fnmatch
 import os
 from logging import getLogger, Logger
+# from pathlib import Path
 
 import yaml
 
@@ -31,12 +33,12 @@ def check_outputs(output_dir, log_dir):
     if outputs_log is None:
         message = 'Could not find expected outputs log file'
     else:
-        with open(outputs_log, 'r') as f:
-            expected_outputs = yaml.safe_load(f)
-        for subdir in expected_outputs:
-            for filename in expected_outputs['subdir']:
-                if not os.path.exists(os.path.join(output_dir, subdir,
-                                      filename)):
+        with open(outputs_log, 'r') as expected_outputs_file:
+            expected_outputs = yaml.safe_load(expected_outputs_file.read())
+        for subdir, filenames in expected_outputs.items():
+            observed_outputs = os.listdir(os.path.join(output_dir, subdir))
+            for filename in filenames:
+                if not fnmatch.filter(observed_outputs, filename):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
             missing_log = set_up_logger('missing_outputs', level='info',
