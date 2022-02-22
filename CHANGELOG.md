@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added the ability to follow symlinks for BIDS directories
+- Added log of expected outputs, generated at the beginning of the run
 
 ### Changed
 - 
