@@ -9,7 +9,7 @@ import yaml
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 
-def check_outputs(output_dir, log_dir):
+def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     """Check if all expected outputs were generated
 
     Parameters
@@ -20,12 +20,17 @@ def check_outputs(output_dir, log_dir):
     log_dir : str
         Path to the log directory
 
+    pipe_name : str
+
+    unique_id : str
+
     Returns
     -------
     message :str
     """
     outputs_log = getLogger('expected_outputs')
     missing_outputs = ExpectedOutputs()
+    container = os.path.join(f'cpac_{pipe_name}', unique_id)
     if isinstance(outputs_log, Logger) and len(outputs_log.handlers):
         outputs_log = getattr(outputs_log.handlers[0], 'baseFilename', None)
     else:
@@ -36,9 +41,10 @@ def check_outputs(output_dir, log_dir):
         with open(outputs_log, 'r') as expected_outputs_file:
             expected_outputs = yaml.safe_load(expected_outputs_file.read())
         for subdir, filenames in expected_outputs.items():
-            observed_outputs = os.listdir(os.path.join(output_dir, subdir))
+            observed_outputs = os.listdir(
+                os.path.join(output_dir, container, subdir))
             for filename in filenames:
-                if not fnmatch.filter(observed_outputs, filename):
+                if not fnmatch.filter(observed_outputs, f'*_{filename}*'):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
             missing_log = set_up_logger('missing_outputs', level='info',

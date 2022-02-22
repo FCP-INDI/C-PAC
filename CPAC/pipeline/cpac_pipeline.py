@@ -715,16 +715,17 @@ CPAC run error:
                 resource_report(cb_log_filename,
                                 num_cores_per_sub, logger)
 
-                logger.info(execution_info.format(
+                logger.info('%s', execution_info.format(
                     workflow=workflow.name,
                     pipeline=c.pipeline_setup['pipeline_name'],
                     log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S"),
-                    output_check=check_outputs(c.pipeline_setup[
-                                 'output_directory']['path'],
-                                 c.pipeline_setup['log_directory']['path'])
+                    output_check=check_outputs(
+                                 c.pipeline_setup['output_directory']['path'],
+                                 log_dir, c.pipeline_setup['pipeline_name'],
+                                 c['subject_id'])
                 ))
 
                 # Remove working directory when done
