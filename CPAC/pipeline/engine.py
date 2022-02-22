@@ -13,6 +13,7 @@ from nipype.interfaces.utility import \
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
+from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils import Outputs
 from CPAC.utils.datasource import (
@@ -29,59 +30,8 @@ from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, check_prov_for_regtool
 
 logger = logging.getLogger('nipype.workflow')
+outputs_logger = logging.getLogger('expected_outputs')
 verbose_logger = logging.getLogger('engine')
-outputs_logger = set_up_logger('expected_outputs')
-
-
-class ExpectedOutputs:
-    '''Class to hold expected outputs for a pipeline
-
-    Attributes
-    ----------
-    expected_outputs : dict
-        dictionary of expected output subdirectories and files therein
-
-    Methods
-    -------
-    add(subdir, output)
-        Add an expected output to the expected outputs dictionary
-    '''
-    def __init__(self):
-        self.expected_outputs = {}
-
-    def __len__(self):
-        return len([filepath for subdir, filepaths in
-                    self.expected_outputs.items() for filepath in filepaths])
-
-    def __iadd__(self, other):
-        if not isinstance(other, tuple) or not len(other) == 2:
-            raise TypeError(
-                f'{self.__module__}.{self.__class__.__name__} requires a '
-                "tuple of ('subdir', 'output') for addition")
-        self.add(*other)
-        return self
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return yaml.dump(self.expected_outputs)
-
-    def add(self, subdir, output):
-        '''Add an expected output to the expected outputs dictionary
-
-        Parameters
-        ----------
-        subdir : str
-            subdirectory of expected output
-
-        output : str
-            filename of expected output
-        '''
-        if subdir in self.expected_outputs:
-            self.expected_outputs[subdir].append(output)
-        else:
-            self.expected_outputs[subdir] = [output]
 
 
 class ResourcePool:

@@ -258,6 +258,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
+    set_up_logger('expected_outputs', level='info', log_dir=log_dir)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir)
 
@@ -722,7 +723,8 @@ CPAC run error:
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S"),
                     output_check=check_outputs(c.pipeline_setup[
-                                 'output_directory']['path'])
+                                 'output_directory']['path'],
+                                 c.pipeline_setup['log_directory']['path'])
                 ))
 
                 # Remove working directory when done
