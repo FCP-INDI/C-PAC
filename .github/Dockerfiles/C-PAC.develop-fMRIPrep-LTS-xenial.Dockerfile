@@ -82,7 +82,9 @@ COPY --from=c3d /usr/lib/c3d_gui-1.1.0/Convert3DGUI /usr/lib/c3d_gui-1.1.0/Conve
 # Installing and setting up FSL 
 COPY --from=FSL /etc/fsl /etc/fsl
 COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
-COPY --from=FSL /usr/share/man/man1/fsl* /usr/share/man/man1/
+COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
+COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
+COPY --from=FSL /usr/share/man/man1/fsl5.0-* /usr/share/man/man1/
 COPY --from=FSL /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
 COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
