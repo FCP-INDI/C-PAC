@@ -95,7 +95,6 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
     PATH=$PATH:/opt/msm/Ubuntu
 
 # Installing and setting up wb_command
-RUN mkdir -p /usr/share/bash-completion/completions
 COPY --from=connectome-workbench /usr/bin/wb_* /usr/bin/
 COPY --from=connectome-workbench /usr/share/applications/connectome-workbench.desktop /usr/share/applications/connectome-workbench.desktop
 COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb* /usr/share/bash_completion/completions/
