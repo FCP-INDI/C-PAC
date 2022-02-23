@@ -44,12 +44,15 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
             observed_outputs = os.listdir(
                 os.path.join(output_dir, container, subdir))
             for filename in filenames:
-                if not fnmatch.filter(observed_outputs, f'*{filename}*'):
+                if not fnmatch.filter(observed_outputs,
+                                      f'*{unique_id}*'
+                                      f'{filename.replace(unique_id, "")}*'):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
-            missing_log = set_up_logger('missing_outputs',
+            missing_log = set_up_logger(f'missing_outputs_{unique_id}',
                                         filename='missing_outputs.yml',
                                         level='info', log_dir=log_dir)
+            missing_log.info(missing_outputs)
             try:
                 log_note = 'Missing outputs have been logged in ' \
                            f'{missing_log.handlers[0].baseFilename}'
