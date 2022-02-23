@@ -193,7 +193,8 @@ from CPAC.utils import Configuration
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
+                                  set_up_logger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -259,8 +260,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         os.makedirs(os.path.join(log_dir))
 
     set_up_logger(f'expected_outputs_{subject_id}',
-                  filename='expected_outputs.yml', level='info',
-                  log_dir=log_dir)
+                  filename='expected_outputs.yml',
+                  level='info', log_dir=log_dir, mock=True)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir)
 

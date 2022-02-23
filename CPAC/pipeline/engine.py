@@ -25,7 +25,7 @@ from CPAC.utils.datasource import (
 )
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
-from CPAC.utils.monitoring.custom_logging import set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, check_prov_for_regtool
 
@@ -754,8 +754,7 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = logging.getLogger(
-            f'expected_outputs_{cfg["subject_id"]}')
+        outputs_logger = getLogger(f'expected_outputs_{cfg["subject_id"]}')
         expected_outputs = ExpectedOutputs()
 
         if add_excl:

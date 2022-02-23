@@ -1,12 +1,11 @@
 """Test to check if all expected outputs were generated"""
 import fnmatch
 import os
-from logging import getLogger, Logger
-# from pathlib import Path
+from logging import Logger
 
 import yaml
 
-from CPAC.utils.monitoring.custom_logging import set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, set_up_logger
 
 
 def check_outputs(output_dir, log_dir, pipe_name, unique_id):
@@ -28,11 +27,11 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     -------
     message :str
     """
-    outputs_log = getLogger(f'expected_outputs_{unique_id}')
+    outputs_logger = getLogger(f'expected_outputs_{unique_id}')
     missing_outputs = ExpectedOutputs()
     container = os.path.join(f'cpac_{pipe_name}', unique_id)
-    if isinstance(outputs_log, Logger) and len(outputs_log.handlers):
-        outputs_log = getattr(outputs_log.handlers[0], 'baseFilename', None)
+    if isinstance(outputs_logger, Logger) and len(outputs_logger.handlers):
+        outputs_log = getattr(outputs_logger.handlers[0], 'baseFilename', None)
     else:
         outputs_log = None
     if outputs_log is None:
@@ -63,6 +62,8 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
                 log_note] if string])
         else:
             message = 'All expected outputs were generated'
+    for logger in [missing_log, outputs_logger]:
+        logger.delete()
     return message
 
 
