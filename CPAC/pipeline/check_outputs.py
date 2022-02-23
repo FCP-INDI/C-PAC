@@ -28,7 +28,7 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     -------
     message :str
     """
-    outputs_log = getLogger('expected_outputs')
+    outputs_log = getLogger(f'expected_outputs_{unique_id}')
     missing_outputs = ExpectedOutputs()
     container = os.path.join(f'cpac_{pipe_name}', unique_id)
     if isinstance(outputs_log, Logger) and len(outputs_log.handlers):
@@ -44,11 +44,12 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
             observed_outputs = os.listdir(
                 os.path.join(output_dir, container, subdir))
             for filename in filenames:
-                if not fnmatch.filter(observed_outputs, f'*_{filename}*'):
+                if not fnmatch.filter(observed_outputs, f'*{filename}*'):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
-            missing_log = set_up_logger('missing_outputs', level='info',
-                                        log_dir=log_dir)
+            missing_log = set_up_logger('missing_outputs',
+                                        filename='missing_outputs.yml',
+                                        level='info', log_dir=log_dir)
             try:
                 log_note = 'Missing outputs have been logged in ' \
                            f'{missing_log.handlers[0].baseFilename}'
@@ -97,8 +98,8 @@ class ExpectedOutputs:
         return self.__str__()
 
     def __str__(self):
-        return yaml.dump({subdir: list(filename) for subdir, filename in
-                          self.expected_outputs.items()})
+        return yaml.dump({subdir: sorted(list(filename)) for
+                          subdir, filename in self.expected_outputs.items()})
 
     def add(self, subdir, output):
         '''Add an expected output to the expected outputs dictionary

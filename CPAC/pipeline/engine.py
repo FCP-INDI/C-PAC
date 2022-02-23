@@ -30,7 +30,6 @@ from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, check_prov_for_regtool
 
 logger = logging.getLogger('nipype.workflow')
-outputs_logger = logging.getLogger('expected_outputs')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -755,6 +754,8 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
+        outputs_logger = logging.getLogger(
+            f'expected_outputs_{cfg["subject_id"]}')
         expected_outputs = ExpectedOutputs()
 
         if add_excl:

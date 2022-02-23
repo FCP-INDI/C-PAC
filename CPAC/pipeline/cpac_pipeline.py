@@ -258,7 +258,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-    set_up_logger('expected_outputs', level='info', log_dir=log_dir)
+    set_up_logger(f'expected_outputs_{subject_id}',
+                  filename='expected_outputs.yml', level='info',
+                  log_dir=log_dir)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir)
 
