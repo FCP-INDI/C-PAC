@@ -46,9 +46,5 @@ RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Just keep what we need
-FROM scratch
-COPY --from=FreeSurfer /opt/freesurfer /opt/freesurfer
-
 # set user
 USER c-pac_user
