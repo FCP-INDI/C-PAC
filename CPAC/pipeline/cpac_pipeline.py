@@ -1350,12 +1350,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 m_e_a_c['motion_estimates']['calculate_motion_after']):
             pipeline_blocks += [qc_xcp_native]
         del m_e_a_c
+        empty_nodeblock = NodeBlock([])
         if apply_func_warp['T1'] and rpool.check_rpool(
-                'space-template_desc-preproc_bold'):
+            empty_nodeblock.grab_docstring_dct(
+                warp_timeseries_to_T1template.__doc__)['outputs']):
             pipeline_blocks += [qc_xcp_T1template]
         if apply_func_warp['EPI'] and rpool.check_rpool(
-                'space-EPItemplate_desc-preproc_bold'):
+            empty_nodeblock.grab_docstring_dct(
+                warp_timeseries_to_EPItemplate.__doc__)['outputs']):
             pipeline_blocks += [qc_xcp_EPItemplate]
+        del empty_nodeblock
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
