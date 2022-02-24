@@ -1233,11 +1233,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += nuisance
 
     apply_func_warp = {}
-    r_w_f_r = cfg.registration_workflows['functional_registration']
+    _r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
     apply_func_warp['T1'] = (
-        r_w_f_r['coregistration']['run'] and
-        r_w_f_r['func_registration_to_template']['run'])
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1270,9 +1270,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_deriv_mask_to_T1template]
 
     apply_func_warp['EPI'] = (
-        r_w_f_r['coregistration']['run'] and
-        r_w_f_r['func_registration_to_template']['run_EPI'])
-    del r_w_f_r
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run_EPI'])
+    del _r_w_f_r
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1344,18 +1344,19 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        pipeline_blocks += [qc_xcp_skullstripped]
-        m_e_a_c = cfg.functional_preproc['motion_estimates_and_correction']
-        if (m_e_a_c['run'] and
-                m_e_a_c['motion_estimates']['calculate_motion_after']):
-            pipeline_blocks += [qc_xcp_native]
-        del m_e_a_c
-        if apply_func_warp['T1'] and rpool.check_rpool(
-                'space-template_desc-preproc_bold'):
-            pipeline_blocks += [qc_xcp_T1template]
-        if apply_func_warp['EPI'] and rpool.check_rpool(
-                'space-EPItemplate_desc-preproc_bold'):
-            pipeline_blocks += [qc_xcp_EPItemplate]
+        if cfg.anatomical_preproc['brain_extraction']['run']:
+            pipeline_blocks += [qc_xcp_skullstripped]
+        if cfg.functional_preproc['run']:
+            _m_e_a_c = cfg.functional_preproc[
+                'motion_estimates_and_correction']
+            if (_m_e_a_c['run'] and
+                    _m_e_a_c['motion_estimates']['calculate_motion_after']):
+                pipeline_blocks += [qc_xcp_native]
+            del _m_e_a_c
+            if apply_func_warp['T1']:
+                pipeline_blocks += [qc_xcp_T1template]
+            if apply_func_warp['EPI']:
+                pipeline_blocks += [qc_xcp_EPItemplate]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
