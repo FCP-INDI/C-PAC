@@ -1232,10 +1232,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         pipeline_blocks += nuisance
 
+    apply_func_warp = {}
+    r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'coregistration']['run'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template']['run']
+    apply_func_warp['T1'] = (
+        r_w_f_r['coregistration']['run'] and
+        r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1245,9 +1247,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['T1'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['T1']:
 
         ts_to_T1template_block = [warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
@@ -1267,8 +1269,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['run_EPI']
+    apply_func_warp['EPI'] = (
+        r_w_f_r['coregistration']['run'] and
+        r_w_f_r['func_registration_to_template']['run_EPI'])
+    del r_w_f_r
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1278,9 +1282,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['EPI'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['EPI']:
         pipeline_blocks += [warp_timeseries_to_EPItemplate,
                             warp_bold_mean_to_EPItemplate]
 
@@ -1346,11 +1350,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 m_e_a_c['motion_estimates']['calculate_motion_after']):
             pipeline_blocks += [qc_xcp_native]
         del m_e_a_c
-        if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['run']:
+        if apply_func_warp['T1']:
             pipeline_blocks += [qc_xcp_T1template]
-        if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['run_EPI']:
+        if apply_func_warp['EPI']:
             pipeline_blocks += [qc_xcp_EPItemplate]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
