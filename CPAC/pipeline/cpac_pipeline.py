@@ -188,7 +188,7 @@ from CPAC.utils.datasource import (
 )
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
-from CPAC.utils import Configuration
+from CPAC.utils import Configuration, flatten
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, \
@@ -1350,16 +1350,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 m_e_a_c['motion_estimates']['calculate_motion_after']):
             pipeline_blocks += [qc_xcp_native]
         del m_e_a_c
-        empty_nodeblock = NodeBlock([])
-        if apply_func_warp['T1'] and rpool.check_rpool(
-            empty_nodeblock.grab_docstring_dct(
-                warp_timeseries_to_T1template.__doc__)['outputs']):
+        if (
+            apply_func_warp['T1'] and
+            warp_timeseries_to_T1template in flatten(pipeline_blocks)
+        ):
             pipeline_blocks += [qc_xcp_T1template]
-        if apply_func_warp['EPI'] and rpool.check_rpool(
-            empty_nodeblock.grab_docstring_dct(
-                warp_timeseries_to_EPItemplate.__doc__)['outputs']):
+        if (
+            apply_func_warp['EPI'] and
+            warp_timeseries_to_EPItemplate in flatten(pipeline_blocks)
+        ):
             pipeline_blocks += [qc_xcp_EPItemplate]
-        del empty_nodeblock
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
