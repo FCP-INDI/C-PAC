@@ -1353,10 +1353,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     _m_e_a_c['motion_estimates']['calculate_motion_after']):
                 pipeline_blocks += [qc_xcp_native]
             del _m_e_a_c
-            if apply_func_warp['T1']:
-                pipeline_blocks += [qc_xcp_T1template]
-            if apply_func_warp['EPI']:
-                pipeline_blocks += [qc_xcp_EPItemplate]
+            _a_t_u = cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using']
+            if 'default' in _a_t_u or 'single_step_resampling' in _a_t_u:
+                if apply_func_warp['T1']:
+                    pipeline_blocks += [qc_xcp_T1template]
+                if apply_func_warp['EPI']:
+                    pipeline_blocks += [qc_xcp_EPItemplate]
+            else:
+                if apply_func_warp['T1'] or apply_func_warp['EPI']:
+                    logger.warning('Template space XCP QC files not yet '
+                                   'implemented for tranformation application '
+                                   'methods other than default and '
+                                   'single_step_resampling.')
+            del _a_t_u
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
