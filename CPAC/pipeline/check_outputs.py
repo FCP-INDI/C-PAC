@@ -14,10 +14,10 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     Parameters
     ----------
     output_dir : str
-        Path to the output directory
+        Path to the output directory for the participant pipeline
 
     log_dir : str
-        Path to the log directory
+        Path to the log directory for the participant pipeline
 
     pipe_name : str
 
@@ -58,17 +58,17 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
             except (AttributeError, IndexError):
                 log_note = ''
             message = '\n'.join([string for string in [
-                'Missing expected outputs:', yaml.dump(missing_outputs),
-                log_note] if string])
+                'Missing expected outputs:', missing_outputs, log_note
+            ] if string])
+            missing_log.delete()
         else:
             message = 'All expected outputs were generated'
-    for logger in [missing_log, outputs_logger]:
-        logger.delete()
+    outputs_logger.delete()
     return message
 
 
 class ExpectedOutputs:
-    '''Class to hold expected outputs for a pipeline
+    r'''Class to hold expected outputs for a pipeline
 
     Attributes
     ----------
@@ -79,6 +79,28 @@ class ExpectedOutputs:
     -------
     add(subdir, output)
         Add an expected output to the expected outputs dictionary
+
+    Examples
+    --------
+    >>> expected_outputs = ExpectedOutputs()
+    >>> expected_outputs.add('anat', 'T1w')
+    >>> expected_outputs.add('anat', 'T1w')  # shouldn't be added again
+    >>> expected_outputs.add('func', 'task-rest_bold.nii.gz')
+    >>> expected_outputs.add('func', 'desc-preproc_bold.json')
+    >>> dict(expected_outputs)['anat']
+    ['T1w']
+    >>> dict(expected_outputs)['func']
+    ['desc-preproc_bold.json', 'task-rest_bold.nii.gz']
+    >>> str(expected_outputs)
+    'anat:\n- T1w\nfunc:\n- desc-preproc_bold.json\n- task-rest_bold.nii.gz\n'
+    >>> expected_outputs
+    anat:
+    - T1w
+    func:
+    - desc-preproc_bold.json
+    - task-rest_bold.nii.gz
+    >>> len(expected_outputs)
+    3
     '''
     def __init__(self):
         self.expected_outputs = {}
@@ -86,9 +108,9 @@ class ExpectedOutputs:
     def __bool__(self):
         return bool(len(self))
 
-    def __len__(self):
-        return len([filepath for subdir, filepaths in
-                    self.expected_outputs.items() for filepath in filepaths])
+    def __iter__(self):
+        yield from {subdir: sorted(list(filename)) for
+                    subdir, filename in self.expected_outputs.items()}.items()
 
     def __iadd__(self, other):
         if not isinstance(other, tuple) or not len(other) == 2:
@@ -98,12 +120,15 @@ class ExpectedOutputs:
         self.add(*other)
         return self
 
+    def __len__(self):
+        return len([filepath for subdir, filepaths in
+                    self.expected_outputs.items() for filepath in filepaths])
+
     def __repr__(self):
-        return self.__str__()
+        return str(self).rstrip()
 
     def __str__(self):
-        return yaml.dump({subdir: sorted(list(filename)) for
-                          subdir, filename in self.expected_outputs.items()})
+        return yaml.dump(dict(self))
 
     def add(self, subdir, output):
         '''Add an expected output to the expected outputs dictionary
