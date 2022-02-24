@@ -477,11 +477,6 @@ def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def qc_xcp_template(wf, space, strat_pool, pipe_num, reference):
     """Handle either T1 or EPI template XCP-QC."""
-    if not (
-        strat_pool.check_rpool(f'space-{space}_desc-preproc_bold') and
-        strat_pool.check_rpool(reference)
-    ):
-        return wf, {}
     qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
                                                       space)
     final['func'] = strat_pool.node_data(f'space-{space}_desc-preproc_bold')
@@ -500,8 +495,9 @@ def qc_xcp_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w',
-                'space-T1w_desc-mean_bold', 'desc-preproc_T1w',
+     'inputs': [('bold', 'subject', 'scan', 'T1w', 'EPI-template',
+                'space-T1w_desc-mean_bold',
+                'space-EPItemplate_desc-preproc_bold', 'desc-preproc_T1w',
                 'space-EPItemplate_desc-bold_mask')],
      'outputs': ['space-EPItemplate_desc-xcp_quality']}
     """
@@ -518,7 +514,8 @@ def qc_xcp_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('bold', 'subject', 'scan', 'T1w',
-                'space-T1w_desc-mean_bold', 'desc-preproc_T1w',
+                'T1w-brain-template-funcreg', 'space-T1w_desc-mean_bold',
+                'space-template_desc-preproc_bold', 'desc-preproc_T1w',
                 'space-template_desc-bold_mask')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
