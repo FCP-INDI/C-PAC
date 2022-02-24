@@ -1087,9 +1087,9 @@ class NodeBlock:
 
     def check_output(self, outputs, label, name):
         if label not in outputs:
-            raise Exception('\n[!] Output name in the block function does '
-                            'not match the outputs list in Node Block '
-                            f'{name}\n')
+            raise NameError(f'\n[!] Output name "{label}" in the block '
+                            'function does not match the outputs list '
+                            f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg
