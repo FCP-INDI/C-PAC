@@ -122,37 +122,6 @@ def cl_strip_brackets(arg_list):
     return [arg for arg in arg_list if arg]
 
 
-def flatten(nested):
-    """Function to flatten arbitrarily nested list
-
-    Parmeters
-    ---------
-    nested : list
-        List to be flattened
-
-    Returns
-    -------
-    flattened : list
-        Flattened list
-
-    Examples
-    --------
-    >>> flatten([1, [2, [3, [4, [5]]]]])
-    [1, 2, 3, 4, 5]
-    >>> flatten([[[1, 2, 3], [4, 5]], [6]])
-    [1, 2, 3, 4, 5, 6]
-    """
-    if not isinstance(nested, list):
-        raise TypeError("This function only flattens lists.")
-    flattened = []
-    for item in nested:
-        if isinstance(item, list):
-            flattened.extend(flatten(item))
-        else:
-            flattened.append(item)
-    return flattened
-
-
 def get_flag(in_flag):
     return in_flag
 

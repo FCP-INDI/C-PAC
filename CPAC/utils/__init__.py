@@ -29,7 +29,6 @@ from .utils import (
     check_random_state,
     cl_strip_brackets,
     try_fetch_parameter,
-    flatten,
     get_scan_params,
     get_tr,
     check_tr,
@@ -44,5 +43,5 @@ from .utils import (
 )
 
 __all__ = [
-    'flatten', 'function'
+    'function'
 ]
