@@ -1342,7 +1342,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [qc_xcp_skullstripped]
         if rpool.check_rpool('movement-parameters'):
             pipeline_blocks += [qc_xcp_native]
-        pipeline_blocks += [qc_xcp_template]
+        if rpool.check_rpool('space-template_desc-preproc_bold'):
+            pipeline_blocks += [qc_xcp_template]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
