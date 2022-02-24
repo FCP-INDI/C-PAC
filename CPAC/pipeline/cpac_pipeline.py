@@ -191,7 +191,8 @@ from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
+from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, \
+                        qc_xcp_EPItemplate, qc_xcp_T1template
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
                                   set_up_logger
@@ -1340,10 +1341,17 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'generate_xcpqc_files'
     ]:
         pipeline_blocks += [qc_xcp_skullstripped]
-        if rpool.check_rpool('movement-parameters'):
+        m_e_a_c = cfg.functional_preproc['motion_estimates_and_correction']
+        if (m_e_a_c['run'] and
+                m_e_a_c['motion_estimates']['calculate_motion_after']):
             pipeline_blocks += [qc_xcp_native]
-        if rpool.check_rpool('space-template_desc-preproc_bold'):
-            pipeline_blocks += [qc_xcp_template]
+        del m_e_a_c
+        if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['run']:
+            pipeline_blocks += [qc_xcp_T1template]
+        if cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['run_EPI']:
+            pipeline_blocks += [qc_xcp_EPItemplate]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
