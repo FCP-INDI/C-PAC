@@ -63,7 +63,7 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
             except (AttributeError, IndexError):
                 log_note = ''
             message = '\n'.join([string for string in [
-                'Missing expected outputs:', missing_outputs, log_note
+                'Missing expected outputs:', str(missing_outputs), log_note
             ] if string])
             missing_log.delete()
         else:
