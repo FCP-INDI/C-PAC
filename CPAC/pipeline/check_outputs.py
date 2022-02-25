@@ -5,7 +5,8 @@ from logging import Logger
 
 import yaml
 
-from CPAC.utils.monitoring.custom_logging import getLogger, set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, \
+                                                 set_up_logger
 
 
 def check_outputs(output_dir, log_dir, pipe_name, unique_id):
@@ -30,7 +31,10 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     outputs_logger = getLogger(f'expected_outputs_{unique_id}')
     missing_outputs = ExpectedOutputs()
     container = os.path.join(f'cpac_{pipe_name}', unique_id)
-    if isinstance(outputs_logger, Logger) and len(outputs_logger.handlers):
+    if (
+        isinstance(outputs_logger, (Logger, MockLogger)) and
+        len(outputs_logger.handlers)
+    ):
         outputs_log = getattr(outputs_logger.handlers[0], 'baseFilename', None)
     else:
         outputs_log = None
