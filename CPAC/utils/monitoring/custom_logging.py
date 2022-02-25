@@ -3,9 +3,7 @@ import logging
 import os
 
 from CPAC.utils.docs import docstring_parameter
-
-
-MOCK_LOGGERS = {}
+from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
 
 def getLogger(name):  # pylint: disable=invalid-name
