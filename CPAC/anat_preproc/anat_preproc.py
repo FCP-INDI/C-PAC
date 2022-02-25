@@ -2598,10 +2598,12 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),
-                       name=f'anat_freesurfer_{pipe_num}')
+                       name=f'anat_freesurfer_{pipe_num}',
+                       mem_gb=2.7)
     reconall.skip_timeout = True  # this Node could take > 24 hours
 
-    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    freesurfer_subject_dir = os.path.join(
+        cfg.pipeline_setup['working_directory']['path'],
         'cpac_'+cfg['subject_id'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
@@ -3129,7 +3131,8 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     ### recon-all -all step ###
     reconall = pe.Node(interface=freesurfer.ReconAll(),
-                name=f'anat_freesurfer_{pipe_num}')
+                       name=f'anat_freesurfer_{pipe_num}',
+                       mem_gb=2.7)
 
     sub_dir = cfg.pipeline_setup['working_directory']['path']
     freesurfer_subject_dir = os.path.join(sub_dir,
