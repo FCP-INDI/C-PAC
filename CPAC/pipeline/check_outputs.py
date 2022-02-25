@@ -50,7 +50,8 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
         if missing_outputs:
             missing_log = set_up_logger(f'missing_outputs_{unique_id}',
                                         filename='missing_outputs.yml',
-                                        level='info', log_dir=log_dir)
+                                        level='info', log_dir=log_dir,
+                                        mock=True)
             missing_log.info(missing_outputs)
             try:
                 log_note = 'Missing outputs have been logged in ' \
