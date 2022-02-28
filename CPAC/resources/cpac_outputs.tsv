@@ -145,7 +145,7 @@ rh-pial-surface-mesh	surface-derived		anat
 raw-average	surface-derived		anat						
 lh-smoothed-surface-mesh	surface-derived		anat						
 rh-smoothed-surface-mesh	surface-derived		anat						
-space-fsLR_den-32k_bold-dtseries	surface-derived		anat						
+space-fsLR_den-32k_bold-dtseries	surface-derived		func						
 lh-spherical-surface-mesh	surface-derived		anat						Yes
 rh-spherical-surface-mesh	surface-derived		anat						Yes
 lh-sulcal-depth-surface-maps	surface-derived		anat						Yes
