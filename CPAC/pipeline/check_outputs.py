@@ -5,6 +5,7 @@ from logging import Logger
 
 import yaml
 
+from CPAC.utils.datasource import bidsier_prefix
 from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, \
                                                  set_up_logger
 
@@ -28,7 +29,7 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     -------
     message :str
     """
-    outputs_logger = getLogger(f'expected_outputs_{unique_id}')
+    outputs_logger = getLogger(f'{unique_id}_expectedOutputs')
     missing_outputs = ExpectedOutputs()
     container = os.path.join(f'cpac_{pipe_name}', unique_id)
     if (
@@ -52,8 +53,10 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
                                       f'{filename.replace(unique_id, "")}*'):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
-            missing_log = set_up_logger(f'missing_outputs_{unique_id}',
-                                        filename='missing_outputs.yml',
+            missing_log = set_up_logger(f'missingOutputs_{unique_id}',
+                                        filename='_'.join([
+                                            bidsier_prefix(unique_id),
+                                            'missingOutputs.yml']),
                                         level='info', log_dir=log_dir,
                                         mock=True)
             missing_log.info(missing_outputs)

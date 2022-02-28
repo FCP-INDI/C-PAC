@@ -754,7 +754,7 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(f'expected_outputs_{cfg["subject_id"]}')
+        outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
 
         if add_excl:
@@ -897,7 +897,8 @@ class ResourcePool:
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
-                expected_outputs += (out_dct['subdir'], out_dct['filename'])
+                expected_outputs += (out_dct['subdir'],
+                                     out_dct['filename'][len(unique_id)+1:])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',

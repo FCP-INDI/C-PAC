@@ -2,14 +2,47 @@ import csv
 import json
 import nipype.interfaces.utility as util
 from nipype import logging
+# pylint: disable=ungrouped-imports, wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
-
-logger = logging.getLogger('nipype.workflow')
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
+
+logger = logging.getLogger('nipype.workflow')
+
+
+def bidsier_prefix(unique_id):
+    """
+    Function to return a BIDSier prefix for a given unique_id
+
+    Parameters
+    ----------
+    unique_id : str
+
+    Returns
+    -------
+    prefix : str
+
+    Examples
+    --------
+    >>> bidsier_prefix('01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_ses-1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('01_ses-1')
+    'sub-01_ses-1'
+    """
+    keys = ['sub', 'ses']
+    components = unique_id.split('_')
+    for i, component in enumerate(components):
+        if i < len(keys):
+            if not component.startswith(keys[i]):
+                components[i] = '-'.join([keys[i], component])
+    return '_'.join(components)
 
 
 def get_rest(scan, rest_dict, resource="scan"):

@@ -183,9 +183,7 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
-from CPAC.utils.datasource import (
-    gather_extraction_maps
-)
+from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
@@ -260,8 +258,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-    set_up_logger(f'expected_outputs_{subject_id}',
-                  filename='expected_outputs.yml',
+    set_up_logger(f'{subject_id}_expectedOutputs',
+                  filename=f'{bidsier_prefix(c["subject_id"])}_'
+                           'expectedOutputs.yml',
                   level='info', log_dir=log_dir, mock=True)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir)
