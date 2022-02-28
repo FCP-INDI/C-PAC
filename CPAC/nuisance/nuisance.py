@@ -461,6 +461,7 @@ def gather_nuisance(functional_file_path,
 def create_regressor_workflow(nuisance_selectors,
                               use_ants,
                               ventricle_mask_exist,
+                              csf_mask_exist,
                               all_bold=False,
                               name='nuisance_regressors'):
     """
@@ -1129,6 +1130,7 @@ def create_regressor_workflow(nuisance_selectors,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
+                        csf_mask_exist,
                         use_ants=use_ants,
                         ventricle_mask_exist=ventricle_mask_exist,
                         all_bold=all_bold
@@ -2176,9 +2178,13 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
         use_ants = reg_tool == 'ants'
 
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
+    csf_mask = strat_pool.check_rpool(["label-CSF_desc-eroded_mask",
+                                        "label-CSF_desc-preproc_mask",
+                                        "label-CSF_mask"])
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
+                                           csf_mask_exist = csf_mask,
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 
@@ -2578,10 +2584,14 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
 
     use_ants = reg_tool == 'ants'
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
+    csf_mask = strat_pool.check_rpool(["space-bold_label-CSF_desc-eroded_mask",
+                                        "space-bold_label-CSF_desc-preproc_mask",
+                                        "space-bold_label-CSF_mask"])
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
                                            all_bold=True,
+                                            csf_mask_exist = csf_mask,
                                            name='nuisance_regressors_'
                                                 f'{opt["Name"]}_{pipe_num}')
 

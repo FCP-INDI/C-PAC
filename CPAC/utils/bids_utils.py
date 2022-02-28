@@ -739,7 +739,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                                           .replace(prefix,'').lstrip('/'))
 
     else:
-        for root, dirs, files in os.walk(bids_dir, topdown=False):
+        for root, dirs, files in os.walk(bids_dir, topdown=False, followlinks=True):
             if files:
                 for f in files:
                     for suf in suffixes:
