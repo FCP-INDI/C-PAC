@@ -2695,32 +2695,18 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
-    # TODO refactor code to make it DRY
+    erode_tissues = {}
     if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        erode_csf = pe.Node(interface=freesurfer.model.Binarize(),
-                            name=f'erode_csf_{pipe_num}')
-        erode_csf.inputs.match = [1]
-        erode_csf.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
+        for tissue in ['csf', 'wm', 'gm']:
+            erode_tissues[tissue] = pe.Node(
+                interface=freesurfer.model.Binarize(),
+                name=f'erode_{tissue}_{pipe_num}')
+            erode_tissues[tissue].inputs.match = [1]
+            erode_tissues[tissue].inputs.erode = cfg['segmentation'][
+                'tissue_segmentation']['FreeSurfer']['erode']
+            wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
+                       'in_file')
 
-        wf.connect(pick_tissue, 'csf_mask', erode_csf, 'in_file')
-
-        erode_wm = pe.Node(interface=freesurfer.model.Binarize(),
-                           name=f'erode_wm_{pipe_num}')
-        erode_wm.inputs.match = [1]
-        erode_wm.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
-
-        wf.connect(pick_tissue, 'wm_mask', erode_wm, 'in_file')
-
-        erode_gm = pe.Node(interface=freesurfer.model.Binarize(),
-                           name=f'erode_gm_{pipe_num}')
-        erode_gm.inputs.match = [1]
-        erode_gm.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
-
-        wf.connect(pick_tissue, 'gm_mask', erode_gm, 'in_file')
-       
     def split_hemi(multi_file):
         lh = None
         rh = None
@@ -2803,10 +2789,10 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'T1': (reconall, 'T1')
     }
 
-    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
-        outputs['label-WM_mask'] = (erode_wm, 'binary_file')
-        outputs['label-GM_mask'] = (erode_gm, 'binary_file')
+    if erode_tissues:
+        outputs['label-CSF_mask'] = (erode_tissues['csf'], 'binary_file')
+        outputs['label-WM_mask'] = (erode_tissues['wm'], 'binary_file')
+        outputs['label-GM_mask'] = (erode_tissues['gm'], 'binary_file')
     else:
         outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
         outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
