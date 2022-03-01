@@ -64,14 +64,21 @@ def run_surface(post_freesurfer_folder,
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
                             'task-rest01_Atlas.dtseries.nii')
-    aparc = {'desikan_killiany': os.path.join(post_freesurfer_folder,
-                                              f'{subject}.aparc.164k_fs_'
-                                              'LR.dlabel.nii'),
-             'destrieux': os.path.join(post_freesurfer_folder,
-                                       f'{subject}.aparc.a2009s.164k_fs_'
-                                       'LR.dlabel.nii')}
+    aparc = {'desikan_killiany': {
+        164: os.path.join(post_freesurfer_folder, 'MNINonLinear'
+                          f'{subject}.aparc.164k_fs_LR.dlabel.nii'),
+        32: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                         'fsaverage_LR32k',
+                         f'{subject}.aparc.32k_fs_LR.dlabel.nii')},
+             'destrieux': {
+        164: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                          f'{subject}.aparc.a2009s.164k_fs_LR.dlabel.nii'),
+        32: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                         'fsaverage_LR32k',
+                         f'{subject}.aparc.a2009s.32k_fs_LR.dlabel.nii')}}
 
-    return dtseries, aparc['desikan_killiany'], aparc['destrieux']
+    return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
+            aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
 
 def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
@@ -94,8 +101,11 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                               'freesurfer_labels',
                                               'fmri_res',
                                               'smooth_fwhm'],
-                                 output_names=['dtseries', 'desikan_killiany',
-                                               'destrieux'],
+                                 output_names=['dtseries',
+                                               'desikan_killiany_164',
+                                               'destrieux_164',
+                                               'desikan_killiany_32',
+                                               'destrieux_32'],
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
@@ -139,10 +149,14 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, surf, 'scout_bold')
 
     outputs = {
+        'atlas-DesikanKilliany_space-fsLR_den-32k_dlabel': (surf,
+                                                            'desikan_'
+                                                            'killiany_32'),
+        'atlas-Destrieux_space-fsLR_den-32k_dlabel': (surf, 'destrieux_32'),
         'atlas-DesikanKilliany_space-fsLR_den-164k_dlabel': (surf,
                                                              'desikan_'
-                                                             'killiany'),
-        'atlas-Destrieux_space-fsLR_den-164k_dlabel': (surf, 'destrieux'),
+                                                             'killiany_164'),
+        'atlas-Destrieux_space-fsLR_den-164k_dlabel': (surf, 'destrieux_164'),
         'space-fsLR_den-32k_bold-dtseries': (surf, 'dtseries')
     }
 
@@ -163,7 +177,9 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-template_to-T1w_mode-image_xfm",
                 "space-template_desc-brain_bold",
                 "space-template_desc-scout_bold"],
-     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
+     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+                 "atlas-Destrieux_space-fsLR_den-32k_dlabel",
+                 "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
                  "space-fsLR_den-32k_bold-dtseries"]}
     '''

@@ -146,6 +146,8 @@ rh-pial-surface-mesh	surface-derived		anat
 raw-average	surface-derived		anat						
 lh-smoothed-surface-mesh	surface-derived		anat						
 rh-smoothed-surface-mesh	surface-derived		anat						
+atlas-DesikanKilliany_space-fsLR_den-32k_dlabel	surface-derived		anat						
+atlas-Destrieux_space-fsLR_den-32k_dlabel	surface-derived		anat						
 atlas-DesikanKilliany_space-fsLR_den-164k_dlabel	surface-derived		anat						
 atlas-Destrieux_space-fsLR_den-164k_dlabel	surface-derived		anat						
 space-fsLR_den-32k_bold-dtseries	surface-derived		func						
