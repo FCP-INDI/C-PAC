@@ -15,8 +15,9 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_0,
     pick_wm_class_1,
     pick_wm_class_2,
-    hardcoded_antsJointLabelFusion,
-    pick_tissue_from_labels_file)
+    hardcoded_antsJointLabelFusion)
+from CPAC.utils.interfaces.function import \
+    pick_tissue_from_labels_file_interface
 from CPAC.utils.utils import check_prov_for_regtool
 
 
@@ -394,13 +395,7 @@ def create_seg_preproc_antsJointLabel_method(
     preproc.connect(inputNode, 'template_segmentation_list',
                     seg_preproc_antsJointLabel, 'template_segmentation_list')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
-                                                     'csf_label',
-                                                     'gm_label',
-                                                     'wm_label'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
+    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
                           name='{0}_tissue_mask'.format(wf_name))
 
     preproc.connect(seg_preproc_antsJointLabel, 'multiatlas_Labels',
@@ -509,11 +504,10 @@ def create_seg_preproc_freesurfer(config=None,
     preproc.connect(fs_aseg_to_native, 'transformed_file',
                     fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
-                          name=f'{wf_name}_tissue_mask')
+    pick_tissue = pe.Node(
+        pick_tissue_from_labels_file_interface(
+            input_names=['multiatlas_Labels']),
+        name=f'{wf_name}_tissue_mask')
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')

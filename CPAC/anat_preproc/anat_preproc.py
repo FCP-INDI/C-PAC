@@ -16,10 +16,9 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fslmaths_command, \
     VolumeRemoveIslands
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-
+from CPAC.utils.interfaces.function import \
+    pick_tissue_from_labels_file_interface
 from CPAC.unet.function import predict_volumes
-
-from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
 
 
 def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
@@ -2678,13 +2677,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(fs_aseg_to_native, 'transformed_file',
                fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
-                                                     'csf_label',
-                                                     'gm_label',
-                                                     'wm_label'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
+    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
                           name=f'select_fs_tissue_{pipe_num}')
 
     pick_tissue.inputs.csf_label = cfg['segmentation'][
