@@ -224,7 +224,7 @@ jobs:
     - name: Prep Dockerfiles for forked repository
       if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
       run: |
-          .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.variant }}-base.Dockerfile ${{ github.repository_owner }}
+          .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }}
           cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
     - name: See Dockerfile
       run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
