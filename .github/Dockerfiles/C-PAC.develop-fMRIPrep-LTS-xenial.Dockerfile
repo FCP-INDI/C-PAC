@@ -1,5 +1,5 @@
 # Choose versions
-FROM ghcr.io/fcp-indi/c-pac/stage-base:fMRIPRep-LTS-v1.8.4.dev
+FROM ghcr.io/fcp-indi/c-pac/stage-base:fMRIPrep-LTS-v1.8.4.dev
 
 USER root
 
