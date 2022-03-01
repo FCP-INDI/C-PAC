@@ -159,71 +159,37 @@ def freesurfer_hemispheres(wf, reconall, pipe_num):
                 rh = filepath
         return (lh, rh)
 
-    split_surface = pe.Node(util.Function(input_names=['multi_file'],
-                                          output_names=['lh', 'rh'],
-                                          function=split_hemi),
-                            name=f'split_surface_{pipe_num}')
-    wf.connect(reconall, 'curv', split_surface, 'multi_file')
+    def split_hemi_interface():
+        """Returns a function interface for split_hemi."""
+        return util.Function(input_names=['multi_file'],
+                             output_names=['lh', 'rh'],
+                             function=split_hemi)
 
-    split_pial = pe.Node(util.Function(input_names=['multi_file'],
-                                       output_names=['lh', 'rh'],
-                                       function=split_hemi),
-                         name=f'split_pial_{pipe_num}')
-    wf.connect(reconall, 'pial', split_pial, 'multi_file')
-
-    split_smoothed = pe.Node(util.Function(input_names=['multi_file'],
-                                           output_names=['lh', 'rh'],
-                                           function=split_hemi),
-                             name=f'split_smoothed_{pipe_num}')
-    wf.connect(reconall, 'smoothwm', split_smoothed, 'multi_file')
-
-    split_spherical = pe.Node(util.Function(input_names=['multi_file'],
-                                            output_names=['lh', 'rh'],
-                                            function=split_hemi),
-                              name=f'split_spherical_{pipe_num}')
-    wf.connect(reconall, 'sphere', split_spherical, 'multi_file')
-
-    split_sulcal_depth = pe.Node(util.Function(input_names=['multi_file'],
-                                               output_names=['lh', 'rh'],
-                                               function=split_hemi),
-                                 name=f'split_sulcal_{pipe_num}')
-    wf.connect(reconall, 'sulc', split_sulcal_depth, 'multi_file')
-
-    split_cortical_thick = pe.Node(util.Function(input_names=['multi_file'],
-                                                 output_names=['lh', 'rh'],
-                                                 function=split_hemi),
-                                   name=f'split_cortical_thick_{pipe_num}')
-    wf.connect(reconall, 'thickness', split_cortical_thick, 'multi_file')
-
-    split_cortical_volume = pe.Node(util.Function(input_names=['multi_file'],
-                                                  output_names=['lh', 'rh'],
-                                                  function=split_hemi),
-                                    name=f'split_cortical_vol_{pipe_num}')
-    wf.connect(reconall, 'volume', split_cortical_volume, 'multi_file')
-
-    split_white_surface = pe.Node(util.Function(input_names=['multi_file'],
-                                                output_names=['lh', 'rh'],
-                                                function=split_hemi),
-                                  name=f'split_white_{pipe_num}')
-    wf.connect(reconall, 'white', split_white_surface, 'multi_file')
-
+    splits = {
+        label: pe.Node(split_hemi_interface(),
+                       name=f'split_{label}_{pipe_num}') for
+        label in ['curv', 'pial', 'smoothwm', 'sphere', 'sulc', 'thickness',
+                  'volume', 'white']
+    }
+    for label in splits:
+        wf.connect(reconall, label, splits[label], 'multi_file')
     outputs = {
-        'lh-surface-curvature': (split_surface, 'lh'),
-        'rh-surface-curvature': (split_surface, 'rh'),
-        'lh-pial-surface-mesh': (split_pial, 'lh'),
-        'rh-pial-surface-mesh': (split_pial, 'rh'),
-        'lh-smoothed-surface-mesh': (split_smoothed, 'lh'),
-        'rh-smoothed-surface-mesh': (split_smoothed, 'rh'),
-        'lh-spherical-surface-mesh': (split_spherical, 'lh'),
-        'rh-spherical-surface-mesh': (split_spherical, 'rh'),
-        'lh-sulcal-depth-surface-map': (split_sulcal_depth, 'lh'),
-        'rh-sulcal-depth-surface-map': (split_sulcal_depth, 'rh'),
-        'lh-cortical-thickness-surface-map': (split_cortical_thick, 'lh'),
-        'rh-cortical-thickness-surface-map': (split_cortical_thick, 'rh'),
-        'lh-cortical-volume-surface-map': (split_cortical_volume, 'lh'),
-        'rh-cortical-volume-surface-map': (split_cortical_volume, 'rh'),
-        'lh-white-matter-surface-mesh': (split_white_surface, 'lh'),
-        'rh-white-matter-surface-mesh': (split_white_surface, 'rh')}
+        'hemi-L_desc-surface_curv': (splits['curv'], 'lh'),
+        'hemi-R_desc-surface_curv': (splits['curv'], 'rh'),
+        'hemi-L_desc-surfaceMesh_pial': (splits['pial'], 'lh'),
+        'hemi-R_desc-surfaceMesh_pial': (splits['pial'], 'rh'),
+        'hemi-L_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'lh'),
+        'hemi-R_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'rh'),
+        'hemi-L_desc-surfaceMesh_sphere': (splits['sphere'], 'lh'),
+        'hemi-R_desc-surfaceMesh_sphere': (splits['sphere'], 'rh'),
+        'hemi-L_desc-surfaceMap_sulc': (splits['sulc'], 'lh'),
+        'hemi-R_desc-surfaceMap_sulc': (splits['sulc'], 'rh'),
+        'hemi-L_desc-surfaceMap_thickness': (splits['thickness'], 'lh'),
+        'hemi-R_desc-surfaceMap_thickness': (splits['thickness'], 'rh'),
+        'hemi-L_desc-surfaceMap_volume': (splits['volume'], 'lh'),
+        'hemi-R_desc-surfaceMap_volume': (splits['volume'], 'rh'),
+        'hemi-L_desc-surfaceMesh_white': (splits['white'], 'lh'),
+        'hemi-R_desc-surfaceMesh_white': (splits['white'], 'rh')}
 
     return wf, outputs
 
