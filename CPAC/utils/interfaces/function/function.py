@@ -2,14 +2,11 @@ from builtins import str, bytes
 import inspect
 
 from nipype import logging
-from nipype.interfaces import utility as util
 from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined,
                                     isdefined, BaseInterfaceInputSpec)
 from nipype.interfaces.io import IOBase, add_traits
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import getsource, create_function_from_source
-
-from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
 
 iflogger = logging.getLogger('nipype.interface')
 
@@ -171,24 +168,3 @@ class Function(IOBase):
         for key in self._output_names:
             outputs[key] = self._out[key]
         return outputs
-
-
-def pick_tissue_from_labels_file_interface(input_names=None):
-    """Function to create a Function interface for
-    CPAC.seg_preproc.utils.pick_tissue_from_labels_file
-
-    Parameters
-    ----------
-    input_names : list, optional
-
-    Returns
-    -------
-    nipype.interfaces.base.core.Interface
-    """
-    if input_names is None:
-        input_names = ['multiatlas_Labels', 'csf_label', 'gm_label',
-                       'wm_label']
-    return util.Function(
-        input_names=input_names,
-        output_names=['csf_mask', 'gm_mask', 'wm_mask'],
-        function=pick_tissue_from_labels_file)

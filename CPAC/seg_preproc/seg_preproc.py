@@ -16,7 +16,7 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_1,
     pick_wm_class_2,
     hardcoded_antsJointLabelFusion)
-from CPAC.utils.interfaces.function import \
+from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
 from CPAC.utils.utils import check_prov_for_regtool
 

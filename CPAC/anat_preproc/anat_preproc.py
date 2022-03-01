@@ -16,7 +16,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fslmaths_command, \
     VolumeRemoveIslands
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.interfaces.function import \
+from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
 from CPAC.unet.function import predict_volumes
 
