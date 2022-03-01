@@ -1,0 +1,9 @@
+#!/bin/bash
+for FILE in $(find /opt/freesurfer/ -type f)
+do
+  if ! grep -qxFe "$FILE" required_freesurfer_pkgs.txt
+  then
+    echo "Deleting $FILE"
+    rm -rf $FILE || true
+  fi
+done
