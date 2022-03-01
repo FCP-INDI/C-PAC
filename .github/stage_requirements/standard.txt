@@ -1,0 +1,10 @@
+afni:update.afni.binaries-bionic
+ants:2.3.5-bionic
+ants:2.3.4.neurodocker-xenial
+c3d:1.0.0-bionic
+connectome-workbench:1.5.0.neurodebian-bionic
+freesurfer:6.0.0-min.neurodocker-bionic
+fsl:neurodebian-bionic
+ica-aroma:0.4.3-beta-bionic
+msm:2.0-bionic
+ubuntu:bionic-non-free

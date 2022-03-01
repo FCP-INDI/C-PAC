@@ -1,0 +1,9 @@
+afni:16.2.07.neurodocker-xenial
+ants:2.3.4.neurodocker-xenial
+c3d:1.0.0-xenial
+connectome-workbench:1.3.2-2.neurodebian-xenial
+freesurfer:6.0.1-min-xenial
+fsl:5.0.9-5.neurodebian-xenial
+ica-aroma:0.4.5-xenial
+msm:2.0-bionic
+ubuntu:xenial-20200114

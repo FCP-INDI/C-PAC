@@ -163,8 +163,86 @@ jobs:
           cache-to: type=gha,mode=max
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
 
-  trigger-next-workflow:
+  build-base:
     needs: stages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - standard
+          - ABCD-HCP
+          - fMRIPrep-LTS
+    steps:
+    - name: Check out C-PAC (depth 0)
+      if: github.event.inputs.base_ref != ''
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Check out C-PAC (depth 2)
+      if: github.event.inputs.base_ref == ''
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+    - name: Get changed files
+      uses: tj-actions/changed-files@v15
+      if: github.event.inputs.base_ref != ''
+      id: changed-files-base
+      with:
+        base_sha: ${{ github.event.inputs.base_ref }}
+        files_from_source_file: |
+          .github/stage_requirements/${{ matrix.variant }}.txt
+    - name: Get changed files
+      uses: tj-actions/changed-files@v15
+      if: github.event.inputs.base_ref == ''
+      id: changed-files
+      with:
+        since_last_remote_commit: "true"
+        files_from_source_file: |
+          .github/stage_requirements/${{ matrix.variant }}.txt
+    - name: Clear up some space on runner
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1.6.0
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+    - name: Set tag
+      run: |
+        TAG="c-pac/stage-base:${{ matrix.variant }}-$(cat version)"
+        echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+    - name: Prep Dockerfiles for forked repository
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      run: |
+          .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.variant }}-base.Dockerfile ${{ github.repository_owner }}
+          cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+    - name: See Dockerfile
+      run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+    - name: Build and push base image
+      uses: docker/build-push-action@v2.9.0
+      with:
+        context: .
+        file: .github/Dockerfiles/${{ matrix.variant }}.Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_TAG }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+
+  trigger-next-workflow:
+    needs: build-base
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
