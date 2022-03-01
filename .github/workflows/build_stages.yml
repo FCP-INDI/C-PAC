@@ -183,6 +183,8 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 2
+    - name: Prep source files
+      run: sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
     - name: Get changed files
       uses: tj-actions/changed-files@v15
       if: github.event.inputs.base_ref != ''
