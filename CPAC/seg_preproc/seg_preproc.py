@@ -1,6 +1,12 @@
 from nipype.interfaces.utility import Function
-import nipype.algorithms.rapidart as ra
-from nipype.interfaces import afni, ants, freesurfer, fsl, utility as util
+from nipype.interfaces import ants, freesurfer, fsl, utility as util
+
+from CPAC.anat_preproc.utils import freesurfer_hemispheres, mri_convert
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.registration.registration import apply_transform
+from CPAC.registration.utils import (
+    check_transforms,
+    generate_inverse_transform_flags)
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
     pick_wm_prob_0,
@@ -9,24 +15,9 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_0,
     pick_wm_class_1,
     pick_wm_class_2,
-    erosion,
-    mask_erosion,
     hardcoded_antsJointLabelFusion,
     pick_tissue_from_labels_file)
-
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import scipy.ndimage as nd
-import numpy as np
-from nipype.interfaces import freesurfer
-
 from CPAC.utils.utils import check_prov_for_regtool
-
-from CPAC.anat_preproc.utils import mri_convert
-from CPAC.registration.utils import (
-    check_transforms,
-    generate_inverse_transform_flags)
-from CPAC.registration.registration import apply_transform
-from CPAC.pipeline.schema import valid_options
 
 
 def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
@@ -432,19 +423,27 @@ def create_seg_preproc_antsJointLabel_method(
 
 
 def create_seg_preproc_freesurfer(config=None,
-                                  wf_name='seg_preproc_freesurfer'):
+                                  wf_name='seg_preproc_freesurfer',
+                                  pipe_num=0):
     """
     Generate the subject's segmentations based on freesurfer.
 
     Parameters
     ----------
+    config : CPAC.utils.configuration.Configuration
+
     wf_name : string
         name of the workflow
+
+    pipe_num : int
 
     Returns
     -------
     seg_preproc_freesurfer : workflow
         workflow object for segmentation workflow
+
+    hemisphere_outputs : dict
+        hemisphere-specific FreeSurfer outputs
 
     Notes
     -----
@@ -528,7 +527,10 @@ def create_seg_preproc_freesurfer(config=None,
     preproc.connect(pick_tissue, 'csf_mask',
                     outputnode, 'csf_mask')
 
-    return preproc
+    preproc, hemisphere_outputs = freesurfer_hemispheres(preproc, reconall2,
+                                                         pipe_num)
+
+    return preproc, hemisphere_outputs
 
 
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -916,12 +918,28 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["freesurfer-subject-dir"],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
-                 "label-WM_mask"]}
+                 "label-WM_mask",
+                 "lh-surface-curvature",
+                 "rh-surface-curvature",
+                 "lh-pial-surface-mesh",
+                 "rh-pial-surface-mesh",
+                 "lh-smoothed-surface-mesh",
+                 "rh-smoothed-surface-mesh",
+                 "lh-spherical-surface-mesh",
+                 "rh-spherical-surface-mesh",
+                 "lh-sulcal-depth-surface-map",
+                 "rh-sulcal-depth-surface-map",
+                 "lh-cortical-thickness-surface-map",
+                 "rh-cortical-thickness-surface-map",
+                 "lh-cortical-volume-surface-map",
+                 "rh-cortical-volume-surface-map",
+                 "lh-white-matter-surface-mesh",
+                 "rh-white-matter-surface-mesh"]}
     '''
 
-    fs_seg = create_seg_preproc_freesurfer(config=cfg,
-                                           wf_name='seg_preproc_freesurfer'
-                                                   f'_{pipe_num}')
+    fs_seg, hemisphere_outputs = create_seg_preproc_freesurfer(
+        config=cfg, wf_name=f'seg_preproc_freesurfer_{pipe_num}',
+        pipe_num=pipe_num)
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
@@ -929,7 +947,8 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'label-CSF_mask': (fs_seg, 'outputspec.csf_mask'),
         'label-GM_mask': (fs_seg, 'outputspec.gm_mask'),
-        'label-WM_mask': (fs_seg, 'outputspec.wm_mask')
+        'label-WM_mask': (fs_seg, 'outputspec.wm_mask'),
+        **hemisphere_outputs
     }
 
     return (wf, outputs)

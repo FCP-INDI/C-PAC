@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import nipype.interfaces.utility as util
+
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
 def fsl_aff_to_rigid(in_xfm, out_name):
@@ -127,15 +130,114 @@ def fsl_aff_to_rigid(in_xfm, out_name):
     return out_mat
 
 
+def freesurfer_hemispheres(wf, reconall, pipe_num):
+    """Function to return various hemisphere-specific FreeSurfer outputs.
+
+    Parameters
+    ----------
+    wf : nipype.pipeline.engine.workflows.Workflow
+        Workflow object.
+
+    reconall : nipype.pipeline.engine.nodes.Node
+
+    pipe_num : int
+
+    Returns
+    -------
+    wf : nipype.pipeline.engine.workflows.Workflow
+
+    outputs : dict
+    """
+    def split_hemi(multi_file):
+        # pylint: disable=invalid-name
+        lh = None
+        rh = None
+        for filepath in multi_file:
+            if 'lh.' in filepath:
+                lh = filepath
+            if 'rh.' in filepath:
+                rh = filepath
+        return (lh, rh)
+
+    split_surface = pe.Node(util.Function(input_names=['multi_file'],
+                                          output_names=['lh', 'rh'],
+                                          function=split_hemi),
+                            name=f'split_surface_{pipe_num}')
+    wf.connect(reconall, 'curv', split_surface, 'multi_file')
+
+    split_pial = pe.Node(util.Function(input_names=['multi_file'],
+                                       output_names=['lh', 'rh'],
+                                       function=split_hemi),
+                         name=f'split_pial_{pipe_num}')
+    wf.connect(reconall, 'pial', split_pial, 'multi_file')
+
+    split_smoothed = pe.Node(util.Function(input_names=['multi_file'],
+                                           output_names=['lh', 'rh'],
+                                           function=split_hemi),
+                             name=f'split_smoothed_{pipe_num}')
+    wf.connect(reconall, 'smoothwm', split_smoothed, 'multi_file')
+
+    split_spherical = pe.Node(util.Function(input_names=['multi_file'],
+                                            output_names=['lh', 'rh'],
+                                            function=split_hemi),
+                              name=f'split_spherical_{pipe_num}')
+    wf.connect(reconall, 'sphere', split_spherical, 'multi_file')
+
+    split_sulcal_depth = pe.Node(util.Function(input_names=['multi_file'],
+                                               output_names=['lh', 'rh'],
+                                               function=split_hemi),
+                                 name=f'split_sulcal_{pipe_num}')
+    wf.connect(reconall, 'sulc', split_sulcal_depth, 'multi_file')
+
+    split_cortical_thick = pe.Node(util.Function(input_names=['multi_file'],
+                                                 output_names=['lh', 'rh'],
+                                                 function=split_hemi),
+                                   name=f'split_cortical_thick_{pipe_num}')
+    wf.connect(reconall, 'thickness', split_cortical_thick, 'multi_file')
+
+    split_cortical_volume = pe.Node(util.Function(input_names=['multi_file'],
+                                                  output_names=['lh', 'rh'],
+                                                  function=split_hemi),
+                                    name=f'split_cortical_vol_{pipe_num}')
+    wf.connect(reconall, 'volume', split_cortical_volume, 'multi_file')
+
+    split_white_surface = pe.Node(util.Function(input_names=['multi_file'],
+                                                output_names=['lh', 'rh'],
+                                                function=split_hemi),
+                                  name=f'split_white_{pipe_num}')
+    wf.connect(reconall, 'white', split_white_surface, 'multi_file')
+
+    outputs = {
+        'lh-surface-curvature': (split_surface, 'lh'),
+        'rh-surface-curvature': (split_surface, 'rh'),
+        'lh-pial-surface-mesh': (split_pial, 'lh'),
+        'rh-pial-surface-mesh': (split_pial, 'rh'),
+        'lh-smoothed-surface-mesh': (split_smoothed, 'lh'),
+        'rh-smoothed-surface-mesh': (split_smoothed, 'rh'),
+        'lh-spherical-surface-mesh': (split_spherical, 'lh'),
+        'rh-spherical-surface-mesh': (split_spherical, 'rh'),
+        'lh-sulcal-depth-surface-map': (split_sulcal_depth, 'lh'),
+        'rh-sulcal-depth-surface-map': (split_sulcal_depth, 'rh'),
+        'lh-cortical-thickness-surface-map': (split_cortical_thick, 'lh'),
+        'rh-cortical-thickness-surface-map': (split_cortical_thick, 'rh'),
+        'lh-cortical-volume-surface-map': (split_cortical_volume, 'lh'),
+        'rh-cortical-volume-surface-map': (split_cortical_volume, 'rh'),
+        'lh-white-matter-surface-mesh': (split_white_surface, 'lh'),
+        'rh-white-matter-surface-mesh': (split_white_surface, 'rh')}
+
+    return wf, outputs
+
+
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    shrink_fac_bot_lim, avoid_vent, niter,
                                    pushout, touchup, fill_hole, avoid_eyes,
                                    use_edge, exp_frac, NN_smooth, smooth_final,
                                    push_to_edge, use_skull, perc_int,
-                                   max_inter_iter, blur_fwhm, fac, monkey, mask_vol):
+                                   max_inter_iter, blur_fwhm, fac, monkey,
+                                   mask_vol):
     """
     Method to return option string for 3dSkullStrip
-    
+
     Parameters
     ----------
     shrink_fac : float
