@@ -27,7 +27,11 @@ jobs:
 
   Circle_tests:
     name: Run tests on CircleCI
-    needs: C-PAC
+    needs: 
+      - C-PAC
+      - C-PAC-lite
+      - C-PAC-ABCD-HCP
+      - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
