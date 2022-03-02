@@ -75,6 +75,12 @@ ENV PATH=/usr/lib/afni/bin:$PATH \
     AFNI_PLUGINPATH="/usr/lib/afni/plugins"
 
 # Intalling and setting up c3d
+COPY --from=c3d /usr/lib/libITK* /usr/lib/
+COPY --from=c3d /usr/lib/libitk* /usr/lib/
+COPY --from=c3d /usr/lib/x86_64-linux-gnu/libgdcm* /usr/lib/x86_64-linux-gnu/
+COPY --from=c3d /usr/lib/x86_64-linux-gnu/libfftw3* /usr/lib/x86_64-linux-gnu/
+COPY --from=c3d /lib/x86_64-linux-gnu/lib*.so* /usr/x86_64-linux-gnu/
+COPY --from=c3d /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
 COPY --from=c3d /usr/bin/c*d /usr/bin/
 COPY --from=c3d /usr/bin/c3d_* /usr/bin/
 COPY --from=c3d /usr/share/doc/convert3d /usr/share/doc/convert3d
