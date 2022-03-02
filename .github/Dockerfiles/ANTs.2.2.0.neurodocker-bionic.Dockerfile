@@ -1,5 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.2.0 stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+ANTs 2.2.0 stage"
 USER root
 
 # install ANTs from Neurodocker

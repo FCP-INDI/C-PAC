@@ -1,5 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FSL Neurodebian stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FSL Neurodebian stage"
 USER root
 
 ARG DEBIAN_FRONTEND=noninteractive

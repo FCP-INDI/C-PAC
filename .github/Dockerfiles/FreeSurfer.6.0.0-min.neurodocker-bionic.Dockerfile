@@ -2,7 +2,8 @@
 FROM freesurfer/freesurfer:6.0 as FreeSurfer
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FreeSurfer 6.0.0-min stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FreeSurfer 6.0.0-min stage"
 USER root
 
 # install FreeSurfer

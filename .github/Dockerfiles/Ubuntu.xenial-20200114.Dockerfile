@@ -12,7 +12,8 @@ RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ubuntu:xenial-20200114
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Ubuntu Xenial base image"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+Ubuntu Xenial base image"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # create usergroup and user, set permissions, install curl

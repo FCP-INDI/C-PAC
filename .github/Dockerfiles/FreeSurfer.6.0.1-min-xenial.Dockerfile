@@ -5,5 +5,6 @@ COPY dev/docker_data/required_freesurfer_pkgs.txt /required_freesurfer_pkgs.txt
 RUN /freesurfer-prune
 
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FreeSurfer 6.0.1-min stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FreeSurfer 6.0.1-min stage"
 COPY --from=FreeSurfer /opt/freesurfer /opt/freesurfer

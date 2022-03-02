@@ -22,7 +22,8 @@ RUN apt-get update && \
     && find /opt/afni-latest -type f -not \( ${KEEPERS::-4} \) -delete
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: AFNI 16.2.07 stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+AFNI 16.2.07 stage"
 USER root
 
 COPY --from=AFNI /opt/afni-latest/ /usr/lib/afni/bin/

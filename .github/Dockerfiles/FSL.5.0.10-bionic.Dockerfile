@@ -36,7 +36,8 @@ USER c-pac_user
 
 # Only keep what we need
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FSL 5.0.10 stage"
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FSL 5.0.10 stage"
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
