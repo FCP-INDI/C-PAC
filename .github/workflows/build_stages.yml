@@ -220,7 +220,7 @@ jobs:
       if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
     - name: Set tag
       run: |
-        TAG="c-pac/stage-base:${{ matrix.variant }}-$(cat version)"
+        TAG="stage-base:${{ matrix.variant }}-$(cat version)"
         echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
     - name: Prep Dockerfiles for forked repository
