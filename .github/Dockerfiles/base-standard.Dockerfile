@@ -1,4 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Standard software dependencies for C-PAC standard and lite images"
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs
@@ -10,7 +9,7 @@ FROM ghcr.io/fcp-indi/c-pac/fsl:neurodebian-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Standard software dependencies for C-PAC standard and lite images"
 USER root
 
 # allow users to update / create themselves

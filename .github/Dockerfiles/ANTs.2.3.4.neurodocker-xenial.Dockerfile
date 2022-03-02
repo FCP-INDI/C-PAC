@@ -1,6 +1,4 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.3.4 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as ANTs
-
 USER root
 
 # install ANTs from Neurodocker
@@ -37,6 +35,7 @@ RUN apt-get clean && \
 
 # Only keep what we need
 FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.3.4 stage"
 COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
 COPY --from=ANTs /ants_template /ants_template
 COPY --from=ANTS /etc/locale.gen /etc/locale.gen

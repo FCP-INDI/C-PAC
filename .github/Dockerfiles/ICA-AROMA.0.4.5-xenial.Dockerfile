@@ -1,6 +1,4 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ICA-AROMA 0.4.5 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS ICA-AROMA
-
 USER root
 
 # Installing and setting up ICA_AROMA
@@ -25,4 +23,5 @@ USER c-pac_user
 
 # Only keep what we need
 FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ICA-AROMA 0.4.5 stage"
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

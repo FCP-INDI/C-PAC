@@ -1,4 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FreeSurfer 6.0.1 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 AS FreeSurfer
 
 USER root
@@ -46,6 +45,11 @@ RUN ldconfig
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Just keep what we need
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FreeSurfer 6.0.1 stage"
+COPY --from=FreeSurfer /opt/freesurfer /opt/freesurfer
 
 # set user
 USER c-pac_user

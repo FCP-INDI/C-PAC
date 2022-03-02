@@ -1,5 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Software dependencies version-matched to `fMRIPrep LTS <https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts->`_"
-
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/afni:16.2.07.neurodocker-xenial as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.4.neurodocker-xenial as ANTs
@@ -12,7 +10,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
 # using Ubuntu 16.04 LTS as parent image
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Software dependencies version-matched to `fMRIPrep LTS <https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts->`_"
 USER root
 
 # allow users to update / create themselves

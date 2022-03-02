@@ -1,5 +1,5 @@
-LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 FROM ghcr.io/fcp-indi/c-pac:latest-bionic
+LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 USER root
 ENTRYPOINT ["/code/run.py"]
 

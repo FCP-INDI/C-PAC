@@ -1,4 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.3.5 stage"
 FROM ubuntu:bionic-20200112 as builder
 
 RUN apt-get update && \
@@ -48,6 +47,7 @@ RUN mkdir /ants_template && \
     rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
 
 FROM ubuntu:bionic-20200112
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.3.5 stage"
 COPY --from=builder /opt/ants /opt/ants
 COPY --from=builder /ants_template /ants_template
 

@@ -1,5 +1,5 @@
-LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to `fMRIPrep LTS <https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts->`_"
 FROM ghcr.io/fcp-indi/c-pac/stage-base:fMRIPrep-LTS-v1.8.4.dev
+LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to `fMRIPrep LTS <https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts->`_"
 USER root
 
 # install C-PAC & set up runscript

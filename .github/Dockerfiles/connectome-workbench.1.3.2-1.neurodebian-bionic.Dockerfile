@@ -1,4 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: connectome-workbench 1.3.2-1 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as base
 
 USER root
@@ -16,6 +15,7 @@ RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubu
 USER c-pac_user
 
 FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: connectome-workbench 1.3.2-1 stage"
 COPY --from=base /usr/bin/wb_* /usr/bin/
 COPY --from=base /usr/share/applications/connectome-workbench.desktop /usr/share/applications/connectome-workbench.desktop
 COPY --from=base /usr/share/bash-completion/completions/wb* /usr/share/bash_completion/completions/

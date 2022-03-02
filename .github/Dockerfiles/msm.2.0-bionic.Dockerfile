@@ -1,8 +1,7 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: msm v2.0 stage \
-    Multimodal Surface Matching with Higher order Clique Reduction Version 2.00 (Feb 2017)"
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: msm v2.0 stage \
+    Multimodal Surface Matching with Higher order Clique Reduction Version 2.00 (Feb 2017)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 
 ARG DEBIAN_FRONTEND=noninteractive

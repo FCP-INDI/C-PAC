@@ -1,4 +1,3 @@
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Ubuntu Bionic base image"
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -12,7 +11,7 @@ RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs
 
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Ubuntu Bionic base image"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # create usergroup and user
