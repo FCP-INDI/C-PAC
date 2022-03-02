@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added the ability to follow symlinks for BIDS directories
+- Added log of expected outputs, generated at the beginning of the run
 
 ### Changed
 - Updated CI to only rebuild software dependencies on change
 
 ### Fixed
-- 
+- Merge error preventing QC files copying to output directory and renaming connectome → connectivity matrix files
 
 ## [1.8.3] - 2022-02-11
 
