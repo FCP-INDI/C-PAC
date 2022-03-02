@@ -874,7 +874,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
-    relies on some of it's outputs.
+    relies on some of its outputs.
 
     Parameters
     ----------
