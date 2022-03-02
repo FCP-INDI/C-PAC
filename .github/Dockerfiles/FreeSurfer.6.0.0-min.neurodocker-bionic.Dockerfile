@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: FreeSurfer 6.0.0-min stage"
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0 as FreeSurfer
 

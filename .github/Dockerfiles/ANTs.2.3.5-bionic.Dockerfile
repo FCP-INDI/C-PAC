@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.3.5 stage"
 FROM ubuntu:bionic-20200112 as builder
 
 RUN apt-get update && \

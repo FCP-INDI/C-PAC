@@ -1,8 +1,6 @@
-# Choose versions
+LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 FROM ghcr.io/fcp-indi/c-pac:latest-bionic
-
 USER root
-
 ENTRYPOINT ["/code/run.py"]
 
 # remove FreeSurfer, link libraries & clean up

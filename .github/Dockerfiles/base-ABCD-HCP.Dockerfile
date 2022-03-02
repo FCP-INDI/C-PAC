@@ -1,3 +1,5 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Software dependencies version-matched to `ABCD-HCP BIDS fMRI Pipeline <https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile>`_"
+
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.2.0.neurodocker-bionic as ANTs
@@ -61,3 +63,6 @@ RUN ldconfig
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# set user
+USER c-pac_user

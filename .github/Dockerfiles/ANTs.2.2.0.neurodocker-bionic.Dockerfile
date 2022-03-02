@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: ANTs 2.2.0 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 
 USER root

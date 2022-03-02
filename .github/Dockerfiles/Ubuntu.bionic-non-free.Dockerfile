@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Ubuntu Bionic base image"
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive

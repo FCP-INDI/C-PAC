@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: AFNI 20.0.04 stage"
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 
 USER root

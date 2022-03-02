@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Ubuntu Xenial base image"
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 
 FROM ubuntu:xenial-20200114 AS dcan-hcp

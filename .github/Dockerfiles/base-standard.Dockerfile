@@ -1,5 +1,4 @@
-# Base dependencies for C-PAC standard and lite images
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: Standard software dependencies for C-PAC standard and lite images"
 # Choose versions
 FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.3.5-bionic as ANTs

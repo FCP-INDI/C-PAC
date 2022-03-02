@@ -1,3 +1,4 @@
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD: AFNI 16.2.07 stage"
 FROM ubuntu:xenial-20200114 AS AFNI
 
 USER root
