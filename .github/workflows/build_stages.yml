@@ -31,14 +31,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Get changed files
+      - name: Get changed files since fork point
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
-          base_sha: ${{ github.event.inputs.base_ref }}
+          use_fork_point: "true"
           files: .github/Dockerfiles/*
-      - name: Get changed files
+      - name: Get changed files since last commit
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref == ''
         id: changed-files
@@ -107,14 +107,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Get changed files
+      - name: Get changed files since fork point
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
-          base_sha: ${{ github.event.inputs.base_ref }}
+          use_fork_point: "true"
           files: .github/Dockerfiles/*
-      - name: Get changed files
+      - name: Get changed files since last commit
         uses: tj-actions/changed-files@v15
         if: github.event.inputs.base_ref == ''
         id: changed-files
@@ -185,15 +185,15 @@ jobs:
         fetch-depth: 2
     - name: Prep source files
       run: sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Get changed files
+    - name: Get changed files since fork point
       uses: tj-actions/changed-files@v15
       if: github.event.inputs.base_ref != ''
       id: changed-files-base
       with:
-        base_sha: ${{ github.event.inputs.base_ref }}
+        use_fork_point: "true"
         files_from_source_file: |
           .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Get changed files
+    - name: Get changed files since last commit
       uses: tj-actions/changed-files@v15
       if: github.event.inputs.base_ref == ''
       id: changed-files
