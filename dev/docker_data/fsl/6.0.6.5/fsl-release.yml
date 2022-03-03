@@ -38,31 +38,37 @@ internal-channel: http://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.
 # The FSL installation is created in two stages.
 # First of all, the base_packages are installed.
 # Versions of these packages are specified in
-# the packages list below
+# the main packages list below
 base-packages:
+ - boost-cpp 
  - fslpy
  - fsl-base
  - fsl_sub
  - fsl_sub_plugin_sge
  - fsl_sub_plugin_slurm
  - libopenblas
+ - numpy
+ - python
+ - tk
+ - zlib
 
 # List of all packages that comprise a FSL
 # installation. All packages not installed
 # in the first stage (see base_packages
 # above) are installed in the second stage.
 packages:
+ - boost-cpp 1.74
  - ciftilib 1.5.3
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.0.0
  - fsleyes 1.3.3
- - fslpy 3.8.1
+ - fslpy 3.8.2
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.0
- - fsl-base 2201.3
+ - fsl-base 2203.0
  - fsl-basil v4.0.4
  - fsl-basisfield 2202.0
  - fsl-baycest 2111.0
@@ -191,7 +197,12 @@ packages:
  - make
  - nidmresults 2.1.0
  - nidmresults-fsl 2.2.0
+ - numpy 1.21
  - openslide-python v1.1.2
+ - pkg-config
+ - python 3.9
+ - tk 8.6
+ - zlib 1.2
 
 # List of additional packages that
 # are added to linux-64 installations.
