@@ -193,3 +193,13 @@ timeseries_extraction:
     /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     #  Smith 2009  (to be included after https://github.com/FCP-INDI/C-PAC/issues/1640 is resolved)
     # /cpac_templates/Smith_space-MNI152NLin6_res-3x3x3_desc-thresh3_mask.nii.gz: Avg
+
+# OUTPUTS AND DERIVATIVES
+# -----------------------
+post_processing: 
+  spatial_smoothing:
+    output: [smoothed, nonsmoothed]
+    smoothing_method: [AFNI]
+    fwhm: [6]
+  z-scoring:
+    output: [z-scored, raw]

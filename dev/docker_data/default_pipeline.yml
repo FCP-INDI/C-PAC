@@ -1193,6 +1193,13 @@ functional_preproc:
   func_masking:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+
+    # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
+    # Anatomical_Refined: 1. binarize anat mask, in case it is not a binary mask. 2. fill holes of anat mask 3. init_bold_mask : input raw func → dilate init func brain mask 4. refined_bold_mask : input motion corrected func → dilate anatomical mask 5. get final func mask
+    # Anatomical_Based: Generate the BOLD mask by basing it off of the anatomical brain mask. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+    # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
+    # CCS_Anatomical_Refined: Generate the BOLD mask by basing it off of the anatomical brain. Adapted from the BOLD mask method from the CCS pipeline.
+
     # this is a fork point
     using: ['AFNI']
 
@@ -1374,7 +1381,7 @@ nuisance_corrections:
 
       erode_anatomical_brain_mask:
 
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        # Erode binarized anatomical brain mask. If choosing True, please also set regressor_masks['erode_csf']['run']: True; anatomical_preproc['brain_extraction']['using']: niworkflows-ants.
         run: Off
 
         # Erosion proportion, if using erosion.
@@ -1561,7 +1568,7 @@ seed_based_correlation_analysis:
 amplitude_low_frequency_fluctuation:
 
   # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: On
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
