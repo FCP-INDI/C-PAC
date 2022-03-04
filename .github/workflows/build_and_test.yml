@@ -5,23 +5,23 @@ on:
 
 jobs:
   C-PAC:
-    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
+    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@develop
     with:
       variant: ''
 
   C-PAC-lite:
     needs: C-PAC
-    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
+    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@develop
     with:
       variant: lite
 
   C-PAC-ABCD-HCP:
-    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
+    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@develop
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
-    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@main
+    uses: shnizzedy/C-PAC/.github/workflows/build_C-PAC.yml@CI/GitHub-workflows # TODO: Set to FCP-INDI/**@develop
     with:
       variant: fMRIPrep-LTS
 
