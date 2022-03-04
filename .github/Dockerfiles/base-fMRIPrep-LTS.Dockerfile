@@ -89,6 +89,14 @@ COPY --from=c3d /usr/lib/c3d_gui-1.1.0/Convert3DGUI /usr/lib/c3d_gui-1.1.0/Conve
 # Installing and setting up FSL 
 COPY --from=FSL /etc/fsl /etc/fsl
 COPY --from=FSL /usr/lib/fsl /usr/lib/fsl
+COPY --from=FSL /usr/lib/libnewmat.so.10 /usr/lib/libnewmat.so.10
+COPY --from=FSL /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+COPY --from=FSL /lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
+COPY --from=FSL /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/x86_64-linux-gnu/libgcc_s.so.1
+COPY --from=FSL /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
+COPY --from=FSL /usr/lib/libniftiio.so.2 /usr/lib/libniftiio.so.2
+COPY --from=FSL /usr/lib/libznz.so.2 /usr/lib/libznz.so.2
+COPY --from=FSL /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
 COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
 COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
 COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
