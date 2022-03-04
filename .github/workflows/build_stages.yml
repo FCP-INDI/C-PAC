@@ -80,7 +80,7 @@ jobs:
         - AFNI.16.2.07.neurodocker-xenial
         - AFNI.20.0.04-bionic
         - AFNI.update.afni.binaries-bionic
-        - ANTS.2.2.0.neurodocker-bionic
+        - ANTs.2.2.0.neurodocker-bionic
         - ANTs.2.3.4.neurodocker-xenial
         - ANTs.2.3.5-bionic
         - c3d.1.0.0-bionic
