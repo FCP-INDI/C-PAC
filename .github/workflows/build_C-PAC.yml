@@ -63,7 +63,7 @@ jobs:
             fi
           fi
           TAG=$TAG$VARIANT
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}:$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
       - name: Prep Dockerfiles for forked repository
