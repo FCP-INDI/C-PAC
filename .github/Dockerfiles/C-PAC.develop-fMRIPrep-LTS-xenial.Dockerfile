@@ -3,6 +3,8 @@ LABEL org.opencontainers.image.description "Full C-PAC image with software depen
 USER root
 
 # install C-PAC & set up runscript
+COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
+COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
 COPY dev/docker_data /code/docker_data
 RUN pip install -e /code && \

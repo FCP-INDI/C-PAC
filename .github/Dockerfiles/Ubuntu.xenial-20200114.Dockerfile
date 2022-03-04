@@ -165,9 +165,6 @@ RUN git lfs install
 # Get atlases
 COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
 
-COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
-COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
-
 ENTRYPOINT ["/bin/bash"]
 
 # Link libraries for Singularity images
