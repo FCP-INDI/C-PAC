@@ -32,7 +32,10 @@ jobs:
               fi
             done
             git add *ockerfile
-            git commit -m ":truck: Copy develop Dockerfiles to root directory"
+            git commit -m ":truck: Copy develop Dockerfiles to root directory \
+            \
+            [skip ci]"
+            git push origin HEAD:${GITHUB_BRANCH} || true
           fi
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
