@@ -7,7 +7,7 @@ USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
                     convert3d=0.0.20190204-1~nd16.04+1
-ENV C3DPATH /usr/bin/
+ENV C3DPATH /usr/bin
 ENV PATH $C3DPATH/bin:$PATH
 
 ENTRYPOINT ["/bin/bash"]
