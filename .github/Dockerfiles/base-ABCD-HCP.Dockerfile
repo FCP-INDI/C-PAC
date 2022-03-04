@@ -26,6 +26,14 @@ COPY --from=AFNI /opt/afni/ /opt/afni/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
+# install ANTs
+ENV LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
+    ANTSPATH="/usr/lib/ants" \
+    PATH="/usr/lib/ants:$PATH"
+COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ANTs /ants_template /ants_template
+
 # install FSL
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
