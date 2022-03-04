@@ -203,7 +203,7 @@ jobs:
         files_from_source_file: |
           .github/stage_requirements/${{ matrix.variant }}.txt
     - name: Clear up some space on runner
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /opt/ghc
@@ -211,27 +211,27 @@ jobs:
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1.6.0
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v1
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
     - name: Set tag
       run: |
         TAG="stage-base:${{ matrix.variant }}-$(cat version)"
         echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
     - name: Prep Dockerfiles for forked repository
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
       run: |
           .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }}
           cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
     - name: See Dockerfile
       run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
     - name: Build and push base image
       uses: docker/build-push-action@v2.9.0
       with:
@@ -242,7 +242,7 @@ jobs:
           ${{ env.DOCKER_TAG }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-      if: steps.changed-files-base.outputs.any_changed || steps.changed-files.outputs.any_changed
+      if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
 
   trigger-next-workflow:
     needs: build-base
