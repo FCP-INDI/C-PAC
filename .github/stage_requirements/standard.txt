@@ -1,3 +1,4 @@
+base-standard.Dockerfile
 AFNI.update.afni.binaries-bionic.Dockerfile
 ANTs.2.3.5-bionic.Dockerfile
 ANTs.2.3.4.neurodocker-xenial.Dockerfile
