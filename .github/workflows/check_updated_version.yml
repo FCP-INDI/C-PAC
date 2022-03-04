@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Build and test C-PAC
+      - name: Build stages
         run: |
           pip install PyGithub
           BASE_REFS=$(python .github/scripts/get_pr_base_shas.py)
