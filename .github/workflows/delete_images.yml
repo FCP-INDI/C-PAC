@@ -8,10 +8,16 @@ jobs:
     name: Delete branch images
     runs-on: ubuntu-latest
     if: github.event.ref_type == 'branch'
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
     env:
       GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
       IMAGE: c-pac
-      TAG: ${{ github.event.ref }}
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
@@ -24,9 +30,13 @@ jobs:
           else
             OWNER_TYPE=org
           fi
-          TAG=${TAG#refs/heads/}
-          TAG=${TAG//\//_}
-          TAG=${TAG,,}
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          TAG=${GITHUB_REF_NAME}
+          TAG=$TAG$VARIANT
+          
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
           curl \
             -u ${GITHUB_TOKEN}: \
