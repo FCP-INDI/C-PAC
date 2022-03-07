@@ -64,8 +64,11 @@ RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz |
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
-# Link libraries for Singularity images
-RUN ldconfig
+# link libraries & clean up
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    ldconfig && \
+    chmod 777 / && \
+    chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 RUN apt-get clean && \
     apt-get autoremove -y && \

@@ -76,6 +76,7 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
 # link libraries & clean up
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ldconfig && \
+    chmod 777 / && \
     chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
