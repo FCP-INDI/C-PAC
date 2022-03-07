@@ -143,9 +143,11 @@ class CpacNipypeCustomPluginMixin():
         free_memory_gb, free_processors = self._check_resources(
             self.pending_tasks)
 
+        num_pending = len(self.pending_tasks)
+        num_ready = len(jobids)
         stats = (
-            len(self.pending_tasks),
-            len(jobids),
+            num_pending,
+            num_ready,
             free_memory_gb,
             self.memory_gb,
             free_processors,
@@ -167,8 +169,8 @@ class CpacNipypeCustomPluginMixin():
                 "[%s] Running %d tasks, and %d jobs ready. Free "
                 "memory (GB): %0.2f/%0.2f, Free processors: %d/%d.%s",
                 type(self).__name__[:-len('Plugin')],
-                len(self.pending_tasks),
-                len(jobids),
+                num_pending,
+                num_ready,
                 free_memory_gb,
                 self.memory_gb,
                 free_processors,
@@ -177,16 +179,17 @@ class CpacNipypeCustomPluginMixin():
             )
             self._stats = stats
 
-        if free_memory_gb < self.peak or free_processors == 0:
-            logger.debug("No resources available")
-            return
+        if self.raise_insufficient:
+            if free_memory_gb < self.peak or free_processors == 0:
+                logger.info("No resources available. Potential deadlock")
+                return
 
-        if len(jobids) + len(self.pending_tasks) == 0:
-            logger.debug(
-                "No tasks are being run, and no jobs can "
-                "be submitted to the queue. Potential deadlock"
-            )
-            return
+            if num_ready + num_pending == 0:
+                logger.info(
+                    "No tasks are being run, and no jobs can "
+                    "be submitted to the queue. Potential deadlock"
+                )
+                return
 
         jobids = self._sort_jobs(jobids,
                                  scheduler=self.plugin_args.get("scheduler"))
@@ -196,6 +199,7 @@ class CpacNipypeCustomPluginMixin():
 
         # Submit jobs
         for jobid in jobids:
+            force_allocate_job = False
             # First expand mapnodes
             if isinstance(self.procs[jobid], MapNode):
                 try:
@@ -214,7 +218,14 @@ class CpacNipypeCustomPluginMixin():
             next_job_th = min(self.procs[jobid].n_procs, self.processors)
 
             # If node does not fit, skip at this moment
-            if next_job_th > free_processors or next_job_gb > free_memory_gb:
+            if not self.raise_insufficient and (
+                num_pending == 0 and num_ready > 0
+            ):
+                force_allocate_job = True
+                free_processors -= 1
+            if not force_allocate_job and (
+                next_job_th > free_processors or next_job_gb > free_memory_gb
+            ):
                 logger.debug(
                     "Cannot allocate job %s ID=%d (%0.2fGB, %d threads).",
                     self.procs[jobid].fullname,
