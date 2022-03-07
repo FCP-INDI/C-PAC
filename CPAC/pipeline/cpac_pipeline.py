@@ -23,7 +23,8 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block
+from CPAC.pipeline.check_outputs import check_outputs
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     freesurfer_abcd_preproc,
@@ -50,11 +51,9 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
     brain_mask_acpc_freesurfer_abcd,
-    brain_extraction,
     correct_restore_brain_intensity_abcd,
     brain_mask_acpc_freesurfer_fsl_tight,
     brain_mask_acpc_freesurfer_fsl_loose,
-    brain_extraction,
     brain_extraction_temp,
     brain_extraction,
     anatomical_init_T2,
@@ -184,17 +183,17 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
-from CPAC.utils.datasource import (
-    gather_extraction_maps
-)
+from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
+from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, \
+                        qc_xcp_EPItemplate, qc_xcp_T1template
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
+                                  set_up_logger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -259,6 +258,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
+    set_up_logger(f'{subject_id}_expectedOutputs',
+                  filename=f'{bidsier_prefix(c["subject_id"])}_'
+                           'expectedOutputs.yml',
+                  level='info', log_dir=log_dir, mock=True)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir)
 
@@ -368,7 +371,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
         System time of start:      {run_start}
         System time of completion: {run_finish}
-
+        {output_check}
 """  # noqa: E501
 
     logger.info('%s', information.format(
@@ -706,6 +709,7 @@ CPAC run error:
     Elapsed run time (minutes): {elapsed}
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
+    {output_check}
 
 """
 
@@ -716,13 +720,17 @@ CPAC run error:
                 resource_report(cb_log_filename,
                                 num_cores_per_sub, logger)
 
-                logger.info(execution_info.format(
+                logger.info('%s', execution_info.format(
                     workflow=workflow.name,
                     pipeline=c.pipeline_setup['pipeline_name'],
                     log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
-                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S"),
+                    output_check=check_outputs(
+                                 c.pipeline_setup['output_directory']['path'],
+                                 log_dir, c.pipeline_setup['pipeline_name'],
+                                 c['subject_id'])
                 ))
 
                 # Remove working directory when done
@@ -1225,10 +1233,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         pipeline_blocks += nuisance
 
+    apply_func_warp = {}
+    _r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'coregistration']['run'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template']['run']
+    apply_func_warp['T1'] = (
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1238,9 +1248,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['T1'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['T1']:
 
         ts_to_T1template_block = [warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
@@ -1260,8 +1270,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['run_EPI']
+    apply_func_warp['EPI'] = (
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run_EPI'])
+    del _r_w_f_r
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1271,9 +1283,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['EPI'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['EPI']:
         pipeline_blocks += [warp_timeseries_to_EPItemplate,
                             warp_bold_mean_to_EPItemplate]
 
@@ -1333,15 +1345,29 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        if all(rpool.check_rpool(motion) for motion in [
-            'censor-indices', 'coordinate-transformation', 'dvars',
-            'framewise-displacement-jenkinson', 'max-displacement',
-            'movement-parameters', 'rels-displacement'
-        ]):
-            pipeline_blocks += [qc_xcp_native]
-        if rpool.check_rpool('space-template_desc-preproc_bold'):
-            pipeline_blocks += [qc_xcp_template]
-        pipeline_blocks += [qc_xcp_skullstripped]
+        if cfg.anatomical_preproc['brain_extraction']['run']:
+            pipeline_blocks += [qc_xcp_skullstripped]
+        if cfg.functional_preproc['run']:
+            _m_e_a_c = cfg.functional_preproc[
+                'motion_estimates_and_correction']
+            if (_m_e_a_c['run'] and
+                    _m_e_a_c['motion_estimates']['calculate_motion_after']):
+                pipeline_blocks += [qc_xcp_native]
+            del _m_e_a_c
+            _a_t_u = cfg.registration_workflows['functional_registration'][
+                'func_registration_to_template']['apply_transform']['using']
+            if 'default' in _a_t_u or 'single_step_resampling' in _a_t_u:
+                if apply_func_warp['T1']:
+                    pipeline_blocks += [qc_xcp_T1template]
+                if apply_func_warp['EPI']:
+                    pipeline_blocks += [qc_xcp_EPItemplate]
+            else:
+                if apply_func_warp['T1'] or apply_func_warp['EPI']:
+                    logger.warning('Template space XCP QC files not yet '
+                                   'implemented for tranformation application '
+                                   'methods other than default and '
+                                   'single_step_resampling.')
+            del _a_t_u
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
