@@ -67,7 +67,14 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH" \
-    NO_FSFAST=1
+    NO_FSFAST=1 \
+    PERL5LIB="$FREESURFER_HOME/mni/share/perl5" \
+    FSFAST_HOME="$FREESURFER_HOME/fsfast" \
+    SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
+    MNI_DIR="$FREESURFER_HOME/mni" \
+    MINC_BIN_DIR="$MNI_DIR/bin" \
+    MINC_LIB_DIR="$MNI_DIR/lib" \
+    PATH="$PATH:$MINC_BIN_DIR"
 
 # install Multimodal Surface Matching
 COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
