@@ -41,6 +41,7 @@ ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
+      bc \
       build-essential \
       bzip2 \
       ca-certificates \
