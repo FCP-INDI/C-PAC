@@ -66,7 +66,8 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 # install FreeSurfer
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH"
+    PATH="/usr/lib/freesurfer/bin:$PATH" \
+    NO_FSFAST=1
 
 # install Multimodal Surface Matching
 COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
