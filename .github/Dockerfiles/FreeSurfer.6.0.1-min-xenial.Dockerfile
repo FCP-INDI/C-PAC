@@ -8,3 +8,4 @@ FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FreeSurfer 6.0.1-min stage"
 COPY --from=FreeSurfer /opt/freesurfer /opt/freesurfer
+COPY dev/docker_data/license.txt /opt/freesurfer/license.txt
