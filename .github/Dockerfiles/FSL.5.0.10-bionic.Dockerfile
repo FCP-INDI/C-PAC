@@ -1,3 +1,4 @@
+FROM ghcr.io/shnizzedy/c-pac/fsl:neurodebian-bionic as FSL-Neurodebian
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 
 USER root
@@ -42,3 +43,4 @@ COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
+COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/tissuepriors/*mm /usr/share/fsl/5.0/data/standard/tissuepriors/
