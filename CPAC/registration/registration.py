@@ -1177,8 +1177,7 @@ def create_wf_calculate_ants_warp(
                                         imports=reg_imports),
                 name='calc_ants_warp',
                 mem_gb=2.8,
-                mem_x=(954925290115543 / 4722366482869645213696,
-                       'moving_brain', 'xyz'))
+                mem_x=(2e-7, 'moving_brain', 'xyz'))
 
     calculate_ants_warp.interface.num_threads = num_threads
 
