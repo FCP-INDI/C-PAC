@@ -62,10 +62,10 @@ chmod 770 $TempSubjectDIR
 if [[ `echo "$BrainOrdinatesResolution == $FinalfMRIResolution" | bc -l | cut -f1 -d.` == "1" ]]
 then
     echo "${script_name}: Creating subject-roi subcortical cifti at same resolution as output"
-    wb_command -cifti-create-dense-timeseries ${ResultsFolder}/${NameOffMRI}_temp_subject.dtseries.nii -volume "$VolumefMRI".nii.gz "$ROIFolder"/ROIs."$BrainOrdinatesResolution".nii.gz
+    wb_command -cifti-create-dense-timeseries ${ResultsFolder}/${NameOffMRI}_temp_subject.dtseries.nii -volume "$VolumefMRI".nii.gz "$ROIFolder"/Atlas_ROIs."$BrainOrdinatesResolution".nii.gz
 else
     echo "${script_name}: Creating subject-roi subcortical cifti at differing fMRI resolution"
-    wb_command -volume-affine-resample "$ROIFolder"/ROIs."$BrainOrdinatesResolution".nii.gz $FSLDIR/etc/flirtsch/ident.mat "$VolumefMRI".nii.gz ENCLOSING_VOXEL "$ResultsFolder"/ROIs."$FinalfMRIResolution".nii.gz
+    wb_command -volume-affine-resample "$ROIFolder"/Atlas_ROIs."$BrainOrdinatesResolution".nii.gz $FSLDIR/etc/flirtsch/ident.mat "$VolumefMRI".nii.gz ENCLOSING_VOXEL "$ResultsFolder"/ROIs."$FinalfMRIResolution".nii.gz
     wb_command -cifti-create-dense-timeseries ${ResultsFolder}/${NameOffMRI}_temp_subject.dtseries.nii -volume "$VolumefMRI".nii.gz "$ResultsFolder"/ROIs."$FinalfMRIResolution".nii.gz
     rm -f "$ResultsFolder"/ROIs."$FinalfMRIResolution".nii.gz
 fi

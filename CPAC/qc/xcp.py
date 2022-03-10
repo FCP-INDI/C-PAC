@@ -475,10 +475,40 @@ def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
     return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
 
 
-def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    # pylint: disable=invalid-name, unused-argument
+def qc_xcp_template(wf, space, strat_pool, pipe_num, reference):
+    """Handle either T1 or EPI template XCP-QC."""
+    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
+                                                      space)
+    final['func'] = strat_pool.node_data(f'space-{space}_desc-preproc_bold')
+    template = strat_pool.node_data(reference)
+    wf.connect(template.node, template.out, qc_file, 'template')
+    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
+                        f'space-{space}_desc-bold_mask',
+                        f'space-{space}_desc-xcp_quality', pipe_num)
+
+
+# pylint: disable=invalid-name, unused-argument
+def qc_xcp_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     """
-    {'name': 'qc_xcp_template',
+    {'name': 'qc_xcp_EPItemplate',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': [('bold', 'subject', 'scan', 'T1w', 'EPI-template',
+                'space-T1w_desc-mean_bold',
+                'space-EPItemplate_desc-preproc_bold', 'desc-preproc_T1w',
+                'space-EPItemplate_desc-bold_mask')],
+     'outputs': ['space-EPItemplate_desc-xcp_quality']}
+    """
+    return qc_xcp_template(wf, 'EPItemplate', strat_pool, pipe_num,
+                           'EPI-template')
+
+
+# pylint: disable=invalid-name, unused-argument
+def qc_xcp_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """
+    {'name': 'qc_xcp_T1template',
      'config': ['pipeline_setup', 'output_directory', 'quality_control'],
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
@@ -489,15 +519,8 @@ def qc_xcp_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-template_desc-bold_mask')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
-    space = 'template'
-    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
-                                                      space)
-    final['func'] = strat_pool.node_data('space-template_desc-preproc_bold')
-    template = strat_pool.node_data('T1w-brain-template-funcreg')
-    wf.connect(template.node, template.out, qc_file, 'template')
-    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                        'space-template_desc-bold_mask',
-                        'space-template_desc-xcp_quality', pipe_num)
+    return qc_xcp_template(wf, 'template', strat_pool, pipe_num,
+                           'T1w-brain-template-funcreg')
 
 
 def _repeat_shorter(images):
