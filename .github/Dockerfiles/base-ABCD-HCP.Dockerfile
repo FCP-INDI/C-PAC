@@ -18,8 +18,8 @@ RUN chmod ugo+w /etc/passwd
 
 # install and set up c3d
 COPY --from=c3d /opt/c3d/ /opt/c3d/
-ENV C3DPATH=/opt/c3d/ \
-    PATH=$C3DPATH/bin:$PATH
+ENV C3DPATH=/opt/c3d/
+ENV PATH=$C3DPATH/bin:$PATH
 
 # install AFNI
 COPY --from=AFNI /opt/afni/ /opt/afni/
@@ -52,14 +52,14 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 
 # install FreeSurfer
 COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
-ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    PATH="/usr/lib/freesurfer/bin:$PATH" \
+ENV FREESURFER_HOME="/usr/lib/freesurfer"
+ENV PATH="/usr/lib/freesurfer/bin:$PATH" \
     NO_FSFAST=1 \
     PERL5LIB="$FREESURFER_HOME/mni/share/perl5" \
     FSFAST_HOME="$FREESURFER_HOME/fsfast" \
     SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
-    MNI_DIR="$FREESURFER_HOME/mni" \
-    MINC_BIN_DIR="$MNI_DIR/bin" \
+    MNI_DIR="$FREESURFER_HOME/mni"
+ENV MINC_BIN_DIR="$MNI_DIR/bin" \
     MINC_LIB_DIR="$MNI_DIR/lib" \
     PATH="$PATH:$MINC_BIN_DIR"
 
