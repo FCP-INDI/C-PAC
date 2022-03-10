@@ -69,7 +69,7 @@ motion_params = ['movement-parameters', 'dvars',
 
 def calculate_overlap(image_pair):
     '''
-    Function to calculate Dice, Jaccard, CrossCorr and Coverage:cite:`cite-Penn19` from a
+    Function to calculate Dice, Jaccard, CrossCorr and Coverage :cite:`cite-Penn19` from a
     pair of arrays
 
     Parameters
