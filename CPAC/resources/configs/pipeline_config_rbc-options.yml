@@ -51,13 +51,13 @@ registration_workflows:
         # NOTE:
         #   this also includes the single-volume 3D preprocessed functional data,
         #   such as the mean functional (mean EPI) in template space
-        func_preproc_outputs: 2.4mm
+        func_preproc_outputs: 2mm
 
         # The resolution (in mm) to which the registered derivative outputs are written into.
         # NOTE:
         #   this is for the single-volume functional-space outputs (i.e. derivatives)
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
-        func_derivative_outputs: 2.4mm
+        func_derivative_outputs: 2mm
 
 functional_preproc:
   truncation:
@@ -73,6 +73,9 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: 
       - On
+
+  motion_estimates_and_correction:
+    using: [3dvolreg]
 
   distortion_correction:
     using:
@@ -203,3 +206,9 @@ post_processing:
     fwhm: [6]
   z-scoring:
     output: [z-scored, raw]
+
+seed_based_correlation_analysis:
+  run: Off
+
+regional_homogeneity:
+  run: On
