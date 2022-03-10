@@ -6,7 +6,7 @@ USER root
 # install ANTs from Neurodocker
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    ANTSPATH="/usr/lib/ants" \
+    ANTSPATH="/usr/lib/ants/" \
     PATH="/usr/lib/ants:$PATH"
 
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \

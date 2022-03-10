@@ -47,7 +47,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 # install ANTs
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    ANTSPATH="/opt/ants/bin" \
+    ANTSPATH="/opt/ants/bin/" \
     PATH="/opt/ants/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
 COPY --from=oldANTS /etc/locale.gen /etc/locale.gen

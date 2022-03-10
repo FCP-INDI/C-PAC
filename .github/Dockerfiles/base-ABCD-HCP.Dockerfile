@@ -29,7 +29,7 @@ ENV PATH=/opt/afni:$PATH
 # install ANTs
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    ANTSPATH="/usr/lib/ants" \
+    ANTSPATH="/usr/lib/ants/" \
     PATH="/usr/lib/ants:$PATH"
 COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
 COPY --from=ANTs /ants_template /ants_template

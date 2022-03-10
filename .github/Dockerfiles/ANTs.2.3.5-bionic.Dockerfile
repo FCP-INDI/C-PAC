@@ -52,7 +52,7 @@ ANTs 2.3.5 stage"
 COPY --from=builder /opt/ants /opt/ants
 COPY --from=builder /ants_template /ants_template
 
-ENV ANTSPATH="/opt/ants/bin" \
+ENV ANTSPATH="/opt/ants/bin/" \
     PATH="/opt/ants/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
 RUN apt-get update \
