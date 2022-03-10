@@ -1530,11 +1530,13 @@ timeseries_extraction:
     # Create a connectivity matrix from timeseries data
 
     # Options:
-    #  ['AFNI', 'Nilearn']
+    #  ['AFNI', 'Nilearn', 'ndmg']
     using:
       - Nilearn
+      - ndmg
     # Options:
     #  ['Pearson', 'Partial']
+    # Note: These options are not configurable for ndmg, which will ignore these options
     measure:
       - Pearson
       - Partial
