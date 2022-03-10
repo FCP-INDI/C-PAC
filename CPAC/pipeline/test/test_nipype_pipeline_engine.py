@@ -5,7 +5,7 @@ from nipype import Function
 from nipype.interfaces.utility import IdentityInterface
 from traits.trait_base import Undefined
 from CPAC.pipeline.nipype_pipeline_engine import (
-    DEFAULT_MEM_GB, get_data_size, Node, MapNode, Workflow)
+    DEFAULT_MEM_GB, Node, MapNode, Workflow)
 
 
 def square_func(x):
@@ -62,6 +62,6 @@ def test_Workflow(tmpdir):
     assert wf.get_node('get_sample_data').inputs.filepath is Undefined
 
     out = wf.run()
-
-    assert list(out.nodes)[0].mem_gb == DEFAULT_MEM_GB + get_data_size(
+    out_node = list(out.nodes)[0]
+    assert out_node.mem_gb == DEFAULT_MEM_GB + out_node.get_data_size(
         example_filepath, 'xyzt') * 0.1
