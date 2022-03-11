@@ -11,10 +11,12 @@ from copy import deepcopy
 from logging import INFO
 from textwrap import indent
 from traceback import format_exception
-from nipype.pipeline.plugins.multiproc import logger
+from nipype import logging
 from numpy import flatnonzero
 from CPAC.pipeline.nipype_pipeline_engine import MapNode, UNDEFINED_SIZE
 from CPAC.utils.monitoring import log_nodes_cb
+
+logger = logging.getLogger('nipype.workflow')
 
 
 def get_peak_usage():
