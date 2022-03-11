@@ -71,6 +71,7 @@ class Node(pe.Node):
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
+        self.input_data_shape = Undefined
 
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
@@ -241,6 +242,42 @@ class Node(pe.Node):
         except (TypeError, ValueError):
             return False
 
+    def get_data_size(self, filepath, mode='xyzt'):
+        """Function to return the size of a functional image (x * y * z * t)
+
+        Parameters
+        ----------
+        filepath : str or path
+            path to image file
+            OR
+            4-tuple
+            stand-in dimensions (x, y, z, t)
+
+        mode : str
+            One of:
+            * 'xyzt' (all dimensions multiplied) (DEFAULT)
+            * 'xyz' (spatial dimensions multiplied)
+            * 't' (number of TRs)
+
+        Returns
+        -------
+        int or float
+        """
+        if isinstance(filepath, str):
+            data_shape = load(filepath).shape
+        elif isinstance(filepath, tuple) and len(filepath) == 4:
+            data_shape = filepath
+        self.input_data_shape = data_shape
+        if mode == 't':
+            # if the data has muptiple TRs, return that number
+            if len(data_shape) > 3:
+                return data_shape[3]
+            # otherwise return 1
+            return 1
+        if mode == 'xyz':
+            return prod(data_shape[0:3]).item()
+        return prod(data_shape).item()
+
     def _grab_first_path(self, mem_x_path):
         '''Method to grab the first path if multiple paths for given
         multiplier input
@@ -270,7 +307,7 @@ class Node(pe.Node):
 
         Parameters
         ----------
-        multiplier : str or int or float or list thereof or 4-tuple or None
+        multiplicand : str or int or float or list thereof or None
             Any of
             * path to file(s) with shape to multiply by multiplier
             * multiplicand
@@ -303,11 +340,11 @@ class Node(pe.Node):
                 3 <= len(multiplicand) <= 4 and
                 all(isinstance(i, (int, float)) for i in multiplicand)
             ):
-                return get_data_size(
+                return self.get_data_size(
                     multiplicand,
                     getattr(self, '_mem_x', {}).get('mode'))
             if self._check_mem_x_path(multiplicand):
-                return get_data_size(
+                return self.get_data_size(
                     self._grab_first_path(multiplicand),
                     getattr(self, '_mem_x', {}).get('mode'))
             return 1
@@ -416,39 +453,3 @@ class Workflow(pe.Workflow):
         else:
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
-
-
-def get_data_size(filepath, mode='xyzt'):
-    """Function to return the size of a functional image (x * y * z * t)
-
-    Parameters
-    ----------
-    filepath : str or path
-        path to image file
-        OR
-        4-tuple
-        stand-in dimensions (x, y, z, t)
-
-    mode : str
-        One of:
-        * 'xyzt' (all dimensions multiplied) (DEFAULT)
-        * 'xyz' (spatial dimensions multiplied)
-        * 't' (number of TRs)
-
-    Returns
-    -------
-    int or float
-    """
-    if isinstance(filepath, str):
-        data_shape = load(filepath).shape
-    elif isinstance(filepath, tuple) and len(filepath) == 4:
-        data_shape = filepath
-    if mode == 't':
-        # if the data has muptiple TRs, return that number
-        if len(data_shape) > 3:
-            return data_shape[3]
-        # otherwise return 1
-        return 1
-    if mode == 'xyz':
-        return prod(data_shape[0:3]).item()
-    return prod(data_shape).item()
