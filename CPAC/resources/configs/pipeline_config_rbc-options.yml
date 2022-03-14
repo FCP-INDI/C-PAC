@@ -75,7 +75,8 @@ functional_preproc:
       - On
 
   motion_estimates_and_correction:
-    using: [3dvolreg]
+    motion_correction:
+      using: [3dvolreg]
 
   distortion_correction:
     using:
