@@ -4,6 +4,7 @@ Custom methods for Nipype pipeline plugins:
 * _check_resources to account for the main process' memory usage.
 """
 import gc
+import json
 import platform
 import resource
 import sys
@@ -38,6 +39,25 @@ def get_peak_usage():
     return proc_peak / 1024. / 1024.
 
 
+def parse_previously_observed_mem_gb(callback_log_path):
+    """Function to parse the previously observed memory usage.
+
+    Parameters
+    ----------
+    callback_log_path : str
+        Path to the callback.log file.
+
+    Returns
+    -------
+    dict
+        Dictionary of per-node memory usage.
+    """
+    with open(callback_log_path, 'r') as cbl:
+        return {line['id'].split('.', 1)[-1]: line['runtime_memory_gb'] for
+                line in [json.loads(line) for line in cbl.readlines()] if
+                'runtime_memory_gb' in line}
+
+
 # pylint: disable=too-few-public-methods, missing-class-docstring
 class CpacNipypeCustomPluginMixin():
     def __init__(self, plugin_args=None):
@@ -48,6 +68,10 @@ class CpacNipypeCustomPluginMixin():
         super().__init__(plugin_args=plugin_args)
         self.peak = 0
         self._stats = None
+        if 'runtime' in plugin_args:
+            self.runtime = parse_previously_observed_mem_gb(
+                    plugin_args['runtime']['usage']
+                ) * (1 + plugin_args['runtime']['buffer'] / 100)
 
     def _check_resources_(self, running_tasks):
         """
@@ -88,6 +112,14 @@ class CpacNipypeCustomPluginMixin():
         # estimate of C-PAC + Nipype overhead (GB):
         overhead_memory_estimate = 1
         for node in graph.nodes():
+            if hasattr(self, 'runtime'):
+                # override node memory estimate with provided runtime
+                # memory usage, buffered
+                node_subname = node.name.split('.', 1)[-1]
+                if node_subname in self.runtime:
+                    if hasattr(node, '_mem_x'):
+                        delattr(node, '_mem_x')
+                    node.mem_gb = self.runtime[node_subname]
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:

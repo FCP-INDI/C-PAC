@@ -198,6 +198,15 @@ def run_main():
                              'flag also takes precedence over '
                              'maximum_memory_per_participant in the pipeline '
                              'configuration file.')
+    parser.add_argument('--runtime_usage', type=str,
+                        help='Path to a callback.log from a prior run of the '
+                             'same pipeline configuration. This log will be '
+                             'used to override per-node memory estimates with '
+                             'observed values plus a buffer.')
+    parser.add_argument('--runtime_buffer', type=float, default=10,
+                        help='Buffer to add to per-node memory estimates if '
+                             '--runtime_usage is specified. This number is a '
+                             'percentage of the observed memory usage.')
     parser.add_argument('--num_ants_threads', type=int, default=0,
                         help='The number of cores to allocate to ANTS-'
                              'based anatomical registration per '
@@ -730,6 +739,10 @@ def run_main():
                     'maximum_memory_per_participant']),
                 'status_callback': log_nodes_cb
             }
+            if args.runtime_usage is not None:
+                plugin_args['runtime'] = {
+                    'usage': args.runtime_usage,
+                    'buffer': args.runtime_buffer}
 
             print("Starting participant level processing")
             CPAC.pipeline.cpac_runner.run(
