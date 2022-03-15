@@ -57,7 +57,7 @@ base-packages:
 # in the first stage (see base_packages
 # above) are installed in the second stage.
 packages:
- - boost-cpp 1.74
+ - boost-cpp 1.74.*
  - ciftilib 1.5.3
  - c-compiler
  - cxx-compiler
@@ -197,12 +197,12 @@ packages:
  - make
  - nidmresults 2.1.0
  - nidmresults-fsl 2.2.0
- - numpy 1.21
+ - numpy 1.21.*
  - openslide-python v1.1.2
  - pkg-config
- - python 3.9
- - tk 8.6
- - zlib 1.2
+ - python 3.9.*
+ - tk 8.6.*
+ - zlib 1.2.*
 
 # List of additional packages that
 # are added to linux-64 installations.
