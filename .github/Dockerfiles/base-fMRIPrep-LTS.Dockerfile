@@ -66,7 +66,11 @@ ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
     PATH="$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$FREESURFER_HOME/tktools:$MINC_BIN_DIR:$PATH"
 
 # Installing and setting up AFNI
+COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/ 
+COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /usr/lib/afni/bin/ /usr/lib/afni/bin/
+COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/usr/lib/afni/bin:$PATH \
     AFNI_MODELPATH="/usr/lib/afni/models" \

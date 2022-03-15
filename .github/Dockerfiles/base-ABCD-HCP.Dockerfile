@@ -22,7 +22,11 @@ ENV C3DPATH=/opt/c3d/
 ENV PATH=$C3DPATH/bin:$PATH
 
 # install AFNI
+COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/ 
+COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /opt/afni/ /opt/afni/
+COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
