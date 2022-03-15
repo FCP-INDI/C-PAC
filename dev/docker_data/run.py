@@ -737,6 +737,8 @@ def run_main():
                     'max_cores_per_participant']),
                 'memory_gb': int(c['pipeline_setup']['system_config'][
                     'maximum_memory_per_participant']),
+                'raise_insufficient': c['pipeline_setup']['system_config'][
+                                        'raise_insufficient'],
                 'status_callback': log_nodes_cb
             }
             if args.runtime_usage is not None:
