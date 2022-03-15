@@ -14,7 +14,10 @@ USER c-pac_user
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 connectome-workbench 1.5.0 stage"
+COPY --from=base /lib64/ld-linux-x86-64.so.2 /lib64/
 COPY --from=base /usr/bin/wb_* /usr/bin/
+COPY --from=base /lib/x86_64-linux-gnu/ld-* /lib/x86_64-linux-gnu/
+COPY --from=base /usr/lib/x86_64-linux-gnu/lib*.so* /usr/lib/x86_64-linux-gnu/
 COPY --from=base /usr/share/applications/connectome-workbench.desktop /usr/share/applications/connectome-workbench.desktop
 COPY --from=base /usr/share/bash-completion/completions/wb* /usr/share/bash_completion/completions/
 COPY --from=base /usr/share/doc/connectome-workbench /usr/share/doc/connectome-workbench

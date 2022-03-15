@@ -69,6 +69,8 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
     PATH=$PATH:/opt/msm/Ubuntu
 
 # install Connectome Workbench
+COPY --from=connectome-workbench /lib64/ /lib64/
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
 COPY --from=connectome-workbench /usr/ /usr/
 
 # install ICA-AROMA
