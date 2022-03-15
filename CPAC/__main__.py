@@ -313,10 +313,15 @@ def crash(crash_file):
         from nipype.scripts.crash_files import display_crash_file
         display_crash_file(crash_file, False, False, None)
 
+
 @utils.group()
-def data_config():
-    from CPAC.utils.ga import track_config
-    track_config('cli')
+@click.option('--tracking_opt-out', is_flag=True,
+              help='Disable usage tracking.')
+def data_config(tracking_opt_out):
+    if not tracking_opt_out:
+        # pylint: disable=import-outside-toplevel
+        from CPAC.utils.ga import track_config
+        track_config('cli')
 
 
 @data_config.command()
