@@ -1,38 +1,54 @@
+"""QC metrics from XCP-D v0.0.9
+
+Ref: https://github.com/PennLINC/xcp_d/tree/0.0.9
+"""
+# pylint: disable=invalid-name, redefined-outer-name
 import nibabel as nb
 import numpy as np
 
-def regisQ(bold2t1w_mask,t1w_mask,bold2template_mask,template_mask):
-	reg_qc ={'coregDice': [dc(bold2t1w_mask,t1w_mask)], 'coregJaccard': [jc(bold2t1w_mask,t1w_mask)],
-              'coregCrossCorr': [crosscorr(bold2t1w_mask,t1w_mask)],'coregCoverag': [coverage(bold2t1w_mask,t1w_mask)],
-	      'normDice': [dc(bold2template_mask,template_mask)],'normJaccard': [jc(bold2template_mask,template_mask)], 
-	      'normCrossCorr': [crosscorr(bold2template_mask,template_mask)], 'normCoverage': [coverage(bold2template_mask,template_mask)],
-	      }
-	return reg_qc
 
+def regisQ(bold2t1w_mask, t1w_mask, bold2template_mask, template_mask):
+    reg_qc = {'coregDice': [dc(bold2t1w_mask, t1w_mask)],
+              'coregJaccard': [jc(bold2t1w_mask, t1w_mask)],
+              'coregCrossCorr': [crosscorr(bold2t1w_mask, t1w_mask)],
+              'coregCoverag': [coverage(bold2t1w_mask, t1w_mask)],
+              'normDice': [dc(bold2template_mask, template_mask)],
+              'normJaccard': [jc(bold2template_mask, template_mask)],
+              'normCrossCorr': [crosscorr(bold2template_mask, template_mask)],
+              'normCoverage': [coverage(bold2template_mask, template_mask)]}
+    return reg_qc
 
 
 def dc(input1, input2):
     r"""
     Dice coefficient
-    Computes the Dice coefficient (also known as Sorensen index) between the binary
-    objects in twom j images.
+    Computes the Dice coefficient (also known as Sorensen index)
+    between the binary objects in twom j images.
     The metric is defined as
+
     .. math::
         DC=\frac{2|A\cap B|}{|A|+|B|}
-    , where :math:`A` is the first and :math:`B` the second set of samples (here: binary objects).
+
+    , where :math:`A` is the first and :math:`B` the second set of
+    samples (here: binary objects).
+
     Parameters
     ----------
     input1 : array_like
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
+
     input2 : array_like
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
+
     Returns
     -------
     dc : float
         The Dice coefficient between the object(s) in ```input1``` and the
-        object(s) in ```input2```. It ranges from 0 (no overlap) to 1 (perfect overlap).
+        object(s) in ```input2```. It ranges from 0 (no overlap) to 1
+        (perfect overlap).
+
     Notes
     -----
     This is a real metric.
@@ -62,16 +78,17 @@ def jc(input1, input2):
     Parameters
     ----------
     input1: array_like
-            Input data containing objects. Can be any type but will be converted
-            into binary: background where 0, object everywhere else.
+            Input data containing objects. Can be any type but will be
+            converted into binary: background where 0, object everywhere else.
     input2: array_like
-            Input data containing objects. Can be any type but will be converted
-            into binary: background where 0, object everywhere else.
+            Input data containing objects. Can be any type but will be
+            converted into binary: background where 0, object everywhere else.
     Returns
     -------
     jc: float
         The Jaccard coefficient between the object(s) in `input1` and the
-        object(s) in `input2`. It ranges from 0 (no overlap) to 1 (perfect overlap).
+        object(s) in `input2`. It ranges from 0 (no overlap) to 1
+        (perfect overlap).
     Notes
     -----
     This is a real metric.
@@ -90,10 +107,7 @@ def jc(input1, input2):
 
 
 def crosscorr(input1, input2):
-    r"""
-    cross correlation
-    computer compute cross correction bewteen input mask
-    """
+    r"""cross correlation: compute cross correction bewteen input masks"""
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(np.bool)).flatten()
@@ -103,9 +117,7 @@ def crosscorr(input1, input2):
 
 
 def coverage(input1, input2):
-    """
-    estimate the coverage between  two mask
-    """
+    """Estimate the coverage between two masks."""
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(np.bool))
