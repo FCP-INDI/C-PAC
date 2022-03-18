@@ -34,98 +34,42 @@ motionDVCorrInit : float
 motionDVCorrFinal : float
     "correlation of RMS and DVARS after regresion" :cite:`cite-Ciri19`
 coregDice : float
-    "Coregsitration of Functional and T1w:[…] Dice index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Dice index" :cite:`cite-Ciri19`
 coregJaccard : float
-    "Coregsitration of Functional and T1w:[…] Jaccard index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Jaccard index" :cite:`cite-Ciri19`
 coregCrossCorr : float
-    "Coregsitration of Functional and T1w:[…] cross correlation" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] cross correlation" :cite:`cite-Ciri19`
 coregCoverag : float
-    "Coregsitration of Functional and T1w:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Coregsitration of Functional and T1w:[…] Coverage index" :cite:`cite-Ciri19`
 normDice : float
-    "Normalization of T1w/Functional to Template:[…] Dice index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Dice index" :cite:`cite-Ciri19`
 normJaccard : float
-    "Normalization of T1w/Functional to Template:[…] Jaccard index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Jaccard index" :cite:`cite-Ciri19`
 normCrossCorr : float
-    "Normalization of T1w/Functional to Template:[…] cross correlation" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] cross correlation" :cite:`cite-Ciri19`
 normCoverage : float
-    "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19` :cite:`cite-Penn19`
+    "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19`
 """  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
+
 from io import BufferedReader
 
 import nibabel as nb
 import numpy as np
 import pandas as pd
+
+from niworkflows.interfaces.fixes import FixHeaderApplyTransforms
+
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
 motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
-
-
-def calculate_overlap(image_pair):
-    '''
-    Function to calculate Dice, Jaccard, CrossCorr and Coverage :cite:`cite-Penn19` from a
-    pair of arrays
-
-    Parameters
-    ----------
-    image_pair : 2-tuple
-        array of which to calculate overlaps metrics
-
-    Returns
-    -------
-    coefficents : dict
-        coeffiecients['dice'] : float
-            Dice index
-
-        coeffiecients['jaccard'] : float
-            Jaccard index
-
-        coeffiecients['cross_corr'] : float
-            cross-correlation
-
-        coeffiecients['coverage'] : float
-            coverage index
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> a1 = np.array([0, 0, 0, 1, 1, 1])
-    >>> a2 = np.array([0, 0, 1, 1, 0, 1])
-    >>> tuple(calculate_overlap((a1, a2)).values())
-    (0.6666666666666666, 0.5, 0.33333333333333326, 0.6666666666666666)
-    >>> tuple(calculate_overlap((a1, a1)).values())
-    (1.0, 1.0, 0.9999999999999998, 1.0)
-    >>> tuple(calculate_overlap((a2, a2)).values())
-    (1.0, 1.0, 0.9999999999999998, 1.0)
-    '''  # noqa: E501  # pylint: disable=line-too-long
-    if len(image_pair) != 2:
-        raise IndexError('`calculate_overlap` requires 2 images, but '
-                         f'{len(image_pair)} were provided')
-    if len(image_pair[0]) != len(image_pair[1]):
-        image_pair = _repeat_shorter(image_pair)
-    image_pair = tuple(image.astype(bool) for image in image_pair)
-    intersect = image_pair[0] * image_pair[1]
-    vols = [np.sum(image) for image in image_pair]
-    vol_intersect = np.sum(intersect)
-    vol_sum = sum(vols)
-    vol_union = vol_sum - vol_intersect
-    coefficients = {
-        'dice': 2 * vol_intersect / vol_sum,
-        'jaccard': vol_intersect / vol_union,
-        'cross_corr': np.corrcoef(image_pair)[0, 1],
-        'coverage': vol_intersect / min(vols)
-    }
-    for name, coefficient in coefficients.items():
-        if not 1 >= abs(coefficient) >= 0 and not np.isnan(coefficient):
-            raise ValueError(f'Valid range for {name} is [0, 1] but value '
-                             f'{coefficient} was calculated.')
-    return coefficients
 
 
 def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
@@ -184,33 +128,6 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
     return wf
 
 
-def _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                 brain_mask_key, output_key, pipe_num):
-    # pylint: disable=invalid-name, too-many-arguments
-    if (
-        strat_pool.check_rpool('movement-parameters') and
-        strat_pool.check_rpool(brain_mask_key)
-    ):
-        wf = _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final,
-                             pipe_num)
-    else:
-        qc_file.inputs.censor_indices = []
-        for key in [*motion_params, 'movement_parameters',
-                    'framewise_displacement_jenkinson', 'dvars_after',
-                    'fdj_after']:
-            setattr(qc_file.inputs, key, None)
-    wf.connect([
-        (original['anat'].node, qc_file, [
-            (original['anat'].out, 'original_anat')]),
-        (original['func'].node, qc_file, [
-            (original['func'].out, 'original_func')]),
-        (final['anat'].node, qc_file, [(final['anat'].out, 'final_anat')]),
-        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
-        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')])])
-    outputs = {output_key: (qc_file, 'qc_file')}
-    return wf, outputs
-
-
 def dvcorr(dvars, fdj):
     """Function to correlate DVARS and FD-J"""
     dvars = np.loadtxt(dvars)
@@ -223,27 +140,18 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(space, desc, original_anat,
-                    final_anat, original_func, final_func, space_T1w_bold,
+def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
+                    template_mask, original_func, final_func,
                     movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, fdj_after,
-                    template=None):
+                    template):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
     Parameters
     ----------
-    space : str
-        'native' or 'template'
-
     desc : str
         description string
-
-    original_anat : str
-        path to original 'T1w' image
-
-    final_anat : str
-        path to 'desc-preproc_T1w' image
 
     original_func : str
         path to original 'bold' image
@@ -251,8 +159,18 @@ def generate_xcp_qc(space, desc, original_anat,
     final_bold : str
         path to 'desc-preproc_bold' image
 
-    space_T1w_bold : str
-        path to 'space-T1w_desc-mean_bold' image
+    bold2t1w_mask : str
+        path to bold-to-T1w transform applied to space-bold_desc-brain_mask
+        with space-T1w_desc-brain_mask reference
+
+    t1w_mask : str
+        path to space-T1w_desc-brain_mask
+
+    bold2template_mask : str
+        path to space-template_desc-bold_mask
+
+    template_mask : str
+        path to space-template_desc-T1w_mask
 
     movement_parameters: str
         path to movement parameters
@@ -273,7 +191,7 @@ def generate_xcp_qc(space, desc, original_anat,
         path to framewise displacement (Jenkinson) on final 'bold' image
 
     template : str
-        path to template
+        path to registration template
 
     Returns
     -------
@@ -289,19 +207,14 @@ def generate_xcp_qc(space, desc, original_anat,
     )
 
     images = {
-        'original_anat': nb.load(original_anat),
         'original_func': nb.load(original_func),
-        'final_anat': nb.load(final_anat),
         'final_func': nb.load(final_func),
-        'space-T1w_bold': nb.load(space_T1w_bold)
     }
-    if template is not None:
-        images['template'] = nb.load(template)
 
     # `sub` through `desc`
     from_bids = {
         **strings_from_bids(original_func),
-        'space': space,
+        'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0],
         'desc': desc
     }
 
@@ -325,66 +238,39 @@ def generate_xcp_qc(space, desc, original_anat,
         ])
     del desc_span
 
-    if dvars:
-        # `meanFD (Jenkinson)`
-        power_params = {'meanFD': np.mean(np.loadtxt(
-            framewise_displacement_jenkinson))}
+    # `meanFD (Jenkinson)`
+    power_params = {'meanFD': np.mean(np.loadtxt(
+        framewise_displacement_jenkinson))}
 
-        # `relMeansRMSMotion` & `relMaxRMSMotion`
-        mot = np.genfromtxt(movement_parameters).T
-        # Relative RMS of translation
-        rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
-        rms_params = {
-            'relMeansRMSMotion': [np.mean(rms)],
-            'relMaxRMSMotion': [np.max(rms)]
-        }
+    # `relMeansRMSMotion` & `relMaxRMSMotion`
+    mot = np.genfromtxt(movement_parameters).T
+    # Relative RMS of translation
+    rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
+    rms_params = {
+        'relMeansRMSMotion': [np.mean(rms)],
+        'relMaxRMSMotion': [np.max(rms)]
+    }
 
-        # `meanDVInit` & `meanDVFinal`
-        meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
+    # `meanDVInit` & `meanDVFinal`
+    meanDV = {'meanDVInit': np.mean(np.loadtxt(dvars))}
+    try:
+        meanDV['motionDVCorrInit'] = dvcorr(
+            dvars, framewise_displacement_jenkinson)
+    except ValueError as value_error:
+        meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
+    if dvars_after:
+        if not fdj_after:
+            fdj_after = framewise_displacement_jenkinson
+        meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
         try:
-            meanDV['motionDVCorrInit'] = dvcorr(
-                dvars, framewise_displacement_jenkinson)
+            meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
         except ValueError as value_error:
-            meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
-        if dvars_after:
-            if not fdj_after:
-                fdj_after = framewise_displacement_jenkinson
-            meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
-            try:
-                meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
-            except ValueError as value_error:
-                meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
-    else:
-        meanDV = _na_dict([f'{dv}DV{"Corr" + ts if dv == "motion" else ts}'
-                           for dv in ['mean', 'motion']
-                           for ts in ['Init', 'Final']])
-        power_params = {'meanFD': 'n/a'}
-        rms_params = _na_dict(['relMeansRMSMotion', 'relMaxRMSMotion'])
+            meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
 
     # Overlap
-    overlap_images = {variable: image.get_fdata().ravel() for
-                      variable, image in images.items() if
-                      variable in ['space-T1w_bold',
-                                   'original_anat', 'template']}
-    overlap_params = {}
-    (overlap_params['coregDice'], overlap_params['coregJaccard'],
-     overlap_params['coregCrossCorr'], overlap_params['coregCoverage']
-     ) = [[item] for item in calculate_overlap(
-        (overlap_images['space-T1w_bold'], overlap_images['original_anat'])
-    ).values()]
-    if space == 'native':
-        for key in ['normDice', 'normJaccard', 'normCrossCorr',
-                    'normCoverage']:
-            overlap_params[key] = ['N/A: native space']
-    elif template is not None:
-        (overlap_params['normDice'], overlap_params['normJaccard'],
-         overlap_params['normCrossCorr'], overlap_params['normCoverage']
-         ) = [[item] for item in calculate_overlap(
-            (images['final_func'].get_fdata().ravel(),
-             overlap_images['template'])).values()]
-    else:
-        overlap_params = _na_dict(['normDice', 'normJaccard', 'normCrossCorr',
-                                   'normCoverage'])
+    overlap_params = regisQ(bold2t1w_mask=bold2t1w_mask, t1w_mask=t1w_mask,
+                            bold2template_mask=bold2template_mask,
+                            template_mask=template_mask)
 
     qc_dict = {
         **from_bids,
@@ -399,154 +285,82 @@ def generate_xcp_qc(space, desc, original_anat,
     return qc_filepath
 
 
-def _na_dict(keys):
-    return {key: 'n/a' for key in keys}
-
-
-def _prep_qc_xcp(strat_pool, pipe_num, space):
-    qc_file = pe.Node(Function(input_names=['subject', 'scan',
-                                            'space', 'desc', 'template',
-                                            'original_func', 'final_func',
-                                            'original_anat', 'final_anat',
-                                            'space_T1w_bold',
-                                            'movement_parameters',
-                                            'censor_indices', 'dvars',
+def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
+    # pylint: disable=invalid-name, unused-argument
+    """
+    {'name': 'qc_xcp',
+     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
+     'switch': ['generate_xcpqc_files'],
+     'option_key': 'None',
+     'option_val': 'None',
+     'inputs': ['space-T1w_desc-brain_mask',
+                'from-bold_to-T1w_mode-image_desc-linear_xfm',
+                'space-bold_desc-brain_mask',
+                ['space-template_desc-bold_mask',
+                 'space-EPItemplate_desc-bold_mask'],
+                'space-template_desc-T1w_mask',
+                ['T1w-template-funcreg', 'EPI-template-funcreg']],
+     'outputs': ['desc-xcp_quality']}
+    """
+    qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
+                                            't1w_mask', 'bold2template_mask',
+                                            'template_mask', 'original_func',
+                                            'final_func',
+                                            'movement_parameters', 'dvars',
+                                            'censor_indices',
                                             'framewise_displacement_jenkinson',
-                                            'dvars_after', 'fdj_after'],
+                                            'dvars_after', 'fdj_after',
+                                            'template'],
                                output_names=['qc_file'],
                                function=generate_xcp_qc,
                                as_module=True),
-                      name=f'xcpqc-{space}_{pipe_num}')
+                      name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-    qc_file.inputs.space = space
     original = {}
     final = {}
     original['anat'] = strat_pool.node_data('T1w')
     original['func'] = strat_pool.node_data('bold')
     final['anat'] = strat_pool.node_data('desc-preproc_T1w')
     t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
-    return qc_file, original, final, t1w_bold
 
+    bold_to_T1w_mask = pe.Node(
+        FixHeaderApplyTransforms(dimension=3, interpolation='NearestNeighbor'),
+        name='bold_to_T1w_mask')
 
-def qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt=None):
-    # pylint: disable=invalid-name, unused-argument
-    """
-    {'name': 'qc_xcp_native',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w', 'max-displacement', 'dvars',
-                'censor-indices', 'desc-preproc_bold',
-                'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
-                'space-bold_desc-brain_mask', 'movement-parameters',
-                'framewise-displacement-jenkinson', 'rels-displacement',
-                'coordinate-transformation')],
-     'outputs': ['desc-xcp_quality']}
-    """
-    space = 'native'
-    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
-                                                      space)
-    final['func'] = strat_pool.node_data('desc-preproc_bold')
-    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                        'space-bold_desc-brain_mask', 'desc-xcp_quality',
-                        pipe_num)
+    nodes = {key: strat_pool.node_data(key) for key in [
+        'from-bold_to-T1w_mode-image_desc-linear_xfm',
+        'space-bold_desc-brain_mask', 'space-template_desc-T1w_mask']}
+    nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
+    nodes['bold2template_mask'] = strat_pool.node_data([
+        'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
 
+    nodes['template'] = strat_pool.node_data(['T1w-template-funcreg',
+                                              'EPI-template-funcreg'])
 
-def qc_xcp_skullstripped(wf, cfg, strat_pool, pipe_num, opt=None):
-    # pylint: disable=invalid-name, unused-argument
-    r"""
-    Same as ``qc_xcp_native`` except no motion inputs.
-    Node Block:
-    {'name': 'qc_xcp_skullstripped',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w', 'desc-preproc_bold',
-                'desc-preproc_T1w', 'space-T1w_desc-mean_bold',
-                'space-bold_desc-brain_mask')],
-     'outputs': ['desc-xcp_quality']}
-    """
-    # If strat has dvars, it should be captured by 'qc_xcp_native'
-    if 'dvars' in strat_pool.get('desc-preproc_bold').get(
-            'json', {}).get('Sources', {}):
-        return wf, {}
-    return qc_xcp_native(wf, cfg, strat_pool, pipe_num, opt)
+    wf.connect([
+        (nodes['space-bold_desc-brain_mask'].node, bold_to_T1w_mask, [
+            (nodes['space-bold_desc-brain_mask'].out, 'input_image')]),
+        (nodes['t1w_mask'].node, bold_to_T1w_mask, [
+            (nodes['t1w_mask'].out, 'reference_image')]),
+        (nodes['t1w_mask'].node, qc_file, [
+            (nodes['t1w_mask'].out, 't1w_mask')]),
+        (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].node,
+         bold_to_T1w_mask, [
+            (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].out,
+             'transforms')]),
+        (bold_to_T1w_mask, qc_file, [('output_image', 'bold2T1w_mask')]),
+        (nodes['bold2template_mask'].node, qc_file, [
+            (nodes['bold2template_mask'].out, 'bold2template_mask')]),
+        (nodes['space-template_desc-T1w_mask'].node, qc_file, [
+            (nodes['space-template_desc-T1w_mask'].out, 'template_mask')]),
+        (original['func'].node, qc_file, [
+            (original['func'].out, 'original_func')]),
+        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
+        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
+        (nodes['template'].node, qc_file, [
+            (nodes['template'].out, 'template')])])
 
-
-def qc_xcp_template(wf, space, strat_pool, pipe_num, reference):
-    """Handle either T1 or EPI template XCP-QC."""
-    qc_file, original, final, t1w_bold = _prep_qc_xcp(strat_pool, pipe_num,
-                                                      space)
-    final['func'] = strat_pool.node_data(f'space-{space}_desc-preproc_bold')
-    template = strat_pool.node_data(reference)
-    wf.connect(template.node, template.out, qc_file, 'template')
-    return _connect_xcp(wf, strat_pool, qc_file, original, final, t1w_bold,
-                        f'space-{space}_desc-bold_mask',
-                        f'space-{space}_desc-xcp_quality', pipe_num)
-
-
-# pylint: disable=invalid-name, unused-argument
-def qc_xcp_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    """
-    {'name': 'qc_xcp_EPItemplate',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w', 'EPI-template',
-                'space-T1w_desc-mean_bold',
-                'space-EPItemplate_desc-preproc_bold', 'desc-preproc_T1w',
-                'space-EPItemplate_desc-bold_mask')],
-     'outputs': ['space-EPItemplate_desc-xcp_quality']}
-    """
-    return qc_xcp_template(wf, 'EPItemplate', strat_pool, pipe_num,
-                           'EPI-template')
-
-
-# pylint: disable=invalid-name, unused-argument
-def qc_xcp_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
-    """
-    {'name': 'qc_xcp_T1template',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('bold', 'subject', 'scan', 'T1w',
-                'T1w-brain-template-funcreg', 'space-T1w_desc-mean_bold',
-                'space-template_desc-preproc_bold', 'desc-preproc_T1w',
-                'space-template_desc-bold_mask')],
-     'outputs': ['space-template_desc-xcp_quality']}
-    """
-    return qc_xcp_template(wf, 'template', strat_pool, pipe_num,
-                           'T1w-brain-template-funcreg')
-
-
-def _repeat_shorter(images):
-    '''
-    Parameters
-    ----------
-    images : 2-tuple
-
-    Returns
-    -------
-    images : 2-tuple
-
-    Examples
-    --------
-    >>> _repeat_shorter((np.array([1, 2, 3]), np.array([1])))
-    (array([1, 2, 3]), array([1, 1, 1]))
-    >>> _repeat_shorter((np.array([0, 0]), (np.array([1, 1, 2, 2, 3, 4]))))
-    (array([0, 0, 0, 0, 0, 0]), array([1, 1, 2, 2, 3, 4]))
-    '''
-    lens = (len(images[0]), len(images[1]))
-    if lens[1] > lens[0] and lens[1] % lens[0] == 0:
-        return (np.tile(images[0], lens[1] // lens[0]), images[1])
-    if lens[0] > lens[1] and lens[0] % lens[1] == 0:
-        return (images[0], np.tile(images[1], lens[0] // lens[1]))
-    raise ValueError('operands could not be broadcast together with shapes '
-                     f'({lens[0]},) ({lens[1]},)')
+    return wf, {'desc-xcp_quality': qc_file}
 
 
 def strings_from_bids(final_func):

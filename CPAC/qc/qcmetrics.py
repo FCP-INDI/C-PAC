@@ -23,7 +23,7 @@ def dc(input1, input2):
     r"""
     Dice coefficient
     Computes the Dice coefficient (also known as Sorensen index)
-    between the binary objects in twom j images.
+    between the binary objects in two images.
     The metric is defined as
 
     .. math::
