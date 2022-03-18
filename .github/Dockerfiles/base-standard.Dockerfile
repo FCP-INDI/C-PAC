@@ -31,15 +31,15 @@ COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 ENV PATH=/opt/afni:$PATH
 
 # install Connectome Workbench
-COPY --from=connectome-workbench /lib64/ /lib64/
-COPY --from=connectome-workbench /lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
-COPY --from=connectome-workbench /usr/ /usr/
+COPY --from=connectome-workbench /lib64/* /lib64/
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
+COPY --from=connectome-workbench /usr/* /usr/
 
 # install FSL
 COPY --from=FSL /usr/bin/tclsh /usr/bin/wish /usr/bin/
 COPY --from=FSL /usr/share/data/ /usr/share/data/
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
-COPY --from=FSL /usr/lib/ /usr/lib/
+COPY --from=FSL /usr/lib/* /usr/lib/
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
@@ -65,8 +65,6 @@ RUN dpkg-reconfigure --frontend=noninteractive locales \
 
 # install ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
-RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
-RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install FreeSurfer

@@ -73,26 +73,24 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
     PATH=$PATH:/opt/msm/Ubuntu
 
 # install Connectome Workbench
-COPY --from=connectome-workbench /lib64/ /lib64/
-COPY --from=connectome-workbench /lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
-COPY --from=connectome-workbench /usr/ /usr/
+COPY --from=connectome-workbench /lib64/* /lib64.
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
+COPY --from=connectome-workbench /usr/* /usr/
 
 # install ICA-AROMA
-COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
-RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1 && \
-    chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+COPY --from=ICA-AROMA /opt/ICA-AROMA /opt/ICA-AROMA
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # link libraries & clean up
-RUN locale-gen --purge en_US.UTF-8 && \
-    echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc) && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN locale-gen --purge en_US.UTF-8
+RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig
+RUN chmod 777 /
+RUN chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN apt-get clean
+RUN apt-get autoremove -y
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # set user
 USER c-pac_user

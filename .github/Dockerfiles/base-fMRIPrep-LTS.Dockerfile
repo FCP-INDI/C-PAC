@@ -116,9 +116,9 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
     PATH=$PATH:/opt/msm/Ubuntu
 
 # Installing and setting up wb_command
-COPY --from=connectome-workbench /lib64/ /lib64/
-COPY --from=connectome-workbench /lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
-COPY --from=connectome-workbench /usr/ /usr/
+COPY --from=connectome-workbench /lib64/* /lib64/
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
+COPY --from=connectome-workbench /usr/* /usr/
 
 # Allow users to install Python packages
 RUN chmod -R ugo+w /usr/local/miniconda
