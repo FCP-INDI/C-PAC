@@ -39,6 +39,7 @@ COPY --from=connectome-workbench /usr/* /usr/
 COPY --from=FSL /usr/bin/tclsh /usr/bin/wish /usr/bin/
 COPY --from=FSL /usr/share/data/ /usr/share/data/
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
+COPY --from=FSL /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
 COPY --from=FSL /usr/lib/* /usr/lib/
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
