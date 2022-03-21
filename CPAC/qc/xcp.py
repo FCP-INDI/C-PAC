@@ -59,7 +59,7 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 
-from niworkflows.interfaces.fixes import FixHeaderApplyTransforms
+from CPAC.utils.interfaces.fixes import FixHeaderApplyTransforms
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
