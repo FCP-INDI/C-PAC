@@ -42,8 +42,8 @@ COPY --from=ANTs /ants_template /ants_template
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
-COPY --from=FSL /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
-COPY --from=FSL /usr/lib/ /usr/lib/
+COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=FSL /usr/lib/lib*so* /usr/lib/
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
     FSL_DIR=/usr/share/fsl/5.0 \
