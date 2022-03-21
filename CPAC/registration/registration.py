@@ -3655,7 +3655,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     return (wf, outputs)
 
 
-def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
+                                                  pipe_num, opt=None):
     """
     {"name": "single_step_resample_timeseries_to_T1template",
      "config": ["registration_workflows", "functional_registration",
@@ -3675,7 +3676,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  "desc-brain_T1w",
                  "T1w-brain-template-funcreg")],
      "outputs": ["space-template_desc-preproc_bold",
-                 "space-template_desc-brain_bold"]}
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-bold_mask"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
@@ -3806,7 +3808,9 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
 
     outputs = {
         'space-template_desc-preproc_bold': (merge_func_to_standard, 'merged_file'),
-        'space-template_desc-brain_bold': (apply_mask, 'out_file')
+        'space-template_desc-brain_bold': (apply_mask, 'out_file'),
+        'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
+            'output_image'),
     }
 
     return (wf, outputs)

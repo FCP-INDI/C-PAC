@@ -1582,7 +1582,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
                  "motion-basefile"],
      "outputs": ["space-bold_desc-brain_mask",
-                 "desc-ref_bold"]}
+                 "desc-ref_bold",
+                 "space-template_desc-T1w_mask"]}
     '''
 
     # fMRIPrep-style BOLD mask
@@ -1746,7 +1747,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'space-bold_desc-brain_mask': (combine_masks, 'out_file'),
-        'desc-ref_bold': (apply_mask, 'out_file')
+        'desc-ref_bold': (apply_mask, 'out_file'),
+        'space-template_desc-T1w_mask': (map_brainmask, 'output_image')
     }
 
     return (wf, outputs)

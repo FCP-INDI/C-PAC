@@ -2003,8 +2003,15 @@ class NodeData:
                 hasattr(strat_pool, 'rpool') and
                 isinstance(strat_pool.rpool, dict)
             ):
-                self.variant = strat_pool.rpool.get(resource, {}).get(
-                    'json', {}).get('CpacVariant', {}).get(resource)
+                cpac_variant = strat_pool.get(resource, {}).get(
+                    'json', {}).get('CpacVariant', {})
+                if isinstance(resource, list):
+                    for label in resource:
+                        if label in cpac_variant:
+                            self.variant = cpac_variant[label]
+                            break
+                else:
+                    self.variant = cpac_variant.get(resource)
 
     def __repr__(self):
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

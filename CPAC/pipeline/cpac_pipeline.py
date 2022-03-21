@@ -966,7 +966,6 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-
         ]
 
 

@@ -293,8 +293,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ['space-T1w_desc-brain_mask',
+     'inputs': ['bold', 'space-T1w_desc-mean_bold',
+                'space-T1w_desc-brain_mask', 'desc-preproc_bold',
                 'from-bold_to-T1w_mode-image_desc-linear_xfm',
+                'space-template_desc-T1w_mask',
                 'space-bold_desc-brain_mask',
                 ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'],
@@ -316,12 +318,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-    original = {}
-    final = {}
-    original['anat'] = strat_pool.node_data('T1w')
-    original['func'] = strat_pool.node_data('bold')
-    final['anat'] = strat_pool.node_data('desc-preproc_T1w')
-    t1w_bold = strat_pool.node_data('space-T1w_desc-mean_bold')
+    func = {}
+    func['original'] = strat_pool.node_data('bold')
+    func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
+    func['final'] = strat_pool.node_data('desc-preproc_bold')
 
     bold_to_T1w_mask = pe.Node(
         FixHeaderApplyTransforms(dimension=3, interpolation='NearestNeighbor'),
@@ -353,14 +353,15 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (nodes['space-template_desc-T1w_mask'].node, qc_file, [
             (nodes['space-template_desc-T1w_mask'].out, 'template_mask')]),
-        (original['func'].node, qc_file, [
-            (original['func'].out, 'original_func')]),
-        (final['func'].node, qc_file, [(final['func'].out, 'final_func')]),
-        (t1w_bold.node, qc_file, [(t1w_bold.out, 'space_T1w_bold')]),
+        (func['original'].node, qc_file, [
+            (func['original'].out, 'original_func')]),
+        (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
+        (func['space-T1w'].node, qc_file, [
+            (func['space-T1w'].out, 'space_T1w_bold')]),
         (nodes['template'].node, qc_file, [
             (nodes['template'].out, 'template')])])
 
-    return wf, {'desc-xcp_quality': qc_file}
+    return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
 
 
 def strings_from_bids(final_func):
