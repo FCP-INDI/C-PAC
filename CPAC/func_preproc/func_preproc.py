@@ -2037,7 +2037,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
         'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file'),
-        "space-bold_desc-brain_mask": (func_mask_template_to_native, 'out_file')
+        'space-bold_desc-brain_mask': (func_mask_template_to_native, 'out_file')
     }
 
     return (wf, outputs)
