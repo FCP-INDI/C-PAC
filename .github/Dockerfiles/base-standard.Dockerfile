@@ -41,7 +41,7 @@ COPY --from=FSL /usr/share/data/ /usr/share/data/
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=FSL /usr/lib/lib*so* /usr/lib/
-COPY --from=FSL /usr/lib/fsl /usr/lub/fsl
+COPY --from=FSL /usr/lib/fsl /usr/lib/fsl
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
