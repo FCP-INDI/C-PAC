@@ -2150,6 +2150,10 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                      "Description": "The preprocessed T1w brain transformed "
                                     "to template space.",
                      "Template": "T1w-template"},
+                 "space-template_desc-brain_mask": {
+                     "Description": "The preprocessed T1w brain mask "
+                                    "transformed to template space.",
+                     "Template": "T1w-template"},
                  "from-T1w_to-template_mode-image_desc-linear_xfm": {
                      "Description": "Linear (affine) transform from T1w native"
                                     " space to T1w-template space."},
@@ -2199,11 +2203,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['anatomical_registration'][
         'registration']['ANTs']['T1_registration']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
-                                                f'{pipe_num}', cfg,
-                                                params, orig='T1w')
+    ants_rc, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                   f'{pipe_num}', cfg,
+                                                   params, orig='T1w')
 
-    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+    ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
 
     connect, brain = \
@@ -2211,42 +2215,55 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                              'space-longitudinal_desc-brain_T1w'],
                             report_fetched=True)
     node, out = connect
-    wf.connect(node, out, ants, 'inputspec.input_brain')
+    wf.connect(node, out, ants_rc, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, ants, 'inputspec.reference_brain')
+    wf.connect(node, out, ants_rc, 'inputspec.reference_brain')
 
     # TODO check the order of T1w
     node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
                                      "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
-    wf.connect(node, out, ants, 'inputspec.input_head')
+    wf.connect(node, out, ants_rc, 'inputspec.input_head')
 
 
-    node, out = strat_pool.get_data(f'T1w-template')
-    wf.connect(node, out, ants, 'inputspec.reference_head')
+    t1w_template = strat_pool.node_data('T1w-template')
+    wf.connect(t1w_template.node, t1w_template.out,
+               ants_rc, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
-                                     "space-longitudinal_desc-brain_mask",
-                                     "space-T1w_desc-acpcbrain_mask"])
-    wf.connect(node, out, ants, 'inputspec.input_mask')
+    brain_mask = strat_pool.node_data(["space-T1w_desc-brain_mask",
+                                       "space-longitudinal_desc-brain_mask",
+                                       "space-T1w_desc-acpcbrain_mask"])
+    wf.connect(brain_mask.node, brain_mask.out,
+               ants_rc, 'inputspec.input_mask')
 
     if strat_pool.check_rpool('T1w-brain-template-mask'):
         node, out = strat_pool.get_data('T1w-brain-template-mask')
-        wf.connect(node, out, ants, 'inputspec.reference_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.reference_mask')
 
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
-        wf.connect(node, out, ants, 'inputspec.lesion_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.lesion_mask')
 
     if 'space-longitudinal' in brain:
-        for key in outputs.keys():
+        for key in outputs:
             for direction in ['from', 'to']:
                 if f'{direction}-T1w' in key:
                     new_key = key.replace(f'{direction}-T1w',
                                           f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
                     del outputs[key]
+
+    apply_xfm_to_mask = pe.Node(ants.ApplyTransforms(),
+                                name=f'ANTS_T1_mask_to_template_{pipe_num}')
+    wf.connect([
+        (t1w_template.node, apply_xfm_to_mask, [
+            (t1w_template.out, 'reference_image')]),
+        (brain_mask.node, apply_xfm_to_mask, [
+            (brain_mask.out, 'input_image')])])
+
+    outputs['space-template_desc-brain_mask'] = (apply_xfm_to_mask,
+                                                 'output_image')
 
     return (wf, outputs)
 
