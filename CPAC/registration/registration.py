@@ -2241,14 +2241,12 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     if 'space-longitudinal' in brain:
         for key in outputs.keys():
-            if 'from-T1w' in key:
-                new_key = key.replace('from-T1w', 'from-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
-            if 'to-T1w' in key:
-                new_key = key.replace('to-T1w', 'to-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+            for direction in ['from', 'to']:
+                if f'{direction}-T1w' in key:
+                    new_key = key.replace(f'{direction}-T1w',
+                                          f'{direction}-longitudinal')
+                    outputs[new_key] = outputs[key]
+                    del outputs[key]
 
     return (wf, outputs)
 
