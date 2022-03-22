@@ -25,6 +25,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     run_c3d, \
                                     run_c4d
 
+from CPAC.utils.conversions import one_d_to_mat
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_regtool
 
@@ -2217,8 +2218,9 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, ants_rc, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, ants_rc, 'inputspec.reference_brain')
+    t1w_brain_template = strat_pool.node_data('T1w-brain-template')
+    wf.connect(t1w_brain_template.node, t1w_brain_template.out,
+               ants_rc, 'inputspec.reference_brain')
 
     # TODO check the order of T1w
     node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
@@ -2258,9 +2260,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                 name=f'ANTS_T1_mask_to_template_{pipe_num}')
     wf.connect([
         (t1w_template.node, apply_xfm_to_mask, [
-            (t1w_template.out, 'reference_image')]),
+            (t1w_template.out, 'transforms')]),
         (brain_mask.node, apply_xfm_to_mask, [
-            (brain_mask.out, 'input_image')])])
+            (brain_mask.out, 'input_image')]),
+        (t1w_brain_template.node, apply_xfm_to_mask, [
+            (t1w_brain_template.out, 'reference_image')])])
 
     outputs['space-template_desc-brain_mask'] = (apply_xfm_to_mask,
                                                  'output_image')
@@ -3746,7 +3750,19 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     wf.connect(node, out, motionxfm2itk, 'source_file')
 
     node, out = strat_pool.get_data('coordinate-transformation')
-    wf.connect(node, out, motionxfm2itk, 'transform_file')
+    reg_tool = check_prov_for_regtool(strat_pool.get_cpac_provenance(
+        'coordinate-transformation'))
+    if reg_tool == 'fsl':
+        wf.connect(node, out, motionxfm2itk, 'transform_file')
+    elif reg_tool == 'ants':
+        convert_transform = pe.Node(util.Function(
+            input_names=['one_d_filename'],
+            output_names=['transform_directory'],
+            function=one_d_to_mat),
+            name=f'convert_transform_{pipe_num}')
+        wf.connect(node, out, convert_transform, 'one_d_filename')
+        wf.connect(convert_transform, 'transform_directory',
+                   motionxfm2itk, 'transform_file')
 
     collectxfm = pe.MapNode(util.Merge(4),
                             name=f'collectxfm_func_to_standard_{pipe_num}',
