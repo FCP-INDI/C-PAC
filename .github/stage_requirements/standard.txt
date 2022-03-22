@@ -1,11 +1,4 @@
 base-standard.Dockerfile
-AFNI.update.afni.binaries-bionic.Dockerfile
-ANTs.2.3.5-bionic.Dockerfile
-ANTs.2.3.4.neurodocker-xenial.Dockerfile
-c3d.1.0.0-bionic.Dockerfile
-connectome-workbench.1.5.0.neurodebian-bionic.Dockerfile
-FreeSurfer.6.0.0-min.neurodocker-bionic.Dockerfile
-FSL.neurodebian-bionic.Dockerfile
-ICA-AROMA.0.4.3-beta-bionic.Dockerfile
+ica-aroma.0.4.3-beta-bionic
 msm.2.0-bionic.Dockerfile
 Ubuntu.bionic-non-free.Dockerfile

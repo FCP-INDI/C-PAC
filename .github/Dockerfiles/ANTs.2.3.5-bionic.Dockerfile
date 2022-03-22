@@ -2,7 +2,6 @@ FROM ubuntu:bionic-20200112 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-                    software-properties-common \
                     build-essential \
                     apt-transport-https \
                     ca-certificates \
