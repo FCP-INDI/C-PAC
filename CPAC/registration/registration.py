@@ -21,11 +21,11 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     interpolation_string, \
                                     change_itk_transform_type, \
                                     hardcoded_reg, \
+                                    one_d_to_mat, \
                                     run_ants_apply_warp, \
                                     run_c3d, \
                                     run_c4d
 
-from CPAC.utils.conversions import one_d_to_mat
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_regtool
 
@@ -3752,9 +3752,12 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     node, out = strat_pool.get_data('coordinate-transformation')
     reg_tool = check_prov_for_regtool(strat_pool.get_cpac_provenance(
         'coordinate-transformation'))
-    if reg_tool == 'fsl':
+
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
+    if motion_correct_tool == 'mcflirt':
         wf.connect(node, out, motionxfm2itk, 'transform_file')
-    elif reg_tool == 'ants':
+    elif motion_correct_tool == '3dvolreg':
         convert_transform = pe.Node(util.Function(
             input_names=['one_d_filename'],
             output_names=['transform_directory'],

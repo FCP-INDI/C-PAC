@@ -65,8 +65,9 @@ from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
+from CPAC.registration.registration import apply_transform
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
+from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
@@ -295,7 +296,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_val': 'None',
      'inputs': ['bold', 'space-T1w_desc-mean_bold',
                 'space-T1w_desc-brain_mask', 'desc-preproc_bold',
-                'from-bold_to-T1w_mode-image_desc-linear_xfm',
+                ('from-bold_to-T1w_mode-image_desc-linear_xfm',
+                 'from-template_to-T1w_mode-image_desc-linear_xfm'),
                 'space-template_desc-brain_mask',
                 'space-bold_desc-brain_mask',
                 ['space-template_desc-bold_mask',
@@ -322,9 +324,14 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('desc-preproc_bold')
 
-    bold_to_T1w_mask = pe.Node(
-        FixHeaderApplyTransforms(dimension=3, interpolation='NearestNeighbor'),
-        name='bold_to_T1w_mask')
+    bold_to_T1w_mask = apply_transform(
+        f'bold_to_T1w_mask_{pipe_num}', reg_tool=check_prov_for_regtool(
+            strat_pool.get_cpac_provenance('from-template_to-T1w_mode-image_desc-linear_xfm')),
+        num_cpus=cfg['pipeline_setup','system_config',
+                     'max_cores_per_participant'],
+        num_ants_cores=cfg['pipeline_setup', 'system_config',
+                           'num_ants_threads'])
+    bold_to_T1w_mask.inputs.inputspec.interpolation = 'NearestNeighbor'
 
     nodes = {key: strat_pool.node_data(key) for key in [
         'from-bold_to-T1w_mode-image_desc-linear_xfm',
@@ -335,16 +342,18 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect([
         (nodes['space-bold_desc-brain_mask'].node, bold_to_T1w_mask, [
-            (nodes['space-bold_desc-brain_mask'].out, 'input_image')]),
+            (nodes['space-bold_desc-brain_mask'].out,
+             'inputspec.input_image')]),
         (nodes['t1w_mask'].node, bold_to_T1w_mask, [
-            (nodes['t1w_mask'].out, 'reference_image')]),
+            (nodes['t1w_mask'].out, 'inputspec.reference')]),
         (nodes['t1w_mask'].node, qc_file, [
             (nodes['t1w_mask'].out, 't1w_mask')]),
         (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].node,
          bold_to_T1w_mask, [
             (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].out,
-             'transforms')]),
-        (bold_to_T1w_mask, qc_file, [('output_image', 'bold2T1w_mask')]),
+             'inputspec.transform')]),
+        (bold_to_T1w_mask, qc_file, [
+            ('outputspec.output_image', 'bold2T1w_mask')]),
         (nodes['bold2template_mask'].node, qc_file, [
             (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (nodes['space-template_desc-brain_mask'].node, qc_file, [
