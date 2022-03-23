@@ -508,7 +508,8 @@ def one_d_to_mat(one_d_filename):
 
     Returns
     -------
-    mat_dirname : str
+    mat_dirnames : list of str
+        The of paths in the .mat directory created
     """
     mat_dirname = one_d_filename.replace('.1D', '.mat')
     with open(one_d_filename, 'r') as one_d_file:
@@ -524,7 +525,7 @@ def one_d_to_mat(one_d_filename):
     for i, row in enumerate(rows):
         np.savetxt(os.path.join(mat_dirname, f'MAT_{i:04}'),
                    row, fmt='%.5f', delimiter=' ')
-    return mat_dirname
+    return os.listdir(mat_dirname)
 
 
 def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
