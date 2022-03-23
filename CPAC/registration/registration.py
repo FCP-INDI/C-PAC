@@ -27,7 +27,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     run_c4d
 
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
@@ -3761,7 +3761,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         convert_transform = pe.Node(util.Function(
             input_names=['one_d_filename'],
             output_names=['transform_directory'],
-            function=one_d_to_mat),
+            function=one_d_to_mat,
+            imports=['import os', 'import numpy as np']),
             name=f'convert_transform_{pipe_num}')
         wf.connect(node, out, convert_transform, 'one_d_filename')
         wf.connect(convert_transform, 'transform_directory',
