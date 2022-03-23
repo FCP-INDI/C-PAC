@@ -73,7 +73,34 @@ motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
 
 
-def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
+def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
+                    pipe_num):
+    """
+    Connect the motion metrics to the workflow.
+
+    Parameters
+    ----------
+    wf : nipype.pipeline.engine.Workflow
+        The workflow to connect the motion metrics to.
+
+    strat_pool : CPAC.pipeline.engine.ResourcePool
+        The current strategy pool.
+
+    qc_file : nipype.pipeline.engine.Node
+        A function node with the function ``generate_xcp_qc``.
+
+    brain_mask_key : str
+        The key of the brain mask in the strategy pool.
+
+    final_func : CPAC.pipeline.engine.NodeData
+        The node data of the final functional scan.
+
+    pipe_num : int
+
+    Returns
+    -------
+    wf : nipype.pipeline.engine.Workflow
+    """
     # pylint: disable=invalid-name, too-many-arguments
     try:
         nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
@@ -106,8 +133,8 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final, pipe_num):
                    nodes['rels-displacement'].out,
                    gen_motion_stats, 'inputspec.rels_displacement')
     wf.connect([
-        (final['func'].node, gen_motion_stats, [
-            (final['func'].out, 'inputspec.motion_correct')]),
+        (final_func.node, gen_motion_stats, [
+            (final_func.out, 'inputspec.motion_correct')]),
         (nodes['subject'].node, gen_motion_stats, [
             (nodes['subject'].out, 'inputspec.subject_id')]),
         (nodes['scan'].node, gen_motion_stats, [
@@ -294,7 +321,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': ['bold', 'space-T1w_desc-mean_bold',
+     'inputs': ['subject', 'scan', 'bold', 'space-T1w_desc-mean_bold',
                 'space-T1w_desc-brain_mask', 'desc-preproc_bold',
                 ('from-bold_to-T1w_mode-image_desc-linear_xfm',
                  'from-template_to-T1w_mode-image_desc-linear_xfm'),
@@ -302,7 +329,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-bold_desc-brain_mask',
                 ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'],
-                ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg']],
+                ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
+                'movement-parameters', 'framewise-displacement-jenkinson',
+                'rels-displacement', 'coordinate-transformation',
+                'max-displacement', 'dvars'],
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
@@ -319,22 +349,26 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
+
     func = {}
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('desc-preproc_bold')
-
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
-
     nodes = {key: strat_pool.node_data(key) for key in [
         'from-bold_to-T1w_mode-image_desc-linear_xfm',
         'space-bold_desc-brain_mask', 'space-template_desc-brain_mask']}
     nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
+    nodes['template'] = strat_pool.node_data(['T1w-brain-template-funcreg',
+                                              'EPI-brain-template-funcreg'])
 
+    wf = _connect_motion(wf, strat_pool, qc_file,
+                         'space-template_desc-bold_mask', func['final'],
+                         pipe_num)
     wf.connect([
         (func['space-T1w'].node, bold_to_T1w_mask, [
             (func['space-T1w'].out, 'in_file')]),
@@ -349,7 +383,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (func['original'].out, 'original_func')]),
         (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
         (func['space-T1w'].node, qc_file, [
-            (func['space-T1w'].out, 'space_T1w_bold')])])
+            (func['space-T1w'].out, 'space_T1w_bold')]),
+        (nodes['template'].node, qc_file, [
+            (nodes['template'].out, 'template')])])
 
     return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
 
@@ -379,8 +415,7 @@ def strings_from_bids(final_func):
     """
     from_bids = dict(
         tuple(entity.split('-', 1)) if '-' in entity else
-        ('suffix', entity) for entity in final_func.split('/')[-1].split('_')
-    )
+        ('suffix', entity) for entity in final_func.split('/')[-1].split('_'))
     from_bids = {k: from_bids[k] for k in from_bids}
     if 'space' not in from_bids:
         from_bids['space'] = 'native'
