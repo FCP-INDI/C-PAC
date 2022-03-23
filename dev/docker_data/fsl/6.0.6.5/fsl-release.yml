@@ -67,7 +67,7 @@ packages:
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
- - fsl-avwutils 2111.0
+ - fsl-avwutils 2111.1
  - fsl-base 2203.0
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
