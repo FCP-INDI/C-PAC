@@ -59,7 +59,7 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 
-from CPAC.utils.interfaces.fixes import FixHeaderApplyTransforms
+from nipype.interfaces import fsl
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
@@ -324,14 +324,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('desc-preproc_bold')
 
-    bold_to_T1w_mask = apply_transform(
-        f'bold_to_T1w_mask_{pipe_num}', reg_tool=check_prov_for_regtool(
-            strat_pool.get_cpac_provenance('from-template_to-T1w_mode-image_desc-linear_xfm')),
-        num_cpus=cfg['pipeline_setup','system_config',
-                     'max_cores_per_participant'],
-        num_ants_cores=cfg['pipeline_setup', 'system_config',
-                           'num_ants_threads'])
-    bold_to_T1w_mask.inputs.inputspec.interpolation = 'NearestNeighbor'
+    bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
+                               name=f'binarize_bold_to_T1w_mask_{pipe_num}',
+                               op_string='-bin ')
 
     nodes = {key: strat_pool.node_data(key) for key in [
         'from-bold_to-T1w_mode-image_desc-linear_xfm',
@@ -341,23 +336,15 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
 
     wf.connect([
-        (nodes['space-bold_desc-brain_mask'].node, bold_to_T1w_mask, [
-            (nodes['space-bold_desc-brain_mask'].out,
-             'inputspec.input_image')]),
-        (nodes['t1w_mask'].node, bold_to_T1w_mask, [
-            (nodes['t1w_mask'].out, 'inputspec.reference')]),
+        (func['space-T1w'].node, bold_to_T1w_mask, [
+            (func['space-T1w'].out, 'in_file')]),
         (nodes['t1w_mask'].node, qc_file, [
             (nodes['t1w_mask'].out, 't1w_mask')]),
-        (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].node,
-         bold_to_T1w_mask, [
-            (nodes['from-bold_to-T1w_mode-image_desc-linear_xfm'].out,
-             'inputspec.transform')]),
-        (bold_to_T1w_mask, qc_file, [
-            ('outputspec.output_image', 'bold2T1w_mask')]),
+        (bold_to_T1w_mask, qc_file, [('out_file', 'bold2T1w_mask')]),
         (nodes['bold2template_mask'].node, qc_file, [
             (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (nodes['space-template_desc-brain_mask'].node, qc_file, [
-            (nodes['space-template_desc-brain_mask'].out, 'template')]),
+            (nodes['space-template_desc-brain_mask'].out, 'template_mask')]),
         (func['original'].node, qc_file, [
             (func['original'].out, 'original_func')]),
         (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
