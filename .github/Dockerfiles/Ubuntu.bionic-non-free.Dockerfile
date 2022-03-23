@@ -14,6 +14,8 @@ LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A
 Ubuntu Bionic base image"
 ARG DEBIAN_FRONTEND=noninteractive
 
+ENV TZ=America/New_York
+
 # Creating usergroup and user
 # Allow users to update / create themselves
 # Installing system requirments, the BIDS validator & minconda
@@ -104,7 +106,14 @@ RUN groupadd -r c-pac && \
     apt-get update && \
     curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
     bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda
+    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG="en_US.UTF-8" && \
+    chmod 777 /opt && \
+    chmod a+s /opt
 
 ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
 
