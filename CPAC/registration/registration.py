@@ -2151,10 +2151,6 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                      "Description": "The preprocessed T1w brain transformed "
                                     "to template space.",
                      "Template": "T1w-template"},
-                 "space-template_desc-brain_mask": {
-                     "Description": "The preprocessed T1w brain mask "
-                                    "transformed to template space.",
-                     "Template": "T1w-template"},
                  "from-T1w_to-template_mode-image_desc-linear_xfm": {
                      "Description": "Linear (affine) transform from T1w native"
                                     " space to T1w-template space."},
@@ -2255,19 +2251,6 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                           f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
                     del outputs[key]
-
-    apply_xfm_to_mask = pe.Node(ants.ApplyTransforms(),
-                                name=f'ANTS_T1_mask_to_template_{pipe_num}')
-    wf.connect([
-        (t1w_template.node, apply_xfm_to_mask, [
-            (t1w_template.out, 'transforms')]),
-        (brain_mask.node, apply_xfm_to_mask, [
-            (brain_mask.out, 'input_image')]),
-        (t1w_brain_template.node, apply_xfm_to_mask, [
-            (t1w_brain_template.out, 'reference_image')])])
-
-    outputs['space-template_desc-brain_mask'] = (apply_xfm_to_mask,
-                                                 'output_image')
 
     return (wf, outputs)
 

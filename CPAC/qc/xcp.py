@@ -322,7 +322,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-T1w_desc-brain_mask', 'desc-preproc_bold',
                 ('from-bold_to-T1w_mode-image_desc-linear_xfm',
                  'from-template_to-T1w_mode-image_desc-linear_xfm'),
-                'space-template_desc-brain_mask',
+                'space-template_desc-T1w_mask',
                 'space-bold_desc-brain_mask',
                 ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'],
@@ -355,7 +355,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                op_string='-bin ')
     nodes = {key: strat_pool.node_data(key) for key in [
         'from-bold_to-T1w_mode-image_desc-linear_xfm',
-        'space-bold_desc-brain_mask', 'space-template_desc-brain_mask']}
+        'space-bold_desc-brain_mask', 'space-template_desc-T1w_mask']}
     nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
@@ -373,8 +373,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),
         (nodes['bold2template_mask'].node, qc_file, [
             (nodes['bold2template_mask'].out, 'bold2template_mask')]),
-        (nodes['space-template_desc-brain_mask'].node, qc_file, [
-            (nodes['space-template_desc-brain_mask'].out, 'template_mask')]),
+        (nodes['space-template_desc-T1w_mask'].node, qc_file, [
+            (nodes['space-template_desc-T1w_mask'].out, 'template_mask')]),
         (func['original'].node, qc_file, [
             (func['original'].out, 'original_func')]),
         (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
