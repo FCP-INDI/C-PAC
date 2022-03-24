@@ -330,20 +330,19 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'],
                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
-                'movement-parameters', 'framewise-displacement-jenkinson',
-                'rels-displacement', 'coordinate-transformation',
-                'max-displacement', 'dvars'],
+                ('max-displacement', 'rels-displacement',
+                 'movement-parameters', 'coordinate-transformation'), ('dvars',
+                 'framewise-displacement-jenkinson')],
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
                                             'template_mask', 'original_func',
-                                            'final_func',
+                                            'final_func', 'template',
                                             'movement_parameters', 'dvars',
                                             'censor_indices',
                                             'framewise_displacement_jenkinson',
-                                            'dvars_after', 'fdj_after',
-                                            'template'],
+                                            'dvars_after', 'fdj_after'],
                                output_names=['qc_file'],
                                function=generate_xcp_qc,
                                as_module=True),
@@ -367,8 +366,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                               'EPI-brain-template-funcreg'])
 
     wf = _connect_motion(wf, strat_pool, qc_file,
-                         'space-template_desc-bold_mask', func['final'],
-                         pipe_num)
+                         brain_mask_key='space-template_desc-bold_mask',
+                         final_func=func['final'], pipe_num=pipe_num)
     wf.connect([
         (func['space-T1w'].node, bold_to_T1w_mask, [
             (func['space-T1w'].out, 'in_file')]),

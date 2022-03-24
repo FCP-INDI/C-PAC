@@ -1399,9 +1399,8 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_bold", "bold"]],
      "outputs": {
          "space-bold_desc-brain_mask": {
-             "Description": "Binary brain mask of the BOLD functional time-series
-                             created by AFNI 3dAutomask."}}
-    }
+             "Description": "Binary brain mask of the BOLD functional "
+                            "time-series created by AFNI 3dAutomask."}}}
     '''
 
     func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
