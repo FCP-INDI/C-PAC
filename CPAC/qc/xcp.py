@@ -286,14 +286,11 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
             dvars, framewise_displacement_jenkinson)
     except ValueError as value_error:
         meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
-    if dvars_after:
-        if not fdj_after:
-            fdj_after = framewise_displacement_jenkinson
-        meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
-        try:
-            meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
-        except ValueError as value_error:
-            meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
+    meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
+    try:
+        meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+    except ValueError as value_error:
+        meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
 
     # Overlap
     overlap_params = regisQ(bold2t1w_mask=bold2t1w_mask, t1w_mask=t1w_mask,
@@ -366,7 +363,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                               'EPI-brain-template-funcreg'])
 
     wf = _connect_motion(wf, strat_pool, qc_file,
-                         brain_mask_key='space-template_desc-bold_mask',
+                         brain_mask_key='space-bold_desc-brain_mask',
                          final_func=func['final'], pipe_num=pipe_num)
     wf.connect([
         (func['space-T1w'].node, bold_to_T1w_mask, [
