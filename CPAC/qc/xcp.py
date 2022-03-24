@@ -370,7 +370,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (func['space-T1w'].out, 'in_file')]),
         (nodes['t1w_mask'].node, qc_file, [
             (nodes['t1w_mask'].out, 't1w_mask')]),
-        (bold_to_T1w_mask, qc_file, [('out_file', 'bold2T1w_mask')]),
+        (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),
         (nodes['bold2template_mask'].node, qc_file, [
             (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (nodes['space-template_desc-brain_mask'].node, qc_file, [
