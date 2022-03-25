@@ -4226,22 +4226,17 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_label-WM_mask",
                  "space-template_label-GM_mask"]}
     '''
-
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
     tissue_types = ['CSF', 'WM', 'GM']
     apply_xfm = {
         tissue: apply_transform(f'warp_Tissuemask_to_T1template_{tissue}_'
                                 f'{pipe_num}', reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores) for
+                                num_cpus=cfg.pipeline_setup['system_config'][
+                                    'max_cores_per_participant'],
+                                num_ants_cores=cfg.pipeline_setup[
+                                    'system_config']['num_ants_threads']) for
         tissue in tissue_types}
     for tissue in tissue_types:
         if reg_tool == 'ants':
