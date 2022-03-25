@@ -1,4 +1,5 @@
 base-standard.Dockerfile
+FreeSurfer.6.0.0-min.neurodocker-bionic.Dockerfile
 ica-aroma.0.4.3-beta-bionic
 msm.2.0-bionic.Dockerfile
 Ubuntu.bionic-non-free.Dockerfile

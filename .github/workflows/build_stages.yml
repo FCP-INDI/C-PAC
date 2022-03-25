@@ -83,6 +83,7 @@ jobs:
         - c3d.1.0.0-xenial
         - connectome-workbench.1.3.2-1.neurodebian-bionic
         - connectome-workbench.1.3.2-2.neurodebian-xenial
+        - FreeSurfer.6.0.0-min.neurodocker-bionic
         - FreeSurfer.6.0.1-min-xenial
         - FSL.5.0.9-5.neurodebian-xenial
         - FSL.5.0.10-bionic

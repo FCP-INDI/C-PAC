@@ -1,5 +1,4 @@
-# We need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
-FROM freesurfer/freesurfer:6.0 AS FreeSurfer
+FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
@@ -113,15 +112,8 @@ ENV PERL5LIB="$FREESURFER_HOME/mni/share/perl5" \
 ENV MINC_BIN_DIR="$MNI_DIR/bin" \
     MINC_LIB_DIR="$MNI_DIR/lib" \
     PATH="$PATH:$MINC_BIN_DIR"
-SHELL ["/bin/bash", "-c"]
-RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
-    | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
-    source $FREESURFER_HOME/SetUpFreeSurfer.sh && \
-    printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
-SHELL ["/bin/sh", "-c"]
+COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
-COPY --from=FreeSurfer opt/freesurfer/bin/mri_vol2vol /usr/lib/freesurfer/bin/mri_vol2vol
-COPY --from=FreeSurfer opt/freesurfer/bin/mri_vol2vol.bin /usr/lib/freesurfer/bin/mri_vol2vol.bin
 
 # install Multimodal Surface Matching
 COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
