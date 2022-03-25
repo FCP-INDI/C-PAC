@@ -4221,7 +4221,7 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask",
                  "from-T1w_to-template_mode-image_xfm"),
-                "T1w-template"],
+                 "T1w-template"],
      "outputs": ["space-template_label-CSF_mask",
                  "space-template_label-WM_mask",
                  "space-template_label-GM_mask"]}
@@ -4236,70 +4236,29 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm_CSF = apply_transform(f'warp_Tissuemask_to_T1template_CSF{pipe_num}',
-                                reg_tool, time_series=False,
+    tissue_types = ['CSF', 'WM', 'GM']
+    apply_xfm = {
+        tissue: apply_transform(f'warp_Tissuemask_to_T1template_{tissue}_'
+                                f'{pipe_num}', reg_tool, time_series=False,
                                 num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_WM = apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_GM = apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    if reg_tool == 'ants':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'NearestNeighbor'
-    elif reg_tool == 'fsl':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'nn'
-
-    outputs = {}
-    if strat_pool.check_rpool('label-CSF_mask'):
-        node, out = strat_pool.get_data("label-CSF_mask")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
-        outputs.update({
-         f'space-template_label-CSF_mask':
-
-            (apply_xfm_CSF, 'outputspec.output_image')})
-
-
-
-    if strat_pool.check_rpool('label-WM_mask'):
-        node, out = strat_pool.get_data("label-WM_mask")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-WM_mask':
-            (apply_xfm_WM, 'outputspec.output_image')})
-
-
-    if strat_pool.check_rpool('label-GM_mask'):
-        node, out = strat_pool.get_data("label-GM_mask")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-GM_mask':
-            (apply_xfm_GM, 'outputspec.output_image')})
-
+                                num_ants_cores=num_ants_cores) for
+        tissue in tissue_types}
+    for tissue in tissue_types:
+        if reg_tool == 'ants':
+            apply_xfm[tissue].inputs.inputspec.interpolation = \
+                'NearestNeighbor'
+        elif reg_tool == 'fsl':
+            apply_xfm['tissue'].inputs.inputspec.interpolation = 'nn'
+        if strat_pool.check_rpool(f'label-{tissue}_mask'):
+            node, out = strat_pool.get_data(f'label-{tissue}_mask')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.input_image')
+            node, out = strat_pool.get_data('T1w-template')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.reference')
+            node, out = strat_pool.get_data('from-T1w_to-template_'
+                                            'mode-image_xfm')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.transform')
+    outputs = {f'space-template_label-{tissue}_mask': (apply_xfm[tissue],
+               'outputspec.output_image') for tissue in tissue_types}
 
     return (wf, outputs)
 
