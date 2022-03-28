@@ -59,15 +59,15 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 
-from nipype.interfaces import fsl
+from nipype.interfaces import afni, fsl
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
-from CPAC.registration.registration import apply_transform
+from CPAC.utils.datasource import res_string_to_tuple
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
+from CPAC.utils.utils import check_prov_for_motion_tool
 
 motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
@@ -355,14 +355,35 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     nodes = {key: strat_pool.node_data(key) for key in [
         'from-bold_to-T1w_mode-image_desc-linear_xfm',
         'space-bold_desc-brain_mask']}
-    nodes['template_mask'] = strat_pool.node_data(
-        ['T1w-brain-template-mask', 'EPI-template-mask'])
     nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
+    nodes['template_mask'] = strat_pool.node_data(
+        ['T1w-brain-template-mask', 'EPI-template-mask'])
+    res_anat = cfg['registration_workflows', 'anatomical_registration',
+                   'resolution_for_anat']
+    if res_anat == cfg['registration_workflows', 'functional_registration',
+                       'func_registration_to_template', 'output_resolution',
+                       'func_preproc_outputs']:
+        wf.connect(nodes['bold2template_mask'].node,
+                   nodes['bold2template_mask'].out,
+                   qc_file, 'bold2template_mask')
+    else:
+        resample_bold_to_T1w_mask = pe.Node(afni.Resample(),
+            name=f'resample_bold_to_T1w_mask_{pipe_num}',
+            mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
+        resample_bold_to_T1w_mask.inputs.outputtype = 'NIFTI_GZ'
+        resample_bold_to_T1w_mask.inputs.resample_mode = 'NN'
+        resample_bold_to_T1w_mask.inputs.voxel_size = res_string_to_tuple(
+            res_anat)
+        wf.connect([
+            (nodes['bold2template_mask'].node, resample_bold_to_T1w_mask, [
+                (nodes['bold2template_mask'].out, 'in_file')]),
+            (resample_bold_to_T1w_mask, qc_file, [
+                ('out_file', 'bold2template_mask')])
+        ])
     nodes['template'] = strat_pool.node_data(['T1w-brain-template-funcreg',
                                               'EPI-brain-template-funcreg'])
-
     wf = _connect_motion(wf, strat_pool, qc_file,
                          brain_mask_key='space-bold_desc-brain_mask',
                          final_func=func['final'], pipe_num=pipe_num)
@@ -372,8 +393,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (nodes['t1w_mask'].node, qc_file, [
             (nodes['t1w_mask'].out, 't1w_mask')]),
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),
-        (nodes['bold2template_mask'].node, qc_file, [
-            (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (nodes['template_mask'].node, qc_file, [
             (nodes['template_mask'].out, 'template_mask')]),
         (func['original'].node, qc_file, [
