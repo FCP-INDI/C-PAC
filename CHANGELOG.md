@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added log of expected outputs, generated at the beginning of the run
 - Added additional surface derivatives to outputs directory
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
+- Added `--runtime_usage` and `--runtime_buffer` flags and functionality
 
 ### Changed
 - Made surface output filenames BIDSier
