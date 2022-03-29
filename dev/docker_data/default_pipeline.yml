@@ -126,9 +126,11 @@ pipeline_setup:
 
     # A callback.log file from a previous run can be provided to estimate memory usage based on that run.
     observed_usage:
-      # Path to callback log file with previously observed usage
+      # Path to callback log file with previously observed usage.
+      # Can be overridden with the commandline flag `--runtime_usage`.
       callback_log:
-      # Percent. E.g., `buffer: 10` would estimate 1.1 * the observed memory usage from the callback log provided in "usage"
+      # Percent. E.g., `buffer: 10` would estimate 1.1 * the observed memory usage from the callback log provided in "usage".
+      # Can be overridden with the commandline flag `--runtime_buffer`.
       buffer: 10
 
     # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid)
