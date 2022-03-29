@@ -3732,9 +3732,9 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     wf.connect(node, out, motionxfm2itk, 'reference_file')
     wf.connect(node, out, motionxfm2itk, 'source_file')
 
-    motion_correct_tool = cfg['functional_preproc',
-                              'motion_estimates_and_correction',
-                              'motion_correction', 'using']
+    node, out = strat_pool.get_data('coordinate-transformation')
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
     if motion_correct_tool == 'mcflirt':
         wf.connect(node, out, motionxfm2itk, 'transform_file')
     elif motion_correct_tool == '3dvolreg':
