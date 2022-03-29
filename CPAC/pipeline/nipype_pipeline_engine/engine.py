@@ -78,20 +78,20 @@ class Node(pe.Node):
         ):
             if len(kwargs['mem_x']) == 3:
                 (
-                    self.mem_x['multiplier'],
-                    self.mem_x['file'],
-                    self.mem_x['mode']
+                    self._mem_x['multiplier'],
+                    self._mem_x['file'],
+                    self._mem_x['mode']
                 ) = kwargs['mem_x']
             else:
-                self.mem_x['mode'] = 'xyzt'
+                self._mem_x['mode'] = 'xyzt'
                 if len(kwargs['mem_x']) == 2:
                     (
-                        self.mem_x['multiplier'],
-                        self.mem_x['file']
+                        self._mem_x['multiplier'],
+                        self._mem_x['file']
                     ) = kwargs['mem_x']
                 else:
-                    self.mem_x['multiplier'] = kwargs['mem_x']
-                    self.mem_x['file'] = None
+                    self._mem_x['multiplier'] = kwargs['mem_x']
+                    self._mem_x['file'] = None
         else:
             delattr(self, '_mem_x')
         setattr(self, 'skip_timeout', False)
