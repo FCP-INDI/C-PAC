@@ -203,7 +203,7 @@ def run_main():
                              'same pipeline configuration. This log will be '
                              'used to override per-node memory estimates with '
                              'observed values plus a buffer.')
-    parser.add_argument('--runtime_buffer', type=float, default=10,
+    parser.add_argument('--runtime_buffer', type=float,
                         help='Buffer to add to per-node memory estimates if '
                              '--runtime_usage is specified. This number is a '
                              'percentage of the observed memory usage.')
@@ -580,6 +580,13 @@ def run_main():
                 set_up_random_state(c['pipeline_setup']['system_config'][
                     'random_seed'])
 
+        if args.runtime_usage is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'callback_log'] = args.runtime_usage
+        if args.runtime_buffer is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'buffer'] = args.runtime_buffer
+
         c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
@@ -741,10 +748,13 @@ def run_main():
                                         'raise_insufficient'],
                 'status_callback': log_nodes_cb
             }
-            if args.runtime_usage is not None:
+            if c['pipeline_setup']['system_config']['observed_usage'][
+                    'callback_log'] is not None:
                 plugin_args['runtime'] = {
-                    'usage': args.runtime_usage,
-                    'buffer': args.runtime_buffer}
+                    'usage': c['pipeline_setup']['system_config'][
+                        'observed_usage']['callback_log'],
+                    'buffer': c['pipeline_setup']['system_config'][
+                        'observed_usage']['buffer']}
 
             print("Starting participant level processing")
             CPAC.pipeline.cpac_runner.run(

@@ -393,14 +393,18 @@ latest_schema = Schema({
             'num_participants_at_once': int,
             'random_seed': Maybe(Any(
                 'random',
-                All(int, Range(min=1, max=np.iinfo(np.int32).max))))
+                All(int, Range(min=1, max=np.iinfo(np.int32).max)))),
+            'observed_usage': {
+                'callback_log': Maybe(str),
+                'buffer': Number,
+            },
         },
         'Amazon-AWS': {
             'aws_output_bucket_credentials': Maybe(str),
             's3_encryption': bool,
         },
         'Debugging': {
-            'verbose': bool
+            'verbose': bool,
         },
     },
     'anatomical_preproc': {
