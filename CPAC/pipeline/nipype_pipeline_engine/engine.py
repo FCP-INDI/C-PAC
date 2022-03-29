@@ -72,28 +72,28 @@ class Node(pe.Node):
         self.seed = random_seed()
         self.seed_applied = False
         self.input_data_shape = Undefined
-
+        self._mem_x = {}
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
         ):
-            mem_x = {}
             if len(kwargs['mem_x']) == 3:
                 (
-                    mem_x['multiplier'],
-                    mem_x['file'],
-                    mem_x['mode']
+                    self.mem_x['multiplier'],
+                    self.mem_x['file'],
+                    self.mem_x['mode']
                 ) = kwargs['mem_x']
             else:
-                mem_x['mode'] = 'xyzt'
+                self.mem_x['mode'] = 'xyzt'
                 if len(kwargs['mem_x']) == 2:
                     (
-                        mem_x['multiplier'],
-                        mem_x['file']
+                        self.mem_x['multiplier'],
+                        self.mem_x['file']
                     ) = kwargs['mem_x']
                 else:
-                    mem_x['multiplier'] = kwargs['mem_x']
-                    mem_x['file'] = None
-            setattr(self, '_mem_x', mem_x)
+                    self.mem_x['multiplier'] = kwargs['mem_x']
+                    self.mem_x['file'] = None
+        else:
+            delattr(self, '_mem_x')
         setattr(self, 'skip_timeout', False)
 
     orig_sig_params = list(signature(pe.Node).parameters.items())
@@ -181,126 +181,6 @@ class Node(pe.Node):
         else:
             self.inputs.args = prep_flags('args')
 
-    def _apply_random_seed(self):
-        '''Apply flags for the first matched interface'''
-        # pylint: disable=import-outside-toplevel
-        from CPAC.pipeline.random_state import random_seed_flags
-        if isinstance(self.interface, Function):
-            for rsf, flags in random_seed_flags()['functions'].items():
-                if self.interface.inputs.function_str == getsource(rsf):
-                    self.interface.inputs.function_str = flags(
-                        self.interface.inputs.function_str)
-                    self.seed_applied = True
-                    return
-        for rsf, flags in random_seed_flags()['interfaces'].items():
-            if isinstance(self.interface, rsf):
-                self._add_flags(flags)
-                self.seed_applied = True
-                return
-
-    @property
-    def mem_gb(self):
-        """Get estimated memory (GB)"""
-        if hasattr(self._interface, "estimated_memory_gb"):
-            self._mem_gb = self._interface.estimated_memory_gb
-            self.logger.warning(
-                'Setting "estimated_memory_gb" on Interfaces has been '
-                "deprecated as of nipype 1.0, please use Node.mem_gb."
-            )
-        if hasattr(self, '_mem_x'):
-            if self._mem_x['file'] is None:
-                return self._apply_mem_x()
-            try:
-                mem_x_path = getattr(self.inputs, self._mem_x['file'])
-            except AttributeError as e:
-                raise AttributeError(
-                    f'{e.args[0]} in Node \'{self.name}\'') from e
-            if self._check_mem_x_path(mem_x_path):
-                # constant + mem_x[0] * t
-                return self._apply_mem_x()
-            raise FileNotFoundError(2, 'The memory estimate for Node '
-                                    f"'{self.name}' depends on the input "
-                                    f"'{self._mem_x['file']}' but "
-                                    'no such file or directory', mem_x_path)
-        return self._mem_gb
-
-    def _check_mem_x_path(self, mem_x_path):
-        '''Method to check if a supplied multiplier path exists.
-
-        Parameters
-        ----------
-        mem_x_path : str, iterable, Undefined or None
-
-        Returns
-        -------
-        bool
-        '''
-        mem_x_path = self._grab_first_path(mem_x_path)
-        try:
-            return mem_x_path is not Undefined and os.path.exists(
-                mem_x_path)
-        except (TypeError, ValueError):
-            return False
-
-    def get_data_size(self, filepath, mode='xyzt'):
-        """Function to return the size of a functional image (x * y * z * t)
-
-        Parameters
-        ----------
-        filepath : str or path
-            path to image file
-            OR
-            4-tuple
-            stand-in dimensions (x, y, z, t)
-
-        mode : str
-            One of:
-            * 'xyzt' (all dimensions multiplied) (DEFAULT)
-            * 'xyz' (spatial dimensions multiplied)
-            * 't' (number of TRs)
-
-        Returns
-        -------
-        int or float
-        """
-        if isinstance(filepath, str):
-            data_shape = load(filepath).shape
-        elif isinstance(filepath, tuple) and len(filepath) == 4:
-            data_shape = filepath
-        self.input_data_shape = data_shape
-        if mode == 't':
-            # if the data has muptiple TRs, return that number
-            if len(data_shape) > 3:
-                return data_shape[3]
-            # otherwise return 1
-            return 1
-        if mode == 'xyz':
-            return prod(data_shape[0:3]).item()
-        return prod(data_shape).item()
-
-    def _grab_first_path(self, mem_x_path):
-        '''Method to grab the first path if multiple paths for given
-        multiplier input
-
-        Parameters
-        ----------
-        mem_x_path : str, iterable, Undefined or None
-
-        Returns
-        -------
-        str, Undefined or None
-        '''
-        if (
-            isinstance(mem_x_path, list) or
-            isinstance(mem_x_path, TraitListObject) or
-            isinstance(mem_x_path, tuple)
-        ):
-            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
-        return mem_x_path
-
-    def _mem_x_file(self):
-        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
-
     def _apply_mem_x(self, multiplicand=None):
         '''Method to calculate and memoize a Node's estimated memory
         footprint.
@@ -352,11 +232,10 @@ class Node(pe.Node):
         if hasattr(self, '_mem_x'):
             if multiplicand is None:
                 multiplicand = self._mem_x_file()
-            self._mem_gb = (
+            setattr(self, '_mem_gb', (
                 self._mem_gb +
-                self._mem_x['multiplier'] *  # pylint: disable=no-member
-                parse_multiplicand(multiplicand)
-            )
+                self._mem_x.get('multiplier', 0) *
+                parse_multiplicand(multiplicand)))
             try:
                 if self._mem_gb > 1000:
                     self.logger.warning(
@@ -370,6 +249,124 @@ class Node(pe.Node):
             del self._mem_x
         return self._mem_gb
 
+    def _apply_random_seed(self):
+        '''Apply flags for the first matched interface'''
+        # pylint: disable=import-outside-toplevel
+        from CPAC.pipeline.random_state import random_seed_flags
+        if isinstance(self.interface, Function):
+            for rsf, flags in random_seed_flags()['functions'].items():
+                if self.interface.inputs.function_str == getsource(rsf):
+                    self.interface.inputs.function_str = flags(
+                        self.interface.inputs.function_str)
+                    self.seed_applied = True
+                    return
+        for rsf, flags in random_seed_flags()['interfaces'].items():
+            if isinstance(self.interface, rsf):
+                self._add_flags(flags)
+                self.seed_applied = True
+                return
+
+    def _check_mem_x_path(self, mem_x_path):
+        '''Method to check if a supplied multiplier path exists.
+
+        Parameters
+        ----------
+        mem_x_path : str, iterable, Undefined or None
+
+        Returns
+        -------
+        bool
+        '''
+        mem_x_path = self._grab_first_path(mem_x_path)
+        try:
+            return mem_x_path is not Undefined and os.path.exists(
+                mem_x_path)
+        except (TypeError, ValueError):
+            return False
+
+    def get_data_size(self, filepath, mode='xyzt'):
+        """Function to return the size of a functional image (x * y * z * t)
+
+        Parameters
+        ----------
+        filepath : str or path
+            path to image file
+            OR
+            4-tuple
+            stand-in dimensions (x, y, z, t)
+
+        mode : str
+            One of:
+            * 'xyzt' (all dimensions multiplied) (DEFAULT)
+            * 'xyz' (spatial dimensions multiplied)
+            * 't' (number of TRs)
+
+        Returns
+        -------
+        int or float
+        """
+        if isinstance(filepath, str):
+            data_shape = load(filepath).shape
+        elif isinstance(filepath, tuple) and len(filepath) == 4:
+            data_shape = filepath
+        setattr(self, 'input_data_shape', data_shape)
+        if mode == 't':
+            # if the data has muptiple TRs, return that number
+            if len(data_shape) > 3:
+                return data_shape[3]
+            # otherwise return 1
+            return 1
+        if mode == 'xyz':
+            return prod(data_shape[0:3]).item()
+        return prod(data_shape).item()
+
+    def _grab_first_path(self, mem_x_path):
+        '''Method to grab the first path if multiple paths for given
+        multiplier input
+
+        Parameters
+        ----------
+        mem_x_path : str, iterable, Undefined or None
+
+        Returns
+        -------
+        str, Undefined or None
+        '''
+        if (
+            isinstance(mem_x_path, list) or
+            isinstance(mem_x_path, TraitListObject) or
+            isinstance(mem_x_path, tuple)
+        ):
+            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
+        return mem_x_path
+
+    @property
+    def mem_gb(self):
+        """Get estimated memory (GB)"""
+        if hasattr(self._interface, "estimated_memory_gb"):
+            self._mem_gb = self._interface.estimated_memory_gb
+            self.logger.warning(
+                'Setting "estimated_memory_gb" on Interfaces has been '
+                "deprecated as of nipype 1.0, please use Node.mem_gb."
+            )
+        if hasattr(self, '_mem_x'):
+            if self._mem_x['file'] is None:
+                return self._apply_mem_x()
+            try:
+                mem_x_path = getattr(self.inputs, self._mem_x['file'])
+            except AttributeError as attribute_error:
+                raise AttributeError(
+                    f'{attribute_error.args[0]} in Node \'{self.name}\''
+                ) from attribute_error
+            if self._check_mem_x_path(mem_x_path):
+                # constant + mem_x[0] * t
+                return self._apply_mem_x()
+            raise FileNotFoundError(2, 'The memory estimate for Node '
+                                    f"'{self.name}' depends on the input "
+                                    f"'{self._mem_x['file']}' but "
+                                    'no such file or directory', mem_x_path)
+        return self._mem_gb
+
     @property
     def mem_x(self):
         """Get dict of 'multiplier' (memory multiplier), 'file' (input file)
@@ -377,7 +374,23 @@ class Node(pe.Node):
         temporal only). Returns ``None`` if already consumed or not set."""
         return getattr(self, '_mem_x', None)
 
+    def _mem_x_file(self):
+        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
+
+    def override_mem_gb(self, new_mem_gb):
+        """Override the Node's memory estimate with a new value.
+
+        Parameters
+        ----------
+        new_mem_gb : int or float
+            new memory estimate in GB
+        """
+        if hasattr(self, '_mem_x'):
+            delattr(self, '_mem_x')
+        setattr(self, '_mem_gb', new_mem_gb)
+
     def run(self, updatehash=False):
+        self.__doc__ = getattr(super(), '__doc__', '')
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:

@@ -65,13 +65,14 @@ class CpacNipypeCustomPluginMixin():
             plugin_args = {}
         if 'status_callback' not in plugin_args:
             plugin_args['status_callback'] = log_nodes_cb
+        if 'runtime' in plugin_args:
+            self.runtime = {node_key: observation * (
+                1 + plugin_args['runtime']['buffer'] / 100
+            ) for node_key, observation in parse_previously_observed_mem_gb(
+                plugin_args['runtime']['usage']).items()}
         super().__init__(plugin_args=plugin_args)
         self.peak = 0
         self._stats = None
-        if 'runtime' in plugin_args:
-            self.runtime = parse_previously_observed_mem_gb(
-                plugin_args['runtime']['usage']
-            ) * (1 + plugin_args['runtime']['buffer'] / 100)
 
     def _check_resources_(self, running_tasks):
         """
@@ -118,9 +119,14 @@ class CpacNipypeCustomPluginMixin():
                 node_id = node._id.split(  # pylint: disable=protected-access
                     '.', 1)[-1]
                 if node_id in self.runtime:
-                    if hasattr(node, '_mem_x'):
-                        delattr(node, '_mem_x')
-                    node.mem_gb = self.runtime[node_id]
+                    node.override_mem_gb(self.runtime[node_id])
+                else:
+                    partial_matches = [nid for nid in self.runtime if
+                                       node_id in nid]
+                    if any(partial_matches):
+                        node.override_mem_gb(max(
+                            self.runtime[partial_match] for
+                            partial_match in partial_matches))
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:
