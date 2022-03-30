@@ -117,7 +117,7 @@ class CpacNipypeCustomPluginMixin():
                 # override node memory estimate with provided runtime
                 # memory usage, buffered
                 node_id = node._id.split(  # pylint: disable=protected-access
-                    '.', 1)[-1]
+                    '.', 1)[0]
                 if node_id in self.runtime:
                     node.override_mem_gb(self.runtime[node_id])
                 else:

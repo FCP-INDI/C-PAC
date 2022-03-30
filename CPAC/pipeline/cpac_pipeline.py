@@ -716,9 +716,9 @@ CPAC run error:
         finally:
 
             if workflow:
-
-                resource_report(cb_log_filename,
-                                num_cores_per_sub, logger)
+                if os.path.exists(cb_log_filename):
+                    resource_report(cb_log_filename,
+                                    num_cores_per_sub, logger)
 
                 logger.info('%s', execution_info.format(
                     workflow=workflow.name,
