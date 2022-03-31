@@ -67,30 +67,10 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
-    | apt-key add - \
-    && apt-add-repository -y 'deb https://apt.kitware.com/ubuntu/ bionic main'   \
-    && apt-get update \
-    && apt-get -y install --no-install-recommends \
-      cmake=3.18.3-0kitware1 \
-      cmake-data=3.18.3-0kitware1 \
-    && mkdir -p /tmp/ants/build \
-    && cd /tmp/ants/build \
-    && mkdir -p /opt/ants \
-    && git config --global url."https://".insteadOf git:// \
-    && git clone -b v2.3.5 --depth 1 https://github.com/ANTsX/ANTs.git /tmp/ants/ANTs \
-    && cmake \
-        -DCMAKE_INSTALL_PREFIX=/opt/ants \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DUSE_VTK=OFF \
-        -DSuperBuild_ANTS_USE_GIT_PROTOCOL=OFF \
-        -DBUILD_TESTING=OFF \
-        -DRUN_LONG_TESTS=OFF \
-        -DRUN_SHORT_TESTS=OFF \
-      ../ANTs 2>&1 | tee cmake.log \
-    && make -j 4 2>&1 | tee build.log \
-    && cd ANTS-build \
-    && make install 2>&1 | tee install.log \
+    echo "Downloading ANTs ..." \
+    && mkdir -p /usr/lib/ants \
+    && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
+    | tar -xz -C /usr/lib/ants --strip-components 1 \
     && mkdir /ants_template && \
     curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
     unzip /tmp/Oasis.zip -d /tmp &&\
