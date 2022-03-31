@@ -125,7 +125,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data(mode_img_inv_xfm) #was just 'from-template_to-T1w_mode-image_xfm'
     wf.connect(node, out, surf, 'inverse_atlas_transform')
 
-    raise Exception(mode_img_xfm)
+    raise Exception(mode_img_inv_xfm)
 
     node, out = strat_pool.get_data('space-template_desc-brain_bold')
     wf.connect(node, out, surf, 'atlas_space_bold')
