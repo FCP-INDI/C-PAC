@@ -104,6 +104,56 @@ class CpacNipypeCustomPluginMixin():
                                   "traceback": traceback}
         )
 
+    def _override_memory_estimate(self, node):
+        """
+        Override node memory estimate with provided runtime memory
+        usage, buffered
+
+        Parameters
+        ----------
+        node : nipype.pipeline.engine.nodes.Node
+
+        Returns
+        -------
+        None
+        """
+        if hasattr(node, 'list_node_names'):
+            for node_id in node.list_node_names():
+                # drop top-level node name
+                node_id = node_id.split('.', 1)[-1]
+        else:
+            node_id = node.fullname.split('.', 1)[-1]
+        if self._match_for_overrides(node, node_id):
+            return
+        while '.' in node_id: # iterate through levels of specificity
+            node_id = node_id.rsplit('.', 1)[0]
+            if self._match_for_overrides(node, node_id):
+                return
+
+    def _match_for_overrides(self, node, node_id):
+        """Match node memory estimate with provided runtime memory usage key
+
+        Parameters
+        ----------
+        node : nipype.pipeline.engine.nodes.Node
+
+        node_id : str
+
+        Returns
+        -------
+        bool : updated?
+        """
+        if node_id in self.runtime:
+            node.override_mem_gb(self.runtime[node_id])
+            return True
+        partial_matches = [nid for nid in self.runtime if node_id in nid]
+        if any(partial_matches):
+            node.override_mem_gb(max(
+                self.runtime[partial_match] for
+                partial_match in partial_matches))
+            return True
+        return False
+
     def _prerun_check(self, graph):
         """Check if any node exeeds the available resources"""
         tasks_mem_gb = []
@@ -114,19 +164,7 @@ class CpacNipypeCustomPluginMixin():
         overhead_memory_estimate = 1
         for node in graph.nodes():
             if hasattr(self, 'runtime'):
-                # override node memory estimate with provided runtime
-                # memory usage, buffered
-                node_id = node._id.split(  # pylint: disable=protected-access
-                    '.', 1)[0]
-                if node_id in self.runtime:
-                    node.override_mem_gb(self.runtime[node_id])
-                else:
-                    partial_matches = [nid for nid in self.runtime if
-                                       node_id in nid]
-                    if any(partial_matches):
-                        node.override_mem_gb(max(
-                            self.runtime[partial_match] for
-                            partial_match in partial_matches))
+                self._override_memory_estimate(node)
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:
