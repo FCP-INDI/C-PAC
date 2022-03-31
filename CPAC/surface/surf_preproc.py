@@ -1,3 +1,4 @@
+from logging import raiseExceptions
 import os
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -93,10 +94,21 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
+
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
     space_temp = ["space-template_desc-brain_T1w", "space-template_desc-head_T1w", "space-template_desc-T1w_mask",
                  "from-T1w_to-template_mode-image_xfm", "from-template_to-T1w_mode-image_xfm"]
+    mode_img_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
+    mode_img_inv_xfm = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
+
+    xfm = strat_pool.check_rpool(mode_img_xfm)
+    xfm_inv = strat_pool.check_rpool(mode_img_inv_xfm)
+
+    if (xfm_inv == "from-template_to-T1w_mode-image_desc-linear_xfm"):
+        mode_img_xfm = "from-T1w_to-template_mode-image_desc-linear_xfm"
+    else: 
+        mode_img_xfm = "from-T1w_to-template_mode-image_xfm"
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
@@ -107,11 +119,13 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data(space_temp) #was just space-template_desc-head_T1w
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
-    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    node, out = strat_pool.get_data(mode_img_xfm) #was just 'from-T1w_to-template_mode-image_xfm'
     wf.connect(node, out, surf, 'atlas_transform')
 
-    node, out = strat_pool.get_data('from-template_to-T1w_mode-image_xfm')
+    node, out = strat_pool.get_data(mode_img_inv_xfm) #was just 'from-template_to-T1w_mode-image_xfm'
     wf.connect(node, out, surf, 'inverse_atlas_transform')
+
+    raise Exception(mode_img_xfm)
 
     node, out = strat_pool.get_data('space-template_desc-brain_bold')
     wf.connect(node, out, surf, 'atlas_space_bold')
@@ -138,8 +152,8 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-longitudinal_desc-reorient_T1w"],
                 ["space-template_desc-brain_T1w", "space-template_desc-head_T1w",
                   "space-template_desc-T1w_mask"],
-                "from-T1w_to-template_mode-image_xfm",
-                "from-template_to-T1w_mode-image_xfm",
+                ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
+                ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
                 "space-template_desc-brain_bold",
                 "space-template_desc-scout_bold"],
      "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
