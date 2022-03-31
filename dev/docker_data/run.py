@@ -200,8 +200,11 @@ def run_main():
                              'configuration file.')
     parser.add_argument('--runtime_usage', type=str,
                         help='Path to a callback.log from a prior run of the '
-                             'same pipeline configuration. This log will be '
-                             'used to override per-node memory estimates with '
+                             'same pipeline configuration (including any '
+                             'resource-management parameters that will be '
+                             "applied in this run, like 'n_cpus' and "
+                             "'num_ants_threads'). This log will be used to "
+                             'override per-node memory estimates with '
                              'observed values plus a buffer.')
     parser.add_argument('--runtime_buffer', type=float,
                         help='Buffer to add to per-node memory estimates if '
