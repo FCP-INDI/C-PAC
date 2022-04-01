@@ -369,17 +369,17 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                    nodes['bold2template_mask'].out,
                    qc_file, 'bold2template_mask')
     else:
-        resample_bold_to_T1w_mask = pe.Node(afni.Resample(),
-            name=f'resample_bold_to_T1w_mask_{pipe_num}',
+        resample_bold_mask_to_anat_res = pe.Node(
+            afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
             mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
-        resample_bold_to_T1w_mask.inputs.outputtype = 'NIFTI_GZ'
-        resample_bold_to_T1w_mask.inputs.resample_mode = 'NN'
-        resample_bold_to_T1w_mask.inputs.voxel_size = res_string_to_tuple(
+        resample_bold_mask_to_anat_res.inputs.outputtype = 'NIFTI_GZ'
+        resample_bold_mask_to_anat_res.inputs.resample_mode = 'NN'
+        resample_bold_mask_to_anat_res.inputs.voxel_size = res_string_to_tuple(
             res_anat)
         wf.connect([
-            (nodes['bold2template_mask'].node, resample_bold_to_T1w_mask, [
-                (nodes['bold2template_mask'].out, 'in_file')]),
-            (resample_bold_to_T1w_mask, qc_file, [
+            (nodes['bold2template_mask'].node, resample_bold_mask_to_anat_res,
+             [(nodes['bold2template_mask'].out, 'in_file')]),
+            (resample_bold_mask_to_anat_res, qc_file, [
                 ('out_file', 'bold2template_mask')])
         ])
     nodes['template'] = strat_pool.node_data(['T1w-brain-template-funcreg',
