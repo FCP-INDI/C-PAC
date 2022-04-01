@@ -1,41 +1,39 @@
-import os
 import ast
-import six
-import json
-import warnings
 import logging
+import os
+import warnings
 import copy
-from unittest import TestCase
+import yaml
 
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from nipype.interfaces.utility import Rename
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.pipeline import \
+    nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype.interfaces.utility import \
+    Rename  # pylint: disable=wrong-import-order
 
+from CPAC.image_utils.spatial_smoothing import spatial_smoothing
+from CPAC.image_utils.statistical_transforms import z_score_standardize, \
+    fisher_z_score_standardize
+from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.nuisance import NuisanceRegressor
-
 from CPAC.utils import Outputs
-from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
-    get_last_prov_entry, ordereddict_to_dict, check_prov_for_regtool
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
     ingress_func_metadata,
     create_general_datasource,
-    create_check_for_s3_node,
     resolve_resolution
 )
-from CPAC.image_utils.spatial_smoothing import spatial_smoothing
-from CPAC.image_utils.statistical_transforms import z_score_standardize, \
-    fisher_z_score_standardize
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
+    get_last_prov_entry, check_prov_for_regtool
 
 logger = logging.getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
-class ResourcePool(object):
+class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
         if not rpool:
@@ -754,17 +752,19 @@ class ResourcePool(object):
         return wf
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-       
         excl = []
         substring_excl = []
+        outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
+        expected_outputs = ExpectedOutputs()
 
         if add_excl:
             excl += add_excl
-                       
-        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing']['output']:
+
+        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing'][
+                'output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
-            
+
         if 'raw' not in cfg.post_processing['z-scoring']['output']:
             excl += Outputs.native_raw
             excl += Outputs.template_raw
@@ -897,6 +897,8 @@ class ResourcePool(object):
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
+                expected_outputs += (out_dct['subdir'],
+                                     out_dct['filename'][len(unique_id)+1:])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -992,6 +994,8 @@ class ResourcePool(object):
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
 
+        outputs_logger.info(expected_outputs)
+
     def node_data(self, resource, **kwargs):
         '''Factory function to create NodeData objects
 
@@ -1006,7 +1010,7 @@ class ResourcePool(object):
         return NodeData(self, resource, **kwargs)
 
 
-class NodeBlock(object):
+class NodeBlock:
     def __init__(self, node_block_functions):
 
         if not isinstance(node_block_functions, list):
@@ -1084,9 +1088,9 @@ class NodeBlock(object):
 
     def check_output(self, outputs, label, name):
         if label not in outputs:
-            raise Exception('\n[!] Output name in the block function does '
-                            'not match the outputs list in Node Block '
-                            f'{name}\n')
+            raise NameError(f'\n[!] Output name "{label}" in the block '
+                            'function does not match the outputs list '
+                            f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg

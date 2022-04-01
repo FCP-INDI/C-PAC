@@ -1,13 +1,20 @@
 import os
+from urllib.error import URLError
+
+import nibabel as nb
+import nilearn.datasets
 import numpy as np
 import pandas as pd
-import nilearn.datasets
-import nibabel as nb
 
 from CPAC.cwas.pipeline import create_cwas
 
 def test_pipeline():
-
+    try:
+        # pylint: disable=invalid-name
+        cc = nilearn.datasets.fetch_atlas_craddock_2012()
+    except URLError:
+        print('Could not fetch atlas, skipping test')
+        return
     try:
         os.mkdir('/tmp/cwas')
     except:
@@ -28,10 +35,8 @@ def test_pipeline():
         FID in images[i]
         for i, FID in enumerate(pheno.FILE_ID)
     )
-
-    cc = nilearn.datasets.fetch_atlas_craddock_2012()
     img = nb.load(cc['scorr_mean'])
-    img_data = np.copy(img.get_data()[:,:,:,10])
+    img_data = np.copy(img.get_data()[:, :, :, 10])
     img_data[img_data != 2] = 0.0
     img = nb.Nifti1Image(img_data, img.affine)
     nb.save(img, '/tmp/cwas/roi.nii.gz')

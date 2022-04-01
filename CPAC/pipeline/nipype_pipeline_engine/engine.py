@@ -71,6 +71,7 @@ class Node(pe.Node):
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
+        self.input_data_shape = Undefined
         self._debug = False
         self.verbose_logger = None
 
@@ -339,7 +340,7 @@ class Node(pe.Node):
                     )
             except FileNotFoundError:
                 pass
-            del self._mem_x  # pylint: disable=no-member
+            del self._mem_x
         if self._debug:
             self.verbose_logger.debug('%s._mem_gb: %s', self.name,
                                       self._mem_gb)

@@ -7,6 +7,8 @@ import networkx as nx
 import socketserver
 import threading
 
+from traits.trait_base import Undefined
+
 from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
@@ -76,6 +78,12 @@ def log_nodes_cb(node, status):
         'estimated_memory_gb': node.mem_gb,
         'num_threads': node.n_procs,
     }
+
+    if (
+        hasattr(node, 'input_data_shape') and
+        node.input_data_shape is not Undefined
+    ):
+        status_dict['input_data_shape'] = node.input_data_shape
 
     if status_dict['start'] is None or status_dict['finish'] is None:
         status_dict['error'] = True

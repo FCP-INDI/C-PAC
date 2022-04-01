@@ -2,8 +2,8 @@ from builtins import str, bytes
 import inspect
 
 from nipype import logging
-from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined, isdefined,
-                    BaseInterfaceInputSpec)
+from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined,
+                                    isdefined, BaseInterfaceInputSpec)
 from nipype.interfaces.io import IOBase, add_traits
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import getsource, create_function_from_source
