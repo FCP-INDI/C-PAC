@@ -38,12 +38,10 @@ anatomical_preproc:
 registration_workflows:
   functional_registration:
     func_registration_to_template:
-
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
 
       output_resolution:
-
         # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
         # NOTE:
         #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
