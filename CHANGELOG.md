@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Made surface output filenames BIDSier
+- Uses max instead of sum for intial memory estimation
 
 ### Fixed
-- Merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
+- Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
 
 ## [1.8.3] - 2022-02-11
 
