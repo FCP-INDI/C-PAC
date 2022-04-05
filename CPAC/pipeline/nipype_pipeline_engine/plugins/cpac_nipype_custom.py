@@ -4,6 +4,7 @@ Custom methods for Nipype pipeline plugins:
 * _check_resources to account for the main process' memory usage.
 """
 import gc
+import json
 import platform
 import resource
 import sys
@@ -38,6 +39,25 @@ def get_peak_usage():
     return proc_peak / 1024. / 1024.
 
 
+def parse_previously_observed_mem_gb(callback_log_path):
+    """Function to parse the previously observed memory usage.
+
+    Parameters
+    ----------
+    callback_log_path : str
+        Path to the callback.log file.
+
+    Returns
+    -------
+    dict
+        Dictionary of per-node memory usage.
+    """
+    with open(callback_log_path, 'r') as cbl:
+        return {line['id'].split('.', 1)[-1]: line['runtime_memory_gb'] for
+                line in [json.loads(line) for line in cbl.readlines()] if
+                'runtime_memory_gb' in line}
+
+
 # pylint: disable=too-few-public-methods, missing-class-docstring
 class CpacNipypeCustomPluginMixin():
     def __init__(self, plugin_args=None):
@@ -45,6 +65,11 @@ class CpacNipypeCustomPluginMixin():
             plugin_args = {}
         if 'status_callback' not in plugin_args:
             plugin_args['status_callback'] = log_nodes_cb
+        if 'runtime' in plugin_args:
+            self.runtime = {node_key: observation * (
+                1 + plugin_args['runtime']['buffer'] / 100
+            ) for node_key, observation in parse_previously_observed_mem_gb(
+                plugin_args['runtime']['usage']).items()}
         super().__init__(plugin_args=plugin_args)
         self.peak = 0
         self._stats = None
@@ -79,6 +104,56 @@ class CpacNipypeCustomPluginMixin():
                                   "traceback": traceback}
         )
 
+    def _override_memory_estimate(self, node):
+        """
+        Override node memory estimate with provided runtime memory
+        usage, buffered
+
+        Parameters
+        ----------
+        node : nipype.pipeline.engine.nodes.Node
+
+        Returns
+        -------
+        None
+        """
+        if hasattr(node, 'list_node_names'):
+            for node_id in node.list_node_names():
+                # drop top-level node name
+                node_id = node_id.split('.', 1)[-1]
+        else:
+            node_id = node.fullname.split('.', 1)[-1]
+        if self._match_for_overrides(node, node_id):
+            return
+        while '.' in node_id: # iterate through levels of specificity
+            node_id = node_id.rsplit('.', 1)[0]
+            if self._match_for_overrides(node, node_id):
+                return
+
+    def _match_for_overrides(self, node, node_id):
+        """Match node memory estimate with provided runtime memory usage key
+
+        Parameters
+        ----------
+        node : nipype.pipeline.engine.nodes.Node
+
+        node_id : str
+
+        Returns
+        -------
+        bool : updated?
+        """
+        if node_id in self.runtime:
+            node.override_mem_gb(self.runtime[node_id])
+            return True
+        partial_matches = [nid for nid in self.runtime if node_id in nid]
+        if any(partial_matches):
+            node.override_mem_gb(max(
+                self.runtime[partial_match] for
+                partial_match in partial_matches))
+            return True
+        return False
+
     def _prerun_check(self, graph):
         """Check if any node exeeds the available resources"""
         tasks_mem_gb = []
@@ -88,6 +163,8 @@ class CpacNipypeCustomPluginMixin():
         # estimate of C-PAC + Nipype overhead (GB):
         overhead_memory_estimate = 1
         for node in graph.nodes():
+            if hasattr(self, 'runtime'):
+                self._override_memory_estimate(node)
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:

@@ -124,6 +124,15 @@ pipeline_setup:
     # Turning this option off will allow pipelines to run without allocating the recommended minimum, allowing for more efficient runs at the risk of out-of-memory crashes (use at your own risk)
     raise_insufficient: On
 
+    # A callback.log file from a previous run can be provided to estimate memory usage based on that run.
+    observed_usage:
+      # Path to callback log file with previously observed usage.
+      # Can be overridden with the commandline flag `--runtime_usage`.
+      callback_log:
+      # Percent. E.g., `buffer: 10` would estimate 1.1 * the observed memory usage from the callback log provided in "usage".
+      # Can be overridden with the commandline flag `--runtime_buffer`.
+      buffer: 10
+
     # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid)
     # to allocate per participant.
     # - Setting this above 1 will parallelize each participant's workflow where possible.

@@ -369,6 +369,9 @@ def generate_gantt_chart(
         if "start" in i and "finish" in i
     ]
 
+    if not nodes_list:
+        return
+
     for node in nodes_list:
         if "duration" not in node:
             node["duration"] = (node["finish"] - node["start"]).total_seconds()
@@ -552,12 +555,10 @@ def resource_report(callback_log, num_cores, logger=None):
             open(
                 callback_log + ".resource_overusage.txt", "w"
             ).write(txt_report)
-    except Exception:
-        e_msg += f'Excessive usage report failed for {callback_log}\n'
-    try:
-        generate_gantt_chart(callback_log, num_cores)
-    except Exception:
-        e_msg += f'Report generation failed for {callback_log}'
+    except Exception as exception:
+        e_msg += f'Excessive usage report failed for {callback_log} ' \
+                 f'({str(exception)})\n'
+    generate_gantt_chart(callback_log, num_cores)
     if e_msg:
         if logger is not None:
             logger.warning(e_msg, exc_info=1)
