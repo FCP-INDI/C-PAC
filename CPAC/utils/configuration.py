@@ -337,6 +337,22 @@ def collect_key_list(config_dict):
     return key_list
 
 
+def configuration_from_file(config_file):
+    """Function to load a Configuration from a pipeline config file.
+
+    Parameters
+    ----------
+    config_file : str
+        path to configuration file
+
+    Returns
+    -------
+    Configuration
+    """
+    with open(config_file, 'r') as config:
+        return Configuration(yaml.safe_load(config))
+
+
 def _enforce_forkability(config_dict):
     '''Function to set forkable booleans as lists of booleans.
 
