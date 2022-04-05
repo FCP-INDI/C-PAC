@@ -1,9 +1,14 @@
+"""C-PAC Configuration class"""
 import re
 import os
 import warnings
-import yaml
+
 from itertools import repeat
 from warnings import warn
+
+import yaml
+
+from CPAC.utils.utils import load_preconfig
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
@@ -37,7 +42,7 @@ class ConfigurationDictUpdateConflation(SyntaxError):
             'Perhaps you meant `Configuration().dict().update`?')
 
 
-class Configuration(object):
+class Configuration:
     """Class to set dictionary keys as map attributes.
 
     If the given dictionary includes the key `FROM`, that key's value
@@ -376,7 +381,20 @@ def _enforce_forkability(config_dict):
     return config_dict
 
 
-def set_from_ENV(conf):
+class Preconfiguration(Configuration):
+    """A preconfigured Configuration
+
+    Parameters
+    ----------
+    preconfig : str
+        The canonical name of the preconfig to load
+    """
+    def __init__(self, preconfig):
+        with open(load_preconfig(preconfig), 'r') as preconfig_yaml:
+            super().__init__(config_map=yaml.safe_load(preconfig_yaml))
+
+
+def set_from_ENV(conf):  # pylint: disable=invalid-name
     '''Function to replace strings like $VAR and ${VAR} with
     environment variable values
 
