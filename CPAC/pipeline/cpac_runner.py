@@ -106,6 +106,8 @@ def run_cpac_on_cluster(config_file, subject_list_file,
             'max_cores_per_participant'],
         'memory_gb': pipeline_config.pipeline_setup['system_config'][
             'maximum_memory_per_participant'],
+        'raise_insufficient': pipeline_config.pipeline_setup['system_config'][
+            'raise_insufficient'],
         'status_callback': log_nodes_cb}
 
     # Set up run command dictionary

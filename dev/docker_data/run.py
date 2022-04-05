@@ -198,6 +198,18 @@ def run_main():
                              'flag also takes precedence over '
                              'maximum_memory_per_participant in the pipeline '
                              'configuration file.')
+    parser.add_argument('--runtime_usage', type=str,
+                        help='Path to a callback.log from a prior run of the '
+                             'same pipeline configuration (including any '
+                             'resource-management parameters that will be '
+                             "applied in this run, like 'n_cpus' and "
+                             "'num_ants_threads'). This log will be used to "
+                             'override per-node memory estimates with '
+                             'observed values plus a buffer.')
+    parser.add_argument('--runtime_buffer', type=float,
+                        help='Buffer to add to per-node memory estimates if '
+                             '--runtime_usage is specified. This number is a '
+                             'percentage of the observed memory usage.')
     parser.add_argument('--num_ants_threads', type=int, default=0,
                         help='The number of cores to allocate to ANTS-'
                              'based anatomical registration per '
@@ -571,6 +583,13 @@ def run_main():
                 set_up_random_state(c['pipeline_setup']['system_config'][
                     'random_seed'])
 
+        if args.runtime_usage is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'callback_log'] = args.runtime_usage
+        if args.runtime_buffer is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'buffer'] = args.runtime_buffer
+
         c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
@@ -729,8 +748,17 @@ def run_main():
                     'max_cores_per_participant']),
                 'memory_gb': int(c['pipeline_setup']['system_config'][
                     'maximum_memory_per_participant']),
+                'raise_insufficient': c['pipeline_setup']['system_config'][
+                                        'raise_insufficient'],
                 'status_callback': log_nodes_cb
             }
+            if c['pipeline_setup']['system_config']['observed_usage'][
+                    'callback_log'] is not None:
+                plugin_args['runtime'] = {
+                    'usage': c['pipeline_setup']['system_config'][
+                        'observed_usage']['callback_log'],
+                    'buffer': c['pipeline_setup']['system_config'][
+                        'observed_usage']['buffer']}
 
             print("Starting participant level processing")
             CPAC.pipeline.cpac_runner.run(

@@ -26,6 +26,25 @@ UNDEFINED_SIZE = (42, 42, 42, 1200)
 random_state_logger = getLogger('random')
 
 
+def _check_mem_x_path(mem_x_path):
+    '''Function to check if a supplied multiplier path exists.
+
+    Parameters
+    ----------
+    mem_x_path : str, iterable, Undefined or None
+
+    Returns
+    -------
+    bool
+    '''
+    mem_x_path = _grab_first_path(mem_x_path)
+    try:
+        return mem_x_path is not Undefined and os.path.exists(
+            mem_x_path)
+    except (TypeError, ValueError):
+        return False
+
+
 def _doctest_skiplines(docstring, lines_to_skip):
     '''
     Function to add '  # doctest: +SKIP' to the end of docstring lines
@@ -59,41 +78,62 @@ def _doctest_skiplines(docstring, lines_to_skip):
     ])
 
 
+def _grab_first_path(mem_x_path):
+    '''Function to grab the first path if multiple paths for given
+    multiplier input
+
+    Parameters
+    ----------
+    mem_x_path : str, iterable, Undefined or None
+
+    Returns
+    -------
+    str, Undefined or None
+    '''
+    if isinstance(mem_x_path, (list, TraitListObject, tuple)):
+        mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
+    return mem_x_path
+
+
 class Node(pe.Node):
+    # pylint: disable=empty-docstring,too-many-instance-attributes
     __doc__ = _doctest_skiplines(
         pe.Node.__doc__,
         {"    >>> realign.inputs.in_files = 'functional.nii'"}
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+        # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
         self.input_data_shape = Undefined
-
+        self._debug = False
+        self.verbose_logger = None
+        self._mem_x = {}
         if 'mem_x' in kwargs and isinstance(
             kwargs['mem_x'], (tuple, list)
         ):
-            mem_x = {}
             if len(kwargs['mem_x']) == 3:
                 (
-                    mem_x['multiplier'],
-                    mem_x['file'],
-                    mem_x['mode']
+                    self._mem_x['multiplier'],
+                    self._mem_x['file'],
+                    self._mem_x['mode']
                 ) = kwargs['mem_x']
             else:
-                mem_x['mode'] = 'xyzt'
+                self._mem_x['mode'] = 'xyzt'
                 if len(kwargs['mem_x']) == 2:
                     (
-                        mem_x['multiplier'],
-                        mem_x['file']
+                        self._mem_x['multiplier'],
+                        self._mem_x['file']
                     ) = kwargs['mem_x']
                 else:
-                    mem_x['multiplier'] = kwargs['mem_x']
-                    mem_x['file'] = None
-            setattr(self, '_mem_x', mem_x)
+                    self._mem_x['multiplier'] = kwargs['mem_x']
+                    self._mem_x['file'] = None
+        else:
+            delattr(self, '_mem_x')
         setattr(self, 'skip_timeout', False)
 
     orig_sig_params = list(signature(pe.Node).parameters.items())
@@ -141,7 +181,7 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)''']))  # noqa: E501
+            * 't' (temporal)''']))  # noqa: E501  # pylint: disable=line-too-long
 
     def _add_flags(self, flags):
         r'''
@@ -181,6 +221,84 @@ class Node(pe.Node):
         else:
             self.inputs.args = prep_flags('args')
 
+    def _apply_mem_x(self, multiplicand=None):
+        '''Method to calculate and memoize a Node's estimated memory
+        footprint.
+
+        Parameters
+        ----------
+        multiplicand : str or int or float or list thereof or
+                       3-or-4-tuple or None
+            Any of
+            * path to file(s) with shape to multiply by multiplier
+            * multiplicand
+            * shape of image to consider with mode
+
+        Returns
+        -------
+        number
+            estimated memory usage (GB)
+        '''
+        def parse_multiplicand(multiplicand):
+            '''
+            Returns an numeric value for a multiplicand if
+            multipland is a string or None.
+
+            Parameters
+            ----------
+            muliplicand : any
+
+            Returns
+            -------
+            int or float
+            '''
+            if self._debug:
+                self.verbose_logger.debug('%s multiplicand: %s', self.name,
+                                          multiplicand)
+            if isinstance(multiplicand, list):
+                return max([parse_multiplicand(part) for part in multiplicand])
+            if isinstance(multiplicand, (int, float)):
+                return multiplicand
+            if (
+                isinstance(multiplicand, tuple) and
+                3 <= len(multiplicand) <= 4 and
+                all(isinstance(i, (int, float)) for i in multiplicand)
+            ):
+                return get_data_size(
+                    multiplicand,
+                    getattr(self, '_mem_x', {}).get('mode'))
+            if _check_mem_x_path(multiplicand):
+                return get_data_size(
+                    _grab_first_path(multiplicand),
+                    getattr(self, '_mem_x', {}).get('mode'))
+            return 1
+
+        if hasattr(self, '_mem_x'):
+            if self._debug:
+                self.verbose_logger.debug('%s.mem_x: %s', self.name,
+                                          self.mem_x)
+            if multiplicand is None:
+                multiplicand = self._mem_x_file()
+            setattr(self, '_mem_gb', (
+                self._mem_gb +
+                self._mem_x.get('multiplier', 0) *
+                parse_multiplicand(multiplicand)))
+            try:
+                if self._mem_gb > 1000:
+                    self.logger.warning(
+                        '%s is estimated to use %.3f GB (%s).',
+                        self.name,
+                        self._mem_gb,
+                        getattr(self, '_mem_x')
+                    )
+            except FileNotFoundError:
+                pass
+            del self._mem_x
+        if self._debug:
+            self.verbose_logger.debug('%s._mem_gb: %s', self.name,
+                                      self._mem_gb)
+        return self._mem_gb
+
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
         # pylint: disable=import-outside-toplevel
@@ -212,162 +330,17 @@ class Node(pe.Node):
                 return self._apply_mem_x()
             try:
                 mem_x_path = getattr(self.inputs, self._mem_x['file'])
-            except AttributeError as e:
+            except AttributeError as attribute_error:
                 raise AttributeError(
-                    f'{e.args[0]} in Node \'{self.name}\'') from e
-            if self._check_mem_x_path(mem_x_path):
+                    f'{attribute_error.args[0]} in Node \'{self.name}\''
+                ) from attribute_error
+            if _check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
                 return self._apply_mem_x()
             raise FileNotFoundError(2, 'The memory estimate for Node '
                                     f"'{self.name}' depends on the input "
                                     f"'{self._mem_x['file']}' but "
                                     'no such file or directory', mem_x_path)
-        return self._mem_gb
-
-    def _check_mem_x_path(self, mem_x_path):
-        '''Method to check if a supplied multiplier path exists.
-
-        Parameters
-        ----------
-        mem_x_path : str, iterable, Undefined or None
-
-        Returns
-        -------
-        bool
-        '''
-        mem_x_path = self._grab_first_path(mem_x_path)
-        try:
-            return mem_x_path is not Undefined and os.path.exists(
-                mem_x_path)
-        except (TypeError, ValueError):
-            return False
-
-    def get_data_size(self, filepath, mode='xyzt'):
-        """Function to return the size of a functional image (x * y * z * t)
-
-        Parameters
-        ----------
-        filepath : str or path
-            path to image file
-            OR
-            4-tuple
-            stand-in dimensions (x, y, z, t)
-
-        mode : str
-            One of:
-            * 'xyzt' (all dimensions multiplied) (DEFAULT)
-            * 'xyz' (spatial dimensions multiplied)
-            * 't' (number of TRs)
-
-        Returns
-        -------
-        int or float
-        """
-        if isinstance(filepath, str):
-            data_shape = load(filepath).shape
-        elif isinstance(filepath, tuple) and len(filepath) == 4:
-            data_shape = filepath
-        self.input_data_shape = data_shape
-        if mode == 't':
-            # if the data has muptiple TRs, return that number
-            if len(data_shape) > 3:
-                return data_shape[3]
-            # otherwise return 1
-            return 1
-        if mode == 'xyz':
-            return prod(data_shape[0:3]).item()
-        return prod(data_shape).item()
-
-    def _grab_first_path(self, mem_x_path):
-        '''Method to grab the first path if multiple paths for given
-        multiplier input
-
-        Parameters
-        ----------
-        mem_x_path : str, iterable, Undefined or None
-
-        Returns
-        -------
-        str, Undefined or None
-        '''
-        if (
-            isinstance(mem_x_path, list) or
-            isinstance(mem_x_path, TraitListObject) or
-            isinstance(mem_x_path, tuple)
-        ):
-            mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
-        return mem_x_path
-
-    def _mem_x_file(self):
-        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
-
-    def _apply_mem_x(self, multiplicand=None):
-        '''Method to calculate and memoize a Node's estimated memory
-        footprint.
-
-        Parameters
-        ----------
-        multiplicand : str or int or float or list thereof or None
-            Any of
-            * path to file(s) with shape to multiply by multiplier
-            * multiplicand
-            * shape of image to consider with mode
-
-        Returns
-        -------
-        number
-            estimated memory usage (GB)
-        '''
-        def parse_multiplicand(multiplicand):
-            '''
-            Returns an numeric value for a multiplicand if
-            multipland is a string or None.
-
-            Parameters
-            ----------
-            muliplicand : any
-
-            Returns
-            -------
-            int or float
-            '''
-            if isinstance(multiplicand, list):
-                return sum([parse_multiplicand(part) for part in multiplicand])
-            if isinstance(multiplicand, (int, float)):
-                return multiplicand
-            if (
-                isinstance(multiplicand, tuple) and
-                3 <= len(multiplicand) <= 4 and
-                all(isinstance(i, (int, float)) for i in multiplicand)
-            ):
-                return self.get_data_size(
-                    multiplicand,
-                    getattr(self, '_mem_x', {}).get('mode'))
-            if self._check_mem_x_path(multiplicand):
-                return self.get_data_size(
-                    self._grab_first_path(multiplicand),
-                    getattr(self, '_mem_x', {}).get('mode'))
-            return 1
-
-        if hasattr(self, '_mem_x'):
-            if multiplicand is None:
-                multiplicand = self._mem_x_file()
-            self._mem_gb = (
-                self._mem_gb +
-                self._mem_x['multiplier'] *  # pylint: disable=no-member
-                parse_multiplicand(multiplicand)
-            )
-            try:
-                if self._mem_gb > 1000:
-                    self.logger.warning(
-                        '%s is estimated to use %.3f GB (%s).',
-                        self.name,
-                        self._mem_gb,
-                        getattr(self, '_mem_x')
-                    )
-            except FileNotFoundError:
-                pass
-            del self._mem_x
         return self._mem_gb
 
     @property
@@ -377,7 +350,23 @@ class Node(pe.Node):
         temporal only). Returns ``None`` if already consumed or not set."""
         return getattr(self, '_mem_x', None)
 
+    def _mem_x_file(self):
+        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
+
+    def override_mem_gb(self, new_mem_gb):
+        """Override the Node's memory estimate with a new value.
+
+        Parameters
+        ----------
+        new_mem_gb : int or float
+            new memory estimate in GB
+        """
+        if hasattr(self, '_mem_x'):
+            delattr(self, '_mem_x')
+        setattr(self, '_mem_gb', new_mem_gb)
+
     def run(self, updatehash=False):
+        self.__doc__ = getattr(super(), '__doc__', '')
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
@@ -407,9 +396,34 @@ class MapNode(Node, pe.MapNode):
 
 
 class Workflow(pe.Workflow):
+    """Controls the setup and execution of a pipeline of processes."""
+
+    def __init__(self, name, base_dir=None, debug=False):
+        """Create a workflow object.
+        Parameters
+        ----------
+        name : alphanumeric string
+            unique identifier for the workflow
+        base_dir : string, optional
+            path to workflow storage
+        debug : boolean, optional
+            enable verbose debug-level logging
+        """
+        import networkx as nx
+
+        super().__init__(name, base_dir)
+        self._debug = debug
+        self.verbose_logger = getLogger('engine') if debug else None
+        self._graph = nx.DiGraph()
+
+        self._nodes_cache = set()
+        self._nested_workflows_cache = set()
+
     def _configure_exec_nodes(self, graph):
         """Ensure that each node knows where to get inputs from"""
         for node in graph.nodes():
+            node._debug = self._debug  # pylint: disable=protected-access
+            node.verbose_logger = self.verbose_logger
             node.input_source = {}
             for edge in graph.in_edges(node):
                 data = graph.get_edge_data(*edge)
@@ -453,3 +467,39 @@ class Workflow(pe.Workflow):
         else:
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
+
+
+def get_data_size(filepath, mode='xyzt'):
+    """Function to return the size of a functional image (x * y * z * t)
+
+    Parameters
+    ----------
+    filepath : str or path
+        path to image file
+        OR
+        4-tuple
+        stand-in dimensions (x, y, z, t)
+
+    mode : str
+        One of:
+        * 'xyzt' (all dimensions multiplied) (DEFAULT)
+        * 'xyz' (spatial dimensions multiplied)
+        * 't' (number of TRs)
+
+    Returns
+    -------
+    int or float
+    """
+    if isinstance(filepath, str):
+        data_shape = load(filepath).shape
+    elif isinstance(filepath, tuple) and len(filepath) == 4:
+        data_shape = filepath
+    if mode == 't':
+        # if the data has muptiple TRs, return that number
+        if len(data_shape) > 3:
+            return data_shape[3]
+        # otherwise return 1
+        return 1
+    if mode == 'xyz':
+        return prod(data_shape[0:3]).item()
+    return prod(data_shape).item()

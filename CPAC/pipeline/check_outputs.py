@@ -45,8 +45,9 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
         with open(outputs_log, 'r') as expected_outputs_file:
             expected_outputs = yaml.safe_load(expected_outputs_file.read())
         for subdir, filenames in expected_outputs.items():
-            observed_outputs = os.listdir(
-                os.path.join(output_dir, container, subdir))
+            full_dir = os.path.join(output_dir, container, subdir)
+            observed_outputs = os.listdir(full_dir) if os.path.exists(
+                full_dir) else []
             for filename in filenames:
                 if not fnmatch.filter(observed_outputs,
                                       f'*{unique_id}*'

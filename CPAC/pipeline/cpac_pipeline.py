@@ -262,7 +262,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                            'expectedOutputs.yml',
                   level='info', log_dir=log_dir, mock=True)
     if c.pipeline_setup['Debugging']['verbose']:
-        set_up_logger('engine', level='debug', log_dir=log_dir)
+        set_up_logger('engine', level='debug', log_dir=log_dir, mock=True)
 
     config.update_config({
         'logging': {
@@ -295,6 +295,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     plugin_args['memory_gb'] = sub_mem_gb
     plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['raise_insufficient'] = c['pipeline_setup', 'system_config',
+                                          'raise_insufficient']
     plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
@@ -483,8 +485,7 @@ Please, make yourself aware of how it works and its assumptions:
             subject_info['status'] = 'Running'
 
             # Create callback logger
-            cb_log_filename = os.path.join(log_dir,
-                                           'callback.log')
+            cb_log_filename = os.path.join(log_dir, 'callback.log')
 
             try:
                 if not os.path.exists(os.path.dirname(cb_log_filename)):
@@ -493,7 +494,8 @@ Please, make yourself aware of how it works and its assumptions:
                 pass
 
             # Add handler to callback log file
-            set_up_logger('callback', cb_log_filename, 'debug', log_dir)
+            set_up_logger('callback', cb_log_filename, 'debug', log_dir,
+                          mock=True)
 
             # Log initial information from all the nodes
             log_nodes_initial(workflow)
@@ -713,9 +715,9 @@ CPAC run error:
         finally:
 
             if workflow:
-
-                resource_report(cb_log_filename,
-                                num_cores_per_sub, logger)
+                if os.path.exists(cb_log_filename):
+                    resource_report(cb_log_filename,
+                                    num_cores_per_sub, logger)
 
                 logger.info('%s', execution_info.format(
                     workflow=workflow.name,
