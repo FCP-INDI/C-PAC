@@ -212,9 +212,8 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
 
     roi_mask_img = nb.load(roi_mask)
     roi_mask_data = roi_mask_img.get_fdata()
-    erode_in = (mask_erosion_mm is not None and mask_erosion_mm > 0 or
-                mask_erosion_prop is not None and mask_erosion_prop < 1 and
-                mask_erosion_prop > 0)
+    erode_in = ((mask_erosion_mm is not None and mask_erosion_mm > 0) or
+                (mask_erosion_prop is not None and 0 < mask_erosion_prop < 1))
     if erode_in:
         if mask_erosion_mm:
             iter_n = max(
