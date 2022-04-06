@@ -182,7 +182,7 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
+    T1w_brain_template_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -329,7 +329,7 @@ registration_workflows:
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
+          T1w_brain_template_mask_funcreg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_mask.nii.gz
 
           # a standard template for resampling if using float resolution
           T1w_template_for_resample: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
