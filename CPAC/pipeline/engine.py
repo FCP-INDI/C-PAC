@@ -1721,7 +1721,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
                 'system_config']['FSLDIR'])
         if '$priors_path' in val:
-            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path'] or ''
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
