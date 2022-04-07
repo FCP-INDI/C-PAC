@@ -250,8 +250,8 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
     n_vols_censored = len(
         censor_indices) if censor_indices is not None else 'unknown'
     shape_params = {'nVolCensored': n_vols_censored,
-                    'nVolsRemoved': images['final_func'].shape[3] -
-                    images['original_func'].shape[3]}
+                    'nVolsRemoved': images['original_func'].shape[3] -
+                    images['final_func'].shape[3]}
 
     if isinstance(final_func, BufferedReader):
         final_func = final_func.name
