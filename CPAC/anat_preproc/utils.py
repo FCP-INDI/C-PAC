@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import nipype.interfaces.utility as util
+
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
 def fsl_aff_to_rigid(in_xfm, out_name):
@@ -127,15 +130,80 @@ def fsl_aff_to_rigid(in_xfm, out_name):
     return out_mat
 
 
+def freesurfer_hemispheres(wf, reconall, pipe_num):
+    """Function to return various hemisphere-specific FreeSurfer outputs.
+
+    Parameters
+    ----------
+    wf : nipype.pipeline.engine.workflows.Workflow
+        Workflow object.
+
+    reconall : nipype.pipeline.engine.nodes.Node
+
+    pipe_num : int
+
+    Returns
+    -------
+    wf : nipype.pipeline.engine.workflows.Workflow
+
+    outputs : dict
+    """
+    def split_hemi(multi_file):
+        # pylint: disable=invalid-name
+        lh = None
+        rh = None
+        for filepath in multi_file:
+            if 'lh.' in filepath:
+                lh = filepath
+            if 'rh.' in filepath:
+                rh = filepath
+        return (lh, rh)
+
+    def split_hemi_interface():
+        """Returns a function interface for split_hemi."""
+        return util.Function(input_names=['multi_file'],
+                             output_names=['lh', 'rh'],
+                             function=split_hemi)
+
+    splits = {
+        label: pe.Node(split_hemi_interface(),
+                       name=f'split_{label}_{pipe_num}') for
+        label in ['curv', 'pial', 'smoothwm', 'sphere', 'sulc', 'thickness',
+                  'volume', 'white']
+    }
+    for label in splits:
+        wf.connect(reconall, label, splits[label], 'multi_file')
+    outputs = {
+        'hemi-L_desc-surface_curv': (splits['curv'], 'lh'),
+        'hemi-R_desc-surface_curv': (splits['curv'], 'rh'),
+        'hemi-L_desc-surfaceMesh_pial': (splits['pial'], 'lh'),
+        'hemi-R_desc-surfaceMesh_pial': (splits['pial'], 'rh'),
+        'hemi-L_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'lh'),
+        'hemi-R_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'rh'),
+        'hemi-L_desc-surfaceMesh_sphere': (splits['sphere'], 'lh'),
+        'hemi-R_desc-surfaceMesh_sphere': (splits['sphere'], 'rh'),
+        'hemi-L_desc-surfaceMap_sulc': (splits['sulc'], 'lh'),
+        'hemi-R_desc-surfaceMap_sulc': (splits['sulc'], 'rh'),
+        'hemi-L_desc-surfaceMap_thickness': (splits['thickness'], 'lh'),
+        'hemi-R_desc-surfaceMap_thickness': (splits['thickness'], 'rh'),
+        'hemi-L_desc-surfaceMap_volume': (splits['volume'], 'lh'),
+        'hemi-R_desc-surfaceMap_volume': (splits['volume'], 'rh'),
+        'hemi-L_desc-surfaceMesh_white': (splits['white'], 'lh'),
+        'hemi-R_desc-surfaceMesh_white': (splits['white'], 'rh')}
+
+    return wf, outputs
+
+
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    shrink_fac_bot_lim, avoid_vent, niter,
                                    pushout, touchup, fill_hole, avoid_eyes,
                                    use_edge, exp_frac, NN_smooth, smooth_final,
                                    push_to_edge, use_skull, perc_int,
-                                   max_inter_iter, blur_fwhm, fac, monkey, mask_vol):
+                                   max_inter_iter, blur_fwhm, fac, monkey,
+                                   mask_vol):
     """
     Method to return option string for 3dSkullStrip
-    
+
     Parameters
     ----------
     shrink_fac : float

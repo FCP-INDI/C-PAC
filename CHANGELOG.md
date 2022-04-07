@@ -10,12 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the ability to follow symlinks for BIDS directories
 - Added log of expected outputs, generated at the beginning of the run
+- Added additional surface derivatives to outputs directory
+- Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
+- Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
 
 ### Changed
-- 
+- Made surface output filenames BIDSier
+- Uses max instead of sum for intial memory estimation
 
 ### Fixed
-- Merge error preventing QC files copying to output directory and renaming connectome → connectivity matrix files
+- Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
+- Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
 
 ## [1.8.3] - 2022-02-11
 

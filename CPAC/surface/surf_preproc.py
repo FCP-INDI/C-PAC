@@ -23,6 +23,18 @@ def run_surface(post_freesurfer_folder,
                 freesurfer_labels,
                 fmri_res,
                 smooth_fwhm):
+    """
+    Returns
+    -------
+    dtseries : str
+        Path to the dtseries file.
+
+    desikan_killiany : str
+        Path to the Desikan-Killiany parcellation file.
+
+    destrieux : str
+        Path to the Destrieux parcellation file.
+    """
 
     import os
     import subprocess
@@ -42,44 +54,62 @@ def run_surface(post_freesurfer_folder,
 
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
-    cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh', '--post_freesurfer_folder', post_freesurfer_folder,\
-        '--subject', subject, '--fmri', atlas_space_bold, '--scout', scout_bold,
-        '--lowresmesh', low_res_mesh, '--grayordinatesres', gray_ordinates_res,
-        '--fmrires', fmri_res, '--smoothingFWHM', smooth_fwhm]
+    cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh',
+           '--post_freesurfer_folder', post_freesurfer_folder,
+           '--subject', subject, '--fmri', atlas_space_bold, '--scout',
+           scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
+           gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
+           smooth_fwhm]
     subprocess.check_output(cmd)
 
-    out_file = os.path.join(post_freesurfer_folder, 'MNINonLinear/Results/task-rest01/task-rest01_Atlas.dtseries.nii')
+    dtseries = os.path.join(post_freesurfer_folder,
+                            'MNINonLinear/Results/task-rest01/'
+                            'task-rest01_Atlas.dtseries.nii')
+    aparc = {'desikan_killiany': {
+        164: os.path.join(post_freesurfer_folder, 'MNINonLinear'
+                          f'{subject}.aparc.164k_fs_LR.dlabel.nii'),
+        32: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                         'fsaverage_LR32k',
+                         f'{subject}.aparc.32k_fs_LR.dlabel.nii')},
+             'destrieux': {
+        164: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                          f'{subject}.aparc.a2009s.164k_fs_LR.dlabel.nii'),
+        32: os.path.join(post_freesurfer_folder, 'MNINonLinear',
+                         'fsaverage_LR32k',
+                         f'{subject}.aparc.a2009s.32k_fs_LR.dlabel.nii')}}
 
-    return out_file
+    return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
+            aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
 
 def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
-                                            'freesurfer_folder',
-                                            'subject',
-                                            't1w_restore_image',
-                                            'atlas_space_t1w_image',
-                                            'atlas_transform',
-                                            'inverse_atlas_transform',
-                                            'atlas_space_bold',
-                                            'scout_bold',
-                                            'surf_atlas_dir',
-                                            'gray_ordinates_dir',
-                                            'gray_ordinates_res',
-                                            'high_res_mesh',
-                                            'low_res_mesh',
-                                            'subcortical_gray_labels',
-                                            'freesurfer_labels',
-                                            'fmri_res',
-                                            'smooth_fwhm'],
-                                output_names=['dtseries',
-                                            'desikan_killiany_164',
-                                            'destrieux_164',
-                                            'desikan_killiany_32',
-                                            'destrieux_32'],
-                                function=run_surface),
-                    name=f'post_freesurfer_{pipe_num}')
+                                              'freesurfer_folder',
+                                              'subject',
+                                              't1w_restore_image',
+                                              'atlas_space_t1w_image',
+                                              'atlas_transform',
+                                              'inverse_atlas_transform',
+                                              'atlas_space_bold',
+                                              'scout_bold',
+                                              'surf_atlas_dir',
+                                              'gray_ordinates_dir',
+                                              'gray_ordinates_res',
+                                              'high_res_mesh',
+                                              'low_res_mesh',
+                                              'subcortical_gray_labels',
+                                              'freesurfer_labels',
+                                              'fmri_res',
+                                              'smooth_fwhm'],
+                                 output_names=['dtseries',
+                                               'desikan_killiany_164',
+                                               'destrieux_164',
+                                               'desikan_killiany_32',
+                                               'destrieux_32'],
+                                 function=run_surface),
+                   name=f'post_freesurfer_{pipe_num}')
+
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
