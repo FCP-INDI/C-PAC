@@ -245,6 +245,8 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
         'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0],
         'desc': desc
     }
+    if from_bids['space'].startswith('tpl-'):
+        from_bids['space'] = from_bids['space'][4:]
 
     # `nVolCensored` & `nVolsRemoved`
     n_vols_censored = len(
