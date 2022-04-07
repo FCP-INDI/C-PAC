@@ -73,7 +73,11 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                             'freesurfer_labels',
                                             'fmri_res',
                                             'smooth_fwhm'],
-                                output_names=['out_file'],
+                                output_names=['dtseries',
+                                            'desikan_killiany_164',
+                                            'destrieux_164',
+                                            'desikan_killiany_32',
+                                            'destrieux_32'],
                                 function=run_surface),
                     name=f'post_freesurfer_{pipe_num}')
     surf.inputs.subject = cfg['subject_id']
@@ -127,7 +131,15 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, surf, 'scout_bold')
 
     outputs = {
-        'space-fsLR_den-32k_bold-dtseries': (surf, 'out_file')
+        'atlas-DesikanKilliany_space-fsLR_den-32k_dlabel': (surf,
+                                                            'desikan_'
+                                                            'killiany_32'),
+        'atlas-Destrieux_space-fsLR_den-32k_dlabel': (surf, 'destrieux_32'),
+        'atlas-DesikanKilliany_space-fsLR_den-164k_dlabel': (surf,
+                                                             'desikan_'
+                                                             'killiany_164'),
+        'atlas-Destrieux_space-fsLR_den-164k_dlabel': (surf, 'destrieux_164'),
+        'space-fsLR_den-32k_bold-dtseries': (surf, 'dtseries')
     }
 
     return wf, outputs
@@ -149,7 +161,11 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["space-template_desc-preproc_bold", "space-template_desc-brain_bold"],
                 ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
                 "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
-     "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
+     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+                 "atlas-Destrieux_space-fsLR_den-32k_dlabel",
+                 "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
+                 "atlas-Destrieux_space-fsLR_den-164k_dlabel",
+                 "space-fsLR_den-32k_bold-dtseries"]}
     '''
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
