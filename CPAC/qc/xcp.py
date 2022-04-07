@@ -360,30 +360,12 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(
         ['T1w-brain-template-mask', 'EPI-template-mask'])
-    res_anat = cfg['registration_workflows', 'anatomical_registration',
-                   'resolution_for_anat']
-    if res_anat == cfg['registration_workflows', 'functional_registration',
-                       'func_registration_to_template', 'output_resolution',
-                       'func_preproc_outputs']:
-        wf.connect(nodes['bold2template_mask'].node,
-                   nodes['bold2template_mask'].out,
-                   qc_file, 'bold2template_mask')
-    else:
-        resample_bold_mask_to_anat_res = pe.Node(
-            afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
-            mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
-        resample_bold_mask_to_anat_res.inputs.outputtype = 'NIFTI_GZ'
-        resample_bold_mask_to_anat_res.inputs.resample_mode = 'NN'
-        resample_bold_mask_to_anat_res.inputs.voxel_size = res_string_to_tuple(
-            res_anat)
-        wf.connect([
-            (nodes['bold2template_mask'].node, resample_bold_mask_to_anat_res,
-             [(nodes['bold2template_mask'].out, 'in_file')]),
-            (resample_bold_mask_to_anat_res, qc_file, [
-                ('out_file', 'bold2template_mask')])
-        ])
     nodes['template'] = strat_pool.node_data(['T1w-brain-template-funcreg',
                                               'EPI-brain-template-funcreg'])
+    resample_bold_mask_to_template = pe.Node(
+        afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
+        mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
+    resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
     wf = _connect_motion(wf, strat_pool, qc_file,
                          brain_mask_key='space-bold_desc-brain_mask',
                          final_func=func['final'], pipe_num=pipe_num)
@@ -401,7 +383,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (func['space-T1w'].node, qc_file, [
             (func['space-T1w'].out, 'space_T1w_bold')]),
         (nodes['template'].node, qc_file, [
-            (nodes['template'].out, 'template')])])
+            (nodes['template'].out, 'template')]),
+        (nodes['template_mask'].node, resample_bold_mask_to_template, [
+             (nodes['template_mask'].out, 'master')]),
+        (nodes['bold2template_mask'].node, resample_bold_mask_to_template,
+            [(nodes['bold2template_mask'].out, 'in_file')]),
+        (resample_bold_mask_to_template, qc_file, [
+            ('out_file', 'bold2template_mask')])])
 
     return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
 
