@@ -132,7 +132,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
-def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
+def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "surface_preproc",
      "config": ["surface_analysis", "post_freesurfer"],
