@@ -76,7 +76,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                 output_names=['out_file'],
                                 function=run_surface),
                     name=f'post_freesurfer_{pipe_num}')
-
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
@@ -101,36 +100,30 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                  "from-T1w_to-template_mode-image_xfm", "from-template_to-T1w_mode-image_xfm"]
     mode_img_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
     mode_img_inv_xfm = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
+    atlas_space_bold = ["space-template_desc-preproc_bold", "space-template_desc-brain_bold"]
+    scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
+                  "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]
 
-    xfm = strat_pool.check_rpool(mode_img_xfm)
-    xfm_inv = strat_pool.check_rpool(mode_img_inv_xfm)
-
-    if (xfm_inv == "from-template_to-T1w_mode-image_desc-linear_xfm"):
-        mode_img_xfm = "from-T1w_to-template_mode-image_desc-linear_xfm"
-    else: 
-        mode_img_xfm = "from-T1w_to-template_mode-image_xfm"
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
 
-    node, out = strat_pool.get_data(restore) #was just desc-restore_T1w
+    node, out = strat_pool.get_data(restore) 
     wf.connect(node, out, surf, 't1w_restore_image')
 
-    node, out = strat_pool.get_data(space_temp) #was just space-template_desc-head_T1w
+    node, out = strat_pool.get_data(space_temp) 
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
-    node, out = strat_pool.get_data(mode_img_xfm) #was just 'from-T1w_to-template_mode-image_xfm'
+    node, out = strat_pool.get_data(mode_img_xfm) 
     wf.connect(node, out, surf, 'atlas_transform')
 
-    node, out = strat_pool.get_data(mode_img_inv_xfm) #was just 'from-template_to-T1w_mode-image_xfm'
+    node, out = strat_pool.get_data(mode_img_inv_xfm) 
     wf.connect(node, out, surf, 'inverse_atlas_transform')
 
-    raise Exception(mode_img_inv_xfm)
-
-    node, out = strat_pool.get_data('space-template_desc-brain_bold')
+    node, out = strat_pool.get_data(atlas_space_bold) 
     wf.connect(node, out, surf, 'atlas_space_bold')
 
-    node, out = strat_pool.get_data('space-template_desc-scout_bold')
+    node, out = strat_pool.get_data(scout_bold)
     wf.connect(node, out, surf, 'scout_bold')
 
     outputs = {
@@ -138,7 +131,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     }
 
     return wf, outputs
-
 
 def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -148,17 +140,17 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["freesurfer-subject-dir",
-                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
-                  "space-longitudinal_desc-reorient_T1w"],
-                ["space-template_desc-brain_T1w", "space-template_desc-head_T1w",
-                  "space-template_desc-T1w_mask"],
+                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
+                "space-longitudinal_desc-reorient_T1w"],
+                ["space-template_desc-brain_T1w", "space-template_desc-head_T1w", 
+                "space-template_desc-T1w_mask"],
                 ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
                 ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                "space-template_desc-brain_bold",
-                "space-template_desc-scout_bold"],
+                ["space-template_desc-preproc_bold", "space-template_desc-brain_bold"],
+                ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
+                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
      "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
     '''
-
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
