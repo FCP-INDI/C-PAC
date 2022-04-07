@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added additional surface derivatives to outputs directory
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
-- Added possibility for freesurfer to be used with ccs-options pipeline
+- Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
 
 ### Changed
 - Made surface output filenames BIDSier
