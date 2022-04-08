@@ -1397,66 +1397,66 @@ nuisance_corrections:
         # Erode binarized anatomical brain mask. If choosing True, please also set regressor_masks['erode_csf']['run']: True; anatomical_preproc['brain_extraction']['using']: niworkflows-ants.
         run: Off
 
-        # Erosion proportion, if using erosion.
-        # Default proportion is 0 for anatomical brain mask.
-        # Recommend that do not use erosion in both proportion and millimeter method.
-        brain_mask_erosion_prop : 0
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for anatomical brain mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        brain_mask_erosion_prop:
 
-        # Erode brain mask in millimeter, default of brain is 30 mm
-        # brain erosion default is using millimeter erosion method when use erosion for brain.
-        brain_mask_erosion_mm : 30
+        # Erode brain mask in millimeters, default for brain mask is 30 mm
+        # Brain erosion default is using millimeters.
+        brain_mask_erosion_mm: 30
 
         # Erode binarized brain mask in millimeter
-        brain_erosion_mm: 0
+        brain_erosion_mm:
 
       erode_csf:
 
         # Erode binarized csf tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop : 0
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for cerebrospinal fluid mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        csf_erosion_prop:
 
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        # CSF erosion default is using millimeter erosion method when use erosion for CSF.
+        # Erode cerebrospinal fluid mask in millimeters, default for cerebrospinal fluid is 30mm
+        # Cerebrospinal fluid erosion default is using millimeters.
         csf_mask_erosion_mm: 30
 
-        # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
-        csf_erosion_mm: 0
+        # Erode binarized cerebrospinal fluid mask in millimeter
+        csf_erosion_mm:
 
       erode_wm:
 
         # Erode WM binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0.6 for White Matter mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
-        wm_erosion_prop : 0.6
+        # Target volume ratio, if using erosion.
+        # Default proportion is 0.6 for white matter mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        # White matter erosion default is using proportion erosion method when use erosion for white matter.
+        wm_erosion_prop: 0.6
 
-        # Erode brain mask in millimeter, default of White Matter is 0 mm
-        wm_mask_erosion_mm: 0
+        # Erode white matter mask in millimeters, default for white matter is None
+        wm_mask_erosion_mm:
 
-        # Erode binarized White Matter mask in millimeter
-        wm_erosion_mm: 0
+        # Erode binarized white matter mask in millimeters
+        wm_erosion_mm:
 
       erode_gm:
 
-        # Erode GM binarized tissue mask.
+        # Erode gray matter binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        gm_erosion_prop : 0.6
+        # Target volume ratio, if using erosion.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        gm_erosion_prop: 0.6
 
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        gm_mask_erosion_mm: 30
+        # Erode gray matter mask in millimeters
+        gm_mask_erosion_mm:
 
-        # Erode binarized White Matter mask in millimeter
-        gm_erosion_mm: 0
+        # Erode binarized gray matter mask in millimeters
+        gm_erosion_mm:
 
 
 # OUTPUTS AND DERIVATIVES

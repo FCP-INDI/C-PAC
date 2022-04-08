@@ -196,7 +196,7 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
         Path to skull-stripped brain mask
 
     mask_erosion_prop : float
-        Proportion of erosion skull-stripped brain mask
+        Target volume ratio for skull-stripped brain mask
 
     Returns
     -------
@@ -225,7 +225,7 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
         else:
             orig_vol = np.sum(skullstrip_mask_data > 0)
             while (
-                np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) >
+                np.sum(skullstrip_mask_data > 0) / (orig_vol * 1.0) >
                 mask_erosion_prop
             ):
                 skullstrip_mask_data = nd.binary_erosion(
@@ -267,7 +267,7 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
         Path to binarized segment (ROI) mask
 
     erosion_prop : float
-        Proportion of erosion segment mask
+        Target volume ratio for erosion segment mask
 
     Returns
     -------
@@ -291,7 +291,7 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
             iter_n = int(erosion_mm / max(roi_mask_img.header.get_zooms()))
             roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=iter_n)
         else:
-            while np.sum(roi_mask_data > 0) / (orig_vol*1.0) > erosion_prop:
+            while np.sum(roi_mask_data > 0) / (orig_vol * 1.0) > erosion_prop:
                 roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
 
     hdr = roi_mask_img.get_header()

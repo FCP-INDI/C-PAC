@@ -933,27 +933,27 @@ latest_schema = Schema({
             'regressor_masks': {
                 'erode_anatomical_brain_mask': {
                     'run': bool,
-                    'brain_mask_erosion_prop': Number,
-                    'brain_mask_erosion_mm': Number,
-                    'brain_erosion_mm': Number
+                    'brain_mask_erosion_prop': Maybe(Number),
+                    'brain_mask_erosion_mm': Maybe(Number),
+                    'brain_erosion_mm': Maybe(Number)
                 },
                 'erode_csf': {
                     'run': bool,
-                    'csf_erosion_prop': Number,
-                    'csf_mask_erosion_mm': Number,
-                    'csf_erosion_mm': Number,
+                    'csf_erosion_prop': Maybe(Number),
+                    'csf_mask_erosion_mm': Maybe(Number),
+                    'csf_erosion_mm': Maybe(Number),
                 },
                 'erode_wm': {
                     'run': bool,
-                    'wm_erosion_prop': Number,
-                    'wm_mask_erosion_mm': Number,
-                    'wm_erosion_mm': Number,
+                    'wm_erosion_prop': Maybe(Number),
+                    'wm_mask_erosion_mm': Maybe(Number),
+                    'wm_erosion_mm': Maybe(Number),
                 },
                 'erode_gm': {
                     'run': bool,
-                    'gm_erosion_prop': Number,
-                    'gm_mask_erosion_mm': Number,
-                    'gm_erosion_mm': Number,
+                    'gm_erosion_prop': Maybe(Number),
+                    'gm_mask_erosion_mm': Maybe(Number),
+                    'gm_erosion_mm': Maybe(Number),
                 }
             },
         },

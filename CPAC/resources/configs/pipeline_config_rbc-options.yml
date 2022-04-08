@@ -148,14 +148,14 @@ nuisance_corrections:
     regressor_masks:
 
       erode_csf:
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for CSF (cerebrospinal fluid) mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
         csf_erosion_prop: 0.1
 
         # Erode brain mask in millimeter, default of csf is 30 mm
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
-        csf_mask_erosion_mm: 0
+        csf_mask_erosion_mm:
 
 
 timeseries_extraction:
