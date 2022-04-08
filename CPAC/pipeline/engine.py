@@ -1505,7 +1505,10 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
     if local_func_scans:
+        # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
+        if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)

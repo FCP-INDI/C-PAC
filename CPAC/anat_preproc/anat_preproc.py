@@ -9,16 +9,16 @@ from nipype.interfaces.fsl import utils as fsl_utils
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
+    freesurfer_hemispheres, \
     fsl_aff_to_rigid, \
     mri_convert, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-
+from CPAC.utils.interfaces.function.seg_preproc import \
+    pick_tissue_from_labels_file_interface
 from CPAC.unet.function import predict_volumes
-
-from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
 
 
 def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
@@ -2573,35 +2573,37 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["space-T1w_desc-brain_mask",
                  "freesurfer-subject-dir",
+                 "hemi-L_desc-surface_curv",
+                 "hemi-R_desc-surface_curv",
+                 "hemi-L_desc-surfaceMesh_pial",
+                 "hemi-R_desc-surfaceMesh_pial",
+                 "hemi-L_desc-surfaceMesh_smoothwm",
+                 "hemi-R_desc-surfaceMesh_smoothwm",
+                 "hemi-L_desc-surfaceMesh_sphere",
+                 "hemi-R_desc-surfaceMesh_sphere",
+                 "hemi-L_desc-surfaceMap_sulc",
+                 "hemi-R_desc-surfaceMap_sulc",
+                 "hemi-L_desc-surfaceMap_thickness",
+                 "hemi-R_desc-surfaceMap_thickness",
+                 "hemi-L_desc-surfaceMap_volume",
+                 "hemi-R_desc-surfaceMap_volume",
+                 "hemi-L_desc-surfaceMesh_white",
+                 "hemi-R_desc-surfaceMesh_white",
                  "label-CSF_mask",
                  "label-WM_mask",
                  "label-GM_mask",
-                 "lh-surface-curvature",
-                 "rh-surface-curvature",
-                 "lh-pial-surface-mesh",
-                 "rh-pial-surface-mesh",
-                 "lh-smoothed-surface-mesh",
-                 "rh-smoothed-surface-mesh",
-                 "lh-spherical-surface-mesh",
-                 "rh-spherical-surface-mesh",
-                 "lh-sulcal-depth-surface-map",
-                 "rh-sulcal-depth-surface-map",
-                 "lh-cortical-thickness-surface-map",
-                 "rh-cortical-thickness-surface-map",
-                 "lh-cortical-volume-surface-map",
-                 "rh-cortical-volume-surface-map",
-                 "lh-white-matter-surface-mesh",
-                 "rh-white-matter-surface-mesh",
                  "raw-average",
                  "brainmask",
                  "T1"]}
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),
-                       name=f'anat_freesurfer_{pipe_num}')
+                       name=f'anat_freesurfer_{pipe_num}',
+                       mem_gb=2.7)
     reconall.skip_timeout = True  # this Node could take > 24 hours
 
-    freesurfer_subject_dir = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    freesurfer_subject_dir = os.path.join(
+        cfg.pipeline_setup['working_directory']['path'],
         'cpac_'+cfg['subject_id'],
         f'anat_preproc_freesurfer_{pipe_num}',
         'anat_freesurfer')
@@ -2675,13 +2677,7 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(fs_aseg_to_native, 'transformed_file',
                fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
-                                                     'csf_label',
-                                                     'gm_label',
-                                                     'wm_label'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
+    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
                           name=f'select_fs_tissue_{pipe_num}')
 
     pick_tissue.inputs.csf_label = cfg['segmentation'][
@@ -2693,118 +2689,33 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
-    # TODO refactor code to make it DRY
+    erode_tissues = {}
     if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        erode_csf = pe.Node(interface=freesurfer.model.Binarize(),
-                            name=f'erode_csf_{pipe_num}')
-        erode_csf.inputs.match = [1]
-        erode_csf.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
+        for tissue in ['csf', 'wm', 'gm']:
+            erode_tissues[tissue] = pe.Node(
+                interface=freesurfer.model.Binarize(),
+                name=f'erode_{tissue}_{pipe_num}')
+            erode_tissues[tissue].inputs.match = [1]
+            erode_tissues[tissue].inputs.erode = cfg['segmentation'][
+                'tissue_segmentation']['FreeSurfer']['erode']
+            wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
+                       'in_file')
 
-        wf.connect(pick_tissue, 'csf_mask', erode_csf, 'in_file')
-
-        erode_wm = pe.Node(interface=freesurfer.model.Binarize(),
-                           name=f'erode_wm_{pipe_num}')
-        erode_wm.inputs.match = [1]
-        erode_wm.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
-
-        wf.connect(pick_tissue, 'wm_mask', erode_wm, 'in_file')
-
-        erode_gm = pe.Node(interface=freesurfer.model.Binarize(),
-                           name=f'erode_gm_{pipe_num}')
-        erode_gm.inputs.match = [1]
-        erode_gm.inputs.erode = cfg['segmentation'][
-            'tissue_segmentation']['FreeSurfer']['erode']
-
-        wf.connect(pick_tissue, 'gm_mask', erode_gm, 'in_file')
-       
-    def split_hemi(multi_file):
-        lh = None
-        rh = None
-        for filepath in multi_file:
-            if 'lh.' in filepath:
-                lh = filepath
-            if 'rh.' in filepath:
-                rh = filepath
-        return (lh, rh)
-
-    split_surface = pe.Node(util.Function(input_names=['multi_file'],
-                                          output_names=['lh', 'rh'],
-                                          function=split_hemi),
-                            name=f'split_surface_{pipe_num}')
-    wf.connect(reconall, 'curv', split_surface, 'multi_file')
-    
-    split_pial = pe.Node(util.Function(input_names=['multi_file'],
-                                       output_names=['lh', 'rh'],
-                                       function=split_hemi),
-                         name=f'split_pial_{pipe_num}')
-    wf.connect(reconall, 'pial', split_pial, 'multi_file')
-    
-    split_smoothed = pe.Node(util.Function(input_names=['multi_file'],
-                                           output_names=['lh', 'rh'],
-                                           function=split_hemi),
-                             name=f'split_smoothed_{pipe_num}')
-    wf.connect(reconall, 'smoothwm', split_smoothed, 'multi_file')
-
-    split_spherical = pe.Node(util.Function(input_names=['multi_file'],
-                                            output_names=['lh', 'rh'],
-                                            function=split_hemi),
-                              name=f'split_spherical_{pipe_num}')
-    wf.connect(reconall, 'sphere', split_spherical, 'multi_file')
-    
-    split_sulcal_depth = pe.Node(util.Function(input_names=['multi_file'],
-                                               output_names=['lh', 'rh'],
-                                               function=split_hemi),
-                             name=f'split_sulcal_{pipe_num}')
-    wf.connect(reconall, 'sulc', split_sulcal_depth, 'multi_file')
-    
-    split_cortical_thick = pe.Node(util.Function(input_names=['multi_file'],
-                                                 output_names=['lh', 'rh'],
-                                                 function=split_hemi),
-                             name=f'split_cortical_thick_{pipe_num}')
-    wf.connect(reconall, 'thickness', split_cortical_thick, 'multi_file')
-    
-    split_cortical_volume = pe.Node(util.Function(input_names=['multi_file'],
-                                                  output_names=['lh', 'rh'],
-                                                  function=split_hemi),
-                             name=f'split_cortical_vol_{pipe_num}')
-    wf.connect(reconall, 'volume', split_cortical_volume, 'multi_file')
-    
-    split_white_surface = pe.Node(util.Function(input_names=['multi_file'],
-                                                output_names=['lh', 'rh'],
-                                                function=split_hemi),
-                             name=f'split_white_{pipe_num}')
-    wf.connect(reconall, 'white', split_white_surface, 'multi_file')
+    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
 
     outputs = {
         'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
         'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        'lh-surface-curvature': (split_surface, 'lh'),
-        'rh-surface-curvature': (split_surface, 'rh'),
-        'lh-pial-surface-mesh': (split_pial, 'lh'),
-        'rh-pial-surface-mesh': (split_pial, 'rh'),
-        'lh-smoothed-surface-mesh': (split_smoothed, 'lh'),
-        'rh-smoothed-surface-mesh': (split_smoothed, 'rh'),
-        'lh-spherical-surface-mesh': (split_spherical, 'lh'),
-        'rh-spherical-surface-mesh': (split_spherical, 'rh'),
-        'lh-sulcal-depth-surface-map': (split_sulcal_depth, 'lh'),
-        'rh-sulcal-depth-surface-map': (split_sulcal_depth, 'rh'),
-        'lh-cortical-thickness-surface-map': (split_cortical_thick, 'lh'),
-        'rh-cortical-thickness-surface-map': (split_cortical_thick, 'rh'),
-        'lh-cortical-volume-surface-map': (split_cortical_volume, 'lh'),
-        'rh-cortical-volume-surface-map': (split_cortical_volume, 'rh'),
-        'lh-white-matter-surface-mesh': (split_white_surface, 'lh'),
-        'rh-white-matter-surface-mesh': (split_white_surface, 'rh'),
+        **hemisphere_outputs,
         'raw-average': (reconall, 'rawavg'),
         'brainmask': (reconall, 'brainmask'),
         'T1': (reconall, 'T1')
     }
 
-    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        outputs['label-CSF_mask'] = (erode_csf, 'binary_file')
-        outputs['label-WM_mask'] = (erode_wm, 'binary_file')
-        outputs['label-GM_mask'] = (erode_gm, 'binary_file')
+    if erode_tissues:
+        outputs['label-CSF_mask'] = (erode_tissues['csf'], 'binary_file')
+        outputs['label-WM_mask'] = (erode_tissues['wm'], 'binary_file')
+        outputs['label-GM_mask'] = (erode_tissues['gm'], 'binary_file')
     else:
         outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
         outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
@@ -3032,6 +2943,22 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
+                 "hemi-L_desc-surface_curv",
+                 "hemi-R_desc-surface_curv",
+                 "hemi-L_desc-surfaceMesh_pial",
+                 "hemi-R_desc-surfaceMesh_pial",
+                 "hemi-L_desc-surfaceMesh_smoothwm",
+                 "hemi-R_desc-surfaceMesh_smoothwm",
+                 "hemi-L_desc-surfaceMesh_sphere",
+                 "hemi-R_desc-surfaceMesh_sphere",
+                 "hemi-L_desc-surfaceMap_sulc",
+                 "hemi-R_desc-surfaceMap_sulc",
+                 "hemi-L_desc-surfaceMap_thickness",
+                 "hemi-R_desc-surfaceMap_thickness",
+                 "hemi-L_desc-surfaceMap_volume",
+                 "hemi-R_desc-surfaceMap_volume",
+                 "hemi-L_desc-surfaceMesh_white",
+                 "hemi-R_desc-surfaceMesh_white",
                  "wmparc",
                  "freesurfer-subject-dir"]}
     '''
@@ -3129,7 +3056,8 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     ### recon-all -all step ###
     reconall = pe.Node(interface=freesurfer.ReconAll(),
-                name=f'anat_freesurfer_{pipe_num}')
+                       name=f'anat_freesurfer_{pipe_num}',
+                       mem_gb=2.7)
 
     sub_dir = cfg.pipeline_setup['working_directory']['path']
     freesurfer_subject_dir = os.path.join(sub_dir,
@@ -3148,12 +3076,16 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(normalize_head, 'out_file',
                reconall, 'T1_files')
 
+    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
+
     outputs = {
         'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
-        'desc-restore-brain_T1w': (fast_correction, 'outputspec.anat_brain_restore'),
+        'desc-restore-brain_T1w': (fast_correction,
+                                   'outputspec.anat_brain_restore'),
         'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
         'wmparc': (reconall, 'wmparc'),
         'freesurfer-subject-dir': (reconall, 'subjects_dir'),
+        **hemisphere_outputs
     }
 
     return (wf, outputs)
