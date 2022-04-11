@@ -61,11 +61,11 @@ import pandas as pd
 
 from nipype.interfaces import afni, fsl
 
+from CPAC.func_preproc.func_preproc import motion_correct_connections
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     motion_power_statistics
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
-from CPAC.utils.datasource import res_string_to_tuple
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
@@ -73,8 +73,7 @@ motion_params = ['movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson']
 
 
-def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
-                    pipe_num):
+def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     """
     Connect the motion metrics to the workflow.
 
@@ -82,6 +81,8 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
     ----------
     wf : nipype.pipeline.engine.Workflow
         The workflow to connect the motion metrics to.
+
+    cfg : CPAC.utils.configuration.Configuration
 
     strat_pool : CPAC.pipeline.engine.ResourcePool
         The current strategy pool.
@@ -91,9 +92,6 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
 
     brain_mask_key : str
         The key of the brain mask in the strategy pool.
-
-    final_func : CPAC.pipeline.engine.NodeData
-        The node data of the final functional scan.
 
     pipe_num : int
 
@@ -109,8 +107,10 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
     except LookupError:
         nodes = {}
         qc_file.inputs.censor_indices = []
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('movement-parameters'))
+    wf, motion_after = motion_correct_connections(
+        wf, cfg, strat_pool, pipe_num, opt=motion_correct_tool)
     gen_motion_stats = motion_power_statistics('motion_stats-after_'
                                                f'{pipe_num}',
                                                motion_correct_tool)
@@ -119,32 +119,26 @@ def _connect_motion(wf, strat_pool, qc_file, brain_mask_key, final_func,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
             'subject', 'scan', brain_mask_key, 'max-displacement',
             *motion_params]}}
-    if motion_correct_tool == '3dvolreg' and strat_pool.check_rpool(
-            'coordinate-transformation'):
-        nodes['coordinate-transformation'] = strat_pool.node_data(
-            'coordinate-transformation')
-        wf.connect(nodes['coordinate-transformation'].node,
-                   nodes['coordinate-transformation'].out,
-                   gen_motion_stats, 'inputspec.transformations')
-    elif motion_correct_tool == 'mcflirt' and strat_pool.check_rpool(
-            'rels-displacement'):
-        nodes['rels-displacement'] = strat_pool.node_data('rels-displacement')
-        wf.connect(nodes['rels-displacement'].node,
-                   nodes['rels-displacement'].out,
+    if 'rels-displacement' in motion_after:
+        wf.connect(*motion_after['rels-displacement'],
                    gen_motion_stats, 'inputspec.rels_displacement')
+    if 'coordinate-transformation' in motion_after:
+        wf.connect(*motion_after['coordinate-transformation'],
+                   gen_motion_stats, 'inputspec.transformations')
     wf.connect([
-        (final_func.node, gen_motion_stats, [
-            (final_func.out, 'inputspec.motion_correct')]),
         (nodes['subject'].node, gen_motion_stats, [
             (nodes['subject'].out, 'inputspec.subject_id')]),
         (nodes['scan'].node, gen_motion_stats, [
             (nodes['scan'].out, 'inputspec.scan_id')]),
-        (nodes['movement-parameters'].node, gen_motion_stats, [
-            (nodes['movement-parameters'].out,
-                'inputspec.movement_parameters')]),
-        (nodes['max-displacement'].node, gen_motion_stats, [
-            (nodes['max-displacement'].out,
-                'inputspec.max_displacement')]),
+        (motion_after['desc-motion_bold'][0], gen_motion_stats, [
+            (motion_after['desc-motion_bold'][1],
+             'inputspec.motion_correct')]),
+        (motion_after['movement-parameters'][0], gen_motion_stats, [
+            (motion_after['movement-parameters'][1],
+             'inputspec.movement_parameters')]),
+        (motion_after['max-displacement'][0], gen_motion_stats, [
+            (motion_after['max-displacement'][1],
+             'inputspec.max_displacement')]),
         (nodes[brain_mask_key].node, gen_motion_stats, [
             (nodes[brain_mask_key].out, 'inputspec.mask')]),
         (gen_motion_stats, qc_file, [
@@ -368,9 +362,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
         mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
     resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
-    wf = _connect_motion(wf, strat_pool, qc_file,
+    wf = _connect_motion(wf, cfg, strat_pool, qc_file,
                          brain_mask_key='space-bold_desc-brain_mask',
-                         final_func=func['final'], pipe_num=pipe_num)
+                         pipe_num=pipe_num)
     wf.connect([
         (func['space-T1w'].node, bold_to_T1w_mask, [
             (func['space-T1w'].out, 'in_file')]),

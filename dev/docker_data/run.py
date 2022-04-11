@@ -607,6 +607,13 @@ def run_main():
                  'local or turn off the --save_working_dir flag',
                  category=UserWarning)
 
+        if c['pipeline_setup']['output_directory']['quality_control'][
+                'generate_xcpqc_files']:
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first'] = True
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_after'] = True
+
         if args.participant_label:
             print(
                 "#### Running C-PAC for {0}"
