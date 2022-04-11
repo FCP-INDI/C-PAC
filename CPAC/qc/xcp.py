@@ -324,7 +324,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                 ('max-displacement', 'rels-displacement',
                  'movement-parameters', 'coordinate-transformation'), ('dvars',
-                 'framewise-displacement-jenkinson')],
+                 'framewise-displacement-jenkinson'), 'motion-basefile'],
      'outputs': ['desc-xcp_quality']}
     """
     qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
