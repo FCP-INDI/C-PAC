@@ -64,6 +64,8 @@ registration_workflows:
     
       run: On
 
+      EPI_template: /template/study_based_functional_template_sk.nii.gz
+
       ANTs: 
 
         # EPI registration configuration - synonymous with T1_registration
