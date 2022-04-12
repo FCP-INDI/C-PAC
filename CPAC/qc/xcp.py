@@ -15,7 +15,7 @@ desc : str
 space : str
     space label :cite:`cite-BIDS21`
 meanFD : float
-    mean Jenkinson framewise displacement :cite:`cite-Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J`
+    mean Jenkinson framewise displacement :cite:`cite-Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J` after preprocessing
 relMeansRMSMotion : float
     "mean value of RMS motion" :cite:`cite-Ciri19`
 relMaxRMSMotion : float
@@ -52,13 +52,11 @@ normCoverage : float
 """  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
-
 from io import BufferedReader
 
 import nibabel as nb
 import numpy as np
 import pandas as pd
-
 from nipype.interfaces import afni, fsl
 
 from CPAC.func_preproc.func_preproc import motion_correct_connections
@@ -263,8 +261,7 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
     del desc_span
 
     # `meanFD (Jenkinson)`
-    power_params = {'meanFD': np.mean(np.loadtxt(
-        framewise_displacement_jenkinson))}
+    power_params = {'meanFD': np.mean(np.loadtxt(fdj_after))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
     mot = np.genfromtxt(movement_parameters).T
