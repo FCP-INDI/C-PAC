@@ -102,10 +102,13 @@ def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
     cmd = ['mri_info',"$FreeSurferFolder""/mri/brain.finalsurfs.mgz"]
     mri_info = subprocess.check_output(cmd)
 
+
+
     f = open(mri_info.txt, 'w')
         f.write(mri_info)
 
-    for line in open(f, 'r'):
+    file = os.path.join(os.getcwd(), 'mri_info.txt)
+    for line in open(file, 'r'):
         if re.search('c_r', line):
             val = line.strip().split('=')
 
