@@ -91,7 +91,8 @@ def erode_mask(name, segmentmap=True):
         return erosion_prop ** 3
 
     ero_imports = ['import scipy.ndimage as nd', 'import numpy as np',
-                   'import nibabel as nb', 'import os']
+                   'import nibabel as nb', 'import os',
+                   'from CPAC.seg_preproc.utils import _erode']
 
     eroded_mask = pe.Node(util.Function(
         input_names=['roi_mask', 'skullstrip_mask', 'mask_erosion_mm',
@@ -107,7 +108,8 @@ def erode_mask(name, segmentmap=True):
     wf.connect(inputspec, 'brain_mask', eroded_mask, 'skullstrip_mask')
     wf.connect(inputspec, 'mask', eroded_mask, 'roi_mask')
 
-    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop), eroded_mask, 'mask_erosion_prop')
+    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop), eroded_mask,
+               'mask_erosion_prop')
     wf.connect(inputspec, 'mask_erode_mm', eroded_mask, 'mask_erosion_mm')
 
     if not segmentmap:
@@ -115,7 +117,8 @@ def erode_mask(name, segmentmap=True):
     if segmentmap:
         erosion_segmentmap = pe.Node(util.Function(input_names=['roi_mask',
                                                                 'erosion_mm',
-                                                                'erosion_prop'],
+                                                                'erosion_prop'
+                                                                ],
                                                    output_names=[
                                                        'eroded_roi_mask'],
                                                    function=erosion,
