@@ -130,11 +130,10 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
-    space_temp = ["space-template_desc-brain_T1w", "space-template_desc-head_T1w", "space-template_desc-T1w_mask",
-                 "from-T1w_to-template_mode-image_xfm", "from-template_to-T1w_mode-image_xfm"]
-    mode_img_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
-    mode_img_inv_xfm = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
-    atlas_space_bold = ["space-template_desc-preproc_bold", "space-template_desc-brain_bold"]
+    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask",]
+    atlas_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
+    atlas_xfm_inv = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
+    atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"]
     scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
                   "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]
 
@@ -148,10 +147,10 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data(space_temp) 
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
-    node, out = strat_pool.get_data(mode_img_xfm) 
+    node, out = strat_pool.get_data(atlas_xfm) 
     wf.connect(node, out, surf, 'atlas_transform')
 
-    node, out = strat_pool.get_data(mode_img_inv_xfm) 
+    node, out = strat_pool.get_data(atlas_xfm_inv) 
     wf.connect(node, out, surf, 'inverse_atlas_transform')
 
     node, out = strat_pool.get_data(atlas_space_bold) 
@@ -184,11 +183,10 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["freesurfer-subject-dir",
                 ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
                 "space-longitudinal_desc-reorient_T1w"],
-                ["space-template_desc-brain_T1w", "space-template_desc-head_T1w", 
-                "space-template_desc-T1w_mask"],
+                ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
                 ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
                 ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                ["space-template_desc-preproc_bold", "space-template_desc-brain_bold"],
+                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
                 ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
                 "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
