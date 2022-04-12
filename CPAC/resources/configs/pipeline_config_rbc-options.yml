@@ -151,7 +151,7 @@ nuisance_corrections:
         # Target volume ratio, if using erosion.
         # Default proportion is None for CSF (cerebrospinal fluid) mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop: 0.1
+        csf_erosion_prop: 0.9
 
         # Erode brain mask in millimeter, default of csf is 30 mm
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
