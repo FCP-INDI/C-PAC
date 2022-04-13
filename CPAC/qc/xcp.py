@@ -67,8 +67,7 @@ from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
-motion_params = ['movement-parameters', 'dvars',
-                 'framewise-displacement-jenkinson']
+motion_params = ['dvars', 'framewise-displacement-jenkinson']
 
 
 def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
@@ -134,6 +133,8 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
         (motion_after['movement-parameters'][0], gen_motion_stats, [
             (motion_after['movement-parameters'][1],
              'inputspec.movement_parameters')]),
+        (motion_after['movement-parameters'][0], qc_file, [
+            (motion_after['movement-parameters'][1], 'movement_parameters')]),
         (motion_after['max-displacement'][0], gen_motion_stats, [
             (motion_after['max-displacement'][1],
              'inputspec.max_displacement')]),
@@ -320,7 +321,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-EPItemplate_desc-bold_mask'],
                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                 ('max-displacement', 'rels-displacement',
-                 'movement-parameters', 'coordinate-transformation'), ('dvars',
+                 'coordinate-transformation'), ('dvars',
                  'framewise-displacement-jenkinson'), 'motion-basefile'],
      'outputs': ['desc-xcp_quality']}
     """
