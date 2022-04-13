@@ -325,6 +325,11 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'framewise-displacement-jenkinson'), 'motion-basefile'],
      'outputs': ['desc-xcp_quality']}
     """
+    # if we're running regressors, only generate qc files for post-regression
+    # 'desc-preproc_bold'
+    if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
+           ] and not strat_pool.check_rpool('regressors'):
+        return wf, {}
     qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
                                             'template_mask', 'original_func',
