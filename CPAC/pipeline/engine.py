@@ -774,13 +774,13 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
+
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -798,7 +798,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
