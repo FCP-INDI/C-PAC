@@ -80,6 +80,65 @@ def run_surface(post_freesurfer_folder,
     return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
             aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
+def create res_mat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
+
+
+
+    #mri_info = "/home/tgeorge/postfreesurfer/postfs-output/working/cpac_sub-0050952_ses-1/anat_preproc_freesurfer_52/anat_freesurfer/recon_all/mri/wmparc.mgz"
+
+
+    cmd = ['mri_info', mri_info]
+    mri_info_file = subprocess.check_output(cmd)
+
+
+
+    with open('mri_info.txt', 'w') as f:
+            for v in mri_info_file:
+
+                f.write(str(mri_info_file))
+
+
+
+
+    out_file = os.path.join(os.getcwd(), 'mri_info.txt')
+
+    for line in open(out_file, 'r'):
+
+
+        cr_val = line.strip().split('c_r =')
+        cr = cr_val[1].strip().split('\\n')
+
+        ca_val = line.strip().split('c_a =')
+        ca = ca_val[1].strip().split('\\n')
+
+        cs_val = line.strip().split('c_s =')
+        cs = cs_val[1].strip().split('\\n')
+
+    import re
+
+    cr = re.sub(r"[\n\t\s]*", "", cr[0])
+    cr = float(cr)
+
+    ca = re.sub(r"[\n\t\s]*", "", ca[0])
+    ca = float(ca)
+
+    cs = re.sub(r"[\n\t\s]*", "", cs[0])
+    cs = float(cs)
+
+
+   cr_matrix = np.array([1, 0, 0, cr])
+   ca_matrix = np.array([0, 1, 0, ca])
+   cs_matrix = np.array([1, 0, 0, cs])
+   id_mastrix = np.array([0, 0, 0, 1])
+
+   final_mat = np.concatenate((cr_matrix, ca_matrix, cs_matrix, id_mastrix), axis=0)
+   final_mat = final_mat.reshape(4,4)
+
+
+   file_path = '/home/tgeorge/pfreesurfer-bash-runs/c_ras.mat'
+   np.savetxt('file_path ',final_mat)
+
+
 
 def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
 
@@ -98,32 +157,6 @@ def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-template_desc-scout_bold"],
      "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
     '''
-
-    cmd = ['mri_info',"$FreeSurferFolder""/mri/brain.finalsurfs.mgz"]
-    mri_info = subprocess.check_output(cmd)
-
-
-
-    f = open(mri_info.txt, 'w')
-        f.write(mri_info)
-
-    file = os.path.join(os.getcwd(), 'mri_info.txt)
-    for line in open(file, 'r'):
-        if re.search('c_r', line):
-            val = line.strip().split('=')
-
-
-    #mri_info /home/tgeorge/postfreesurfer/postfs-output/working/cpac_sub-0050952_ses-1/anat_preproc_freesurfer_52/anat_freesurfer/recon_all/mri/wmparc.mgz | grep "c_r" | cut -d "=" -f 5 | sed s/" "/""/g
-    #MatrixX=$(mri_info "$FreeSurferFolder"/mri/brain.finalsurfs.mgz | grep "c_r" | cut -d "=" -f 5 | sed s/" "/""/g)
-    #MatrixY=$(mri_info "$FreeSurferFolder"/mri/brain.finalsurfs.mgz | grep "c_a" | cut -d "=" -f 5 | sed s/" "/""/g)
-    #MatrixZ=$(mri_info "$FreeSurferFolder"/mri/brain.finalsurfs.mgz | grep "c_s" | cut -d "=" -f 5 | sed s/" "/""/g)
-    echo "1 0 0 ""$MatrixX" > "$FreeSurferFolder"/mri/c_ras.mat
-    echo "0 1 0 ""$MatrixY" >> "$FreeSurferFolder"/mri/c_ras.mat
-    echo "0 0 1 ""$MatrixZ" >> "$FreeSurferFolder"/mri/c_ras.mat
-    echo "0 0 0 1" >> "$FreeSurferFolder"/mri/c_ras.mat
-
-
-
 
     #Convert FreeSurfer Volumes
     for Image in wmparc aparc.a2009s+aseg aparc+aseg:
