@@ -318,7 +318,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'from-template_to-T1w_mode-image_desc-linear_xfm'),
                 'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                 'EPI-template-mask'], ['space-template_desc-bold_mask',
-                'space-EPItemplate_desc-bold_mask'],
+                'space-EPItemplate_desc-bold_mask'], 'regressors',
                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                 ('max-displacement', 'rels-displacement',
                  'coordinate-transformation'), ('dvars',
