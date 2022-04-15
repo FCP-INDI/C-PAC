@@ -321,7 +321,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 'space-EPItemplate_desc-bold_mask'], 'regressors',
                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                 ('max-displacement', 'rels-displacement',
-                 'coordinate-transformation'), ('dvars',
+                 'movement-parameters', 'coordinate-transformation'), ('dvars',
                  'framewise-displacement-jenkinson'), 'motion-basefile'],
      'outputs': ['desc-xcp_quality']}
     """
