@@ -28,6 +28,11 @@ pipeline_setup:
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: On
 
+  working_directory: 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: On
+
 anatomical_preproc:
   # N4 bias field correction via ANTs
   n4_bias_field_correction:
