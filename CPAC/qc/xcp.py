@@ -57,6 +57,7 @@ from io import BufferedReader
 import nibabel as nb
 import numpy as np
 import pandas as pd
+from bids.layout import parse_file_entities
 from nipype.interfaces import afni, fsl
 
 from CPAC.func_preproc.func_preproc import motion_correct_connections
@@ -161,9 +162,9 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
-                    template_mask, original_func, final_func,
-                    movement_parameters, dvars, censor_indices,
+def generate_xcp_qc(sub, ses, task, run, desc, variant, bold2t1w_mask,
+                    t1w_mask, bold2template_mask, template_mask, original_func,
+                    final_func, movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, fdj_after,
                     template):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
@@ -171,8 +172,23 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
 
     Parameters
     ----------
+    sub : str
+        subject ID
+
+    ses : str
+        session ID
+
+    task : str
+        task ID
+
+    run : str or int
+        run ID
+
     desc : str
         description string
+
+    variant : str or None
+        variant string
 
     original_func : str
         path to original 'bold' image
@@ -220,7 +236,7 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
         path to desc-xcp_quality TSV
     """
     columns = (
-        'sub,ses,task,run,desc,space,meanFD,relMeansRMSMotion,'
+        'sub,ses,task,run,desc,variant,space,meanFD,relMeansRMSMotion,'
         'relMaxRMSMotion,meanDVInit,meanDVFinal,nVolCensored,nVolsRemoved,'
         'motionDVCorrInit,motionDVCorrFinal,coregDice,coregJaccard,'
         'coregCrossCorr,coregCoverage,normDice,normJaccard,normCrossCorr,'
@@ -234,9 +250,9 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
 
     # `sub` through `desc`
     from_bids = {
-        **strings_from_bids(original_func),
-        'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0],
-        'desc': desc
+        'sub': sub, 'ses': ses, 'task': task, 'run': run, 'desc': desc,
+        'variant': variant,
+        'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0]
     }
     if from_bids['space'].startswith('tpl-'):
         from_bids['space'] = from_bids['space'][4:]
@@ -304,6 +320,39 @@ def generate_xcp_qc(desc, bold2t1w_mask, t1w_mask, bold2template_mask,
     return qc_filepath
 
 
+def get_bids_info(strat_pool, resource_name):
+    """
+    Function to gather BIDS information from a resource in a strat_pool
+
+    Parameters
+    ----------
+    strat_pool : CPAC.pipeline.engine.ResourcePool
+
+    resource_name : str
+
+    Returns
+    -------
+    subject : str
+        subject ID
+
+    session : str
+        session ID
+
+    task : str
+        task ID
+
+    run : str or int
+        run ID
+    """
+    rest_dict = getattr(getattr(
+        strat_pool.node_data(resource_name).node.inputs, 'select_scan_params'),
+        'rest_dict')
+    scan = list(rest_dict.values())[0].get('scan', '') if rest_dict else ''
+    entities = parse_file_entities(scan)
+    return (entities.get('subject'), entities.get('session'),
+            entities.get('task'), entities.get('run'))
+
+
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=invalid-name, unused-argument
     """
@@ -312,15 +361,15 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('subject', 'scan', 'bold', 'space-T1w_desc-mean_bold',
-                 'space-T1w_desc-brain_mask', 'desc-preproc_bold',
+     'inputs': [('subject', 'scan', 'unique_id', 'bold',
+                 'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
+                 'desc-preproc_bold', 'max-displacement', 'rels-displacement',
                  'from-bold_to-T1w_mode-image_desc-linear_xfm',
                  'from-template_to-T1w_mode-image_desc-linear_xfm',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
-                 'max-displacement', 'rels-displacement',
                  'movement-parameters', 'coordinate-transformation', 'dvars',
                  'framewise-displacement-jenkinson', 'motion-basefile')],
      'outputs': ['desc-xcp_quality']}
@@ -330,7 +379,17 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
-    qc_file = pe.Node(Function(input_names=['desc', 'bold2t1w_mask',
+    bids_info = pe.Node(Function(input_names=['strat_pool', 'resource_name'],
+                                 output_names=['subject', 'session', 'task',
+                                               'run'],
+                                 imports=['from bids.layout import '
+                                          'parse_file_entities'],
+                                 function=get_bids_info, as_module=True),
+                        name=f'bids_info_{pipe_num}')
+    bids_info.inputs.strat_pool = strat_pool
+    bids_info.inputs.resource_name = 'bold'
+    qc_file = pe.Node(Function(input_names=['sub', 'ses', 'task', 'run',
+                                            'desc', 'variant', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
                                             'template_mask', 'original_func',
                                             'final_func', 'template',
@@ -343,11 +402,11 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-
     func = {}
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('desc-preproc_bold')
+    qc_file.inputs.variant = func['final'].variant
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
@@ -388,38 +447,11 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (nodes['bold2template_mask'].node, resample_bold_mask_to_template,
             [(nodes['bold2template_mask'].out, 'in_file')]),
         (resample_bold_mask_to_template, qc_file, [
-            ('out_file', 'bold2template_mask')])])
+            ('out_file', 'bold2template_mask')]),
+        (bids_info, qc_file, [
+            ('subject', 'sub'),
+            ('session', 'ses'),
+            ('task', 'task'),
+            ('run', 'run')])])
 
     return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
-
-
-def strings_from_bids(final_func):
-    """
-    Function to gather BIDS entities into a dictionary
-
-    Parameters
-    ----------
-    final_func : str
-
-    Returns
-    -------
-    dict
-
-    Examples
-    --------
-    >>> fake_path = (
-    ...     '/path/to/sub-fakeSubject_ses-fakeSession_task-peer_run-3_'
-    ...     'atlas-Schaefer400_space-MNI152NLin6_res-1x1x1_'
-    ...     'desc-NilearnPearson_connectome.tsv')
-    >>> strings_from_bids(fake_path)['desc']
-    'NilearnPearson'
-    >>> strings_from_bids(fake_path)['space']
-    'MNI152NLin6'
-    """
-    from_bids = dict(
-        tuple(entity.split('-', 1)) if '-' in entity else
-        ('suffix', entity) for entity in final_func.split('/')[-1].split('_'))
-    from_bids = {k: from_bids[k] for k in from_bids}
-    if 'space' not in from_bids:
-        from_bids['space'] = 'native'
-    return from_bids

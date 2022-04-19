@@ -319,12 +319,12 @@ class ResourcePool:
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+                            f'entry for {str(prov_str)} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -1126,8 +1126,8 @@ class NodeBlock:
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
-                if opts == None:
+
+                if opts is None:
                     opts = [opts]
 
             elif option_key and not option_val:
