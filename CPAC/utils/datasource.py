@@ -160,8 +160,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -256,8 +255,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 

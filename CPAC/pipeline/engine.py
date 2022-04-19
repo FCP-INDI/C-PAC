@@ -856,7 +856,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -885,10 +885,11 @@ class ResourcePool:
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
                         if 'desc-' in key:
-                            out_dct['filename'] = out_dct['filename'
-                            ].replace(key, f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key,
-                                                            f'{key}-{num_variant}')
+                            out_dct['filename'] = out_dct[
+                                'filename'].replace(key,
+                                                    f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key, f'{key}-'
+                                                            f'{num_variant}')
                             break
                         else:
                             suff = resource.split('_')[-1]
