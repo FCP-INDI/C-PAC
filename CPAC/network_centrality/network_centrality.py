@@ -1,12 +1,12 @@
 from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
-from CPAC.pipeline.schema import valid_options
+from CPAC.pipeline.schema import VALID_OPTIONS
 from CPAC.utils.docs import docstring_parameter
 
 
-@docstring_parameter(m_options=valid_options['centrality']['method_options'],
-                     t_options=valid_options['centrality'][
+@docstring_parameter(m_options=VALID_OPTIONS['centrality']['method_options'],
+                     t_options=VALID_OPTIONS['centrality'][
                         'threshold_options'],
-                     w_options=valid_options['centrality']['weight_options'])
+                     w_options=VALID_OPTIONS['centrality']['weight_options'])
 def create_centrality_wf(wf_name, method_option, weight_options,
                          threshold_option, threshold, num_threads=1,
                          memory_gb=1.0):

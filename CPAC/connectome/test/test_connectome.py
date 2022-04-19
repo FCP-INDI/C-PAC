@@ -4,5 +4,4 @@ import random
 import re
 import numpy as np
 import pytest
-from CPAC.pipeline.schema import valid_options
-
+from CPAC.pipeline.schema import VALID_OPTIONS

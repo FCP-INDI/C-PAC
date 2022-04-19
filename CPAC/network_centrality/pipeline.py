@@ -7,7 +7,7 @@ from nipype import logging
 from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
-from CPAC.pipeline.schema import valid_options
+from CPAC.pipeline.schema import VALID_OPTIONS
 
 logger = logging.getLogger('nipype.workflow')
 
@@ -131,12 +131,12 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
                                  node, out, merge_node,
                                  option, pipe_num) for option in
-     valid_options['centrality']['method_options'] if
+     VALID_OPTIONS['centrality']['method_options'] if
      cfg.network_centrality[option]['weight_options']]
 
     outputs = {}
 
-    for option in valid_options['centrality']['method_options']:
+    for option in VALID_OPTIONS['centrality']['method_options']:
         if cfg.network_centrality[option]['weight_options']:
             for weight in cfg.network_centrality[option]['weight_options']:
                 if 'degree' in option.lower():

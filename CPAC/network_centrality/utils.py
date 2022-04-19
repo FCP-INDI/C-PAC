@@ -1,4 +1,4 @@
-from CPAC.pipeline.schema import valid_options
+from CPAC.pipeline.schema import VALID_OPTIONS
 from CPAC.utils.docs import docstring_parameter
 
 
@@ -117,8 +117,8 @@ def sep_nifti_subbriks(nifti_file, out_names):
     return output_niftis
 
 
-@docstring_parameter(m_options=valid_options['centrality']['method_options'],
-                     t_options=valid_options['centrality'][
+@docstring_parameter(m_options=VALID_OPTIONS['centrality']['method_options'],
+                     t_options=VALID_OPTIONS['centrality'][
                          'threshold_options'])
 def check_centrality_params(method_option, threshold_option, threshold):
     '''
@@ -145,8 +145,8 @@ def check_centrality_params(method_option, threshold_option, threshold):
 
     # Check method option
     if isinstance(method_option, int):
-        if method_option < len(valid_options['centrality']['method_options']):
-            method_option = valid_options[
+        if method_option < len(VALID_OPTIONS['centrality']['method_options']):
+            method_option = VALID_OPTIONS[
                 'centrality']['method_options'][method_option]
         else:
             raise MethodOptionError(method_option)
@@ -155,17 +155,17 @@ def check_centrality_params(method_option, threshold_option, threshold):
                         'provided' % type(method_option).__name__)
 
     # Check threshold option
-    if type(threshold_option) is list:
+    if isinstance(threshold_option, list):
         threshold_option = threshold_option[0]
-    if type(threshold_option) is int:
+    if isinstance(threshold_option, int):
         if threshold_option < len(
-            valid_options['centrality']['threshold_options']
+            VALID_OPTIONS['centrality']['threshold_options']
         ):
-            threshold_option = valid_options[
+            threshold_option = VALID_OPTIONS[
                 'centrality']['threshold_options'][threshold_option]
         else:
             raise ThresholdOptionError(threshold_option, method_option)
-    elif type(threshold_option) is not str:
+    elif not isinstance(threshold_option, str):
         raise TypeError('Threshold option must be a string, but type \'%s\' '
                         'provided' % type(threshold_option).__name__)
 
@@ -173,7 +173,7 @@ def check_centrality_params(method_option, threshold_option, threshold):
     method_option = method_option.lower().rstrip(' ')
     method_options_v1 = ['degree', 'eigenvector', 'lfcd']
     if method_option in method_options_v1:
-        method_option = valid_options['centrality']['method_options'][
+        method_option = VALID_OPTIONS['centrality']['method_options'][
             method_options_v1.index(method_option)
         ]
     if ' ' not in threshold_option:
@@ -181,11 +181,11 @@ def check_centrality_params(method_option, threshold_option, threshold):
     threshold_option = threshold_option.capitalize().rstrip(' ')
 
     # Check for strings properly formatted
-    if method_option not in valid_options['centrality']['method_options']:
+    if method_option not in VALID_OPTIONS['centrality']['method_options']:
         raise MethodOptionError(method_option)
 
     # Check for strings properly formatted
-    if threshold_option not in valid_options['centrality'][
+    if threshold_option not in VALID_OPTIONS['centrality'][
         'threshold_options'
     ]:
         raise ThresholdOptionError(threshold_option, method_option)
@@ -265,7 +265,7 @@ class ThresholdOptionError(ValueError):
             threshold_option == 'Sparsity threshold'
         ):
             valid_options = ' or '.join([
-                f"'{t}'" for t in valid_options[
+                f"'{t}'" for t in VALID_OPTIONS[
                     'centrality'
                 ]['threshold_options'] if t != threshold_option
             ])

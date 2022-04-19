@@ -23,6 +23,6 @@ def test_motion_estimates_and_correction(run_value):
     if bool(run_value) and run_value not in [[False], []]:
         with pytest.raises(Invalid) as e:
             Configuration(d)
-        assert "func#motion_estimate_filter_valid_options" in str(e.value)
+        assert "func#motion_estimate_filter_VALID_OPTIONS" in str(e.value)
     else:
         Configuration(d)

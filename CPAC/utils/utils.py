@@ -2333,7 +2333,7 @@ def update_pipeline_values_1_8(d_old):
     ...     'using': ['FSL-FAST Thresholding']}}})
     {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Auto'}}}}}
     '''  # noqa: E501  # pylint: disable=line-too-long
-    from CPAC.pipeline.schema import valid_options \
+    from CPAC.pipeline.schema import VALID_OPTIONS \
         # pylint: disable=import-outside-toplevel
 
     d = replace_in_strings(d_old.copy())
@@ -2385,10 +2385,10 @@ def update_pipeline_values_1_8(d_old):
         centr_keys = ['network_centrality', centr, 'weight_options']
         try:
             centr_value = lookup_nested_value(d, centr_keys)
-            if any([isinstance(v, bool) for v in centr_value]):
+            if any(isinstance(v, bool) for v in centr_value):
                 for i in range(2):
                     if centr_value[i] is True:
-                        centr_value[i] = valid_options['centrality'][
+                        centr_value[i] = VALID_OPTIONS['centrality'][
                             'weight_options'][i]
                 while False in centr_value:
                     centr_value.remove(False)
@@ -2402,8 +2402,8 @@ def update_pipeline_values_1_8(d_old):
     try:
         seg_template = lookup_nested_value(d, seg_template_key)
         for replacement in [
-            ('EPI_template', valid_options['segmentation']['template'][0]),
-            ('T1_template', valid_options['segmentation']['template'][1])
+            ('EPI_template', VALID_OPTIONS['segmentation']['template'][0]),
+            ('T1_template', VALID_OPTIONS['segmentation']['template'][1])
         ]:
             seg_template = list_item_replace(seg_template, *replacement)
         while 'Off' in seg_template:

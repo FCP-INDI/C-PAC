@@ -184,7 +184,7 @@ from CPAC.network_centrality.pipeline import (
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
-from CPAC.pipeline.schema import valid_options
+from CPAC.pipeline.schema import VALID_OPTIONS
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
@@ -1339,7 +1339,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     if not rpool.check_rpool('centrality') and \
             any(cfg.network_centrality[option]['weight_options'] for
-                option in valid_options['centrality']['method_options']):
+                option in VALID_OPTIONS['centrality']['method_options']):
         pipeline_blocks += [network_centrality]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
