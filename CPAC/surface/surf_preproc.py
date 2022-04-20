@@ -1,3 +1,4 @@
+from logging import raiseExceptions
 import os
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -127,25 +128,35 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
 
+    restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"]
+    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask",]
+    atlas_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
+    atlas_xfm_inv = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
+    atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"]
+    scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
+                  "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]
+
+
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
 
-    node, out = strat_pool.get_data('desc-restore_T1w')
+    node, out = strat_pool.get_data(restore) 
     wf.connect(node, out, surf, 't1w_restore_image')
 
-    node, out = strat_pool.get_data('space-template_desc-head_T1w')
+    node, out = strat_pool.get_data(space_temp) 
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
-    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    node, out = strat_pool.get_data(atlas_xfm) 
     wf.connect(node, out, surf, 'atlas_transform')
 
-    node, out = strat_pool.get_data('from-template_to-T1w_mode-image_xfm')
+    node, out = strat_pool.get_data(atlas_xfm_inv) 
     wf.connect(node, out, surf, 'inverse_atlas_transform')
 
-    node, out = strat_pool.get_data('space-template_desc-brain_bold')
+    node, out = strat_pool.get_data(atlas_space_bold) 
     wf.connect(node, out, surf, 'atlas_space_bold')
 
-    node, out = strat_pool.get_data('space-template_desc-scout_bold')
+    node, out = strat_pool.get_data(scout_bold)
     wf.connect(node, out, surf, 'scout_bold')
 
     outputs = {
@@ -162,8 +173,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
-
-def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
+def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "surface_preproc",
      "config": ["surface_analysis", "post_freesurfer"],
@@ -171,19 +181,20 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["freesurfer-subject-dir",
-                "desc-restore_T1w",
-                "space-template_desc-head_T1w",
-                "from-T1w_to-template_mode-image_xfm",
-                "from-template_to-T1w_mode-image_xfm",
-                "space-template_desc-brain_bold",
-                "space-template_desc-scout_bold"],
+                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
+                "space-longitudinal_desc-reorient_T1w"],
+                ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
+                ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
+                ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
+                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
+                ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
+                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
                  "space-fsLR_den-32k_bold-dtseries"]}
     '''
-
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
