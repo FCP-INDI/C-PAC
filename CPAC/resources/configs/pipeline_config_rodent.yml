@@ -61,8 +61,9 @@ registration_workflows:
       run: Off
 
     EPI_registration:
-    
       run: On
+
+      EPI_template: /cpac_templates/chd8_functional_template_sk.nii
 
       ANTs: 
 
@@ -141,7 +142,7 @@ registration_workflows:
 
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
-          EPI_template_funcreg: /template/study_based_functional_template_sk.nii.gz
+          EPI_template_funcreg: /cpac_templates/chd8_functional_template_sk.nii
           
           # EPI template mask.
           EPI_template_mask_funcreg: None
@@ -230,7 +231,7 @@ nuisance_corrections:
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
-    lateral_ventricles_mask: /cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz
+    lateral_ventricles_mask: /cpac_templates/chd8_functional_template_noise_mask_ag.nii
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
