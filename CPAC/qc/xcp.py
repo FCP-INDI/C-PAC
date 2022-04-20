@@ -162,7 +162,7 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(sub, ses, task, run, desc, variant, bold2t1w_mask,
+def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
                     t1w_mask, bold2template_mask, template_mask, original_func,
                     final_func, movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, fdj_after,
@@ -186,9 +186,6 @@ def generate_xcp_qc(sub, ses, task, run, desc, variant, bold2t1w_mask,
 
     desc : str
         description string
-
-    variant : str or None
-        variant string
 
     original_func : str
         path to original 'bold' image
@@ -236,7 +233,7 @@ def generate_xcp_qc(sub, ses, task, run, desc, variant, bold2t1w_mask,
         path to desc-xcp_quality TSV
     """
     columns = (
-        'sub,ses,task,run,desc,variant,space,meanFD,relMeansRMSMotion,'
+        'sub,ses,task,run,desc,space,meanFD,relMeansRMSMotion,'
         'relMaxRMSMotion,meanDVInit,meanDVFinal,nVolCensored,nVolsRemoved,'
         'motionDVCorrInit,motionDVCorrFinal,coregDice,coregJaccard,'
         'coregCrossCorr,coregCoverage,normDice,normJaccard,normCrossCorr,'
@@ -251,7 +248,6 @@ def generate_xcp_qc(sub, ses, task, run, desc, variant, bold2t1w_mask,
     # `sub` through `desc`
     from_bids = {
         'sub': sub, 'ses': ses, 'task': task, 'run': run, 'desc': desc,
-        'variant': variant,
         'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0]
     }
     if from_bids['space'].startswith('tpl-'):
@@ -389,7 +385,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     bids_info.inputs.strat_pool = strat_pool
     bids_info.inputs.resource_name = 'bold'
     qc_file = pe.Node(Function(input_names=['sub', 'ses', 'task', 'run',
-                                            'desc', 'variant', 'bold2t1w_mask',
+                                            'desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
                                             'template_mask', 'original_func',
                                             'final_func', 'template',
@@ -406,7 +402,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('desc-preproc_bold')
-    qc_file.inputs.variant = func['final'].variant
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
