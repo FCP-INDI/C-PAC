@@ -1606,6 +1606,42 @@ def _pickle2(p, z=False):
     return False
 
 
+def coerce_to_list(config_dict, key_sequence):
+    '''Helper function to ensure a given value is a list or None
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    key_sequence : list or tuple
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> coerce_to_list({'one': {'level': 1}}, ['one', 'level'])
+    {'one': {'level': [1]}}
+    >>> coerce_to_list({'one': {'level': None}}, ['one', 'level'])
+    {'one': {'level': None}}
+    '''
+    try:
+        old_value = lookup_nested_value(config_dict, key_sequence)
+    except KeyError:
+        old_value = []
+    if old_value == '':
+        ks2 = key_sequence[::-1]
+        inner = {**config_dict}
+        while ks2:
+            inner = inner[ks2.pop()]
+        if inner is None:
+            old_value = None
+    if not isinstance(old_value, (list)) and old_value is not None:
+        return set_nested_value(config_dict, key_sequence, [old_value])
+    return config_dict
+
+
 def concat_list(in_list1=None, in_list2=None):
     """
     Parameters

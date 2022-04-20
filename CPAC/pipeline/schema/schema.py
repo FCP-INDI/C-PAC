@@ -5,12 +5,16 @@ from itertools import chain, permutations
 import numpy as np
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
-from voluptuous.validators import ExactSequence, Maybe
+from voluptuous.error import Error as VoluptuousError
+from voluptuous.validators import Maybe
 
+from CPAC.utils import coerce_to_list
+from CPAC.utils.utils import lookup_nested_value, set_nested_value
 from .backwards_compatibility import backwards_compatible
-from .constants import ANTs_PARAMETERS, forkable, MUTEX, Number, \
-                       permutation_message, RESOLUTION_REGEX, URL_VERSION, \
-                       VALID_OPTIONS
+from .constants import ALWAYS_LISTS, ANTs_PARAMETERS, forkable, MUTEX, \
+                       Number,  permutation_message, RESOLUTION_REGEX, \
+                       TOGGLED_OPTIONS, VALID_OPTIONS
+from .exceptions import handle_custom_error
 
 latest_schema = Schema({
     'FROM': Maybe(str),
@@ -323,57 +327,13 @@ latest_schema = Schema({
                     'mean', 'median', 'selected_volume', 'fmriprep_reference'
                 })],
                 'motion_correction_reference_volume': int},
-            'motion_estimate_filter': Required(
-                Any({  # no motion estimate filter
-                    'run': Maybe(Any(
-                        ExactSequence([False]), ExactSequence([]), False)),
-                    'filter_type': Maybe(In({'notch', 'lowpass'})),
-                    'filter_order': Maybe(int),
-                    'breathing_rate_min': Maybe(Number),
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with breathing_rate_* set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Number,
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with manual parameters set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    'breathing_rate_min': None,
-                    'breathing_rate_max': None,
-                    Required('center_frequency'): Number,
-                    Required('filter_bandwidth'): Number,
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with breathing_rate_min
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with lowpass_cutoff
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min', default=None): None,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    Required('lowpass_cutoff'): Number}),
-                msg='`motion_estimate_filter` configuration is invalid. See '
-                    f'https://fcp-indi.github.io/docs/{URL_VERSION}/user/'
-                    'func#motion_estimate_filter_VALID_OPTIONS for details.\n'
-            )},
+            'motion_estimate_filter': {
+                'run': forkable,
+                'filters': Any(
+                    None,  # no filters
+                    VALID_OPTIONS['motion_estimate_filter'],  # one filter
+                    [VALID_OPTIONS['motion_estimate_filter']]  # filter series
+                )}},
         'distortion_correction': {
             'run': forkable,
             'using': [In(['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP'])],
@@ -595,7 +555,20 @@ def schema(config_dict):
     voluptuous.schema_builder.Schema
         validated configuration schema
     '''
-    return latest_schema(backwards_compatible(config_dict))
+    for keys in ALWAYS_LISTS:
+        config_dict = coerce_to_list(config_dict, keys)
+    config_dict = backwards_compatible(config_dict)
+    for option in TOGGLED_OPTIONS:
+        # Allow options to be mutually incompatible if those options are off
+        switch = lookup_nested_value(config_dict, option['switch'])
+        if True not in switch:
+            latest_schema.schema = set_nested_value(latest_schema.schema,
+                                                    option['key'],
+                                                    option['Off'])
+    try:
+        return latest_schema(config_dict)
+    except VoluptuousError as voluptuous_error:
+        return handle_custom_error(voluptuous_error, config_dict)
 
 
 schema.schema = latest_schema.schema

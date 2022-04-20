@@ -15,6 +15,7 @@ from .strategy import Strategy
 from .outputs import Outputs
 
 from .utils import (
+    coerce_to_list,
     get_zscore,
     get_fisher_zscore,
     compute_fisher_z_score,
@@ -43,5 +44,5 @@ from .utils import (
 )
 
 __all__ = [
-    'function'
+    'coerce_to_list', 'function'
 ]

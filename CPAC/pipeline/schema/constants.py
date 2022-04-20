@@ -15,6 +15,22 @@ RESOLUTION_REGEX = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
 
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
 forkable = Any(bool, [bool])
+
+# list of list of nested keys whose values should always be lists
+ALWAYS_LISTS = [
+    ['functional_preproc', 'motion_estimates_and_correction',
+     'motion_estimate_filter', 'filters']
+]
+OVERRIDABLE_DEFAULTS = {
+    'motion_estimate_filter': {
+        'name': Maybe(str),
+        'filter_type': Maybe(In({'notch', 'lowpass'})),
+        'filter_order': Maybe(int),
+        'breathing_rate_min': Maybe(Number),
+        'breathing_rate_max': Maybe(Number),
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        'lowpass_cutoff': Maybe(Number)}}
 VALID_OPTIONS = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -31,6 +47,19 @@ VALID_OPTIONS = {
                              'Correlation threshold'],
        'weight_options': ['Binarized', 'Weighted']
     },
+    'motion_estimate_filter': Any([{**{
+        'name': str, **OVERRIDABLE_DEFAULTS['motion_estimate_filter']
+    }, **different_filter} for different_filter in [{
+        'filter_type': 'lowpass',
+        'breathing_rate_min': Number},
+        {'filter_type': 'lowpass',
+         'lowpass_cutoff': Number},
+        {'filter_type': 'notch',
+         'breathing_rate_min': Maybe(Number),
+         'breathing_rate_max': Maybe(Number)},
+        {'filter_type': 'notch',
+         'center_frequency': Number,
+         'filter_bandwidth': Number}]]),
     'sca': {
         'roi_paths': {'Avg', 'DualReg', 'MultReg'},
     },
@@ -74,6 +103,14 @@ VALID_OPTIONS = {
         },
     }
 }
+
+TOGGLED_OPTIONS = [
+    {'switch': ['functional_preproc', 'motion_estimates_and_correction',
+                'motion_estimate_filter', 'run'],
+     'key': ['functional_preproc', 'motion_estimates_and_correction',
+             'motion_estimate_filter', 'filters'],
+     'Off': [OVERRIDABLE_DEFAULTS['motion_estimate_filter']]}]
+
 MUTEX = {  # mutually exclusive booleans
     'FSL-BET': {
         # exactly zero or one of each of the following can be True for FSL-BET

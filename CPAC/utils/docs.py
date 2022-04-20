@@ -14,6 +14,9 @@ def docstring_parameter(*args, **kwargs):
     Does this test do anything? Yes it does.
     """
     def dec(obj):
-        obj.__doc__ = obj.__doc__.format(*args, **kwargs)
+        try:
+            obj.__doc__ = obj.__doc__.format(*args, **kwargs)
+        except KeyError as key_error:
+            print(key_error)
         return obj
     return dec
