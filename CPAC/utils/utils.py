@@ -2,16 +2,15 @@ import os
 import collections.abc
 import fnmatch
 import gzip
+import json
 import numbers
 import pickle
-import threading
-import numpy as np
-import json
-import yaml
-
 from copy import deepcopy
 from itertools import repeat
 from optparse import OptionError
+
+import numpy as np
+import yaml
 from voluptuous.error import Invalid
 
 CONFIGS_DIR = os.path.abspath(os.path.join(

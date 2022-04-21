@@ -3,7 +3,6 @@ import logging
 import os
 import warnings
 import copy
-import yaml
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -15,7 +14,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils import Outputs
+from CPAC.utils import camel_case, case_terminal_letter, Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -208,7 +207,7 @@ class ResourcePool:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
@@ -473,12 +472,12 @@ class ResourcePool:
                                 if xlabel == ylabel:
                                     continue
                                 yjson = copy.deepcopy(json_dct[ylabel])
-                                
+
                                 if 'CpacVariant' not in xjson:
                                     xjson['CpacVariant'] = {}
                                 if 'CpacVariant' not in yjson:
                                     yjson['CpacVariant'] = {}
-                                    
+
                                 current_strat = []
                                 for key, val in xjson['CpacVariant'].items():
                                     if isinstance(val, list):
@@ -860,6 +859,7 @@ class ResourcePool:
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
+            variant_strings = {}
             for pipe_idx in self.rpool[resource]:
 
                 pipe_x = self.get_pipe_number(pipe_idx)
@@ -868,6 +868,18 @@ class ResourcePool:
                     num_variant += 1
                 except TypeError:
                     pass
+
+                if num_variant not in variant_strings:
+                    if (
+                        'json' in self.rpool and
+                        'CpacVariant' in self.rpool['json']
+                    ):
+                        variant_strings[num_variant] = camel_case('-'.join([
+                            camel_case(f'{variant_key}-{variant_value}') for
+                            variant_key, variant_value in
+                            self.rpool['json']['CpacVariant'].items()]))
+                    else:
+                        variant_strings[num_variant] = str(num_variant)
 
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
@@ -884,16 +896,21 @@ class ResourcePool:
 
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
-                        if 'desc-' in key:
+                        if 'desc-' in key:  # pylint: disable=no-else-break
+                            key_replacement = ''.join([
+                                key, case_terminal_letter(
+                                    variant_strings[num_variant],
+                                    'upper', 'first')])
                             out_dct['filename'] = out_dct[
-                                'filename'].replace(key,
-                                                    f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key, f'{key}-'
-                                                            f'{num_variant}')
+                                'filename'].replace(key, key_replacement)
+                            resource_idx = resource.replace(key,
+                                                            key_replacement)
                             break
                         else:
                             suff = resource.split('_')[-1]
-                            newdesc_suff = f'desc-{num_variant}_{suff}'
+                            newdesc_suff = (
+                                'desc-'
+                                f'{variant_strings[num_variant]}_{suff}')
                             resource_idx = resource.replace(suff,
                                                             newdesc_suff)
                 else:
@@ -917,7 +934,7 @@ class ResourcePool:
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
-                    
+
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1020,19 +1037,19 @@ class NodeBlock:
         self.node_blocks = {}
 
         for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
-        
+
             self.input_interface = []
             if isinstance(node_block_function, tuple):
                 self.input_interface = node_block_function[1]
                 node_block_function = node_block_function[0]
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
-        
+
             init_dct = self.grab_docstring_dct(node_block_function.__doc__)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
-            
+
             if self.input_interface:
                 for interface in self.input_interface:
                     for orig_input in init_dct['inputs']:
