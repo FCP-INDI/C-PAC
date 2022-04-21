@@ -75,6 +75,7 @@ RUN apt-get install -y \
       mesa-common-dev \
       mesa-utils \
       netpbm \
+      openssh-client \
       pkg-config \
       rsync \
       tcsh \

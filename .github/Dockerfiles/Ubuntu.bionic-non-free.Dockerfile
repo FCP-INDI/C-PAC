@@ -71,6 +71,7 @@ RUN groupadd -r c-pac && \
       mesa-utils \
       netpbm \
       ninja-build \
+      openssh-client \
       pkg-config \
       rsync \
       software-properties-common \
