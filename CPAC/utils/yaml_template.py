@@ -1,8 +1,8 @@
 import os
 import re
 import yaml
+from argparse import ArgumentError
 from datetime import datetime
-from optparse import OptionError
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
     update_config_dict, update_pipeline_values_1_8
@@ -161,7 +161,7 @@ def create_yaml_from_template(
         d = d.dict()
     try:
         template = load_preconfig(template)
-    except OptionError:
+    except ArgumentError:
         if 'default' in template.lower():
             template = DEFAULT_PIPELINE_FILE
         assert os.path.exists(template) or os.path.islink(template), \
