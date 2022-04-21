@@ -32,9 +32,14 @@ def create_yaml_from_template(
     >>> import yaml
     >>> from CPAC.utils.configuration import Configuration
     >>> Configuration(yaml.safe_load(create_yaml_from_template({}))).dict(
-    ...    ) == Configuration({}).dict()
+    ...     ) == Configuration({}).dict()
     True
-    """
+    >>> Configuration(yaml.safe_load(create_yaml_from_template({},
+    ...     template='Lil BUB')))
+    Traceback (most recent call last):
+        ...
+    ValueError: 'Lil BUB' is not a valid path nor a defined preconfig.
+    """  # noqa: E501 # pylint: disable=line-too-long
     def _count_indent(line):
         '''Helper method to determine indentation level
 
@@ -119,13 +124,13 @@ def create_yaml_from_template(
         Parameters
         ----------
         l : list
-        
+
         line_level : int
-        
+
         Returns
         -------
         yaml : str
-        
+
         Examples
         --------
         >>> _format_list_items([1, 2, {'nested': 3}], 0)
@@ -161,11 +166,12 @@ def create_yaml_from_template(
         d = d.dict()
     try:
         template = load_preconfig(template)
-    except ArgumentError:
+    except ArgumentError as argument_error:
         if 'default' in template.lower():
             template = DEFAULT_PIPELINE_FILE
-        assert os.path.exists(template) or os.path.islink(template), \
-            f'{template_name} is not a defined preconfig or a valid path.'
+        if not os.path.exists(template) or os.path.islink(template):
+            raise ValueError(f'\'{template_name}\' is not a valid path nor a '
+                             'defined preconfig.') from argument_error
     template_included = False
 
     # load default values
