@@ -319,12 +319,12 @@ class ResourcePool:
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+                            f'entry for {str(prov_str)} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -774,13 +774,13 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
+
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -798,7 +798,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
@@ -856,7 +856,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -885,10 +885,11 @@ class ResourcePool:
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
                         if 'desc-' in key:
-                            out_dct['filename'] = out_dct['filename'
-                            ].replace(key, f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key,
-                                                            f'{key}-{num_variant}')
+                            out_dct['filename'] = out_dct[
+                                'filename'].replace(key,
+                                                    f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key, f'{key}-'
+                                                            f'{num_variant}')
                             break
                         else:
                             suff = resource.split('_')[-1]
@@ -1125,8 +1126,8 @@ class NodeBlock:
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
-                if opts == None:
+
+                if opts is None:
                     opts = [opts]
 
             elif option_key and not option_val:
@@ -1721,7 +1722,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
                 'system_config']['FSLDIR'])
         if '$priors_path' in val:
-            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path'] or ''
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
@@ -1999,15 +2000,8 @@ class NodeData:
     def __init__(self, strat_pool=None, resource=None, **kwargs):
         self.node = NotImplemented
         self.out = NotImplemented
-        self.variant = None
         if strat_pool is not None and resource is not None:
             self.node, self.out = strat_pool.get_data(resource, **kwargs)
-            if (
-                hasattr(strat_pool, 'rpool') and
-                isinstance(strat_pool.rpool, dict)
-            ):
-                self.variant = strat_pool.rpool.get(resource, {}).get(
-                    'json', {}).get('CpacVariant', {}).get(resource)
 
     def __repr__(self):
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

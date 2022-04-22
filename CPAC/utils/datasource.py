@@ -160,8 +160,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -256,8 +255,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -816,6 +814,26 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
+def res_string_to_tuple(resolution):
+    """
+    Converts a resolution string to a tuple of floats.
+
+    Parameters
+    ----------
+    resolution : str
+        Resolution string, e.g. "3.438mmx3.438mmx3.4mm"
+
+    Returns
+    -------
+    resolution :tuple
+        Tuple of floats, e.g. (3.438, 3.438, 3.4)
+    """
+    if "x" in str(resolution):
+        return tuple(
+            float(i.replace('mm', '')) for i in resolution.split("x"))
+    return (float(resolution.replace('mm', '')),) * 3
+
+
 def resolve_resolution(resolution, template, template_name, tag=None):
     import nipype.interfaces.afni as afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -848,17 +866,11 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             local_path = template
 
-        if "x" in str(resolution):
-            resolution = tuple(
-                float(i.replace('mm', '')) for i in resolution.split("x"))
-        else:
-            resolution = (float(resolution.replace('mm', '')),) * 3
-
         resample = pe.Node(interface=afni.Resample(),
                            name=template_name,
                            mem_gb=0,
                            mem_x=(0.0115, 'in_file', 't'))
-        resample.inputs.voxel_size = resolution
+        resample.inputs.voxel_size = res_string_to_tuple(resolution)
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'
         resample.inputs.in_file = local_path

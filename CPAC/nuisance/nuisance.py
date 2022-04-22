@@ -86,10 +86,13 @@ def erode_mask(name, segmentmap=True):
                          name='outputspec')
 
     def form_mask_erosion_prop(erosion_prop):
+        if not isinstance(erosion_prop, (int, float)):
+            erosion_prop = 0
         return erosion_prop ** 3
 
     ero_imports = ['import scipy.ndimage as nd', 'import numpy as np',
-                   'import nibabel as nb', 'import os']
+                   'import nibabel as nb', 'import os',
+                   'from CPAC.seg_preproc.utils import _erode']
 
     eroded_mask = pe.Node(util.Function(
         input_names=['roi_mask', 'skullstrip_mask', 'mask_erosion_mm',
@@ -105,7 +108,8 @@ def erode_mask(name, segmentmap=True):
     wf.connect(inputspec, 'brain_mask', eroded_mask, 'skullstrip_mask')
     wf.connect(inputspec, 'mask', eroded_mask, 'roi_mask')
 
-    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop), eroded_mask, 'mask_erosion_prop')
+    wf.connect(inputspec, ('erode_prop', form_mask_erosion_prop), eroded_mask,
+               'mask_erosion_prop')
     wf.connect(inputspec, 'mask_erode_mm', eroded_mask, 'mask_erosion_mm')
 
     if not segmentmap:
@@ -113,7 +117,8 @@ def erode_mask(name, segmentmap=True):
     if segmentmap:
         erosion_segmentmap = pe.Node(util.Function(input_names=['roi_mask',
                                                                 'erosion_mm',
-                                                                'erosion_prop'],
+                                                                'erosion_prop'
+                                                                ],
                                                    output_names=[
                                                        'eroded_roi_mask'],
                                                    function=erosion,
@@ -2004,7 +2009,9 @@ def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
         '2-nuisance_regression']['regressor_masks'][
         'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
-    erode.inputs.inputspec.erode_prop = 0
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
     wf.connect(node, out, erode, 'inputspec.brain_mask')
@@ -2411,7 +2418,9 @@ def erode_mask_bold(wf, cfg, strat_pool, pipe_num, opt=None):
     erode.inputs.inputspec.mask_erode_mm = cfg.nuisance_corrections[
         '2-nuisance_regression']['regressor_masks'][
         'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
-    erode.inputs.inputspec.erode_prop = 0
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
     wf.connect(node, out, erode, 'inputspec.brain_mask')

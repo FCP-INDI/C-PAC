@@ -832,8 +832,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     matrix_outputs = {}
     for cm_measure in cfg['timeseries_extraction', 'connectivity_matrix',
                           'measure']:
-        for cm_tool in cfg['timeseries_extraction', 'connectivity_matrix',
-                           'using']:
+        for cm_tool in [tool for tool in cfg['timeseries_extraction',
+                        'connectivity_matrix', 'using'] if tool != 'ndmg']:
             implementation = get_connectome_method(cm_measure, cm_tool)
             if implementation is NotImplemented:
                 continue
@@ -867,30 +867,31 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
             matrix_outputs[f'desc-{output_desc}_correlations'] = (
                 timeseries_correlation, 'outputspec.out_file')
 
-    # - NDMG
-    from CPAC.utils.ndmg_utils import ndmg_create_graphs
-
-    ndmg_graph_imports = ['import os',
-                          'from CPAC.utils.ndmg_utils import graph']
-    ndmg_graph = pe.Node(Function(
-        input_names=['ts', 'labels'],
-        output_names=['out_file'],
-        function=ndmg_create_graphs,
-        imports=ndmg_graph_imports,
-        as_module=True
-    ), name=f'ndmg_graphs_{pipe_num}',
-       mem_gb=0.664,
-       mem_x=(1928411764134803 / 302231454903657293676544, 'ts'))
-
-    wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
-    wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
-
     outputs = {
         'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_csv'),
-        'desc-ndmg_correlations': (ndmg_graph, 'out_file'),
         'atlas_name': (roi_dataflow, 'outputspec.out_name'),
         **matrix_outputs
     }
+    # - NDMG
+    if 'ndmg' in cfg['timeseries_extraction', 'connectivity_matrix', 'using']:
+        # pylint: disable=import-outside-toplevel
+        from CPAC.utils.ndmg_utils import ndmg_create_graphs
+
+        ndmg_graph_imports = ['import os',
+                              'from CPAC.utils.ndmg_utils import graph']
+        ndmg_graph = pe.Node(Function(
+            input_names=['ts', 'labels'],
+            output_names=['out_file'],
+            function=ndmg_create_graphs,
+            imports=ndmg_graph_imports,
+            as_module=True
+        ), name=f'ndmg_graphs_{pipe_num}',
+           mem_gb=0.664,
+           mem_x=(1928411764134803 / 302231454903657293676544, 'ts'))
+
+        wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
+        wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
+        outputs['desc-ndmg_correlations'] = (ndmg_graph, 'out_file')
 
     return (wf, outputs)
 

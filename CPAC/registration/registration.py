@@ -21,12 +21,13 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     interpolation_string, \
                                     change_itk_transform_type, \
                                     hardcoded_reg, \
+                                    one_d_to_mat, \
                                     run_ants_apply_warp, \
                                     run_c3d, \
                                     run_c4d
 
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
@@ -874,7 +875,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
-    relies on some of it's outputs.
+    relies on some of its outputs.
 
     Parameters
     ----------
@@ -2199,11 +2200,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['anatomical_registration'][
         'registration']['ANTs']['T1_registration']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
-                                                f'{pipe_num}', cfg,
-                                                params, orig='T1w')
+    ants_rc, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                   f'{pipe_num}', cfg,
+                                                   params, orig='T1w')
 
-    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+    ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
 
     connect, brain = \
@@ -2211,44 +2212,45 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                              'space-longitudinal_desc-brain_T1w'],
                             report_fetched=True)
     node, out = connect
-    wf.connect(node, out, ants, 'inputspec.input_brain')
+    wf.connect(node, out, ants_rc, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, ants, 'inputspec.reference_brain')
+    t1w_brain_template = strat_pool.node_data('T1w-brain-template')
+    wf.connect(t1w_brain_template.node, t1w_brain_template.out,
+               ants_rc, 'inputspec.reference_brain')
 
     # TODO check the order of T1w
     node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
                                      "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
-    wf.connect(node, out, ants, 'inputspec.input_head')
+    wf.connect(node, out, ants_rc, 'inputspec.input_head')
 
 
-    node, out = strat_pool.get_data(f'T1w-template')
-    wf.connect(node, out, ants, 'inputspec.reference_head')
+    t1w_template = strat_pool.node_data('T1w-template')
+    wf.connect(t1w_template.node, t1w_template.out,
+               ants_rc, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
-                                     "space-longitudinal_desc-brain_mask",
-                                     "space-T1w_desc-acpcbrain_mask"])
-    wf.connect(node, out, ants, 'inputspec.input_mask')
+    brain_mask = strat_pool.node_data(["space-T1w_desc-brain_mask",
+                                       "space-longitudinal_desc-brain_mask",
+                                       "space-T1w_desc-acpcbrain_mask"])
+    wf.connect(brain_mask.node, brain_mask.out,
+               ants_rc, 'inputspec.input_mask')
 
     if strat_pool.check_rpool('T1w-brain-template-mask'):
         node, out = strat_pool.get_data('T1w-brain-template-mask')
-        wf.connect(node, out, ants, 'inputspec.reference_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.reference_mask')
 
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
-        wf.connect(node, out, ants, 'inputspec.lesion_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.lesion_mask')
 
     if 'space-longitudinal' in brain:
-        for key in outputs.keys():
-            if 'from-T1w' in key:
-                new_key = key.replace('from-T1w', 'from-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
-            if 'to-T1w' in key:
-                new_key = key.replace('to-T1w', 'to-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+        for key in outputs:
+            for direction in ['from', 'to']:
+                if f'{direction}-T1w' in key:
+                    new_key = key.replace(f'{direction}-T1w',
+                                          f'{direction}-longitudinal')
+                    outputs[new_key] = outputs[key]
+                    del outputs[key]
 
     return (wf, outputs)
 
@@ -3655,7 +3657,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     return (wf, outputs)
 
 
-def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
+                                                  pipe_num, opt=None):
     """
     {"name": "single_step_resample_timeseries_to_T1template",
      "config": ["registration_workflows", "functional_registration",
@@ -3675,7 +3678,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  "desc-brain_T1w",
                  "T1w-brain-template-funcreg")],
      "outputs": ["space-template_desc-preproc_bold",
-                 "space-template_desc-brain_bold"]}
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-bold_mask"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
@@ -3729,7 +3733,20 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(node, out, motionxfm2itk, 'source_file')
 
     node, out = strat_pool.get_data('coordinate-transformation')
-    wf.connect(node, out, motionxfm2itk, 'transform_file')
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
+    if motion_correct_tool == 'mcflirt':
+        wf.connect(node, out, motionxfm2itk, 'transform_file')
+    elif motion_correct_tool == '3dvolreg':
+        convert_transform = pe.Node(util.Function(
+            input_names=['one_d_filename'],
+            output_names=['transform_directory'],
+            function=one_d_to_mat,
+            imports=['import os', 'import numpy as np']),
+            name=f'convert_transform_{pipe_num}')
+        wf.connect(node, out, convert_transform, 'one_d_filename')
+        wf.connect(convert_transform, 'transform_directory',
+                   motionxfm2itk, 'transform_file')
 
     collectxfm = pe.MapNode(util.Merge(4),
                             name=f'collectxfm_func_to_standard_{pipe_num}',
@@ -3805,8 +3822,11 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
         apply_mask, 'mask_file')
 
     outputs = {
-        'space-template_desc-preproc_bold': (merge_func_to_standard, 'merged_file'),
-        'space-template_desc-brain_bold': (apply_mask, 'out_file')
+        'space-template_desc-preproc_bold': (merge_func_to_standard,
+                                             'merged_file'),
+        'space-template_desc-brain_bold': (apply_mask, 'out_file'),
+        'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
+            'output_image'),
     }
 
     return (wf, outputs)
@@ -4202,85 +4222,39 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask",
                  "from-T1w_to-template_mode-image_xfm"),
-                "T1w-template"],
+                 "T1w-template"],
      "outputs": ["space-template_label-CSF_mask",
                  "space-template_label-WM_mask",
                  "space-template_label-GM_mask"]}
     '''
-
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
-    apply_xfm_CSF = apply_transform(f'warp_Tissuemask_to_T1template_CSF{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_WM = apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_GM = apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    if reg_tool == 'ants':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'NearestNeighbor'
-    elif reg_tool == 'fsl':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'nn'
-
-    outputs = {}
-    if strat_pool.check_rpool('label-CSF_mask'):
-        node, out = strat_pool.get_data("label-CSF_mask")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
-        outputs.update({
-         f'space-template_label-CSF_mask':
-
-            (apply_xfm_CSF, 'outputspec.output_image')})
-
-
-
-    if strat_pool.check_rpool('label-WM_mask'):
-        node, out = strat_pool.get_data("label-WM_mask")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-WM_mask':
-            (apply_xfm_WM, 'outputspec.output_image')})
-
-
-    if strat_pool.check_rpool('label-GM_mask'):
-        node, out = strat_pool.get_data("label-GM_mask")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-GM_mask':
-            (apply_xfm_GM, 'outputspec.output_image')})
-
+    tissue_types = ['CSF', 'WM', 'GM']
+    apply_xfm = {
+        tissue: apply_transform(f'warp_Tissuemask_to_T1template_{tissue}_'
+                                f'{pipe_num}', reg_tool, time_series=False,
+                                num_cpus=cfg.pipeline_setup['system_config'][
+                                    'max_cores_per_participant'],
+                                num_ants_cores=cfg.pipeline_setup[
+                                    'system_config']['num_ants_threads']) for
+        tissue in tissue_types}
+    for tissue in tissue_types:
+        if reg_tool == 'ants':
+            apply_xfm[tissue].inputs.inputspec.interpolation = \
+                'NearestNeighbor'
+        elif reg_tool == 'fsl':
+            apply_xfm['tissue'].inputs.inputspec.interpolation = 'nn'
+        if strat_pool.check_rpool(f'label-{tissue}_mask'):
+            node, out = strat_pool.get_data(f'label-{tissue}_mask')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.input_image')
+            node, out = strat_pool.get_data('T1w-template')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.reference')
+            node, out = strat_pool.get_data('from-T1w_to-template_'
+                                            'mode-image_xfm')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.transform')
+    outputs = {f'space-template_label-{tissue}_mask': (apply_xfm[tissue],
+               'outputspec.output_image') for tissue in tissue_types}
 
     return (wf, outputs)
 
