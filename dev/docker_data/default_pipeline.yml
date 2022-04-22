@@ -1080,56 +1080,57 @@ functional_preproc:
       #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
-      run: [Off, On]
+      run: [Off]
 
-      filters:
-        - name:
-          # options: "notch", "lowpass"
-          filter_type: "notch"
+      # options: "notch", "lowpass"
+      filter_type: "notch"
 
-          # Number of filter coefficients.
-          filter_order: 4
+      # Number of filter coefficients.
+      filter_order: 4
 
-          # Dataset-wide respiratory rate data from breathing belt.
+      # Dataset-wide respiratory rate data from breathing belt.
+      # Notch filter requires either:
+      #     "breathing_rate_min" and "breathing_rate_max"
+      # or
+      #     "center_frequency" and "filter_bandwitdh".
+      # Lowpass filter requires either:
+      #     "breathing_rate_min"
+      # or
+      #     "lowpass_cutoff".
+      # If "breathing_rate_min" (for lowpass and notch filter)
+      # and "breathing_rate_max" (for notch filter) are set,
+      # the values set in "lowpass_cutoff" (for lowpass filter),
+      # "center_frequency" and "filter_bandwidth" (for notch filter)
+      # options are ignored.
 
-          # Notch filter requires either:
-          #     "breathing_rate_min" and "breathing_rate_max"
-          # or
-          #     "center_frequency" and "filter_bandwitdh".
+      # Lowest Breaths-Per-Minute in dataset.
+      # For both notch and lowpass filters.
+      breathing_rate_min:
 
-          # Lowpass filter requires either:
-          #     "breathing_rate_min"
-          # or
-          #     "lowpass_cutoff".
+      # Highest Breaths-Per-Minute in dataset.
+      # For notch filter.
+      breathing_rate_max:
 
-          # Lowest Breaths-Per-Minute in dataset.
-          # For both notch and lowpass filters.
-          breathing_rate_min: 0.1
+      # notch filter direct customization parameters
 
-          # Highest Breaths-Per-Minute in dataset.
-          # For notch filter.
-          breathing_rate_max: 10
+      # mutually exclusive with breathing_rate options above.
+      # If breathing_rate_min and breathing_rate_max are provided,
+      # the following parameters will be ignored.
 
-          # notch filter direct customization parameters
+      # the center frequency of the notch filter
+      center_frequency:
 
-          # mutually exclusive with breathing_rate options above.
-          # If breathing_rate_min and breathing_rate_max are provided,
-          # the following parameters will be ignored.
+      # the width of the notch filter
+      filter_bandwidth:
 
-          # the center frequency of the notch filter
-          center_frequency: 0.4
+      # lowpass filter direct customization parameter
 
-          # the width of the notch filter
-          # filter_bandwidth:
+      # mutually exclusive with breathing_rate options above.
+      # If breathing_rate_min is provided, the following
+      # parameter will be ignored.
 
-          # lowpass filter direct customization parameter
-
-          # mutually exclusive with breathing_rate options above.
-          # If breathing_rate_min is provided, the following
-          # parameter will be ignored.
-
-          # the frequency cutoff of the filter
-          # lowpass_cutoff:
+      # the frequency cutoff of the filter
+      lowpass_cutoff:
 
   distortion_correction:
 

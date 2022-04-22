@@ -5,7 +5,7 @@ from voluptuous.validators import ExactSequence, Maybe
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.utils import dct_diff, delete_nested_value, \
                              lookup_nested_value, set_nested_value
-from .constants import Number, OVERRIDABLE_DEFAULTS
+from .config import Number, OVERRIDABLE_DEFAULTS
 
 logger = logging.getLogger('nipype.workflow')
 
@@ -90,6 +90,17 @@ def _kick_1_8_0_to_1_8_1(config_dict):
 def _kick_1_8_4_to_1_8_5(config_dict):
     '''Update config from 1.8.4 to 1.8.5'''
     def _set_name(motion_estimate_filter):
+        '''Helper function to ensure each motion estimate filter has a name.
+
+        Parameters
+        ----------
+        motion_estimate_filter : dict or list or None
+
+        Returns
+        -------
+        dict or list or None
+            Same as input, but with a name if it didn't have one.
+        '''
         if isinstance(motion_estimate_filter, list):
             return [_set_name(m_e_filter) for m_e_filter in
                     motion_estimate_filter]
@@ -98,6 +109,7 @@ def _kick_1_8_4_to_1_8_5(config_dict):
                  motion_estimate_filter['name'] is None)):
             motion_estimate_filter['name'] = 'motion_estimate_filter'
         return motion_estimate_filter
+
     motion_estimate_filter = {
         'keys': ['functional_preproc', 'motion_estimates_and_correction',
                  'motion_estimate_filter', 'filters']}
@@ -105,7 +117,19 @@ def _kick_1_8_4_to_1_8_5(config_dict):
         motion_estimate_filter['value'] = lookup_nested_value(
             config_dict, motion_estimate_filter['keys'])
     except KeyError:
-        motion_estimate_filter['value'] = None
+        old_version = lookup_nested_value(config_dict,
+                                          motion_estimate_filter['keys'][:-1])
+        if 'filter_type' in old_version:
+            motion_estimate_filter['value'] = {
+                k: v for k, v in old_version.items() if
+                k != 'run' and v is not None}
+            config_dict = set_nested_value(config_dict, motion_estimate_filter[
+                'keys'][:-1], {
+                    'run': old_version['run'],
+                    'filters': motion_estimate_filter['value']
+            })
+        else:
+            motion_estimate_filter['value'] = None
     if motion_estimate_filter['value'] is not None:
         if ('name' not in motion_estimate_filter['value'] or
                 motion_estimate_filter['value']['name'] is None):
