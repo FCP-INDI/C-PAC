@@ -80,19 +80,15 @@ def run_surface(post_freesurfer_folder,
     return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
             aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
-def create res_mat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
-
-
-
-    #mri_info = "/home/tgeorge/postfreesurfer/postfs-output/working/cpac_sub-0050952_ses-1/anat_preproc_freesurfer_52/anat_freesurfer/recon_all/mri/wmparc.mgz"
-
-
-    cmd = ['mri_info', mri_info]
-    mri_info_file = subprocess.check_output(cmd)
-
-
-
-    with open('mri_info.txt', 'w') as f:
+def get_mri_info(mri_info):
+    
+        import os
+        import subprocess
+         
+        cmd = ['mri_info', mri_info]
+        mri_info_file = subprocess.check_output(cmd)
+        
+        with open('mri_info.txt', 'w') as f:
             for v in mri_info_file:
 
                 f.write(str(mri_info_file))
@@ -100,161 +96,202 @@ def create res_mat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
 
 
 
-    out_file = os.path.join(os.getcwd(), 'mri_info.txt')
+        out_file = os.path.join(os.getcwd(), 'mri_info.txt')
 
-    for line in open(out_file, 'r'):
-
-
-        cr_val = line.strip().split('c_r =')
-        cr = cr_val[1].strip().split('\\n')
-
-        ca_val = line.strip().split('c_a =')
-        ca = ca_val[1].strip().split('\\n')
-
-        cs_val = line.strip().split('c_s =')
-        cs = cs_val[1].strip().split('\\n')
-
-    import re
-
-    cr = re.sub(r"[\n\t\s]*", "", cr[0])
-    cr = float(cr)
-
-    ca = re.sub(r"[\n\t\s]*", "", ca[0])
-    ca = float(ca)
-
-    cs = re.sub(r"[\n\t\s]*", "", cs[0])
-    cs = float(cs)
+        for line in open(out_file, 'r'):
 
 
-   cr_matrix = np.array([1, 0, 0, cr])
-   ca_matrix = np.array([0, 1, 0, ca])
-   cs_matrix = np.array([1, 0, 0, cs])
-   id_mastrix = np.array([0, 0, 0, 1])
+            cr_val = line.strip().split('c_r =')
+            cr = cr_val[1].strip().split('\\n')
 
-   final_mat = np.concatenate((cr_matrix, ca_matrix, cs_matrix, id_mastrix), axis=0)
-   final_mat = final_mat.reshape(4,4)
+            ca_val = line.strip().split('c_a =')
+            ca = ca_val[1].strip().split('\\n')
+
+            cs_val = line.strip().split('c_s =')
+            cs = cs_val[1].strip().split('\\n')
+
+        import re
+
+        cr = re.sub(r"[\n\t\s]*", "", cr[0])
+        cr = float(cr)
+
+        ca = re.sub(r"[\n\t\s]*", "", ca[0])
+        ca = float(ca)
+
+        cs = re.sub(r"[\n\t\s]*", "", cs[0])
+        cs = float(cs)
 
 
-   file_path = '/home/tgeorge/pfreesurfer-bash-runs/c_ras.mat'
-   np.savetxt('file_path ',final_mat)
+        cr_matrix = np.array([1, 0, 0, cr])
+        ca_matrix = np.array([0, 1, 0, ca])
+        cs_matrix = np.array([1, 0, 0, cs])
+        id_mastrix = np.array([0, 0, 0, 1])
+
+        final_mat = np.concatenate((cr_matrix, ca_matrix, cs_matrix, id_mastrix), axis=0)
+        final_mat = final_mat.reshape(4,4)
+
+
+        file_path = '/home/tgeorge/pfreesurfer-bash-runs/c_ras.mat'
+        np.savetxt('file_path ',final_mat)
+        
+        return mri_info_file
 
 
 
-def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
+def create_resmat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
 
-'''
-    {"name": "surface_preproc",
+    '''
+    {"name": "create_resmat",
      "config": ["surface_analysis", "post_freesurfer"],
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["freesurfer-subject-dir",
-                "desc-restore_T1w",
-                "space-template_desc-head_T1w",
-                "from-T1w_to-template_mode-image_xfm",
-                "from-template_to-T1w_mode-image_xfm",
-                "space-template_desc-brain_bold",
-                "space-template_desc-scout_bold"],
-     "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
+     "inputs": ["wmparc.mgz"],
+     "outputs": ["final_mat"]}
     '''
+    
+    
+    
+    create_resmat = pe.Node(util.Function(input_names=['wmparc.mgz'],
+                                 output_names=['final_mat'],
+                                 function=create_resmat),
+                   name=f'create_resmat_{pipe_num}')
 
-    #Convert FreeSurfer Volumes
-    for Image in wmparc aparc.a2009s+aseg aparc+aseg:
+    #mri_info = "/home/tgeorge/postfreesurfer/postfs-output/working/cpac_sub-0050952_ses-1/anat_preproc_freesurfer_52/anat_freesurfer/recon_all/mri/wmparc.mgz"
+    
+    get_mri_info_imports = ['import os', 'import subprocess']
+    get_mri_info = pe.Node(util.Function(input_names=['mri_info'],
+                                               output_names=['mri_info_file'],
+                                               function=get_mri_info,
+                                               imports=_imports),
+                                 name=f'get_mri_info_{name}')
+    
+    
+    node, out = strat_pool.get_data('wmparc.mgz')
+    wf.connect(node, out, get_mri_info, 'mri_info')
+    
+    
 
-	    if os.path.exists(os.path.join(os.getcwd(), '$FreeSurferFolder"/mri', '$Image".mgz')):
-		   #mri_convert -rt nearest -rl "$T1wFolder"/"$T1wImage".nii.gz "$FreeSurferFolder"/mri/"$Image".mgz "$T1wFolder"/"$Image"_1mm.nii.gz
-
-           mri_convert = pe.Node(interface=freesurfer.preprocess.MRIConvert(),name='mri_convert')
-           mri_convert.inputs.in_file = "$FreeSurferFolder"/mri/"$Image".mgz
-           mri_convert.out_file = "$T1wFolder"/"$Image"_1mm.nii.gz
-           mri_convert.resample_type = 'nearest'
-           mri_convert.reslice_like = "$T1wFolder"/"$T1wImage".nii.gz
-
-
-		   #applywarp --rel --interp=nn -i "$T1wFolder"/"$Image"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$Image".nii.gz
-
-           apply_warp_1 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_1')
-           apply_warp_1.inputs.interp = 'nn'
-           apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
-           apply_warp_1.out_file = "$T1wFolder"/"$Image".nii.gz
-           apply_warp_1.relwarp = 'TRUE'
-           apply_warp_1.premat = '$FSLDIR/etc/flirtsch/ident.mat'
-           wf.connect(mri_convert ,'out_file',apply_warp_1,'in_file')
-
-
-
-		   #applywarp --rel --interp=nn -i "$T1wFolder"/"$Image"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" -w "$AtlasTransform" -o "$AtlasSpaceFolder"/"$Image".nii.gz
-
-           apply_warp_2 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_2')
-           apply_warp_2.inputs.interp = 'nn'
-           apply_warp_2.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
-           apply_warp_2.out_file = "$AtlasSpaceFolder"/"$Image".nii.gz
-           apply_warp_2.relwarp = 'TRUE'
-           apply_warp_2.field_file =  "$AtlasTransform"
-           wf.connect(apply_warp_1 ,'out_file',apply_warp_2,'in_file')
+    
 
 
 
-		   #${CARET7DIR}/wb_command -volume-label-import "$T1wFolder"/"$Image".nii.gz "$FreeSurferLabels" "$T1wFolder"/"$Image".nii.gz -drop-unused-labels
+ 
+# def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
 
-           wb_volume_label_1 = pe.Node(interface=base.CommandLine(),name='volume_label')
-           wb_volume_label_1.command='wb_command -volume-label-import', environ={'DISPLAY': ':1'})
-           volume_label_1.inputs.args = "in_file" "$FreeSurferLabels" "$T1wFolder"/"$Image".nii.gz "-drop-unused-labels"
-           wf.connect(apply_warp_1 ,'out_file',wb_volume_label_1,'in_file')
+    # '''
+    # {"name": "surface_preproc",
+     # "config": ["surface_analysis", "post_freesurfer"],
+     # "switch": ["run"],
+     # "option_key": "None",
+     # "option_val": "None",
+     # "inputs": ["freesurfer-subject-dir",
+                # "desc-restore_T1w",
+                # "space-template_desc-head_T1w",
+                # "from-T1w_to-template_mode-image_xfm",
+                # "from-template_to-T1w_mode-image_xfm",
+                # "space-template_desc-brain_bold",
+                # "space-template_desc-scout_bold"],
+     # "outputs": ["space-fsLR_den-32k_bold-dtseries"]}
+    # '''
+    # image_list = ["wmparc", "aparc.a2009s+aseg",  "aparc+aseg"]
+    # #Convert FreeSurfer Volumes
+    # for Image in image_list:
+
+	    # if os.path.exists(os.path.join(os.getcwd(), '$FreeSurferFolder"/mri', '$Image".mgz')):
+		   # #mri_convert -rt nearest -rl "$T1wFolder"/"$T1wImage".nii.gz "$FreeSurferFolder"/mri/"$Image".mgz "$T1wFolder"/"$Image"_1mm.nii.gz
+
+           # mri_convert = pe.Node(interface=freesurfer.preprocess.MRIConvert(),name='mri_convert')
+           # mri_convert.inputs.in_file = "$FreeSurferFolder"/mri/"$Image".mgz
+           # mri_convert.out_file = "$T1wFolder"/"$Image"_1mm.nii.gz
+           # mri_convert.resample_type = 'nearest'
+           # mri_convert.reslice_like = "$T1wFolder"/"$T1wImage".nii.gz
+
+
+		   # #applywarp --rel --interp=nn -i "$T1wFolder"/"$Image"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$Image".nii.gz
+
+           # apply_warp_1 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_1')
+           # apply_warp_1.inputs.interp = 'nn'
+           # apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
+           # apply_warp_1.out_file = "$T1wFolder"/"$Image".nii.gz
+           # apply_warp_1.relwarp = 'TRUE'
+           # apply_warp_1.premat = '$FSLDIR/etc/flirtsch/ident.mat'
+           # wf.connect(mri_convert ,'out_file',apply_warp_1,'in_file')
 
 
 
-		   #${CARET7DIR}/wb_command -volume-label-import "$AtlasSpaceFolder"/"$Image".nii.gz "$FreeSurferLabels" "$AtlasSpaceFolder"/"$Image".nii.gz -drop-unused-labels
-           wb_volume_label_2 = pe.Node(interface=base.CommandLine(),name='volume_label')
-           wb_volume_label_2.command="wb_command -volume-label-import" , environ={'DISPLAY': ':1'})
-           volume_label_2.inputs.args = "in_file" "$FreeSurferLabels" "$AtlasSpaceFolder"/"$Image".nii.gz '-drop-unused-labels'
-           wf.connect(apply_warp_2 ,'out_file',wb_volume_label_2,'in_file')
+		   # #applywarp --rel --interp=nn -i "$T1wFolder"/"$Image"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" -w "$AtlasTransform" -o "$AtlasSpaceFolder"/"$Image".nii.gz
+
+           # apply_warp_2 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_2')
+           # apply_warp_2.inputs.interp = 'nn'
+           # apply_warp_2.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
+           # apply_warp_2.out_file = "$AtlasSpaceFolder"/"$Image".nii.gz
+           # apply_warp_2.relwarp = 'TRUE'
+           # apply_warp_2.field_file =  "$AtlasTransform"
+           # wf.connect(apply_warp_1 ,'out_file',apply_warp_2,'in_file')
 
 
 
-    #Create FreeSurfer Brain Mask (Now done in PostFreeSurfer.sh so brainmask_fs.nii.gz exists for ANTs Registration)
+		   # #${CARET7DIR}/wb_command -volume-label-import "$T1wFolder"/"$Image".nii.gz "$FreeSurferLabels" "$T1wFolder"/"$Image".nii.gz -drop-unused-labels
+
+           # wb_volume_label_1 = pe.Node(interface=base.CommandLine(),name='volume_label')
+           # wb_volume_label_1.command='wb_command -volume-label-import', environ={'DISPLAY': ':1'})
+           # volume_label_1.inputs.args = "in_file" "$FreeSurferLabels" "$T1wFolder"/"$Image".nii.gz "-drop-unused-labels"
+           # wf.connect(apply_warp_1 ,'out_file',wb_volume_label_1,'in_file')
 
 
-    #fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+
+		   # #${CARET7DIR}/wb_command -volume-label-import "$AtlasSpaceFolder"/"$Image".nii.gz "$FreeSurferLabels" "$AtlasSpaceFolder"/"$Image".nii.gz -drop-unused-labels
+           # wb_volume_label_2 = pe.Node(interface=base.CommandLine(),name='volume_label')
+           # wb_volume_label_2.command="wb_command -volume-label-import" , environ={'DISPLAY': ':1'})
+           # volume_label_2.inputs.args = "in_file" "$FreeSurferLabels" "$AtlasSpaceFolder"/"$Image".nii.gz '-drop-unused-labels'
+           # wf.connect(apply_warp_2 ,'out_file',wb_volume_label_2,'in_file')
 
 
-    fsl_maths_1 = pe.Node(interface=fsl.maths.UnaryMaths(),name='fsl_maths_1')
-    fsl_maths_1.out_file = "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    fsl_maths_1.inputs.args = '-dilD -dilD -dilD -ero -ero'
-    fsl_maths_1.inputs.operation = 'bin'
-    fsl_maths_1.inputs.in_file = "$T1wFolder"/wmparc_1mm.nii.gz
+
+    # #Create FreeSurfer Brain Mask (Now done in PostFreeSurfer.sh so brainmask_fs.nii.gz exists for ANTs Registration)
 
 
-    #${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # #fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
 
-    volume-fill-holes = pe.Node(interface=base.CommandLine(),name='volume_label')
-    volume-fill-holes.command = "wb_command -volume-fill-holes" , environ={'DISPLAY': ':1'})
-    volume-fill-holes.inputs.args = "in_file" "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    wf.connect(fsl_maths_1 ,'out_file',volume-fill-holes,'in_file')
 
-    #fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    fsl_maths_2 = pe.Node(interface=fsl.maths.UnaryMaths(),name='fsl_maths_2')
-    fsl_maths_2.out_file = "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    fsl_maths_2.inputs.operation = 'bin'
-    wf.connect(volume-fill-holes,'out_file',fsl_maths_2,'in_file')
+    # fsl_maths_1 = pe.Node(interface=fsl.maths.UnaryMaths(),name='fsl_maths_1')
+    # fsl_maths_1.out_file = "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # fsl_maths_1.inputs.args = '-dilD -dilD -dilD -ero -ero'
+    # fsl_maths_1.inputs.operation = 'bin'
+    # fsl_maths_1.inputs.in_file = "$T1wFolder"/wmparc_1mm.nii.gz
 
-    #applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
-    apply_warp_1 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_1')
-    apply_warp_1.inputs.interp = 'nn'
-    apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
-    apply_warp_1.out_file = "$T1wFolder"/"$T1wImageBrainMask".nii.gz
-    apply_warp_1.relwarp = 'TRUE'
-    apply_warp_1.premat = '$FSLDIR/etc/flirtsch/ident.mat'
-    wf.connect(fsl_maths_2 ,'out_file',apply_warp_1,'in_file')
 
-    #applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" -w "$AtlasTransform" -o "$AtlasSpaceFolder"/"$T1wImageBrainMask".nii.gz
-    apply_warp_2 = pe.Node(interface=fsl.ApplyWarp(),name="apply_warp_2")
-    apply_warp_2.inputs.interp = 'nn'
-    apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
-    apply_warp_2.out_file = "$AtlasSpaceFolder"/"$T1wImageBrainMask".nii.gz
-    apply_warp_2.field_file =  "$AtlasTransform"
-    apply_warp_2.relwarp = 'TRUE'
-    wf.connect(fsl_maths_2 ,'out_file',apply_warp_2,'in_file')
+    # #${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+
+    # volume-fill-holes = pe.Node(interface=base.CommandLine(),name='volume_label')
+    # volume-fill-holes.command = "wb_command -volume-fill-holes" , environ={'DISPLAY': ':1'})
+    # volume-fill-holes.inputs.args = "in_file" "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # wf.connect(fsl_maths_1 ,'out_file',volume-fill-holes,'in_file')
+
+    # #fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # fsl_maths_2 = pe.Node(interface=fsl.maths.UnaryMaths(),name='fsl_maths_2')
+    # fsl_maths_2.out_file = "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # fsl_maths_2.inputs.operation = 'bin'
+    # wf.connect(volume-fill-holes,'out_file',fsl_maths_2,'in_file')
+
+    # #applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
+    # apply_warp_1 = pe.Node(interface=fsl.ApplyWarp(),name='apply_warp_1')
+    # apply_warp_1.inputs.interp = 'nn'
+    # apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
+    # apply_warp_1.out_file = "$T1wFolder"/"$T1wImageBrainMask".nii.gz
+    # apply_warp_1.relwarp = 'TRUE'
+    # apply_warp_1.premat = '$FSLDIR/etc/flirtsch/ident.mat'
+    # wf.connect(fsl_maths_2 ,'out_file',apply_warp_1,'in_file')
+
+    # #applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage" -w "$AtlasTransform" -o "$AtlasSpaceFolder"/"$T1wImageBrainMask".nii.gz
+    # apply_warp_2 = pe.Node(interface=fsl.ApplyWarp(),name="apply_warp_2")
+    # apply_warp_2.inputs.interp = 'nn'
+    # apply_warp_1.inputs.ref_file = "$AtlasSpaceFolder"/"$AtlasSpaceT1wImage"
+    # apply_warp_2.out_file = "$AtlasSpaceFolder"/"$T1wImageBrainMask".nii.gz
+    # apply_warp_2.field_file =  "$AtlasTransform"
+    # apply_warp_2.relwarp = 'TRUE'
+    # wf.connect(fsl_maths_2 ,'out_file',apply_warp_2,'in_file')
 
 
 

@@ -1883,7 +1883,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
        'subject_id': 'sub-01',
        'unique_id': 'ses-1'}
     '''
-
+    
+    from CPAC.pipeline.engine import ResourcePool
     # TODO: refactor further, integrate with the ingress_data functionality
     # TODO: used for BIDS-Derivatives (below), and possible refactoring of
     # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
@@ -1899,8 +1900,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     elif part_id:
         unique_id = part_id
         creds_path = None
+    
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
+    
 
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
