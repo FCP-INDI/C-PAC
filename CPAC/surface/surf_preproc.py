@@ -130,12 +130,13 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
-    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask",]
+    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"]
     atlas_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
     atlas_xfm_inv = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
-    atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"]
+    atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold", "space-template_desc-scout_bold",
+                        "space-template_desc-cleaned_bold","space-template_desc-motion_bold", "space-template_bold" ] #warp time series to t1 template
     scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
-                  "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]
+                  "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"] #warp time series to t1 template
 
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
