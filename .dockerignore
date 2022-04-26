@@ -2,4 +2,5 @@ bids-examples
 cpac_runs
 .env*
 .git
+.github
 *.tar.gz
