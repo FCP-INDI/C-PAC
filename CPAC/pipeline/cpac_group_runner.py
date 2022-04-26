@@ -117,7 +117,6 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     import glob
     import pandas as pd
     import pkg_resources as p
-    from __builtin__ import any as b_any
 
     ext = ".nii"
     nifti_globs = []
@@ -173,9 +172,9 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
         while len(glob.glob(glob_string)) != 0:
 
-            if b_any(ext in x for x in glob.glob(glob_string)) == True:
+            if any(ext in x for x in glob.glob(glob_string)):
                 nifti_globs.append(glob_string)
-                
+
             glob_string = os.path.join(glob_string, "*")
             prog_string = prog_string + "."
             print(prog_string)
