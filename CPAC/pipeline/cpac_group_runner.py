@@ -113,22 +113,12 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
     # this parses them quickly while also catching each preprocessing strategy
 
-    import os
     import glob
-    import pandas as pd
-    import pkg_resources as p
+    import os
 
     ext = ".nii"
     nifti_globs = []
-
-    keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
-    try:
-        keys = pd.read_csv(keys_tsv)
-    except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
-        raise Exception(err)
-
+    keys = _gather_keys()
     derivative_list = list(
         keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
             keys['Values'] == 'z-score']['Resource'])
@@ -309,27 +299,14 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                             resource_list, get_motion=False,
                             get_raw_score=False, pull_func=False,
                             derivatives=None, exts=['nii', 'nii.gz']):
-
     import os
-    import glob
-    import itertools
-    import pandas as pd
-    import pkg_resources as p
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
 
     if derivatives is None:
-
-        keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
-        try:
-            keys = pd.read_csv(keys_tsv, delimiter='\t')
-        except Exception as e:
-            err = "\n[!] Could not access or read the cpac_outputs.tsv " \
-                "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
-            raise Exception(err)
-
+        keys = _gather_keys()
         derivatives = list(
             keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
                 keys['Values'] == 'z-score']['Resource'])
@@ -338,7 +315,8 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                 keys['Values'] == 'z-stat']['Resource'])
 
         if pull_func:
-            derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
+            derivatives = derivatives + list(
+                keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -696,22 +674,23 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-def prep_feat_inputs(group_config_file):
-    # Preps group analysis run
-    # config_file: filepath to the C-PAC group-level config file
-
-    import os
+def _gather_keys():
     import pandas as pd
     import pkg_resources as p
-
     keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_tsv, delimiter='\t')
+        return pd.read_csv(keys_tsv, delimiter='\t')
     except Exception as e:
         err = "\n[!] Could not access or read the cpac_outputs.tsv " \
               "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
-        raise Exception(err)
+        raise OSError(err, filename=keys_tsv)
 
+
+def prep_feat_inputs(group_config_file):
+    # Preps group analysis run
+    # config_file: filepath to the C-PAC group-level config file
+    import os
+    keys = _gather_keys()
     derivatives = list(keys[keys['Derivative'] == 'yes'][
         keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
     derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][
