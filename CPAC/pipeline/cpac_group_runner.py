@@ -118,14 +118,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
     ext = ".nii"
     nifti_globs = []
-    keys = _gather_keys()
-    derivative_list = list(
-        keys[keys['Space'] == 'template'][
-            keys['To z-std'] == 'Yes']['Resource'])
-
-    if pull_func:
-        derivative_list = derivative_list + list(
-            keys[keys['Functional timeseries'] == 'yes']['Resource'])
+    derivative_list = _gather_keys(pull_func)
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
@@ -303,14 +296,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
         raise Exception(err)
 
     if derivatives is None:
-        keys = _gather_keys()
-        derivatives = list(
-            keys[keys['Space'] == 'template'][
-                keys['To z-std'] == 'Yes']['Resource'])
-
-        if pull_func:
-            derivatives = derivatives + list(
-                keys[keys['Functional timeseries'] == 'yes']['Resource'])
+        derivatives = _gather_keys(pull_func)
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -668,28 +654,36 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-def _gather_keys():
+def _gather_keys(pull_func):
     import pandas as pd
     import pkg_resources as p
     keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        return pd.read_csv(keys_tsv, delimiter='\t')
+        keys = pd.read_csv(keys_tsv, delimiter='\t')
     except Exception as e:
         err = "\n[!] Could not access or read the cpac_outputs.tsv " \
               "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
         raise OSError(err, filename=keys_tsv)
+
+    derivatives = list(
+        keys[keys['Space'] == 'template'][
+            keys['To z-std'] == 'Yes']['Resource'])
+
+    if pull_func:
+        derivatives = derivatives + list(
+            keys[keys['Type'] == 'timeseries'][
+                 keys['Sub-Directory'] == 'func']['Resource'])
+    return derivatives
 
 
 def prep_feat_inputs(group_config_file):
     # Preps group analysis run
     # config_file: filepath to the C-PAC group-level config file
     import os
-    keys = _gather_keys()
-    derivatives = list(keys[
-        keys['Space'] == 'template'][keys['To z-std'] == 'Yes']['Resource'])
+    derivatives = _gather_keys(pull_func=False)
 
     group_model = load_config_yml(group_config_file)
-    pipeline_dir = group_model.pipeline_dir
+    pipeline_dir = group_model.pipeline_dir  # pylint: disable=no-member
 
     #   - create participant list
     #   - get output measure list
