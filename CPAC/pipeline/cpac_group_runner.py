@@ -120,10 +120,10 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     nifti_globs = []
     keys = _gather_keys()
     derivative_list = list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+        keys[keys['Space'] == 'template'][
             keys['Values'] == 'z-score']['Resource'])
     derivative_list = derivative_list + list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+        keys[keys['Space'] == 'template'][
             keys['Values'] == 'z-stat']['Resource'])
 
     if pull_func:
@@ -308,10 +308,10 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
     if derivatives is None:
         keys = _gather_keys()
         derivatives = list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+            keys[keys['Space'] == 'template'][
                 keys['Values'] == 'z-score']['Resource'])
         derivatives = derivatives + list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+            keys[keys['Space'] == 'template'][
                 keys['Values'] == 'z-stat']['Resource'])
 
         if pull_func:
@@ -691,9 +691,9 @@ def prep_feat_inputs(group_config_file):
     # config_file: filepath to the C-PAC group-level config file
     import os
     keys = _gather_keys()
-    derivatives = list(keys[keys['Derivative'] == 'yes'][
+    derivatives = list(keys[
         keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
-    derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][
+    derivatives = derivatives + list(keys[
         keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
     group_model = load_config_yml(group_config_file)
