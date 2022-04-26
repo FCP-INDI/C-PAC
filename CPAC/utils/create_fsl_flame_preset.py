@@ -993,11 +993,11 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
     import pkg_resources as p
 
     # make life easy
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_csv)
+        keys = pd.read_csv(keys_csv, delimiter='\t')
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
               "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
         raise Exception(err)
 

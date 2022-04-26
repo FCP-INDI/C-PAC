@@ -121,12 +121,12 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     ext = ".nii"
     nifti_globs = []
 
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_csv)
+        keys = pd.read_csv(keys_tsv)
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
         raise Exception(err)
 
     derivative_list = list(
@@ -322,12 +322,12 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
     if derivatives is None:
 
-        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+        keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
         try:
-            keys = pd.read_csv(keys_csv)
+            keys = pd.read_csv(keys_tsv, delimiter='\t')
         except Exception as e:
-            err = "\n[!] Could not access or read the cpac_outputs.csv " \
-                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+            err = "\n[!] Could not access or read the cpac_outputs.tsv " \
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
             raise Exception(err)
 
         derivatives = list(
@@ -704,16 +704,18 @@ def prep_feat_inputs(group_config_file):
     import pandas as pd
     import pkg_resources as p
 
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_csv)
+        keys = pd.read_csv(keys_tsv, delimiter='\t')
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
         raise Exception(err)
 
-    derivatives = list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
-    derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
+    derivatives = list(keys[keys['Derivative'] == 'yes'][
+        keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
+    derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][
+        keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
     group_model = load_config_yml(group_config_file)
     pipeline_dir = group_model.pipeline_dir
