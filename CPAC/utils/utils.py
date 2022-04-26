@@ -9,7 +9,7 @@ import numpy as np
 import json
 import yaml
 
-from argparse import Action, ArgumentError
+from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
 from voluptuous.error import Invalid
@@ -1479,11 +1479,11 @@ def load_preconfig(pipeline_label):
                      in avail_configs if 'pipeline_config' in x]
 
     if pipeline_label not in avail_configs:
-        raise ArgumentError(
-            Action(['preconfig'], 'preconfig'),
+        raise BadParameter(
             "The pre-configured pipeline name '{0}' you provided is not one "
             "of the available pipelines.\n\nAvailable pipelines:\n"
-            "{1}\n".format(pipeline_label, str(avail_configs)))
+            "{1}\n".format(pipeline_label, str(avail_configs)),
+            param='preconfig')
 
     pipeline_file = \
         p.resource_filename(

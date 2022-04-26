@@ -77,7 +77,7 @@ class Configuration(object):
     'new_pipeline2'
     """
     def __init__(self, config_map=None):
-        from argparse import ArgumentError
+        from click import BadParameter
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
             update_nested_dict
@@ -91,7 +91,7 @@ class Configuration(object):
         if base_config not in ['default', 'default_pipeline']:
             try:
                 base_config = load_preconfig(base_config)
-            except ArgumentError:
+            except BadParameter:
                 pass
             from_config = yaml.safe_load(open(base_config, 'r'))
             config_map = update_nested_dict(

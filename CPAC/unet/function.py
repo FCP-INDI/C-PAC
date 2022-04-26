@@ -1,14 +1,15 @@
-import argparse
+from click import BadParameter
 
-class MyParser(argparse.ArgumentParser):
+
+class MyParser(BadParameter):
     def error(self, message):
         import sys
         sys.stderr.write("error: %s\n" % message)
         self.print_help()
         self.exit(2)
 
+
 def write_nifti(data, aff, shape, out_path):
-    
     import nibabel as nib
 
     data=data[0:shape[0],0:shape[1],0:shape[2]]

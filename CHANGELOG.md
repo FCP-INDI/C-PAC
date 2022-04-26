@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- Replaced deprecated `optparse` calls with calls to `argparse`
+- Replaced deprecated `optparse.OptionError` with to `click.BadParameter`
 
 ### Fixed
 

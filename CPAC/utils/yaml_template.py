@@ -1,7 +1,7 @@
 import os
 import re
 import yaml
-from argparse import ArgumentError
+from click import BadParameter
 from datetime import datetime
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
@@ -166,12 +166,12 @@ def create_yaml_from_template(
         d = d.dict()
     try:
         template = load_preconfig(template)
-    except ArgumentError as argument_error:
+    except BadParameter as bad_parameter:
         if 'default' in template.lower():
             template = DEFAULT_PIPELINE_FILE
         if not os.path.exists(template) or os.path.islink(template):
             raise ValueError(f'\'{template_name}\' is not a valid path nor a '
-                             'defined preconfig.') from argument_error
+                             'defined preconfig.') from bad_parameter
     template_included = False
 
     # load default values
