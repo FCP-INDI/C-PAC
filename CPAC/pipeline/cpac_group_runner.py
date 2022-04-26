@@ -121,10 +121,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     keys = _gather_keys()
     derivative_list = list(
         keys[keys['Space'] == 'template'][
-            keys['Values'] == 'z-score']['Resource'])
-    derivative_list = derivative_list + list(
-        keys[keys['Space'] == 'template'][
-            keys['Values'] == 'z-stat']['Resource'])
+            keys['To z-std'] == 'Yes']['Resource'])
 
     if pull_func:
         derivative_list = derivative_list + list(
@@ -309,10 +306,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
         keys = _gather_keys()
         derivatives = list(
             keys[keys['Space'] == 'template'][
-                keys['Values'] == 'z-score']['Resource'])
-        derivatives = derivatives + list(
-            keys[keys['Space'] == 'template'][
-                keys['Values'] == 'z-stat']['Resource'])
+                keys['To z-std'] == 'Yes']['Resource'])
 
         if pull_func:
             derivatives = derivatives + list(
@@ -692,9 +686,7 @@ def prep_feat_inputs(group_config_file):
     import os
     keys = _gather_keys()
     derivatives = list(keys[
-        keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
-    derivatives = derivatives + list(keys[
-        keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
+        keys['Space'] == 'template'][keys['To z-std'] == 'Yes']['Resource'])
 
     group_model = load_config_yml(group_config_file)
     pipeline_dir = group_model.pipeline_dir
