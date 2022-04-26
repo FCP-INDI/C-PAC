@@ -671,7 +671,7 @@ def _gather_keys(pull_func):
 
     if pull_func:
         derivatives = derivatives + list(
-            keys[keys['Type'] == 'timeseries'][
+            keys[keys['Type'] == 'bold'][
                  keys['Sub-Directory'] == 'func']['Resource'])
     return derivatives
 
@@ -1227,7 +1227,7 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                                                    "inclusion list")
 
     output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard"],
+                                   ["space-template_bold"],
                                    inclusion_list, False, False,
                                    get_func=True)
 
@@ -1461,7 +1461,7 @@ def run_basc(pipeline_config):
            selected to run PyBASC for (preprocessed and template-space
            functional time series are pulled from each pipeline output
            directory, for input into PyBASC).
-        6. Gather functional_to_standard outputs from each pipeline.
+        6. Gather space-template_bold outputs from each pipeline.
         7. Create further sub-directories for each nuisance regression
            strategy and functional scan within each C-PAC pipeline, and
            separate the functional outputs by strategy and scan as well.
@@ -1485,8 +1485,10 @@ def run_basc(pipeline_config):
 
     output_dir = os.path.abspath(pipeconfig_dct["output_dir"])
     working_dir = os.path.abspath(pipeconfig_dct['work_dir'])
-    if pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials']:
-        creds_path = os.path.abspath(pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials'])
+    if pipeconfig_dct['pipeline_setup']['Amazon-AWS'][
+            'aws_output_bucket_credentials']:
+        creds_path = os.path.abspath(pipeconfig_dct['pipeline_setup'][
+            'Amazon-AWS']['aws_output_bucket_credentials'])
 
     func_template = pipeconfig_dct["template_brain_only_for_func"]
     if '$FSLDIR' in func_template:
@@ -1551,7 +1553,8 @@ def run_basc(pipeline_config):
                                            ref_file,
                                            out_dir=working_dir,
                                            roi_file=True)
-    roi_two_cmd_args = check_cpac_output_image(basc_config_dct['cross_cluster_mask_file'],
+    roi_two_cmd_args = check_cpac_output_image(basc_config_dct[
+        'cross_cluster_mask_file'],
                                                ref_file,
                                                out_dir=working_dir,
                                                roi_file=True)
@@ -1591,7 +1594,7 @@ def run_basc(pipeline_config):
     # - each dataframe will contain output filepaths and their associated
     #   information, and each dataframe will include ALL SERIES/SCANS
     output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard",
+                                   ["space-template_bold",
                                     "functional_mni"],
                                    inclusion_list, False, False,
                                    get_func=True)
@@ -1624,8 +1627,8 @@ def run_basc(pipeline_config):
                 if df_scan not in scan_inclusion:
                     continue
 
-            basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
-                                                              df_scan)
+            basc_config_dct['analysis_ID'] = '{0}_{1}'.format(
+                os.path.basename(pipeline_dir), df_scan)
 
             # add scan label and nuisance regression strategy label to the
             # output directory path
@@ -1699,26 +1702,25 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
     output_df_dct = gather_outputs(
         pipeline_dir,
-        ["functional_to_standard", "roi_timeseries"],
+        ["space-template_bold", "desc-Mean_timeseries"],
         inclusion_list=None,
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard", "roi_timeseries"],
-        exts=['nii', 'nii.gz', 'csv']
+        derivatives=["space-template_bold", "desc-Mean_timeseries"],
+        # exts=['nii', 'nii.gz', 'csv']
     )
 
-    iteration_ids = []
-    for preproc_strat in output_df_dct.keys():
+    for preproc_strat, strat_df in output_df_dct.items():
         # go over each preprocessing strategy
 
         derivative, _ = preproc_strat
 
-        if "voxel" not in levels and derivative == "functional_to_standard":
+        if "voxel" not in levels and derivative == "space-template_bold":
             continue
 
-        if "roi" not in levels and derivative == "roi_timeseries":
+        if "roi" not in levels and derivative == "desc-Mean_timeseries":
             continue
 
-        if derivative == "roi_timeseries":
+        if derivative == "desc-Mean_timeseries":
             if roi_inclusion:
                 # backwards because ROI labels embedded as substrings
                 for roi_label in roi_inclusion:
@@ -1729,9 +1731,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                           "{1}/{2}\n".format(roi_label, derivative, _))
                     continue
 
-
         df_dct = {}
-        strat_df = output_df_dct[preproc_strat]
 
         if len(set(strat_df["Series"])) > 1:
             # more than one scan/series ID
@@ -1756,10 +1756,12 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                unique_out_dir = os.path.join(out_dir, "ISC", derivative, _, df_scan)
+                unique_out_dir = os.path.join(out_dir, "ISC", derivative, _,
+                                              df_scan)
 
                 it_id = "ISC_{0}_{1}_{2}".format(df_scan, derivative,
-                                                 _.replace('.', '').replace('+', ''))
+                                                 _.replace('.', '').replace(
+                                                     '+', ''))
 
                 isc_wf = create_isc(name=it_id,
                                     output_dir=unique_out_dir,
@@ -1788,10 +1790,12 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                unique_out_dir = os.path.join(out_dir, "ISFC", derivative, _, df_scan)
+                unique_out_dir = os.path.join(out_dir, "ISFC", derivative, _,
+                                              df_scan)
 
                 it_id = "ISFC_{0}_{1}_{2}".format(df_scan, derivative,
-                                                  _.replace('.', '').replace('+', ''))
+                                                  _.replace('.', '').replace(
+                                                      '+', ''))
 
                 isfc_wf = create_isfc(name=it_id,
                                       output_dir=unique_out_dir,
@@ -1903,11 +1907,11 @@ def run_qpp(group_config_file):
 
     outputs = gather_outputs(
         pipeline_dir,
-        ["functional_to_standard"],
-        inclusion_list=c.participant_list,
+        ["space-template_bold"],
+        inclusion_list=c.participant_list,  # pylint: disable=no-member
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard"],
-        exts=['nii', 'nii.gz']
+        derivatives=["space-template_bold"],
+        # exts=['nii', 'nii.gz']
     )
 
     if c.qpp_stratification == 'Scan':
