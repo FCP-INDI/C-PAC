@@ -25,7 +25,7 @@ def load_config_yml(config_file, individual=False):
 
         config_dict = yaml.safe_load(open(config_path, 'r'))
 
-        config = Configuration(config_dict)
+        config = Configuration(config_dict, config_type='group')
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \

@@ -8,20 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
+- Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
+
+### Changed
+
+### Fixed
+
+- Fixed bug in which group config was being validated against participant config schema
+
+## [1.8.4]
+
+### Added
 - Added the ability to follow symlinks for BIDS directories
 - Added log of expected outputs, generated at the beginning of the run
 - Added additional surface derivatives to outputs directory
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
-- Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
 
 ### Changed
+- Made ndmg correlation matrices a configurable option
 - Made surface output filenames BIDSier
 - Uses max instead of sum for intial memory estimation
+- Updated rbc-options configuration
+- Updated XCP-QC files to better adhere to XCP
 
 ### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
 - Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
 - Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
+- Fixed templates used for rodent pipeline
 
 ## [1.8.3] - 2022-02-11
 
@@ -89,7 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
-[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.3...develop
+[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.4...develop
+[1.8.4]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.4
 [1.8.3]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.3
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
 [1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1

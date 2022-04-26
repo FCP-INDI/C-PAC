@@ -1,9 +1,15 @@
+"""C-PAC Configuration class"""
 import re
 import os
-import warnings
-import yaml
 from itertools import repeat
+from optparse import OptionError
 from warnings import warn
+
+import yaml
+
+from CPAC.pipeline.schema import schema
+from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
+                             set_nested_value, update_nested_dict
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
@@ -32,12 +38,13 @@ with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
 
 class ConfigurationDictUpdateConflation(SyntaxError):
     def __init__(self):
+        super().__init__(self)
         self.msg = (
             '`Configuration().update` requires a key and a value. '
             'Perhaps you meant `Configuration().dict().update`?')
 
 
-class Configuration(object):
+class Configuration:
     """Class to set dictionary keys as map attributes.
 
     If the given dictionary includes the key `FROM`, that key's value
@@ -63,6 +70,14 @@ class Configuration(object):
     c['attribute', 'key0', 'key1']
     c[keys]
 
+    Parameters
+    ----------
+    config_map : dict or None
+        Dictionary of configuration values
+
+    config_type : str
+        Type of configuration to be created and validated
+
     Examples
     --------
     >>> c = Configuration({})
@@ -75,68 +90,26 @@ class Configuration(object):
     >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
     >>> c['pipeline_setup', 'pipeline_name']
     'new_pipeline2'
-    """
-    def __init__(self, config_map=None):
-        from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
-            update_nested_dict
-        from optparse import OptionError
-
+    >>> import yaml
+    >>> g = Configuration(yaml.safe_load(open(
+    ...     'CPAC/resources/configs/group_config_template.yml', 'r')),
+    ...     config_type='group')
+    >>> g.model_name
+    'model_name_here'
+    """  # pylint: disable=line-too-long
+    def __init__(self, config_map=None, config_type='participant'):
         if config_map is None:
             config_map = {}
-
-        base_config = config_map.get('FROM', 'default_pipeline')
-
-        # import another config (specified with 'FROM' key)
-        if base_config not in ['default', 'default_pipeline']:
-            try:
-                base_config = load_preconfig(base_config)
-            except OptionError:
-                base_config = base_config
-            from_config = yaml.safe_load(open(base_config, 'r'))
-            config_map = update_nested_dict(
-                Configuration(from_config).dict(), config_map)
-
-        # base everything on default pipeline
-        config_map = _enforce_forkability(
-            update_nested_dict(default_config, config_map))
-
-        config_map = self._nonestr_to_None(config_map)
-
-        try:
-            regressors = lookup_nested_value(
-                config_map,
-                ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
-            )
-        except KeyError:
-            regressors = []
-        if isinstance(regressors, list):
-            for i, regressor in enumerate(regressors):
-                # set Regressor 'Name's if not provided
-                if 'Name' not in regressor:
-                    regressor['Name'] = f'Regressor-{str(i + 1)}'
-                # replace spaces with hyphens in Regressor 'Name's
-                regressor['Name'] = regressor['Name'].replace(' ', '-')
-
-        # Don't double-run FreeSurfer
-        try:
-            if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
-                    'brain_extraction']['using']:
-                config_map['surface_analysis']['freesurfer']['run'] = False
-        except TypeError:
-            pass
-
-        config_map = schema(config_map)
-
-        # remove 'FROM' before setting attributes now that it's imported
-        if 'FROM' in config_map:
-            del config_map['FROM']
+        if config_type == 'participant':
+            config_map = _init_particant(config_map)
+        elif config_type == 'group':
+            config_map = _init_group(config_map)
 
         # set FSLDIR to the environment $FSLDIR if the user sets it to
         # 'FSLDIR' in the pipeline config file
-        _FSLDIR = config_map.get('FSLDIR')
+        _FSLDIR = config_map.get('FSLDIR')  # pylint: disable=invalid-name
         if _FSLDIR and bool(re.match(r'^[\$\{]{0,2}?FSLDIR[\}]?$', _FSLDIR)):
-            config_map['FSLDIR'] = os.environ['FSLDIR']
+            config_map['FSLDIR'] = os.environ.get('FSLDIR', '${FSLDIR}')
 
         for key in config_map:
             # set attribute
@@ -154,55 +127,30 @@ class Configuration(object):
     def __copy__(self):
         newone = type(self)({})
         newone.__dict__.update(self.__dict__)
-        newone.__update_attr()
+        newone.__update_attr()  # pylint: disable=protected-access
         return newone
 
     def __getitem__(self, key):
+        # pylint: disable=inconsistent-return-statements
         if isinstance(key, str):
             return getattr(self, key)
-        elif isinstance(key, tuple) or isinstance(key, list):
+        if isinstance(key, (tuple, list)):
             return self.get_nested(self, key)
-        else:
-            self.key_type_error(key)
+        key_type_error(key)
 
     def __setitem__(self, key, value):
+        # pylint: disable=inconsistent-return-statements
         if isinstance(key, str):
             setattr(self, key, value)
-        elif isinstance(key, tuple) or isinstance(key, list):
+        elif isinstance(key, (tuple, list)):
             self.set_nested(self, key, value)
         else:
-            self.key_type_error(key)
+            key_type_error(key)
 
     def dict(self):
         '''Show contents of a C-PAC configuration as a dict'''
         return {k: self[k] for k in self.__dict__ if not callable(
             self.__dict__[k])}
-
-    def _nonestr_to_None(self, d):
-        '''Recursive method to type convert 'None' to None in nested
-        config
-
-        Parameters
-        ----------
-        d : any
-            config item to check
-
-        Returns
-        -------
-        d : any
-            same item, same type, but with 'none' strings converted to
-            Nonetypes
-        '''
-        if isinstance(d, str) and d.lower() == 'none':
-            return None
-        elif isinstance(d, list):
-            return [self._nonestr_to_None(i) for i in d]
-        elif isinstance(d, set):
-            return {self._nonestr_to_None(i) for i in d}
-        elif isinstance(d, dict):
-            return {i: self._nonestr_to_None(d[i]) for i in d}
-        else:
-            return d
 
     def return_config_elements(self):
         # this returns a list of tuples
@@ -245,17 +193,8 @@ class Configuration(object):
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
     def __update_attr(self):
-
-        def check_path(key):
-            if type(key) is str and '/' in key:
-                if not os.path.exists(key):
-                    warnings.warn(
-                        "Invalid path- %s. Please check your configuration "
-                        "file" % key)
-
         attributes = [(attr, getattr(self, attr)) for attr in dir(self)
                       if not callable(attr) and not attr.startswith("__")]
-
         template_list = ['template_brain_only_for_anat',
                          'template_skull_for_anat',
                          'ref_mask',
@@ -266,7 +205,6 @@ class Configuration(object):
                          'dilated_symmetric_brain_mask']
 
         for attr_key, attr_value in attributes:
-
             if attr_key in template_list:
                 new_key = self.check_pattern(attr_value, 'FSLDIR')
             else:
@@ -281,29 +219,21 @@ class Configuration(object):
     def get_nested(self, d, keys):
         if isinstance(keys, str):
             return d[keys]
-        elif isinstance(keys, tuple) or isinstance(keys, list):
+        if isinstance(keys, (tuple, list)):
             if len(keys) > 1:
                 return self.get_nested(d[keys[0]], keys[1:])
-            else:
-                return d[keys[0]]
+            return d[keys[0]]
+        return None
 
     def set_nested(self, d, keys, value):
         if isinstance(keys, str):
             d[keys] = value
-        elif isinstance(keys, tuple) or isinstance(keys, list):
+        elif isinstance(keys, (tuple, list)):
             if len(keys) > 1:
                 d[keys[0]] = self.set_nested(d[keys[0]], keys[1:], value)
             else:
                 d[keys[0]] = value
         return d
-
-    def key_type_error(self, key):
-        raise KeyError(' '.join([
-                'Configuration key must be a string, list, or tuple;',
-                type(key).__name__,
-                f'`{str(key)}`',
-                'was given.'
-            ]))
 
 
 def collect_key_list(config_dict):
@@ -332,6 +262,22 @@ def collect_key_list(config_dict):
     return key_list
 
 
+def configuration_from_file(config_file):
+    """Function to load a Configuration from a pipeline config file.
+
+    Parameters
+    ----------
+    config_file : str
+        path to configuration file
+
+    Returns
+    -------
+    Configuration
+    """
+    with open(config_file, 'r') as config:
+        return Configuration(yaml.safe_load(config))
+
+
 def _enforce_forkability(config_dict):
     '''Function to set forkable booleans as lists of booleans.
 
@@ -354,9 +300,6 @@ def _enforce_forkability(config_dict):
     >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
     [True]
     '''
-    from CPAC.pipeline.schema import schema
-    from CPAC.utils.utils import lookup_nested_value, set_nested_value
-
     key_list_list = collect_key_list(config_dict)
     for key_list in key_list_list:
         try:
@@ -376,7 +319,114 @@ def _enforce_forkability(config_dict):
     return config_dict
 
 
-def set_from_ENV(conf):
+def _init_group(config_map):
+    for key in config_map:
+        if config_map[key] == 'None':
+            config_map[key] = None
+        if isinstance(config_map[key], dict):
+            for subkey in config_map[key]:
+                if config_map[key][subkey] == 'None':
+                    config_map[key][subkey] = None
+    return config_map
+
+
+def _init_particant(config_map):
+    base_config = config_map.get('FROM', 'default_pipeline')
+
+    # import another config (specified with 'FROM' key)
+    if base_config not in ['default', 'default_pipeline']:
+        try:
+            base_config = load_preconfig(base_config)
+        except OptionError:
+            pass
+        from_config = yaml.safe_load(open(base_config, 'r'))
+        config_map = update_nested_dict(
+            Configuration(from_config).dict(), config_map)
+
+    # base everything on default pipeline
+    config_map = _enforce_forkability(
+        update_nested_dict(default_config, config_map))
+
+    config_map = _nonestr_to_None(config_map)
+
+    try:
+        regressors = lookup_nested_value(
+            config_map,
+            ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
+        )
+    except KeyError:
+        regressors = []
+    if isinstance(regressors, list):
+        for i, regressor in enumerate(regressors):
+            # set Regressor 'Name's if not provided
+            if 'Name' not in regressor:
+                regressor['Name'] = f'Regressor-{str(i + 1)}'
+            # replace spaces with hyphens in Regressor 'Name's
+            regressor['Name'] = regressor['Name'].replace(' ', '-')
+
+    # Don't double-run FreeSurfer
+    try:
+        if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
+                'brain_extraction']['using']:
+            config_map['surface_analysis']['freesurfer']['run'] = False
+    except TypeError:
+        pass
+
+    config_map = schema(config_map)
+
+    # remove 'FROM' before setting attributes now that it's imported
+    if 'FROM' in config_map:
+        del config_map['FROM']
+
+    return config_map
+
+
+def key_type_error(key):
+    raise KeyError(' '.join([
+            'Configuration key must be a string, list, or tuple;',
+            type(key).__name__, f'`{str(key)}` was given.']))
+
+
+def _nonestr_to_None(d):  # pylint: disable=invalid-name
+    '''Recursive method to type convert 'None' to None in nested
+    config
+
+    Parameters
+    ----------
+    d : any
+        config item to check
+
+    Returns
+    -------
+    d : any
+        same item, same type, but with 'none' strings converted to
+        Nonetypes
+    '''
+    if isinstance(d, str) and d.lower() == 'none':
+        return None
+    if isinstance(d, list):
+        return [_nonestr_to_None(i) for i in d]
+    if isinstance(d, set):
+        return {_nonestr_to_None(i) for i in d}
+    if isinstance(d, dict):
+        return {i: _nonestr_to_None(d[i]) for i in d}
+    return d
+
+
+class Preconfiguration(Configuration):
+    """A preconfigured Configuration
+
+    Parameters
+    ----------
+    preconfig : str
+        The canonical name of the preconfig to load
+    """
+    def __init__(self, preconfig):
+        with open(load_preconfig(preconfig), 'r') as preconfig_yaml:
+            super().__init__(config_map=yaml.safe_load(preconfig_yaml))
+
+
+def set_from_ENV(conf):  # pylint: disable=invalid-name
     '''Function to replace strings like $VAR and ${VAR} with
     environment variable values
 
