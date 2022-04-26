@@ -1,4 +1,5 @@
 bids-examples
+.circleci
 cpac_runs
 .env*
 .git
