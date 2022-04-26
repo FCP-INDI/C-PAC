@@ -138,7 +138,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
                   "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"] #warp time series to t1 template
 
-
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
 
@@ -187,7 +186,8 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
                 ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
                 ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
+                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold", "space-template_desc-scout_bold",
+                "space-template_desc-cleaned_bold","space-template_desc-motion_bold", "space-template_bold"],
                 ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
                 "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
