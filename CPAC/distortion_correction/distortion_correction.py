@@ -672,7 +672,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         single_idx=0,
         outputtype='NIFTI_GZ'
     )
-    
+
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, create_scout, 'in_file_a')
 
