@@ -1,3 +1,8 @@
+import os
+
+import numpy as np
+
+
 def single_ants_xfm_to_list(transform):
     transform_list = [transform]
     return transform_list
@@ -105,14 +110,14 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                 else:
                     regcmd.append("--collapse-output-transforms")
                     regcmd.append(str(ants_para[para_index][para_type]))
-            
-            elif para_type == 'winsorize-image-intensities': 
+
+            elif para_type == 'winsorize-image-intensities':
                 if ants_para[para_index][para_type]['lowerQuantile'] is None or ants_para[para_index][para_type]['upperQuantile'] is None:
                     err_msg = 'Please specifiy lowerQuantile and upperQuantile of ANTs parameters --winsorize-image-intensities in pipeline config. '
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--winsorize-image-intensities")
-                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'], 
+                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'],
                         ants_para[para_index][para_type]['upperQuantile']))
 
             elif para_type == 'initial-moving-transform':
@@ -124,7 +129,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                     regcmd.append("--initial-moving-transform")
                     if reg_with_skull == 1:
                         regcmd.append("[{0},{1},{2}]".format(
-                            reference_skull, moving_skull, 
+                            reference_skull, moving_skull,
                             ants_para[para_index][para_type][
                                 'initializationFeature']))
                     else:
@@ -396,7 +401,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                 regcmd.append("[NULL,NULL]")
 
             elif para_type == 'masks':
-                # lesion preproc has 
+                # lesion preproc has
                 if fixed_image_mask is not None:
                     regcmd.append("--masks")
                     regcmd.append(str(fixed_image_mask))
@@ -491,6 +496,39 @@ def change_itk_transform_type(input_affine_file):
             f.write(line)
 
     return updated_affine_file
+
+
+def one_d_to_mat(one_d_filename):
+    """Convert a .1D file to a .mat directory
+
+    Parameters
+    ----------
+    one_d_filename : str
+        The filename of the .1D file to convert
+
+    Returns
+    -------
+    mat_filenames : list of str
+        The of paths in the .mat directory created
+    """
+    mat_dirname = one_d_filename.replace('.1D', '.mat')
+    with open(one_d_filename, 'r') as one_d_file:
+        rows = [np.reshape(row, (4, 4)).astype('float') for row in [[
+            term.strip() for term in row.split(' ') if term.strip()
+        ] + [0, 0, 0, 1] for row in [
+            line.strip() for line in one_d_file.readlines() if
+            not line.startswith('#')]]]
+    try:
+        os.mkdir(mat_dirname)
+    except FileExistsError:
+        pass
+    for i, row in enumerate(rows):
+        np.savetxt(os.path.join(mat_dirname, f'MAT_{i:04}'),
+                   row, fmt='%.5f', delimiter=' ')
+        mat_filenames = [os.path.join(mat_dirname, filename) for
+            filename in os.listdir(mat_dirname)]
+        mat_filenames.sort()
+    return mat_filenames
 
 
 def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
@@ -589,7 +627,7 @@ def run_c3d(reference_file, source_file, transform_file):
 
 
 def run_c4d(input, output_name):
-    
+
     import os
 
     output1 = os.path.join(os.getcwd(), output_name+'1.nii.gz')

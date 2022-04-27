@@ -2,14 +2,47 @@ import csv
 import json
 import nipype.interfaces.utility as util
 from nipype import logging
+# pylint: disable=ungrouped-imports, wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
-
-logger = logging.getLogger('nipype.workflow')
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
+
+logger = logging.getLogger('nipype.workflow')
+
+
+def bidsier_prefix(unique_id):
+    """
+    Function to return a BIDSier prefix for a given unique_id
+
+    Parameters
+    ----------
+    unique_id : str
+
+    Returns
+    -------
+    prefix : str
+
+    Examples
+    --------
+    >>> bidsier_prefix('01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_ses-1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('01_ses-1')
+    'sub-01_ses-1'
+    """
+    keys = ['sub', 'ses']
+    components = unique_id.split('_')
+    for i, component in enumerate(components):
+        if i < len(keys):
+            if not component.startswith(keys[i]):
+                components[i] = '-'.join([keys[i], component])
+    return '_'.join(components)
 
 
 def get_rest(scan, rest_dict, resource="scan"):
@@ -127,8 +160,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -223,8 +255,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -784,6 +815,26 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
+def res_string_to_tuple(resolution):
+    """
+    Converts a resolution string to a tuple of floats.
+
+    Parameters
+    ----------
+    resolution : str
+        Resolution string, e.g. "3.438mmx3.438mmx3.4mm"
+
+    Returns
+    -------
+    resolution :tuple
+        Tuple of floats, e.g. (3.438, 3.438, 3.4)
+    """
+    if "x" in str(resolution):
+        return tuple(
+            float(i.replace('mm', '')) for i in resolution.split("x"))
+    return (float(resolution.replace('mm', '')),) * 3
+
+
 def resolve_resolution(resolution, template, template_name, tag=None):
     import nipype.interfaces.afni as afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -816,17 +867,11 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             local_path = template
 
-        if "x" in str(resolution):
-            resolution = tuple(
-                float(i.replace('mm', '')) for i in resolution.split("x"))
-        else:
-            resolution = (float(resolution.replace('mm', '')),) * 3
-
         resample = pe.Node(interface=afni.Resample(),
                            name=template_name,
                            mem_gb=0,
                            mem_x=(0.0115, 'in_file', 't'))
-        resample.inputs.voxel_size = resolution
+        resample.inputs.voxel_size = res_string_to_tuple(resolution)
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'
         resample.inputs.in_file = local_path

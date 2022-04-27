@@ -6,11 +6,11 @@ This script was borrowed from and inspired by nipype's info.py file.
 
 
 # CPAC version information.  An empty _version_extra corresponds to a
-# full release.  '.dev' as a _version_extra string means this is a development
+# full release.  'dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 3
+_version_micro = 4
 _version_extra = 'dev'
 
 
@@ -153,6 +153,7 @@ REQUIREMENTS        = [
     "patsy==0.5.0",
     "prov==1.5.2",
     "psutil==5.4.6",
+    "pybids==0.13.2",
     "pygraphviz==1.3.1",
     "python-dateutil==2.7.3",
     "pyyaml==5.3",
@@ -161,6 +162,5 @@ REQUIREMENTS        = [
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",
-    "pathlib==1.0.1",
     "voluptuous>=0.12.0",
 ]

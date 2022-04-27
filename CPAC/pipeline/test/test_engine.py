@@ -28,10 +28,10 @@ def test_ingress_func_raw_data(pipe_config, bids_dir, test_dir):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_func_data(wf, rpool, cfg,
-                                                                sub_data_dct,
-                                                                unique_id,
-                                                                part_id, ses_id)
+    if 'func' in sub_data_dct:
+        wf, rpool, diff, blip, fmap_rp_list = \
+            ingress_raw_func_data(wf, rpool, cfg, sub_data_dct, unique_id,
+                                  part_id, ses_id)
 
     rpool.gather_pipes(wf, cfg, all=True)
 

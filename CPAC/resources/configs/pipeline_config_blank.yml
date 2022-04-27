@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.3.dev
+# Version 1.8.4.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -1097,66 +1097,66 @@ nuisance_corrections:
         # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
         run: Off
 
-        # Erosion proportion, if using erosion.
-        # Default proportion is 0 for anatomical brain mask.
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for anatomical brain mask.
         # Recommend that do not use erosion in both proportion and millimeter method.
-        brain_mask_erosion_prop : 0
+        brain_mask_erosion_prop: 
 
         # Erode brain mask in millimeter, default of brain is 30 mm
         # brain erosion default is using millimeter erosion method when use erosion for brain.
-        brain_mask_erosion_mm : 30
+        brain_mask_erosion_mm:
 
         # Erode binarized brain mask in millimeter
-        brain_erosion_mm: 0
+        brain_erosion_mm:
 
       erode_csf:
 
         # Erode binarized csf tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for CSF (cerebrospinal fluid) mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop : 0
+        csf_erosion_prop:
 
         # Erode brain mask in millimeter, default of csf is 30 mm
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
-        csf_mask_erosion_mm: 30
+        csf_mask_erosion_mm:
 
-        # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
-        csf_erosion_mm: 0
+        # Erode binarized CSF (cerebrospinal fluid) mask in millimeter
+        csf_erosion_mm:
 
       erode_wm:
 
         # Erode WM binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
+        # Target volume ratio, if using erosion.
         # Default proportion is 0.6 for White Matter mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
         # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
-        wm_erosion_prop : 0.6
+        wm_erosion_prop:
 
-        # Erode brain mask in millimeter, default of White Matter is 0 mm
-        wm_mask_erosion_mm: 0
+        # Erode brain mask in millimeter, default of White Matter is None
+        wm_mask_erosion_mm:
 
         # Erode binarized White Matter mask in millimeter
-        wm_erosion_mm: 0
+        wm_erosion_mm:
 
       erode_gm:
 
         # Erode GM binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
+        # Target volume ratio, if using erosion.
         # Recommend to do not use erosion in both proportion and millimeter method.
-        gm_erosion_prop : 0.6
+        gm_erosion_prop:
 
         # Erode brain mask in millimeter, default of csf is 30 mm
-        gm_mask_erosion_mm: 30
+        gm_mask_erosion_mm:
 
         # Erode binarized White Matter mask in millimeter
-        gm_erosion_mm: 0
+        gm_erosion_mm:
 
 
 # OUTPUTS AND DERIVATIVES

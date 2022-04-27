@@ -1,41 +1,39 @@
-import os
 import ast
-import six
-import json
-import warnings
 import logging
+import os
+import warnings
 import copy
-from unittest import TestCase
+import yaml
 
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from nipype.interfaces.utility import Rename
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.pipeline import \
+    nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype.interfaces.utility import \
+    Rename  # pylint: disable=wrong-import-order
 
+from CPAC.image_utils.spatial_smoothing import spatial_smoothing
+from CPAC.image_utils.statistical_transforms import z_score_standardize, \
+    fisher_z_score_standardize
+from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.nuisance import NuisanceRegressor
-
 from CPAC.utils import Outputs
-from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
-    get_last_prov_entry, ordereddict_to_dict, check_prov_for_regtool
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
     ingress_func_metadata,
     create_general_datasource,
-    create_check_for_s3_node,
     resolve_resolution
 )
-from CPAC.image_utils.spatial_smoothing import spatial_smoothing
-from CPAC.image_utils.statistical_transforms import z_score_standardize, \
-    fisher_z_score_standardize
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
+    get_last_prov_entry, check_prov_for_regtool
 
 logger = logging.getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
-class ResourcePool(object):
+class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
         if not rpool:
@@ -327,12 +325,12 @@ class ResourcePool(object):
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+                            f'entry for {str(prov_str)} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -410,7 +408,8 @@ class ResourcePool(object):
                 len_inputs -= 1
                 continue
             sub_pool = []
-
+            if debug:
+                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -459,6 +458,9 @@ class ResourcePool(object):
                     strat_str_list.append(strat_str)
                     strat_list_list.append(strat_list)
 
+            if debug:
+                verbose_logger.debug('len(strat_list_list): %s\n',
+                                     len(strat_list_list))
             for strat_list in strat_list_list:
 
                 json_dct = {}
@@ -762,17 +764,19 @@ class ResourcePool(object):
         return wf
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-       
         excl = []
         substring_excl = []
+        outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
+        expected_outputs = ExpectedOutputs()
 
         if add_excl:
             excl += add_excl
-                       
-        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing']['output']:
+
+        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing'][
+                'output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
-            
+
         if 'raw' not in cfg.post_processing['z-scoring']['output']:
             excl += Outputs.native_raw
             excl += Outputs.template_raw
@@ -782,13 +786,13 @@ class ResourcePool(object):
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
+
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -806,7 +810,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
@@ -837,7 +841,8 @@ class ResourcePool(object):
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-
+        #print(Outputs.any)
+        #print(self.rpool.keys())
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
@@ -863,7 +868,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -892,10 +897,11 @@ class ResourcePool(object):
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
                         if 'desc-' in key:
-                            out_dct['filename'] = out_dct['filename'
-                            ].replace(key, f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key,
-                                                            f'{key}-{num_variant}')
+                            out_dct['filename'] = out_dct[
+                                'filename'].replace(key,
+                                                    f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key, f'{key}-'
+                                                            f'{num_variant}')
                             break
                         else:
                             suff = resource.split('_')[-1]
@@ -904,6 +910,8 @@ class ResourcePool(object):
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
+                expected_outputs += (out_dct['subdir'],
+                                     out_dct['filename'][len(unique_id)+1:])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -999,6 +1007,8 @@ class ResourcePool(object):
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
 
+        outputs_logger.info(expected_outputs)
+
     def node_data(self, resource, **kwargs):
         '''Factory function to create NodeData objects
 
@@ -1013,7 +1023,7 @@ class ResourcePool(object):
         return NodeData(self, resource, **kwargs)
 
 
-class NodeBlock(object):
+class NodeBlock:
     def __init__(self, node_block_functions):
 
         if not isinstance(node_block_functions, list):
@@ -1091,9 +1101,9 @@ class NodeBlock(object):
 
     def check_output(self, outputs, label, name):
         if label not in outputs:
-            raise Exception('\n[!] Output name in the block function does '
-                            'not match the outputs list in Node Block '
-                            f'{name}\n')
+            raise NameError(f'\n[!] Output name "{label}" in the block '
+                            'function does not match the outputs list '
+                            f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg
@@ -1128,8 +1138,8 @@ class NodeBlock(object):
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
-                if opts == None:
+
+                if opts is None:
                     opts = [opts]
 
             elif option_key and not option_val:
@@ -1508,7 +1518,10 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
     if local_func_scans:
+        # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
+        if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)
@@ -1517,12 +1530,6 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
     out_dir = cfg.pipeline_setup['output_directory']['path']
-    
-    if not os.path.isdir(out_dir):
-        print(f"\nOutput directory {out_dir} does not exist yet, "
-              "initializing.")
-        os.makedirs(out_dir)
-    
     source = False
 
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
@@ -1579,7 +1586,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.mgz']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
 
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
@@ -1622,6 +1629,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
         unique_data_label = str(data_label)
 
+        #if 'sub-' in data_label or 'ses-' in data_label:
+        #    raise Exception('\n\n[!] Possibly wrong participant or '
+        #                    'session in this directory?\n\nDirectory: '
+        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
         desc_val = None
         for tag in data_label.split('_'):
@@ -1634,21 +1645,16 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         jsonpath = f"{jsonpath}.json"
 
         if not os.path.exists(jsonpath):
-            print(f'\n\n[!] No JSON found for file {filepath}.')
-            if not source:
-                print(f'Creating {jsonpath}..\n\n')
-            else:
-                print('Creating meta-data for the data..\n\n')
+            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+                  f'{jsonpath}..\n\n')
             json_info = {
-                'CpacProvenance': [f'{data_label}:Non-C-PAC Origin'],
                 'Description': 'This data was generated elsewhere and '
                                'supplied by the user into this C-PAC run\'s '
                                'output directory. This JSON file was '
                                'automatically generated by C-PAC because a '
                                'JSON file was not supplied with the data.'
             }
-            if not source:
-                write_output_json(json_info, jsonpath)
+            write_output_json(json_info, jsonpath)
         else:        
             json_info = read_json(jsonpath)
             
@@ -1732,13 +1738,13 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             res_keys = [x.lstrip() for x in resolution.split(',')]
             tag = res_keys[-1]
     
-        json_info = {}
+        json_info = {} 
 
         if '$FSLDIR' in val:
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
                 'system_config']['FSLDIR'])
         if '$priors_path' in val:
-            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path'] or ''
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
@@ -1790,20 +1796,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-
-    # Freesurfer directory, not a template, so not in cpac_templates.tsv
-    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
-        fs_ingress = create_general_datasource(f'gather_freesurfer_dir')
-        fs_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
-                    creds_path=creds_path,
-                    dl_dir=cfg.pipeline_setup['working_directory']['path']
-        )
-        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data', 
-                       json_info, "", f"freesurfer_config_ingress")
-
-
+            
     # templates, resampling from config
     '''
     template_keys = [
@@ -1935,10 +1928,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
-
-        wf, rpool, diff, blip, fmap_rp_list = \
-            ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                  part_id, ses_id)
+        if 'func' in data_paths:
+            wf, rpool, diff, blip, fmap_rp_list = \
+                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                      part_id, ses_id)
 
     # grab already-processed data from the output directory
     rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
@@ -2029,15 +2022,8 @@ class NodeData:
     def __init__(self, strat_pool=None, resource=None, **kwargs):
         self.node = NotImplemented
         self.out = NotImplemented
-        self.variant = None
         if strat_pool is not None and resource is not None:
             self.node, self.out = strat_pool.get_data(resource, **kwargs)
-            if (
-                hasattr(strat_pool, 'rpool') and
-                isinstance(strat_pool.rpool, dict)
-            ):
-                self.variant = strat_pool.rpool.get(resource, {}).get(
-                    'json', {}).get('CpacVariant', {}).get(resource)
 
     def __repr__(self):
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

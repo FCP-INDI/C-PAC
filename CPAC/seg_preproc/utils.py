@@ -31,6 +31,46 @@ def check_if_file_is_empty(in_file):
     return in_file
 
 
+def _erode(roi_mask, erosion_mm, erosion_prop):
+    """Function to perform in-common erosion steps
+
+    Parameters
+    ----------
+    mask : str
+        Path to mask
+
+    erosion_mm : int, float or None
+        Kernel width in mm
+
+    erosion_prop : float or None
+        Target volume ratio, 0 < erosion_prop < 1
+
+    Returns
+    -------
+    mask_img : nibabel image
+        Original mask image
+
+    erode : bool
+        erosion_bool or erosion_mm
+
+    mask_data : numpy array
+        eroded mask data
+    """
+    mask_img = nb.load(roi_mask)
+    mask_data = mask_img.get_fdata()
+    orig_vol = np.sum(mask_data > 0)
+    erode = ((erosion_mm is not None and erosion_mm > 0) or
+             (erosion_prop is not None and 0 < erosion_prop < 1))
+    if erode:
+        if erosion_mm:
+            iter_n = max(int(erosion_mm / max(mask_img.header.get_zooms())), 1)
+            mask_data = nd.binary_erosion(mask_data, iterations=iter_n)
+        else:
+            while np.sum(mask_data > 0) / (orig_vol * 1.0) > erosion_prop:
+                mask_data = nd.binary_erosion(mask_data, iterations=1)
+    return mask_img, erode, mask_data
+
+
 def pick_wm_prob_0(probability_maps):
     """Returns the csf probability map from the list of segmented
     probability maps
@@ -46,7 +86,7 @@ def pick_wm_prob_0(probability_maps):
 
     file : string
         Path to segment_prob_0.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -70,7 +110,7 @@ def pick_wm_prob_1(probability_maps):
 
     file : string
         Path to segment_prob_1.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -94,7 +134,7 @@ def pick_wm_prob_2(probability_maps):
 
     file : string
         Path to segment_prob_2.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(probability_maps, list):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
@@ -118,7 +158,7 @@ def pick_wm_class_0(tissue_class_files):
 
     file : string
         Path to segment_seg_0.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -142,7 +182,7 @@ def pick_wm_class_1(tissue_class_files):
 
     file : string
         Path to segment_seg_1.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -166,7 +206,7 @@ def pick_wm_class_2(tissue_class_files):
 
     file : string
         Path to segment_seg_2.nii.gz is returned
-    """  # noqa
+    """
     if isinstance(tissue_class_files, list):
         if len(tissue_class_files) == 1:
             tissue_class_files = tissue_class_files[0]
@@ -196,7 +236,7 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
         Path to skull-stripped brain mask
 
     mask_erosion_prop : float
-        Proportion of erosion skull-stripped brain mask
+        Target volume ratio for skull-stripped brain mask
 
     Returns
     -------
@@ -207,31 +247,13 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
     eroded_skullstrip_mask : string
         Path to eroded skull-stripped brain mask
     """
-    skullstrip_mask_img = nb.load(skullstrip_mask)
-    skullstrip_mask_data = skullstrip_mask_img.get_fdata()
-
     roi_mask_img = nb.load(roi_mask)
     roi_mask_data = roi_mask_img.get_fdata()
-    erode_in = (mask_erosion_mm is not None and mask_erosion_mm > 0 or
-                mask_erosion_prop is not None and mask_erosion_prop < 1 and
-                mask_erosion_prop > 0)
-    if erode_in:
-        if mask_erosion_mm:
-            iter_n = max(
-                int(mask_erosion_mm / max(
-                    skullstrip_mask_img.header.get_zooms()
-                )), 1)
-            skullstrip_mask_data = nd.binary_erosion(
-                skullstrip_mask_data, iterations=iter_n)
-        else:
-            orig_vol = np.sum(skullstrip_mask_data > 0)
-            while (
-                np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) >
-                mask_erosion_prop
-            ):
-                skullstrip_mask_data = nd.binary_erosion(
-                    skullstrip_mask_data, iterations=1)
+    skullstrip_mask_img, erode_in, skullstrip_mask_data = _erode(
+        skullstrip_mask, mask_erosion_mm, mask_erosion_prop)
 
+    if erode_in:
+        # pylint: disable=invalid-unary-operand-type
         roi_mask_data[~skullstrip_mask_data] = 0
 
     hdr = roi_mask_img.get_header()
@@ -263,37 +285,18 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
 
     Parameters
     ----------
-
     roi_mask : string
         Path to binarized segment (ROI) mask
 
     erosion_prop : float
-        Proportion of erosion segment mask
+        Target volume ratio for erosion segment mask
 
     Returns
     -------
-
     eroded_roi_mask : string
         Path to eroded segment mask
     """
-    roi_mask_img = nb.load(roi_mask)
-    roi_mask_data = roi_mask_img.get_fdata()
-    orig_vol = np.sum(roi_mask_data > 0)
-
-    erode_out = (erosion_mm is not None and erosion_mm > 0 or
-                 erosion_prop is not None and erosion_prop < 1 and
-                 erosion_prop > 0)
-    if erode_out:
-        if erosion_mm:
-            iter_n = max(
-                int(erosion_mm / max(roi_mask_img.header.get_zooms())),
-                1
-            )
-            iter_n = int(erosion_mm / max(roi_mask_img.header.get_zooms()))
-            roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=iter_n)
-        else:
-            while np.sum(roi_mask_data > 0) / (orig_vol*1.0) > erosion_prop:
-                roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
+    roi_mask_img, _, roi_mask_data = _erode(roi_mask, erosion_mm, erosion_prop)
 
     hdr = roi_mask_img.get_header()
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
@@ -363,11 +366,15 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask,
     bash_cmd = str.join(cmd)
 
     try:
-        retcode = subprocess.check_output(bash_cmd, shell=True)  # noqa F841
-    except Exception as e:
+        retcode = subprocess.check_output(bash_cmd, shell=True) \
+            # noqa: F841  # pylint: disable=unused-variable
+    except Exception as e:  # pylint: disable=broad-except,invalid-name
+        # pylint: disable=raise-missing-from
         raise Exception('[!] antsJointLabel segmentation method did not '
                         'complete successfully.\n\nError '
-                        'details:\n{0}\n{1}\n'.format(e, e.output))
+                        'details:\n{0}\n{1}\n'.format(
+                            e,
+                            getattr(e, 'output', '')))
 
     multiatlas_Intensity = None
     multiatlas_Labels = None
@@ -414,7 +421,8 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
     gm_mask : string (nifti file)
 
     wm_mask : string (nifti file)
-    """  # noqa
+    """
+    # pylint: disable=import-outside-toplevel,redefined-outer-name,reimported
     import os
     import nibabel as nb
     import numpy as np

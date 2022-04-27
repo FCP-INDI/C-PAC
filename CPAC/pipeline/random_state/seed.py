@@ -162,7 +162,7 @@ def set_up_random_state(seed):
     ValueError: Valid random seeds are positive integers up to 2147483647, "random", or None, not 0
     >>> set_up_random_state(None)
 
-    '''  # noqa E501  # pylint: disable=line-too-long
+    '''  # noqa: E501  # pylint: disable=line-too-long
     if seed is not None:
         if seed == 'random':
             seed = random_random_seed()
