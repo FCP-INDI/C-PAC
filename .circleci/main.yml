@@ -56,6 +56,12 @@ commands:
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "develop-1.8.4" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: nightly-1.8.4
       # - when:
       #     condition:
       #       not:
