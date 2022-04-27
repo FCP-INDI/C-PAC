@@ -1298,7 +1298,10 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
             cwas_wf.inputs.inputspec.columns = columns
             cwas_wf.inputs.inputspec.permutations = permutations
             cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
-            cwas_wf.run()
+            plugin_args = {'n_procs': parallel_nodes,
+                           'status_callback': log_nodes_cb}
+            cwas_wf.run(plugin=MultiProcPlugin(plugin_args),
+                        plugin_args=plugin_args)
 
 
 def run_cwas(pipeline_config):
