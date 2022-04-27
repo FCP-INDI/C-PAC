@@ -376,11 +376,14 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
             filepath = os.path.join(root, filename)
 
-            if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
+            if not any(fnmatch.fnmatch(filepath, pattern) for
+                       pattern in nifti_globs):
                 continue
 
-            if not any(filepath.endswith(ext) for ext in exts):
+            ext_matches = [filepath.endswith(ext) for ext in exts]
+            if not any(ext_matches):
                 continue
+            ext = exts[ext_matches.index(True)]
 
             relative_filepath = filepath.split(pipeline_output_folder)[1]
             filepath_pieces = [_f for _f in relative_filepath.split("/") if _f]
