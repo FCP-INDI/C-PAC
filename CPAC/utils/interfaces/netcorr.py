@@ -189,7 +189,7 @@ class NetCorr(AFNICommand):
     '3dNetCorr -prefix sub0.tp1.ncorr -fish_z -inset functional.nii -in_rois maps.nii -mask mask.nii -ts_wb_Z -ts_wb_corr'
     >>> res = ncorr.run()  # doctest: +SKIP
 
-    """  # noqa E501  # pylint: disable=line-too-long
+    """  # noqa: E501  # pylint: disable=line-too-long
     _cmd = "3dNetCorr"
     input_spec = NetCorrInputSpec
     output_spec = NetCorrOutputSpec

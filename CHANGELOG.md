@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
+- Added the ability to follow symlinks for BIDS directories
+- Added log of expected outputs, generated at the beginning of the run
+- Added additional surface derivatives to outputs directory
+- Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
+- Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
+
+### Changed
+- Made ndmg correlation matrices a configurable option
+- Made surface output filenames BIDSier
+- Uses max instead of sum for intial memory estimation
+- Updated rbc-options configuration
+- Updated XCP-QC files to better adhere to XCP
+
+### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
+- Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
+- Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
+- Fixed templates used for rodent pipeline
+
+## [1.8.3] - 2022-02-11
+
+### Added
 - Added XCP-style quality control file
 - Added RBC-options pipeline preconfiguration
 - Added `engine.log` (when verbose debugging is on)
@@ -18,14 +40,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `fslmaths`
     - `mri_vol2vol`
     - `recon-all`
+- Added ability to use lateral ventricles mask in place of cerebrospinal fluid mask when when segmentation is Off, specifically for the rodent pipeline, but works on any dataset when segmentation is off
 
 ### Changed
+- In a given pipeline configuration, segmentation probability maps and binary tissue masks are warped to template space, and those warped masks are included in the output directory
+    - if `registration_workflows['functional_registration']['EPI_registration']['run segmentation']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `EPI_Template`
+    
+      and/or
+    - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
 - Moved some ephemeral logging statements into `pypeline.log`
 
 ### Fixed
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1638) in which working connectivity matrix filepaths were generated incorrectly, preventing generating matrices depending on container bindings
 - Fixed broken links in README
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1575) in which anatomical-only configurations required functional data directories
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1532) in which nuisance regressors would crash when segmentation is off and no CSF mask is provided
 
 ## [1.8.2] - 2021-12-02
 
@@ -63,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
-[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.2...develop
+[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.3...develop
+[1.8.3]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.3
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
 [1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1

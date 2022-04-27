@@ -7,12 +7,15 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
+from nipype import logging
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+
+logger = logging.getLogger('nipype.workflow')
 
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
@@ -271,6 +274,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    pipeline_resource_pool,
                                    regressor_descriptor,
                                    regressor_selector,
+                                   csf_mask_exist,
                                    use_ants=True,
                                    ventricle_mask_exist=True,
                                    all_bold=False):
@@ -322,46 +326,46 @@ def generate_summarize_tissue_mask(nuisance_wf,
         
             if all_bold:
                 pass
-        
-            mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                  name='{}_flirt'
-                                       .format(node_mask_key),
-                        mem_gb=3.63,
-                        mem_x=(3767129957844731 / 1208925819614629174706176,
-                               'in_file'))
 
-            mask_to_epi.inputs.interp = 'nearestneighbour'
+            if csf_mask_exist:
+                mask_to_epi = pe.Node(interface=fsl.FLIRT(),
+                                name='{}_flirt'.format(node_mask_key),
+                                mem_gb=3.63,
+                                mem_x=(3767129957844731 / 1208925819614629174706176,
+                                    'in_file'))
 
-            if regressor_selector['extraction_resolution'] == "Functional":
-                # apply anat2func matrix
-                mask_to_epi.inputs.apply_xfm = True
-                mask_to_epi.inputs.output_type = 'NIFTI_GZ'
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional_mean'] +
-                    (mask_to_epi, 'reference')
-                ))
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
-                    (mask_to_epi, 'in_matrix_file')
-                ))
+                mask_to_epi.inputs.interp = 'nearestneighbour'
 
-            else:
-                resolution = regressor_selector['extraction_resolution']
-                mask_to_epi.inputs.apply_isoxfm = resolution
+                if regressor_selector['extraction_resolution'] == "Functional":
+                    # apply anat2func matrix
+                    mask_to_epi.inputs.apply_xfm = True
+                    mask_to_epi.inputs.output_type = 'NIFTI_GZ'
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Functional_mean'] +
+                        (mask_to_epi, 'reference')
+                    ))
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
+                        (mask_to_epi, 'in_matrix_file')
+                    ))
 
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Anatomical_{}mm'
+                else:
+                    resolution = regressor_selector['extraction_resolution']
+                    mask_to_epi.inputs.apply_isoxfm = resolution
+
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Anatomical_{}mm'
                                            .format(resolution)] +
-                    (mask_to_epi, 'reference')
+                        (mask_to_epi, 'reference')
+                    ))
+
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool[prev_mask_key] +
+                    (mask_to_epi, 'in_file')
                 ))
 
-            nuisance_wf.connect(*(
-                pipeline_resource_pool[prev_mask_key] +
-                (mask_to_epi, 'in_file')
-            ))
-
-            pipeline_resource_pool[mask_key] = \
-                (mask_to_epi, 'out_file')
+                pipeline_resource_pool[mask_key] = \
+                    (mask_to_epi, 'out_file')
 
             if full_mask_key.startswith('CerebrospinalFluid'):
                 pipeline_resource_pool = generate_summarize_tissue_mask_ventricles_masking(
@@ -370,6 +374,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     regressor_descriptor,
                     regressor_selector,
                     node_mask_key,
+                    csf_mask_exist,
                     use_ants,
                     ventricle_mask_exist
                 )
@@ -389,7 +394,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pipeline_resource_pool[mask_key] = \
                 (erode_mask_node, 'out_file')
 
-    return pipeline_resource_pool, full_mask_key
+    return pipeline_resource_pool, full_mask_key   
 
 
 def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
@@ -397,19 +402,20 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       regressor_descriptor,
                                                       regressor_selector,
                                                       mask_key,
+                                                      csf_mask_exist,
                                                       use_ants=True,
                                                       ventricle_mask_exist=True):
+
+    if csf_mask_exist == False:
+        logger.warning('Segmentation is Off, - therefore will be using '
+                        'lateral_ventricle_mask as CerebrospinalFluid_mask.')
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
 
-        # reduce CSF mask to the lateral ventricles
-        mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
-        mask_csf_with_lat_ven.inputs.expr = 'a*b'
-        mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
-
-        if ventricle_mask_exist :
+        if ventricle_mask_exist:
             ventricles_key = 'VentriclesToAnat'
+
             if 'resolution' in regressor_descriptor:
                 ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
 
@@ -444,7 +450,20 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
-                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
+                    resolution = regressor_selector['extraction_resolution']
+
+                    if csf_mask_exist:
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool[mask_key] +
+                            (lat_ven_mni_to_anat, 'reference_image')))
+                    elif resolution == 'Functional':
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool['Functional_mean'] +
+                            (lat_ven_mni_to_anat, 'reference_image')))
+                    else:
+                        nuisance_wf.connect(*(
+                            pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + 
+                            (lat_ven_mni_to_anat, 'reference_image')))
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
@@ -460,15 +479,24 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                     pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
 
-            nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
-            nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
+            if csf_mask_exist:
+                # reduce CSF mask to the lateral ventricles
+                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'),
+                                                name='{}_Ventricles'.format(mask_key))
+                mask_csf_with_lat_ven.inputs.expr = 'a*b'
+                mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
-            pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
-            pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
-        else :
-            pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
+                nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
+                nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
 
+                pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
+                pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
+
+            else:
+                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]
+        
         return pipeline_resource_pool
+
 
 
 class NuisanceRegressor(object):
@@ -579,7 +607,7 @@ class NuisanceRegressor(object):
                     res = "%.2gmm" % s['extraction_resolution']
                     if s.get('erode_mask'):
                         res += 'E'
-                    pieces += [res]
+                    pieces += [res]      
 
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
