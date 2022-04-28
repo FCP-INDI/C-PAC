@@ -244,7 +244,7 @@ class ResourcePool:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception(info_msg)
+                raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
@@ -428,10 +428,10 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
-            raise Exception('\n\n[!] C-PAC says: None of the listed resources'\
-                            ' in the node block being connected exist in the '\
-                            f'resource pool.\n\nResources:\n{resource_list}' \
-                            '\n\n')
+            raise LookupError('\n\n[!] C-PAC says: None of the listed ' \
+                              'resources in the node block being connected ' \
+                              'exist in the resource pool.\n\nResources:\n' \
+                              '{resource_list}\n\n')
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -2016,7 +2016,7 @@ class NodeData:
     ...     rp.node_data('b')
     ... except LookupError as lookup_error:
     ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
-    [!] C-PAC says: The listed resource is not in the resource pool: b
+    [!] C-PAC says: None of the listed resources are in the resource pool:
     """
     # pylint: disable=too-few-public-methods
     def __init__(self, strat_pool=None, resource=None, **kwargs):
