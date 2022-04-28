@@ -326,11 +326,11 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Blip",
      "inputs": [("desc-mean_bold",
                  "space-bold_desc-brain_mask"),
-                "epi_1",
-                "epi_1_scan_params",
-                "epi_2",
-                "epi_2_scan_params",
-                "pe_direction"],
+                "epi-1",
+                "epi-1-scan-params",
+                "epi-2",
+                "epi-2-scan-params",
+                "pe-direction"],
      "outputs": ["blip-warp",
                  "desc-mean_bold",
                  "space-bold_desc-brain_mask"]}
@@ -350,20 +350,20 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
                          as_module=True),
                 name=f'match_epi_fmaps_{pipe_num}')
 
-    node, out = strat_pool.get_data('epi_1')
+    node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_one')
 
-    node, out = strat_pool.get_data('epi_1_scan_params')
+    node, out = strat_pool.get_data('epi-1-scan_params')
     wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_params_one')
 
-    if strat_pool.check_rpool('epi_2'):
-        node, out = strat_pool.get_data('epi_2')
+    if strat_pool.check_rpool('epi-2'):
+        node, out = strat_pool.get_data('epi-2')
         wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_two')
 
-        node, out = strat_pool.get_data('epi_2_scan_params')
+        node, out = strat_pool.get_data('epi-2-scan-params')
         wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_params_two')
 
-    node, out = strat_pool.get_data('pe_direction')
+    node, out = strat_pool.get_data('pe-direction')
     wf.connect(node, out, match_epi_fmaps_node, 'bold_pedir')
 
     #interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
@@ -481,15 +481,15 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Blip-FSL-TOPUP",
      "inputs": [(["desc-preproc_bold", "bold"],
                  "space-bold_desc-brain_mask"),
-                "pe_direction",
-                "epi_1",
-                "epi_1_pedir",
-                "epi_1_TE",
-                "epi_1_dwell",
-                "epi_2",
-                "epi_2_pedir",
-                "epi_2_TE",
-                "epi_2_dwell"],
+                "pe-direction",
+                "epi-1",
+                "epi-1-pedir",
+                "epi-1-TE",
+                "epi-1-dwell",
+                "epi-2",
+                "epi-2-pedir",
+                "epi-2-TE",
+                "epi-2-dwell"],
      "outputs": ["desc-reginput_bold",
                  "space-bold_desc-brain_mask",
                  "blip-warp"]}
@@ -534,10 +534,10 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
            
     create_list = pe.Node(interface=util.Merge(2), name="create_list")
 
-    node, out = strat_pool.get_data('epi_1')
+    node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, create_list, 'in1')
         
-    node, out = strat_pool.get_data('epi_2')
+    node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, create_list, 'in2')
 
     merge_image = pe.Node(interface=fsl.Merge(), name="merge_image")
@@ -551,7 +551,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     Mask.inputs.operation = "mul"
     Mask.inputs.args = "-add 1"
     
-    node, out = strat_pool.get_data('epi_1')
+    node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, Mask, 'in_file')
 
     #zpad_phases = z_pad("zpad_phases")
@@ -596,19 +596,19 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         name="phase_encoding",
     )
-    node, out = strat_pool.get_data('epi_1')
+    node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, phase_encoding, 'phase_one')
         
-    node, out = strat_pool.get_data('epi_2')
+    node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, phase_encoding, 'phase_two')
     
-    node, out = strat_pool.get_data('pe_direction')
+    node, out = strat_pool.get_data('pe-direction')
     wf.connect(node, out, phase_encoding, 'unwarp_dir')
         
-    node, out = strat_pool.get_data('epi_1_dwell')
+    node, out = strat_pool.get_data('epi-1-dwell')
     wf.connect(node, out, phase_encoding, 'dwell_time_one')
     
-    node, out = strat_pool.get_data('epi_2_dwell')
+    node, out = strat_pool.get_data('epi-2-dwell')
     wf.connect(node, out, phase_encoding, 'dwell_time_two')
 
     topup_imports = ["import os",
@@ -643,7 +643,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     
     wf.connect(create_list, 'out', choose_phase, 'phase_imgs')
 
-    node, out = strat_pool.get_data("pe_direction")
+    node, out = strat_pool.get_data("pe-direction")
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
     vnum_base = pe.Node(
@@ -665,9 +665,14 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
     wf.connect(run_topup, 'out_warps', vnum_base, 'warp_field_list')
 
-    create_scout = pe.Node(interface=afni_utils, name="topupwf_create_scout")
-    create_scout.inputs.expr = "a[0]"
-    
+    create_scout = pe.Node(interface=afni_utils.Calc(),
+                           name="topupwf_create_scout")
+    create_scout.inputs.set(
+        expr='a',
+        single_idx=0,
+        outputtype='NIFTI_GZ'
+    )
+
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, create_scout, 'in_file_a')
 
@@ -728,7 +733,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     aw_two.inputs.relwarp = True
     aw_two.inputs.interp = 'spline'
     
-    node, out = strat_pool.get_data('epi_2')
+    node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, aw_two, 'in_file')
     wf.connect(node, out, aw_two, 'ref_file')
 
@@ -771,7 +776,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     aw_one.inputs.relwarp = True
     aw_one.inputs.interp = 'spline'
 
-    node, out = strat_pool.get_data('epi_1')
+    node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, aw_one, 'in_file')
     wf.connect(node, out, aw_one, 'ref_file')
 

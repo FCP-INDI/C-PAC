@@ -1139,8 +1139,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
-        if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+        if rpool.check_rpool('epi-1'):
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
             distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:

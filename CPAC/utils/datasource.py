@@ -427,14 +427,14 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             orig_key = key
             if 'epi' in key and not second:
-                key = 'epi_1'
+                key = 'epi-1'
                 second = True
             elif 'epi' in key and second:
-                key = 'epi_2'
+                key = 'epi-2'
 
             rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
                            "fmap_ingress")
-            rpool.set_data(f'{key}_scan_params', gather_fmap,
+            rpool.set_data(f'{key}-scan-params', gather_fmap,
                            'outputspec.scan_params', {}, "",
                            "fmap_params_ingress")
 
@@ -453,14 +453,14 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             wf.connect(gather_fmap, 'outputspec.scan_params',
                        get_fmap_metadata, 'data_config_scan_params')
 
-            rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
+            rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
                            {}, "", "fmap_TE_ingress")
-            rpool.set_data(f'{key}_dwell', get_fmap_metadata,
+            rpool.set_data(f'{key}-dwell', get_fmap_metadata,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
-            rpool.set_data(f'{key}_pedir', get_fmap_metadata,
+            rpool.set_data(f'{key}-pedir', get_fmap_metadata,
                            'pe_direction', {}, "", "fmap_pedir_ingress")
 
-            fmap_TE_list.append(f"{key}_TE")
+            fmap_TE_list.append(f"{key}-TE")
 
             keywords = ['diffphase', 'diffmag']
             if key in keywords:
@@ -479,8 +479,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-            node, out_file = rpool.get('diffphase_dwell')[
-                "['diffphase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
+                
+            node, out_file = rpool.get('diffphase-dwell')[
+                "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
@@ -499,7 +500,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
                            "deltaTE_ingress")
-            rpool.set_data('dwell_asym_ratio',
+            rpool.set_data('dwell-asym-ratio',
                            calc_delta_ratio, 'dwell_asym_ratio', {}, "",
                            "dwell_asym_ratio_ingress")
 
@@ -533,8 +534,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     )
 
     # wire in the scan parameter workflow
-    node, out = rpool.get('scan_params')[
-        "['scan_params:scan_params_ingress']"]['data']
+    node, out = rpool.get('scan-params')[
+        "['scan-params:scan_params_ingress']"]['data']
     wf.connect(node, out, scan_params, 'data_config_scan_params')
 
     node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
@@ -543,11 +544,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
     rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('start_tr', scan_params, 'start_indx', {}, "",
+    rpool.set_data('start-tr', scan_params, 'start_indx', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('stop_tr', scan_params, 'stop_indx', {}, "",
+    rpool.set_data('stop-tr', scan_params, 'stop_indx', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('pe_direction', scan_params, 'pe_direction', {}, "",
+    rpool.set_data('pe-direction', scan_params, 'pe_direction', {}, "",
                    "func_metadata_ingress")
 
     return (wf, rpool, diff, blip, fmap_rp_list)

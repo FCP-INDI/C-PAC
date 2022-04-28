@@ -49,6 +49,7 @@ def run_surface(post_freesurfer_folder,
         '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
         '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
         '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
+
     subprocess.check_output(cmd)
 
     # DCAN-HCP fMRISurface

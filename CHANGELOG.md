@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to follow symlinks for BIDS directories
 - Added log of expected outputs, generated at the beginning of the run
 - Added additional surface derivatives to outputs directory
+- Added additional time series outputs from ABCD-options related processes to outputs directory
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
+- Added additional error checks and a more informative message for node block connecting in the engine
 
 ### Changed
 - Made ndmg correlation matrices a configurable option
