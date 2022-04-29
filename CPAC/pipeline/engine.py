@@ -2015,7 +2015,7 @@ class NodeData:
     >>> try:
     ...     rp.node_data('b')
     ... except LookupError as lookup_error:
-    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
+    ...     print(str(lookup_error).strip().split('\n')[0].strip())
     [!] C-PAC says: None of the listed resources are in the resource pool:
     """
     # pylint: disable=too-few-public-methods
