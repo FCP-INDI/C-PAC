@@ -230,6 +230,21 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
     return result
 
 
+def _timing_timestamp(timestamp):
+    """Convert one node from string to datetime
+
+    Parameters
+    ----------
+    timestamp : string
+
+    Returns
+    -------
+    datetime.datetime
+    """
+    return (datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f") if
+            '.' in timestamp else datetime.fromisoformat(timestamp))
+
+
 def _timing(nodes_list):
     """Covert timestamps from strings to datetimes
 
@@ -256,11 +271,22 @@ def _timing(nodes_list):
     ...     v in node.values())
     True
     """
-    return [{k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
-                 '.' in v else datetime.fromisoformat(v)
-                 ) if k in {"start", "finish"} else v for k, v in
-            node.items()} for node in nodes_list if
-            "start" in node and "finish" in node]
+    try:
+        return [{k: _timing_timestamp(v) if k in {"start", "finish"} else
+                 v for k, v in node.items()} for node in nodes_list if
+                "start" in node and "finish" in node]
+    except ValueError:
+        # Drop any problematic nodes
+        new_node_list = []
+        for node in nodes_list:
+            try:
+                new_node_list.append(
+                    {k: _timing_timestamp(v) if
+                     k in {"start", "finish"} else v for
+                     k, v in node.items()})
+            except ValueError:
+                pass
+        return new_node_list
 
 
 def generate_gantt_chart(
