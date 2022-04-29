@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
 - Fixed templates used for rodent pipeline and added outputs that were missing
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1556) in which ITK header imprecision was causing N4 bias correction to crash
+- Fixed a bug where a node with zero nanoseconds in timing information causes report generation to fail.
 
 ## [1.8.3] - 2022-02-11
 
