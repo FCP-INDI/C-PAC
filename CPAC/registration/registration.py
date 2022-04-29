@@ -3127,7 +3127,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     convert_func_to_anat_linear_warp.inputs.out_relwarp = True
     convert_func_to_anat_linear_warp.inputs.relwarp = True
-
+    
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
+    
     if strat_pool.check_rpool('blip-warp'):
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'postmat')
@@ -3137,9 +3140,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'premat')
-
-        node, out = strat_pool.get_data('desc-preproc_T1w')
-        wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L140
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}

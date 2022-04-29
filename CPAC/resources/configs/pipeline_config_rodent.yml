@@ -57,6 +57,7 @@ registration_workflows:
     run: Off
 
   functional_registration: 
+
     coregistration:
       run: Off
 
@@ -98,6 +99,8 @@ registration_workflows:
                 updateFieldVarianceInVoxelSpace: 5
 
     func_registration_to_template: 
+
+      run_EPI: On
 
       output_resolution: 
 

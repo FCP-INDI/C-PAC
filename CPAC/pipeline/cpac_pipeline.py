@@ -1139,8 +1139,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
-        if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+        if rpool.check_rpool('epi-1'):
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
             distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
@@ -1268,10 +1268,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp['EPI'] = (
-        _r_w_f_r['coregistration']['run'] and
-        _r_w_f_r['func_registration_to_template']['run_EPI'])
+    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+
+    if 'T1_template' in template:
+	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+    else:
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
     del _r_w_f_r
+
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
