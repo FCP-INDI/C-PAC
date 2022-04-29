@@ -149,7 +149,7 @@ packages:
  - fsl-miscvis 2201.0
  - fsl-mist 2111.0
  - fsl-mm 2111.0
- - fsl_mrs 1.1.10
+ - fsl_mrs 1.1.12
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
@@ -165,8 +165,8 @@ packages:
  - fsl-ptx2-cuda-11.0 2111.0
  - fsl-ptx2-cuda-11.1 2111.0
  - fsl-ptx2-cuda-11.3 2111.0
- - fsl-pyfeeds 0.9.10
- - fsl-pyfeeds-tests 2111.0
+ - fsl-pyfeeds 0.10.0
+ - fsl-pyfeeds-tests 2203.1
  - fsl-qboot 2111.0
  - fsl-randomise 2203.0
  - fsl-relax 2111.0
