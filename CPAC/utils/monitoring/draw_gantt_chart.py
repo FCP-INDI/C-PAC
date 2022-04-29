@@ -3,10 +3,10 @@
 
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
 '''  # noqa: E501
-import datetime
 import random
 
 from collections import OrderedDict
+from datetime import datetime
 from warnings import warn
 
 from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, \
@@ -162,7 +162,7 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
     scale = space_between_minutes / minute_scale
     space_between_minutes = space_between_minutes / scale
     end_times = [
-        datetime.datetime(
+        datetime(
             start.year, start.month, start.day, start.hour, start.minute,
             start.second
         )
@@ -189,7 +189,7 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
         for core in range(len(end_times)):
             if end_times[core] < node_start:
                 left += core * 30
-                end_times[core] = datetime.datetime(
+                end_times[core] = datetime(
                     node_finish.year,
                     node_finish.month,
                     node_finish.day,
@@ -228,6 +228,39 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
 
     # Return html string for nodes
     return result
+
+
+def _timing(nodes_list):
+    """Covert timestamps from strings to datetimes
+
+    Parameters
+    ----------
+    nodes_list : list of dicts
+
+    Returns
+    -------
+    nodes_list : list of dicts
+
+    Examples
+    --------
+    >>> node_list = [{"start": "2022-04-16T14:43:36.286896",
+    ...               "finish": "2022-04-16T14:43:36"},
+    ...              {"start": "2022-04-16T14:43:38",
+    ...               "finish": "2022-04-16T14:43:38.529389"}]
+    >>> all(isinstance(v, str) for node in node_list for v in node.values())
+    True
+    >>> any(isinstance(v, datetime) for node in node_list for
+    ...     v in node.values())
+    False
+    >>> all(isinstance(v, datetime) for node in _timing(node_list) for
+    ...     v in node.values())
+    True
+    """
+    return [{k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
+                 '.' in v else datetime.fromisoformat(v)
+                 ) if k in {"start", "finish"} else v for k, v in
+            node.items()} for node in nodes_list if
+            "start" in node and "finish" in node]
 
 
 def generate_gantt_chart(
@@ -358,16 +391,7 @@ def generate_gantt_chart(
 
     # Only include nodes with timing information, and covert timestamps
     # from strings to datetimes
-    nodes_list = [
-        {
-            k: datetime.datetime.strptime(i[k], "%Y-%m-%dT%H:%M:%S.%f")
-            if k in {"start", "finish"}
-            else i[k]
-            for k in i
-        }
-        for i in nodes_list
-        if "start" in i and "finish" in i
-    ]
+    nodes_list = _timing(nodes_list)
 
     if not nodes_list:
         return
