@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
 - Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
 - Fixed templates used for rodent pipeline and added outputs that were missing
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1556) in which ITK header imprecision was causing N4 bias correction to crash
 
 ## [1.8.3] - 2022-02-11
 

@@ -1,24 +1,18 @@
+# pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype import logging
-from nipype.interfaces import ants
-
+from nipype.interfaces import afni, ants, fsl, utility as util
 logger = logging.getLogger('nipype.workflow')
-
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.utility as util
-from nipype.interfaces import afni
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
+
 from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
     split_ts_chunks, oned_text_concat, notch_filter_motion
-from CPAC.utils.interfaces.function import Function
 from CPAC.generate_motion_statistics import motion_power_statistics
-
+from CPAC.utils.interfaces.ants import AI  # niworkflows
+from CPAC.utils.interfaces.ants import PrintHeader, SetDirectionByMatrix
+from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
-
-# niworkflows
-from ..utils.interfaces.ants import AI, \
-    CopyImageHeaderInformation  # noqa: E402
 
 
 def collect_arguments(*args):
@@ -1667,8 +1661,10 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Fix precision errors
     # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
-    restore_header = pe.Node(CopyImageHeaderInformation(),
-                             name=f'restore_header_{pipe_num}')
+    print_header = pe.Node(PrintHeader(what_information=4),
+                           name=f'print_header_{pipe_num}')
+    set_direction = pe.Node(SetDirectionByMatrix(),
+                            name=f'set_direction_{pipe_num}')
 
     # Run N4 normally, force num_threads=1 for stability (images are
     # small, no need for >1)
@@ -1714,7 +1710,6 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect([(node, init_aff, [(out, "moving_image")]),
                 (node, map_brainmask, [(out, "reference_image")]),
                 (node, norm, [(out, "moving_image")]),
-                (node, restore_header, [(out, "refimage")]),
                 (init_aff, norm, [
                     ("output_transform", "initial_moving_transform")]),
                 (norm, map_brainmask, [
@@ -1723,9 +1718,10 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
                 ]),
                 (map_brainmask, binarize_mask, [("output_image", "in_file")]),
                 (binarize_mask, pre_dilate, [("out_file", "in_file")]),
-                (pre_dilate, restore_header, [
-                    ("out_file", "imagetocopyrefimageinfoto")]),
-                (restore_header, n4_correct, [("imageout", "mask_image")]),
+                (pre_dilate, print_header, [("out_file", "image")]),
+                (print_header, set_direction, [("header", "direction")]),
+                (node, set_direction, [(out, "infile"), (out, "outfile")]),
+                (set_direction, n4_correct, [("outfile", "mask_image")]),
                 (node, n4_correct, [(out, "input_image")]),
                 (n4_correct, skullstrip_first_pass,
                  [('output_image', 'in_file')]),
