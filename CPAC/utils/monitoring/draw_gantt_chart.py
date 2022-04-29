@@ -584,33 +584,31 @@ def _timing(nodes_list):
     True
     """
     try:
-        return [{k: _timing_timestamp(v) if k in {"start", "finish"} else
-                 v for k, v in node.items()} for node in nodes_list if
+        return [_timing_timestamp(node) for node in nodes_list if
                 "start" in node and "finish" in node]
     except ValueError:
         # Drop any problematic nodes
         new_node_list = []
         for node in nodes_list:
-            try:
-                new_node_list.append(
-                    {k: _timing_timestamp(v) if
-                     k in {"start", "finish"} else v for
-                     k, v in node.items()})
-            except ValueError:
-                pass
+            if "start" in node and "finish" in node:
+                try:
+                    new_node_list.append(_timing_timestamp(node))
+                except ValueError:
+                    pass
         return new_node_list
 
 
-def _timing_timestamp(timestamp):
-    """Convert one node from string to datetime
+def _timing_timestamp(node):
+    """Convert timestamps in a node from string to datetime
 
     Parameters
     ----------
-    timestamp : string
+    node : dict
 
     Returns
     -------
-    datetime.datetime
+    dict
     """
-    return (datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f") if
-            '.' in timestamp else datetime.fromisoformat(timestamp))
+    return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
+            '.' in v else datetime.fromisoformat(v)) if
+            k in {"start", "finish"} else v for k, v in node.items()}
