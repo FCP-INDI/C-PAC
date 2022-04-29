@@ -230,65 +230,6 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
     return result
 
 
-def _timing_timestamp(timestamp):
-    """Convert one node from string to datetime
-
-    Parameters
-    ----------
-    timestamp : string
-
-    Returns
-    -------
-    datetime.datetime
-    """
-    return (datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f") if
-            '.' in timestamp else datetime.fromisoformat(timestamp))
-
-
-def _timing(nodes_list):
-    """Covert timestamps from strings to datetimes
-
-    Parameters
-    ----------
-    nodes_list : list of dicts
-
-    Returns
-    -------
-    nodes_list : list of dicts
-
-    Examples
-    --------
-    >>> node_list = [{"start": "2022-04-16T14:43:36.286896",
-    ...               "finish": "2022-04-16T14:43:36"},
-    ...              {"start": "2022-04-16T14:43:38",
-    ...               "finish": "2022-04-16T14:43:38.529389"}]
-    >>> all(isinstance(v, str) for node in node_list for v in node.values())
-    True
-    >>> any(isinstance(v, datetime) for node in node_list for
-    ...     v in node.values())
-    False
-    >>> all(isinstance(v, datetime) for node in _timing(node_list) for
-    ...     v in node.values())
-    True
-    """
-    try:
-        return [{k: _timing_timestamp(v) if k in {"start", "finish"} else
-                 v for k, v in node.items()} for node in nodes_list if
-                "start" in node and "finish" in node]
-    except ValueError:
-        # Drop any problematic nodes
-        new_node_list = []
-        for node in nodes_list:
-            try:
-                new_node_list.append(
-                    {k: _timing_timestamp(v) if
-                     k in {"start", "finish"} else v for
-                     k, v in node.items()})
-            except ValueError:
-                pass
-        return new_node_list
-
-
 def generate_gantt_chart(
     logfile,
     cores,
@@ -614,3 +555,62 @@ def resource_report(callback_log, num_cores, logger=None):
             logger.warning(e_msg, exc_info=1)
         else:
             warn(e_msg, category=ResourceWarning)
+
+
+def _timing(nodes_list):
+    """Covert timestamps from strings to datetimes
+
+    Parameters
+    ----------
+    nodes_list : list of dicts
+
+    Returns
+    -------
+    nodes_list : list of dicts
+
+    Examples
+    --------
+    >>> node_list = [{"start": "2022-04-16T14:43:36.286896",
+    ...               "finish": "2022-04-16T14:43:36"},
+    ...              {"start": "2022-04-16T14:43:38",
+    ...               "finish": "2022-04-16T14:43:38.529389"}]
+    >>> all(isinstance(v, str) for node in node_list for v in node.values())
+    True
+    >>> any(isinstance(v, datetime) for node in node_list for
+    ...     v in node.values())
+    False
+    >>> all(isinstance(v, datetime) for node in _timing(node_list) for
+    ...     v in node.values())
+    True
+    """
+    try:
+        return [{k: _timing_timestamp(v) if k in {"start", "finish"} else
+                 v for k, v in node.items()} for node in nodes_list if
+                "start" in node and "finish" in node]
+    except ValueError:
+        # Drop any problematic nodes
+        new_node_list = []
+        for node in nodes_list:
+            try:
+                new_node_list.append(
+                    {k: _timing_timestamp(v) if
+                     k in {"start", "finish"} else v for
+                     k, v in node.items()})
+            except ValueError:
+                pass
+        return new_node_list
+
+
+def _timing_timestamp(timestamp):
+    """Convert one node from string to datetime
+
+    Parameters
+    ----------
+    timestamp : string
+
+    Returns
+    -------
+    datetime.datetime
+    """
+    return (datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f") if
+            '.' in timestamp else datetime.fromisoformat(timestamp))
