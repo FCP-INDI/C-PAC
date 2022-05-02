@@ -80,7 +80,7 @@ def run_surface(post_freesurfer_folder,
     return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
             aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
-def get_mri_info(mri_info):
+def run_get_mri_info(mri_info):
     
         import os
         import subprocess
@@ -138,7 +138,7 @@ def get_mri_info(mri_info):
 
 
 
-def create_resmat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
+def create_resmat(wf, cfg, strat_pool, pipe_num, opt=None):
 
     '''
     {"name": "create_resmat",
@@ -151,21 +151,15 @@ def create_resmat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
     '''
     
     
-    
-    create_resmat = pe.Node(util.Function(input_names=['wmparc.mgz'],
-                                 output_names=['final_mat'],
-                                 function=create_resmat),
-                   name=f'create_resmat_{pipe_num}')
 
-    #mri_info = "/home/tgeorge/postfreesurfer/postfs-output/working/cpac_sub-0050952_ses-1/anat_preproc_freesurfer_52/anat_freesurfer/recon_all/mri/wmparc.mgz"
-    
     get_mri_info_imports = ['import os', 'import subprocess']
     get_mri_info = pe.Node(util.Function(input_names=['mri_info'],
                                                output_names=['mri_info_file'],
-                                               function=get_mri_info,
-                                               imports=_imports),
-                                 name=f'get_mri_info_{name}')
-    
+                                               function=run_get_mri_info,
+                                               imports=get_mri_info_imports),
+                                 name=f'get_mri_info_{pipe_num}')
+
+
     
     node, out = strat_pool.get_data('wmparc.mgz')
     wf.connect(node, out, get_mri_info, 'mri_info')
@@ -297,7 +291,7 @@ def create_resmat(wf, cfg, strat_pool, pipe_num, mri_info, opt=None):
 
 
 def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
-
+    
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
                                               'freesurfer_folder',
                                               'subject',
@@ -391,14 +385,17 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-T1w_to-template_mode-image_xfm",
                 "from-template_to-T1w_mode-image_xfm",
                 "space-template_desc-brain_bold",
-                "space-template_desc-scout_bold"],
+                "space-template_desc-scout_bold",
+                "wmparc.mgz"],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
                  "space-fsLR_den-32k_bold-dtseries"]}
     '''
-
+    
+    
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
-
+    #raise Exception("Entered the node")
+    wf, outputs = create_resmat(wf, cfg, strat_pool, pipe_num, opt=None)
     return (wf, outputs)
