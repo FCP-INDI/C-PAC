@@ -80,8 +80,8 @@ def run_surface(post_freesurfer_folder,
     return (dtseries, aparc['desikan_killiany'][164], aparc['destrieux'][164],
             aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
-def run_get_mri_info(mri_info):
-        raise Exception(print("Inside the node"))
+def run_get_mri_info(mri_info,post_freesurfer_folder):
+
         import os
         import subprocess
 
@@ -129,43 +129,11 @@ def run_get_mri_info(mri_info):
         id_mastrix = np.array([0, 0, 0, 1])
 
         final_mat = np.concatenate((cr_matrix, ca_matrix, cs_matrix, id_mastrix), axis=0)
-        final_mat = final_mat.reshape(4,4)
+        mri_info_mat = final_mat.reshape(4,4)
 
+        out_file = np.savetxt(post_freesurfer_folder, mri_info_mat)
 
-        file_path = '/home/tgeorge/pfreesurfer-bash-runs/c_ras.mat'
-        np.savetxt('file_path ',final_mat)
-
-        return wf, mri_info_file
-
-
-
-def create_resmat(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    get_mri_info_imports = ['import os', 'import subprocess']
-    get_mri_info = pe.Node(util.Function(input_names=['mri_info'],
-                                               output_names=['mri_info_file'],
-                                               function=run_get_mri_info,
-                                               imports=get_mri_info_imports),
-                                 name=f'get_resmat{pipe_num}')
-
-
-
-    node, out = strat_pool.get_data('wmparc')
-    wf.connect(node, out, get_mri_info, 'mri_info')
-
-    outputs = {
-        'mri_info_file': (get_mri_info, 'mri_info_file')
-    }
-
-    return wf, outputs
-
-
-
-
-
-
-
-
+        return out_file
 
 
 # def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -391,12 +359,33 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
                  "space-fsLR_den-32k_bold-dtseries",
-                 "mri_info_file"]}
+                 "mri_info_mat"]}
     '''
 
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
     #raise Exception("Entered the node")
-    wf, outputs = create_resmat(wf, cfg, strat_pool, pipe_num, opt=None)
-    return (wf, outputs)
+
+
+    get_mri_info_imports = ['import os', 'import subprocess']
+    get_mri_info = pe.Node(util.Function(input_names=['mri_info','post_freesurfer_folder'],
+                                               output_names=['mri_info_mat'],
+                                               function=run_get_mri_info,
+                                               imports=get_mri_info_imports),
+                                 name=f'get_resmat{pipe_num}')
+
+
+    get_mri_info.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+        'cpac_'+cfg['subject_id'],
+        f'post_freesurfer_{pipe_num}')
+
+    node, out = strat_pool.get_data('wmparc')
+    wf.connect(node, out, get_mri_info, 'mri_info')
+
+    outputs = {
+        'mri_info_mat': (get_mri_info, 'mri_info_mat')
+    }
+
+    return wf, outputs
+
 
 
