@@ -358,6 +358,22 @@ jobs:
       - combine-coverage
       - store_artifacts:
           path: htmlcov
+  push-release:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - check-updated
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
+      - push-to-docker-hub:
+          tag: release-$CIRCLE_TAG
   pytest-docker:
     parameters:
       variant:
@@ -421,14 +437,24 @@ workflows:
           name: "Build images"
           requires:
             - "Checking for updated version"
-      # - build-ABCD-HCP:
-      #     name: "Build ABCD-HCP variant images"
-      #     requires:
-      #       - "Checking for updated version"
-      # - build-fMRIPrep-LTS:
-      #     name: "Build fMRIPrep-LTS variant images"
-      #     requires:
-      #       - "Checking for updated version"
+      - build-ABCD-HCP:
+          name: "Build ABCD-HCP variant images"
+          requires:
+            - "Checking for updated version"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+      - build-fMRIPrep-LTS:
+          name: "Build fMRIPrep-LTS variant images"
+          requires:
+            - "Checking for updated version"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
       - build-lite:
           name: "Build lite variant images"
           requires:
@@ -445,6 +471,45 @@ workflows:
             # - "Test ABCD-HCP variant in Docker"
             # - "Test ABCD-HCP variant in Singularity"
             # - "Test fMRIPrep-LTS variant in Docker"
+      - push-release:
+          name: "Push release to Docker Hub"
+          requires:
+            - "Build images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+      - push-release:
+          name: "Push ABCD-HCP variant release to Docker Hub"
+          requires:
+            - "Build ABCD-HCP variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: ABCD-HCP
+      - push-release:
+          name: "Push fMRIPrep-LTS variant release to Docker Hub"
+          requires:
+            - "Build fMRIPrep-LTS variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: fMRIPrep-LTS
+      - push-release:
+          name: "Push lite-variant release to Docker Hub"
+          requires:
+            - "Build lite variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: lite
       - pytest-docker:
           name: "Test in Docker"
           requires:
