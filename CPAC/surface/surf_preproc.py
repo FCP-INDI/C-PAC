@@ -81,13 +81,14 @@ def run_surface(post_freesurfer_folder,
             aparc['desikan_killiany'][32], aparc['destrieux'][32])
 
 def run_get_mri_info(mri_info):
-    
+        raise Exception(print("Inside the node"))
         import os
         import subprocess
-         
+
         cmd = ['mri_info', mri_info]
         mri_info_file = subprocess.check_output(cmd)
-        
+
+
         with open('mri_info.txt', 'w') as f:
             for v in mri_info_file:
 
@@ -133,44 +134,40 @@ def run_get_mri_info(mri_info):
 
         file_path = '/home/tgeorge/pfreesurfer-bash-runs/c_ras.mat'
         np.savetxt('file_path ',final_mat)
-        
-        return mri_info_file
+
+        return wf, mri_info_file
 
 
 
 def create_resmat(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    '''
-    {"name": "create_resmat",
-     "config": ["surface_analysis", "post_freesurfer"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["wmparc.mgz"],
-     "outputs": ["final_mat"]}
-    '''
-    
-    
 
     get_mri_info_imports = ['import os', 'import subprocess']
     get_mri_info = pe.Node(util.Function(input_names=['mri_info'],
                                                output_names=['mri_info_file'],
                                                function=run_get_mri_info,
                                                imports=get_mri_info_imports),
-                                 name=f'get_mri_info_{pipe_num}')
+                                 name=f'get_resmat{pipe_num}')
 
 
-    
-    node, out = strat_pool.get_data('wmparc.mgz')
+
+    node, out = strat_pool.get_data('wmparc')
     wf.connect(node, out, get_mri_info, 'mri_info')
-    
-    
 
-    
+    outputs = {
+        'mri_info_file': (get_mri_info, 'mri_info_file')
+    }
+
+    return wf, outputs
 
 
 
- 
+
+
+
+
+
+
+
 # def post_freesurfer_run(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # '''
@@ -291,7 +288,7 @@ def create_resmat(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
-    
+
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
                                               'freesurfer_folder',
                                               'subject',
@@ -357,6 +354,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('space-template_desc-scout_bold')
     wf.connect(node, out, surf, 'scout_bold')
 
+
     outputs = {
         'atlas-DesikanKilliany_space-fsLR_den-32k_dlabel': (surf,
                                                             'desikan_'
@@ -384,18 +382,21 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-template_desc-head_T1w",
                 "from-T1w_to-template_mode-image_xfm",
                 "from-template_to-T1w_mode-image_xfm",
-                "space-template_desc-brain_bold",
                 "space-template_desc-scout_bold",
-                "wmparc.mgz"],
+                "wmparc",
+                "space-template_desc-brain_bold"],
+
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-                 "space-fsLR_den-32k_bold-dtseries"]}
+                 "space-fsLR_den-32k_bold-dtseries",
+                 "mri_info_file"]}
     '''
-    
-    
+
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
     #raise Exception("Entered the node")
     wf, outputs = create_resmat(wf, cfg, strat_pool, pipe_num, opt=None)
     return (wf, outputs)
+
+
