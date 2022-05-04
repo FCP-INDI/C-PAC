@@ -189,12 +189,12 @@ commands:
             pyenv global 3.7.9
       - restore_cache:
           keys:
-            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
+            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9-1
       - run:
           name: "Installing CI dependencies"
           command: pip install -r dev/circleci_data/requirements.txt
       - save_cache:
-          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
+          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9-1
           paths: 
             - /opt/circleci/.pyenv/versions/3.7.9
   set-up-variant:
