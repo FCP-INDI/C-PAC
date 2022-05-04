@@ -233,6 +233,7 @@ jobs:
   build:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -250,6 +251,7 @@ jobs:
   build-ABCD-HCP:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -268,6 +270,7 @@ jobs:
   build-fMRIPrep-LTS:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -286,6 +289,7 @@ jobs:
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
@@ -304,6 +308,7 @@ jobs:
   check-version:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: medium
     steps:
       - checkout
       - set-python-version
@@ -339,6 +344,7 @@ jobs:
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: medium
     steps:
       - checkout
       - check-updated
@@ -365,6 +371,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: medium
     steps:
       - checkout
       - check-updated
@@ -381,6 +388,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
@@ -407,6 +415,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
