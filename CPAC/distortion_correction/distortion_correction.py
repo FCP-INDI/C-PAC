@@ -353,7 +353,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_one')
 
-    node, out = strat_pool.get_data('epi-1-scan_params')
+    node, out = strat_pool.get_data('epi-1-scan-params')
     wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_params_one')
 
     if strat_pool.check_rpool('epi-2'):
