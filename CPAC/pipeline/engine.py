@@ -208,7 +208,7 @@ class ResourcePool:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
@@ -217,6 +217,7 @@ class ResourcePool:
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+
         if isinstance(resource, list):
             # if a list of potential inputs are given, pick the first one
             # found
@@ -236,7 +237,9 @@ class ResourcePool:
                 verbose_logger.debug(lookup_message)
                 raise Exception(lookup_message)
         else:
+
             if resource not in self.rpool.keys():
+                #raise Exception(self.rpool.keys())
                 if optional:
                     if report_fetched:
                         return (None, None)
@@ -319,7 +322,7 @@ class ResourcePool:
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
@@ -365,10 +368,12 @@ class ResourcePool:
 
         import itertools
 
+
         linked_resources = []
         resource_list = []
         if debug:
             verbose_logger.debug('\nresources: %s', resources)
+
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
@@ -390,6 +395,7 @@ class ResourcePool:
         total_pool = []
         variant_pool = {}
         len_inputs = len(resource_list)
+
         if debug:
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
@@ -428,6 +434,7 @@ class ResourcePool:
         # TODO: and the code below thinks total_pool is a list of lists, like [[pipe_idx, pipe_idx], [pipe_idx, pipe_idx, pipe_idx], etc.]
         # TODO: and the actual resource is encoded in the tag: of the last item, every time!
         # keying the strategies to the resources, inverting it
+
         if len_inputs > 1:
             strats = itertools.product(*total_pool)
 
@@ -437,7 +444,7 @@ class ResourcePool:
             new_strats = {}
 
             # get rid of duplicates - TODO: refactor .product
-            strat_str_list = []            
+            strat_str_list = []
             strat_list_list = []
             for strat_tuple in strats:
                 strat_list = list(copy.deepcopy(strat_tuple))
@@ -473,12 +480,12 @@ class ResourcePool:
                                 if xlabel == ylabel:
                                     continue
                                 yjson = copy.deepcopy(json_dct[ylabel])
-                                
+
                                 if 'CpacVariant' not in xjson:
                                     xjson['CpacVariant'] = {}
                                 if 'CpacVariant' not in yjson:
                                     yjson['CpacVariant'] = {}
-                                    
+
                                 current_strat = []
                                 for key, val in xjson['CpacVariant'].items():
                                     if isinstance(val, list):
@@ -491,7 +498,7 @@ class ResourcePool:
                                         continue
                                     if spread_label not in current_strat:
                                         current_strat.append(f'NO-{spread_label}')
-                                
+
                                 other_strat = []
                                 for key, val in yjson['CpacVariant'].items():
                                     if isinstance(val, list):
@@ -504,7 +511,7 @@ class ResourcePool:
                                         continue
                                     if spread_label not in other_strat:
                                         other_strat.append(f'NO-{spread_label}')
-                                
+
                                 for variant in current_spread:
                                     in_current_strat = False
                                     in_other_strat = False
@@ -531,7 +538,7 @@ class ResourcePool:
                                         if in_other_spread:
                                             if not in_current_strat:
                                                 drop = True
-                                                break       
+                                                break
                                 if drop:
                                     break
                 if drop:
@@ -575,7 +582,7 @@ class ResourcePool:
                     new_strats[pipe_idx].rpool['json']['subjson'] = {}
                     new_strats[pipe_idx].rpool['json']['CpacProvenance'] = cpac_prov
                     # preserve each input's JSON info also
-                    data_type = resource.split('_')[-1]                    
+                    data_type = resource.split('_')[-1]
                     if data_type not in new_strats[pipe_idx].rpool['json']['subjson']:
                         new_strats[pipe_idx].rpool['json']['subjson'][data_type] = {}
                     new_strats[pipe_idx].rpool['json']['subjson'][data_type].update(copy.deepcopy(resource_strat_dct['json']))
@@ -774,13 +781,13 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
+
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -798,7 +805,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
@@ -856,7 +863,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -916,7 +923,7 @@ class ResourcePool:
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
-                    
+
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1019,19 +1026,19 @@ class NodeBlock:
         self.node_blocks = {}
 
         for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
-        
+
             self.input_interface = []
             if isinstance(node_block_function, tuple):
                 self.input_interface = node_block_function[1]
                 node_block_function = node_block_function[0]
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
-        
+
             init_dct = self.grab_docstring_dct(node_block_function.__doc__)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
-            
+
             if self.input_interface:
                 for interface in self.input_interface:
                     for orig_input in init_dct['inputs']:
@@ -1042,7 +1049,7 @@ class NodeBlock:
                                 list_tup.append(interface[1])
                                 init_dct['inputs'].remove(orig_input)
                                 init_dct['inputs'].append(tuple(list_tup))
-                        else:                         
+                        else:
                             if orig_input == interface[0]:
                                 init_dct['inputs'].remove(interface[0])
                                 init_dct['inputs'].append(interface[1])
@@ -1071,6 +1078,7 @@ class NodeBlock:
             fn_docstring = fn_docstring.split('Node Block:')[1]
         fn_docstring = fn_docstring.lstrip().replace('\n', '')
         dct = ast.literal_eval(fn_docstring)
+
         for key in init_dct_schema:
             if key not in dct.keys():
                 raise Exception('\n[!] Developer info: At least one of the '
@@ -1079,6 +1087,7 @@ class NodeBlock:
                                 f'{init_dct_schema}\n\nYou provided:\n'
                                 f'{dct.keys()}\n\nDocstring:\n{fn_docstring}'
                                 '\n\n')
+
         return dct
 
     def check_null(self, val):
@@ -1125,7 +1134,7 @@ class NodeBlock:
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
+
                 if opts == None:
                     opts = [opts]
 
@@ -1146,7 +1155,7 @@ class NodeBlock:
                         key_list = option_config
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
-                        opts.append(option_val)                
+                        opts.append(option_val)
             else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
@@ -1225,15 +1234,19 @@ class NodeBlock:
 
             if True in switch:
                 logger.info('Connecting %s...', name)
+
                 for pipe_idx, strat_pool in rpool.get_strats(
-                        inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
-                    fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
+                        inputs, debug).items():
+						       # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+
+                    fork = False in switch
+                                                          #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
                         # strat_pool has all of the JSON information of all the inputs!
                         # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
                         #    particularly, our custom 'CpacProvenance' field.
-                        node_name = name
+
                         pipe_x = rpool.get_pipe_number(pipe_idx)
 
                         replaced_inputs = []
@@ -1246,7 +1259,7 @@ class NodeBlock:
                                 input_name = interface[1]
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
-                        
+
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
@@ -1288,7 +1301,7 @@ class NodeBlock:
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
                             new_json_info = copy.deepcopy(strat_pool.get('json'))
-                            
+
                             # transfer over data-specific json info
                             #   for example, if the input data json is _bold and the output is also _bold
                             data_type = label.split('_')[-1]
@@ -1296,9 +1309,9 @@ class NodeBlock:
                                 if 'SkullStripped' in new_json_info['subjson'][data_type]:
                                     new_json_info['SkullStripped'] = new_json_info['subjson'][data_type]['SkullStripped']
 
-                            # determine sources for the outputs, i.e. all input data into the node block                   
+                            # determine sources for the outputs, i.e. all input data into the node block
                             new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json' and x not in replaced_inputs]
-                            
+
                             if isinstance(outputs, dict):
                                 new_json_info.update(outputs[label])
                                 if 'Description' not in outputs[label]:
@@ -1415,7 +1428,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
         if 'sub_num' not in strat_pool.get_pool_info():
             strat_pool.set_pool_info({'sub_num': 0})
         sub_num = strat_pool.get_pool_info()['sub_num']
-        
+
         wf, outputs = block(wf, cfg, strat_pool, f'{pipe_num}-{sub_num}', opt)#
         for out, val in outputs.items():
             if out in interface and isinstance(interface[out], str):
@@ -1456,8 +1469,8 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     )
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
                    "", "anat_ingress")
-    
-    if 'T2w' in data_paths['anat']: 
+
+    if 'T2w' in data_paths['anat']:
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
         anat_flow_T2.inputs.inputnode.set(
             subject=part_id,
@@ -1523,8 +1536,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
             if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
                 if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+
                     out_dir = cfg.pipeline_setup['output_directory'][
                         'source_outputs_dir']
+
                     source = True
                 else:
                     out_dir = cfg.pipeline_setup['output_directory']['path']
@@ -1535,11 +1550,13 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 out_dir = cfg.pipeline_setup['output_directory'][
                     'source_outputs_dir']
                 source = True
+
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
             out_dir = cfg.pipeline_setup['output_directory'][
                 'source_outputs_dir']
             source = True
+
         else:
             out_dir = cfg.pipeline_setup['output_directory']['path']
 
@@ -1553,7 +1570,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
-            
+
         cpac_dir = os.path.join(out_dir,
                                 f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
                                 unique_id)
@@ -1561,7 +1578,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
         if os.path.isdir(out_dir):
             if not os.listdir(out_dir):
                 raise Exception(f"\nSource directory {out_dir} does not exist!")
-        
+
         cpac_dir = os.path.join(out_dir,
                                 unique_id)
 
@@ -1569,23 +1586,28 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
 
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
+
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms','.mgz']
 
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
         for filename in os.listdir(cpac_dir_anat):
             for ext in exts:
+
                 if ext in filename:
                     all_output_dir.append(os.path.join(cpac_dir_anat,
                                                        filename))
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
+
             for ext in exts:
                 if ext in filename:
+
                     all_output_dir.append(os.path.join(cpac_dir_func,
                                                        filename))
+
 
     for filepath in all_output_dir:
         filename = str(filepath)
@@ -1639,21 +1661,21 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                                'JSON file was not supplied with the data.'
             }
             write_output_json(json_info, jsonpath)
-        else:        
+        else:
             json_info = read_json(jsonpath)
-            
+
         if 'CpacProvenance' in json_info:
             if desc_val:
                 # it's a C-PAC output, let's check for pipe_idx/strat integer
                 # suffixes in the desc- entries.
                 only_desc = str(desc_val)
-            
+
                 if only_desc[-1].isdigit():
                     for idx in range(0, 3):
                         # let's stop at 3, please don't run >999 strategies okay?
                         if only_desc[-1].isdigit():
                             only_desc = only_desc[:-1]
-            
+
                     if only_desc[-1] == '-':
                         only_desc = only_desc.rstrip('-')
                     else:
@@ -1663,7 +1685,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                                         'this to your friendly local C-PAC '
                                         f'developer:\n\n{unique_data_label}\n')
 
-                # remove the integer at the end of the desc-* variant, we will 
+                # remove the integer at the end of the desc-* variant, we will
                 # get the unique pipe_idx from the CpacProvenance below
                 data_label = data_label.replace(desc_val, only_desc)
 
@@ -1699,9 +1721,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
-    
+
     for row in template_df.itertuples():
-    
+
         key = row.Key
         val = row.Pipeline_Config_Entry
         val = cfg.get_nested(cfg, [x.lstrip() for x in val.split(',')])
@@ -1710,12 +1732,12 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
         if not val:
             continue
-            
+
         if resolution:
             res_keys = [x.lstrip() for x in resolution.split(',')]
             tag = res_keys[-1]
-    
-        json_info = {} 
+
+        json_info = {}
 
         if '$FSLDIR' in val:
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
@@ -1726,12 +1748,12 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
         if '${resolution_for_anat}' in val:
-            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])               
+            val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
         if '${func_resolution}' in val:
             val = val.replace('func_resolution', tag)
 
         if desc:
-            json_info['Description'] = f"{desc} - {val}"     
+            json_info['Description'] = f"{desc} - {val}"
 
         if resolution:
             resolution = cfg.get_nested(cfg, res_keys)
@@ -1750,7 +1772,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             resampled_template.inputs.template = val
             resampled_template.inputs.template_name = key
             resampled_template.inputs.tag = tag
-            
+
             # the set_data below is set up a little differently, because we are
             # injecting and also over-writing already-existing entries
             #   other alternative would have been to ingress into the
@@ -1773,7 +1795,18 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-            
+                config_ingress = create_general_datasource(f'gather_{key}')
+
+    fs_ingress = create_general_datasource(f'gather_freesurfer_dir')
+    fs_ingress.inputs.inputnode.set(
+                unique_id=unique_id,
+                data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
+                creds_path=creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path']
+            )
+    rpool.set_data("freesurfer-subject-dir", config_ingress, 'outputspec.data', json_info,
+                   "", f"freesurfer_dir_config_ingress")
+
     # templates, resampling from config
     '''
     template_keys = [
@@ -1883,7 +1916,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
        'subject_id': 'sub-01',
        'unique_id': 'ses-1'}
     '''
-    
+
     from CPAC.pipeline.engine import ResourcePool
     # TODO: refactor further, integrate with the ingress_data functionality
     # TODO: used for BIDS-Derivatives (below), and possible refactoring of
@@ -1900,10 +1933,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     elif part_id:
         unique_id = part_id
         creds_path = None
-    
+
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
-    
+
 
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,

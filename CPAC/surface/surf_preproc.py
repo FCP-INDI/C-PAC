@@ -371,7 +371,7 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                                output_names=['mri_info_mat'],
                                                function=run_get_mri_info,
                                                imports=get_mri_info_imports),
-                                 name=f'get_resmat{pipe_num}')
+                                 name='get_mri_info')
 
 
     get_mri_info.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
@@ -379,6 +379,7 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         f'post_freesurfer_{pipe_num}')
 
     node, out = strat_pool.get_data('wmparc')
+
     wf.connect(node, out, get_mri_info, 'mri_info')
 
     outputs = {

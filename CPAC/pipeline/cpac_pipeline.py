@@ -235,6 +235,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    #raise Exception("Entered the node block")
+
     if plugin is not None and not isinstance(plugin, str):
         raise TypeError(
             'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
@@ -1295,6 +1297,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+		
         pipeline_blocks += [surface_preproc]
 
     # Extractions and Derivatives
