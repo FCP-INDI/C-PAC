@@ -370,8 +370,9 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     get_mri_info = pe.Node(util.Function(input_names=['mri_info','post_freesurfer_folder'],
                                                output_names=['mri_info_mat'],
                                                function=run_get_mri_info,
-                                               imports=get_mri_info_imports),
-                                 name='get_mri_info')
+                                               imports=get_mri_info_imports,),
+                                 name=f"get_mri_info_{pipe_num}",)
+
 
 
     get_mri_info.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],

@@ -1691,7 +1691,9 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
             # preserve cpac provenance/pipe_idx
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
+
             node_name = ""
+
         else:
             pipe_idx = ""
             node_name = f"{data_label}_ingress"
