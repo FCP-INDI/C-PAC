@@ -9,7 +9,7 @@ def run_surface(post_freesurfer_folder,
                 subject,
                 t1w_restore_image,
                 atlas_space_t1w_image,
-                atlas_transform, 
+                atlas_transform,
                 inverse_atlas_transform,
                 atlas_space_bold,
                 scout_bold,
@@ -178,12 +178,15 @@ def surface_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-template_to-T1w_mode-image_xfm",
                 "space-template_desc-brain_bold",
                 "space-template_desc-scout_bold"],
-     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+     "outputs": {"atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-                 "space-fsLR_den-32k_bold-dtseries"]}
+                 "space-fsLR_den-32k_bold-dtseries": {
+                        "Description": "cifti time series file from volume of subcortical structures, and surfaces of the cortex of both hemispheres"}}
+    }
     '''
+
 
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
