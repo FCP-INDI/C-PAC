@@ -56,6 +56,12 @@ commands:
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "develop-1.8.4" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: nightly-1.8.4
       # - when:
       #     condition:
       #       not:
@@ -176,21 +182,15 @@ commands:
   set-python-version:
     steps:
       - run:
-          name: "Setting Python Version"
-          command: |
-            cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
-            pyenv install -v 3.7.9
-            pyenv global 3.7.9
-      - restore_cache:
-          keys:
-            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
-      - run:
           name: "Installing CI dependencies"
-          command: pip install -r dev/circleci_data/requirements.txt
+          command: |
+            pyenv global 3.8.5
+            pip install --upgrade pip
+            pip install -r dev/circleci_data/requirements.txt
       - save_cache:
-          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.7.9
+          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.8.5
           paths: 
-            - /opt/circleci/.pyenv/versions/3.7.9
+            - /opt/circleci/.pyenv/versions/3.8.5
   set-up-variant:
     parameters:
       variant:
@@ -227,6 +227,7 @@ jobs:
   build:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -244,6 +245,7 @@ jobs:
   build-ABCD-HCP:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -262,6 +264,7 @@ jobs:
   build-fMRIPrep-LTS:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: xlarge
     steps:
       - checkout
       - check-updated
@@ -280,6 +283,7 @@ jobs:
   build-lite:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
@@ -298,6 +302,7 @@ jobs:
   check-version:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: medium
     steps:
       - checkout
       - set-python-version
@@ -333,6 +338,7 @@ jobs:
   combine-coverage:
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: medium
     steps:
       - checkout
       - check-updated
@@ -352,6 +358,23 @@ jobs:
       - combine-coverage
       - store_artifacts:
           path: htmlcov
+  push-release:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    resource_class: medium
+    steps:
+      - checkout
+      - check-updated
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
+      - push-to-docker-hub:
+          tag: release-$CIRCLE_TAG
   pytest-docker:
     parameters:
       variant:
@@ -359,6 +382,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
@@ -385,6 +409,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - check-updated
@@ -415,14 +440,24 @@ workflows:
           name: "Build images"
           requires:
             - "Checking for updated version"
-      # - build-ABCD-HCP:
-      #     name: "Build ABCD-HCP variant images"
-      #     requires:
-      #       - "Checking for updated version"
-      # - build-fMRIPrep-LTS:
-      #     name: "Build fMRIPrep-LTS variant images"
-      #     requires:
-      #       - "Checking for updated version"
+      - build-ABCD-HCP:
+          name: "Build ABCD-HCP variant images"
+          requires:
+            - "Checking for updated version"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+      - build-fMRIPrep-LTS:
+          name: "Build fMRIPrep-LTS variant images"
+          requires:
+            - "Checking for updated version"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
       - build-lite:
           name: "Build lite variant images"
           requires:
@@ -439,6 +474,45 @@ workflows:
             # - "Test ABCD-HCP variant in Docker"
             # - "Test ABCD-HCP variant in Singularity"
             # - "Test fMRIPrep-LTS variant in Docker"
+      - push-release:
+          name: "Push release to Docker Hub"
+          requires:
+            - "Build images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+      - push-release:
+          name: "Push ABCD-HCP variant release to Docker Hub"
+          requires:
+            - "Build ABCD-HCP variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: ABCD-HCP
+      - push-release:
+          name: "Push fMRIPrep-LTS variant release to Docker Hub"
+          requires:
+            - "Build fMRIPrep-LTS variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: fMRIPrep-LTS
+      - push-release:
+          name: "Push lite-variant release to Docker Hub"
+          requires:
+            - "Build lite variant images"
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(\d+\.)*\d+.*/
+          variant: lite
       - pytest-docker:
           name: "Test in Docker"
           requires:
