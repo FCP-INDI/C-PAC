@@ -184,6 +184,7 @@ commands:
       - run:
           name: "Installing CI dependencies"
           command: |
+            pyenv global 3.8.5
             pip install --upgrade pip
             pip install -r dev/circleci_data/requirements.txt
       - save_cache:
