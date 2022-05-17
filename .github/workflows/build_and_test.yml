@@ -5,23 +5,23 @@ on:
 
 jobs:
   C-PAC:
-    uses: FCP-INDI/C-PAC/.github/workflows/build_C-PAC.yml@develop
+    uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ''
 
   C-PAC-lite:
     needs: C-PAC
-    uses: FCP-INDI/C-PAC/.github/workflows/build_C-PAC.yml@develop
+    uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: lite
 
   C-PAC-ABCD-HCP:
-    uses: FCP-INDI/C-PAC/.github/workflows/build_C-PAC.yml@develop
+    uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
-    uses: FCP-INDI/C-PAC/.github/workflows/build_C-PAC.yml@develop
+    uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: fMRIPrep-LTS
 
