@@ -68,7 +68,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.1
- - fsl-base 2203.0
+ - fsl-base 2205.2
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -79,11 +79,11 @@ packages:
  - fsl-cluster 2201.0
  - fsl-copain 2111.1
  - fsl-cprob 2111.0
- - fsl-cudabasisfield-cuda-9.2 1.1.0
- - fsl-cudabasisfield-cuda-10.2 1.1.0
- - fsl-cudabasisfield-cuda-11.0 1.1.0
- - fsl-cudabasisfield-cuda-11.1 1.1.0
- - fsl-cudabasisfield-cuda-11.3 1.1.0
+ - fsl-cudabasisfield-cuda-9.2 1.1.1
+ - fsl-cudabasisfield-cuda-10.2 1.1.1
+ - fsl-cudabasisfield-cuda-11.0 1.1.1
+ - fsl-cudabasisfield-cuda-11.1 1.1.1
+ - fsl-cudabasisfield-cuda-11.3 1.1.1
  - fsl-cudimot 2006.0
  - fsl-data_atlases 2103.0
  - fsl-data_atlases_xtract 1.1.0
@@ -168,7 +168,7 @@ packages:
  - fsl-pyfeeds 0.10.0
  - fsl-pyfeeds-tests 2203.1
  - fsl-qboot 2111.0
- - fsl-randomise 2203.0
+ - fsl-randomise 2203.1
  - fsl-relax 2111.0
  - fsl-shapemodel 2111.0
  - fsl-siena 2111.0
