@@ -195,6 +195,23 @@ jobs:
                       tag: nightly
       - store_artifacts:
           path: htmlcov
+  push-release:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    resource_class: medium
+    steps:
+      - checkout
+      - check-updated
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
+      - push-to-docker-hub:
+          tag: release-$CIRCLE_TAG
   pytest-docker:
     parameters:
       variant:
@@ -202,6 +219,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - set-up-variant:
@@ -223,6 +241,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:202010-01
+    resource_class: large
     steps:
       - checkout
       - set-up-variant:
