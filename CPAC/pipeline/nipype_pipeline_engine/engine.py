@@ -449,7 +449,7 @@ class Workflow(pe.Workflow):
                                     node._apply_mem_x(_load_resultfile(
                                         input_resultfile
                                     ).inputs[field])
-                                except FileNotFoundError:
+                                except (FileNotFoundError, TypeError):
                                     self._handle_just_in_time_exception(node)
                                 except KeyError:
                                     warnings.warn(str(KeyError(
