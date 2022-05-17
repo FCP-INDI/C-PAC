@@ -449,14 +449,8 @@ class Workflow(pe.Workflow):
                                     node._apply_mem_x(_load_resultfile(
                                         input_resultfile
                                     ).inputs[field])
-                                except (FileNotFoundError, TypeError):
-                                    self._handle_just_in_time_exception(node)
-                                except KeyError:
-                                    warnings.warn(str(KeyError(
-                                        f'Node {node.name} specifies memory '
-                                        'allocation for input '
-                                        f'{node.mem_x["file"]}, but no such '
-                                        'input is specified for that Node.')))
+                                except (FileNotFoundError, KeyError,
+                                        TypeError):
                                     self._handle_just_in_time_exception(node)
 
     def _handle_just_in_time_exception(self, node):
