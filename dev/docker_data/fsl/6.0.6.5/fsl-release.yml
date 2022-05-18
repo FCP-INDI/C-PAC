@@ -62,7 +62,7 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.0.0
- - fsleyes 1.4.2
+ - fsleyes 1.4.4
  - fslpy 3.9.1
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
@@ -202,6 +202,7 @@ packages:
  - pkg-config
  - python 3.9.*
  - tk 8.6.*
+ - wxpython 4.1.*
  - zlib 1.2.*
 
 # List of additional packages that
