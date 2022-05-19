@@ -7,5 +7,6 @@ AVAILABLE_PIPELINE_CONFIGS = os.listdir(
 AVAILABLE_PIPELINE_CONFIGS = [x.split('_')[2].replace('.yml', '') for
                               x in AVAILABLE_PIPELINE_CONFIGS if
                               'pipeline_config' in x]
+AVAILABLE_PIPELINE_CONFIGS.sort()
 
 __all__ = ['AVAILABLE_PIPELINE_CONFIGS']
