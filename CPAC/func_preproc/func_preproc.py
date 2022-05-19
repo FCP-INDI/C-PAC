@@ -1092,7 +1092,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt not in option_vals:
         raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
                          'parameter of the \'motion_correction\' workflow '
-                         'must be one of:\n\t{0}.\n\nTool input: {1}'
+                         'must be one of:\n\t{0}.\n\nTool input: \'{1}\''
                          '\n\n'.format(
                              ' or '.join([f"'{val}'" for val in option_vals]),
                              opt))
