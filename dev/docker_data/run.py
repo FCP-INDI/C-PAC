@@ -12,6 +12,7 @@ from urllib.error import HTTPError
 import yaml
 
 from CPAC import __version__
+from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
@@ -149,7 +150,9 @@ def run_main():
                         default=None)
 
     parser.add_argument('--preconfig',
-                        help='Name of the pre-configured pipeline to run.',
+                        help='Name of the preconfigured pipeline to run. '
+                             'Available preconfigured pipelines: ' + 
+                             str(AVAILABLE_PIPELINE_CONFIGS),
                         default=None)
 
     if '--pipeline_override' in sys.argv:  # secret option
