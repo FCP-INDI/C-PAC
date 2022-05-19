@@ -1332,10 +1332,6 @@ def check_system_deps(check_ants=False,
 
 # Check pipeline config againts computer resources
 def check_config_resources(c):
-    '''
-    docstring
-    '''
-
     # Import packages
     import psutil
     from multiprocessing import cpu_count
