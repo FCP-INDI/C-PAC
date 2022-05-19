@@ -15,15 +15,6 @@ miniconda:
  macos-64: https://github.com/conda-forge/miniforge/releases/download/4.10.3-7/Miniforge3-4.10.3-7-MacOSX-x86_64.sh
  macos-M1: https://github.com/conda-forge/miniforge/releases/download/4.10.3-7/Miniforge3-4.10.3-7-MacOSX-arm64.sh
 
-# Versions of CUDA for which FSL packages are
-# built (currently only available on Linux).
-cuda:
- - 9.2
- - 10.2
- - 11.0
- - 11.1
- - 11.3
-
 # Conda channels to source packages from
 channels:
  - https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
@@ -40,7 +31,7 @@ internal-channel: http://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.
 # Versions of these packages are specified in
 # the main packages list below
 base-packages:
- - boost-cpp 
+ - boost-cpp
  - fslpy
  - fsl-base
  - fsl_sub
@@ -79,11 +70,6 @@ packages:
  - fsl-cluster 2201.0
  - fsl-copain 2111.1
  - fsl-cprob 2111.0
- - fsl-cudabasisfield-cuda-9.2 1.1.1
- - fsl-cudabasisfield-cuda-10.2 1.1.1
- - fsl-cudabasisfield-cuda-11.0 1.1.1
- - fsl-cudabasisfield-cuda-11.1 1.1.1
- - fsl-cudabasisfield-cuda-11.3 1.1.1
  - fsl-cudimot 2006.0
  - fsl-data_atlases 2103.0
  - fsl-data_atlases_xtract 1.1.0
@@ -97,11 +83,6 @@ packages:
  - fsl-dpm 2111.0
  - fsl-dwssfp 2111.0
  - fsl-eddy 2111.0
- - fsl-eddy-cuda-9.2 2111.0
- - fsl-eddy-cuda-10.2 2111.0
- - fsl-eddy-cuda-11.0 2111.0
- - fsl-eddy-cuda-11.1 2111.0
- - fsl-eddy-cuda-11.3 2111.0
  - fsl-eddy_qc v1.1.1
  - fsl-fabber_core v4.0.10
  - fsl-fabber_models_asl v2.0.7
@@ -116,11 +97,6 @@ packages:
  - fsl-fast4 2111.0
  - fsl-fastpdlib 2111.1
  - fsl-fdt 2202.0
- - fsl-fdt-cuda-9.2 2202.0
- - fsl-fdt-cuda-10.2 2202.0
- - fsl-fdt-cuda-11.0 2202.0
- - fsl-fdt-cuda-11.1 2202.0
- - fsl-fdt-cuda-11.3 2202.0
  - fsl-feat5 2201.0
  - fsl-film 2111.0
  - fsl-filmbabe 2111.0
@@ -160,11 +136,6 @@ packages:
  - fsl-oxford_asl v4.0.27
  - fsl-possum 2111.2
  - fsl-ptx2 2111.0
- - fsl-ptx2-cuda-9.2 2111.0
- - fsl-ptx2-cuda-10.2 2111.0
- - fsl-ptx2-cuda-11.0 2111.0
- - fsl-ptx2-cuda-11.1 2111.0
- - fsl-ptx2-cuda-11.3 2111.0
  - fsl-pyfeeds 0.10.0
  - fsl-pyfeeds-tests 2203.1
  - fsl-qboot 2111.0
@@ -207,7 +178,35 @@ packages:
 
 # List of additional packages that
 # are added to linux-64 installations.
-linux-64-packages: []
+linux-64-packages:
+ - fsl-cudabasisfield-cuda-9.2 1.1.1
+ - fsl-cudabasisfield-cuda-10.2 1.1.1
+ - fsl-cudabasisfield-cuda-11.0 1.1.1
+ - fsl-cudabasisfield-cuda-11.1 1.1.1
+ - fsl-cudabasisfield-cuda-11.3 1.1.1
+ - fsl-cudabasisfield-cuda-11.4 1.1.1
+ - fsl-cudabasisfield-cuda-11.5 1.1.1
+ - fsl-eddy-cuda-9.2 2111.0
+ - fsl-eddy-cuda-10.2 2111.0
+ - fsl-eddy-cuda-11.0 2111.0
+ - fsl-eddy-cuda-11.1 2111.0
+ - fsl-eddy-cuda-11.3 2111.0
+ - fsl-eddy-cuda-11.4 2111.0
+ - fsl-eddy-cuda-11.5 2111.0
+ - fsl-fdt-cuda-9.2 2202.0
+ - fsl-fdt-cuda-10.2 2202.0
+ - fsl-fdt-cuda-11.0 2202.0
+ - fsl-fdt-cuda-11.1 2202.0
+ - fsl-fdt-cuda-11.3 2202.0
+ - fsl-fdt-cuda-11.4 2202.0
+ - fsl-fdt-cuda-11.5 2202.0
+ - fsl-ptx2-cuda-9.2 2111.0
+ - fsl-ptx2-cuda-10.2 2111.0
+ - fsl-ptx2-cuda-11.0 2111.0
+ - fsl-ptx2-cuda-11.1 2111.0
+ - fsl-ptx2-cuda-11.3 2111.0
+ - fsl-ptx2-cuda-11.4 2111.0
+ - fsl-ptx2-cuda-11.5 2111.0
 
 # List of additional packages that
 # are added to macos-64 installations.
