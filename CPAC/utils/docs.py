@@ -20,19 +20,20 @@ def docstring_parameter(*args, **kwargs):
     return dec
 
 
-def grab_docstring_dct(fn_docstring):
+def grab_docstring_dct(fn):
     """Function to grab a NodeBlock dictionary from a docstring.
 
     Parameters
     ----------
-    fn_docstring : str
-        The docstring of the function to be parsed.
+    fn : function
+        The NodeBlock function with the docstring to be parsed.
 
     Returns
     -------
     dct : dict
         A NodeBlock configuration dictionary.
     """
+    fn_docstring = fn.__doc__
     init_dct_schema = ['name', 'config', 'switch', 'option_key',
                        'option_val', 'inputs', 'outputs']
     if 'Node Block:' in fn_docstring:

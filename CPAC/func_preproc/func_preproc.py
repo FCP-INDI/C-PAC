@@ -1088,7 +1088,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                  "bold"],
      "outputs": ["motion-basefile"]}
     '''
-    option_vals = grab_docstring_dct(get_motion_ref.__doc__).get('option_val')
+    option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
     if opt not in option_vals:
         raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
                          'parameter of the \'motion_correction\' workflow '

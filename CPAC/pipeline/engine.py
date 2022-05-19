@@ -1028,7 +1028,7 @@ class NodeBlock:
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
 
-            init_dct = grab_docstring_dct(node_block_function.__doc__)
+            init_dct = grab_docstring_dct(node_block_function)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
