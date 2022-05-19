@@ -68,7 +68,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.1
- - fsl-base 2205.2
+ - fsl-base 2205.4
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -144,8 +144,8 @@ packages:
  - fsl-meshclass 2111.0
  - fsl-misc_c 2111.0
  - fsl-misc_scripts 2111.0
- - fsl-misc_tcl 2111.0
- - fsl-miscmaths 2203.0
+ - fsl-misc_tcl 2205.0
+ - fsl-miscmaths 2203.1
  - fsl-miscvis 2201.0
  - fsl-mist 2111.0
  - fsl-mm 2111.0
