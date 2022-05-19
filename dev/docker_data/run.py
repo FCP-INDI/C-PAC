@@ -150,8 +150,11 @@ def run_main():
 
     parser.add_argument('--preconfig',
                         help='Name of the preconfigured pipeline to run. '
-                             'Available preconfigured pipelines: ' + 
-                             str(AVAILABLE_PIPELINE_CONFIGS),
+                             'Available preconfigured pipelines: ' +
+                             str(AVAILABLE_PIPELINE_CONFIGS) + '. See '
+                             f'{DOCS_URL_PREFIX}/user/pipelines/preconfig '
+                             'for more information about the preconfigured '
+                             'pipelines.',
                         default=None)
 
     if '--pipeline_override' in sys.argv:  # secret option
