@@ -61,9 +61,6 @@
         //
         //   - "platform"      Architecture/platform  - currently one of
         //                     "linux-64", "macos-64", or "macos-M1"
-        //   - "cuda"          Version of CUDA that this build was built
-        //                     against. MUST NOT be present for non-CUDA
-        //                     builds.
         //   - "environment"   Conda environment.yml file
         //   - "sha256"        SHA256 checksum of environment.yml file
         //   - "base_packages" List of "base" packages, which are
@@ -104,28 +101,6 @@
                     "install"   : "92",
                     "6.0.6"     : "11"
                 }
-            },
-            {
-                "platform"      : "linux-64",
-                "cuda"          : "9.2",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64-cuda9.2.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
-                "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11"
-                }
-            },
-            {
-                "platform"      : "linux-64",
-                "cuda"          : "10.2",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64-cuda10.2.yml",
-                "sha256"        : "85ef650586c1d7f3475fe7d16108bb94b737decbfc7506ad4deff2917365d05f",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
-                "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11"
-                }
             }
         ],
         "6.2.0" : [
@@ -155,30 +130,6 @@
                 "platform"      : "macos-M1",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-M1.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
-                "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11",
-                    "6.1.0"     : "11"
-                }
-            },
-            {
-                "platform"      : "linux-64",
-                "cuda"          : "9.2",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64-cuda9.2.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
-                "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11",
-                    "6.1.0"     : "11"
-                }
-            },
-            {
-                "platform"      : "linux-64",
-                "cuda"          : "10.2",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64-cuda10.2.yml",
-                "sha256"        : "6499385a2f5d2da48f4a44c95e090a5156319b0acbbd47029d4270abc691a290",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : "92",
