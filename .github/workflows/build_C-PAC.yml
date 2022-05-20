@@ -1,0 +1,85 @@
+name: Build C-PAC image
+
+on:
+  workflow_call:
+    inputs:
+      variant:
+        required: true
+        type: string
+
+jobs:
+  C-PAC:
+    name: Build Docker C-PAC images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v4
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          overprovision-lvm: 'true'
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1.6.0
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set tag & Dockerfile
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          if [[ "${{ inputs.variant }}" == "fMRIPrep-LTS" ]]
+          then
+            OS=xenial
+          else
+            OS=bionic
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+            DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+            DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+            if [[ $VARIANT == "" ]]
+            then
+              DOCKERFILE=Dockerfile
+            else
+              DOCKERFILE=variant$VARIANT.Dockerfile
+            fi
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+      - name: Prep Dockerfiles for forked repository
+        if: ${{ github.repository_owner }} != 'FCP-INDI'
+        run: .github/scripts/local_ghcr $DOCKERFILE ${{ github.repository_owner }}
+      - name: See Dockerfile
+        run: |
+          echo $DOCKERFILE
+          cat $DOCKERFILE
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2.9.0
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
