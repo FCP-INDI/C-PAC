@@ -1,0 +1,25 @@
+name: Smoke test participant preconfigurations
+
+on:
+  pull_request:
+
+jobs:
+  C-PAC:
+    uses: ./.github/workflows/participant_test_config.yml
+    with:
+      variant: ''
+
+  C-PAC-lite:
+    uses: ./.github/workflows/participant_test_config.yml
+    with:
+      variant: lite
+
+  C-PAC-ABCD-HCP:
+    uses: ./.github/workflows/participant_test_config.yml
+    with:
+      variant: ABCD-HCP
+
+  C-PAC-fMRIPrep-LTS:
+    uses: ./.github/workflows/participant_test_config.yml
+    with:
+      variant: fMRIPrep-LTS
