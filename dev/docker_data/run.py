@@ -7,17 +7,17 @@ import subprocess
 import sys
 import time
 import shutil
-from urllib import request
-from urllib.error import HTTPError
 import yaml
 
 from CPAC import __version__
+from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
@@ -149,7 +149,12 @@ def run_main():
                         default=None)
 
     parser.add_argument('--preconfig',
-                        help='Name of the pre-configured pipeline to run.',
+                        help='Name of the preconfigured pipeline to run. '
+                             'Available preconfigured pipelines: ' +
+                             str(AVAILABLE_PIPELINE_CONFIGS) + '. See '
+                             f'{DOCS_URL_PREFIX}/user/pipelines/preconfig '
+                             'for more information about the preconfigured '
+                             'pipelines.',
                         default=None)
 
     if '--pipeline_override' in sys.argv:  # secret option
@@ -446,20 +451,8 @@ def run_main():
         c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
         if 'pipeline_setup' not in c:
-            url_version = f'v{__version__}'
-            _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
-                    'user/pipelines/1.7-1.8-nesting-mappings')
-            try:
-                request.urlopen(_url)
-
-            except HTTPError:
-                if 'dev' in url_version:
-                    url_version = 'nightly'
-                else:
-                    url_version = 'latest'
-
-            _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
-                    'user/pipelines/1.7-1.8-nesting-mappings')
+            _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
+                    '1.7-1.8-nesting-mappings')
 
             warn('\nC-PAC changed its pipeline configuration format in '
                  f'v1.8.0.\nSee {_url} for details.\n',

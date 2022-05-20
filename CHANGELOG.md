@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
 - Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
+- Added list of preconfigured pipelines to the usage string
 
 ### Changed
 - Made surface output filenames BIDSier
