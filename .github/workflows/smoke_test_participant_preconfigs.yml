@@ -4,22 +4,60 @@ on:
   pull_request:
 
 jobs:
-  C-PAC:
-    uses: ./.github/workflows/participant_test_config.yml
-    with:
-      variant: ''
-
-  C-PAC-lite:
-    uses: ./.github/workflows/participant_test_config.yml
-    with:
-      variant: lite
-
-  C-PAC-ABCD-HCP:
-    uses: ./.github/workflows/participant_test_config.yml
-    with:
-      variant: ABCD-HCP
-
-  C-PAC-fMRIPrep-LTS:
-    uses: ./.github/workflows/participant_test_config.yml
-    with:
-      variant: fMRIPrep-LTS
+  test_human_configs:
+    name: Smoke test human preconfigs
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    runs-on: ubuntu-latest
+    steps:
+  test_nhp_configs:
+    name: Smoke test nonhuman primate preconfigs
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - monkey
+          - monkey-ABCD
+          - nhp-macaque
+    runs-on: ubuntu-latest
+    steps:
+  test_rodent_configs:
+    name: Smoke test rodent preconfigs
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - rodent
+    runs-on: ubuntu-latest
+    steps:
+          
