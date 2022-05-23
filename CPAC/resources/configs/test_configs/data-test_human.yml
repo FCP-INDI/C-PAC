@@ -1,43 +1,3 @@
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025427/ses-1/anat/sub-0025427_ses-1_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025427
-  unique_id: ses-1
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025427/ses-2/anat/sub-0025427_ses-2_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025427
-  unique_id: ses-2
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-1/anat/sub-0025428_ses-1_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025428
-  unique_id: ses-1
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-2/anat/sub-0025428_ses-2_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025428
-  unique_id: ses-2
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-1/anat/sub-0025429_ses-1_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025429
-  unique_id: ses-1
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-2/anat/sub-0025429_ses-2_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025429
-  unique_id: ses-2
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025430/ses-1/anat/sub-0025430_ses-1_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025430
-  unique_id: ses-1
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025430/ses-2/anat/sub-0025430_ses-2_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025430
-  unique_id: ses-2
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025431/ses-1/anat/sub-0025431_ses-1_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025431
-  unique_id: ses-1
-- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025431/ses-2/anat/sub-0025431_ses-2_run-1_T1w.nii.gz
-  site: HNU_1
-  subject_id: sub-0025431
-  unique_id: ses-2
 - anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_T1w.nii.gz
   fmap:
     epi_AP:
@@ -51,7 +11,7 @@
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.json
   site: Site-CBIC
-  subject_id: sub-NDARAA504CRN
+  subject_id: NDARAA504CRN
   unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/anat/sub-NDARAA947ZG5_acq-VNavNorm_T1w.nii.gz
   fmap:
@@ -66,7 +26,7 @@
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.json
   site: Site-CBIC
-  subject_id: sub-NDARAA947ZG5
+  subject_id: NDARAA947ZG5
   unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/anat/sub-NDARAB348EWR_acq-VNavNorm_run-01_T1w.nii.gz
   fmap:
@@ -81,7 +41,7 @@
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.json
   site: Site-CBIC
-  subject_id: sub-NDARAB348EWR
+  subject_id: NDARAB348EWR
   unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/anat/sub-NDARAB458VK9_acq-VNavNorm_run-01_T1w.nii.gz
   fmap:
@@ -96,7 +56,7 @@
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.json
   site: Site-CBIC
-  subject_id: sub-NDARAB458VK9
+  subject_id: NDARAB458VK9
   unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/anat/sub-NDARAB514MAJ_acq-VNavNorm_T1w.nii.gz
   fmap:
@@ -111,7 +71,7 @@
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.json
   site: Site-CBIC
-  subject_id: sub-NDARAB514MAJ
+  subject_id: NDARAB514MAJ
   unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/anat/sub-A00040524_ses-NFB3_T1w.nii.gz
   func:
@@ -292,3 +252,453 @@
   site: SI
   subject_id: NDARCA186WGH
   unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-1/anat/sub-0025428_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-1/func/sub-0025428_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-1/func/sub-0025428_ses-1_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-2/anat/sub-0025428_ses-2_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-2/func/sub-0025428_ses-2_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-2/func/sub-0025428_ses-2_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '2'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-3/anat/sub-0025428_ses-3_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-3/func/sub-0025428_ses-3_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-3/func/sub-0025428_ses-3_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '3'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-4/anat/sub-0025428_ses-4_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-4/func/sub-0025428_ses-4_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-4/func/sub-0025428_ses-4_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '4'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-5/anat/sub-0025428_ses-5_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-5/func/sub-0025428_ses-5_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-5/func/sub-0025428_ses-5_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '5'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-6/anat/sub-0025428_ses-6_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-6/func/sub-0025428_ses-6_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-6/func/sub-0025428_ses-6_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '6'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-7/anat/sub-0025428_ses-7_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-7/func/sub-0025428_ses-7_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-7/func/sub-0025428_ses-7_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '7'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-8/anat/sub-0025428_ses-8_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-8/func/sub-0025428_ses-8_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-8/func/sub-0025428_ses-8_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '8'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-9/anat/sub-0025428_ses-9_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-9/func/sub-0025428_ses-9_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-9/func/sub-0025428_ses-9_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '9'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-10/anat/sub-0025428_ses-10_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-10/func/sub-0025428_ses-10_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-10/func/sub-0025428_ses-10_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025428'
+  unique_id: '10'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-1/anat/sub-0025429_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-1/func/sub-0025429_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-1/func/sub-0025429_ses-1_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-2/anat/sub-0025429_ses-2_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-2/func/sub-0025429_ses-2_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-2/func/sub-0025429_ses-2_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '2'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-3/anat/sub-0025429_ses-3_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-3/func/sub-0025429_ses-3_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-3/func/sub-0025429_ses-3_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '3'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-4/anat/sub-0025429_ses-4_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-4/func/sub-0025429_ses-4_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-4/func/sub-0025429_ses-4_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '4'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-5/anat/sub-0025429_ses-5_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-5/func/sub-0025429_ses-5_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-5/func/sub-0025429_ses-5_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '5'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-6/anat/sub-0025429_ses-6_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-6/func/sub-0025429_ses-6_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-6/func/sub-0025429_ses-6_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '6'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-7/anat/sub-0025429_ses-7_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-7/func/sub-0025429_ses-7_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-7/func/sub-0025429_ses-7_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '7'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-8/anat/sub-0025429_ses-8_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-8/func/sub-0025429_ses-8_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-8/func/sub-0025429_ses-8_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '8'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-9/anat/sub-0025429_ses-9_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-9/func/sub-0025429_ses-9_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-9/func/sub-0025429_ses-9_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '9'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-10/anat/sub-0025429_ses-10_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-10/func/sub-0025429_ses-10_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-10/func/sub-0025429_ses-10_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025429'
+  unique_id: '10'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-1/anat/sub-0025448_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-1/func/sub-0025448_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-1/func/sub-0025448_ses-1_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-2/anat/sub-0025448_ses-2_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-2/func/sub-0025448_ses-2_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-2/func/sub-0025448_ses-2_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '2'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-3/anat/sub-0025448_ses-3_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-3/func/sub-0025448_ses-3_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-3/func/sub-0025448_ses-3_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '3'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-4/anat/sub-0025448_ses-4_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-4/func/sub-0025448_ses-4_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-4/func/sub-0025448_ses-4_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '4'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-5/anat/sub-0025448_ses-5_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-5/func/sub-0025448_ses-5_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-5/func/sub-0025448_ses-5_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '5'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-6/anat/sub-0025448_ses-6_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-6/func/sub-0025448_ses-6_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-6/func/sub-0025448_ses-6_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '6'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-7/anat/sub-0025448_ses-7_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-7/func/sub-0025448_ses-7_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-7/func/sub-0025448_ses-7_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '7'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-8/anat/sub-0025448_ses-8_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-8/func/sub-0025448_ses-8_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-8/func/sub-0025448_ses-8_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '8'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-9/anat/sub-0025448_ses-9_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-9/func/sub-0025448_ses-9_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-9/func/sub-0025448_ses-9_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '9'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-10/anat/sub-0025448_ses-10_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-10/func/sub-0025448_ses-10_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025448/ses-10/func/sub-0025448_ses-10_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025448'
+  unique_id: '10'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-1/anat/sub-0025452_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-1/func/sub-0025452_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-1/func/sub-0025452_ses-1_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-2/anat/sub-0025452_ses-2_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-2/func/sub-0025452_ses-2_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-2/func/sub-0025452_ses-2_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '2'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-3/anat/sub-0025452_ses-3_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-3/func/sub-0025452_ses-3_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-3/func/sub-0025452_ses-3_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '3'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-4/anat/sub-0025452_ses-4_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-4/func/sub-0025452_ses-4_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-4/func/sub-0025452_ses-4_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '4'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-5/anat/sub-0025452_ses-5_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-5/func/sub-0025452_ses-5_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-5/func/sub-0025452_ses-5_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '5'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-6/anat/sub-0025452_ses-6_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-6/func/sub-0025452_ses-6_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-6/func/sub-0025452_ses-6_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '6'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-7/anat/sub-0025452_ses-7_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-7/func/sub-0025452_ses-7_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-7/func/sub-0025452_ses-7_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '7'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-8/anat/sub-0025452_ses-8_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-8/func/sub-0025452_ses-8_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-8/func/sub-0025452_ses-8_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '8'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-9/anat/sub-0025452_ses-9_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-9/func/sub-0025452_ses-9_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-9/func/sub-0025452_ses-9_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '9'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-10/anat/sub-0025452_ses-10_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-10/func/sub-0025452_ses-10_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025452/ses-10/func/sub-0025452_ses-10_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025452'
+  unique_id: '10'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-1/anat/sub-0025453_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-1/func/sub-0025453_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-1/func/sub-0025453_ses-1_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-2/anat/sub-0025453_ses-2_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-2/func/sub-0025453_ses-2_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-2/func/sub-0025453_ses-2_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '2'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-3/anat/sub-0025453_ses-3_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-3/func/sub-0025453_ses-3_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-3/func/sub-0025453_ses-3_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '3'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-4/anat/sub-0025453_ses-4_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-4/func/sub-0025453_ses-4_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-4/func/sub-0025453_ses-4_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '4'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-5/anat/sub-0025453_ses-5_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-5/func/sub-0025453_ses-5_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-5/func/sub-0025453_ses-5_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '5'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-6/anat/sub-0025453_ses-6_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-6/func/sub-0025453_ses-6_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-6/func/sub-0025453_ses-6_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '6'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-7/anat/sub-0025453_ses-7_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-7/func/sub-0025453_ses-7_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-7/func/sub-0025453_ses-7_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '7'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-8/anat/sub-0025453_ses-8_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-8/func/sub-0025453_ses-8_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-8/func/sub-0025453_ses-8_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '8'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-9/anat/sub-0025453_ses-9_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-9/func/sub-0025453_ses-9_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-9/func/sub-0025453_ses-9_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '9'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-10/anat/sub-0025453_ses-10_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-10/func/sub-0025453_ses-10_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025453/ses-10/func/sub-0025453_ses-10_task-rest_run-1_bold.json
+  site: HNU_1
+  subject_id: '0025453'
+  unique_id: '10'
