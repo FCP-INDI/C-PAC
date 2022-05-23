@@ -244,3 +244,51 @@
   site: KKI
   subject_id: '3884955'
   unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/anat/sub-NDARAD481FXF_T1w.nii.gz
+  fmap:
+    diffmag:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/fmap/sub-NDARAD481FXF_magnitude1.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/fmap/sub-NDARAD481FXF_magnitude1.json
+    diffphase:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/fmap/sub-NDARAD481FXF_phasediff.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/fmap/sub-NDARAD481FXF_phasediff.json
+  func:
+    rest:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/func/sub-NDARAD481FXF_task-rest_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAD481FXF/func/sub-NDARAD481FXF_task-rest_bold.json
+  site: SI
+  subject_id: NDARAD481FXF
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/anat/sub-NDARAV894XWD_T1w.nii.gz
+  fmap:
+    diffmag:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/fmap/sub-NDARAV894XWD_magnitude1.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/fmap/sub-NDARAV894XWD_magnitude1.json
+    diffphase:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/fmap/sub-NDARAV894XWD_phasediff.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/fmap/sub-NDARAV894XWD_phasediff.json
+  func:
+    rest:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/func/sub-NDARAV894XWD_task-rest_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARAV894XWD/func/sub-NDARAV894XWD_task-rest_bold.json
+  site: SI
+  subject_id: NDARAV894XWD
+  unique_id: '1'
+- anat:
+    T1w: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/anat/sub-NDARCA186WGH_T1w.nii.gz
+  fmap:
+    diffmag:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/fmap/sub-NDARCA186WGH_magnitude1.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/fmap/sub-NDARCA186WGH_magnitude1.json
+    diffphase:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/fmap/sub-NDARCA186WGH_phasediff.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/fmap/sub-NDARCA186WGH_phasediff.json
+  func:
+    rest:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/func/sub-NDARCA186WGH_task-rest_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-SI/sub-NDARCA186WGH/func/sub-NDARCA186WGH_task-rest_bold.json
+  site: SI
+  subject_id: NDARCA186WGH
+  unique_id: '1'
