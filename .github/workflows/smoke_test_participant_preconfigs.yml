@@ -1,10 +1,16 @@
 name: Smoke test participant preconfigurations
+# Runs on pull request after build
 
 on:
-  pull_request:
+  workflow_run:
+    workflows:
+      - "Build C-PAC image"
+    types:
+      - completed
 
 jobs:
   test_human_configs:
+    # if: github.event.pull_request
     name: Smoke test human preconfigs
     strategy:
       matrix:
@@ -30,34 +36,82 @@ jobs:
           - regtest-2
           - regtest-3
           - regtest-4
+        participant:
+          - '1019436'
+          - '2014113'
+          - '3154996'
+          - '3699991'
+          - '3884955'
+          - NDARAA504CRN
+          - NDARAA947ZG5
+          - NDARAB348EWR
+          - NDARAB458VK9
+          - NDARAD481FXF
+          - NDARAV894XWD
+          - NDARCA186WGH
+          - '0025453'
+          - '0025428'
+          - '0025429'
+          - '0025452'
+          - '0025448'
     runs-on: ubuntu-latest
     steps:
-  test_nhp_configs:
-    name: Smoke test nonhuman primate preconfigs
-    strategy:
-      matrix:
-        variant:
-          - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
-        preconfig:
-          - monkey
-          - monkey-ABCD
-          - nhp-macaque
-    runs-on: ubuntu-latest
-    steps:
-  test_rodent_configs:
-    name: Smoke test rodent preconfigs
-    strategy:
-      matrix:
-        variant:
-          - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
-        preconfig:
-          - rodent
-    runs-on: ubuntu-latest
-    steps:
-          
+      - name: Get C-PAC
+        run: |
+          if [[ "${{ matrix.variant }}" != "" ]]
+          then
+            VARIANT=-${{ matrix.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
+      - name: Smoke test
+        run: |
+          if [[ ${{ matrix.preconfig }} == 'default' ]]
+          then
+            docker run --rm -it \
+              --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
+              -v $PWD:/outputs \
+              ${{ env.DOCKER_TAG }} \
+              /outputs /outputs test_config \
+              --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
+              --participant_label ${{ matrix.participant }}
+  # test_nhp_configs:
+  #   name: Smoke test nonhuman primate preconfigs
+  #   strategy:
+  #     matrix:
+  #       variant:
+  #         - ''
+  #         - lite
+  #         - ABCD-HCP
+  #         - fMRIPrep-LTS
+  #       preconfig:
+  #         - monkey
+  #         - monkey-ABCD
+  #         - nhp-macaque
+  #   runs-on: ubuntu-latest
+  #   steps:
+  # test_rodent_configs:
+  #   name: Smoke test rodent preconfigs
+  #   strategy:
+  #     matrix:
+  #       variant:
+  #         - ''
+  #         - lite
+  #         - ABCD-HCP
+  #         - fMRIPrep-LTS
+  #       preconfig:
+  #         - rodent
+  #   runs-on: ubuntu-latest
+  #   steps:
