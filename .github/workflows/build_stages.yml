@@ -253,6 +253,6 @@ jobs:
         with:
           fetch-depth: 2
       - name: Build and test C-PAC
-        run: gh workflow run "Build and test C-PAC" --ref ${GITHUB_REF_NAME}
+        run: gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
