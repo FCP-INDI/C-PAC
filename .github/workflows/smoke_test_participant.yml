@@ -1,0 +1,61 @@
+name: Run participant smoke test
+
+on:
+  workflow_call:
+    inputs:
+      participant:
+        required: true
+        type: string
+      preconfig:
+        requited: true
+        type: string
+      variant:
+        required: true
+        type: string
+
+jobs:
+  smoke_test:
+    name: Run smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get C-PAC
+        run: |
+          if [[ "${{ matrix.variant }}" != "" ]]
+          then
+            VARIANT=-${{ matrix.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
+      - name: Run default smoke test
+        if: ${{ inputs.preconfig == 'default' }}
+        run: |
+          docker run --rm -it \
+            --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
+            -v $PWD:/outputs \
+            ${{ env.DOCKER_TAG }} \
+            /outputs /outputs test_config \
+            --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
+            --participant_label ${{ inputs.participant }}
+      - name: Run ${{ inputs.preconfig }} smoke test
+        if: ${{ inputs.preconfig != 'default' }}
+        run: |
+          docker run --rm -it \
+            --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
+            -v $PWD:/outputs \
+            ${{ env.DOCKER_TAG }} \
+            /outputs /outputs test_config \
+            --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
+            --participant_label ${{ inputs.participant }} \
+            --preconfig ${{ inputs.preconfig }}

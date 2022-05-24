@@ -5,9 +5,9 @@ on:
   workflow_call:
 
 jobs:
-  test_human_configs:
-    # if: github.event.pull_request
-    name: Smoke test human preconfigs
+  test_human_1019436:
+    name: Test preconfigs on subject 1019436
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         variant:
@@ -32,57 +32,541 @@ jobs:
           - regtest-2
           - regtest-3
           - regtest-4
-        participant:
-          - '1019436'
-          - '2014113'
-          - '3154996'
-          - '3699991'
-          - '3884955'
-          - NDARAA504CRN
-          - NDARAA947ZG5
-          - NDARAB348EWR
-          - NDARAB458VK9
-          - NDARAD481FXF
-          - NDARAV894XWD
-          - NDARCA186WGH
-          - '0025453'
-          - '0025428'
-          - '0025429'
-          - '0025452'
-          - '0025448'
-    runs-on: ubuntu-latest
     steps:
-      - name: Get C-PAC
-        run: |
-          if [[ "${{ matrix.variant }}" != "" ]]
-          then
-            VARIANT=-${{ matrix.variant }}
-          fi
-          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
-          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
-          then
-            TAG=${GITHUB_BRANCH//\//_}
-          elif [[ $GITHUB_BRANCH == 'develop' ]]
-          then
-            TAG=nightly$VARIANT
-          elif [[ $GITHUB_BRANCH == 'main' ]]
-          then
-            TAG=latest$VARIANT
-          fi
-          TAG=$TAG$VARIANT
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
-          cat $GITHUB_ENV
-      - name: Smoke test
-        run: |
-          if [[ ${{ matrix.preconfig }} == 'default' ]]
-          then
-            docker run --rm -it \
-              --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
-              -v $PWD:/outputs \
-              ${{ env.DOCKER_TAG }} \
-              /outputs /outputs test_config \
-              --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
-              --participant_label ${{ matrix.participant }}
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '1019436'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_2014113:
+    name: Test preconfigs on subject 2014113
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '2014113'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_3154996:
+    name: Test preconfigs on subject 3154996
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '3154996'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_3699991:
+    name: Test preconfigs on subject 3699991
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '3699991'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_3884955:
+    name: Test preconfigs on subject 3884955
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '3884955'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAA504CRN:
+    name: Test preconfigs on subject NDARAA504CRN
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAA504CRN'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAA947ZG5:
+    name: Test preconfigs on subject NDARAA947ZG5
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAA947ZG5'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAB348EWR:
+    name: Test preconfigs on subject NDARAB348EWR
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAB348EWR'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAB458VK9:
+    name: Test preconfigs on subject NDARAB458VK9
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAB458VK9'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAD481FXF:
+    name: Test preconfigs on subject NDARAD481FXF
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAD481FXF'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARAV894XWD:
+    name: Test preconfigs on subject NDARAV894XWD
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARAV894XWD'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_NDARCA186WGH:
+    name: Test preconfigs on subject NDARCA186WGH
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: 'NDARCA186WGH'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_0025453:
+    name: Test preconfigs on subject 0025453
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '0025453'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_0025428:
+    name: Test preconfigs on subject 0025428
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '0025428'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_0025429:
+    name: Test preconfigs on subject 0025429
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '0025429'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_0025452:
+    name: Test preconfigs on subject 0025452
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '0025452'
+          preconfig: ${{ matrix.preconfig }}
+  test_human_0025448:
+    name: Test preconfigs on subject 0025448
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+    steps:
+      - uses: .github/workflows/smoke_test_participant.yml
+        with:
+          variant: ${{ matrix.variant }}
+          participant: '0025448'
+          preconfig: ${{ matrix.preconfig }}
+
   # test_nhp_configs:
   #   name: Smoke test nonhuman primate preconfigs
   #   strategy:
