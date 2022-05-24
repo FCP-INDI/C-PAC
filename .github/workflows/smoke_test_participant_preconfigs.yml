@@ -2,7 +2,7 @@ name: Smoke test participant preconfigurations
 # Runs on pull request after build
 
 on:
-  workflow_call:
+  workflow_dispatch:
 
 jobs:
   test_human_1019436:
