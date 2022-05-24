@@ -2,11 +2,7 @@ name: Smoke test participant preconfigurations
 # Runs on pull request after build
 
 on:
-  workflow_run:
-    workflows:
-      - build_C-PAC.yml
-    types:
-      - completed
+  workflow_call:
 
 jobs:
   test_human_configs:
