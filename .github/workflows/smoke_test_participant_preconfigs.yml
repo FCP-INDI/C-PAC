@@ -33,7 +33,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '1019436'
@@ -66,7 +66,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '2014113'
@@ -99,7 +99,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '3154996'
@@ -132,7 +132,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '3699991'
@@ -165,7 +165,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '3884955'
@@ -198,7 +198,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAA504CRN'
@@ -231,7 +231,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAA947ZG5'
@@ -264,7 +264,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAB348EWR'
@@ -297,7 +297,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAB458VK9'
@@ -330,7 +330,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAD481FXF'
@@ -363,7 +363,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARAV894XWD'
@@ -396,7 +396,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: 'NDARCA186WGH'
@@ -429,7 +429,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '0025453'
@@ -462,7 +462,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '0025428'
@@ -495,7 +495,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '0025429'
@@ -528,7 +528,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '0025452'
@@ -561,7 +561,7 @@ jobs:
           - regtest-3
           - regtest-4
     steps:
-      - uses: .github/workflows/smoke_test_participant.yml
+      - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           variant: ${{ matrix.variant }}
           participant: '0025448'
