@@ -72,11 +72,11 @@ jobs:
             for REF in $BASE_REFS
             do
               echo "Running against base $REF"
-              gh auth login -h GitHub.com || true && gh workflow run "Build stages" --ref ${GITHUB_REF_NAME} -f base_ref="$REF"
+              gh workflow run "Build stages" --ref ${GITHUB_REF_NAME} -f base_ref="$REF"
             done
           else
             echo "Running against last PR"
-            gh auth login -h GitHub.com || true && gh workflow run "Build stages" --ref ${GITHUB_REF_NAME}
+            gh workflow run "Build stages" --ref ${GITHUB_REF_NAME}
           fi
         env:
-          GH_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
