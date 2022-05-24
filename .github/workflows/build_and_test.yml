@@ -25,6 +25,15 @@ jobs:
     with:
       variant: fMRIPrep-LTS
 
+  smoke-tests-participant:
+    name: Run participant-level smoke tests
+    needs:
+      - C-PAC
+      - C-PAC-lite
+      - C-PAC-ABCD-HCP
+      - C-PAC-fMRIPrep-LTS
+    uses: ./.github/workflows/smoke_test_participant_preconfigs.yml
+
   Circle_tests:
     name: Run tests on CircleCI
     needs: 
