@@ -1,3 +1,4 @@
+<!-- If you'd like use an emoji in the PR title, consider checking https://gitmoji.dev for guidance on emoji selection. Clicking an emoji image on that page will copy it to your clipboard. -->
 ## Fixes
 <!-- If PR doesn't fully resolve the issue, replace 'Fixes' below with 'Related to'. -->
 <!-- If there is no issue being resolved, open one before creating this pull request. -->

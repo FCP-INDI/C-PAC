@@ -5,7 +5,7 @@ labels: [enhancement, user-reported]
 body:
   - type: markdown
     attributes:
-      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new feature request. If something like your request already exists, please add to that discussion. Also, please change "[User-requested Feature]" in the title of this issue to something more descriptive of the feature you are requesting.
+      value: Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new feature request. If something like your request already exists, please add to that discussion. Also, please change "[User-requested Feature]" in the title of this issue to something more descriptive of the feature you are requesting. If you'd like to update the emoji, consider checking [Gitm😂ji](https://gitmoji.dev) for guidance on emoji selection. Clicking an emoji image on that page will copy it to your clipboard.
   - type: textarea
     id: related-problem
     attributes:
