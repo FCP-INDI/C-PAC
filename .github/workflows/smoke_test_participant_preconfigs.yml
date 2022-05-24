@@ -4,7 +4,7 @@ name: Smoke test participant preconfigurations
 on:
   workflow_run:
     workflows:
-      - "Build C-PAC image"
+      - build_C-PAC.yml
     types:
       - completed
 
