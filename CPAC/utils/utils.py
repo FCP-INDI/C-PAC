@@ -11,7 +11,7 @@ from optparse import OptionError
 import numpy as np
 import yaml
 from voluptuous.error import Invalid
-from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
+from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -1462,7 +1462,7 @@ def load_preconfig(pipeline_label):
     import os
     import pkg_resources as p
 
-    if pipeline_label not in AVAILABLE_PIPELINE_CONFIGS:
+    if pipeline_label not in ALL_PIPELINE_CONFIGS:
         raise OptionError(
             "The pre-configured pipeline name '{0}' you provided is not one "
             "of the available pipelines.\n\nAvailable pipelines:\n"
