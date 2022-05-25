@@ -1,14 +1,14 @@
 name: Run participant smoke test
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       participant:
         required: true
-        type: string
+        description: participant label
       preconfig:
         required: true
-        type: string
+        description: preconfig name
 
 jobs:
   smoke_test:

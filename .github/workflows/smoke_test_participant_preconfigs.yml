@@ -1,4 +1,4 @@
-name: Smoke test participant preconfigurations
+name: "Smoke test: participant preconfigurations"
 # Runs on pull request after build
 
 on:
@@ -44,10 +44,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - uses: ./.github/workflows/smoke_test_participant.yml
-        with:
-          participant: ${{ matrix.participant }}
-          preconfig: ${{ matrix.preconfig }}
+      - name: Run participant-level smoke tests
+        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} -f participant="${{ matrix.participant }}" -f preconfig="${{ matrix.preconfig }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
   test_human_HBN:
     name: Test preconfigs on HBN human participants
     runs-on: ubuntu-latest
@@ -84,10 +84,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - uses: ./.github/workflows/smoke_test_participant.yml
-        with:
-          participant: ${{ matrix.participant }}
-          preconfig: ${{ matrix.preconfig }}
+      - name: Run participant-level smoke tests
+        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} -f participant="${{ matrix.participant }}" -f preconfig="${{ matrix.preconfig }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
   test_human_CORR:
     name: Test preconfigs on CORR human participants
     runs-on: ubuntu-latest
@@ -122,10 +122,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - uses: ./.github/workflows/smoke_test_participant.yml
-        with:
-          participant: ${{ matrix.participant }}
-          preconfig: ${{ matrix.preconfig }}
+      - name: Run participant-level smoke tests
+        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} -f participant="${{ matrix.participant }}" -f preconfig="${{ matrix.preconfig }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
 
   # test_nhp_configs:
   #   name: Smoke test nonhuman primate preconfigs
