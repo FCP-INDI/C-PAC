@@ -9,14 +9,18 @@ on:
       preconfig:
         required: true
         type: string
-      variant:
-        required: true
-        type: string
 
 jobs:
   smoke_test:
     name: Run smoke test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
     steps:
       - name: Get C-PAC
         run: |
