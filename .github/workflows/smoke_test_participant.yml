@@ -43,23 +43,23 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
       - name: Run default smoke test
-        if: ${{ inputs.preconfig == 'default' }}
+        if: ${{ github.event.inputs.preconfig == 'default' }}
         run: |
-          docker run --rm -it \
+          docker run --rm \
             --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
             -v $PWD:/outputs \
             ${{ env.DOCKER_TAG }} \
             /outputs /outputs test_config \
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
-            --participant_label ${{ inputs.participant }}
-      - name: Run ${{ inputs.preconfig }} smoke test
-        if: ${{ inputs.preconfig != 'default' }}
+            --participant_label ${{ github.event.inputs.participant }}
+      - name: Run ${{ github.event.inputs.preconfig }} smoke test
+        if: ${{ github.event.inputs.preconfig != 'default' }}
         run: |
-          docker run --rm -it \
+          docker run --rm \
             --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
             -v $PWD:/outputs \
             ${{ env.DOCKER_TAG }} \
             /outputs /outputs test_config \
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
-            --participant_label ${{ inputs.participant }} \
-            --preconfig ${{ inputs.preconfig }}
+            --participant_label ${{ github.event.inputs.participant }} \
+            --preconfig ${{ github.event.inputs.preconfig }}
