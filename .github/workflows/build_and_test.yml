@@ -35,17 +35,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dataset:
-          - ADHD200
-          - CORR
-          - HBN
+        preconfig:
+          - default
+          - abcd-options
+          - anat-only
+          - benchmark-ANTS
+          - benchmark-FNIRT
+          - blank
+          - ccs-options
+          - fmriprep-options
+          - fx-options
+          - ndmg
+          - preproc
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
+        participant:
+          - 1019436 2014113 3154996 3699991 3884955  # ADHD200
+          - NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH  # HBN
+          - 0025428 0025429 0025448 0025452 0025453  # CORR
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Run participant-level smoke tests
-        run: gh workflow run smoke_test_participant_preconfigs.yml --ref ${GITHUB_REF_NAME} -f dataset="${{ matrix.dataset }}"
+        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} -f participant="${{ matrix.participant }}" -f preconfig="${{ matrix.preconfig }}"
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
 
