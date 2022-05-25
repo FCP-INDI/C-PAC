@@ -40,6 +40,10 @@ jobs:
           - '3699991'
           - '3884955'
     steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
       - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           participant: ${{ matrix.participant }}
@@ -76,6 +80,10 @@ jobs:
           - NDARAV894XWD
           - NDARCA186WGH
     steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
       - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           participant: ${{ matrix.participant }}
@@ -110,6 +118,10 @@ jobs:
           - '0025452'
           - '0025453'
     steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
       - uses: ./.github/workflows/smoke_test_participant.yml
         with:
           participant: ${{ matrix.participant }}
