@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 1.7.3
+installer: 1.10.2
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -65,7 +65,7 @@ packages:
  - fsl-baycest 2111.0
  - fsl-bet2 2111.0
  - fsl-bianca 2201.0
- - fsl-biancaData 2006.0
+ - fsl-biancadata 2006.0
  - fsl-bint 2111.0
  - fsl-cluster 2201.0
  - fsl-copain 2111.1
