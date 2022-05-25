@@ -33,13 +33,19 @@ jobs:
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dataset:
+          - ADHD200
+          - CORR
+          - HBN
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
       - name: Run participant-level smoke tests
-        run: gh workflow run smoke_test_participant_preconfigs.yml --ref ${GITHUB_REF_NAME}
+        run: gh workflow run smoke_test_participant_preconfigs.yml --ref ${GITHUB_REF_NAME} -f dataset="${{ matrix.dataset }}"
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
 
