@@ -47,7 +47,7 @@ jobs:
           - fx-options
           - ndmg
           - preproc
-          - rbc-options
+          # - rbc-options
           - regtest-1
           - regtest-2
           - regtest-3
