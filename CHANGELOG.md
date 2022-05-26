@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
+- CI smoke tests for preconfigs
 
 ### Changed
 - Updated CI to only rebuild software dependencies on change
