@@ -29,10 +29,12 @@ pipeline_setup:
 anatomical_preproc: 
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
+  non_local_means_filtering:
+    run: Off
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
+  n4_bias_field_correction:
+    run: Off
 
 segmentation: 
 

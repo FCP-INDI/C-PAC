@@ -83,10 +83,12 @@ anatomical_preproc:
   run_t2: On
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: False
+  non_local_means_filtering:
+    run: Off
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: False
+  n4_bias_field_correction:
+    run: Off
 
   # Bias field correction based on square root of T1w * T2w
   t1t2_bias_field_correction: 
