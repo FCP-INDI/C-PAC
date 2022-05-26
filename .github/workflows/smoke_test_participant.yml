@@ -22,6 +22,13 @@ jobs:
           - ABCD-HCP
           - fMRIPrep-LTS
     steps:
+      - name: Set up check
+        uses: LouisBrunner/checks-action@v1.1.1
+        if: always()
+        with:
+          token: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          name: "Smoke test: ${{ matrix.variant }} ${{ github.event.inputs.preconfig }} preconfig, participants: ${{ github.event.inputs.participant }}"
+          status: in_progress
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
@@ -65,3 +72,11 @@ jobs:
             --participant_label ${{ github.event.inputs.participant }} \
             --preconfig ${{ github.event.inputs.preconfig }} \
             --n_cpus 1
+      - uses: LouisBrunner/checks-action@v1.1.1
+        if: always()
+        with:
+          token: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          check_id: "Smoke test: ${{ matrix.variant }} ${{ github.event.inputs.preconfig }} preconfig, participants: ${{ github.event.inputs.participant }}"
+          conclusion: ${{ job.status }}
+          output: |
+            {"summary":${{ steps.test.outputs.summary }}}
