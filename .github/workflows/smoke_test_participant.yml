@@ -78,5 +78,3 @@ jobs:
           token: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           check_id: "Smoke test: ${{ matrix.variant }} ${{ github.event.inputs.preconfig }} preconfig, participants: ${{ github.event.inputs.participant }}"
           conclusion: ${{ job.status }}
-          output: |
-            {"summary":${{ steps.test.outputs.summary }}}
