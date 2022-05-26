@@ -60,15 +60,15 @@ import pandas as pd
 from bids.layout import parse_file_entities
 from nipype.interfaces import afni, fsl
 
-from CPAC.func_preproc.func_preproc import motion_correct_connections
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
-    motion_power_statistics
+    calculate_FD_J, DVARS_strip_t0, ImageTo1D
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
-motion_params = ['dvars', 'framewise-displacement-jenkinson']
+motion_params = ['dvars', 'framewise-displacement-jenkinson',
+                 'movement-parameters']
 
 
 def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
@@ -107,43 +107,43 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
         qc_file.inputs.censor_indices = []
     motion_correct_tool = check_prov_for_motion_tool(
         strat_pool.get_cpac_provenance('movement-parameters'))
-    wf, motion_after = motion_correct_connections(
-        wf, cfg, strat_pool, pipe_num, opt=motion_correct_tool)
-    gen_motion_stats = motion_power_statistics('motion_stats-after_'
-                                               f'{pipe_num}',
-                                               motion_correct_tool)
+    calculate_FDJ = pe.Node(Function(input_names=['in_file',
+                                                  'motion_correct_tool'],
+                                     output_names=['out_file'],
+                                     function=calculate_FD_J,
+                                     as_module=True),
+                            name='calculate_FDJ')
+    cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
+                        name='cal_DVARS',
+                        mem_gb=0.4,
+                        mem_x=(739971956005215 / 151115727451828646838272,
+                               'in_file'))
+    cal_DVARS_strip = pe.Node(Function(input_names=['file_1D'],
+                                       output_names=['out_file'],
+                                       function=DVARS_strip_t0,
+                                       as_module=True),
+                              name='cal_DVARS_strip')
     nodes = {
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'max-displacement',
-            *motion_params]}}
-    if 'rels-displacement' in motion_after:
-        wf.connect(*motion_after['rels-displacement'],
-                   gen_motion_stats, 'inputspec.rels_displacement')
-    if 'coordinate-transformation' in motion_after:
-        wf.connect(*motion_after['coordinate-transformation'],
-                   gen_motion_stats, 'inputspec.transformations')
+            'subject', 'scan', brain_mask_key, 'desc-motion_bold',
+            'max-displacement', 'space-bold_desc-brain_mask', *motion_params]}}
+    calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
+    if motion_correct_tool == '3dvolreg':
+        nodes['transformations'] = strat_pool.node_data('coordinate-'
+                                                        'transformation')
+    elif motion_correct_tool == 'mcflirt':
+        nodes['transformations'] = strat_pool.node_data('rels-displacement')
     wf.connect([
-        (nodes['subject'].node, gen_motion_stats, [
-            (nodes['subject'].out, 'inputspec.subject_id')]),
-        (nodes['scan'].node, gen_motion_stats, [
-            (nodes['scan'].out, 'inputspec.scan_id')]),
-        (motion_after['desc-motion_bold'][0], gen_motion_stats, [
-            (motion_after['desc-motion_bold'][1],
-             'inputspec.motion_correct')]),
-        (motion_after['movement-parameters'][0], gen_motion_stats, [
-            (motion_after['movement-parameters'][1],
-             'inputspec.movement_parameters')]),
-        (motion_after['movement-parameters'][0], qc_file, [
-            (motion_after['movement-parameters'][1], 'movement_parameters')]),
-        (motion_after['max-displacement'][0], gen_motion_stats, [
-            (motion_after['max-displacement'][1],
-             'inputspec.max_displacement')]),
-        (nodes[brain_mask_key].node, gen_motion_stats, [
-            (nodes[brain_mask_key].out, 'inputspec.mask')]),
-        (gen_motion_stats, qc_file, [
-            ('outputspec.DVARS_1D', 'dvars_after'),
-            ('outputspec.FDJ_1D', 'fdj_after')]),
+        (nodes['transformations'].node, calculate_FDJ, [
+            (nodes['transformations'].out, 'in_file')]),
+        (calculate_FDJ, qc_file, [('out_file', 'fdj_after')]),
+        (nodes['desc-motion_bold'].node, cal_DVARS, [
+            (nodes['desc-motion_bold'].out, 'in_file')]),
+        (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
+            (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
+        (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
+        (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
         ]) for node in motion_params]])
@@ -274,7 +274,8 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     del desc_span
 
     # `meanFD (Jenkinson)`
-    power_params = {'meanFD': np.mean(np.loadtxt(fdj_after))}
+    power_params = {'meanFD': np.mean(np.loadtxt(
+        framewise_displacement_jenkinson))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
     mot = np.genfromtxt(movement_parameters).T
@@ -365,6 +366,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
+                 'desc-motion_bold', 'space-bold_desc-brain_mask',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                  'movement-parameters', 'coordinate-transformation', 'dvars',
                  'framewise-displacement-jenkinson', 'motion-basefile')],
