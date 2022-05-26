@@ -68,7 +68,7 @@ jobs:
           cat $GITHUB_ENV
       - name: Prep Dockerfiles for forked repository
         if: ${{ github.repository_owner }} != 'FCP-INDI'
-        run: .github/scripts/local_ghcr $DOCKERFILE ${{ github.repository_owner }}
+        run: .github/scripts/local_ghcr $DOCKERFILE ${{ github.repository_owner }} $DOCKER_TAG
       - name: See Dockerfile
         run: |
           echo $DOCKERFILE
