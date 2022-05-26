@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Run participant-level smoke tests
+      - name: Participant-level smoke tests
         run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} -f participant="${{ matrix.participant }}" -f preconfig="${{ matrix.preconfig }}"
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
