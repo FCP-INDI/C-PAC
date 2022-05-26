@@ -80,6 +80,7 @@ functional_preproc:
   motion_estimates_and_correction:
     motion_correction:
       using: [3dvolreg]
+      motion_correction_reference: ['mean']
 
   distortion_correction:
     using:
