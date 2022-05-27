@@ -61,11 +61,10 @@ from bids.layout import parse_file_entities
 from nipype.interfaces import afni, fsl
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
-    calculate_FD_J, DVARS_strip_t0, ImageTo1D
+    DVARS_strip_t0, ImageTo1D
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
 
 motion_params = ['dvars', 'framewise-displacement-jenkinson',
                  'movement-parameters']
@@ -105,14 +104,6 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     except LookupError:
         nodes = {}
         qc_file.inputs.censor_indices = []
-    motion_correct_tool = check_prov_for_motion_tool(
-        strat_pool.get_cpac_provenance('movement-parameters'))
-    calculate_FDJ = pe.Node(Function(input_names=['in_file',
-                                                  'motion_correct_tool'],
-                                     output_names=['out_file'],
-                                     function=calculate_FD_J,
-                                     as_module=True),
-                            name='calculate_FDJ')
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
                         name='cal_DVARS',
                         mem_gb=0.4,
@@ -126,20 +117,11 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     nodes = {
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'desc-motion_bold',
+            'subject', 'scan', brain_mask_key, 'desc-preproc_bold',
             'max-displacement', 'space-bold_desc-brain_mask', *motion_params]}}
-    calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
-    if motion_correct_tool == '3dvolreg':
-        nodes['transformations'] = strat_pool.node_data('coordinate-'
-                                                        'transformation')
-    elif motion_correct_tool == 'mcflirt':
-        nodes['transformations'] = strat_pool.node_data('rels-displacement')
     wf.connect([
-        (nodes['transformations'].node, calculate_FDJ, [
-            (nodes['transformations'].out, 'in_file')]),
-        (calculate_FDJ, qc_file, [('out_file', 'fdj_after')]),
-        (nodes['desc-motion_bold'].node, cal_DVARS, [
-            (nodes['desc-motion_bold'].out, 'in_file')]),
+        (nodes['desc-preproc_bold'].node, cal_DVARS, [
+            (nodes['desc-preproc_bold'].out, 'in_file')]),
         (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
             (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
         (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
@@ -165,8 +147,7 @@ def dvcorr(dvars, fdj):
 def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
                     t1w_mask, bold2template_mask, template_mask, original_func,
                     final_func, movement_parameters, dvars, censor_indices,
-                    framewise_displacement_jenkinson, dvars_after, fdj_after,
-                    template):
+                    framewise_displacement_jenkinson, dvars_after, template):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
@@ -220,9 +201,6 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
 
     dvars_after : str
         path to DVARS on final 'bold' image
-
-    fdj_after : str
-        path to framewise displacement (Jenkinson) on final 'bold' image
 
     template : str
         path to registration template
@@ -295,7 +273,8 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
     meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
     try:
-        meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+        meanDV['motionDVCorrFinal'] = dvcorr(dvars_after,
+                                             framewise_displacement_jenkinson)
     except ValueError as value_error:
         meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
 
@@ -360,7 +339,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_val': 'None',
      'inputs': [('subject', 'scan', 'unique_id', 'bold',
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
-                 'desc-preproc_bold', 'max-displacement', 'rels-displacement',
+                 'desc-preproc_bold', 'max-displacement',
                  'from-bold_to-T1w_mode-image_desc-linear_xfm',
                  'from-template_to-T1w_mode-image_desc-linear_xfm',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
@@ -368,7 +347,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
                  'desc-motion_bold', 'space-bold_desc-brain_mask',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
-                 'movement-parameters', 'coordinate-transformation', 'dvars',
+                 'movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson', 'motion-basefile')],
      'outputs': ['desc-xcp_quality']}
     """
@@ -394,7 +373,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                             'movement_parameters', 'dvars',
                                             'censor_indices',
                                             'framewise_displacement_jenkinson',
-                                            'dvars_after', 'fdj_after'],
+                                            'dvars_after'],
                                output_names=['qc_file'],
                                function=generate_xcp_qc,
                                as_module=True),
