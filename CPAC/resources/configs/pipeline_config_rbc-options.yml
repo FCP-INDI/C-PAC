@@ -41,6 +41,10 @@ anatomical_preproc:
       - On
 
 registration_workflows:
+  anatomical_registration:
+    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+
   functional_registration:
     func_registration_to_template:
       # these options modify the application (to the functional data), not the calculation, of the
@@ -61,6 +65,12 @@ registration_workflows:
         #   this is for the single-volume functional-space outputs (i.e. derivatives)
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 2mm
+
+      target_template:
+        T1_template:
+          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
+
 
 functional_preproc:
   truncation:
@@ -85,6 +95,12 @@ functional_preproc:
     using:
        - PhaseDiff
        - Blip-FSL-TOPUP
+
+  func_masking:
+    using: [Anatomical_Refined]
+    Anatomical_Refined:
+      # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
+      anatomical_mask_dilation: On
 
 nuisance_corrections:
   2-nuisance_regression:
