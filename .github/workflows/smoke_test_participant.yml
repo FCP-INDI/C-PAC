@@ -64,9 +64,10 @@ jobs:
       - name: Run default smoke test
         if: ${{ matrix.preconfig == 'default' }}
         run: |
+          mkdir outputs
           docker run --rm \
             --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
-            -v $PWD:/outputs \
+            -v $PWD/outputs:/outputs \
             ${{ env.DOCKER_TAG }} \
             /outputs /outputs test_config \
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
@@ -75,9 +76,10 @@ jobs:
       - name: Run ${{ matrix.preconfig }} smoke test
         if: ${{ matrix.preconfig != 'default' }}
         run: |
+          mkdir outputs
           docker run --rm \
             --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
-            -v $PWD:/outputs \
+            -v $PWD/outputs:/outputs \
             ${{ env.DOCKER_TAG }} \
             /outputs /outputs test_config \
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
