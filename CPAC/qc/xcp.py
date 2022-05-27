@@ -320,11 +320,7 @@ def get_bids_info(strat_pool, resource_name):
     run : str or int
         run ID
     """
-    rest_dict = getattr(getattr(
-        strat_pool.node_data(resource_name).node.inputs, 'select_scan_params'),
-        'rest_dict')
-    scan = list(rest_dict.values())[0].get('scan', '') if rest_dict else ''
-    entities = parse_file_entities(scan)
+    entities = parse_file_entities(strat_pool.node_data(resource_name).out)
     return (entities.get('subject'), entities.get('session'),
             entities.get('task'), entities.get('run'))
 
