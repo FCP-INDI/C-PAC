@@ -46,6 +46,10 @@ registration_workflows:
     T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
   functional_registration:
+    coregistration:
+      func_input_prep:
+        input: ['Mean_Functional']
+
     func_registration_to_template:
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
