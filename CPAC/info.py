@@ -154,6 +154,7 @@ REQUIREMENTS        = [
     "prov==1.5.2",
     "psutil==5.4.6",
     "pygraphviz==1.3.1",
+    "PyPEER",
     "python-dateutil==2.7.3",
     "pyyaml==5.3",
     "scikit-learn==0.22.1",

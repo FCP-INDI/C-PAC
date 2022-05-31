@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Added
+
+### Changed
+- Updated CI to only rebuild software dependencies on change
+
+### Fixed
+
+## [1.8.4] - 
+
+### Added
 - Added the ability to follow symlinks for BIDS directories
 - Added log of expected outputs, generated at the beginning of the run
 - Added additional surface derivatives to outputs directory
@@ -89,7 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
-[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.3...develop
+[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.4...develop
+[1.8.4]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.4
 [1.8.3]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.3
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
 [1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1
