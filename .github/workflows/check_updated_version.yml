@@ -10,6 +10,12 @@ jobs:
     name: Check if version updated
     runs-on: ubuntu-latest
     steps:
+      - name: Set up check
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Check if version updated"
+          state: pending
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
@@ -54,11 +60,24 @@ jobs:
             fi
             cd ..
           fi
+      - name: Finish check
+        uses: Sibz/github-status-action@v1.1.6
+        if: always()
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Check if version updated"
+          state: ${{ job.status }}
 
   trigger-next-workflow:
     needs: check-updated-version
     runs-on: ubuntu-latest
     steps:
+      - name: Set up check
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: pending
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
