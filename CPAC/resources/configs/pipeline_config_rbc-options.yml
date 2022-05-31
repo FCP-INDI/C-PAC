@@ -105,6 +105,10 @@ functional_preproc:
     Anatomical_Refined:
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: On
+    FSL_AFNI:
+      bold_ref:
+      brain_mask:
+      brain_probseg:
 
 nuisance_corrections:
   2-nuisance_regression:
