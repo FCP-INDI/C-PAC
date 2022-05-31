@@ -26,6 +26,48 @@ body:
         4. See error
     validations:
       required: false
+  - type: checkboxes
+    id: preconfig
+    attributes:
+      label: Preconfig
+      description: Preconfigured pipeline, if using a preconfigured pipeline. Otherwise, please provide your custom pipeline configuration below.
+      options:
+        - label: default
+        - label: abcd-options
+        - label: anat-only
+        - label: blank
+        - label: ccs-options
+        - label: fmriprep-options
+        - label: fx-options
+        - label: monkey
+        - label: monkey-ABCD
+        - label: ndmg
+        - label: nhp-macaque
+        - label: preproc
+        - label: rbc-options
+        - label: rodent
+  - type: textarea
+    id: custom_config
+    attributes:
+      label: Custom pipeline configuration
+      description: Custom pipeline configuration, if using a custom pipeline configuration (you can paste the text here or upload the file as plain text or as a `.zip`). Otherwise, please select the relevant preconfigured pipeline(s) above.
+      placeholder: |
+        ```YML
+        FROM: default
+        ```
+    validations:
+      required: false
+  - type: textarea
+    id: runcommand
+    attributes:
+      label: Run command
+      description: The terminal command used to start the problematic run.
+      placeholder: |
+        ```BASH
+        cpac run $BIDS_DIR $OUTPUT_DIR participant
+        ```
+    validations:
+      required: false
   - type: textarea
     id: expectation
     attributes:
