@@ -4,7 +4,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  update-check:
+    name: Update GitHub check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update check's target URL
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: pending
+          target_url: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
   C-PAC:
+    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ''
@@ -16,11 +29,13 @@ jobs:
       variant: lite
 
   C-PAC-ABCD-HCP:
+    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
+    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: fMRIPrep-LTS
@@ -43,22 +58,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
 
+  finish-build-check:
+    name: Finish GitHub check
+    needs:
+      - C-PAC
+      - C-PAC-lite
+      - C-PAC-ABCD-HCP
+      - C-PAC-fMRIPrep-LTS
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finish check
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: ${{ job.status }}
+
   Circle_tests:
     name: Run tests on CircleCI
-    needs: 
+    needs:
       - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
     steps:
-      - name: Finish check
-        uses: Sibz/github-status-action@v1.1.6
-        if: always()
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: ${{ job.status }}
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:

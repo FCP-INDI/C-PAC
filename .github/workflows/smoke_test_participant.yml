@@ -4,9 +4,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  set-up-check:
+    name: Set up GitHub check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up check
+        uses: Sibz/github-status-action@v1.1.6
+        if: ${{ matrix.variant }} != ''
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Smoke tests"
+          state: pending
+          target_url: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
   smoke_test:
     name: Run human participant smoke tests
     runs-on: ubuntu-latest
+    needs:
+      - set-up-check
     strategy:
       matrix:
         preconfig:
@@ -34,13 +48,6 @@ jobs:
         participant:
           - 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH  0025428 0025429 0025448 0025452 0025453
     steps:
-      - name: Set up check
-        uses: Sibz/github-status-action@v1.1.6
-        if: ${{ matrix.variant }} != ''
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Smoke test (${{ matrix.variant }}): ${{ matrix.preconfig }} preconfig, participants: ${{ matrix.participant }}"
-          state: pending
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
@@ -86,10 +93,15 @@ jobs:
             --participant_label ${{ matrix.participant }} \
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 1
+  finish-check:
+    name: Finish GitHub check
+    runs-on: ubuntu-latest
+    if: always()
+    needs: smoke_test
+    steps:
       - name: Finish check
         uses: Sibz/github-status-action@v1.1.6
-        if: always()
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Smoke test: ${{ matrix.variant }} ${{ matrix.preconfig }} preconfig, participants: ${{ matrix.participant }}"
+          context: "Smoke tests"
           state: ${{ job.status }}
