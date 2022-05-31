@@ -68,12 +68,15 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Update check status
+        run: export STATUS=failure; if ${{ success() }}; then export STATUS=sucess; fi; echo "STATUS=$STATUS" >> $GITHUB_ENV
       - name: Finish check
         uses: Sibz/github-status-action@v1.1.6
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           context: "Build C-PAC images"
-          state: ${{ job.status }}
+          state: ${{ env.STATUS }}
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
 
   Circle_tests:
     name: Run tests on CircleCI
