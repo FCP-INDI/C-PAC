@@ -11,40 +11,15 @@ FROM: default
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_abcd-options
 
   output_directory: 
-
-    # Directory where C-PAC should write out processed data, logs, and crash reports.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/output', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    path: /outputs/output
-
     quality_control:
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: Off
 
-  working_directory: 
-
-    # Directory where C-PAC should store temporary and intermediate files.
-    # - This directory must be saved if you wish to re-run your pipeline from where you left off (if not completed).
-    # - NOTE: As it stores all intermediate files, this directory can grow to become very
-    #   large, especially for data with a large amount of TRs.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/work', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    # - This can be written to '/tmp' if you do not intend to save your working directory.
-    path: /outputs/working
-
-  log_directory: 
-
-    path: /outputs/log
-
   system_config: 
-
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
     # - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
@@ -60,16 +35,13 @@ surface_analysis:
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer: 
-
     run: On
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer: 
-
     run: On
 
 anatomical_preproc: 
-
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
 
@@ -89,7 +61,6 @@ anatomical_preproc:
     shrink_factor: 4
 
   acpc_alignment: 
-
     run: On
 
     # Run ACPC alignment before non-local means filtering or N4 bias
@@ -100,15 +71,12 @@ anatomical_preproc:
     T1w_ACPC_template: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_1mm.nii.gz
 
   brain_extraction: 
-
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD']
     # this is a fork option
     using: [FreeSurfer-ABCD]
 
 registration_workflows: 
-
   anatomical_registration: 
-
     # The resolution to which anatomical images should be transformed during registration.
     # This is the resolution at which processed anatomical files will be output.
     resolution_for_anat: 1mm
@@ -125,10 +93,8 @@ registration_workflows:
     reg_with_skull: True
 
     registration: 
-
       # option parameters
       ANTs: 
-
         # ANTs parameters for T1-template-based registration
         T1_registration: 
           - verbose: 1
@@ -215,9 +181,7 @@ registration_workflows:
       using: FSL
 
   functional_registration: 
-
     coregistration: 
-
       # reference: 'brain' or 'restore-brain'
       # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
       reference: restore-brain
@@ -229,7 +193,6 @@ registration_workflows:
       dof: 12
 
       func_input_prep: 
-
         # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
         reg_with_skull: On
 
@@ -238,15 +201,12 @@ registration_workflows:
         input: [Selected_Functional_Volume]
 
       boundary_based_registration: 
-
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [Off]
 
     func_registration_to_template: 
-
       output_resolution: 
-
         # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
         # NOTE:
         #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
@@ -263,7 +223,6 @@ registration_workflows:
         func_derivative_outputs: 2mm
 
       target_template: 
-
         # option parameters
         T1_template:
 
@@ -280,7 +239,6 @@ registration_workflows:
           T1w_brain_template_mask_funcreg: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_${func_resolution}_brain_mask.nii.gz
 
       ANTs_pipelines: 
-
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
@@ -293,20 +251,16 @@ registration_workflows:
         using: 'abcd'
 
 functional_preproc: 
-
   run: On
 
   slice_timing_correction: 
-
     # Interpolate voxel time courses so they are sampled at the same time points.
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
   motion_estimates_and_correction: 
-
     motion_estimates: 
-
       # calculate motion statistics BEFORE slice-timing correction
       calculate_motion_first: On
 
@@ -314,7 +268,6 @@ functional_preproc:
       calculate_motion_after: Off
 
     motion_correction: 
-
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
       using: [mcflirt]
@@ -334,7 +287,6 @@ functional_preproc:
     using: ['PhaseDiff', 'Blip-FSL-TOPUP']
 
   func_masking: 
-
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled']
     # this is a fork point
     using: [Anatomical_Resampled]
@@ -354,9 +306,7 @@ functional_preproc:
 
 
 nuisance_corrections: 
-
   2-nuisance_regression: 
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
@@ -377,11 +327,9 @@ nuisance_corrections:
         Name: default
 
 timeseries_extraction: 
-
   run: Off
 
 seed_based_correlation_analysis: 
-
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
@@ -392,28 +340,23 @@ seed_based_correlation_analysis:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
-
     /cpac_templates/CC400.nii.gz: Avg
 
 amplitude_low_frequency_fluctuation: 
-
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
 regional_homogeneity: 
-
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
 voxel_mirrored_homotopic_connectivity: 
-
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
 
 network_centrality: 
-
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off
