@@ -850,7 +850,7 @@ latest_schema = Schema({
             # functional_mean_boolean must be True if one of the mutually-
             # exclusive options are
             # see mutex definition for more definition
-            'FSL-BET': Any(*(
+            'FSL-BET': Maybe(Any(*(
                 # exactly one mutually exclusive option on
                 [{k: d[k] for d in r for k in d} for r in [[
                     {
@@ -865,7 +865,7 @@ latest_schema = Schema({
                     **mutex['FSL-BET']['rem'],
                     'functional_mean_boolean': bool,
                     **{k: False for k in mutex['FSL-BET']['mutex']}
-                }])
+                }]))
             ),
             'FSL_AFNI': {
                 'bold_ref': Maybe(str),
@@ -873,7 +873,7 @@ latest_schema = Schema({
                 'brain_probseg': Maybe(str),
             },
             'Anatomical_Refined': {
-                'anatomical_mask_dilation': bool,
+                'anatomical_mask_dilation': Maybe(bool),
             },
             'apply_func_mask_in_native_space': bool,
         },
