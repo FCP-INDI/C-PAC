@@ -52,6 +52,13 @@ jobs:
       - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
     steps:
+      - name: Finish check
+        uses: Sibz/github-status-action@v1.1.6
+        if: always()
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: ${{ job.status }}
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
