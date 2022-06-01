@@ -60,7 +60,8 @@ class MockLogger:
         del MOCK_LOGGERS[self.name]
 
 
-def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False):
+def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
+                  overwrite_existing=False):
     r'''Function to initialize a logger
 
     Parameters
@@ -117,10 +118,14 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False):
         level = logging.NOTSET
     if log_dir is None:
         log_dir = os.getcwd()
+    filepath = os.path.join(log_dir, filename)
+    if overwrite_existing and os.path.exists(filepath):
+        with open(filepath, 'w') as log_file:
+            log_file.write('')
     if mock:
         return MockLogger(name, filename, level, log_dir)
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    handler = logging.FileHandler(os.path.join(log_dir, filename))
+    handler = logging.FileHandler(filepath)
     logger.addHandler(handler)
     return logger
