@@ -296,15 +296,14 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     return qc_filepath
 
 
-def get_bids_info(strat_pool, resource_name):
+def get_bids_info(resource):
     """
     Function to gather BIDS information from a resource in a strat_pool
 
     Parameters
     ----------
-    strat_pool : CPAC.pipeline.engine.ResourcePool
-
-    resource_name : str
+    resource : str
+        resource filename
 
     Returns
     -------
@@ -320,7 +319,7 @@ def get_bids_info(strat_pool, resource_name):
     run : str or int
         run ID
     """
-    entities = parse_file_entities(strat_pool.node_data(resource_name).out)
+    entities = parse_file_entities(resource)
     return (entities.get('subject'), entities.get('session'),
             entities.get('task'), entities.get('run'))
 
@@ -359,8 +358,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                           'parse_file_entities'],
                                  function=get_bids_info, as_module=True),
                         name=f'bids_info_{pipe_num}')
-    bids_info.inputs.strat_pool = strat_pool
-    bids_info.inputs.resource_name = 'bold'
     qc_file = pe.Node(Function(input_names=['sub', 'ses', 'task', 'run',
                                             'desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
@@ -400,6 +397,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                          brain_mask_key='space-bold_desc-brain_mask',
                          pipe_num=pipe_num)
     wf.connect([
+        (func['original'].node, bids_info, [
+            (func['original'].out, 'resource')]),
         (func['space-T1w'].node, bold_to_T1w_mask, [
             (func['space-T1w'].out, 'in_file')]),
         (nodes['t1w_mask'].node, qc_file, [
