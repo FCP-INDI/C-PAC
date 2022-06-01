@@ -105,7 +105,7 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
         nodes = {}
         qc_file.inputs.censor_indices = []
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
-                        name='cal_DVARS',
+                        name=f'cal_DVARS_{pipe_num}',
                         mem_gb=0.4,
                         mem_x=(739971956005215 / 151115727451828646838272,
                                'in_file'))
@@ -113,7 +113,7 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
                                        output_names=['out_file'],
                                        function=DVARS_strip_t0,
                                        as_module=True),
-                              name='cal_DVARS_strip')
+                              name=f'cal_DVARS_strip_{pipe_num}')
     nodes = {
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
