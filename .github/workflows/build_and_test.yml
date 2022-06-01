@@ -69,7 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update check status
-        run: export STATUS=failure; if ${{ success() }}; then export STATUS=sucess; fi; echo "STATUS=$STATUS" >> $GITHUB_ENV
+        run: export STATUS=failure; if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]; then export STATUS=sucess; fi; echo "STATUS=$STATUS" >> $GITHUB_ENV
+        env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
       - name: Finish check
         uses: Sibz/github-status-action@v1.1.6
         with:
