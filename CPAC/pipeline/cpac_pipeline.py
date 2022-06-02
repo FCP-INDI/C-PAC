@@ -155,7 +155,7 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldWM
 )
 
-from CPAC.surface.surf_preproc import surface_preproc
+from CPAC.surface.surf_preproc import surface_postproc
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -1297,7 +1297,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
-        pipeline_blocks += [surface_preproc]
+        pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

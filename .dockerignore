@@ -1,7 +1,7 @@
 bids-examples
-cpac_runs
 .circleci
+cpac_runs
 .env*
-.git*
+.git
+.github
 *.tar.gz
-.vscode
