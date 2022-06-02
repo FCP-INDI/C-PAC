@@ -1,8 +1,8 @@
-'''Tests of CPAC utility functions'''
+"""Tests of CPAC utility functions"""
 import pytest
 from CPAC.func_preproc.func_preproc import get_motion_ref
 from CPAC.utils.docs import grab_docstring_dct
-from CPAC.utils.utils import try_fetch_parameter
+from CPAC.utils.utils import check_system_deps, try_fetch_parameter
 
 scan_params_bids = {
     'RepetitionTime': 2.0,
@@ -37,3 +37,11 @@ def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
     for opt in nodebock_opts:
         assert f"'{opt}'" in error_message
     assert error_message.endswith('Tool input: \'chaos\'')
+
+
+def test_system_deps():
+    """Test system dependencies.
+    Raises an exception if dependencies are not met.
+    """
+    check_system_deps(*([True] * 4))
+

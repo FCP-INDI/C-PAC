@@ -209,15 +209,29 @@ class ResourcePool:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info
+        self.rpool[resource][new_pipe_idx]['json'] = json_info 
 
     def get(self, resource, pipe_idx=None, report_fetched=False,
             optional=False):
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        
+        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
+                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
+                   "can enable a node block earlier in the pipeline which " \
+                   "produces these resources. Check the 'outputs:' field in " \
+                   "a node block's documentation.\n- You can directly " \
+                   "provide this required data by pulling it from another " \
+                   "BIDS directory using 'source_outputs_dir:' in the " \
+                   "pipeline configuration, or by placing it directly in " \
+                   "your C-PAC output directory.\n- If you have done these, " \
+                   "and you still get this message, please let us know " \
+                   "through any of our support channels at: " \
+                   "https://fcp-indi.github.io/\n"
+        
         if isinstance(resource, list):
             # if a list of potential inputs are given, pick the first one
             # found
@@ -231,26 +245,14 @@ class ResourcePool:
                     if report_fetched:
                         return (None, None)
                     return None
-                lookup_message = ("\n[!] C-PAC says: None of the listed "
-                                  "resources are in the resource pool:\n"
-                                  f"{resource}\n")
-                verbose_logger.debug(lookup_message)
-                raise Exception(lookup_message)
+                raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                lookup_message = ("\n\n[!] C-PAC says: The listed resource is "
-                                  f"not in the resource pool:\n{resource}\n\n"
-                                  "Developer Note: This may be due to a mis"
-                                  "match between the node block's docstring "
-                                  "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n(keys in "
-                                  f"resource pool are {self.rpool.keys()})\n")
-                verbose_logger.debug(lookup_message)
-                raise LookupError(lookup_message)
+                raise LookupError(info_msg)
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -281,6 +283,10 @@ class ResourcePool:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
             raise Exception(f"[!] {resource} not in the resource pool.")
+
+    def update_resource(self, resource, new_name):
+        # move over any new pipe_idx's
+        self.rpool[new_name].update(self.rpool[resource])
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -320,12 +326,12 @@ class ResourcePool:
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+                            f'entry for {str(prov_str)} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -421,6 +427,12 @@ class ResourcePool:
             if debug:
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
+
+        if not total_pool:
+            raise LookupError('\n\n[!] C-PAC says: None of the listed '
+                              'resources in the node block being connected '
+                              'exist in the resource pool.\n\nResources:\n'
+                              '%s\n\n' % resource_list)
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -775,13 +787,13 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
+
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -799,7 +811,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
@@ -857,7 +869,7 @@ class ResourcePool:
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -886,10 +898,11 @@ class ResourcePool:
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
                         if 'desc-' in key:
-                            out_dct['filename'] = out_dct['filename'
-                            ].replace(key, f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key,
-                                                            f'{key}-{num_variant}')
+                            out_dct['filename'] = out_dct[
+                                'filename'].replace(key,
+                                                    f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key, f'{key}-'
+                                                            f'{num_variant}')
                             break
                         else:
                             suff = resource.split('_')[-1]
@@ -1109,8 +1122,8 @@ class NodeBlock:
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
-                if opts == None:
+
+                if opts is None:
                     opts = [opts]
 
             elif option_key and not option_val:
@@ -1475,7 +1488,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                    "func_ingress")
     rpool.set_data('bold', func_wf, 'outputspec.rest', {}, "", "func_ingress")
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
-    rpool.set_data('scan_params', func_wf, 'outputspec.scan_params', {}, "",
+    rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
 
     wf, rpool, diff, blip, fmap_rp_list = \
@@ -1546,8 +1559,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if not os.listdir(out_dir):
                 raise Exception(f"\nSource directory {out_dir} does not exist!")
         
-        cpac_dir = os.path.join(out_dir,
-                                unique_id)
+        cpac_dir = os.path.join(out_dir, unique_id)
+        if not os.path.isdir(cpac_dir):
+            unique_id = unique_id.split('_')[0]
+            cpac_dir = os.path.join(out_dir, unique_id)
 
     print(f"\nPulling outputs from {cpac_dir}.\n")
 
@@ -1564,6 +1579,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if ext in filename:
                     all_output_dir.append(os.path.join(cpac_dir_anat,
                                                        filename))
+
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
             for ext in exts:
@@ -1655,7 +1671,14 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = ""
         else:
-            pipe_idx = ""
+            json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin']
+            if not 'Description' in json_info:
+                json_info['Description'] = 'This data was generated elsewhere and ' \
+                                           'supplied by the user into this C-PAC run\'s '\
+                                           'output directory. This JSON file was '\
+                                           'automatically generated by C-PAC because a '\
+                                           'JSON file was not supplied with the data.'
+            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = f"{data_label}_ingress"
 
         resource = data_label
@@ -1705,7 +1728,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
                 'system_config']['FSLDIR'])
         if '$priors_path' in val:
-            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path'] or ''
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
@@ -1976,22 +1999,15 @@ class NodeData:
     >>> try:
     ...     rp.node_data('b')
     ... except LookupError as lookup_error:
-    ...     print(' '.join(str(lookup_error).strip().split('\n')[0:2]))
-    [!] C-PAC says: The listed resource is not in the resource pool: b
+    ...     print(str(lookup_error).strip().split('\n')[0].strip())
+    [!] C-PAC says: None of the listed resources are in the resource pool:
     """
     # pylint: disable=too-few-public-methods
     def __init__(self, strat_pool=None, resource=None, **kwargs):
         self.node = NotImplemented
         self.out = NotImplemented
-        self.variant = None
         if strat_pool is not None and resource is not None:
             self.node, self.out = strat_pool.get_data(resource, **kwargs)
-            if (
-                hasattr(strat_pool, 'rpool') and
-                isinstance(strat_pool.rpool, dict)
-            ):
-                self.variant = strat_pool.rpool.get(resource, {}).get(
-                    'json', {}).get('CpacVariant', {}).get(resource)
 
     def __repr__(self):
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

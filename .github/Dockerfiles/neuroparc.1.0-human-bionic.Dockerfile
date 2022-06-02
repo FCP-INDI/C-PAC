@@ -1,8 +1,7 @@
-# neuroparc:v1.0-human
-
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
-
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+neuroparc v1.0-human stage"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 
 ARG DEBIAN_FRONTEND=noninteractive
