@@ -190,7 +190,7 @@ def create_connectome_nilearn(name='connectomeNilearn'):
                             output_names=['out_file'],
                             function=compute_connectome_nilearn,
                             as_module=True),
-                   name='connectome')
+                   name='connectome', mem_gb=0.2, mem_x=(6.7e-8, 'in_file'))
     wf.connect([
         (inputspec, node, [('in_rois', 'in_rois'),
                            ('in_file', 'in_file'),

@@ -1,3 +1,5 @@
+export PATH=$PATH:/home/$(whoami)/.local/bin
+
 # install testing requirements
 pip install -r /code/dev/circleci_data/requirements.txt
 
