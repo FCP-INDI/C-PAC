@@ -1,0 +1,44 @@
+name: Delete development images
+
+on:
+  delete:
+
+jobs:
+  C-PAC:
+    name: Delete branch images
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch'
+    strategy:
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+    env:
+      GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
+      IMAGE: c-pac
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+      - name: 'Delete branch image'
+        run: |
+          OWNER=$(echo ${GITHUB_REPOSITORY} | cut -d '/' -f 1)
+          if [[ $(curl -u ${GITHUB_TOKEN}: https://api.github.com/users/${OWNER} | jq '.type') == '"User"' ]]
+          then
+            OWNER_TYPE=users
+          else
+            OWNER_TYPE=org
+          fi
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          TAG=${GITHUB_REF_NAME}
+          TAG=$TAG$VARIANT
+          
+          VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
+          curl \
+            -u ${GITHUB_TOKEN}: \
+            -X DELETE \
+            https://api.github.com/${OWNER_TYPE}/${OWNER}/packages/container/c-pac/versions/${VERSION_ID}

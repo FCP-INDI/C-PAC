@@ -189,8 +189,7 @@ from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, \
-                        qc_xcp_EPItemplate, qc_xcp_T1template
+from CPAC.qc.xcp import qc_xcp
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
                                   set_up_logger
@@ -969,7 +968,6 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-
         ]
 
 
@@ -1141,8 +1139,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
-        if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+        if rpool.check_rpool('epi-1'):
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
             distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
@@ -1270,10 +1268,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp['EPI'] = (
-        _r_w_f_r['coregistration']['run'] and
-        _r_w_f_r['func_registration_to_template']['run_EPI'])
+    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+
+    if 'T1_template' in template:
+	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+    else:
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
     del _r_w_f_r
+
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1345,29 +1347,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        if cfg.anatomical_preproc['brain_extraction']['run']:
-            pipeline_blocks += [qc_xcp_skullstripped]
-        if cfg.functional_preproc['run']:
-            _m_e_a_c = cfg.functional_preproc[
-                'motion_estimates_and_correction']
-            if (_m_e_a_c['run'] and
-                    _m_e_a_c['motion_estimates']['calculate_motion_after']):
-                pipeline_blocks += [qc_xcp_native]
-            del _m_e_a_c
-            _a_t_u = cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using']
-            if 'default' in _a_t_u or 'single_step_resampling' in _a_t_u:
-                if apply_func_warp['T1']:
-                    pipeline_blocks += [qc_xcp_T1template]
-                if apply_func_warp['EPI']:
-                    pipeline_blocks += [qc_xcp_EPItemplate]
-            else:
-                if apply_func_warp['T1'] or apply_func_warp['EPI']:
-                    logger.warning('Template space XCP QC files not yet '
-                                   'implemented for tranformation application '
-                                   'methods other than default and '
-                                   'single_step_resampling.')
-            del _a_t_u
+        pipeline_blocks += [qc_xcp]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'
