@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
 - Added additional error checks and a more informative message for node block connecting in the engine
+- Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
 
 ### Changed
 - Made ndmg correlation matrices a configurable option
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uses max instead of sum for intial memory estimation
 - Updated rbc-options configuration
 - Updated XCP-QC files to better adhere to XCP
+- Updated CI to only rebuild software dependencies on change
 
 ### Fixed
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`

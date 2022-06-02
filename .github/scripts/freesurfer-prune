@@ -1,0 +1,9 @@
+#!/bin/bash
+for FILE in $(find $FREESURFER_HOME/ -type f -not -path "$PERL5LIB/*")
+do
+  if ! grep -qxFe "$FILE" required_freesurfer_pkgs.txt
+  then
+    echo "Deleting $FILE"
+    rm -rf $FILE || true
+  fi
+done
