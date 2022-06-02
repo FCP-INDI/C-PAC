@@ -50,6 +50,7 @@ def run_surface(post_freesurfer_folder,
         '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
         '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
         '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
+
     subprocess.check_output(cmd)
 
     # DCAN-HCP fMRISurface
@@ -66,7 +67,7 @@ def run_surface(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
                             'task-rest01_Atlas.dtseries.nii')
     aparc = {'desikan_killiany': {
-        164: os.path.join(post_freesurfer_folder, 'MNINonLinear'
+        164: os.path.join(post_freesurfer_folder, 'MNINonLinear',
                           f'{subject}.aparc.164k_fs_LR.dlabel.nii'),
         32: os.path.join(post_freesurfer_folder, 'MNINonLinear',
                          'fsaverage_LR32k',

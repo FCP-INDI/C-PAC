@@ -19,10 +19,10 @@ def create_yaml_from_template(
 
     Parameters
     ----------
-    d : dict
+    d : dict or Configuration
 
     template : str
-        path to template
+        path to template or name of preconfig
 
     include_all : bool
         include every key, even those that are unchanged
@@ -134,15 +134,12 @@ def create_yaml_from_template(
         '    - 1\n    - 2\n    - nested:\n      - 3\n      - deep:\n        - 4'
         '''  # noqa: E501  # pylint: disable=line-too-long
         # keep short, simple lists in square brackets
-        if all(any(isinstance(item, item_type) for item_type in {
-            str, bool, int, float
-        }) for item in l):
+        if all(isinstance(item, (str, bool, int, float)) for item in l):
             if len(str(l)) < 50:
                 return str(l).replace("'", '').replace('"', '')
         # list long or complex lists on lines with indented '-' lead-ins
-        indent = " " * (2 * line_level + 2)
         return '\n' + '\n'.join([
-            f'{indent}{li}' for li in yaml.dump(
+            f'{indent(line_level)}{li}' for li in yaml.dump(
                 yaml_bool(l)
             ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
         ]).rstrip()
@@ -275,17 +272,28 @@ def create_yaml_from_template(
                             elif isinstance(value, dict):
                                 for k in value.keys():
                                     try:
-                                        lookup_nested_value(template_dict, nest + [k])
+                                        lookup_nested_value(template_dict,
+                                                            nest + [k])
                                     # include keys not in template
                                     except KeyError:
                                         output += _format_key(
                                             k, line_level + 1)
-                                        output += _format_list_items(
+                                        parsed = _format_list_items(
                                             value[k],
                                             line_level + 1
                                         ) if isinstance(
                                             value[k], list) else yaml_bool(
                                                 value[k])
+                                        if isinstance(parsed, (int, float)):
+                                            parsed = str(parsed)
+                                        elif parsed is None:
+                                            parsed = ''
+                                        output += parsed if (
+                                            isinstance(parsed, str)
+                                        ) else (
+                                            '\n' + indent(line_level + 1) +
+                                            f'\n{indent(line_level + 1)}' +
+                                            yaml.dump(parsed) + '\n')
                             else:
                                 output += str(value)
                         except KeyError:
@@ -297,7 +305,25 @@ def create_yaml_from_template(
                         level = line_level
             elif len(comment) > 1 and comment[-2] != '\n':
                 comment += '\n'
-    return output.lstrip('\n')
+    while '\n\n\n' in output:
+        output = output.replace('\n\n\n', '\n\n')
+    return output.lstrip('\n').replace('null', '')
+
+
+def indent(line_level):
+    '''Function to return an indent string for a given level
+
+    Parameters
+    ----------
+    line_level : int
+        The level of indentation to return
+
+    Returns
+    -------
+    str
+        The string of spaces to use for indentation
+    '''
+    return " " * (2 * line_level + 2)
 
 
 def yaml_bool(value):
