@@ -3667,7 +3667,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "option_key": ["apply_transform", "using"],
      "option_val": "single_step_resampling",
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
-                 "desc-stc_bold",
+                 ("desc-preproc-bold", "desc-stc_bold"),
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
                  "coordinate-transformation",
@@ -3820,6 +3820,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     wf.connect(applyxfm_func_mask_to_standard, 'output_image',
         apply_mask, 'mask_file')
+    
+    preproc_bold = strat_pool.node_data('desc-preproc_bold')
 
     outputs = {
         'space-template_desc-preproc_bold': (merge_func_to_standard,
@@ -3827,6 +3829,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         'space-template_desc-brain_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
             'output_image'),
+        'desc-preproc_bold': (preproc_bold.node, preproc_bold.out)
     }
 
     return (wf, outputs)
