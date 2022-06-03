@@ -74,7 +74,7 @@ jobs:
           result_cancelled="\"result\": \"cancelled\""
           export STATUS=failure
           if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
-          then export STATUS=sucess
+          then export STATUS=success
           fi
           echo "STATUS=$STATUS" >> $GITHUB_ENV
       - name: Finish check
