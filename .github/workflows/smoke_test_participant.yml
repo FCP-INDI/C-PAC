@@ -100,7 +100,14 @@ jobs:
     needs: smoke_test
     steps:
       - name: Update check status
-        run: export STATUS=failure; if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]; then export STATUS=sucess; fi; echo "STATUS=$STATUS" >> $GITHUB_ENV
+        run: |
+          result_failure="\"result\": \"failure\""
+          result_cancelled="\"result\": \"cancelled\""
+          export STATUS=failure
+          if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
+          then export STATUS=sucess
+          fi
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
         env:
           NEEDS_CONTEXT: ${{ toJson(needs) }}
       - name: Finish check
