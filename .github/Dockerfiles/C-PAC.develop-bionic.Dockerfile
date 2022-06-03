@@ -22,4 +22,4 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
-USER c-pac_user
+# USER c-pac_user

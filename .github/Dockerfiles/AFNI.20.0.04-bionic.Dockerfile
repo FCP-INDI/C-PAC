@@ -37,4 +37,4 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # set user
-USER c-pac_user
+# USER c-pac_user

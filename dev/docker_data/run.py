@@ -588,16 +588,24 @@ def run_main():
         if args.save_working_dir is not False:
             c['pipeline_setup']['working_directory'][
                 'remove_working_dir'] = False
-            if args.save_working_dir is not None:
-                c['pipeline_setup']['working_directory']['path'] = \
-                    os.path.abspath(args.save_working_dir)
-            elif not output_dir_is_s3:
-                c['pipeline_setup']['working_directory']['path'] = \
-                    os.path.join(output_dir, "working")
-            else:
-                print('Cannot write working directory to S3 bucket. '
-                      'Either change the output directory to something '
-                      'local or turn off the --save_working_dir flag')
+        if isinstance(args.save_working_dir, str):
+            c['pipeline_setup']['working_directory']['path'] = \
+                os.path.abspath(args.save_working_dir)
+        elif not output_dir_is_s3:
+            c['pipeline_setup']['working_directory']['path'] = \
+                os.path.join(output_dir, "working")
+        else:
+            warn('Cannot write working directory to S3 bucket. '
+                 'Either change the output directory to something '
+                 'local or turn off the --save_working_dir flag',
+                 category=UserWarning)
+
+        if c['pipeline_setup']['output_directory']['quality_control'][
+                'generate_xcpqc_files']:
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first'] = True
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_after'] = True
 
         if args.participant_label:
             print(

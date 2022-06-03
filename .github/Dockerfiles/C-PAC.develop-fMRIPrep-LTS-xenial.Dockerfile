@@ -26,4 +26,4 @@ RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
-USER c-pac_user
+# USER c-pac_user

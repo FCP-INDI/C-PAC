@@ -153,6 +153,7 @@ REQUIREMENTS        = [
     "patsy==0.5.0",
     "prov==1.5.2",
     "psutil==5.4.6",
+    "pybids==0.13.2",
     "pygraphviz==1.3.1",
     "PyPEER",
     "python-dateutil==2.7.3",

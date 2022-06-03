@@ -9,4 +9,4 @@ RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh /var/lib/apt/lists/
     chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
-USER c-pac_user
+# USER c-pac_user
