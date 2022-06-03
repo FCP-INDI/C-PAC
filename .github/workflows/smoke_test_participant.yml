@@ -36,10 +36,10 @@ jobs:
           - ndmg
           - preproc
           # - rbc-options
-          - regtest-1
-          - regtest-2
-          - regtest-3
-          - regtest-4
+          # - regtest-1
+          # - regtest-2
+          # - regtest-3
+          # - regtest-4
         variant:
           - ''
           - lite
