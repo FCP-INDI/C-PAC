@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CI to only rebuild software dependencies on change
 
 ### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1741) that was causing `single_step_resampling` to inadvertently cause unexpected forks in the pipeline past transform application.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
 - Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
 - Fixed some incorrect connections in XCP-QC file generation
