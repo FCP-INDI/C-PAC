@@ -77,7 +77,12 @@ class ResourcePool:
             self.smooth_opts = cfg.post_processing['spatial_smoothing'][
                 'smoothing_method']
 
-        self.xfm = ['alff', 'falff', 'reho']
+        self.xfm = ['alff', 'desc-sm_alff', 'desc-zstd_alff', 
+                    'desc-sm-zstd_alff',
+                    'falff', 'desc-sm_falff', 'desc-zstd_falff',
+                    'desc-sm-zstd_falff',
+                    'reho', 'desc-sm_reho', 'desc-zstd_reho',
+                    'desc-sm-zstd_reho']
 
     def append_name(self, name):
         self.name.append(name)
@@ -591,11 +596,11 @@ class ResourcePool:
                     if data_type not in new_strats[pipe_idx].rpool['json']['subjson']:
                         new_strats[pipe_idx].rpool['json']['subjson'][data_type] = {}
                     new_strats[pipe_idx].rpool['json']['subjson'][data_type].update(copy.deepcopy(resource_strat_dct['json']))
-
         return new_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx,
                        pipe_x):
+
         if label in self.xfm:
 
             json_info = dict(json_info)
@@ -648,7 +653,6 @@ class ResourcePool:
                 new_prov = json_info['CpacProvenance'] + xfm_prov
                 json_info['CpacProvenance'] = new_prov
                 new_pipe_idx = self.generate_prov_string(new_prov)
-
                 self.set_data(label, xfm, 'outputspec.out_file', json_info,
                               new_pipe_idx, f'{label}_xfm_{num}', fork=True)
 
@@ -658,6 +662,8 @@ class ResourcePool:
                      outs):
 
         input_type = 'func_derivative'
+
+        post_labels = [(label, connection[0], connection[1])]
 
         if 'centrality' in label or 'lfcd' in label:
             mask = 'template-specification-file'
@@ -703,6 +709,8 @@ class ResourcePool:
                                 smlabel = label.replace(tag, newtag)
                                 break
 
+                    post_labels.append((smlabel, sm, 'outputspec.out_file'))
+
                     self.set_data(smlabel, sm, 'outputspec.out_file',
                                   json_info, pipe_idx,
                                   f'spatial_smoothing_{smooth_opt}',
@@ -711,57 +719,62 @@ class ResourcePool:
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
 
-        if self.run_zscoring:
+        if self.run_zscoring:            
+            for label_con_tpl in post_labels:
+                label = label_con_tpl[0]
+                connection = (label_con_tpl[1], label_con_tpl[2])
+                if label in Outputs.to_zstd:
+                    zstd = z_score_standardize(f'{label}_zstd_{pipe_x}',
+                                               input_type)
 
-            if 'desc-' not in label:
-                if 'space-template' in label:
-                    label = label.replace('space-template',
-                                          'space-template_desc-zstd')
-                else:
-                    label = f'desc-zstd_{label}'
-            else:
-                for tag in label.split('_'):
-                    if 'desc-' in tag:
-                        newtag = f'{tag}-zstd'
-                        new_label = label.replace(tag, newtag)
-                        break
+                    wf.connect(connection[0], connection[1],
+                               zstd, 'inputspec.in_file')
 
-            if label in Outputs.to_zstd:
+                    node, out = self.get_data(mask, pipe_idx=mask_idx)
+                    wf.connect(node, out, zstd, 'inputspec.mask')
 
-                zstd = z_score_standardize(f'{label}_zstd_{pipe_x}',
-                                           input_type)
+                    if 'desc-' not in label:
+                        if 'space-template' in label:
+                            new_label = label.replace('space-template',
+                                                      'space-template_desc-zstd')
+                        else:
+                            new_label = f'desc-zstd_{label}'
+                    else:
+                        for tag in label.split('_'):
+                            if 'desc-' in tag:
+                                newtag = f'{tag}-zstd'
+                                new_label = label.replace(tag, newtag)
+                                break
 
-                wf.connect(connection[0], connection[1],
-                           zstd, 'inputspec.in_file')
+                    post_labels.append((new_label, zstd, 'outputspec.out_file'))
 
-                node, out = self.get_data(mask, pipe_idx=mask_idx)
-                wf.connect(node, out, zstd, 'inputspec.mask')
+                    self.set_data(new_label, zstd, 'outputspec.out_file',
+                                  json_info, pipe_idx, f'zscore_standardize',
+                                  fork=True)
 
-                self.set_data(new_label, zstd, 'outputspec.out_file',
-                              json_info, pipe_idx, f'zscore_standardize',
-                              fork=True)
+                elif label in Outputs.to_fisherz:
 
-            elif label in Outputs.to_fisherz:
+                    zstd = fisher_z_score_standardize(f'{label}_zstd_{pipe_x}',
+                                                      label, input_type)
 
-                zstd = fisher_z_score_standardize(f'{label}_zstd_{pipe_x}',
-                                                  label, input_type)
+                    wf.connect(connection[0], connection[1],
+                               zstd, 'inputspec.correlation_file')
 
-                wf.connect(connection[0], connection[1],
-                           zstd, 'inputspec.correlation_file')
+                    # if the output is 'desc-MeanSCA_correlations', we want
+                    # 'desc-MeanSCA_timeseries'
+                    oned = label.replace('correlations', 'timeseries')
 
-                # if the output is 'desc-MeanSCA_correlations', we want
-                # 'desc-MeanSCA_timeseries'
-                oned = label.replace('correlations', 'timeseries')
+                    node, out = outs[oned]
+                    wf.connect(node, out, zstd, 'inputspec.timeseries_oned')
 
-                node, out = outs[oned]
-                wf.connect(node, out, zstd, 'inputspec.timeseries_oned')
+                    post_labels.append((new_label, zstd, 'outputspec.out_file'))
 
-                self.set_data(new_label, zstd, 'outputspec.out_file',
-                              json_info, pipe_idx,
-                              'fisher_zscore_standardize',
-                              fork=True)
+                    self.set_data(new_label, zstd, 'outputspec.out_file',
+                                  json_info, pipe_idx,
+                                  'fisher_zscore_standardize',
+                                  fork=True)
 
-        return wf
+        return (wf, post_labels)
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
@@ -786,7 +799,6 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-
             if resource not in Outputs.any:
                 continue
 
@@ -1355,23 +1367,25 @@ class NodeBlock:
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
-
+ 
                             rpool.set_data(label,
                                            connection[0],
                                            connection[1],
                                            new_json_info,
                                            pipe_idx, node_name, fork)
 
-                            if rpool.func_reg:
-                                wf = rpool.derivative_xfm(wf, label,
-                                                          connection,
-                                                          new_json_info,
-                                                          pipe_idx,
-                                                          pipe_x)
+                            wf, post_labels = rpool.post_process(wf, label, connection,
+                                                                 new_json_info, pipe_idx,
+                                                                 pipe_x, outs)
 
-                            wf = rpool.post_process(wf, label, connection,
-                                                    new_json_info, pipe_idx,
-                                                    pipe_x, outs)
+                            if rpool.func_reg:
+                                for postlabel in post_labels:
+                                    connection = (postlabel[1], postlabel[2])
+                                    wf = rpool.derivative_xfm(wf, postlabel[0],
+                                                              connection,
+                                                              new_json_info,
+                                                              pipe_idx,
+                                                              pipe_x)
 
         return wf
 

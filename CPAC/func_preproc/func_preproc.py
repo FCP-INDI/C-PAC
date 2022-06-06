@@ -1310,7 +1310,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                 "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-motion_bold",
+     "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask",
                  "movement-parameters",
                  "max-displacement",
@@ -1342,7 +1342,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.scan_id')
 
-    node, out_file = strat_pool.get_data("desc-motion_bold")
+    node, out_file = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.motion_correct')
 

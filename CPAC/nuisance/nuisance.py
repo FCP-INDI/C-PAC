@@ -57,7 +57,8 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     to_template_cfg = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']
     out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-           'single_step_resampling': ("desc-preproc_bold", "desc-stc_bold"),
+           'single_step_resampling': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
+           'single_step_resampling_from_stc': ("desc-preproc_bold", "desc-stc_bold"),
            'abcd': ("desc-preproc_bold", "bold")
            }[to_template_cfg['apply_transform']['using']]
     if 'T1_template' in to_template_cfg['target_template']['using']:
