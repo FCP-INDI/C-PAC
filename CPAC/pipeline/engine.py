@@ -433,10 +433,10 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
-            raise LookupError('\n\n[!] C-PAC says: None of the listed ' \
-                              'resources in the node block being connected ' \
-                              'exist in the resource pool.\n\nResources:\n' \
-                              '{resource_list}\n\n')
+            raise LookupError('\n\n[!] C-PAC says: None of the listed '
+                              'resources in the node block being connected '
+                              'exist in the resource pool.\n\nResources:\n'
+                              '%s\n\n' % resource_list)
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
