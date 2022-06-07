@@ -22,6 +22,7 @@ jobs:
     needs:
       - set-up-check
     strategy:
+      fail-fast: false
       matrix:
         preconfig:
           - default
