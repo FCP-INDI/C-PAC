@@ -351,7 +351,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
-    bids_info = pe.Node(Function(input_names=['strat_pool', 'resource_name'],
+    bids_info = pe.Node(Function(input_names=['resource'],
                                  output_names=['subject', 'session', 'task',
                                                'run'],
                                  imports=['from bids.layout import '
