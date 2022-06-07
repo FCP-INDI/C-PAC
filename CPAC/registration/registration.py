@@ -3858,7 +3858,7 @@ def single_step_resample_stc_timeseries_to_T1template(wf, cfg, strat_pool,
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
-    # Ref: https://github.com/nipreps/fmriprep/blob/master/fmriprep/workflows/bold/resampling.py#L159-L419
+    # Ref: https://github.com/nipreps/fmriprep/blob/84a6005b/fmriprep/workflows/bold/resampling.py#L159-L419
 
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
