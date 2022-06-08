@@ -134,8 +134,7 @@ jobs:
           cat $GITHUB_ENV
       - name: Set up datalad-OSF
         run: |
-          pip install datalad-installer
-          datalad-installer git-annex -m datalad/packages
+          sudo apt-get install git-annex
           pip install datalad==0.15.0
           pip install datalad-osf
       - name: Get NHP test data
@@ -188,8 +187,7 @@ jobs:
           cat $GITHUB_ENV
       - name: Set up datalad-OSF
         run: |
-          pip install datalad-installer
-          datalad-installer git-annex -m datalad/packages
+          sudo apt-get install git-annex
           pip install datalad==0.15.0
           pip install datalad-osf
       - name: Get rodent test data
