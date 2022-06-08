@@ -1,0 +1,34 @@
+name: Get C-PAC image
+
+on:
+  workflow_call:
+    inputs:
+      variant:
+        required: true
+        type: string
+
+jobs:
+  C-PAC:
+    name: Get Docker C-PAC image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get C-PAC
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV

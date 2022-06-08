@@ -16,7 +16,7 @@ jobs:
           context: "Smoke tests"
           state: pending
           target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-  smoke_test:
+  smoke_test_human:
     name: Run human participant smoke tests
     runs-on: ubuntu-latest
     needs:
@@ -50,25 +50,9 @@ jobs:
           - 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH  0025428 0025429 0025448 0025452 0025453
     steps:
       - name: Get C-PAC
-        run: |
-          if [[ "${{ matrix.variant }}" != "" ]]
-          then
-            VARIANT=-${{ matrix.variant }}
-          fi
-          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
-          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
-          then
-            TAG=${GITHUB_BRANCH//\//_}
-          elif [[ $GITHUB_BRANCH == 'develop' ]]
-          then
-            TAG=nightly$VARIANT
-          elif [[ $GITHUB_BRANCH == 'main' ]]
-          then
-            TAG=latest$VARIANT
-          fi
-          TAG=$TAG$VARIANT
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
-          cat $GITHUB_ENV
+        uses: ./.github/workflows/get_C-PAC.yml
+        with:
+          variant: ${{ matrix.variant }}
       - name: Run default smoke test
         if: ${{ matrix.preconfig == 'default' }}
         run: |
@@ -94,11 +78,86 @@ jobs:
             --participant_label ${{ matrix.participant }} \
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 1
+  smoke_test_nhp:
+    name: Run non-human primate participant smoke tests
+    runs-on: ubuntu-latest
+    needs:
+      - set-up-check
+    strategy:
+      fail-fast: false
+      matrix:
+        preconfig:
+          - monkey
+          - monkey-ABCD
+          - nhp-macaque
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+    steps:
+      - name: Get C-PAC
+        uses: ./.github/workflows/get_C-PAC.yml
+        with:
+          variant: ${{ matrix.variant }}
+      - name: Set up datalad OSF
+        uses: ./.github/workflows/datalad-OSF.yml
+      - name: Get NHP test data
+        run: |
+          datalad clone datalad clone osf://xt93j test-data
+      - name: Run ${{ matrix.preconfig }} smoke test
+        run: |
+          mkdir outputs
+          docker run --rm \
+            --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
+            -v $PWD/test-data:/test-data \
+            -v $PWD/outputs:/outputs \
+            ${{ env.DOCKER_TAG }} \
+            /test-data /outputs test_config \
+            --preconfig ${{ matrix.preconfig }} \
+            --n_cpus 1
+  smoke_test_rodent:
+    name: Run non-human primate participant smoke tests
+    runs-on: ubuntu-latest
+    needs:
+      - set-up-check
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - ''
+          - lite
+          - ABCD-HCP
+          - fMRIPrep-LTS
+    steps:
+      - name: Get C-PAC
+        uses: ./.github/workflows/get_C-PAC.yml
+        with:
+          variant: ${{ matrix.variant }}
+      - name: Set up datalad OSF
+        uses: ./.github/workflows/datalad-OSF.yml
+      - name: Get rodent test data
+        run: |
+          datalad clone datalad clone osf://uya3r test-data
+      - name: Run rodent smoke test
+        run: |
+          mkdir outputs
+          docker run --rm \
+            --user $(id -u):$(id -g) -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group \
+            -v $PWD/test-data:/test-data \
+            -v $PWD/outputs:/outputs \
+            ${{ env.DOCKER_TAG }} \
+            /test-data /outputs test_config \
+            --preconfig rodent \
+            --n_cpus 1
   finish-check:
     name: Finish GitHub check
     runs-on: ubuntu-latest
     if: always()
-    needs: smoke_test
+    needs:
+      - smoke_test_human
+      - smoke_test_nhp
+      - smoke_test_rodent
     steps:
       - name: Update check status
         run: |
