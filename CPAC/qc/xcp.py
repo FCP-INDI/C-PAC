@@ -12,6 +12,8 @@ run : int
     run index :cite:`cite-BIDS21`
 desc : str
     description :cite:`cite-BIDS21`
+regressors : str
+    'Name' of regressors in the current fork
 space : str
     space label :cite:`cite-BIDS21`
 meanFD : float
@@ -144,7 +146,7 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
+def generate_xcp_qc(sub, ses, task, run, desc, regressors, bold2t1w_mask,
                     t1w_mask, bold2template_mask, template_mask, original_func,
                     final_func, movement_parameters, dvars, censor_indices,
                     framewise_displacement_jenkinson, dvars_after, template):
@@ -167,6 +169,9 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
 
     desc : str
         description string
+
+    regressors : str
+        'Name' of regressors in fork
 
     original_func : str
         path to original 'bold' image
@@ -211,7 +216,7 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         path to desc-xcp_quality TSV
     """
     columns = (
-        'sub,ses,task,run,desc,space,meanFD,relMeansRMSMotion,'
+        'sub,ses,task,run,desc,regressors,space,meanFD,relMeansRMSMotion,'
         'relMaxRMSMotion,meanDVInit,meanDVFinal,nVolCensored,nVolsRemoved,'
         'motionDVCorrInit,motionDVCorrFinal,coregDice,coregJaccard,'
         'coregCrossCorr,coregCoverage,normDice,normJaccard,normCrossCorr,'
@@ -223,9 +228,10 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         'final_func': nb.load(final_func),
     }
 
-    # `sub` through `desc`
+    # `sub` through `space`
     from_bids = {
         'sub': sub, 'ses': ses, 'task': task, 'run': run, 'desc': desc,
+        'regressors': regressors,
         'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0]
     }
     if from_bids['space'].startswith('tpl-'):
@@ -365,7 +371,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                             'template_mask', 'original_func',
                                             'final_func', 'template',
                                             'movement_parameters', 'dvars',
-                                            'censor_indices',
+                                            'censor_indices', 'regressors',
                                             'framewise_displacement_jenkinson',
                                             'dvars_after'],
                                output_names=['qc_file'],
@@ -373,6 +379,14 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
+    regressor_prov = strat_pool.get_cpac_provenance('regressors')
+    regressor_strat_name = regressor_prov[-1].split('_')[-1]
+    for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
+            'Regressors']:
+        if regressor_dct['Name'] == regressor_strat_name:
+            opt = regressor_dct
+            break
+    qc_file.inputs.regressors = opt['Name']
     func = {}
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
