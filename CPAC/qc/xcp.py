@@ -350,7 +350,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'desc-motion_bold', 'space-bold_desc-brain_mask',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                  'movement-parameters', 'dvars',
-                 'framewise-displacement-jenkinson', 'motion-basefile')],
+                 'framewise-displacement-jenkinson')],
      'outputs': ['desc-xcp_quality']}
     """
     # if we're running regressors, only generate qc files for post-regression
