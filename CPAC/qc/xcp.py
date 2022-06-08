@@ -172,7 +172,7 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         path to original 'bold' image
 
     final_bold : str
-        path to 'desc-preproc_bold' image
+        path to 'space-template_desc-preproc_bold' image
 
     bold2t1w_mask : str
         path to bold-to-T1w transform applied to space-bold_desc-brain_mask
@@ -335,6 +335,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'inputs': [('subject', 'scan', 'unique_id', 'bold',
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
                  'desc-preproc_bold', 'max-displacement',
+                 'space-template_desc-preproc_bold',
                  'from-bold_to-T1w_mode-image_desc-linear_xfm',
                  'from-template_to-T1w_mode-image_desc-linear_xfm',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
@@ -375,7 +376,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     func = {}
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
-    func['final'] = strat_pool.node_data('desc-preproc_bold')
+    func['final'] = strat_pool.node_data('space-template_desc-preproc_bold')
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
