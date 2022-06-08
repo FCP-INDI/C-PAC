@@ -50,7 +50,25 @@ jobs:
           - 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH  0025428 0025429 0025448 0025452 0025453
     steps:
       - name: Get C-PAC
-        uses: ./.github/workflows/get_C-PAC.yml
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
         with:
           variant: ${{ matrix.variant }}
       - name: Run default smoke test
@@ -97,11 +115,33 @@ jobs:
           - fMRIPrep-LTS
     steps:
       - name: Get C-PAC
-        uses: ./.github/workflows/get_C-PAC.yml
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
         with:
           variant: ${{ matrix.variant }}
-      - name: Set up datalad OSF
-        uses: ./.github/workflows/datalad-OSF.yml
+      - name: Set up datalad-OSF
+        run: |
+          pip install datalad-installer
+          datalad-installer git-annex -m datalad/packages
+          pip install datalad==0.15.0
+          pip install datalad-osf
       - name: Get NHP test data
         run: |
           datalad clone datalad clone osf://xt93j test-data
@@ -131,11 +171,33 @@ jobs:
           - fMRIPrep-LTS
     steps:
       - name: Get C-PAC
-        uses: ./.github/workflows/get_C-PAC.yml
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly$VARIANT
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest$VARIANT
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
         with:
           variant: ${{ matrix.variant }}
-      - name: Set up datalad OSF
-        uses: ./.github/workflows/datalad-OSF.yml
+      - name: Set up datalad-OSF
+        run: |
+          pip install datalad-installer
+          datalad-installer git-annex -m datalad/packages
+          pip install datalad==0.15.0
+          pip install datalad-osf
       - name: Get rodent test data
         run: |
           datalad clone datalad clone osf://uya3r test-data
