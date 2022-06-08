@@ -51,9 +51,9 @@ jobs:
     steps:
       - name: Get C-PAC
         run: |
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
+            VARIANT=-${{ matrix.variant }}
           fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
@@ -69,8 +69,6 @@ jobs:
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
-        with:
-          variant: ${{ matrix.variant }}
       - name: Run default smoke test
         if: ${{ matrix.preconfig == 'default' }}
         run: |
@@ -116,9 +114,9 @@ jobs:
     steps:
       - name: Get C-PAC
         run: |
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
+            VARIANT=-${{ matrix.variant }}
           fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
@@ -134,8 +132,6 @@ jobs:
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
-        with:
-          variant: ${{ matrix.variant }}
       - name: Set up datalad-OSF
         run: |
           pip install datalad-installer
@@ -172,9 +168,9 @@ jobs:
     steps:
       - name: Get C-PAC
         run: |
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
+            VARIANT=-${{ matrix.variant }}
           fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
@@ -190,8 +186,6 @@ jobs:
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
-        with:
-          variant: ${{ matrix.variant }}
       - name: Set up datalad-OSF
         run: |
           pip install datalad-installer
