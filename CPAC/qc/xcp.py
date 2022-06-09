@@ -404,10 +404,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         ['T1w-brain-template-mask', 'EPI-template-mask'])
     nodes['template'] = strat_pool.node_data(['T1w-brain-template-funcreg',
                                               'EPI-brain-template-funcreg'])
-    resample_bold_mask_to_template = pe.Node(
-        afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
-        mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
-    resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
     wf = _connect_motion(wf, cfg, strat_pool, qc_file,
                          brain_mask_key='space-bold_desc-brain_mask',
                          pipe_num=pipe_num)
@@ -428,12 +424,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             (func['space-T1w'].out, 'space_T1w_bold')]),
         (nodes['template'].node, qc_file, [
             (nodes['template'].out, 'template')]),
-        (nodes['template_mask'].node, resample_bold_mask_to_template, [
-             (nodes['template_mask'].out, 'master')]),
-        (nodes['bold2template_mask'].node, resample_bold_mask_to_template,
-            [(nodes['bold2template_mask'].out, 'in_file')]),
-        (resample_bold_mask_to_template, qc_file, [
-            ('out_file', 'bold2template_mask')]),
+        (nodes['bold2template_mask'].node, qc_file, [
+            (nodes['bold2template_mask'].out, 'bold2template_mask')]),
         (bids_info, qc_file, [
             ('subject', 'sub'),
             ('session', 'ses'),
