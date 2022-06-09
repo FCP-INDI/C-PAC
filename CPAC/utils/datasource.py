@@ -480,8 +480,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
                 
-            node, out_file = rpool.get('diffphase-dwell')[
-                "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
+            node, out_file = rpool.get('diffphase_dwell')[
+                "['diffphase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
