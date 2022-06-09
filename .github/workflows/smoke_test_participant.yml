@@ -134,6 +134,8 @@ jobs:
           cat $GITHUB_ENV
       - name: Set up datalad-OSF
         run: |
+          git config --global user.email "CMI_CPAC_Support@childmind.org"
+          git config --global user.name "Theodore (Machine User)"
           sudo apt-get install git-annex
           pip install datalad==0.15.0
           pip install datalad-osf
@@ -187,6 +189,8 @@ jobs:
           cat $GITHUB_ENV
       - name: Set up datalad-OSF
         run: |
+          git config --global user.email "CMI_CPAC_Support@childmind.org"
+          git config --global user.name "Theodore (Machine User)"
           sudo apt-get install git-annex
           pip install datalad==0.15.0
           pip install datalad-osf
