@@ -139,7 +139,7 @@ jobs:
           pip install datalad-osf
       - name: Get NHP test data
         run: |
-          datalad clone datalad clone osf://xt93j test-data
+          datalad clone osf://xt93j test-data
       - name: Run ${{ matrix.preconfig }} smoke test
         run: |
           mkdir outputs
@@ -192,7 +192,7 @@ jobs:
           pip install datalad-osf
       - name: Get rodent test data
         run: |
-          datalad clone datalad clone osf://uya3r test-data
+          datalad clone osf://uya3r test-data
       - name: Run rodent smoke test
         run: |
           mkdir outputs
