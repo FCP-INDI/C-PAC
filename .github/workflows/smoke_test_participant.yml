@@ -136,6 +136,7 @@ jobs:
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
+          sudo apt-get update
           sudo apt-get install datalad git-annex
           pip install datalad-osf
       - name: Get NHP test data
@@ -190,6 +191,7 @@ jobs:
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
+          sudo apt-get update
           sudo apt-get install datalad git-annex
           pip install datalad-osf
       - name: Get rodent test data
