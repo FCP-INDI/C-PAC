@@ -47,7 +47,10 @@ jobs:
           - ABCD-HCP
           - fMRIPrep-LTS
         participant:
-          - 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH  0025428 0025429 0025448 0025452 0025453
+          - 1019436 2014113 3154996 3699991 3884955  # ADHD200
+          - NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9  # HBN with EPI field maps
+          - NDARAD481FXF NDARAV894XWD NDARCA186WGH  # HBN with gradient echo field maps
+          - 0025428 0025429 0025448 0025452 0025453 # CoRR HNU
     steps:
       - name: Get C-PAC
         run: |
@@ -94,6 +97,12 @@ jobs:
             --participant_label ${{ matrix.participant }} \
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 1
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: expectedOutputs human ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
+          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          if-no-files-found: ignore
   smoke_test_nhp:
     name: Non-human primate ${{ matrix.preconfig }} participant smoke tests
     runs-on: ubuntu-latest
@@ -157,6 +166,12 @@ jobs:
             /test-data /outputs test_config \
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 1
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: expectedOutputs nhp ${{ matrix.preconfig }} ${{ matrix.variant }}
+          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          if-no-files-found: ignore
   smoke_test_rodent:
     name: Rodent participant smoke tests
     runs-on: ubuntu-latest
@@ -214,6 +229,12 @@ jobs:
             /test-data /outputs test_config \
             --preconfig rodent \
             --n_cpus 1
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: expectedOutputs rodent ${{ matrix.variant }}
+          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          if-no-files-found: ignore
   finish-check:
     name: Finish GitHub check
     runs-on: ubuntu-latest
