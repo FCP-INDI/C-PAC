@@ -43,6 +43,7 @@ anatomical_preproc:
 registration_workflows:
   anatomical_registration:
     T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
     T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
   functional_registration:
@@ -73,6 +74,8 @@ registration_workflows:
       target_template:
         T1_template:
           T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_template_for_resample: 
           T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
 
