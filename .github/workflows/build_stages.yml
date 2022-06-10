@@ -48,7 +48,10 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
+          echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
+          docker manifest inspect $DOCKER_TAG >/dev/null
+          echo "::set-output name=not_yet_exists::$?"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1.6.0
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
@@ -134,7 +137,10 @@ jobs:
       - name: Set tag
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
+          echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
+          docker manifest inspect $DOCKER_TAG >/dev/null
+          echo "::set-output name=not_yet_exists::$?"
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Prep Dockerfiles for forked repository
         if: github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
