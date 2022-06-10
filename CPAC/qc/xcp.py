@@ -379,14 +379,16 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-    regressor_prov = strat_pool.get_cpac_provenance('regressors')
-    regressor_strat_name = regressor_prov[-1].split('_')[-1]
+    regressor_strat = str(strat_pool.get_cpac_provenance('regressors')[-1])
     for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
             'Regressors']:
-        if regressor_dct['Name'] == regressor_strat_name:
+        if '_'.join([
+            'nuisance_regressors_generation', regressor_dct['Name']
+        ]) in regressor_strat:
             opt = regressor_dct
             break
-    qc_file.inputs.regressors = opt['Name']
+    qc_file.inputs.regressors = opt.get('Name'
+                                        ) if isinstance(opt, dict) else ''
     func = {}
     func['original'] = strat_pool.node_data('bold')
     func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
