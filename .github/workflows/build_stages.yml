@@ -66,7 +66,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
-        if: github.event.inputs.base_ref != ''
         uses: actions/checkout@v2
       - name: Clear up some space on runner
         run: |
@@ -122,7 +121,6 @@ jobs:
         remove-haskell: 'true'
         overprovision-lvm: 'true'
     - name: Check out C-PAC
-      if: github.event.inputs.base_ref != ''
       uses: actions/checkout@v2
     - name: Prep source files
       run: sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
