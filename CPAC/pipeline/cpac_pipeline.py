@@ -95,9 +95,7 @@ from CPAC.registration.registration import (
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
     warp_Tissuemask_to_T1template,
-    warp_Tissuemask_to_EPItemplate,
-    warp_timeseries_to_T1template_dcan_nhp
-
+    warp_Tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -240,7 +238,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'string for the optional "plugin" argument, but a '
             f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
             'was provided.')
-    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -553,7 +550,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             # have this check in case the user runs cpac_runner from terminal and
             # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info != None:
+            if pipeline_timing_info is not None:
 
                 # pipeline_timing_info list:
                 #  [0] - unique pipeline ID
@@ -649,7 +646,7 @@ Please, make yourself aware of how it works and its assumptions:
                             if 'Start_Time' in line:
                                 headerExists = True
 
-                        if headerExists == False:
+                        if headerExists is False:
                             timeWriter.writerow(timeHeader)
 
                         timeWriter.writerow(pipelineTimeDict)
@@ -690,12 +687,12 @@ Please, make yourself aware of how it works and its assumptions:
                         os.remove(log_f)
 
                 except Exception as exc:
-                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                    err_msg = (
+                        'Unable to upload CPAC log files in: %s.\nError: %s')
                     logger.error(err_msg, log_dir, exc)
 
-        except Exception as e:
+        except Exception:
             import traceback
-            exitcode = 1
             traceback.print_exc()
             execution_info = """
 

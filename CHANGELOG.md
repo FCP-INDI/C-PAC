@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
 - Added additional error checks and a more informative message for node block connecting in the engine
 - Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
+- Added [lint definition file](./.pylintrc) (for developers)
+- Added list of preconfigured pipelines to the usage string
 
 ### Changed
 - Made ndmg correlation matrices a configurable option
@@ -24,14 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated rbc-options configuration
 - Updated XCP-QC files to better adhere to XCP
 - Updated CI to only rebuild software dependencies on change
+- Replaced deprecated `optparse.OptionError` with to `click.BadParameter`
 
 ### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1741) that was causing `single_step_resampling` to inadvertently cause unexpected forks in the pipeline past transform application.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
 - Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
 - Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
 - Fixed templates used for rodent pipeline and added outputs that were missing
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1556) in which ITK header imprecision was causing N4 bias correction to crash
 - Fixed a bug where a node with zero nanoseconds in timing information causes report generation to fail.
+- Fixed a bug in which `--tracking_opt-out` was not applied to calls to `utils`
 
 ## [1.8.3] - 2022-02-11
 
