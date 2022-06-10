@@ -10,6 +10,7 @@ from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
                                     split_ts_chunks, oned_text_concat, \
                                     notch_filter_motion
 from CPAC.generate_motion_statistics import motion_power_statistics
+from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.ants import AI  # niworkflows
 from CPAC.utils.interfaces.ants import PrintHeader, SetDirectionByMatrix
 from CPAC.utils.interfaces.function import Function
