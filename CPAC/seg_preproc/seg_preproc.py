@@ -161,9 +161,6 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
     def form_threshold_string(threshold):
         return '-thr %f ' % (threshold)
 
-    def form_mask_erosion_prop(erosion_prop):
-        return erosion_prop ** 3
-
     if not use_custom_threshold:
         # already binary tissue mask
         input_1, value_1 = (inputNode, 'tissue_class_file')

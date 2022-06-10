@@ -105,6 +105,7 @@ pip_packages=(
     "prov==1.5.2"
     "psutil==5.4.6"
     "pygraphviz==1.3.1"
+    "PyPEER"
     "simplejson==3.15.0"
     "python-dateutil==2.7.3"
     "PyBASC==0.4.5"

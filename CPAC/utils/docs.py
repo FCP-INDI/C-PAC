@@ -1,4 +1,5 @@
 """Utilties for documentation."""
+import ast
 from urllib import request
 from urllib.error import HTTPError
 from CPAC import __version__
@@ -36,6 +37,36 @@ def _docs_url_prefix():
         else:
             url_version = 'latest'
     return _url(url_version)
+
+
+def grab_docstring_dct(fn):
+    """Function to grab a NodeBlock dictionary from a docstring.
+
+    Parameters
+    ----------
+    fn : function
+        The NodeBlock function with the docstring to be parsed.
+
+    Returns
+    -------
+    dct : dict
+        A NodeBlock configuration dictionary.
+    """
+    fn_docstring = fn.__doc__
+    init_dct_schema = ['name', 'config', 'switch', 'option_key',
+                       'option_val', 'inputs', 'outputs']
+    if 'Node Block:' in fn_docstring:
+        fn_docstring = fn_docstring.split('Node Block:')[1]
+    fn_docstring = fn_docstring.lstrip().replace('\n', '')
+    dct = ast.literal_eval(fn_docstring)
+    for key in init_dct_schema:
+        if key not in dct.keys():
+            raise Exception('\n[!] Developer info: At least one of the '
+                            'required docstring keys in your node block '
+                            'is missing.\n\nNode block docstring keys:\n'
+                            f'{init_dct_schema}\n\nYou provided:\n'
+                            f'{dct.keys()}\n\nDocstring:\n{fn_docstring}\n\n')
+    return dct
 
 
 DOCS_URL_PREFIX = _docs_url_prefix()

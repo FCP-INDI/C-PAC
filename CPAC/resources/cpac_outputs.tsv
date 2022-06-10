@@ -23,8 +23,10 @@ space-T1w_desc-mean_bold	bold	T1w	func	NIfTI
 space-template_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-brain_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-head_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-mean_bold	bold	template	func	NIfTI					
 space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-scout_bold	bold	template	func	NIfTI					
 desc-DualReg_correlations	correlation	template	func	NIfTI					
 desc-MeanSCA_correlations	correlation	template	func	NIfTI					
 desc-MultReg_correlations	correlation	template	func	NIfTI					
@@ -167,6 +169,8 @@ desc-reorient_T1w	T1w	T1w	anat	NIfTI
 desc-restore_T1w	T1w	T1w	anat	NIfTI					
 desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
+space-template_desc-head_T1w	T1w	template	anat	NIfTI					
+space-template_desc-T1w_mask	mask	template	anat	NIfTI					
 desc-Mean_timeseries	timeseries		func	1D					
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
