@@ -7,7 +7,8 @@ from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
-    split_ts_chunks, oned_text_concat, notch_filter_motion
+                                    split_ts_chunks, oned_text_concat, \
+                                    notch_filter_motion
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.utils.interfaces.ants import AI  # niworkflows
 from CPAC.utils.interfaces.ants import PrintHeader, SetDirectionByMatrix
@@ -1082,12 +1083,14 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                  "bold"],
      "outputs": ["motion-basefile"]}
     '''
-
-    if opt != 'mean' and opt != 'median' and opt != 'selected_volume' and opt != 'fmriprep_reference':
-        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
-                        "'motion_correction_reference' workflow must be either "
-                        "'mean' or 'median' or 'selected_volume' or 'fmriprep_reference'.\n\nTool input: "
-                        "{0}\n\n".format(opt))
+    option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
+    if opt not in option_vals:
+        raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
+                         'parameter of the \'motion_correction\' workflow '
+                         'must be one of:\n\t{0}.\n\nTool input: \'{1}\''
+                         '\n\n'.format(
+                             ' or '.join([f"'{val}'" for val in option_vals]),
+                             opt))
 
     if opt == 'mean':
         func_get_RPI = pe.Node(interface=afni_utils.TStat(),

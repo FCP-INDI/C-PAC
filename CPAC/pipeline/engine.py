@@ -23,6 +23,7 @@ from CPAC.utils.datasource import (
     create_general_datasource,
     resolve_resolution
 )
+from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring.custom_logging import getLogger
@@ -1039,12 +1040,12 @@ class NodeBlock:
                 node_block_function = node_block_function[0]
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
-        
-            init_dct = self.grab_docstring_dct(node_block_function.__doc__)
+
+            init_dct = grab_docstring_dct(node_block_function)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
-            
+
             if self.input_interface:
                 for interface in self.input_interface:
                     for orig_input in init_dct['inputs']:
@@ -1076,23 +1077,6 @@ class NodeBlock:
 
     def get_name(self):
         return self.name
-
-    def grab_docstring_dct(self, fn_docstring):
-        init_dct_schema = ['name', 'config', 'switch', 'option_key',
-                           'option_val', 'inputs', 'outputs']
-        if 'Node Block:' in fn_docstring:
-            fn_docstring = fn_docstring.split('Node Block:')[1]
-        fn_docstring = fn_docstring.lstrip().replace('\n', '')
-        dct = ast.literal_eval(fn_docstring)
-        for key in init_dct_schema:
-            if key not in dct.keys():
-                raise Exception('\n[!] Developer info: At least one of the '
-                                'required docstring keys in your node block '
-                                'is missing.\n\nNode block docstring keys:\n'
-                                f'{init_dct_schema}\n\nYou provided:\n'
-                                f'{dct.keys()}\n\nDocstring:\n{fn_docstring}'
-                                '\n\n')
-        return dct
 
     def check_null(self, val):
         if isinstance(val, str):
