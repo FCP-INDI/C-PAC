@@ -49,6 +49,7 @@ jobs:
     name: Build Docker stage images
     needs: Ubuntu
     strategy:
+      fail-fast: false
       matrix:
         Dockerfile:
         - AFNI.16.2.07.neurodocker-xenial
