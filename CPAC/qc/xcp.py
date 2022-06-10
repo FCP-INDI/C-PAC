@@ -213,7 +213,7 @@ def generate_xcp_qc(sub, ses, task, run, desc, regressors, bold2t1w_mask,
     Returns
     -------
     str
-        path to desc-xcp_quality TSV
+        path to space-template_desc-xcp_quality TSV
     """
     columns = (
         'sub,ses,task,run,desc,regressors,space,meanFD,relMeansRMSMotion,'
@@ -351,7 +351,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                  'movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson')],
-     'outputs': ['desc-xcp_quality']}
+     'outputs': ['space-template_desc-xcp_quality']}
     """
     # if we're running regressors, only generate qc files for post-regression
     # 'desc-preproc_bold'
@@ -434,4 +434,4 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             ('task', 'task'),
             ('run', 'run')])])
 
-    return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
+    return wf, {'space-template_desc-xcp_quality': (qc_file, 'qc_file')}
