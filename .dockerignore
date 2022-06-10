@@ -3,5 +3,7 @@ bids-examples
 cpac_runs
 .env*
 .git
-.github
+.github/Dockerfiles
+.github/stage_requirements
+.github/workflows
 *.tar.gz
