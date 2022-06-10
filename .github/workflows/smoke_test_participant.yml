@@ -156,7 +156,7 @@ jobs:
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 1
   smoke_test_rodent:
-    name: Run rodent participant smoke tests
+    name: Rodent participant smoke tests
     runs-on: ubuntu-latest
     needs:
       - set-up-check
