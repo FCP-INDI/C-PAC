@@ -275,8 +275,8 @@ class Node(pe.Node):
 
         if hasattr(self, '_mem_x'):
             if self._debug:
-                self.verbose_logger.debug('%s.mem_x: %s', self.name,
-                                          self.mem_x)
+                self.verbose_logger.debug('%s._mem_x: %s', self.name,
+                                          self._mem_x)
             if multiplicand is None:
                 multiplicand = self._mem_x_file()
             setattr(self, '_mem_gb', (
@@ -433,11 +433,12 @@ class Workflow(pe.Workflow):
                                      "result_%s.pklz" % edge[0].name),
                         sourceinfo,
                     )
-                    if node and hasattr(node, 'mem_x'):
+                    if node and hasattr(node, '_mem_x'):
                         if isinstance(
-                            node.mem_x,
+                            node._mem_x,  # pylint: disable=protected-access
                             dict
-                        ) and node.mem_x['file'] == field:
+                        ) and node._mem_x[  # pylint: disable=protected-access
+                                          'file'] == field:
                             input_resultfile = node.input_source.get(field)
                             if input_resultfile:
                                 # pylint: disable=protected-access
@@ -449,14 +450,8 @@ class Workflow(pe.Workflow):
                                     node._apply_mem_x(_load_resultfile(
                                         input_resultfile
                                     ).inputs[field])
-                                except FileNotFoundError:
-                                    self._handle_just_in_time_exception(node)
-                                except KeyError:
-                                    warnings.warn(str(KeyError(
-                                        f'Node {node.name} specifies memory '
-                                        'allocation for input '
-                                        f'{node.mem_x["file"]}, but no such '
-                                        'input is specified for that Node.')))
+                                except (FileNotFoundError, KeyError,
+                                        TypeError):
                                     self._handle_just_in_time_exception(node)
 
     def _handle_just_in_time_exception(self, node):
