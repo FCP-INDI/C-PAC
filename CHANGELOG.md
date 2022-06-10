@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated rbc-options configuration
 - Updated XCP-QC files to better adhere to XCP
 - Updated CI to only rebuild software dependencies on change
+- Replaced deprecated `optparse.OptionError` with to `click.BadParameter`
 
 ### Fixed
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
