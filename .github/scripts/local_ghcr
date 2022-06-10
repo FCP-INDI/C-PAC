@@ -3,7 +3,8 @@ import sys
 
 
 def replace_primary_repo(yaml_string, local_owner):
-    return yaml_string.replace('ghcr.io/fcp-indi', f'ghcr.io/{local_owner}')
+    return yaml_string.replace('ghcr.io/fcp-indi',
+                               f'ghcr.io/{local_owner.lower()}')
 
 
 if __name__ == '__main__':
@@ -18,5 +19,6 @@ if __name__ == '__main__':
     if '-lite-' in file:
         tag = tag.split("c-pac:")[1][:-5]
         if tag != 'latest-lite':
-            new_Dockerfile = new_Dockerfile.replace(':latest-bionic', f':{tag}')
+            new_Dockerfile = new_Dockerfile.replace(':latest-bionic',
+                                                    f':{tag}')
     open(file, 'w').write(new_Dockerfile)
