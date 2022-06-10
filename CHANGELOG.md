@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added additional error checks and a more informative message for node block connecting in the engine
 - Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
 - Added [lint definition file](./.pylintrc) (for developers)
+- Added list of preconfigured pipelines to the usage string
 
 ### Changed
 - Made ndmg correlation matrices a configurable option

@@ -13,6 +13,7 @@ from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
 from voluptuous.error import Invalid
+from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -1332,10 +1333,6 @@ def check_system_deps(check_ants=False,
 
 # Check pipeline config againts computer resources
 def check_config_resources(c):
-    '''
-    docstring
-    '''
-
     # Import packages
     import psutil
     from multiprocessing import cpu_count
@@ -1468,22 +1465,11 @@ def load_preconfig(pipeline_label):
     import os
     import pkg_resources as p
 
-    avail_configs = \
-        p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources",
-                "configs")
-        )
-    avail_configs = os.listdir(avail_configs)
-    avail_configs = [x.split('_')[2].replace('.yml', '') for x
-                     in avail_configs if 'pipeline_config' in x]
-
-    if pipeline_label not in avail_configs:
+    if pipeline_label not in ALL_PIPELINE_CONFIGS:
         raise BadParameter(
             "The pre-configured pipeline name '{0}' you provided is not one "
             "of the available pipelines.\n\nAvailable pipelines:\n"
-            "{1}\n".format(pipeline_label, str(avail_configs)),
+            "{1}\n".format(pipeline_label, str(AVAILABLE_PIPELINE_CONFIGS)),
             param='preconfig')
 
     pipeline_file = \
