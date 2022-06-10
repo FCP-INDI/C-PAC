@@ -144,8 +144,8 @@ jobs:
       - name: Get NHP test data
         run: |
           datalad clone osf://xt93j test-data
-          # Replace datalad files and links with empty paths
-          for FILE in $(find test-data \( -type l -o -type f \)); do rm -rf $FILE; :> $FILE; done
+          cd test-data
+          for FILE in $(find . \( -type l -o -type f \)) -name '*.json'; do datalad get $FILE; done
       - name: Run ${{ matrix.preconfig }} smoke test
         run: |
           mkdir outputs
