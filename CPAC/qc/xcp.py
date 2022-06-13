@@ -121,7 +121,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
             'subject', 'scan', brain_mask_key, 'max-displacement',
-            *motion_params]}}
+            'space-template_desc-preproc_bold', *motion_params]}}
     wf.connect([
         (nodes['space-template_desc-preproc_bold'].node, cal_DVARS, [
             (nodes['space-template_desc-preproc_bold'].out, 'in_file')]),
