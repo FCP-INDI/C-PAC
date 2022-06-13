@@ -342,8 +342,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
                  'desc-preproc_bold', 'max-displacement',
                  'space-template_desc-preproc_bold',
-                 'from-bold_to-T1w_mode-image_desc-linear_xfm',
-                 'from-template_to-T1w_mode-image_desc-linear_xfm',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
@@ -391,15 +389,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                         ) if isinstance(opt, dict) else ''
     func = {}
     func['original'] = strat_pool.node_data('bold')
-    func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
     func['final'] = strat_pool.node_data('space-template_desc-preproc_bold')
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
     nodes = {key: strat_pool.node_data(key) for key in [
-        'from-bold_to-T1w_mode-image_desc-linear_xfm',
-        'space-bold_desc-brain_mask']}
-    nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
+        'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
+        'space-T1w_desc-mean_bold']}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(
@@ -416,18 +412,16 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect([
         (func['original'].node, bids_info, [
             (func['original'].out, 'resource')]),
-        (func['space-T1w'].node, bold_to_T1w_mask, [
-            (func['space-T1w'].out, 'in_file')]),
-        (nodes['t1w_mask'].node, qc_file, [
-            (nodes['t1w_mask'].out, 't1w_mask')]),
+        (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
+            (nodes['space-T1w_desc-mean_bold'].out, 'in_file')]),
+        (nodes['space-T1w_desc-brain_mask'].node, qc_file, [
+            (nodes['space-T1w_desc-brain_mask'].out, 't1w_mask')]),
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),
         (nodes['template_mask'].node, qc_file, [
             (nodes['template_mask'].out, 'template_mask')]),
         (func['original'].node, qc_file, [
             (func['original'].out, 'original_func')]),
         (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
-        (func['space-T1w'].node, qc_file, [
-            (func['space-T1w'].out, 'space_T1w_bold')]),
         (nodes['template'].node, qc_file, [
             (nodes['template'].out, 'template')]),
         (nodes['template_mask'].node, resample_bold_mask_to_template, [
