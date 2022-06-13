@@ -119,11 +119,11 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     nodes = {
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'desc-preproc_bold',
-            'max-displacement', 'space-bold_desc-brain_mask', *motion_params]}}
+            'subject', 'scan', brain_mask_key, 'max-displacement',
+            'space-bold_desc-brain_mask', *motion_params]}}
     wf.connect([
-        (nodes['desc-preproc_bold'].node, cal_DVARS, [
-            (nodes['desc-preproc_bold'].out, 'in_file')]),
+        (nodes['space-template_desc-preproc_bold'].node, cal_DVARS, [
+            (nodes['space-template_desc-preproc_bold'].out, 'in_file')]),
         (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
             (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
         (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
@@ -338,21 +338,17 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('subject', 'scan', 'unique_id', 'bold',
+     'inputs': [('subject', 'scan', 'bold',
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
-                 'desc-preproc_bold', 'max-displacement',
-                 'space-template_desc-preproc_bold',
+                 'max-displacement', 'space-template_desc-preproc_bold',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
-                 'desc-motion_bold', 'space-bold_desc-brain_mask',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                  'movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson')],
      'outputs': ['space-template_desc-xcp_quality']}
     """
-    # if we're running regressors, only generate qc files for post-regression
-    # 'desc-preproc_bold'
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
