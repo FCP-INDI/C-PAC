@@ -990,8 +990,9 @@ registration_workflows:
 
         # options: 'default', 'abcd', 'single_step_resampling', 'dcan_nhp'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of PREPROCESSED functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline. 
         # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
-        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        # 'single_step_resampling_from_stc': apply motion correction, func-to-anat and anat-to-template transforms on each of slice-time-corrected functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
         using: 'default'
 
 
