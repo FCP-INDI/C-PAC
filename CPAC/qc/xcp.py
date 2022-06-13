@@ -72,7 +72,7 @@ motion_params = ['dvars', 'framewise-displacement-jenkinson',
                  'movement-parameters']
 
 
-def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
+def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
     """
     Connect the motion metrics to the workflow.
 
@@ -81,7 +81,8 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     wf : nipype.pipeline.engine.Workflow
         The workflow to connect the motion metrics to.
 
-    cfg : CPAC.utils.configuration.Configuration
+    nodes : dict
+        Dictionary of nodes already collected from the strategy pool.
 
     strat_pool : CPAC.pipeline.engine.ResourcePool
         The current strategy pool.
@@ -100,11 +101,11 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     """
     # pylint: disable=invalid-name, too-many-arguments
     try:
-        nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
+        nodes = {**nodes,
+                 'censor-indices': strat_pool.node_data('censor-indices')}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
                    qc_file, 'censor_indices')
     except LookupError:
-        nodes = {}
         qc_file.inputs.censor_indices = []
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
                         name=f'cal_DVARS_{pipe_num}',
@@ -120,7 +121,7 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
         **nodes,
         **{node_data: strat_pool.node_data(node_data) for node_data in [
             'subject', 'scan', brain_mask_key, 'max-displacement',
-            'space-bold_desc-brain_mask', *motion_params]}}
+            *motion_params]}}
     wf.connect([
         (nodes['space-template_desc-preproc_bold'].node, cal_DVARS, [
             (nodes['space-template_desc-preproc_bold'].out, 'in_file')]),
@@ -399,7 +400,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
         mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
     resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
-    wf = _connect_motion(wf, cfg, strat_pool, qc_file,
+    wf = _connect_motion(wf, nodes, strat_pool, qc_file,
                          brain_mask_key='space-bold_desc-brain_mask',
                          pipe_num=pipe_num)
     wf.connect([
