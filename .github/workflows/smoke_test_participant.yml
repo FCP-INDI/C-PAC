@@ -126,6 +126,12 @@ jobs:
           - 032130 032128 # UC Davis
           - 2215 2312 # UW Madison
           - 032191 032195 # UWO
+        exclude:
+          # No T2w
+          - preconfig: monkey-ABCD
+            participant: 2215 2312
+          - preconfig: monkey-ABCD
+            participant: 032164 032167
     steps:
       - name: Get C-PAC
         run: |
