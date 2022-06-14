@@ -125,8 +125,8 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
     wf.connect([
         (nodes['space-template_desc-preproc_bold'].node, cal_DVARS, [
             (nodes['space-template_desc-preproc_bold'].out, 'in_file')]),
-        (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
-            (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
+        (nodes['desc-brain_mask'].node, cal_DVARS, [
+            (nodes['desc-brain_mask'].out, 'mask')]),
         (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
         (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
@@ -381,7 +381,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
     nodes = {key: strat_pool.node_data(key) for key in [
-        'bold', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
+        'bold', 'desc-brain_mask', 'space-bold_desc-brain_mask',
+        'space-T1w_desc-brain_mask',
         'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold']}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
