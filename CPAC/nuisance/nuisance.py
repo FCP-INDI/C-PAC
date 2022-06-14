@@ -57,17 +57,21 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     to_template_cfg = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']
     out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-           'single_step_resampling': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-           'single_step_resampling_from_stc': ("desc-preproc_bold", "desc-stc_bold"),
-           'abcd': ("desc-preproc_bold", "bold")
-           }[to_template_cfg['apply_transform']['using']]
-    if 'T1_template' in to_template_cfg['target_template']['using']:
-        nuisance.append((nuisance_regressors_generation, out))
-    if 'EPI_template' in to_template_cfg['target_template']['using']:
-        nuisance.append((nuisance_regressors_generation_EPItemplate, out))
+           'abcd': ("desc-preproc_bold", "bold"),
+           'dcan_nhp': ("desc-preproc_bold", ["desc-reorient_bold", "bold"]),
+           'single_step_resampling': ("desc-preproc_bold",
+                                      ["desc-preproc_bold", "bold"]),
+           'single_step_resampling_from_stc': ("desc-preproc_bold",
+                                               "desc-stc_bold")
+           }.get(to_template_cfg['apply_transform']['using'])
+    if out is not None:
+        if 'T1_template' in to_template_cfg['target_template']['using']:
+            nuisance.append((nuisance_regressors_generation, out))
+        if 'EPI_template' in to_template_cfg['target_template']['using']:
+            nuisance.append((nuisance_regressors_generation_EPItemplate, out))
 
-    if not generate_only:
-        nuisance.append((nuisance_regression, out))
+        if not generate_only:
+            nuisance.append((nuisance_regression, out))
 
     return nuisance
 
