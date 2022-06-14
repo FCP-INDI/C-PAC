@@ -72,7 +72,7 @@ motion_params = ['dvars', 'framewise-displacement-jenkinson',
                  'movement-parameters']
 
 
-def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
+def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
     """
     Connect the motion metrics to the workflow.
 
@@ -89,9 +89,6 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
 
     qc_file : nipype.pipeline.engine.Node
         A function node with the function ``generate_xcp_qc``.
-
-    brain_mask_key : str
-        The key of the brain mask in the strategy pool.
 
     pipe_num : int
 
@@ -117,16 +114,11 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, brain_mask_key, pipe_num):
                                        function=DVARS_strip_t0,
                                        as_module=True),
                               name=f'cal_DVARS_strip_{pipe_num}')
-    nodes = {
-        **nodes,
-        **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'max-displacement',
-            'space-template_desc-preproc_bold', *motion_params]}}
     wf.connect([
-        (nodes['space-template_desc-preproc_bold'].node, cal_DVARS, [
-            (nodes['space-template_desc-preproc_bold'].out, 'in_file')]),
-        (nodes['desc-brain_mask'].node, cal_DVARS, [
-            (nodes['desc-brain_mask'].out, 'mask')]),
+        (nodes['desc-preproc_bold'].node, cal_DVARS, [
+            (nodes['desc-preproc_bold'].out, 'in_file')]),
+        (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
+            (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
         (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
         (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
@@ -339,7 +331,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('subject', 'scan', 'bold',
+     'inputs': [('subject', 'scan', 'bold', 'desc-preproc_bold',
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
                  'max-displacement', 'space-template_desc-preproc_bold',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
@@ -381,9 +373,10 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
     nodes = {key: strat_pool.node_data(key) for key in [
-        'bold', 'desc-brain_mask', 'space-bold_desc-brain_mask',
-        'space-T1w_desc-brain_mask',
-        'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold']}
+        'bold', 'desc-preproc_bold', 'max-displacement',
+        'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
+        'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold',
+        'subject', *motion_params]}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(
@@ -394,9 +387,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
         mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
     resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
-    wf = _connect_motion(wf, nodes, strat_pool, qc_file,
-                         brain_mask_key='space-bold_desc-brain_mask',
-                         pipe_num=pipe_num)
+    wf = _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num=pipe_num)
     wf.connect([
         (nodes['bold'].node, bids_info, [(nodes['bold'].out, 'resource')]),
         (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
