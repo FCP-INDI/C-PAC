@@ -54,7 +54,10 @@ jobs:
         Dockerfile:
         - AFNI.16.2.07.neurodocker-xenial
         - AFNI.20.0.04-bionic
+        - AFNI.update.afni.binaries-bionic
         - ANTs.2.2.0.neurodocker-bionic
+        - ANTs.2.3.4.neurodocker-xenial
+        - c3d.1.0.0-bionic
         - c3d.1.0.0-xenial
         - connectome-workbench.1.3.2-1.neurodebian-bionic
         - connectome-workbench.1.3.2-2.neurodebian-xenial
@@ -62,6 +65,7 @@ jobs:
         - FreeSurfer.6.0.1-min-xenial
         - FSL.5.0.9-5.neurodebian-xenial
         - FSL.5.0.10-bionic
+        - ICA-AROMA.0.4.3-beta-bionic
         - ICA-AROMA.0.4.5-xenial
         - msm.2.0-bionic
     runs-on: ubuntu-latest
