@@ -1,4 +1,6 @@
 """Tests of CPAC utility functions"""
+import multiprocessing
+from unittest import mock
 import pytest
 from CPAC.func_preproc.func_preproc import get_motion_ref
 from CPAC.utils.configuration import Configuration
@@ -57,4 +59,3 @@ def test_system_deps():
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))
-
