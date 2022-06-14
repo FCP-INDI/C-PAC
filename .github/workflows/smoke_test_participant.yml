@@ -120,6 +120,12 @@ jobs:
           - lite
           - ABCD-HCP
           - fMRIPrep-LTS
+        participant:
+          - 032102 032106 # Newcastle
+          - 032164 032167 # Oxford
+          - 032130 032128 # UC Davis
+          - 2215 2312 # UW Madison
+          - 032191 032195 # UWO
     steps:
       - name: Get C-PAC
         run: |
@@ -163,11 +169,12 @@ jobs:
             ${{ env.DOCKER_TAG }} \
             /test-data /outputs test_config \
             --preconfig ${{ matrix.preconfig }} \
+            --participant_label ${{ matrix.participant }} \
             --n_cpus 1
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: expectedOutputs nhp ${{ matrix.preconfig }} ${{ matrix.variant }}
+          name: expectedOutputs nhp ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
           path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
           if-no-files-found: ignore
   smoke_test_rodent:
