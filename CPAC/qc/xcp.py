@@ -374,16 +374,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-    regressor_strat = str(strat_pool.get_cpac_provenance('regressors')[-1])
-    for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
-            'Regressors']:
-        if '_'.join([
-            'nuisance_regressors_generation', regressor_dct['Name']
-        ]) in regressor_strat:
-            opt = regressor_dct
-            break
-    qc_file.inputs.regressors = opt.get('Name'
-                                        ) if isinstance(opt, dict) else ''
+    qc_file.inputs.regressors = strat_pool.node_data(
+        'regressors').node.name.split('regressors_'
+    )[-1][::-1].split('_', 1)[-1][::-1]
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
