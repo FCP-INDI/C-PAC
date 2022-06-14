@@ -2736,8 +2736,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-reginput_bold",
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
-                 "despiked_fieldmap",
-                 "fieldmap_mask"),
+                 "despiked-fieldmap",
+                 "fieldmap-mask"),
                 ("desc-brain_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2746,16 +2746,16 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
-                "diffphase_dwell",
-                "diffphase_pedir"],
+                "diffphase-dwell",
+                "diffphase-pedir"],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
     '''
 
     diff_complete = False
-    if strat_pool.check_rpool("despiked_fieldmap") and \
-            strat_pool.check_rpool("fieldmap_mask"):
+    if strat_pool.check_rpool("despiked-fieldmap") and \
+            strat_pool.check_rpool("fieldmap-mask"):
         diff_complete = True
 
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
@@ -2812,16 +2812,16 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
     if diff_complete:
-        node, out = strat_pool.get_data('diffphase_dwell')
+        node, out = strat_pool.get_data('diffphase-dwell')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diffphase_pedir')
+        node, out = strat_pool.get_data('diffphase-pedir')
         wf.connect(node, out, func_to_anat, 'pedir_input.pedir')
 
-        node, out = strat_pool.get_data("despiked_fieldmap")
+        node, out = strat_pool.get_data("despiked-fieldmap")
         wf.connect(node, out, func_to_anat, 'inputspec.fieldmap')
 
-        node, out = strat_pool.get_data("fieldmap_mask")
+        node, out = strat_pool.get_data("fieldmap-mask")
         wf.connect(node, out, func_to_anat, 'inputspec.fieldmapmask')
 
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
@@ -2893,17 +2893,17 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
-            node, out = strat_pool.get_data('diffphase_dwell')
+            node, out = strat_pool.get_data('diffphase-dwell')
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 
-            node, out = strat_pool.get_data('diffphase_pedir')
+            node, out = strat_pool.get_data('diffphase-pedir')
             wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
 
-            node, out = strat_pool.get_data("despiked_fieldmap")
+            node, out = strat_pool.get_data("despiked-fieldmap")
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.fieldmap')
 
-            node, out = strat_pool.get_data("fieldmap_mask")
+            node, out = strat_pool.get_data("fieldmap-mask")
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.fieldmapmask')
 
