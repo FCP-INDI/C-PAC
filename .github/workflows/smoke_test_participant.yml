@@ -83,7 +83,7 @@ jobs:
             /outputs /outputs test_config \
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
             --participant_label ${{ matrix.participant }} \
-            --n_cpus 1
+            --n_cpus 2
       - name: Run ${{ matrix.preconfig }} smoke test
         if: ${{ matrix.preconfig != 'default' }}
         run: |
@@ -96,7 +96,7 @@ jobs:
             --data_config_file /code/CPAC/resources/configs/test_configs/data-test_human.yml \
             --participant_label ${{ matrix.participant }} \
             --preconfig ${{ matrix.preconfig }} \
-            --n_cpus 1
+            --n_cpus 2
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
@@ -170,7 +170,7 @@ jobs:
             /test-data /outputs test_config \
             --preconfig ${{ matrix.preconfig }} \
             --participant_label ${{ matrix.participant }} \
-            --n_cpus 1
+            --n_cpus 2
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
@@ -233,7 +233,7 @@ jobs:
             ${{ env.DOCKER_TAG }} \
             /test-data /outputs test_config \
             --preconfig rodent \
-            --n_cpus 1
+            --n_cpus 2
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
