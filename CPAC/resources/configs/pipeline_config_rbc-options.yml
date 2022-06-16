@@ -49,7 +49,7 @@ registration_workflows:
   functional_registration:
     coregistration:
       func_input_prep:
-        input: ['Mean_Functional']
+        input: [fmriprep_reference]
 
     func_registration_to_template:
       # these options modify the application (to the functional data), not the calculation, of the
@@ -104,14 +104,11 @@ functional_preproc:
        - Blip-FSL-TOPUP
 
   func_masking:
-    using: [Anatomical_Refined]
-    Anatomical_Refined:
-      # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
-      anatomical_mask_dilation: On
+    using: [FSL_AFNI]
     FSL_AFNI:
-      bold_ref:
-      brain_mask:
-      brain_probseg:
+      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz  # different space!
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
 nuisance_corrections:
   2-nuisance_regression:
