@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 15 17:10:39 2022
+
+@author: teresa.george
+"""
+
 import os
 import numpy as np
 import nibabel as nb
@@ -172,11 +180,10 @@ def motion_power_statistics(name='motion_stats',
            and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
 
     """
-    motion_params = os.path.join(os.getcwd(),'motion.tsv')
-    summary_motion_params = os.path.join(os.getcwd(),'summary_motion_params.tsv')
+    #motion_params = os.path.join(os.getcwd(),'motion.tsv')
+    #summary_motion_params = os.path.join(os.getcwd(),'summary_motion_params.tsv')
     wf = pe.Workflow(name=name)
-    input_node = pe.Node(util.IdentityInterface(fields=['subject_id',
-                                                        'scan_id',
+    input_node = pe.Node(util.IdentityInterface(fields=['scan_id',
                                                         'movement_parameters',
                                                         'max_displacement',
                                                         'rels_displacement',
@@ -196,7 +203,7 @@ def motion_power_statistics(name='motion_stats',
                                                          'motion_maxdisp',
                                                          'desc_summary_motion_motion',
                                                          'desc_summary_motion_power' ]),
-                                                    
+
                           name='outputspec')
 
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
@@ -216,7 +223,7 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(input_node, 'mask', cal_DVARS, 'mask')
     wf.connect(cal_DVARS, 'out_file', cal_DVARS_strip, 'file_1D')
     wf.connect(cal_DVARS_strip, 'out_file', output_node, 'DVARS_1D')
-    
+
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file','motion_FDP'],
@@ -236,6 +243,7 @@ def motion_power_statistics(name='motion_stats',
                                      as_module=True),
                             name='calculate_FDJ')
 
+
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':
         wf.connect(input_node, 'transformations', calculate_FDJ, 'in_file')
@@ -254,7 +262,7 @@ def motion_power_statistics(name='motion_stats',
                                      name='calc_motion_parameters')
 
     calc_motion_parameters.inputs.motion_correct_tool = motion_correct_tool
-    
+
     wf.connect(input_node, 'movement_parameters',
                calc_motion_parameters, 'movement_parameters')
     wf.connect(input_node, 'max_displacement',
@@ -267,9 +275,9 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(calc_motion_parameters, 'max_disp',
                output_node, 'motion_maxdisp')
     wf.connect(calc_motion_parameters, 'rels_disp',
-               output_node, 'motion_relsdisp')       
-               
-               
+               output_node, 'motion_relsdisp')
+
+
 
     calc_power_parameters = pe.Node(Function(input_names=['fdp',
                                                           'fdj',
@@ -281,7 +289,7 @@ def motion_power_statistics(name='motion_stats',
                                     name='calc_power_parameters')
 
     calc_power_parameters.inputs.motion_correct_tool = motion_correct_tool
-   
+
     wf.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'dvars')
 
@@ -311,6 +319,10 @@ def calculate_FD_P(in_file):
     out_file : string
         Frame-wise displacement mat
         file path
+    motion_FDP : string
+           Frame-wise displacement mat
+           file path
+
     """
 
     motion_params = np.genfromtxt(in_file).T
@@ -324,11 +336,13 @@ def calculate_FD_P(in_file):
     fd = np.insert(fd, 0, 0)
     out_file = os.path.join(os.getcwd(), 'FD.1D')
     np.savetxt(out_file, fd)
-    
+    col_name = "Framewise Displacement Power"
+    all_motion = calculate_allmotion(fd, col_name)
     motion_FDP = os.path.join(os.getcwd(),'motion.tsv')
-    motion_FDP=np.loadtxt(motion_FDP)
-    motion_FDP['Framewise Displacement Power'] = fd
-    motion_FDP.to_csv('motion.tsv', mode='a',index=False)
+    #FDP = pd.DataFrame(fd)
+    #FDP.columns = ['Framewise Displacement Power']
+    #FDP.to_csv(motion_FDP, mode='a',index=False)
+    all_motion.to_csv(motion_FDP, mode='a',index=False)
     return out_file, motion_FDP
 
 
@@ -343,8 +357,10 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     -------
     out_file : string
         Frame-wise displacement file path
+    motion_FDJ : string
+            File path with framewise displacement and others movement parameters file path
     """
-
+    motion_params = os.path.join(os.getcwd(),'motion.tsv')
     if motion_correct_tool == '3dvolreg':
         pm_ = np.genfromtxt(in_file)
 
@@ -375,19 +391,24 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     elif motion_correct_tool == 'mcflirt':
         rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
-        
+
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
- 
+    col_name = "Framewise Displacement_J"
+    all_motion = calculate_allmotion(fd, col_name)
+
+
+
     motion_FDJ = os.path.join(os.getcwd(),'motion.tsv')
-    motion_FDJ=np.loadtxt(motion_FDJ)
-    motion_FDJ['Framewise Displacement Jenkinson '] = fd
-    motion_FDJ.to_csv('motion.tsv', mode='a',index=False)
+    #FDJ = pd.DataFrame(fd)
+    #FDJ.columns = ['Framewise Displacement']
+    #FDJ.to_csv(motion_FDJ , mode='a',index=False)
+    all_motion.to_csv(motion_FDJ, mode='a',index=False)
     return out_file,motion_FDJ
 
 def gen_motion_parameters(movement_parameters,
                           max_displacement, motion_correct_tool,rels_displacement=None):
-   
+
     """
     Method to calculate all the movement parameters
     Parameters
@@ -405,8 +426,14 @@ def gen_motion_parameters(movement_parameters,
     -------
     out_file : string
         path to csv file containing various motion parameters
+    summary_motion_params : string
+        path to csv file containing various motion parameters
+    max_disp : string
+        path to csv file containing max displacement
+    rels_disp : string
+        path to csv file containing rels displacement
     """
-    
+
     mot = np.genfromtxt(movement_parameters).T
 
     # Relative RMS of translation
@@ -418,18 +445,22 @@ def gen_motion_parameters(movement_parameters,
         maxdisp = np.loadtxt(max_displacement)
         relsdisp = []
         rels_disp = pd.DataFrame(relsdisp)
-        
+
     elif motion_correct_tool == 'mcflirt':
           maxdisp = np.loadtxt(max_displacement)  # TODO: mcflirt outputs absdisp, instead of maxdisp
           relsdisp = np.loadtxt(rels_displacement)  # rels_disp output only for mcflirt
-          
+
           rels_disp = os.path.join(os.getcwd(),'motion.tsv')
-          rels_disp['Rels Displacement '] = relsdisp
-          rels_disp.to_csv('motion.tsv', mode='a',index=False)
-        
-        
-        
-    
+          #rels_disp_val = pd.DataFrame(rels_disp)
+          #rels_disp_val['Rels Displacement '] = relsdisp
+          #rels_disp_val.to_csv(rels_disp, mode='a',index=False)
+
+          col_name = "Rels Displacement"
+          all_motion = calculate_allmotion(relsdisp, col_name)
+          np.savetxt(rels_disp, all_motion)
+
+
+
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
     avg_relative = lambda v: np.mean(abs_relative(v))
@@ -437,7 +468,7 @@ def gen_motion_parameters(movement_parameters,
     avg_abs = lambda v: np.mean(np.abs(v))
 
     info = [
-        
+
         ('Mean_Relative_RMS_Displacement', avg_relative(rms)),
         ('Max_Relative_RMS_Displacement', max_relative(rms)),
         ('Movements_gt_threshold', np.sum(abs_relative(rms) > 0.1)),
@@ -471,8 +502,9 @@ def gen_motion_parameters(movement_parameters,
         ('Mean_Abs_dL-R', avg_abs(mot[4])),
         ('Mean_Abs_dP-A', avg_abs(mot[5])),
     ]
-    
+
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
+    summary_motion_params = os.path.join(os.getcwd(),'summary_motion_params.tsv')
 
     with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
@@ -480,25 +512,27 @@ def gen_motion_parameters(movement_parameters,
         f.write(','.join(
             v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
         f.write('\n')
-        
+
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
 
     summary_motion_params.to_csv('summary_motion_params.tsv', mode='a',index=False)
-      
-   
+
 
     max_disp = os.path.join(os.getcwd(),'motion.tsv')
-    max_disp['Maximum Displacement'] = maxdisp
-    max_disp.to_csv('motion.tsv', mode='a',index=False)
-   
-    return out_file, max_disp, summary_motion_params, rels_disp
-    
+    #max_disp_val = pd.DataFrame(maxdisp)
+    #max_disp_val.columns = ['Maximum Displcement']
+    #max_disp_val.to_csv(max_disp, mode='a',index=False)
+    col_name = "Max Displacement"
+    all_motion = calculate_allmotion(maxdisp, col_name)
+    np.savetxt(max_disp, all_motion)
 
+
+    return out_file, summary_motion_params, max_disp,rels_disp
 
 def gen_power_parameters(fdp=None, fdj=None, dvars=None,
                          motion_correct_tool='3dvolreg'):
-							 
+
     """
     Method to generate Power parameters for scrubbing
     Parameters
@@ -520,6 +554,9 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
     -------
     out_file : string (csv file)
         path to csv file containing all the pow parameters
+
+     summary_motion_params : string (csv file)
+         path to csv file containing all the motion and pow parameters
     """
     import numpy as np
     import pandas as pd
@@ -528,11 +565,11 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
     meanFD_Jenkinson = []
     rmsFDJ = []
     FDJquartile = []
-         
+
     if fdp:
        fdp_data = np.loadtxt(fdp)
        dvars_data = np.loadtxt(dvars)
-    
+
        # Mean (across time/frames) of the absolute values
        # for Framewise Displacement (FD)
        meanFD_Power = np.mean(fdp_data)
@@ -556,8 +593,6 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
              FDJquartile = np.mean(np.sort(fdj_data)[::-1][:quat])
 
              info = [
-            ('Subject', subject_id),
-            ('Scan', scan_id),
             ('MeanFD_Power', meanFD_Power),
             ('MeanFD_Jenkinson', meanFD_Jenkinson),
             ('rootMeanSquareFD', rmsFDJ),
@@ -567,8 +602,7 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
 
     elif motion_correct_tool == 'mcflirt':
         info = [
-            ('Subject', subject_id),
-            ('Scan', scan_id),
+
             ('MeanFD_Power', meanFD_Power),
             ('MeanDVARS', meanDVARS),
         ]
@@ -580,15 +614,16 @@ def gen_power_parameters(fdp=None, fdj=None, dvars=None,
         f.write(','.join(
             v if type(v) == str else '{0:.4f}'.format(v) for t, v in info))
         f.write('\n')
-        
+
+    summary_motion_params = os.path.join(os.getcwd(),'summary_motion_params.tsv')
     summary_motion_params = pd.DataFrame(info)
     summary_motion_params.columns = ['Parameters', 'Values']
     summary_motion_params.to_csv('summary_motion_params.tsv', mode='a',index=False)
-   
+
 
     return out_file,summary_motion_params
-  
-    
+
+
 
 def DVARS_strip_t0(file_1D):
     x = np.loadtxt(file_1D)
@@ -609,7 +644,7 @@ class ImageTo1DInputSpec(AFNICommandInputSpec):
                 argstr='-mask %s',
                 position=2,
                 exists=True)
-                
+
     out_file = File(name_template="%s_3DtoT1.1D", desc='output 1D file name',
                     argstr='-prefix %s', name_source="in_file", keep_extension=True)
 
@@ -636,9 +671,50 @@ class ImageTo1D(AFNICommand):
     output_spec = ImageTo1DOutputSpec
 
 
-
-
 def calculate_DVARS(func_brain, mask):
+    """
+    Method to calculate DVARS as per power's method
+    Parameters
+    ----------
+    func_brain : string (nifti file)
+        path to motion correct functional data
+    mask : string (nifti file)
+        path to brain only mask for functional data
+    Returns
+    -------
+    out_file : string (numpy mat file)
+        path to file containing array of DVARS calculation for each voxel
+    motion_dvars : string (numpy mat file)
+        path to file containing array of DVARS calculation for each voxel
+    """
+    import numpy as np
+    import nibabel as nb
+    rest_data = nb.load(func_brain).get_data().astype(np.float32)
+    mask_data = nb.load(mask).get_data().astype('bool')
+
+    # square of relative intensity value for each voxel across every timepoint
+    data = np.square(np.diff(rest_data, axis=3))
+
+    # applying mask, getting the data in the brain only
+    data = data[mask_data]
+
+    # square root and mean across all timepoints inside mask
+    dvars = np.sqrt(np.mean(data, axis=0))
+    out_file = os.path.join(os.getcwd(), 'DVARS.txt')
+    np.savetxt(out_file, dvars)
+
+    dvars = np.insert(dvars,0,0)
+
+    motion_dvars = os.path.join(os.getcwd(),'motion.tsv')
+    #motion_dvars_val=pd.DataFrame(dvars)
+    #motion_dvars_val.columns = ['Motion Dvars']
+    #motion_dvars_val.to_csv(motion_dvars, mode='a',index=False)
+    col_name = "Dvars"
+    all_motion = calculate_allmotion(dvars, col_name)
+    np.savetxt(motion_dvars, all_motion)
+
+    return out_file,motion_dvars
+
     """
     Method to calculate DVARS as per power's method
     Parameters
@@ -667,12 +743,19 @@ def calculate_DVARS(func_brain, mask):
     dvars = np.sqrt(np.mean(data, axis=0))
     out_file = os.path.join(os.getcwd(), 'DVARS.txt')
     np.savetxt(out_file, dvars)
-    
+
     dvars = np.insert(dvars,0,0)
-    
-    motion_dvars = os.path.join(os.getcwd(),'motion.tsv')
-    motion_dvars=np.loadtxt(motion_dvars)
-    motion_dvars ['Dvars'] = dvars
-    motion_dvars.to_csv('motion.tsv', mode='a',index=False)
-    
+
+    motion_file = os.path.join(os.getcwd(),'motion.tsv')
+    motion_dvars=pd.DataFrame(dvars)
+    motion_dvars.columns = ['Motion Dvars']
+    motion_dvars.to_csv(motion_file, mode='a',index=False)
+
     return out_file,motion_dvars
+
+def calculate_allmotion(in_file, col_name):
+    file_path = os.path.join(os.getcwd(),'summary_motion/motion.tsv')
+    all_motion_val=pd.DataFrame(in_file)
+    all_motion_val.columns = [col_name]
+    all_motion_val.to_csv(file_path, mode='a',index=False)
+    return all_motion_val

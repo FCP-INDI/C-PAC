@@ -92,16 +92,9 @@ space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI
 space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
 space-template_desc-bold_mask	mask	template	func	NIfTI					
 space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
-dvars	motion		func	text					
-framewise-displacement-jenkinson	motion		func	1D					
-framewise-displacement-power	motion		func	1D					
-max-displacement	motion		func	1D					
 motion-filter-info	motion		func	text					
 motion-filter-plot	motion		func	png					
-motion-params	motion		func	text					
 movement-parameters	motion		func	1D					
-power-params	motion		func	text					
-rels-displacement	motion		func	1D					
 label-CSF_probseg	probseg	T1w	anat	NIfTI					
 label-GM_probseg	probseg	T1w	anat	NIfTI					
 label-WM_probseg	probseg	T1w	anat	NIfTI					
@@ -195,3 +188,5 @@ from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI
 from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
+motion	motion		func	TSV					
+desc-motion-summary	motion		func	TSV					

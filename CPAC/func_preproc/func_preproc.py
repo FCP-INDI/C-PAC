@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 15 17:09:23 2022
+
+@author: teresa.george
+"""
+
 from nipype import logging
 from nipype.interfaces import ants
 
@@ -173,7 +181,7 @@ def anat_based_mask(wf_name='bold_mask'):
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
                          name='outputspec')
 
-    # 0. Take single volume of func 
+    # 0. Take single volume of func
     func_single_volume = pe.Node(interface=afni.Calc(),
                             name='func_single_volume')
 
@@ -195,13 +203,13 @@ def anat_based_mask(wf_name='bold_mask'):
     linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
     linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
 
-    wf.connect(func_single_volume, 'out_file', 
+    wf.connect(func_single_volume, 'out_file',
                 linear_reg_func_to_anat, 'in_file')
 
-    wf.connect(input_node, 'anat_head', 
+    wf.connect(input_node, 'anat_head',
                 linear_reg_func_to_anat, 'reference')
 
-    # 2. Inverse func to anat affine, to get anat-to-func transform 
+    # 2. Inverse func to anat affine, to get anat-to-func transform
     inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
                             name='inv_func2anat_affine')
     inv_func_to_anat_affine.inputs.invert_xfm = True
@@ -210,31 +218,31 @@ def anat_based_mask(wf_name='bold_mask'):
                 inv_func_to_anat_affine, 'in_file')
 
     # 3. get BOLD mask
-    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space 
+    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space
     reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
                             name='reg_anat_brain_to_func')
     reg_anat_brain_to_func.inputs.interp = 'nn'
     reg_anat_brain_to_func.inputs.relwarp = True
 
-    wf.connect(input_node, 'anat_brain', 
+    wf.connect(input_node, 'anat_brain',
                 reg_anat_brain_to_func, 'in_file')
 
-    wf.connect(input_node, 'func', 
+    wf.connect(input_node, 'func',
                 reg_anat_brain_to_func, 'ref_file')
 
-    wf.connect(inv_func_to_anat_affine, 'out_file', 
+    wf.connect(inv_func_to_anat_affine, 'out_file',
                 reg_anat_brain_to_func, 'premat')
 
-    # 3.2 Binarize transfered image and fill holes to get BOLD mask. 
+    # 3.2 Binarize transfered image and fill holes to get BOLD mask.
     # Binarize
     func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
                                 name='func_mask')
     func_mask_bin.inputs.op_string = '-bin'
 
-    wf.connect(reg_anat_brain_to_func, 'out_file', 
+    wf.connect(reg_anat_brain_to_func, 'out_file',
                 func_mask_bin, 'in_file')
 
-    wf.connect(func_mask_bin, 'out_file', 
+    wf.connect(func_mask_bin, 'out_file',
                 output_node, 'func_brain_mask')
 
     return wf
@@ -607,10 +615,10 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
 
             #chunk.inputs.n_chunks = int(cfg.pipeline_setup['system_config'][
             #                              'max_cores_per_participant'])
-            
+
             # 10-TR sized chunks
             chunk.inputs.chunk_size = 10
-            
+
             node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
             wf.connect(node, out, chunk, 'func_file')
 
@@ -1307,8 +1315,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "calc_motion_stats",
      "config": "None",
-     "switch": [["functional_preproc", "run"], 
-                ["functional_preproc", "motion_estimates_and_correction", 
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "motion_estimates_and_correction",
                 "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
@@ -1318,8 +1326,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "max-displacement",
                  "rels-displacement",
                  "coordinate-transformation"),
-                "subject",
-                "scan"],
+                 "scan"],
      "outputs": ["framewise-displacement-power",
                  "framewise-displacement-jenkinson",
                  "dvars",
@@ -1342,9 +1349,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Special case where the workflow is not getting outputs from
     # resource pool but is connected to functional datasource
-    node, out_file = strat_pool.get_data('subject')
-    wf.connect(node, out_file,
-               gen_motion_stats, 'inputspec.subject_id')
+
 
     node, out_file = strat_pool.get_data('scan')
     wf.connect(node, out_file,
@@ -1517,9 +1522,9 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
                                     name=f'func_mean_skull_thr_value_{pipe_num}',
                                     iterfield=['in_file'])
             threshold_T.inputs.op_string = "-p %f " % (cfg.functional_preproc['func_masking']['FSL-BET']['functional_mean_thr']['threshold_value'])
-            
+
             wf.connect(func_skull_mean, 'out_file', threshold_T, 'in_file')
-            
+
             # z=$(echo "$T / 10" | bc -l)
             def form_thr_string(thr):
                 threshold_z = str(float(thr/10))
@@ -1538,7 +1543,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
 
             wf.connect(func_skull_mean, 'out_file', func_skull_mean_thr, 'in_file')
             wf.connect(form_thr_string, 'out_str', func_skull_mean_thr, 'op_string')
-            
+
             out_node, out_file = (func_skull_mean_thr, 'out_file')
 
         if cfg.functional_preproc['func_masking']['FSL-BET'][
@@ -1549,9 +1554,9 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
                                                     name=f'func_mean_skull_fast_{pipe_num}')
             func_mean_skull_fast.inputs.no_pve = True
             func_mean_skull_fast.inputs.output_biascorrected = True
-            
+
             wf.connect(out_node, out_file, func_mean_skull_fast, 'in_files')
-            
+
             out_node, out_file = (func_mean_skull_fast, 'restored_image')
 
         wf.connect(out_node, out_file, func_get_brain_mask, 'in_file')
@@ -1653,7 +1658,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         name=f"map_brainmask_{pipe_num}",
     )
-    
+
     # Use the higher resolution and probseg for numerical stability in rounding
     map_brainmask.inputs.input_image = cfg.functional_preproc[
         'func_masking']['FSL_AFNI']['brain_probseg']
@@ -1714,7 +1719,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
                             name=f'combine_masks_{pipe_num}')
 
-    apply_mask = pe.Node(fsl.ApplyMask(), 
+    apply_mask = pe.Node(fsl.ApplyMask(),
                          name=f'extract_ref_brain_bold_{pipe_num}')
 
     node, out = strat_pool.get_data(["motion-basefile"])
@@ -1996,9 +2001,9 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
-    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+    anat_brain_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
                                      name=f'resample_anat_brain_in_standard_{pipe_num}')
-    
+
     anat_brain_to_func_res.inputs.interp = 'spline'
     anat_brain_to_func_res.inputs.premat = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
@@ -2013,7 +2018,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     anat_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
                                           name=f'resample_anat_brain_mask_in_standard_{pipe_num}')
-    
+
     anat_brain_mask_to_func_res.inputs.interp = 'nn'
     anat_brain_mask_to_func_res.inputs.premat = cfg.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
@@ -2071,7 +2076,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_tmp_brain_mask.inputs.dilate = 1
     func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", 
+    node, out = strat_pool.get_data(["desc-motion_bold",
                                     "desc-preproc_bold",
                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
@@ -2082,7 +2087,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_min = 7
     func_roi.inputs.t_size = 1
 
-    node, out = strat_pool.get_data(["desc-motion_bold", 
+    node, out = strat_pool.get_data(["desc-motion_bold",
                                     "desc-preproc_bold",
                                     "bold"])
     wf.connect(node, out, func_roi, 'in_file')
@@ -2138,7 +2143,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
                                      name=f'bin_anat_brain_in_func_{pipe_num}')
     bin_anat_brain_in_func.inputs.op_string = '-bin -dilM'
 
-    wf.connect(reg_anat_brain_to_func, 'out_file', 
+    wf.connect(reg_anat_brain_to_func, 'out_file',
                bin_anat_brain_in_func, 'in_file')
 
     # Binarize detectable func signals
@@ -2146,13 +2151,13 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
                                      name=f'bin_func_{pipe_num}')
     bin_func.inputs.op_string = '-Tstd -bin'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", 
+    node, out = strat_pool.get_data(["desc-motion_bold",
                                      "desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, bin_func, 'in_file')
 
     # Take intersection of masks
-    merge_func_mask = pe.Node(util.Merge(2), 
+    merge_func_mask = pe.Node(util.Merge(2),
                               name=f'merge_func_mask_{pipe_num}')
 
     wf.connect(func_tmp_brain_mask, 'out_file',
@@ -2166,10 +2171,10 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     intersect_mask.inputs.op_string = '-mul %s -mul %s'
     intersect_mask.inputs.output_datatype = 'char'
 
-    wf.connect(bin_func, 'out_file', 
+    wf.connect(bin_func, 'out_file',
                intersect_mask, 'in_file')
 
-    wf.connect(merge_func_mask, 'out', 
+    wf.connect(merge_func_mask, 'out',
                intersect_mask, 'operand_files')
 
     # this is the func input for coreg in ccs
@@ -2289,8 +2294,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-    
-    
+
+
 def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_mask_normalize",
