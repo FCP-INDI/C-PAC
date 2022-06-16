@@ -754,7 +754,7 @@ def calculate_DVARS(func_brain, mask):
     return out_file,motion_dvars
 
 def calculate_allmotion(in_file, col_name):
-    file_path = os.path.join(os.getcwd(),'summary_motion/motion.tsv')
+    file_path = os.path.join(os.getcwd(),'motion.tsv')
     all_motion_val=pd.DataFrame(in_file)
     all_motion_val.columns = [col_name]
     all_motion_val.to_csv(file_path, mode='a',index=False)
