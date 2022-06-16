@@ -1,7 +1,7 @@
 """Utilties for documentation."""
 import ast
 from urllib import request
-from urllib.error import HTTPError
+from urllib.error import ContentTooShortError, HTTPError, URLError
 from CPAC import __version__
 
 
@@ -31,7 +31,7 @@ def _docs_url_prefix():
     try:
         request.urlopen(  # pylint: disable=consider-using-with
                         _url(url_version))
-    except HTTPError:
+    except (ContentTooShortError, HTTPError, URLError):
         if 'dev' in url_version:
             url_version = 'nightly'
         else:
