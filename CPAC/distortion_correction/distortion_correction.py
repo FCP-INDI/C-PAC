@@ -104,10 +104,10 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["diffphase",
                 "diffmag",
                 "deltaTE",
-                "diffphase_dwell",
-                "dwell_asym_ratio"],
-     "outputs": ["despiked_fieldmap",
-                 "fieldmap_mask"]}
+                "diffphase-dwell",
+                "dwell-asym-ratio"],
+     "outputs": ["despiked-fieldmap",
+                 "fieldmap-mask"]}
     '''
 
     # Skull-strip, outputs a masked image file
@@ -209,17 +209,17 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
 
-    node, out = strat_pool.get_data('diffphase_dwell')
+    node, out = strat_pool.get_data('diffphase-dwell')
     wf.connect(node, out, fugue1, 'dwell_time')
 
-    node, out = strat_pool.get_data('dwell_asym_ratio')
+    node, out = strat_pool.get_data('dwell-asym-ratio')
     wf.connect(node, out, fugue1, 'dwell_to_asym_ratio')
 
     wf.connect(prepare, 'out_fieldmap', fugue1, 'fmap_in_file')
 
     outputs = {
-        'despiked_fieldmap': (fugue1, 'fmap_out_file'),
-        'fieldmap_mask': (fslmath_mask, 'out_file')
+        'despiked-fieldmap': (fugue1, 'fmap_out_file'),
+        'fieldmap-mask': (fslmath_mask, 'out_file')
     }
 
     return (wf, outputs)
