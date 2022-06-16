@@ -58,7 +58,6 @@ def choose_nuisance_blocks(cfg, generate_only=False):
         'func_registration_to_template']
     out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
            'abcd': ("desc-preproc_bold", "bold"),
-           'dcan_nhp': ("desc-preproc_bold", ["desc-reorient_bold", "bold"]),
            'single_step_resampling': ("desc-preproc_bold",
                                       ["desc-preproc_bold", "bold"]),
            'single_step_resampling_from_stc': ("desc-preproc_bold",
