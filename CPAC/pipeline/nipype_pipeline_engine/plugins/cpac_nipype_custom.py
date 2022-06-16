@@ -2,6 +2,35 @@
 Custom methods for Nipype pipeline plugins:
 * _prerun_check method to tell which Nodes use too many resources.
 * _check_resources to account for the main process' memory usage.
+
+STATEMENT OF CHANGES:
+    This file is derived from sources licensed under the Apache-2.0 terms,
+    and this file has been changed.
+
+CHANGES:
+    * Supports just-in-time dynamic memory allocation
+    * Supports overriding memory estimates via a log file and a buffer
+
+ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    Copyright (c) 2009-2016, Nipype developers
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+    Prior to release 0.12, Nipype was licensed under a BSD license.
+
+Modifications Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
 """
 import gc
 import json
@@ -125,7 +154,7 @@ class CpacNipypeCustomPluginMixin():
             node_id = node.fullname.split('.', 1)[-1]
         if self._match_for_overrides(node, node_id):
             return
-        while '.' in node_id: # iterate through levels of specificity
+        while '.' in node_id:  # iterate through levels of specificity
             node_id = node_id.rsplit('.', 1)[0]
             if self._match_for_overrides(node, node_id):
                 return
@@ -205,7 +234,7 @@ class CpacNipypeCustomPluginMixin():
     def _send_procs_to_workers(self, updatehash=False, graph=None):
         """
         Sends jobs to workers when system resources are available.
-        Customized from https://github.com/nipy/nipype/commit/79e2fdfc38759bc0853e4051b99ba4c37587d65f
+        Customized from https://github.com/nipy/nipype/blob/79e2fdfc/nipype/pipeline/plugins/legacymultiproc.py#L311-L462
         to catch overhead deadlocks
         """  # noqa: E501  # pylint: disable=line-too-long
         # pylint: disable=too-many-branches, too-many-statements
