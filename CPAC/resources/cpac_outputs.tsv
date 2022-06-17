@@ -188,5 +188,5 @@ from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI
 from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
-motion	motion		func	TSV					
-desc-motion-summary	motion		func	TSV					
+desc-summary_motion_parameters	motion		func	TSV					
+desc-summary_motion_power	motion		func	TSV					
