@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jun 15 17:09:23 2022
-
-@author: teresa.george
-"""
-
 from nipype import logging
 from nipype.interfaces import ants
 
@@ -1332,8 +1324,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars",
                  "power-params",
                  "motion-params",
-                 "desc-summary_motion_parameters",
-                 "desc-summary_motion_power"]}
+                 "motion",
+                 "summary-motion"]}
     '''
 
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
@@ -1387,8 +1379,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power-params': (gen_motion_stats, 'outputspec.power_params'),
         'motion-params': (gen_motion_stats, 'outputspec.motion_params'),
-        'desc-summary_motion_parameters':(gen_motion_stats, 'outputspec.desc_summary_motion_parameters'),
-        'desc-summary_motion_power':(gen_motion_stats, 'outputspec.desc_summary_motion_power')}
+        'motion':(gen_motion_stats, 'outputspec.motion'),
+        'summary-motion':(gen_motion_stats, 'outputspec.summary-motion')}
 
     return (wf, outputs)
 

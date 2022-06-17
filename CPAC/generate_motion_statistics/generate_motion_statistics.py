@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jun 15 17:10:39 2022
-
-@author: teresa.george
-"""
-
 import os
 import numpy as np
 import nibabel as nb
@@ -196,8 +188,8 @@ def motion_power_statistics(name='motion_stats',
                                                          'DVARS_1D',
                                                          'power_params',
                                                          'motion_params',
-                                                         'desc_summary_motion_parameters',
-                                                         'desc_summary_motion_power' ]),
+                                                         'motion',
+                                                         'summary-motion' ]),
 
                           name='outputspec')
 
@@ -260,7 +252,7 @@ def motion_power_statistics(name='motion_stats',
     get_all_motion_parameters = pe.Node(Function(input_names= ['in_file_FDJ',
                                                            'in_file_FDP', 'in_file_maxdisp', 'in_file_motion','in_file_power','in_file_relsdisp','in_file_DVARS'],
                                               output_names=['all_motion_val', 'summary_motion_power'],
-                                              function=calculate_allmotion,
+                                              function=get_allmotion,
                                               as_module=True),
                                      name='get_all_motion_parameters')
 
@@ -281,9 +273,9 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(calc_motion_parameters, 'out_file',
                output_node, 'motion_params')
     wf.connect(get_all_motion_parameters, 'all_motion_val',
-               output_node, 'desc_summary_motion_parameters')
+               output_node, 'motion')
     wf.connect(get_all_motion_parameters, 'summary_motion_power',
-               output_node, 'desc_summary_motion_power')
+               output_node, 'summary-motion')
 
 
     calc_power_parameters = pe.Node(Function(input_names=['fdp',
@@ -682,7 +674,7 @@ def calculate_DVARS(func_brain, mask):
 
     return out_file , dvars
 
-def calculate_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion, in_file_power, in_file_relsdisp=None, in_file_DVARS = None):
+def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion, in_file_power, in_file_relsdisp=None, in_file_DVARS = None):
     """
     Method to append all the motion and power parameters into 2 files
     Parameters
@@ -706,7 +698,7 @@ def calculate_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motio
 
     """
     all_motion_val = os.path.join(os.getcwd(),'motion.tsv')
-    summary_motion_power =os.path.join(os.getcwd(),'summary_motion_power.tsv')
+    summary_motion_power =os.path.join(os.getcwd(),'summary-motion.tsv')
 
     df_FDJ = pd.DataFrame(in_file_FDJ)
     df_FDJ.columns = ['Framewise displacement Jenkinson']
@@ -733,3 +725,4 @@ def calculate_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motio
     np.savetxt(summary_motion_power, summary_motion_pow_df,delimiter=",", header="Parameters, Values", comments='',fmt='%s')
 
     return all_motion_val, summary_motion_power
+
