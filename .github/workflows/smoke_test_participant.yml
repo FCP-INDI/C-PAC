@@ -113,7 +113,7 @@ jobs:
       matrix:
         preconfig:
           - monkey
-          - monkey-ABCD
+          # - monkey-ABCD
           - nhp-macaque
         variant:
           - ''
