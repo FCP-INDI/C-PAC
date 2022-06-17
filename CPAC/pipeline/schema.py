@@ -24,7 +24,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
 
-from CPAC import __version__
+from CPAC import docs_prefix
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
 
@@ -175,8 +175,6 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
-_url_version = 'nightly' if __version__.endswith(
-    '-dev') else f'v{__version__.lstrip("v")}'
 
 
 def permutation_message(key, options):
@@ -829,7 +827,7 @@ latest_schema = Schema({
                     Required('lowpass_cutoff'): Number,
                 },),
                 msg='`motion_estimate_filter` configuration is invalid. See '
-                    f'https://fcp-indi.github.io/docs/{_url_version}/user/'
+                    f'{docs_prefix}/user/'
                     'func#motion_estimate_filter_valid_options for details.\n',
             ),
         },

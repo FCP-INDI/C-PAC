@@ -26,3 +26,12 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
 from .info import __version__
 version = __version__
+_url_version = 'nightly' if __version__.endswith(
+    '-dev') or __version__.endswith('.dev') else f'v{__version__.lstrip("v")}'
+docs_prefix = f'https://fcp-indi.github.io/docs/{_url_version}'
+license_notice = f"""Copyright (C) 2022  C-PAC Developers.
+
+This program comes with ABSOLUTELY NO WARRANTY. This is free software,
+and you are welcome to redistribute it under certain conditions. For
+details, see {docs_prefix}/license or the COPYING and
+COPYING.LESSER files included in the source code."""

@@ -362,6 +362,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     C-PAC version: {cpac_version}
 
+    {license_notice}
+
     Setting maximum number of cores per participant to {cores}
     Setting number of participants at once to {participants}
     Setting OMP_NUM_THREADS to {omp_threads}
@@ -398,9 +400,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         random_seed=(
             '    Random seed: %s' %
             c.pipeline_setup['system_config']['random_seed']) if
-        c.pipeline_setup['system_config']['random_seed'] is not None else ''
-    ))
-
+        c.pipeline_setup['system_config']['random_seed'] is not None else '',
+        license_notice=CPAC.license_notice.replace('\n', '\n    ')))
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
