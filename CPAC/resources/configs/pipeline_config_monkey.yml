@@ -171,9 +171,9 @@ segmentation:
       # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
 
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
-      template_brain_list: 
-        - s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
-        - s3://fcp-indi/resources/cpac/resources/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+      template_brain_list :
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_T1w_brain.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_T1w_brain.nii.gz
 
       # The atlas segmentation images.
       # For performing ANTs Prior-based segmentation method
@@ -186,8 +186,8 @@ segmentation:
       #   - segmentation1.nii.gz
       #   - segmentation1.nii.gz
       template_segmentation_list: 
-        - s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
-        - s3://fcp-indi/resources/cpac/resources/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+        - /cpac_templates/MacaqueYerkes19_T1w_0.5mm_desc-JLC_Segmentation.nii.gz
+        - /cpac_templates/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm_desc-JLC_Segmentation.nii.gz
 
 registration_workflows: 
 
