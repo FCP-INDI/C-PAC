@@ -1,5 +1,20 @@
 #!/usr/bin/env python
+"""Copyright (C) 2022  C-PAC Developers
 
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import argparse
 import datetime
 import os
@@ -9,7 +24,7 @@ import time
 import shutil
 import yaml
 
-from CPAC import __version__
+from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
@@ -90,7 +105,8 @@ def resolve_aws_credential(source):
 
 def run_main():
     """Run this function if not importing as a script"""
-    parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
+    parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner. ' +
+                                     license_notice)
     parser.add_argument('bids_dir',
                         help='The directory with the input dataset '
                              'formatted according to the BIDS standard. '
