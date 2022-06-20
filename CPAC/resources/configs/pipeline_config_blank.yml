@@ -72,12 +72,12 @@ pipeline_setup:
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: True
 
-    path: /logs
+    path: /output/logs
 
   crash_log_directory:
 
     # Directory where CPAC should write crash logs.
-    path: /crash
+    path: /output/crash
 
   system_config:
 
@@ -158,7 +158,6 @@ surface_analysis:
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer: 
-
     run: Off
 
 
@@ -886,7 +885,6 @@ functional_preproc:
   motion_estimates_and_correction:
 
     motion_estimates: 
-
       # calculate motion statistics BEFORE slice-timing correction
       calculate_motion_first: Off
 

@@ -2,11 +2,10 @@ import os
 import collections.abc
 import fnmatch
 import gzip
+import json
 import numbers
 import pickle
-import threading
 import numpy as np
-import json
 import yaml
 
 from click import BadParameter
@@ -1371,13 +1370,12 @@ def check_config_resources(c):
                            c.pipeline_setup['system_config'][
                                'max_cores_per_participant']
         if total_user_cores > num_cores:
-            err_msg = 'Config file specifies more subjects running in ' \
-                      'parallel than number of threads available. Change ' \
-                      'this and try again'
-            raise Exception(err_msg)
-        else:
-            num_cores_per_sub = c.pipeline_setup['system_config'][
-                'max_cores_per_participant']
+            raise SystemError('Configuration specifies more threads running '
+                              'in parallel (%d) than number of threads '
+                              'available (%d). Change this and try again' %
+                              (total_user_cores, num_cores))
+        num_cores_per_sub = c.pipeline_setup['system_config'][
+            'max_cores_per_participant']
     else:
         num_cores_per_sub = num_cores / c.pipeline_setup['system_config'][
             'num_participants_at_once']

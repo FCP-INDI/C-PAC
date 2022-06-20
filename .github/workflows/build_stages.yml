@@ -12,8 +12,22 @@ on:
 
 
 jobs:
+  update-check:
+    name: Update GitHub check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update check's target URL
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: pending
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
+
   Ubuntu:
     name: Build C-PAC Ubuntu
+    needs:
+      - update-check
     strategy:
       matrix:
         Dockerfile: 
@@ -140,8 +154,8 @@ jobs:
       - name: Prep Dockerfiles for forked repository
         if: github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
         run: |
-            .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }}
-            cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile $DOCKER_TAG
+            .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
+            cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: See Dockerfile
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
@@ -227,8 +241,8 @@ jobs:
     - name: Prep Dockerfiles for forked repository
       if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'
       run: |
-          .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }}
-          cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile $DOCKER_TAG
+          .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
+          cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
     - name: See Dockerfile
       run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       if: steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true'

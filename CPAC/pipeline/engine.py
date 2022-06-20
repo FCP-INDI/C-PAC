@@ -1469,20 +1469,22 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 
     anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
 
+    anat = {}
     if type(data_paths['anat']) is str:
-        anat_T1=data_paths['anat']
+        anat['T1']=data_paths['anat']
     elif 'T1w' in data_paths['anat']:
-        anat_T1=data_paths['anat']['T1w']
+        anat['T1']=data_paths['anat']['T1w']
 
-    anat_flow.inputs.inputnode.set(
-        subject=part_id,
-        anat=anat_T1,
-        creds_path=data_paths['creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path'],
-        img_type='anat'
-    )
-    rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
-                   "", "anat_ingress")
+    if 'T1' in anat:
+        anat_flow.inputs.inputnode.set(
+            subject=part_id,
+            anat=anat['T1'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'],
+            img_type='anat'
+        )
+        rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
+                    "", "anat_ingress")
     
     if 'T2w' in data_paths['anat']: 
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')

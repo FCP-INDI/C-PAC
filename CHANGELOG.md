@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
 - Added [lint definition file](./.pylintrc) (for developers)
 - Added list of preconfigured pipelines to the usage string
+- Added CI smoke tests for preconfigs
 
 ### Changed
 - Made ndmg correlation matrices a configurable option
