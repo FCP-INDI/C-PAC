@@ -1,4 +1,21 @@
-'''Validation schema for C-PAC pipeline configurations'''
+'''Validation schema for C-PAC pipeline configurations
+
+Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
 
@@ -7,7 +24,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
 
-from CPAC import __version__
+from CPAC import docs_prefix
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
 
@@ -158,8 +175,6 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
-_url_version = 'nightly' if __version__.endswith(
-    '-dev') else f'v{__version__.lstrip("v")}'
 
 
 def permutation_message(key, options):
@@ -812,7 +827,7 @@ latest_schema = Schema({
                     Required('lowpass_cutoff'): Number,
                 },),
                 msg='`motion_estimate_filter` configuration is invalid. See '
-                    f'https://fcp-indi.github.io/docs/{_url_version}/user/'
+                    f'{docs_prefix}/user/'
                     'func#motion_estimate_filter_valid_options for details.\n',
             ),
         },

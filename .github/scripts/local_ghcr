@@ -3,7 +3,8 @@ import sys
 
 
 def replace_primary_repo(yaml_string, local_owner):
-    return yaml_string.replace('ghcr.io/fcp-indi', f'ghcr.io/{local_owner}')
+    return yaml_string.replace('ghcr.io/fcp-indi',
+                               f'ghcr.io/{local_owner.lower()}')
 
 
 if __name__ == '__main__':
