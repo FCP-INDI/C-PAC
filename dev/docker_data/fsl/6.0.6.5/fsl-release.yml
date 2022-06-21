@@ -129,7 +129,7 @@ packages:
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
- - fsl-newimage 2203.2
+ - fsl-newimage 2203.3
  - fsl-newmesh 2111.0
  - fsl-newnifti 4.0.0
  - fsl-newran 2111.0
