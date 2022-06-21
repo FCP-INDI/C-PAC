@@ -295,14 +295,20 @@ def generate_xcp_qc(sub, ses, task, run, desc, regressors, bold2t1w_mask,
     return qc_filepath
 
 
-def get_bids_info(resource):
+def get_bids_info(subject, scan, wf_name):
     """
-    Function to gather BIDS information from a resource in a strat_pool
+    Function to gather BIDS information from a strat_pool
 
     Parameters
     ----------
-    resource : str
-        resource filename
+    subject : str
+        subject ID
+
+    scan : str
+        scan ID
+
+    wf_name : str
+        workflow name
 
     Returns
     -------
@@ -318,9 +324,29 @@ def get_bids_info(resource):
     run : str or int
         run ID
     """
+    returns = ('subject', 'session', 'task', 'run')
+    resource = '_'.join([subject, wf_name,
+                         scan if 'task' in scan else f'task-{scan}'])
     entities = parse_file_entities(resource)
-    return (entities.get('subject'), entities.get('session'),
-            entities.get('task'), entities.get('run'))
+    returns = {key: entities.get(key) for key in returns}
+    if any(value is None for value in returns.values()):
+        entity_parts = resource.split('_')
+
+        def get_entity_part(key):
+            key = f'{key}-'
+            matching_parts = [part for part in entity_parts if
+                              part.startswith(key)]
+            if matching_parts:
+                return matching_parts[0].replace(key, '')
+            return None
+
+        for key, value in returns.items():
+            if value is None:
+                if key == 'task':
+                    returns[key] = get_entity_part(key)
+                else:
+                    returns[key] = get_entity_part(key[:3])
+    return returns
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -345,13 +371,14 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
-    bids_info = pe.Node(Function(input_names=['resource'],
+    bids_info = pe.Node(Function(input_names=['subject', 'scan', 'wf_name'],
                                  output_names=['subject', 'session', 'task',
                                                'run'],
                                  imports=['from bids.layout import '
                                           'parse_file_entities'],
                                  function=get_bids_info, as_module=True),
                         name=f'bids_info_{pipe_num}')
+    bids_info.inputs.wf_name = wf.name
     qc_file = pe.Node(Function(input_names=['sub', 'ses', 'task', 'run',
                                             'desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
@@ -389,7 +416,9 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
     wf = _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num=pipe_num)
     wf.connect([
-        (nodes['bold'].node, bids_info, [(nodes['bold'].out, 'resource')]),
+        (nodes['subject'].node, bids_info, [
+            (nodes['subject'].out, 'subject')]),
+        (nodes['scan'].node, bids_info, [(nodes['scan'].out, 'scan')]),
         (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
             (nodes['space-T1w_desc-mean_bold'].out, 'in_file')]),
         (nodes['space-T1w_desc-brain_mask'].node, qc_file, [
