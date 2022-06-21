@@ -64,10 +64,10 @@ jobs:
             TAG=${GITHUB_BRANCH//\//_}
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=nightly$VARIANT
+            TAG=nightly
           elif [[ $GITHUB_BRANCH == 'main' ]]
           then
-            TAG=latest$VARIANT
+            TAG=latest
           fi
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
@@ -145,10 +145,10 @@ jobs:
             TAG=${GITHUB_BRANCH//\//_}
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=nightly$VARIANT
+            TAG=nightly
           elif [[ $GITHUB_BRANCH == 'main' ]]
           then
-            TAG=latest$VARIANT
+            TAG=latest
           fi
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
@@ -209,10 +209,10 @@ jobs:
             TAG=${GITHUB_BRANCH//\//_}
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=nightly$VARIANT
+            TAG=nightly
           elif [[ $GITHUB_BRANCH == 'main' ]]
           then
-            TAG=latest$VARIANT
+            TAG=latest
           fi
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
