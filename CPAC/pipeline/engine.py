@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import ast
 import logging
 import os
@@ -1453,20 +1469,22 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 
     anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
 
+    anat = {}
     if type(data_paths['anat']) is str:
-        anat_T1=data_paths['anat']
+        anat['T1']=data_paths['anat']
     elif 'T1w' in data_paths['anat']:
-        anat_T1=data_paths['anat']['T1w']
+        anat['T1']=data_paths['anat']['T1w']
 
-    anat_flow.inputs.inputnode.set(
-        subject=part_id,
-        anat=anat_T1,
-        creds_path=data_paths['creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path'],
-        img_type='anat'
-    )
-    rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
-                   "", "anat_ingress")
+    if 'T1' in anat:
+        anat_flow.inputs.inputnode.set(
+            subject=part_id,
+            anat=anat['T1'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'],
+            img_type='anat'
+        )
+        rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
+                    "", "anat_ingress")
     
     if 'T2w' in data_paths['anat']: 
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')

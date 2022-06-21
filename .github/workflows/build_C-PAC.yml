@@ -50,11 +50,11 @@ jobs:
             DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=nightly$VARIANT
+            TAG=nightly
             DOCKERFILE=.github/Dockerfiles/C-PAC.develop$VARIANT-$OS.Dockerfile
           elif [[ $GITHUB_BRANCH == 'main' ]]
           then
-            TAG=latest$VARIANT
+            TAG=latest
             if [[ $VARIANT == "" ]]
             then
               DOCKERFILE=Dockerfile

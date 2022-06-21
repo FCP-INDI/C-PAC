@@ -59,6 +59,12 @@ jobs:
     needs: check-updated-version
     runs-on: ubuntu-latest
     steps:
+      - name: Set up check
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: pending
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:

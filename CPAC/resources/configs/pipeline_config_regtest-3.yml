@@ -11,36 +11,26 @@ FROM: default
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: regtest-3
 
   output_directory: 
-
     # Include extra versions and intermediate steps of functional preprocessing in the output directory.
     write_func_outputs: On
 
     # Include extra outputs in the output directory that may be of interest when more information is needed.
     write_debugging_outputs: On
 
-  working_directory: 
-
+  working_directory:
     # Deletes the contents of the Working Directory after running.
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: Off
 
-  log_directory: 
-
-    path: /output
-
-  system_config: 
-
+  system_config:
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
-    on_grid: 
-
-      SGE: 
-
+    on_grid:
+      SGE:
         # SGE Parallel Environment to use when running CPAC.
         # Only applies when you are running on a grid or compute cluster using SGE.
         parallel_environment: cpac
@@ -75,40 +65,34 @@ pipeline_setup:
     num_participants_at_once: 15
 
 anatomical_preproc: 
-
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: On
+  non_local_means_filtering:
+    run: On
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: On
+  n4_bias_field_correction:
+    run: On
 
   brain_extraction: 
-
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
     # this is a fork option
     using: [niworkflows-ants]
 
     FSL-BET: 
-
       # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
       mask_boolean: Off
 
 segmentation: 
-
   tissue_segmentation: 
-
     # option parameters
     FSL-FAST: 
-
       use_priors: 
-
         # Full path to a directory containing binarized prior probability maps.
         # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
         # It is not necessary to change this path unless you intend to use non-standard priors.
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
-
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
@@ -128,26 +112,18 @@ segmentation:
       CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
 registration_workflows: 
-
   anatomical_registration: 
-
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
 
   functional_registration: 
-
     EPI_registration: 
-
       ANTs: 
-
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters: 
-
     func_registration_to_template: 
-
       output_resolution: 
-
         # The resolution (in mm) to which the registered derivative outputs are written into.
         # NOTE:
         #   this is for the single-volume functional-space outputs (i.e. derivatives)
@@ -155,9 +131,7 @@ registration_workflows:
         func_derivative_outputs: 2mm
 
 functional_preproc: 
-
   truncation: 
-
     # First timepoint to include in analysis.
     # Default is 0 (beginning of timeseries).
     # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
@@ -171,28 +145,23 @@ functional_preproc:
     stop_tr: 100
 
   despiking: 
-
     # Run AFNI 3dDespike
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
   motion_estimates_and_correction: 
-
     motion_estimates: 
-
       # calculate motion statistics BEFORE slice-timing correction
       calculate_motion_first: On
 
     motion_correction: 
-
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
       using: [mcflirt]
 
       # option parameters
       AFNI-3dvolreg: 
-
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: Off
 
@@ -200,21 +169,17 @@ functional_preproc:
       motion_correction_reference: [median]
 
   func_masking: 
-
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
     # this is a fork point
     using: [FSL_AFNI]
 
 nuisance_corrections: 
-
   1-ICA-AROMA: 
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On, Off]
 
   2-nuisance_regression: 
-
     # Select which nuisance signal corrections to apply
     Regressors: 
       - Bandpass:
@@ -276,16 +241,13 @@ nuisance_corrections:
 # OUTPUTS AND DERIVATIVES
 # -----------------------
 post_processing: 
-
   spatial_smoothing: 
-
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
     smoothing_method: [AFNI]
 
 timeseries_extraction: 
-
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
@@ -294,7 +256,6 @@ timeseries_extraction:
     s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
 
 seed_based_correlation_analysis: 
-
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
@@ -304,9 +265,7 @@ seed_based_correlation_analysis:
     /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 voxel_mirrored_homotopic_connectivity: 
-
   symmetric_registration: 
-
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
@@ -320,7 +279,6 @@ voxel_mirrored_homotopic_connectivity:
     dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
 
 network_centrality: 
-
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
   memory_allocation: 3.0
@@ -329,7 +287,6 @@ network_centrality:
   template_specification_file: s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
 
   eigenvector_centrality: 
-
     # Enable/Disable eigenvector centrality by selecting the connectivity weights
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
@@ -337,7 +294,6 @@ network_centrality:
     weight_options: [Binarized, Weighted]
 
   local_functional_connectivity_density: 
-
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
     #   'Significance threshold', 'Correlation threshold'
@@ -352,6 +308,5 @@ network_centrality:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

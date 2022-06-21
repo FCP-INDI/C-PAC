@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import sys
 import time
@@ -347,6 +363,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     C-PAC version: {cpac_version}
 
+    {license_notice}
+
     Setting maximum number of cores per participant to {cores}
     Setting number of participants at once to {participants}
     Setting OMP_NUM_THREADS to {omp_threads}
@@ -383,9 +401,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         random_seed=(
             '    Random seed: %s' %
             c.pipeline_setup['system_config']['random_seed']) if
-        c.pipeline_setup['system_config']['random_seed'] is not None else ''
-    ))
-
+        c.pipeline_setup['system_config']['random_seed'] is not None else '',
+        license_notice=CPAC.license_notice.replace('\n', '\n    ')))
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time

@@ -11,39 +11,14 @@ FROM: default
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_ccs-options
 
   output_directory: 
-
-    # Directory where C-PAC should write out processed data, logs, and crash reports.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/output', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    path: /outputs/output
-
     # Include extra versions and intermediate steps of functional preprocessing in the output directory.
     write_func_outputs: True
 
-  working_directory: 
-
-    # Directory where C-PAC should store temporary and intermediate files.
-    # - This directory must be saved if you wish to re-run your pipeline from where you left off (if not completed).
-    # - NOTE: As it stores all intermediate files, this directory can grow to become very
-    #   large, especially for data with a large amount of TRs.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/work', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    # - This can be written to '/tmp' if you do not intend to save your working directory.
-    path: /outputs/working
-
-  log_directory: 
-
-    path: /outputs/log
-
   system_config: 
-
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
     # - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
@@ -56,7 +31,6 @@ pipeline_setup:
 # PREPROCESSING
 # -------------
 surface_analysis: 
-
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
@@ -68,7 +42,6 @@ surface_analysis:
     reconall_args: '-clean-bm -gcut'
 
 anatomical_preproc: 
-
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
 
@@ -110,27 +83,22 @@ segmentation:
 
 
 registration_workflows: 
-
   anatomical_registration: 
-
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
 
     registration: 
-
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: [FSL]
 
       FSL-FNIRT: 
-
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
         interpolation: trilinear
 
   functional_registration: 
-
     coregistration:
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
 
@@ -147,7 +115,6 @@ registration_workflows:
           func_reg_input_volume: 7
 
     func_registration_to_template: 
-
       FNIRT_pipelines:
 
         # Interpolation method for writing out transformed functional images.
@@ -155,7 +122,6 @@ registration_workflows:
         interpolation: trilinear
 
 functional_preproc: 
-
   despiking:
 
     # Run AFNI 3dDespike
@@ -184,9 +150,7 @@ functional_preproc:
     using: ['CCS_Anatomical_Refined']
 
 nuisance_corrections: 
-
   2-nuisance_regression: 
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
@@ -238,11 +202,9 @@ nuisance_corrections:
           method: AFNI
 
 timeseries_extraction: 
-
   run: Off
 
 seed_based_correlation_analysis: 
-
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
@@ -253,28 +215,23 @@ seed_based_correlation_analysis:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
-
     /cpac_templates/CC400.nii.gz: Avg
 
 amplitude_low_frequency_fluctuation: 
-
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
 regional_homogeneity: 
-
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
 voxel_mirrored_homotopic_connectivity: 
-
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
 
 network_centrality: 
-
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off

@@ -16,9 +16,9 @@ pipeline_setup:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
     # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/output', and then map (-B/-v) your desired output directory to that label.
+    #   name like '/outputs', and then map (-B/-v) your desired output directory to that label.
     # - If running outside a container, this should be a full path to a directory.
-    path: /output
+    path: /outputs/output
 
     # (Optional) Path to a BIDS-Derivatives directory that already has outputs.
     #   - This option is intended to ingress already-existing resources from an output
@@ -65,7 +65,7 @@ pipeline_setup:
     #   name like '/work', and then map (-B/-v) your desired output directory to that label.
     # - If running outside a container, this should be a full path to a directory.
     # - This can be written to '/tmp' if you do not intend to save your working directory.
-    path: /tmp
+    path: /outputs/working
 
     # Deletes the contents of the Working Directory after running.
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
@@ -76,12 +76,12 @@ pipeline_setup:
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: True
 
-    path: /logs
+    path: /outputs/logs
 
   crash_log_directory:
 
     # Directory where CPAC should write crash logs.
-    path: /crash
+    path: /outputs/crash
 
   system_config:
 

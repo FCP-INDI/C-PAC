@@ -14,10 +14,10 @@ if __name__ == '__main__':
     dockerfiles = '.github/Dockerfiles'
     new_Dockerfile = replace_primary_repo(
         open(file, 'r').read(),
-        owner
+        owner.lower()
     )
     if '-lite-' in file:
-        tag = tag.split("c-pac:")[1][:-5]
+        tag = tag.lower().split("c-pac:")[1][:-5]
         if tag != 'latest-lite':
             new_Dockerfile = new_Dockerfile.replace(':latest-bionic',
                                                     f':{tag}')
