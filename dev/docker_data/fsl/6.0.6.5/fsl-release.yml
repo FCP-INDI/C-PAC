@@ -53,13 +53,13 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.2.3
- - fsleyes 1.4.5
+ - fsleyes 1.4.6
  - fslpy 3.9.5
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2111.1
- - fsl-base 2205.7
+ - fsl-base 2205.8
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -129,7 +129,7 @@ packages:
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
- - fsl-newimage 2203.1
+ - fsl-newimage 2203.2
  - fsl-newmesh 2111.0
  - fsl-newnifti 4.0.0
  - fsl-newran 2111.0
@@ -152,8 +152,8 @@ packages:
  - fsl-swe v1.1.0
  - fsl-tbss 2111.0
  - fsl-tirl v2.2.1
- - fsl-topup 2203.0
- - fsl-utils 2203.0
+ - fsl-topup 2203.1
+ - fsl-utils 2203.2
  - fsl-vbm 2006.0
  - fsl-verbena v4.0.3
  - fsl-vtkio 2111.0
