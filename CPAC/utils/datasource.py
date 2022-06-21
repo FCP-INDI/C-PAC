@@ -407,7 +407,7 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
 def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                           input_creds_path, unique_id=None):
     # Grab field maps
-    diff = False
+    diff = {'diffphase': False, 'diffmag': False}
     blip = False
     fmap_rp_list = []
     fmap_TE_list = []
@@ -462,14 +462,13 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_TE_list.append(f"{key}-TE")
 
-            keywords = ['diffphase', 'diffmag']
-            if key in keywords:
-                diff = True
+            if key in diff:
+                diff[key] = True
 
-            if orig_key == "epi_AP" or orig_key == "epi_PA":
+            if orig_key in ["epi_AP", "epi_PA"]:
                 blip = True
 
-        if diff:
+        if all(diff.values()):
             calc_delta_ratio = pe.Node(Function(
                 input_names=['dwell_time',
                              'echo_time_one',
@@ -479,7 +478,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-                
+
             node, out_file = rpool.get('diffphase-dwell')[
                 "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
