@@ -325,7 +325,12 @@ def get_bids_info(subject, scan, wf_name):
         run ID
     """
     returns = ('subject', 'session', 'task', 'run')
-    resource = '_'.join([subject, wf_name,
+    ses = wf_name.split('_')[-1]
+    if not ses.startswith('ses-'):
+        ses = f'ses-{ses}'
+    if not subject.startswith('sub-'):
+        subject = f'sub-{subject}'
+    resource = '_'.join([subject, ses,
                          scan if 'task' in scan else f'task-{scan}'])
     entities = parse_file_entities(resource)
     returns = {key: entities.get(key) for key in returns}
