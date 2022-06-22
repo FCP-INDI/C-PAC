@@ -23,7 +23,9 @@ commands:
           command: docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PUSH}
       - run:
           name: "Tag image for Docker Hub"
-          command: "docker tag ${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
+          command: |
+            docker pull ${DOCKER_TAG}
+            docker tag ${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}
       - run:
           name: "Push to Docker Hub"
           command: "docker push fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
