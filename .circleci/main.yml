@@ -219,7 +219,7 @@ jobs:
                       tag: latest
             - when:
                 condition:
-                  equal: [ << pipeline.parameters.branch >>, "develop" ]
+                  equal: [ << pipeline.parameters.branch >>, "push-to-docker-hub" ]
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
@@ -295,6 +295,7 @@ workflows:
               only:
                 - main
                 - develop
+                - push-to-docker-hub
           matrix:
             parameters:
               variant:
