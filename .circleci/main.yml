@@ -23,7 +23,9 @@ commands:
           command: docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PUSH}
       - run:
           name: "Tag image for Docker Hub"
-          command: "docker tag ${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
+          command: |
+            docker pull ${DOCKER_TAG}
+            docker tag ${DOCKER_TAG} fcpindi/c-pac:<< parameters.tag >>${VARIANT}
       - run:
           name: "Push to Docker Hub"
           command: "docker push fcpindi/c-pac:<< parameters.tag >>${VARIANT}"
@@ -177,22 +179,6 @@ jobs:
           key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
-      - when:
-          condition:
-            equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
-          steps:
-            - when:
-                condition:
-                  equal: [ << pipeline.parameters.branch >>, "main" ]
-                steps:
-                  - push-to-docker-hub:
-                      tag: latest
-            - when:
-                condition:
-                  equal: [ << pipeline.parameters.branch >>, "develop" ]
-                steps:
-                  - push-to-docker-hub:
-                      tag: nightly
       - store_artifacts:
           path: htmlcov
   push-release:
@@ -205,13 +191,40 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - check-updated
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - attach_workspace:
           at: /home/circleci/
       - push-to-docker-hub:
           tag: release-$CIRCLE_TAG
+  push-branch-to-docker-hub:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    resource_class: medium
+    steps:
+      - checkout
+      - when:
+          condition:
+            equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
+          steps:
+            - set-up-variant:
+                variant: "<< parameters.variant >>"
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "main" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: latest
+            - when:
+                condition:
+                  equal: [ << pipeline.parameters.branch >>, "develop" ]
+                steps:
+                  - push-to-docker-hub:
+                      tag: nightly
   pytest-docker:
     parameters:
       variant:
@@ -277,6 +290,36 @@ workflows:
             - "Test ABCD-HCP variant in Docker"
             - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
+      - push-branch-to-docker-hub:
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+          matrix:
+            parameters:
+              variant:
+                - ""
+                - lite
+                - ABCD-HCP
+                - fMRIPrep-LTS
+          requires:
+            - "Combine coverage"
+      - push-release:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          matrix:
+            parameters:
+              variant:
+                - ""
+                - lite
+                - ABCD-HCP
+                - fMRIPrep-LTS
+          requires:
+            - "Combine coverage"          
       - pytest-docker:
           name: "Test in Docker"
       - pytest-docker:
