@@ -310,6 +310,8 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
           matrix:
             parameters:
               variant:
