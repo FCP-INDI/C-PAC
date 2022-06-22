@@ -177,6 +177,36 @@ jobs:
           key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
+      - store_artifacts:
+          path: htmlcov
+  push-release:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    resource_class: medium
+    steps:
+      - checkout
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
+      - attach_workspace:
+          at: /home/circleci/
+      - push-to-docker-hub:
+          tag: release-$CIRCLE_TAG
+  push-to-docker-hub:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    machine:
+      image: ubuntu-2004:202010-01
+    resource_class: medium
+    steps:
+      - checkout
+      - set-up-variant:
+          variant: "<< parameters.variant >>"
       - when:
           condition:
             equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
@@ -193,25 +223,6 @@ jobs:
                 steps:
                   - push-to-docker-hub:
                       tag: nightly
-      - store_artifacts:
-          path: htmlcov
-  push-release:
-    parameters:
-      variant:
-        type: string
-        default: ""
-    machine:
-      image: ubuntu-2004:202010-01
-    resource_class: medium
-    steps:
-      - checkout
-      - check-updated
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
-      - attach_workspace:
-          at: /home/circleci/
-      - push-to-docker-hub:
-          tag: release-$CIRCLE_TAG
   pytest-docker:
     parameters:
       variant:
@@ -277,6 +288,36 @@ workflows:
             - "Test ABCD-HCP variant in Docker"
             - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
+      - push-to-docker-hub:
+          name: "Push to Docker Hub"
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+          matrix:
+            parameters:
+              variant:
+                - ""
+                - lite
+                - ABCD-HCP
+                - fMRIPrep-LTS
+          requires:
+            - "Combine coverage"
+      - push-release:
+          name: "Push release to Docker Hub"
+          filters:
+            tags:
+              only: /^v.*/
+          matrix:
+            parameters:
+              variant:
+                - ""
+                - lite
+                - ABCD-HCP
+                - fMRIPrep-LTS
+          requires:
+            - "Combine coverage"          
       - pytest-docker:
           name: "Test in Docker"
       - pytest-docker:
