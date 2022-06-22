@@ -195,7 +195,7 @@ jobs:
           at: /home/circleci/
       - push-to-docker-hub:
           tag: release-$CIRCLE_TAG
-  push-to-docker-hub:
+  push-branch-to-docker-hub:
     parameters:
       variant:
         type: string
@@ -205,12 +205,12 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
       - when:
           condition:
             equal: [ << pipeline.parameters.owner >>, "FCP-INDI" ]
           steps:
+            - set-up-variant:
+                variant: "<< parameters.variant >>"
             - when:
                 condition:
                   equal: [ << pipeline.parameters.branch >>, "main" ]
@@ -288,8 +288,7 @@ workflows:
             - "Test ABCD-HCP variant in Docker"
             - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
-      - push-to-docker-hub:
-          name: "Push to Docker Hub"
+      - push-branch-to-docker-hub:
           filters:
             branches:
               only:
@@ -306,7 +305,6 @@ workflows:
           requires:
             - "Combine coverage"
       - push-release:
-          name: "Push release to Docker Hub"
           filters:
             tags:
               only: /^v.*/
