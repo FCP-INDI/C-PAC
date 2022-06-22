@@ -346,7 +346,8 @@ def get_bids_info(subject, scan, wf_name):
                     returns[key] = get_entity_part(key)
                 else:
                     returns[key] = get_entity_part(key[:3])
-    return returns
+    return tuple(returns.get(key) for key in [
+                 'subject', 'session', 'task', 'run'])
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
