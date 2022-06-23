@@ -12,6 +12,8 @@ run : int
     run index :cite:`cite-BIDS21`
 desc : str
     description :cite:`cite-BIDS21`
+regressors : str
+    'Name' of regressors in the current fork
 space : str
     space label :cite:`cite-BIDS21`
 meanFD : float
@@ -60,18 +62,17 @@ import pandas as pd
 from bids.layout import parse_file_entities
 from nipype.interfaces import afni, fsl
 
-from CPAC.func_preproc.func_preproc import motion_correct_connections
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
-    motion_power_statistics
+    DVARS_strip_t0, ImageTo1D
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
 
-motion_params = ['dvars', 'framewise-displacement-jenkinson']
+motion_params = ['dvars', 'framewise-displacement-jenkinson',
+                 'movement-parameters']
 
 
-def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
+def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
     """
     Connect the motion metrics to the workflow.
 
@@ -80,16 +81,14 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     wf : nipype.pipeline.engine.Workflow
         The workflow to connect the motion metrics to.
 
-    cfg : CPAC.utils.configuration.Configuration
+    nodes : dict
+        Dictionary of nodes already collected from the strategy pool.
 
     strat_pool : CPAC.pipeline.engine.ResourcePool
         The current strategy pool.
 
     qc_file : nipype.pipeline.engine.Node
         A function node with the function ``generate_xcp_qc``.
-
-    brain_mask_key : str
-        The key of the brain mask in the strategy pool.
 
     pipe_num : int
 
@@ -99,51 +98,29 @@ def _connect_motion(wf, cfg, strat_pool, qc_file, brain_mask_key, pipe_num):
     """
     # pylint: disable=invalid-name, too-many-arguments
     try:
-        nodes = {'censor-indices': strat_pool.node_data('censor-indices')}
+        nodes = {**nodes,
+                 'censor-indices': strat_pool.node_data('censor-indices')}
         wf.connect(nodes['censor-indices'].node, nodes['censor-indices'].out,
                    qc_file, 'censor_indices')
     except LookupError:
-        nodes = {}
         qc_file.inputs.censor_indices = []
-    motion_correct_tool = check_prov_for_motion_tool(
-        strat_pool.get_cpac_provenance('movement-parameters'))
-    wf, motion_after = motion_correct_connections(
-        wf, cfg, strat_pool, pipe_num, opt=motion_correct_tool)
-    gen_motion_stats = motion_power_statistics('motion_stats-after_'
-                                               f'{pipe_num}',
-                                               motion_correct_tool)
-    nodes = {
-        **nodes,
-        **{node_data: strat_pool.node_data(node_data) for node_data in [
-            'subject', 'scan', brain_mask_key, 'max-displacement',
-            *motion_params]}}
-    if 'rels-displacement' in motion_after:
-        wf.connect(*motion_after['rels-displacement'],
-                   gen_motion_stats, 'inputspec.rels_displacement')
-    if 'coordinate-transformation' in motion_after:
-        wf.connect(*motion_after['coordinate-transformation'],
-                   gen_motion_stats, 'inputspec.transformations')
+    cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
+                        name=f'cal_DVARS_{pipe_num}',
+                        mem_gb=0.4,
+                        mem_x=(739971956005215 / 151115727451828646838272,
+                               'in_file'))
+    cal_DVARS_strip = pe.Node(Function(input_names=['file_1D'],
+                                       output_names=['out_file'],
+                                       function=DVARS_strip_t0,
+                                       as_module=True),
+                              name=f'cal_DVARS_strip_{pipe_num}')
     wf.connect([
-        (nodes['subject'].node, gen_motion_stats, [
-            (nodes['subject'].out, 'inputspec.subject_id')]),
-        (nodes['scan'].node, gen_motion_stats, [
-            (nodes['scan'].out, 'inputspec.scan_id')]),
-        (motion_after['desc-motion_bold'][0], gen_motion_stats, [
-            (motion_after['desc-motion_bold'][1],
-             'inputspec.motion_correct')]),
-        (motion_after['movement-parameters'][0], gen_motion_stats, [
-            (motion_after['movement-parameters'][1],
-             'inputspec.movement_parameters')]),
-        (motion_after['movement-parameters'][0], qc_file, [
-            (motion_after['movement-parameters'][1], 'movement_parameters')]),
-        (motion_after['max-displacement'][0], gen_motion_stats, [
-            (motion_after['max-displacement'][1],
-             'inputspec.max_displacement')]),
-        (nodes[brain_mask_key].node, gen_motion_stats, [
-            (nodes[brain_mask_key].out, 'inputspec.mask')]),
-        (gen_motion_stats, qc_file, [
-            ('outputspec.DVARS_1D', 'dvars_after'),
-            ('outputspec.FDJ_1D', 'fdj_after')]),
+        (nodes['desc-preproc_bold'].node, cal_DVARS, [
+            (nodes['desc-preproc_bold'].out, 'in_file')]),
+        (nodes['space-bold_desc-brain_mask'].node, cal_DVARS, [
+            (nodes['space-bold_desc-brain_mask'].out, 'mask')]),
+        (cal_DVARS, cal_DVARS_strip, [('out_file', 'file_1D')]),
+        (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
         ]) for node in motion_params]])
@@ -162,11 +139,10 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
+def generate_xcp_qc(sub, ses, task, run, desc, regressors, bold2t1w_mask,
                     t1w_mask, bold2template_mask, template_mask, original_func,
                     final_func, movement_parameters, dvars, censor_indices,
-                    framewise_displacement_jenkinson, dvars_after, fdj_after,
-                    template):
+                    framewise_displacement_jenkinson, dvars_after, template):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
     """Function to generate an RBC-style QC CSV
 
@@ -187,11 +163,14 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     desc : str
         description string
 
+    regressors : str
+        'Name' of regressors in fork
+
     original_func : str
         path to original 'bold' image
 
     final_bold : str
-        path to 'desc-preproc_bold' image
+        path to 'space-template_desc-preproc_bold' image
 
     bold2t1w_mask : str
         path to bold-to-T1w transform applied to space-bold_desc-brain_mask
@@ -221,19 +200,16 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     dvars_after : str
         path to DVARS on final 'bold' image
 
-    fdj_after : str
-        path to framewise displacement (Jenkinson) on final 'bold' image
-
     template : str
         path to registration template
 
     Returns
     -------
     str
-        path to desc-xcp_quality TSV
+        path to space-template_desc-xcp_quality TSV
     """
     columns = (
-        'sub,ses,task,run,desc,space,meanFD,relMeansRMSMotion,'
+        'sub,ses,task,run,desc,regressors,space,meanFD,relMeansRMSMotion,'
         'relMaxRMSMotion,meanDVInit,meanDVFinal,nVolCensored,nVolsRemoved,'
         'motionDVCorrInit,motionDVCorrFinal,coregDice,coregJaccard,'
         'coregCrossCorr,coregCoverage,normDice,normJaccard,normCrossCorr,'
@@ -245,9 +221,10 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         'final_func': nb.load(final_func),
     }
 
-    # `sub` through `desc`
+    # `sub` through `space`
     from_bids = {
         'sub': sub, 'ses': ses, 'task': task, 'run': run, 'desc': desc,
+        'regressors': regressors,
         'space': os.path.basename(template).split('.', 1)[0].split('_', 1)[0]
     }
     if from_bids['space'].startswith('tpl-'):
@@ -274,7 +251,8 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     del desc_span
 
     # `meanFD (Jenkinson)`
-    power_params = {'meanFD': np.mean(np.loadtxt(fdj_after))}
+    power_params = {'meanFD': np.mean(np.loadtxt(
+        framewise_displacement_jenkinson))}
 
     # `relMeansRMSMotion` & `relMaxRMSMotion`
     mot = np.genfromtxt(movement_parameters).T
@@ -294,7 +272,8 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
         meanDV['motionDVCorrInit'] = f'ValueError({str(value_error)})'
     meanDV['meanDVFinal'] = np.mean(np.loadtxt(dvars_after))
     try:
-        meanDV['motionDVCorrFinal'] = dvcorr(dvars_after, fdj_after)
+        meanDV['motionDVCorrFinal'] = dvcorr(dvars_after,
+                                             framewise_displacement_jenkinson)
     except ValueError as value_error:
         meanDV['motionDVCorrFinal'] = f'ValueError({str(value_error)})'
 
@@ -316,15 +295,20 @@ def generate_xcp_qc(sub, ses, task, run, desc, bold2t1w_mask,
     return qc_filepath
 
 
-def get_bids_info(strat_pool, resource_name):
+def get_bids_info(subject, scan, wf_name):
     """
-    Function to gather BIDS information from a resource in a strat_pool
+    Function to gather BIDS information from a strat_pool
 
     Parameters
     ----------
-    strat_pool : CPAC.pipeline.engine.ResourcePool
+    subject : str
+        subject ID
 
-    resource_name : str
+    scan : str
+        scan ID
+
+    wf_name : str
+        workflow name
 
     Returns
     -------
@@ -339,14 +323,53 @@ def get_bids_info(strat_pool, resource_name):
 
     run : str or int
         run ID
+
+    Examples
+    --------
+    >>> subject, session, task, run = get_bids_info(
+    ...     subject='DavidBowman', scan='rest_acq-1_run-1',
+    ...     wf_name='cpac_DavidBowman_3')
+    >>> subject
+    'DavidBowman'
+    >>> 'session'
+    '3'
+    >>> task
+    'rest'
+    >>> run
+    '1'
+    >>> get_bids_info(subject='sub-colornest035', scan='rest_run-01',
+    ...               wf_name='cpac_sub-colornest035_ses-1')
+    ('colornest035', '1', 'rest', '1')
     """
-    rest_dict = getattr(getattr(
-        strat_pool.node_data(resource_name).node.inputs, 'select_scan_params'),
-        'rest_dict')
-    scan = list(rest_dict.values())[0].get('scan', '') if rest_dict else ''
-    entities = parse_file_entities(scan)
-    return (entities.get('subject'), entities.get('session'),
-            entities.get('task'), entities.get('run'))
+    returns = ('subject', 'session', 'task', 'run')
+    ses = wf_name.split('_')[-1]
+    if not ses.startswith('ses-'):
+        ses = f'ses-{ses}'
+    if not subject.startswith('sub-'):
+        subject = f'sub-{subject}'
+    resource = '_'.join([subject, ses,
+                         scan if 'task' in scan else f'task-{scan}'])
+    entities = parse_file_entities(resource)
+    returns = {key: entities.get(key) for key in returns}
+    if any(value is None for value in returns.values()):
+        entity_parts = resource.split('_')
+
+        def get_entity_part(key):
+            key = f'{key}-'
+            matching_parts = [part for part in entity_parts if
+                              part.startswith(key)]
+            if matching_parts:
+                return matching_parts[0].replace(key, '')
+            return None
+
+        for key, value in returns.items():
+            if value is None:
+                if key == 'task':
+                    returns[key] = get_entity_part(key)
+                else:
+                    returns[key] = get_entity_part(key[:3])
+    return tuple(str(returns.get(key)) for key in [
+                 'subject', 'session', 'task', 'run'])
 
 
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -357,58 +380,53 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'switch': ['generate_xcpqc_files'],
      'option_key': 'None',
      'option_val': 'None',
-     'inputs': [('subject', 'scan', 'unique_id', 'bold',
+     'inputs': [('subject', 'scan', 'bold', 'desc-preproc_bold',
                  'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
-                 'desc-preproc_bold', 'max-displacement', 'rels-displacement',
-                 'from-bold_to-T1w_mode-image_desc-linear_xfm',
-                 'from-template_to-T1w_mode-image_desc-linear_xfm',
+                 'max-displacement', 'space-template_desc-preproc_bold',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
                  'space-EPItemplate_desc-bold_mask'], 'regressors',
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
-                 'movement-parameters', 'coordinate-transformation', 'dvars',
-                 'framewise-displacement-jenkinson', 'motion-basefile')],
-     'outputs': ['desc-xcp_quality']}
+                 'movement-parameters', 'dvars',
+                 'framewise-displacement-jenkinson')],
+     'outputs': ['space-template_desc-xcp_quality']}
     """
-    # if we're running regressors, only generate qc files for post-regression
-    # 'desc-preproc_bold'
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
-    bids_info = pe.Node(Function(input_names=['strat_pool', 'resource_name'],
+    bids_info = pe.Node(Function(input_names=['subject', 'scan', 'wf_name'],
                                  output_names=['subject', 'session', 'task',
                                                'run'],
                                  imports=['from bids.layout import '
                                           'parse_file_entities'],
                                  function=get_bids_info, as_module=True),
                         name=f'bids_info_{pipe_num}')
-    bids_info.inputs.strat_pool = strat_pool
-    bids_info.inputs.resource_name = 'bold'
+    bids_info.inputs.wf_name = wf.name
     qc_file = pe.Node(Function(input_names=['sub', 'ses', 'task', 'run',
                                             'desc', 'bold2t1w_mask',
                                             't1w_mask', 'bold2template_mask',
                                             'template_mask', 'original_func',
                                             'final_func', 'template',
                                             'movement_parameters', 'dvars',
-                                            'censor_indices',
+                                            'censor_indices', 'regressors',
                                             'framewise_displacement_jenkinson',
-                                            'dvars_after', 'fdj_after'],
+                                            'dvars_after'],
                                output_names=['qc_file'],
                                function=generate_xcp_qc,
                                as_module=True),
                       name=f'qcxcp_{pipe_num}')
     qc_file.inputs.desc = 'preproc'
-    func = {}
-    func['original'] = strat_pool.node_data('bold')
-    func['space-T1w'] = strat_pool.node_data('space-T1w_desc-mean_bold')
-    func['final'] = strat_pool.node_data('desc-preproc_bold')
+    qc_file.inputs.regressors = strat_pool.node_data(
+        'regressors').node.name.split('regressors_'
+    )[-1][::-1].split('_', 1)[-1][::-1]
     bold_to_T1w_mask = pe.Node(interface=fsl.ImageMaths(),
                                name=f'binarize_bold_to_T1w_mask_{pipe_num}',
                                op_string='-bin ')
     nodes = {key: strat_pool.node_data(key) for key in [
-        'from-bold_to-T1w_mode-image_desc-linear_xfm',
-        'space-bold_desc-brain_mask']}
-    nodes['t1w_mask'] = strat_pool.node_data('space-T1w_desc-brain_mask')
+        'bold', 'desc-preproc_bold', 'max-displacement',
+        'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
+        'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold',
+        'subject', *motion_params]}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(
@@ -419,22 +437,21 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.Resample(), name=f'resample_bold_mask_to_anat_res_{pipe_num}',
         mem_gb=0, mem_x=(0.0115, 'in_file', 't'))
     resample_bold_mask_to_template.inputs.outputtype = 'NIFTI_GZ'
-    wf = _connect_motion(wf, cfg, strat_pool, qc_file,
-                         brain_mask_key='space-bold_desc-brain_mask',
-                         pipe_num=pipe_num)
+    wf = _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num=pipe_num)
     wf.connect([
-        (func['space-T1w'].node, bold_to_T1w_mask, [
-            (func['space-T1w'].out, 'in_file')]),
-        (nodes['t1w_mask'].node, qc_file, [
-            (nodes['t1w_mask'].out, 't1w_mask')]),
+        (nodes['subject'].node, bids_info, [
+            (nodes['subject'].out, 'subject')]),
+        (nodes['scan'].node, bids_info, [(nodes['scan'].out, 'scan')]),
+        (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
+            (nodes['space-T1w_desc-mean_bold'].out, 'in_file')]),
+        (nodes['space-T1w_desc-brain_mask'].node, qc_file, [
+            (nodes['space-T1w_desc-brain_mask'].out, 't1w_mask')]),
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),
         (nodes['template_mask'].node, qc_file, [
             (nodes['template_mask'].out, 'template_mask')]),
-        (func['original'].node, qc_file, [
-            (func['original'].out, 'original_func')]),
-        (func['final'].node, qc_file, [(func['final'].out, 'final_func')]),
-        (func['space-T1w'].node, qc_file, [
-            (func['space-T1w'].out, 'space_T1w_bold')]),
+        (nodes['bold'].node, qc_file, [(nodes['bold'].out, 'original_func')]),
+        (nodes['space-template_desc-preproc_bold'].node, qc_file, [
+            (nodes['space-template_desc-preproc_bold'].out, 'final_func')]),
         (nodes['template'].node, qc_file, [
             (nodes['template'].out, 'template')]),
         (nodes['template_mask'].node, resample_bold_mask_to_template, [
@@ -449,4 +466,4 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
             ('task', 'task'),
             ('run', 'run')])])
 
-    return wf, {'desc-xcp_quality': (qc_file, 'qc_file')}
+    return wf, {'space-template_desc-xcp_quality': (qc_file, 'qc_file')}

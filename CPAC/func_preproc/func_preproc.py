@@ -1577,7 +1577,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["func_masking", "using"],
      "option_val": "FSL_AFNI",
      "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
-                 "motion-basefile"],
+                "motion-basefile", "FSL-AFNI-bold-ref", "FSL-AFNI-brain-mask",
+                "FSL-AFNI-brain-probseg"],
      "outputs": ["space-bold_desc-brain_mask",
                  "desc-ref_bold"]}
     '''
@@ -1598,12 +1599,11 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"init_aff_{pipe_num}",
         n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
     )
+    node, out = strat_pool.get_data('FSL-AFNI-bold-ref')
+    wf.connect(node, out, init_aff, 'fixed_image')
 
-    init_aff.inputs.fixed_image = cfg.functional_preproc[
-        'func_masking']['FSL_AFNI']['bold_ref']
-
-    init_aff.inputs.fixed_image_mask = cfg.functional_preproc[
-        'func_masking']['FSL_AFNI']['brain_mask']
+    node, out = strat_pool.get_data('FSL-AFNI-brain-mask')
+    wf.connect(node, out, init_aff, 'fixed_image_mask')
 
     init_aff.inputs.search_grid = (40, (0, 40, 40))
 
@@ -1633,8 +1633,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
     )
 
-    norm.inputs.fixed_image = cfg.functional_preproc[
-        'func_masking']['FSL_AFNI']['bold_ref']
+    node, out = strat_pool.get_data('FSL-AFNI-bold-ref')
+    wf.connect(node, out, norm, 'fixed_image')
 
     map_brainmask = pe.Node(
         ants.ApplyTransforms(
@@ -1643,10 +1643,10 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         name=f"map_brainmask_{pipe_num}",
     )
-    
+
     # Use the higher resolution and probseg for numerical stability in rounding
-    map_brainmask.inputs.input_image = cfg.functional_preproc[
-        'func_masking']['FSL_AFNI']['brain_probseg']
+    node, out = strat_pool.get_data('FSL-AFNI-brain-probseg')
+    wf.connect(node, out, map_brainmask, 'input_image')
 
     binarize_mask = pe.Node(interface=fsl.maths.MathsCommand(),
                             name=f'binarize_mask_{pipe_num}')

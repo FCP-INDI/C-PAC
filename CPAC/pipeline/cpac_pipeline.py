@@ -273,7 +273,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     set_up_logger(f'{subject_id}_expectedOutputs',
                   filename=f'{bidsier_prefix(c["subject_id"])}_'
                            'expectedOutputs.yml',
-                  level='info', log_dir=log_dir, mock=True)
+                  level='info', log_dir=log_dir, mock=True,
+                  overwrite_existing=True)
     if c.pipeline_setup['Debugging']['verbose']:
         set_up_logger('engine', level='debug', log_dir=log_dir, mock=True)
 

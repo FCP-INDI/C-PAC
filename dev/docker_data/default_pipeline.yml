@@ -1270,11 +1270,11 @@ functional_preproc:
 
     FSL_AFNI:
 
-      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
+      bold_ref:
 
-      brain_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
-      brain_probseg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_label-brain_probseg.nii.gz
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     Anatomical_Refined:
 
