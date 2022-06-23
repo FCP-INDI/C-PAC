@@ -331,7 +331,7 @@ def get_bids_info(subject, scan, wf_name):
     ...     wf_name='cpac_DavidBowman_3')
     >>> subject
     'DavidBowman'
-    >>> 'session'
+    >>> session
     '3'
     >>> task
     'rest'
