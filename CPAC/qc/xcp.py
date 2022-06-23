@@ -323,6 +323,23 @@ def get_bids_info(subject, scan, wf_name):
 
     run : str or int
         run ID
+
+    Examples
+    --------
+    >>> subject, session, task, run = get_bids_info(
+    ...     subject='DavidBowman', scan='rest_acq-1_run-1',
+    ...     wf_name='cpac_DavidBowman_3')
+    >>> subject
+    'DavidBowman'
+    >>> 'session'
+    '3'
+    >>> task
+    'rest'
+    >>> run
+    '1'
+    >>> get_bids_info(subject='sub-colornest035', scan='rest_run-01',
+    ...               wf_name='cpac_sub-colornest035_ses-1')
+    ('colornest035', '1', 'rest', '1')
     """
     returns = ('subject', 'session', 'task', 'run')
     ses = wf_name.split('_')[-1]
@@ -351,7 +368,7 @@ def get_bids_info(subject, scan, wf_name):
                     returns[key] = get_entity_part(key)
                 else:
                     returns[key] = get_entity_part(key[:3])
-    return tuple(returns.get(key) for key in [
+    return tuple(str(returns.get(key)) for key in [
                  'subject', 'session', 'task', 'run'])
 
 
