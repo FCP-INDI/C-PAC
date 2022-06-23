@@ -435,11 +435,11 @@ good-names=c,
            nb,
            Run,
            wf,
-           _
+           _,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
-good-names-rgxs=
+good-names-rgxs=^_version_(extra|m[a-n]{2}[or]{2})$  # version parts in info.py
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=yes
