@@ -197,6 +197,8 @@ jobs:
           at: /home/circleci/
       - push-to-docker-hub:
           tag: release-$CIRCLE_TAG
+      - push-to-docker-hub:
+          tag: latest
   push-branch-to-docker-hub:
     parameters:
       variant:
@@ -213,12 +215,6 @@ jobs:
           steps:
             - set-up-variant:
                 variant: "<< parameters.variant >>"
-            - when:
-                condition:
-                  equal: [ << pipeline.parameters.branch >>, "main" ]
-                steps:
-                  - push-to-docker-hub:
-                      tag: latest
             - when:
                 condition:
                   equal: [ << pipeline.parameters.branch >>, "develop" ]
@@ -294,7 +290,6 @@ workflows:
           filters:
             branches:
               only:
-                - main
                 - develop
           matrix:
             parameters:
