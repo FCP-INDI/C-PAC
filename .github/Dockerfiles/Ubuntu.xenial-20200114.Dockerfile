@@ -140,7 +140,7 @@ RUN conda update conda -y && \
         matplotlib==2.2.2 \
         networkx==2.4 \
         nose==1.3.7 \
-        numpy==1.15.4 \
+        numpy==1.22.0 \
         pandas==0.23.4 \
         scipy==1.1.0 \
         traits==4.6.0 \
