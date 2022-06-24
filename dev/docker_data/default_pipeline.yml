@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.3
+# Version 1.8.4.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -16,9 +16,9 @@ pipeline_setup:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
     # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/output', and then map (-B/-v) your desired output directory to that label.
+    #   name like '/outputs', and then map (-B/-v) your desired output directory to that label.
     # - If running outside a container, this should be a full path to a directory.
-    path: /output
+    path: /outputs/output
 
     # (Optional) Path to a BIDS-Derivatives directory that already has outputs.
     #   - This option is intended to ingress already-existing resources from an output
@@ -65,7 +65,7 @@ pipeline_setup:
     #   name like '/work', and then map (-B/-v) your desired output directory to that label.
     # - If running outside a container, this should be a full path to a directory.
     # - This can be written to '/tmp' if you do not intend to save your working directory.
-    path: /tmp
+    path: /outputs/working
 
     # Deletes the contents of the Working Directory after running.
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
@@ -76,12 +76,12 @@ pipeline_setup:
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: True
 
-    path: /logs
+    path: /outputs/logs
 
   crash_log_directory:
 
     # Directory where CPAC should write crash logs.
-    path: /crash
+    path: /outputs/crash
 
   system_config:
 
@@ -119,6 +119,19 @@ pipeline_setup:
     # - It is recommended that you set this to a value that when multiplied by
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 1
+
+    # Prior to running a pipeline C-PAC makes a rough estimate of a worst-case-scenario maximum concurrent memory usage with high-resoltion data, raising an exception describing the recommended minimum memory allocation for the given configuration.
+    # Turning this option off will allow pipelines to run without allocating the recommended minimum, allowing for more efficient runs at the risk of out-of-memory crashes (use at your own risk)
+    raise_insufficient: On
+
+    # A callback.log file from a previous run can be provided to estimate memory usage based on that run.
+    observed_usage:
+      # Path to callback log file with previously observed usage.
+      # Can be overridden with the commandline flag `--runtime_usage`.
+      callback_log:
+      # Percent. E.g., `buffer: 10` would estimate 1.1 * the observed memory usage from the callback log provided in "usage".
+      # Can be overridden with the commandline flag `--runtime_buffer`.
+      buffer: 10
 
     # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid)
     # to allocate per participant.
@@ -977,8 +990,9 @@ registration_workflows:
 
         # options: 'default', 'abcd', 'single_step_resampling', 'dcan_nhp'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of PREPROCESSED functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline. 
         # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
-        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        # 'single_step_resampling_from_stc': apply motion correction, func-to-anat and anat-to-template transforms on each of slice-time-corrected functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
         using: 'default'
 
 
@@ -1193,6 +1207,13 @@ functional_preproc:
   func_masking:
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+
+    # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
+    # Anatomical_Refined: 1. binarize anat mask, in case it is not a binary mask. 2. fill holes of anat mask 3. init_bold_mask : input raw func → dilate init func brain mask 4. refined_bold_mask : input motion corrected func → dilate anatomical mask 5. get final func mask
+    # Anatomical_Based: Generate the BOLD mask by basing it off of the anatomical brain mask. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+    # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
+    # CCS_Anatomical_Refined: Generate the BOLD mask by basing it off of the anatomical brain. Adapted from the BOLD mask method from the CCS pipeline.
+
     # this is a fork point
     using: ['AFNI']
 
@@ -1249,11 +1270,11 @@ functional_preproc:
 
     FSL_AFNI:
 
-      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
+      bold_ref:
 
-      brain_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
-      brain_probseg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_label-brain_probseg.nii.gz
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     Anatomical_Refined:
 
@@ -1374,69 +1395,69 @@ nuisance_corrections:
 
       erode_anatomical_brain_mask:
 
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        # Erode binarized anatomical brain mask. If choosing True, please also set regressor_masks['erode_csf']['run']: True; anatomical_preproc['brain_extraction']['using']: niworkflows-ants.
         run: Off
 
-        # Erosion proportion, if using erosion.
-        # Default proportion is 0 for anatomical brain mask.
-        # Recommend that do not use erosion in both proportion and millimeter method.
-        brain_mask_erosion_prop : 0
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for anatomical brain mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        brain_mask_erosion_prop:
 
-        # Erode brain mask in millimeter, default of brain is 30 mm
-        # brain erosion default is using millimeter erosion method when use erosion for brain.
-        brain_mask_erosion_mm : 30
+        # Erode brain mask in millimeters, default for brain mask is 30 mm
+        # Brain erosion default is using millimeters.
+        brain_mask_erosion_mm: 30
 
         # Erode binarized brain mask in millimeter
-        brain_erosion_mm: 0
+        brain_erosion_mm:
 
       erode_csf:
 
         # Erode binarized csf tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop : 0
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for cerebrospinal fluid mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        csf_erosion_prop:
 
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        # CSF erosion default is using millimeter erosion method when use erosion for CSF.
+        # Erode cerebrospinal fluid mask in millimeters, default for cerebrospinal fluid is 30mm
+        # Cerebrospinal fluid erosion default is using millimeters.
         csf_mask_erosion_mm: 30
 
-        # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
-        csf_erosion_mm: 0
+        # Erode binarized cerebrospinal fluid mask in millimeter
+        csf_erosion_mm:
 
       erode_wm:
 
         # Erode WM binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0.6 for White Matter mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
-        wm_erosion_prop : 0.6
+        # Target volume ratio, if using erosion.
+        # Default proportion is 0.6 for white matter mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        # White matter erosion default is using proportion erosion method when use erosion for white matter.
+        wm_erosion_prop: 0.6
 
-        # Erode brain mask in millimeter, default of White Matter is 0 mm
-        wm_mask_erosion_mm: 0
+        # Erode white matter mask in millimeters, default for white matter is None
+        wm_mask_erosion_mm:
 
-        # Erode binarized White Matter mask in millimeter
-        wm_erosion_mm: 0
+        # Erode binarized white matter mask in millimeters
+        wm_erosion_mm:
 
       erode_gm:
 
-        # Erode GM binarized tissue mask.
+        # Erode gray matter binarized tissue mask.
         run: Off
 
-        # Erosion proportion, if use erosion.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        gm_erosion_prop : 0.6
+        # Target volume ratio, if using erosion.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        gm_erosion_prop: 0.6
 
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        gm_mask_erosion_mm: 30
+        # Erode gray matter mask in millimeters
+        gm_mask_erosion_mm:
 
-        # Erode binarized White Matter mask in millimeter
-        gm_erosion_mm: 0
+        # Erode binarized gray matter mask in millimeters
+        gm_erosion_mm:
 
 
 # OUTPUTS AND DERIVATIVES
@@ -1446,7 +1467,7 @@ post_processing:
   spatial_smoothing:
 
     # Smooth the derivative outputs.
-    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
+    # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
     #
     # Options:
     #     ['smoothed', 'nonsmoothed']
@@ -1465,7 +1486,7 @@ post_processing:
   z-scoring:
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    # Set as ['raw'] to disable z-scoring. Set as both to get both.
+    # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
     #
     # Options:
     #     ['z-scored', 'raw']
@@ -1523,11 +1544,13 @@ timeseries_extraction:
     # Create a connectivity matrix from timeseries data
 
     # Options:
-    #  ['AFNI', 'Nilearn']
+    #  ['AFNI', 'Nilearn', 'ndmg']
     using:
       - Nilearn
+      - ndmg
     # Options:
     #  ['Pearson', 'Partial']
+    # Note: These options are not configurable for ndmg, which will ignore these options
     measure:
       - Pearson
       - Partial
@@ -1561,7 +1584,7 @@ seed_based_correlation_analysis:
 amplitude_low_frequency_fluctuation:
 
   # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: On
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.

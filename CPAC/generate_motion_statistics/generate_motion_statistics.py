@@ -200,7 +200,7 @@ def motion_power_statistics(name='motion_stats',
                                        output_names=['out_file'],
                                        function=DVARS_strip_t0,
                                        as_module=True),
-                        name='cal_DVARS_strip')
+                              name='cal_DVARS_strip')
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'in_file')
@@ -236,9 +236,11 @@ def motion_power_statistics(name='motion_stats',
 
     calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
                                                            'scan_id',
-                                                           'movement_parameters',
+                                                           'movement_'
+                                                           'parameters',
                                                            'max_displacement',
-                                                           'motion_correct_tool'],
+                                                           'motion_correct_'
+                                                           'tool'],
                                               output_names=['out_file'],
                                               function=gen_motion_parameters,
                                               as_module=True),

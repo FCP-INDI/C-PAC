@@ -21,12 +21,13 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     interpolation_string, \
                                     change_itk_transform_type, \
                                     hardcoded_reg, \
+                                    one_d_to_mat, \
                                     run_ants_apply_warp, \
                                     run_c3d, \
                                     run_c4d
 
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
@@ -874,7 +875,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
-    relies on some of it's outputs.
+    relies on some of its outputs.
 
     Parameters
     ----------
@@ -1177,8 +1178,7 @@ def create_wf_calculate_ants_warp(
                                         imports=reg_imports),
                 name='calc_ants_warp',
                 mem_gb=2.8,
-                mem_x=(1708448960473801 / 604462909807314587353088,
-                       'moving_brain'))
+                mem_x=(2e-7, 'moving_brain', 'xyz'))
 
     calculate_ants_warp.interface.num_threads = num_threads
 
@@ -2200,11 +2200,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     params = cfg.registration_workflows['anatomical_registration'][
         'registration']['ANTs']['T1_registration']
 
-    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
-                                                f'{pipe_num}', cfg,
-                                                params, orig='T1w')
+    ants_rc, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                   f'{pipe_num}', cfg,
+                                                   params, orig='T1w')
 
-    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+    ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
         'anatomical_registration']['registration']['ANTs']['interpolation']
 
     connect, brain = \
@@ -2212,44 +2212,45 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                              'space-longitudinal_desc-brain_T1w'],
                             report_fetched=True)
     node, out = connect
-    wf.connect(node, out, ants, 'inputspec.input_brain')
+    wf.connect(node, out, ants_rc, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, ants, 'inputspec.reference_brain')
+    t1w_brain_template = strat_pool.node_data('T1w-brain-template')
+    wf.connect(t1w_brain_template.node, t1w_brain_template.out,
+               ants_rc, 'inputspec.reference_brain')
 
     # TODO check the order of T1w
     node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
                                      "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
-    wf.connect(node, out, ants, 'inputspec.input_head')
+    wf.connect(node, out, ants_rc, 'inputspec.input_head')
 
 
-    node, out = strat_pool.get_data(f'T1w-template')
-    wf.connect(node, out, ants, 'inputspec.reference_head')
+    t1w_template = strat_pool.node_data('T1w-template')
+    wf.connect(t1w_template.node, t1w_template.out,
+               ants_rc, 'inputspec.reference_head')
 
-    node, out = strat_pool.get_data(["space-T1w_desc-brain_mask",
-                                     "space-longitudinal_desc-brain_mask",
-                                     "space-T1w_desc-acpcbrain_mask"])
-    wf.connect(node, out, ants, 'inputspec.input_mask')
+    brain_mask = strat_pool.node_data(["space-T1w_desc-brain_mask",
+                                       "space-longitudinal_desc-brain_mask",
+                                       "space-T1w_desc-acpcbrain_mask"])
+    wf.connect(brain_mask.node, brain_mask.out,
+               ants_rc, 'inputspec.input_mask')
 
     if strat_pool.check_rpool('T1w-brain-template-mask'):
         node, out = strat_pool.get_data('T1w-brain-template-mask')
-        wf.connect(node, out, ants, 'inputspec.reference_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.reference_mask')
 
     if strat_pool.check_rpool('label-lesion_mask'):
         node, out = strat_pool.get_data('label-lesion_mask')
-        wf.connect(node, out, ants, 'inputspec.lesion_mask')
+        wf.connect(node, out, ants_rc, 'inputspec.lesion_mask')
 
     if 'space-longitudinal' in brain:
-        for key in outputs.keys():
-            if 'from-T1w' in key:
-                new_key = key.replace('from-T1w', 'from-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
-            if 'to-T1w' in key:
-                new_key = key.replace('to-T1w', 'to-longitudinal')
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+        for key in outputs:
+            for direction in ['from', 'to']:
+                if f'{direction}-T1w' in key:
+                    new_key = key.replace(f'{direction}-T1w',
+                                          f'{direction}-longitudinal')
+                    outputs[new_key] = outputs[key]
+                    del outputs[key]
 
     return (wf, outputs)
 
@@ -2735,8 +2736,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-reginput_bold",
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
-                 "despiked_fieldmap",
-                 "fieldmap_mask"),
+                 "despiked-fieldmap",
+                 "fieldmap-mask"),
                 ("desc-brain_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2745,16 +2746,16 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
-                "diffphase_dwell",
-                "diffphase_pedir"],
+                "diffphase-dwell",
+                "diffphase-pedir"],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
     '''
 
     diff_complete = False
-    if strat_pool.check_rpool("despiked_fieldmap") and \
-            strat_pool.check_rpool("fieldmap_mask"):
+    if strat_pool.check_rpool("despiked-fieldmap") and \
+            strat_pool.check_rpool("fieldmap-mask"):
         diff_complete = True
 
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
@@ -2811,16 +2812,16 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
     if diff_complete:
-        node, out = strat_pool.get_data('diffphase_dwell')
+        node, out = strat_pool.get_data('diffphase-dwell')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diffphase_pedir')
+        node, out = strat_pool.get_data('diffphase-pedir')
         wf.connect(node, out, func_to_anat, 'pedir_input.pedir')
 
-        node, out = strat_pool.get_data("despiked_fieldmap")
+        node, out = strat_pool.get_data("despiked-fieldmap")
         wf.connect(node, out, func_to_anat, 'inputspec.fieldmap')
 
-        node, out = strat_pool.get_data("fieldmap_mask")
+        node, out = strat_pool.get_data("fieldmap-mask")
         wf.connect(node, out, func_to_anat, 'inputspec.fieldmapmask')
 
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
@@ -2892,17 +2893,17 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
-            node, out = strat_pool.get_data('diffphase_dwell')
+            node, out = strat_pool.get_data('diffphase-dwell')
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 
-            node, out = strat_pool.get_data('diffphase_pedir')
+            node, out = strat_pool.get_data('diffphase-pedir')
             wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
 
-            node, out = strat_pool.get_data("despiked_fieldmap")
+            node, out = strat_pool.get_data("despiked-fieldmap")
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.fieldmap')
 
-            node, out = strat_pool.get_data("fieldmap_mask")
+            node, out = strat_pool.get_data("fieldmap-mask")
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.fieldmapmask')
 
@@ -3126,7 +3127,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     convert_func_to_anat_linear_warp.inputs.out_relwarp = True
     convert_func_to_anat_linear_warp.inputs.relwarp = True
-
+    
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
+    
     if strat_pool.check_rpool('blip-warp'):
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'postmat')
@@ -3136,9 +3140,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'premat')
-
-        node, out = strat_pool.get_data('desc-preproc_T1w')
-        wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L140
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
@@ -3656,7 +3657,8 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     return (wf, outputs)
 
 
-def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
+                                                  pipe_num, opt=None):
     """
     {"name": "single_step_resample_timeseries_to_T1template",
      "config": ["registration_workflows", "functional_registration",
@@ -3665,7 +3667,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
      "option_key": ["apply_transform", "using"],
      "option_val": "single_step_resampling",
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
-                 "desc-stc_bold",
+                 "desc-preproc_bold",
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
                  "coordinate-transformation",
@@ -3676,7 +3678,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
                  "desc-brain_T1w",
                  "T1w-brain-template-funcreg")],
      "outputs": ["space-template_desc-preproc_bold",
-                 "space-template_desc-brain_bold"]}
+                 "space-template_desc-brain_bold",
+                 "space-template_desc-bold_mask"]}
     """
 
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
@@ -3712,7 +3715,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
 
     split_func.inputs.dimension = 't'
 
-    node, out = strat_pool.get_data('desc-stc_bold')
+    node, out = strat_pool.get_data('desc-preproc_bold')
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
@@ -3730,7 +3733,20 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
     wf.connect(node, out, motionxfm2itk, 'source_file')
 
     node, out = strat_pool.get_data('coordinate-transformation')
-    wf.connect(node, out, motionxfm2itk, 'transform_file')
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
+    if motion_correct_tool == 'mcflirt':
+        wf.connect(node, out, motionxfm2itk, 'transform_file')
+    elif motion_correct_tool == '3dvolreg':
+        convert_transform = pe.Node(util.Function(
+            input_names=['one_d_filename'],
+            output_names=['transform_directory'],
+            function=one_d_to_mat,
+            imports=['import os', 'import numpy as np']),
+            name=f'convert_transform_{pipe_num}')
+        wf.connect(node, out, convert_transform, 'one_d_filename')
+        wf.connect(convert_transform, 'transform_directory',
+                   motionxfm2itk, 'transform_file')
 
     collectxfm = pe.MapNode(util.Merge(4),
                             name=f'collectxfm_func_to_standard_{pipe_num}',
@@ -3806,11 +3822,191 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num,
         apply_mask, 'mask_file')
 
     outputs = {
-        'space-template_desc-preproc_bold': (merge_func_to_standard, 'merged_file'),
-        'space-template_desc-brain_bold': (apply_mask, 'out_file')
+        'space-template_desc-preproc_bold': (merge_func_to_standard,
+                                             'merged_file'),
+        'space-template_desc-brain_bold': (apply_mask, 'out_file'),
+        'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
+            'output_image'),
     }
 
     return (wf, outputs)
+
+
+def single_step_resample_stc_timeseries_to_T1template(wf, cfg, strat_pool,
+                                                      pipe_num, opt=None):
+    """
+    {"name": "single_step_resample_stc_timeseries_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": "single_step_resampling_from_stc",
+     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
+                 "desc-stc_bold",
+                 "motion-basefile",
+                 "space-bold_desc-brain_mask",
+                 "coordinate-transformation",
+                 "from-T1w_to-template_mode-image_xfm",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "from-bold_to-template_mode-image_xfm",
+                 "T1w",
+                 "desc-brain_T1w",
+                 "T1w-brain-template-funcreg")],
+     "outputs": ["space-template_desc-stc_bold",
+                 "space-template_desc-stc-brain_bold",
+                 "space-template_desc-bold_mask"]}
+    """
+
+    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
+    # Ref: https://github.com/nipreps/fmriprep/blob/84a6005b/fmriprep/workflows/bold/resampling.py#L159-L419
+
+    bbr2itk = pe.Node(util.Function(input_names=['reference_file',
+                                                 'source_file',
+                                                 'transform_file'],
+                                    output_names=['itk_transform'],
+                                    function=run_c3d),
+                      name=f'convert_bbr2itk_{pipe_num}')
+
+    if cfg.registration_workflows['functional_registration'][
+            'coregistration']['boundary_based_registration'][
+            'reference'] == 'whole-head':
+        node, out = strat_pool.get_data('T1w')
+        wf.connect(node, out, bbr2itk, 'reference_file')
+
+    elif cfg.registration_workflows['functional_registration'][
+            'coregistration']['boundary_based_registration'][
+            'reference'] == 'brain':
+        node, out = strat_pool.get_data('desc-brain_T1w')
+        wf.connect(node, out, bbr2itk, 'reference_file')
+
+    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
+    wf.connect(node, out, bbr2itk, 'source_file')
+
+    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, bbr2itk, 'transform_file')
+
+    split_func = pe.Node(interface=fsl.Split(),
+        name=f'split_func_{pipe_num}')
+
+    split_func.inputs.dimension = 't'
+
+    node, out = strat_pool.get_data('desc-stc_bold')
+    wf.connect(node, out, split_func, 'in_file')
+
+    ### Loop starts! ###
+    motionxfm2itk = pe.MapNode(util.Function(
+        input_names=['reference_file',
+                     'source_file',
+                     'transform_file'],
+        output_names=['itk_transform'],
+        function=run_c3d),
+        name=f'convert_motionxfm2itk_{pipe_num}',
+        iterfield=['transform_file'])
+
+    node, out = strat_pool.get_data('motion-basefile')
+    wf.connect(node, out, motionxfm2itk, 'reference_file')
+    wf.connect(node, out, motionxfm2itk, 'source_file')
+
+    node, out = strat_pool.get_data('coordinate-transformation')
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
+    if motion_correct_tool == 'mcflirt':
+        wf.connect(node, out, motionxfm2itk, 'transform_file')
+    elif motion_correct_tool == '3dvolreg':
+        convert_transform = pe.Node(util.Function(
+            input_names=['one_d_filename'],
+            output_names=['transform_directory'],
+            function=one_d_to_mat,
+            imports=['import os', 'import numpy as np']),
+            name=f'convert_transform_{pipe_num}')
+        wf.connect(node, out, convert_transform, 'one_d_filename')
+        wf.connect(convert_transform, 'transform_directory',
+                   motionxfm2itk, 'transform_file')
+
+    collectxfm = pe.MapNode(util.Merge(4),
+                            name=f'collectxfm_func_to_standard_{pipe_num}',
+                            iterfield=['in4'])
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, collectxfm, 'in1')
+
+    wf.connect(bbr2itk, 'itk_transform',
+               collectxfm, 'in2')
+
+    collectxfm.inputs.in3 = 'identity'
+
+    wf.connect(motionxfm2itk, 'itk_transform',
+               collectxfm, 'in4')
+
+    applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
+                                           name=f'applyxfm_func_to_standard_{pipe_num}',
+                                           iterfield=['input_image', 'transforms'])
+
+    applyxfm_func_to_standard.inputs.float = True
+    applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
+
+    wf.connect(split_func, 'out_files',
+               applyxfm_func_to_standard, 'input_image')
+
+    node, out = strat_pool.get_data('T1w-brain-template-funcreg')
+    wf.connect(node, out, applyxfm_func_to_standard, 'reference_image')
+
+    wf.connect(collectxfm, 'out',
+               applyxfm_func_to_standard, 'transforms')
+
+    ### Loop ends! ###
+
+    merge_func_to_standard = pe.Node(interface=fslMerge(),
+                                     name=f'merge_func_to_standard_{pipe_num}')
+
+    merge_func_to_standard.inputs.dimension = 't'
+
+    wf.connect(applyxfm_func_to_standard, 'output_image',
+        merge_func_to_standard, 'in_files')
+
+    applyxfm_func_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
+                                             name=f'applyxfm_func_mask_to_standard_{pipe_num}')
+
+    applyxfm_func_mask_to_standard.inputs.interpolation = 'MultiLabel'
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, applyxfm_func_mask_to_standard, 'input_image')
+
+    node, out = strat_pool.get_data('T1w-brain-template-funcreg')
+    wf.connect(node, out, applyxfm_func_mask_to_standard, 'reference_image')
+
+    collectxfm_mask = pe.Node(util.Merge(2),
+                              name=f'collectxfm_func_mask_to_standard_{pipe_num}')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, collectxfm_mask, 'in1')
+
+    wf.connect(bbr2itk, 'itk_transform',
+        collectxfm_mask, 'in2')
+
+    wf.connect(collectxfm_mask, 'out',
+        applyxfm_func_mask_to_standard, 'transforms')
+
+    apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
+                         name=f'get_func_brain_to_standard_{pipe_num}')
+
+    wf.connect(merge_func_to_standard, 'merged_file',
+        apply_mask, 'in_file')
+
+    wf.connect(applyxfm_func_mask_to_standard, 'output_image',
+        apply_mask, 'mask_file')
+
+    outputs = {
+        'space-template_desc-stc_bold': (merge_func_to_standard,
+                                             'merged_file'),
+        'space-template_desc-stc-brain_bold': (apply_mask, 'out_file'),
+        'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
+            'output_image'),
+    }
+
+    return (wf, outputs)
+
+
 
 
 def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4203,85 +4399,39 @@ def warp_Tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask",
                  "from-T1w_to-template_mode-image_xfm"),
-                "T1w-template"],
+                 "T1w-template"],
      "outputs": ["space-template_label-CSF_mask",
                  "space-template_label-WM_mask",
                  "space-template_label-GM_mask"]}
     '''
-
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
-    apply_xfm_CSF = apply_transform(f'warp_Tissuemask_to_T1template_CSF{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_WM = apply_transform(f'warp_Tissuemask_to_T1template_WM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm_GM = apply_transform(f'warp_Tissuemask_to_T1template_GM{pipe_num}',
-                                reg_tool, time_series=False,
-                                num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    if reg_tool == 'ants':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'NearestNeighbor'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'NearestNeighbor'
-    elif reg_tool == 'fsl':
-        apply_xfm_CSF.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_WM.inputs.inputspec.interpolation = 'nn'
-        apply_xfm_GM.inputs.inputspec.interpolation = 'nn'
-
-    outputs = {}
-    if strat_pool.check_rpool('label-CSF_mask'):
-        node, out = strat_pool.get_data("label-CSF_mask")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_CSF, 'inputspec.transform')
-        outputs.update({
-         f'space-template_label-CSF_mask':
-
-            (apply_xfm_CSF, 'outputspec.output_image')})
-
-
-
-    if strat_pool.check_rpool('label-WM_mask'):
-        node, out = strat_pool.get_data("label-WM_mask")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_WM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-WM_mask':
-            (apply_xfm_WM, 'outputspec.output_image')})
-
-
-    if strat_pool.check_rpool('label-GM_mask'):
-        node, out = strat_pool.get_data("label-GM_mask")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.input_image')
-        node, out = strat_pool.get_data("T1w-template")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.reference')
-        node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm_GM, 'inputspec.transform')
-
-        outputs.update({
-         f'space-template_label-GM_mask':
-            (apply_xfm_GM, 'outputspec.output_image')})
-
+    tissue_types = ['CSF', 'WM', 'GM']
+    apply_xfm = {
+        tissue: apply_transform(f'warp_Tissuemask_to_T1template_{tissue}_'
+                                f'{pipe_num}', reg_tool, time_series=False,
+                                num_cpus=cfg.pipeline_setup['system_config'][
+                                    'max_cores_per_participant'],
+                                num_ants_cores=cfg.pipeline_setup[
+                                    'system_config']['num_ants_threads']) for
+        tissue in tissue_types}
+    for tissue in tissue_types:
+        if reg_tool == 'ants':
+            apply_xfm[tissue].inputs.inputspec.interpolation = \
+                'NearestNeighbor'
+        elif reg_tool == 'fsl':
+            apply_xfm[tissue].inputs.inputspec.interpolation = 'nn'
+        if strat_pool.check_rpool(f'label-{tissue}_mask'):
+            node, out = strat_pool.get_data(f'label-{tissue}_mask')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.input_image')
+            node, out = strat_pool.get_data('T1w-template')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.reference')
+            node, out = strat_pool.get_data('from-T1w_to-template_'
+                                            'mode-image_xfm')
+            wf.connect(node, out, apply_xfm[tissue], 'inputspec.transform')
+    outputs = {f'space-template_label-{tissue}_mask': (apply_xfm[tissue],
+               'outputspec.output_image') for tissue in tissue_types}
 
     return (wf, outputs)
 

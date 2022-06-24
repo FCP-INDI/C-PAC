@@ -2,14 +2,47 @@ import csv
 import json
 import nipype.interfaces.utility as util
 from nipype import logging
+# pylint: disable=ungrouped-imports, wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.afni as afni
-
-logger = logging.getLogger('nipype.workflow')
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
+
+logger = logging.getLogger('nipype.workflow')
+
+
+def bidsier_prefix(unique_id):
+    """
+    Function to return a BIDSier prefix for a given unique_id
+
+    Parameters
+    ----------
+    unique_id : str
+
+    Returns
+    -------
+    prefix : str
+
+    Examples
+    --------
+    >>> bidsier_prefix('01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_ses-1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('sub-01_1')
+    'sub-01_ses-1'
+    >>> bidsier_prefix('01_ses-1')
+    'sub-01_ses-1'
+    """
+    keys = ['sub', 'ses']
+    components = unique_id.split('_')
+    for i, component in enumerate(components):
+        if i < len(keys):
+            if not component.startswith(keys[i]):
+                components[i] = '-'.join([keys[i], component])
+    return '_'.join(components)
 
 
 def get_rest(scan, rest_dict, resource="scan"):
@@ -127,8 +160,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -223,8 +255,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['subject', 'scan', 'creds_path',
-                'dl_dir'],
+        fields=['subject', 'scan', 'creds_path', 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
 
@@ -396,14 +427,14 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             orig_key = key
             if 'epi' in key and not second:
-                key = 'epi_1'
+                key = 'epi-1'
                 second = True
             elif 'epi' in key and second:
-                key = 'epi_2'
+                key = 'epi-2'
 
             rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
                            "fmap_ingress")
-            rpool.set_data(f'{key}_scan_params', gather_fmap,
+            rpool.set_data(f'{key}-scan-params', gather_fmap,
                            'outputspec.scan_params', {}, "",
                            "fmap_params_ingress")
 
@@ -422,14 +453,14 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             wf.connect(gather_fmap, 'outputspec.scan_params',
                        get_fmap_metadata, 'data_config_scan_params')
 
-            rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
+            rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
                            {}, "", "fmap_TE_ingress")
-            rpool.set_data(f'{key}_dwell', get_fmap_metadata,
+            rpool.set_data(f'{key}-dwell', get_fmap_metadata,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
-            rpool.set_data(f'{key}_pedir', get_fmap_metadata,
+            rpool.set_data(f'{key}-pedir', get_fmap_metadata,
                            'pe_direction', {}, "", "fmap_pedir_ingress")
 
-            fmap_TE_list.append(f"{key}_TE")
+            fmap_TE_list.append(f"{key}-TE")
 
             keywords = ['diffphase', 'diffmag']
             if key in keywords:
@@ -448,8 +479,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-            node, out_file = rpool.get('diffphase_dwell')[
-                "['diffphase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
+                
+            node, out_file = rpool.get('diffphase-dwell')[
+                "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
@@ -468,7 +500,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
                            "deltaTE_ingress")
-            rpool.set_data('dwell_asym_ratio',
+            rpool.set_data('dwell-asym-ratio',
                            calc_delta_ratio, 'dwell_asym_ratio', {}, "",
                            "dwell_asym_ratio_ingress")
 
@@ -502,8 +534,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     )
 
     # wire in the scan parameter workflow
-    node, out = rpool.get('scan_params')[
-        "['scan_params:scan_params_ingress']"]['data']
+    node, out = rpool.get('scan-params')[
+        "['scan-params:scan_params_ingress']"]['data']
     wf.connect(node, out, scan_params, 'data_config_scan_params')
 
     node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
@@ -512,11 +544,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
     rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('start_tr', scan_params, 'start_indx', {}, "",
+    rpool.set_data('start-tr', scan_params, 'start_indx', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('stop_tr', scan_params, 'stop_indx', {}, "",
+    rpool.set_data('stop-tr', scan_params, 'stop_indx', {}, "",
                    "func_metadata_ingress")
-    rpool.set_data('pe_direction', scan_params, 'pe_direction', {}, "",
+    rpool.set_data('pe-direction', scan_params, 'pe_direction', {}, "",
                    "func_metadata_ingress")
 
     return (wf, rpool, diff, blip, fmap_rp_list)
@@ -783,6 +815,26 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
+def res_string_to_tuple(resolution):
+    """
+    Converts a resolution string to a tuple of floats.
+
+    Parameters
+    ----------
+    resolution : str
+        Resolution string, e.g. "3.438mmx3.438mmx3.4mm"
+
+    Returns
+    -------
+    resolution :tuple
+        Tuple of floats, e.g. (3.438, 3.438, 3.4)
+    """
+    if "x" in str(resolution):
+        return tuple(
+            float(i.replace('mm', '')) for i in resolution.split("x"))
+    return (float(resolution.replace('mm', '')),) * 3
+
+
 def resolve_resolution(resolution, template, template_name, tag=None):
     import nipype.interfaces.afni as afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -815,17 +867,11 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         else:
             local_path = template
 
-        if "x" in str(resolution):
-            resolution = tuple(
-                float(i.replace('mm', '')) for i in resolution.split("x"))
-        else:
-            resolution = (float(resolution.replace('mm', '')),) * 3
-
         resample = pe.Node(interface=afni.Resample(),
                            name=template_name,
                            mem_gb=0,
                            mem_x=(0.0115, 'in_file', 't'))
-        resample.inputs.voxel_size = resolution
+        resample.inputs.voxel_size = res_string_to_tuple(resolution)
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'
         resample.inputs.in_file = local_path

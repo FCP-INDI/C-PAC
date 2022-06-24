@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.3
+# Version 1.8.4.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -33,10 +33,12 @@ pipeline_setup:
 anatomical_preproc: 
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: On
+  non_local_means_filtering:
+    run: On
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: On
+  n4_bias_field_correction:
+    run: On
 
   acpc_alignment: 
 

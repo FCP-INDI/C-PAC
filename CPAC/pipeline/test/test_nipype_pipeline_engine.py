@@ -8,32 +8,34 @@ from CPAC.pipeline.nipype_pipeline_engine import (
     DEFAULT_MEM_GB, get_data_size, Node, MapNode, Workflow)
 
 
-def square_func(x):
+def get_sample_data(filepath):
+    # pylint: disable=missing-function-docstring
+    return filepath
+
+
+def square_func(x):  # pylint: disable=invalid-name
+    # pylint: disable=missing-function-docstring
     return x ** 2
 
 
 square = Function(["x"], ["f_x"], square_func)
 
 
-def test_MapNode():
+def test_MapNode():  # pylint: disable=invalid-name
     square_node = MapNode(square, name="square", iterfield=["x"])
     square_node.inputs.x = [0, 1, 2, 3]
     res = square_node.run()
     assert res.outputs.f_x == [0, 1, 4, 9]
 
 
-def test_Node():
+def test_Node():  # pylint: disable=invalid-name
     square_node = Node(square, name="square")
     square_node.inputs.x = 2
     res = square_node.run()
     assert res.outputs.f_x == 4
 
 
-def get_sample_data(filepath):
-    return filepath
-
-
-def test_Workflow(tmpdir):
+def test_Workflow(tmpdir):  # pylint: disable=invalid-name
     example_filepath = os.path.join(data_path, 'example4d.nii.gz')
     pass_in_filepath = IdentityInterface(fields=['x'])
     pass_in_filepath.inputs.x = example_filepath
@@ -62,6 +64,6 @@ def test_Workflow(tmpdir):
     assert wf.get_node('get_sample_data').inputs.filepath is Undefined
 
     out = wf.run()
-
-    assert list(out.nodes)[0].mem_gb == DEFAULT_MEM_GB + get_data_size(
+    out_node = list(out.nodes)[0]
+    assert out_node.mem_gb == DEFAULT_MEM_GB + get_data_size(
         example_filepath, 'xyzt') * 0.1

@@ -1,5 +1,20 @@
 #!/usr/bin/env python
+"""Copyright (C) 2022  C-PAC Developers
 
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import argparse
 import datetime
 import os
@@ -7,17 +22,17 @@ import subprocess
 import sys
 import time
 import shutil
-from urllib import request
-from urllib.error import HTTPError
 import yaml
 
-from CPAC import __version__
+from CPAC import license_notice, __version__
+from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
@@ -90,7 +105,8 @@ def resolve_aws_credential(source):
 
 def run_main():
     """Run this function if not importing as a script"""
-    parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
+    parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner. ' +
+                                     license_notice)
     parser.add_argument('bids_dir',
                         help='The directory with the input dataset '
                              'formatted according to the BIDS standard. '
@@ -149,7 +165,12 @@ def run_main():
                         default=None)
 
     parser.add_argument('--preconfig',
-                        help='Name of the pre-configured pipeline to run.',
+                        help='Name of the preconfigured pipeline to run. '
+                             'Available preconfigured pipelines: ' +
+                             str(AVAILABLE_PIPELINE_CONFIGS) + '. See '
+                             f'{DOCS_URL_PREFIX}/user/pipelines/preconfig '
+                             'for more information about the preconfigured '
+                             'pipelines.',
                         default=None)
 
     if '--pipeline_override' in sys.argv:  # secret option
@@ -198,6 +219,18 @@ def run_main():
                              'flag also takes precedence over '
                              'maximum_memory_per_participant in the pipeline '
                              'configuration file.')
+    parser.add_argument('--runtime_usage', type=str,
+                        help='Path to a callback.log from a prior run of the '
+                             'same pipeline configuration (including any '
+                             'resource-management parameters that will be '
+                             "applied in this run, like 'n_cpus' and "
+                             "'num_ants_threads'). This log will be used to "
+                             'override per-node memory estimates with '
+                             'observed values plus a buffer.')
+    parser.add_argument('--runtime_buffer', type=float,
+                        help='Buffer to add to per-node memory estimates if '
+                             '--runtime_usage is specified. This number is a '
+                             'percentage of the observed memory usage.')
     parser.add_argument('--num_ants_threads', type=int, default=0,
                         help='The number of cores to allocate to ANTS-'
                              'based anatomical registration per '
@@ -434,20 +467,8 @@ def run_main():
         c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
         if 'pipeline_setup' not in c:
-            url_version = f'v{__version__}'
-            _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
-                    'user/pipelines/1.7-1.8-nesting-mappings')
-            try:
-                request.urlopen(_url)
-
-            except HTTPError:
-                if 'dev' in url_version:
-                    url_version = 'nightly'
-                else:
-                    url_version = 'latest'
-
-            _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
-                    'user/pipelines/1.7-1.8-nesting-mappings')
+            _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
+                    '1.7-1.8-nesting-mappings')
 
             warn('\nC-PAC changed its pipeline configuration format in '
                  f'v1.8.0.\nSee {_url} for details.\n',
@@ -571,21 +592,36 @@ def run_main():
                 set_up_random_state(c['pipeline_setup']['system_config'][
                     'random_seed'])
 
+        if args.runtime_usage is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'callback_log'] = args.runtime_usage
+        if args.runtime_buffer is not None:
+            c['pipeline_setup']['system_config']['observed_usage'][
+                'buffer'] = args.runtime_buffer
+
         c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
             c['pipeline_setup']['working_directory'][
                 'remove_working_dir'] = False
-            if args.save_working_dir is not None:
-                c['pipeline_setup']['working_directory']['path'] = \
-                    os.path.abspath(args.save_working_dir)
-            elif not output_dir_is_s3:
-                c['pipeline_setup']['working_directory']['path'] = \
-                    os.path.join(output_dir, "working")
-            else:
-                print('Cannot write working directory to S3 bucket. '
-                      'Either change the output directory to something '
-                      'local or turn off the --save_working_dir flag')
+        if isinstance(args.save_working_dir, str):
+            c['pipeline_setup']['working_directory']['path'] = \
+                os.path.abspath(args.save_working_dir)
+        elif not output_dir_is_s3:
+            c['pipeline_setup']['working_directory']['path'] = \
+                os.path.join(output_dir, "working")
+        else:
+            warn('Cannot write working directory to S3 bucket. '
+                 'Either change the output directory to something '
+                 'local or turn off the --save_working_dir flag',
+                 category=UserWarning)
+
+        if c['pipeline_setup']['output_directory']['quality_control'][
+                'generate_xcpqc_files']:
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first'] = True
+            c['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_after'] = True
 
         if args.participant_label:
             print(
@@ -728,8 +764,17 @@ def run_main():
                     'max_cores_per_participant']),
                 'memory_gb': int(c['pipeline_setup']['system_config'][
                     'maximum_memory_per_participant']),
+                'raise_insufficient': c['pipeline_setup']['system_config'][
+                                        'raise_insufficient'],
                 'status_callback': log_nodes_cb
             }
+            if c['pipeline_setup']['system_config']['observed_usage'][
+                    'callback_log'] is not None:
+                plugin_args['runtime'] = {
+                    'usage': c['pipeline_setup']['system_config'][
+                        'observed_usage']['callback_log'],
+                    'buffer': c['pipeline_setup']['system_config'][
+                        'observed_usage']['buffer']}
 
             print("Starting participant level processing")
             CPAC.pipeline.cpac_runner.run(

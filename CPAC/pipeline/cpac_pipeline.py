@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import sys
 import time
@@ -23,7 +39,8 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block
+from CPAC.pipeline.check_outputs import check_outputs
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     freesurfer_abcd_preproc,
@@ -50,11 +67,9 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
     brain_mask_acpc_freesurfer_abcd,
-    brain_extraction,
     correct_restore_brain_intensity_abcd,
     brain_mask_acpc_freesurfer_fsl_tight,
     brain_mask_acpc_freesurfer_fsl_loose,
-    brain_extraction,
     brain_extraction_temp,
     brain_extraction,
     anatomical_init_T2,
@@ -96,9 +111,7 @@ from CPAC.registration.registration import (
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
     warp_Tissuemask_to_T1template,
-    warp_Tissuemask_to_EPItemplate,
-    warp_timeseries_to_T1template_dcan_nhp
-
+    warp_Tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -156,7 +169,7 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldWM
 )
 
-from CPAC.surface.surf_preproc import surface_preproc
+from CPAC.surface.surf_preproc import surface_postproc
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -184,17 +197,16 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
-from CPAC.utils.datasource import (
-    gather_extraction_maps
-)
+from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.xcp import qc_xcp_native, qc_xcp_skullstripped, qc_xcp_template
+from CPAC.qc.xcp import qc_xcp
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, set_up_logger
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
+                                  set_up_logger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -242,7 +254,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'string for the optional "plugin" argument, but a '
             f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
             'was provided.')
-    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -259,8 +270,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
+    set_up_logger(f'{subject_id}_expectedOutputs',
+                  filename=f'{bidsier_prefix(c["subject_id"])}_'
+                           'expectedOutputs.yml',
+                  level='info', log_dir=log_dir, mock=True,
+                  overwrite_existing=True)
     if c.pipeline_setup['Debugging']['verbose']:
-        set_up_logger('engine', level='debug', log_dir=log_dir)
+        set_up_logger('engine', level='debug', log_dir=log_dir, mock=True)
 
     config.update_config({
         'logging': {
@@ -293,6 +309,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     plugin_args['memory_gb'] = sub_mem_gb
     plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['raise_insufficient'] = c['pipeline_setup', 'system_config',
+                                          'raise_insufficient']
     plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
@@ -345,6 +363,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     C-PAC version: {cpac_version}
 
+    {license_notice}
+
     Setting maximum number of cores per participant to {cores}
     Setting number of participants at once to {participants}
     Setting OMP_NUM_THREADS to {omp_threads}
@@ -366,7 +386,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
         System time of start:      {run_start}
         System time of completion: {run_finish}
-
+        {output_check}
 """  # noqa: E501
 
     logger.info('%s', information.format(
@@ -381,9 +401,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         random_seed=(
             '    Random seed: %s' %
             c.pipeline_setup['system_config']['random_seed']) if
-        c.pipeline_setup['system_config']['random_seed'] is not None else ''
-    ))
-
+        c.pipeline_setup['system_config']['random_seed'] is not None else '',
+        license_notice=CPAC.license_notice.replace('\n', '\n    ')))
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
@@ -481,8 +500,7 @@ Please, make yourself aware of how it works and its assumptions:
             subject_info['status'] = 'Running'
 
             # Create callback logger
-            cb_log_filename = os.path.join(log_dir,
-                                           'callback.log')
+            cb_log_filename = os.path.join(log_dir, 'callback.log')
 
             try:
                 if not os.path.exists(os.path.dirname(cb_log_filename)):
@@ -491,7 +509,8 @@ Please, make yourself aware of how it works and its assumptions:
                 pass
 
             # Add handler to callback log file
-            set_up_logger('callback', cb_log_filename, 'debug', log_dir)
+            set_up_logger('callback', cb_log_filename, 'debug', log_dir,
+                          mock=True)
 
             # Log initial information from all the nodes
             log_nodes_initial(workflow)
@@ -549,7 +568,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             # have this check in case the user runs cpac_runner from terminal and
             # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info != None:
+            if pipeline_timing_info is not None:
 
                 # pipeline_timing_info list:
                 #  [0] - unique pipeline ID
@@ -645,7 +664,7 @@ Please, make yourself aware of how it works and its assumptions:
                             if 'Start_Time' in line:
                                 headerExists = True
 
-                        if headerExists == False:
+                        if headerExists is False:
                             timeWriter.writerow(timeHeader)
 
                         timeWriter.writerow(pipelineTimeDict)
@@ -686,12 +705,12 @@ Please, make yourself aware of how it works and its assumptions:
                         os.remove(log_f)
 
                 except Exception as exc:
-                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                    err_msg = (
+                        'Unable to upload CPAC log files in: %s.\nError: %s')
                     logger.error(err_msg, log_dir, exc)
 
-        except Exception as e:
+        except Exception:
             import traceback
-            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -704,23 +723,28 @@ CPAC run error:
     Elapsed run time (minutes): {elapsed}
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
+    {output_check}
 
 """
 
         finally:
 
             if workflow:
+                if os.path.exists(cb_log_filename):
+                    resource_report(cb_log_filename,
+                                    num_cores_per_sub, logger)
 
-                resource_report(cb_log_filename,
-                                num_cores_per_sub, logger)
-
-                logger.info(execution_info.format(
+                logger.info('%s', execution_info.format(
                     workflow=workflow.name,
                     pipeline=c.pipeline_setup['pipeline_name'],
                     log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
-                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S"),
+                    output_check=check_outputs(
+                                 c.pipeline_setup['output_directory']['path'],
+                                 log_dir, c.pipeline_setup['pipeline_name'],
+                                 c['subject_id'])
                 ))
 
                 # Remove working directory when done
@@ -959,7 +983,6 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-
         ]
 
 
@@ -1131,8 +1154,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
-        if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+        if rpool.check_rpool('epi-1'):
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
             distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
@@ -1223,10 +1246,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         pipeline_blocks += nuisance
 
+    apply_func_warp = {}
+    _r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'coregistration']['run'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template']['run']
+    apply_func_warp['T1'] = (
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1236,9 +1261,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['T1'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['T1']:
 
         ts_to_T1template_block = [warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
@@ -1258,8 +1283,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['run_EPI']
+    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+
+    if 'T1_template' in template:
+	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+    else:
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
+    del _r_w_f_r
+
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1269,9 +1300,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['EPI'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['EPI']:
         pipeline_blocks += [warp_timeseries_to_EPItemplate,
                             warp_bold_mean_to_EPItemplate]
 
@@ -1281,7 +1312,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
-        pipeline_blocks += [surface_preproc]
+        pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
@@ -1331,15 +1362,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_xcpqc_files'
     ]:
-        if all(rpool.check_rpool(motion) for motion in [
-            'censor-indices', 'coordinate-transformation', 'dvars',
-            'framewise-displacement-jenkinson', 'max-displacement',
-            'movement-parameters', 'rels-displacement'
-        ]):
-            pipeline_blocks += [qc_xcp_native]
-        if rpool.check_rpool('space-template_desc-preproc_bold'):
-            pipeline_blocks += [qc_xcp_template]
-        pipeline_blocks += [qc_xcp_skullstripped]
+        pipeline_blocks += [qc_xcp]
 
     if cfg.pipeline_setup['output_directory']['quality_control'][
         'generate_quality_control_images'

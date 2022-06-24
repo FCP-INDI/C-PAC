@@ -1,9 +1,55 @@
+<!-- Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>. -->
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [v1.8.4] - 2022-06-23
+
+### Added
+- Added the ability to follow symlinks for BIDS directories
+- Added log of expected outputs, generated at the beginning of the run
+- Added additional surface derivatives to outputs directory
+- Added additional time series outputs from ABCD-options related processes to outputs directory
+- Added the ability to disable the exception raised if the initial resource check estimates more memory is needed
+- Added `--runtime_usage` and `--runtime_buffer` flags and related pipeline config entries and functionality
+- Added additional error checks and a more informative message for node block connecting in the engine
+- Expanded some surface post-processing workflows to be more flexible with other pipeline configurations
+- Added [lint definition file](./.pylintrc) (for developers)
+- Added list of preconfigured pipelines to the usage string
+- Added CI smoke tests for preconfigs
+
+### Changed
+- Made ndmg correlation matrices a configurable option
+- Made surface output filenames BIDSier
+- Uses max instead of sum for intial memory estimation
+- Updated rbc-options configuration
+- Updated XCP-QC files to better adhere to XCP
+- Updated CI to only rebuild software dependencies on change
+- Replaced deprecated `optparse.OptionError` with to `click.BadParameter`
+- Relicensed C-PAC from BSD-3-Clause to LGPL-3.0-or-later
+
+### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1741) that was causing `single_step_resampling` to inadvertently cause unexpected forks in the pipeline past transform application.
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1686) that was causing datasets containing phase-difference field maps to crash.
+- Fixed merge error preventing QC files and surface derivatives copying to output directory and renaming connectome → connectivity matrix files
+- Fixed some incorrect connections in XCP-QC file generation
+- Fixed a bug where subsequent subjects' logs were being appended to prior subjects' logs
+- Fixed templates used for rodent pipeline and added outputs that were missing
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1556) in which ITK header imprecision was causing N4 bias correction to crash
+- Fixed a bug where a node with zero nanoseconds in timing information causes report generation to fail.
+- Fixed a bug in which `--tracking_opt-out` was not applied to calls to `utils`
 
 ## [1.8.3] - 2022-02-11
 
@@ -71,6 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
+[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.4...develop
+[1.8.4]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.4
 [1.8.3]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.3
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
 [1.8.1]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.1

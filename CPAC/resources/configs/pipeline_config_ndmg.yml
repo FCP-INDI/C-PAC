@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.3
+# Version 1.8.4.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -11,45 +11,35 @@ FROM: default
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: ndmg
 
-  log_directory: 
-
-    path: /tmp
-
   system_config: 
-
     # The number of cores to allocate to ANTS-based anatomical registration per participant.
     # - Multiple cores can greatly speed up this preprocessing step.
     # - This number cannot be greater than the number of cores per participant.
     num_ants_threads: 4
 
 anatomical_preproc: 
-
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
+  non_local_means_filtering:
+    run: Off
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
+  n4_bias_field_correction:
+    run: Off
 
 segmentation: 
-
   tissue_segmentation: 
-
     # option parameters
     FSL-FAST: 
-
       use_priors: 
-
         # Full path to a directory containing binarized prior probability maps.
         # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
         # It is not necessary to change this path unless you intend to use non-standard priors.
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
-
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
@@ -69,11 +59,8 @@ segmentation:
       CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
 registration_workflows: 
-
   anatomical_registration: 
-
     registration: 
-
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
@@ -81,24 +68,16 @@ registration_workflows:
 
       # option parameters
       ANTs: 
-
         # ANTs parameters for T1-template-based registration
         T1_registration: 
-
   functional_registration: 
-
     EPI_registration: 
-
       ANTs: 
-
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters: 
-
     func_registration_to_template: 
-
       output_resolution: 
-
         # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
         # NOTE:
         #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
@@ -115,9 +94,7 @@ registration_workflows:
         func_derivative_outputs: 2mm
 
 functional_preproc: 
-
   distortion_correction: 
-
     # using: ['PhaseDiff', 'Blip']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
     #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
@@ -127,9 +104,7 @@ functional_preproc:
     using: []
 
 nuisance_corrections: 
-
   2-nuisance_regression: 
-
     # Select which nuisance signal corrections to apply
     Regressors: 
       - Bandpass:
@@ -151,7 +126,6 @@ nuisance_corrections:
           - CerebrospinalFluid
 
 timeseries_extraction: 
-
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
@@ -179,32 +153,27 @@ timeseries_extraction:
     /ndmg_atlases/label/Human/Princetonvisual-top_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
 
 seed_based_correlation_analysis: 
-
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
   run: Off
 
 amplitude_low_frequency_fluctuation: 
-
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
 regional_homogeneity: 
-
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
 voxel_mirrored_homotopic_connectivity: 
-
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
 
   symmetric_registration: 
-
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
@@ -227,13 +196,11 @@ voxel_mirrored_homotopic_connectivity:
     dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
 
 network_centrality: 
-
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off
 
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

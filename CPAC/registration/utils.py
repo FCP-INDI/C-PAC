@@ -1,3 +1,8 @@
+import os
+
+import numpy as np
+
+
 def single_ants_xfm_to_list(transform):
     transform_list = [transform]
     return transform_list
@@ -61,7 +66,6 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, ants_para, moving_mask=None,
                   reference_mask=None, fixed_image_mask=None, interp=None,
                   reg_with_skull=0):
-
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]
@@ -492,6 +496,39 @@ def change_itk_transform_type(input_affine_file):
             f.write(line)
 
     return updated_affine_file
+
+
+def one_d_to_mat(one_d_filename):
+    """Convert a .1D file to a .mat directory
+
+    Parameters
+    ----------
+    one_d_filename : str
+        The filename of the .1D file to convert
+
+    Returns
+    -------
+    mat_filenames : list of str
+        The of paths in the .mat directory created
+    """
+    mat_dirname = one_d_filename.replace('.1D', '.mat')
+    with open(one_d_filename, 'r') as one_d_file:
+        rows = [np.reshape(row, (4, 4)).astype('float') for row in [[
+            term.strip() for term in row.split(' ') if term.strip()
+        ] + [0, 0, 0, 1] for row in [
+            line.strip() for line in one_d_file.readlines() if
+            not line.startswith('#')]]]
+    try:
+        os.mkdir(mat_dirname)
+    except FileExistsError:
+        pass
+    for i, row in enumerate(rows):
+        np.savetxt(os.path.join(mat_dirname, f'MAT_{i:04}'),
+                   row, fmt='%.5f', delimiter=' ')
+        mat_filenames = [os.path.join(mat_dirname, filename) for
+            filename in os.listdir(mat_dirname)]
+        mat_filenames.sort()
+    return mat_filenames
 
 
 def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,

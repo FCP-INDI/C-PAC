@@ -23,12 +23,18 @@ space-T1w_desc-mean_bold	bold	T1w	func	NIfTI
 space-template_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-brain_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-head_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-mean_bold	bold	template	func	NIfTI					
 space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes		
+space-template_desc-scout_bold	bold	template	func	NIfTI					
 desc-DualReg_correlations	correlation	template	func	NIfTI					
 desc-MeanSCA_correlations	correlation	template	func	NIfTI					
 desc-MultReg_correlations	correlation	template	func	NIfTI					
 desc-ndmg_correlations	correlation	template	func	NIfTI					
+desc-PearsonAfni_correlations	correlation	template	func	tsv					
+desc-PartialAfni_correlations	correlation	template	func	tsv					
+desc-PearsonNilearn_correlations	correlation	template	func	tsv					
+desc-PartialNilearn_correlations	correlation	template	func	tsv					
 space-template_desc-binarized_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
 space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
 space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
@@ -119,6 +125,7 @@ bold-snr-axial-qc	qc		func	png
 bold-snr-sagittal-qc	qc		func	png					
 bold-snr-hist-qc	qc		func	png					
 bold-snr-qc	qc		func	png					
+space-template_desc-xcp_quality	qc		func	tsv					
 regressors	regressors		func	1D					
 desc-sm_reho	reho	functional	func	NIfTI		Yes			
 desc-sm-zstd_reho	reho	functional	func	NIfTI					
@@ -130,28 +137,38 @@ space-template_desc-zstd_reho	reho	template	func	NIfTI
 space-template_reho	reho	template	func	NIfTI	Yes	Yes			
 desc-DualReg_statmap	statistic	template	func	NIfTI					
 desc-MultReg_statmap	statistic	template	func	NIfTI					
-lh-cortical-thickness-surface-map	surface-derived		anat						Yes
-rh-cortical-thickness-surface-map	surface-derived		anat						Yes
-lh-cortical-volume-surface-map	surface-derived		anat						Yes
-rh-cortical-volume-surface-map	surface-derived		anat						Yes
-lh-pial-surface-mesh	surface-derived		anat						
-rh-pial-surface-mesh	surface-derived		anat						
+hemi-L_desc-surfaceMap_thickness	surface-derived		anat						Yes
+hemi-R_desc-surfaceMap_thickness	surface-derived		anat						Yes
+hemi-L_desc-surfaceMap_volume	surface-derived		anat						Yes
+hemi-R_desc-surfaceMap_volume	surface-derived		anat						Yes
+hemi-L_desc-surfaceMesh_pial	surface-derived		anat						
+hemi-R_desc-surfaceMesh_pial	surface-derived		anat						
 raw-average	surface-derived		anat						
-lh-smoothed-surface-mesh	surface-derived		anat						
-rh-smoothed-surface-mesh	surface-derived		anat						
-lh-spherical-surface-mesh	surface-derived		anat						Yes
-rh-spherical-surface-mesh	surface-derived		anat						Yes
-lh-sulcal-depth-surface-maps	surface-derived		anat						Yes
-rh-sulcal-depth-surface-maps	surface-derived		anat						Yes
-lh-surface-curvature	surface-derived		anat						
-rh-surface-curvature	surface-derived		anat						
-lh-white-matter-surface-mesh	surface-derived		anat						Yes
-rh-white-matter-surface-mesh	surface-derived		anat						Yes
+hemi-L_desc-surfaceMesh_smoothwm	surface-derived		anat						
+hemi-R_desc-surfaceMesh_smoothwm	surface-derived		anat						
+atlas-DesikanKilliany_space-fsLR_den-32k_dlabel	surface-derived		anat						
+atlas-Destrieux_space-fsLR_den-32k_dlabel	surface-derived		anat						
+atlas-DesikanKilliany_space-fsLR_den-164k_dlabel	surface-derived		anat						
+atlas-Destrieux_space-fsLR_den-164k_dlabel	surface-derived		anat						
+space-fsLR_den-32k_bold-dtseries	surface-derived		func						
+hemi-L_desc-surfaceMesh_sphere	surface-derived		anat						Yes
+hemi-R_desc-surfaceMesh_sphere	surface-derived		anat						Yes
+hemi-L_desc-surfaceMap_sulc	surface-derived		anat						Yes
+hemi-R_desc-surfaceMap_sulc	surface-derived		anat						Yes
+hemi-L_desc-surface_curv	surface-derived		anat						
+hemi-R_desc-surface_curv	surface-derived		anat						
+hemi-L_desc-surfaceMesh_white	surface-derived		anat						Yes
+hemi-R_desc-surfaceMesh_white	surface-derived		anat						Yes
+wmparc	surface-derived		anat						Yes
 space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
 desc-brain_T1w	T1w	T1w	anat	NIfTI					
 desc-preproc_T1w	T1w	T1w	anat	NIfTI					
 desc-reorient_T1w	T1w	T1w	anat	NIfTI					
+desc-restore_T1w	T1w	T1w	anat	NIfTI					
+desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
+space-template_desc-head_T1w	T1w	template	anat	NIfTI					
+space-template_desc-T1w_mask	mask	template	anat	NIfTI					
 desc-Mean_timeseries	timeseries		func	1D					
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
