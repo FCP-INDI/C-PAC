@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac:latest-bionic
+FROM ghcr.io/fcp-indi/c-pac:latest
 LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 USER root
 ENTRYPOINT ["/code/run.py"]
