@@ -179,34 +179,10 @@ packages:
 # List of additional packages that
 # are added to linux-64 installations.
 linux-64-packages:
- - fsl-cudabasisfield-cuda-9.2 1.1.1
  - fsl-cudabasisfield-cuda-10.2 1.1.1
- - fsl-cudabasisfield-cuda-11.0 1.1.1
- - fsl-cudabasisfield-cuda-11.1 1.1.1
- - fsl-cudabasisfield-cuda-11.3 1.1.1
- - fsl-cudabasisfield-cuda-11.4 1.1.1
- - fsl-cudabasisfield-cuda-11.5 1.1.1
- - fsl-eddy-cuda-9.2 2111.0
  - fsl-eddy-cuda-10.2 2111.0
- - fsl-eddy-cuda-11.0 2111.0
- - fsl-eddy-cuda-11.1 2111.0
- - fsl-eddy-cuda-11.3 2111.0
- - fsl-eddy-cuda-11.4 2111.0
- - fsl-eddy-cuda-11.5 2111.0
- - fsl-fdt-cuda-9.2 2202.3
  - fsl-fdt-cuda-10.2 2202.3
- - fsl-fdt-cuda-11.0 2202.3
- - fsl-fdt-cuda-11.1 2202.3
- - fsl-fdt-cuda-11.3 2202.3
- - fsl-fdt-cuda-11.4 2202.3
- - fsl-fdt-cuda-11.5 2202.3
- - fsl-ptx2-cuda-9.2 2111.2
  - fsl-ptx2-cuda-10.2 2111.2
- - fsl-ptx2-cuda-11.0 2111.2
- - fsl-ptx2-cuda-11.1 2111.2
- - fsl-ptx2-cuda-11.3 2111.2
- - fsl-ptx2-cuda-11.4 2111.2
- - fsl-ptx2-cuda-11.5 2111.2
 
 # List of additional packages that
 # are added to macos-64 installations.
