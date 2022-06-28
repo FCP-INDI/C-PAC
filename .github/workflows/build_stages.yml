@@ -59,7 +59,8 @@ jobs:
         with:
           since_last_remote_commit: "true"
           files: .github/Dockerfiles/*
-      - name: Set tag
+      - name: Set tag & see if it exists
+        continue-on-error: true
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
@@ -148,7 +149,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
-      - name: Set tag
+      - name: Set tag & see if it exists
+        continue-on-error: true
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
@@ -221,7 +223,8 @@ jobs:
         since_last_remote_commit: "true"
         files_from_source_file: |
           .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Set tag
+    - name: Set tag & see if it exists
+      continue-on-error: true
       run: |
         TAG="stage-base:${{ matrix.variant }}-$(cat version)"
         DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
