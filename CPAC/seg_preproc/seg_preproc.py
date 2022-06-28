@@ -1,6 +1,12 @@
 from nipype.interfaces.utility import Function
-import nipype.algorithms.rapidart as ra
-from nipype.interfaces import afni, ants, freesurfer, fsl, utility as util
+from nipype.interfaces import ants, freesurfer, fsl, utility as util
+
+from CPAC.anat_preproc.utils import freesurfer_hemispheres, mri_convert
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.registration.registration import apply_transform
+from CPAC.registration.utils import (
+    check_transforms,
+    generate_inverse_transform_flags)
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
     pick_wm_prob_0,
@@ -9,24 +15,10 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_0,
     pick_wm_class_1,
     pick_wm_class_2,
-    erosion,
-    mask_erosion,
-    hardcoded_antsJointLabelFusion,
-    pick_tissue_from_labels_file)
-
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import scipy.ndimage as nd
-import numpy as np
-from nipype.interfaces import freesurfer
-
+    hardcoded_antsJointLabelFusion)
+from CPAC.utils.interfaces.function.seg_preproc import \
+    pick_tissue_from_labels_file_interface
 from CPAC.utils.utils import check_prov_for_regtool
-
-from CPAC.anat_preproc.utils import mri_convert
-from CPAC.registration.utils import (
-    check_transforms,
-    generate_inverse_transform_flags)
-from CPAC.registration.registration import apply_transform
-from CPAC.pipeline.schema import valid_options
 
 
 def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
@@ -136,7 +128,8 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
         :width: 1100
         :height: 480
 
-    """  # noqa
+    """
+    # pylint: disable=import-outside-toplevel,redefined-outer-name,reimported
     import nipype.interfaces.utility as util
 
     preproc = pe.Workflow(name=wf_name)
@@ -167,9 +160,6 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
 
     def form_threshold_string(threshold):
         return '-thr %f ' % (threshold)
-
-    def form_mask_erosion_prop(erosion_prop):
-        return erosion_prop ** 3
 
     if not use_custom_threshold:
         # already binary tissue mask
@@ -402,13 +392,7 @@ def create_seg_preproc_antsJointLabel_method(
     preproc.connect(inputNode, 'template_segmentation_list',
                     seg_preproc_antsJointLabel, 'template_segmentation_list')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
-                                                     'csf_label',
-                                                     'gm_label',
-                                                     'wm_label'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
+    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
                           name='{0}_tissue_mask'.format(wf_name))
 
     preproc.connect(seg_preproc_antsJointLabel, 'multiatlas_Labels',
@@ -431,19 +415,27 @@ def create_seg_preproc_antsJointLabel_method(
 
 
 def create_seg_preproc_freesurfer(config=None,
-                                  wf_name='seg_preproc_freesurfer'):
+                                  wf_name='seg_preproc_freesurfer',
+                                  pipe_num=0):
     """
     Generate the subject's segmentations based on freesurfer.
 
     Parameters
     ----------
+    config : CPAC.utils.configuration.Configuration
+
     wf_name : string
         name of the workflow
+
+    pipe_num : int
 
     Returns
     -------
     seg_preproc_freesurfer : workflow
         workflow object for segmentation workflow
+
+    hemisphere_outputs : dict
+        hemisphere-specific FreeSurfer outputs
 
     Notes
     -----
@@ -457,7 +449,7 @@ def create_seg_preproc_freesurfer(config=None,
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-    """  # noqa
+    """
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
@@ -509,11 +501,10 @@ def create_seg_preproc_freesurfer(config=None,
     preproc.connect(fs_aseg_to_native, 'transformed_file',
                     fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'],
-                                        output_names=['csf_mask', 'gm_mask',
-                                                      'wm_mask'],
-                                        function=pick_tissue_from_labels_file),
-                          name=f'{wf_name}_tissue_mask')
+    pick_tissue = pe.Node(
+        pick_tissue_from_labels_file_interface(
+            input_names=['multiatlas_Labels']),
+        name=f'{wf_name}_tissue_mask')
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')
@@ -527,7 +518,10 @@ def create_seg_preproc_freesurfer(config=None,
     preproc.connect(pick_tissue, 'csf_mask',
                     outputnode, 'csf_mask')
 
-    return preproc
+    preproc, hemisphere_outputs = freesurfer_hemispheres(preproc, reconall2,
+                                                         pipe_num)
+
+    return preproc, hemisphere_outputs
 
 
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -607,8 +601,8 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     long = ''
     if 'space-longitudinal' in resource:
         long = 'space-longitudinal_'
-    
-    if use_priors: 
+
+    if use_priors:
         xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
         if 'space-longitudinal' in resource:
             xfm = 'from-template_to-longitudinal_mode-image_desc-linear_xfm'
@@ -855,7 +849,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "ANTs_Prior_Based",
      "inputs": [("desc-brain_T1w",
-                 "space-T1w_desc-brain_mask")],
+                 ["space-T1w_desc-brain_mask",
+                  "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
@@ -889,7 +884,8 @@ def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
+                                     'space-T1w_desc-acpcbrain_mask'])
     wf.connect(node, out, seg_preproc_ants_prior_based,
                'inputspec.anatomical_brain_mask')
 
@@ -911,14 +907,30 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FreeSurfer",
      "inputs": ["freesurfer-subject-dir"],
-     "outputs": ["label-CSF_mask",
+     "outputs": ["hemi-L_desc-surface_curv",
+                 "hemi-R_desc-surface_curv",
+                 "hemi-L_desc-surfaceMesh_pial",
+                 "hemi-R_desc-surfaceMesh_pial",
+                 "hemi-L_desc-surfaceMesh_smoothwm",
+                 "hemi-R_desc-surfaceMesh_smoothwm",
+                 "hemi-L_desc-surfaceMesh_sphere",
+                 "hemi-R_desc-surfaceMesh_sphere",
+                 "hemi-L_desc-surfaceMap_sulc",
+                 "hemi-R_desc-surfaceMap_sulc",
+                 "hemi-L_desc-surfaceMap_thickness",
+                 "hemi-R_desc-surfaceMap_thickness",
+                 "hemi-L_desc-surfaceMap_volume",
+                 "hemi-R_desc-surfaceMap_volume",
+                 "hemi-L_desc-surfaceMesh_white",
+                 "hemi-R_desc-surfaceMesh_white",
+                 "label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
     '''
 
-    fs_seg = create_seg_preproc_freesurfer(config=cfg,
-                                           wf_name='seg_preproc_freesurfer'
-                                                   f'_{pipe_num}')
+    fs_seg, hemisphere_outputs = create_seg_preproc_freesurfer(
+        config=cfg, wf_name=f'seg_preproc_freesurfer_{pipe_num}',
+        pipe_num=pipe_num)
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
@@ -926,7 +938,8 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'label-CSF_mask': (fs_seg, 'outputspec.csf_mask'),
         'label-GM_mask': (fs_seg, 'outputspec.gm_mask'),
-        'label-WM_mask': (fs_seg, 'outputspec.wm_mask')
+        'label-WM_mask': (fs_seg, 'outputspec.wm_mask'),
+        **hemisphere_outputs
     }
 
     return (wf, outputs)

@@ -1,28 +1,39 @@
+"""
+Functions in this file adapted from NeuroData group:
+STATEMENT OF CHANGES:
+    This file is derived from sources licensed under the Apache-2.0 terms,
+    and this file has been changed.
 
-# Functions in this file adapted from NeuroData group:
+CHANGES:
+    * Minor refactoring for compatibility with C-PAC
 
-# Copyright 2016 NeuroData (http://neurodata.io)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    Copyright 2016 NeuroData (http://neurodata.io)
 
-# graph.py
-# Created by Greg Kiar on 2016-01-27.
-# Email: gkiar@jhu.edu
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-# Can be found here:
-#   https://github.com/neurodata/ndmg/blob/merge-dmri-fmri/
+        http://www.apache.org/licenses/LICENSE-2.0
 
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+
+    graph.py
+    Created by Greg Kiar on 2016-01-27.
+    Email: gkiar@jhu.edu
+
+Can be found here:
+    https://github.com/neurodata/m2g/blob/v0.1.0/ndmg/graph/graph.py
+
+Modifications Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+"""
 import os
 import nibabel as nb
 import numpy as np

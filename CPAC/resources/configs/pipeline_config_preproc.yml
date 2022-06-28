@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2.dev
+# Version 1.8.4.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -11,46 +11,19 @@ FROM: default
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_preproc
 
-  output_directory: 
-
-    # Directory where C-PAC should write out processed data, logs, and crash reports.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/output', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    path: ./cpac_runs/preproc/output
-
   working_directory: 
-
-    # Directory where C-PAC should store temporary and intermediate files.
-    # - This directory must be saved if you wish to re-run your pipeline from where you left off (if not completed).
-    # - NOTE: As it stores all intermediate files, this directory can grow to become very
-    #   large, especially for data with a large amount of TRs.
-    # - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
-    #   name like '/work', and then map (-B/-v) your desired output directory to that label.
-    # - If running outside a container, this should be a full path to a directory.
-    # - This can be written to '/tmp' if you do not intend to save your working directory.
-    path: ./cpac_runs/preproc/working
-
     # Deletes the contents of the Working Directory after running.
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: Off
 
-  log_directory: 
-
-    path: ./cpac_runs/preproc/log
-
   system_config: 
-
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
     on_grid: 
-
       SGE: 
-
         # SGE Parallel Environment to use when running CPAC.
         # Only applies when you are running on a grid or compute cluster using SGE.
         parallel_environment: cpac
@@ -69,34 +42,29 @@ pipeline_setup:
     FSLDIR: FSLDIR
 
   Amazon-AWS: 
-
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: On
 
 anatomical_preproc: 
-
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: Off
+  non_local_means_filtering:
+    run: Off
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: Off
+  n4_bias_field_correction:
+    run: Off
 
 segmentation: 
-
   tissue_segmentation: 
-
     # option parameters
     FSL-FAST: 
-
       use_priors: 
-
         # Full path to a directory containing binarized prior probability maps.
         # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
         # It is not necessary to change this path unless you intend to use non-standard priors.
         priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
     Template_Based: 
-
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
@@ -116,21 +84,14 @@ segmentation:
       CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
 registration_workflows: 
-
   functional_registration: 
-
     EPI_registration: 
-
       ANTs: 
-
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters: 
-
 nuisance_corrections: 
-
   2-nuisance_regression: 
-
     # Select which nuisance signal corrections to apply
     Regressors: 
       - Bandpass:
@@ -185,36 +146,30 @@ nuisance_corrections:
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 timeseries_extraction: 
-
   run: Off
 
 seed_based_correlation_analysis: 
-
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
   run: Off
 
 amplitude_low_frequency_fluctuation: 
-
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
 regional_homogeneity: 
-
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
 voxel_mirrored_homotopic_connectivity: 
-
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
 
   symmetric_registration: 
-
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
@@ -237,13 +192,11 @@ voxel_mirrored_homotopic_connectivity:
     dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
 
 network_centrality: 
-
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off
 
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
