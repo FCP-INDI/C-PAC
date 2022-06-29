@@ -103,7 +103,12 @@ jobs:
             echo "ref: $GITHUB_REF_NAME"
             TEXT="Triggered pipeline at "
             U1="https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline"
-            DATA="{\"branch\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
+            if [[ "${GITHUB_REF_TYPE}" == "tag" ]]
+            then
+              export DATA="{\"tag\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
+            else
+              export DATA="{\"branch\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
+            fi
             echo "URL ${U1}"
             echo "data ${DATA}"
             PIPELINE_NUMBER=$(curl \

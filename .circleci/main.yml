@@ -4,7 +4,7 @@ version: 2.1
 parameters:
   branch:
     type: string
-    default: unknown
+    default: no branch
   owner:
     type: string
     default: unknown
