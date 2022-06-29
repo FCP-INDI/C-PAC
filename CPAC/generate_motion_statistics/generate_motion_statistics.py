@@ -713,16 +713,16 @@ def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion, in_
     data_frames = [df_FDJ, df_FDP, df_DVARS,df_maxdisp,df_relsdisp]
     all_motion_val_df = pd.concat(data_frames,axis = 1)
     if len(all_motion_val_df.columns ==4):
-       np.savetxt(all_motion_val, all_motion_val_df,delimiter=",", header = "Framewise displacement Jenkinson, Framewise displacement power, DVARS, Max Displacement, Rels Displacement", comments ='')
+       np.savetxt(all_motion_val, all_motion_val_df,delimiter="\t", header = "Framewise displacement Jenkinson \t Framewise displacement power \t DVARS \t Max Displacement \t Rels Displacement", comments ='')
     if len(all_motion_val_df.columns ==3):
-       np.savetxt(all_motion_val, all_motion_val_df,delimiter=",", header = "Framewise displacement Jenkinson, Framewise displacement power, DVARS, Max Displacement", comments ='')
+       np.savetxt(all_motion_val, all_motion_val_df,delimiter="\t", header = "Framewise displacement Jenkinson\t Framewise displacement power \t DVARS \t Max Displacement", comments ='')
 
     df_motion = pd.DataFrame(in_file_motion)
     df_power = pd.DataFrame(in_file_power)
     data_frames_motionpower = [df_motion, df_power]
     summary_motion_pow_df = pd.concat(data_frames_motionpower)
     summary_motion_pow_df.columns = ['Parameters', 'Values']
-    np.savetxt(summary_motion_power, summary_motion_pow_df,delimiter=",", header="Parameters, Values", comments='',fmt='%s')
+    np.savetxt(summary_motion_power, summary_motion_pow_df,delimiter="\t", header="Parameters \t Values", comments='',fmt='%s')
 
     return all_motion_val, summary_motion_power
 
