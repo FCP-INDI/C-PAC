@@ -721,7 +721,6 @@ def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion, in_
     df_power = pd.DataFrame(in_file_power)
     data_frames_motionpower = [df_motion, df_power]
     summary_motion_pow_df = pd.concat(data_frames_motionpower)
-    summary_motion_pow_df.columns = ['Parameters', 'Values']
     np.savetxt(summary_motion_power, summary_motion_pow_df,delimiter="\t", header="Parameters \t Values", comments='',fmt='%s')
 
     return all_motion_val, summary_motion_power
