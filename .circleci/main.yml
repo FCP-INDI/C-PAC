@@ -137,15 +137,19 @@ commands:
       - run:
           name: "Setting up variant"
           command: |
-            if [[ ${CIRCLE_BRANCH} == 'main' ]]
+            if [[ ${CIRCLE_TAG} == '' ]]
             then
-              TAG=latest
-            elif [[ ${CIRCLE_BRANCH} == 'develop' ]]
-            then
-              TAG=nightly
+              if [[ ${CIRCLE_BRANCH} == 'main' ]]
+              then
+                TAG=latest
+              elif [[ ${CIRCLE_BRANCH} == 'develop' ]]
+              then
+                TAG=nightly
+              else
+                TAG="${CIRCLE_BRANCH//\//_}"
+              fi
             else
-              TAG="${CIRCLE_BRANCH//\//_}"
-            fi
+            TAG=${CIRCLE_TAG}
             DOCKER_TAG="ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}"
             if [[ -n "<< parameters.variant >>" ]]
             then
@@ -280,7 +284,10 @@ workflows:
   test:
     jobs:
       - combine-coverage:
-          filters:
+          filters:  &tagged
+            branches:
+              ignore: 
+                - main
             tags:
               only: /^v.*/
           name: "Combine coverage"
@@ -297,6 +304,8 @@ workflows:
             branches:
               only:
                 - develop
+            tags:
+              ignore: /.*/
           matrix:
             parameters:
               variant:
@@ -307,56 +316,36 @@ workflows:
           requires:
             - "Combine coverage"
       - push-release:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
+          <<: *tagged
           matrix:
             parameters:
               variant:
                 - ""
                 - lite
                 - ABCD-HCP
-                - fMRIPrep-LTS
-          requires:
-            - "Combine coverage"          
+                - fMRIPrep-LTS       
       - pytest-docker:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test in Docker"
       - pytest-docker:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test ABCD-HCP variant in Docker"
           variant: ABCD-HCP
       - pytest-docker:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test fMRIPrep-LTS variant in Docker"
           variant: fMRIPrep-LTS
       - pytest-docker:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test lite variant in Docker"
       - pytest-singularity:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test in Singularity"
       - pytest-singularity:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test ABCD-HCP variant in Singularity"
           variant: ABCD-HCP
       - pytest-singularity:
-          filters:
-            tags:
-              only: /^v.*/
+          <<: *tagged
           name: "Test lite variant in Singularity"
           variant: lite
