@@ -19,7 +19,7 @@ jobs:
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
-          if [[ $GITHUB_BRANCH == 'main' ]]
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]
           then
             cd $HOME/work/C-PAC/C-PAC
             for DOCKERFILE in $(ls .github/Dockerfiles/C-PAC.develop-*.Dockerfile)
@@ -70,6 +70,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: Build stages
+        if: github.ref_type == 'branch'
         run: |
           pip install PyGithub
           BASE_REFS=$(python .github/scripts/get_pr_base_shas.py)
@@ -84,5 +85,12 @@ jobs:
             echo "Running against last PR"
             gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME}
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+      - name: Build, test, and push C-PAC
+        if: github.ref_type == 'tag'
+        run: |
+          pip install PyGithub
+          gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}

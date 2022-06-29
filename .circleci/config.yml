@@ -17,5 +17,5 @@ workflows:
           pre-steps:
             - run:
                 command: |
-                  echo '{ "owner": "'${CIRCLE_PROJECT_USERNAME}'", "branch": "'${CIRCLE_BRANCH}'", "tag": "'${CIRCLE_TAG}'"}' >> /home/circleci/test.json
+                  echo '{ "owner": "'${CIRCLE_PROJECT_USERNAME}'", "branch": "'${CIRCLE_BRANCH}'", "tag": "'${CIRCLE_TAG}'" }' >> /home/circleci/test.json
                   cat /home/circleci/test.json
