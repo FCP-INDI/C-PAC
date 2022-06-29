@@ -280,6 +280,9 @@ workflows:
   test:
     jobs:
       - combine-coverage:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Combine coverage"
           requires:
             - "Test in Docker"
@@ -319,20 +322,41 @@ workflows:
           requires:
             - "Combine coverage"          
       - pytest-docker:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test in Docker"
       - pytest-docker:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test ABCD-HCP variant in Docker"
           variant: ABCD-HCP
       - pytest-docker:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test fMRIPrep-LTS variant in Docker"
           variant: fMRIPrep-LTS
       - pytest-docker:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test lite variant in Docker"
       - pytest-singularity:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test in Singularity"
       - pytest-singularity:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test ABCD-HCP variant in Singularity"
           variant: ABCD-HCP
       - pytest-singularity:
+          filters:
+            tags:
+              only: /^v.*/
           name: "Test lite variant in Singularity"
           variant: lite
