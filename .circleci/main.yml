@@ -4,16 +4,13 @@ version: 2.1
 parameters:
   branch:
     type: string
-    default: no branch
+    default: unknown
   owner:
     type: string
     default: unknown
   run_tests:
     type: boolean
     default: false
-  tag:
-    type: string
-    default: untagged
 
 commands:
   push-to-docker-hub:
@@ -137,19 +134,15 @@ commands:
       - run:
           name: "Setting up variant"
           command: |
-            if [[ ${CIRCLE_TAG} == '' ]]
+            if [[ ${CIRCLE_BRANCH} == 'main' ]]
             then
-              if [[ ${CIRCLE_BRANCH} == 'main' ]]
-              then
-                TAG=latest
-              elif [[ ${CIRCLE_BRANCH} == 'develop' ]]
-              then
-                TAG=nightly
-              else
-                TAG="${CIRCLE_BRANCH//\//_}"
-              fi
+              TAG=latest
+            elif [[ ${CIRCLE_BRANCH} == 'develop' ]]
+            then
+              TAG=nightly
             else
-            TAG=${CIRCLE_TAG}
+              TAG="${CIRCLE_BRANCH//\//_}"
+            fi
             DOCKER_TAG="ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}"
             if [[ -n "<< parameters.variant >>" ]]
             then
@@ -188,24 +181,6 @@ jobs:
       - combine-coverage
       - store_artifacts:
           path: htmlcov
-  push-release:
-    parameters:
-      variant:
-        type: string
-        default: ""
-    machine:
-      image: ubuntu-2004:202010-01
-    resource_class: medium
-    steps:
-      - checkout
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
-      - attach_workspace:
-          at: /home/circleci/
-      - push-to-docker-hub:
-          tag: release-$CIRCLE_TAG
-      - push-to-docker-hub:
-          tag: latest
   push-branch-to-docker-hub:
     parameters:
       variant:
@@ -284,12 +259,6 @@ workflows:
   test:
     jobs:
       - combine-coverage:
-          filters:  &tagged
-            branches:
-              ignore: 
-                - main
-            tags:
-              only: /^v.*/
           name: "Combine coverage"
           requires:
             - "Test in Docker"
@@ -304,8 +273,6 @@ workflows:
             branches:
               only:
                 - develop
-            tags:
-              ignore: /.*/
           matrix:
             parameters:
               variant:
@@ -315,37 +282,21 @@ workflows:
                 - fMRIPrep-LTS
           requires:
             - "Combine coverage"
-      - push-release:
-          <<: *tagged
-          matrix:
-            parameters:
-              variant:
-                - ""
-                - lite
-                - ABCD-HCP
-                - fMRIPrep-LTS       
       - pytest-docker:
-          <<: *tagged
           name: "Test in Docker"
       - pytest-docker:
-          <<: *tagged
           name: "Test ABCD-HCP variant in Docker"
           variant: ABCD-HCP
       - pytest-docker:
-          <<: *tagged
           name: "Test fMRIPrep-LTS variant in Docker"
           variant: fMRIPrep-LTS
       - pytest-docker:
-          <<: *tagged
           name: "Test lite variant in Docker"
       - pytest-singularity:
-          <<: *tagged
           name: "Test in Singularity"
       - pytest-singularity:
-          <<: *tagged
           name: "Test ABCD-HCP variant in Singularity"
           variant: ABCD-HCP
       - pytest-singularity:
-          <<: *tagged
           name: "Test lite variant in Singularity"
           variant: lite
