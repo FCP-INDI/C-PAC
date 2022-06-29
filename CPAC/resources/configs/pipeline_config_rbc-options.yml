@@ -1,0 +1,265 @@
+%YAML 1.1
+---
+# CPAC Pipeline Configuration YAML file for RBC options
+# Version 1.8.4
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+FROM: fx-options
+
+pipeline_setup:
+  # Name for this pipeline configuration - useful for identification.
+  pipeline_name: RBCv0
+
+  system_config:
+
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
+    random_seed: 77742777
+
+  output_directory:
+    # Quality control outputs
+    quality_control:
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
+  working_directory: 
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: On
+
+anatomical_preproc:
+  # N4 bias field correction via ANTs
+  n4_bias_field_correction:
+    # this is a fork option
+    run:
+      - On
+
+registration_workflows:
+  anatomical_registration:
+    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+
+  functional_registration:
+    coregistration:
+      func_input_prep:
+        input: [fmriprep_reference]
+
+    func_registration_to_template:
+      # these options modify the application (to the functional data), not the calculation, of the
+      # T1-to-template and EPI-to-template transforms calculated earlier during registration
+
+      output_resolution:
+        # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
+        # NOTE:
+        #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
+        #   for most cases, 3 mm or 4 mm resolutions are suggested.
+        # NOTE:
+        #   this also includes the single-volume 3D preprocessed functional data,
+        #   such as the mean functional (mean EPI) in template space
+        func_preproc_outputs: 2mm
+
+        # The resolution (in mm) to which the registered derivative outputs are written into.
+        # NOTE:
+        #   this is for the single-volume functional-space outputs (i.e. derivatives)
+        #   thus, a higher resolution may not result in a large increase in RAM needs as above
+        func_derivative_outputs: 2mm
+
+      target_template:
+        T1_template:
+          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_template_for_resample: 
+          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
+
+
+functional_preproc:
+  truncation:
+    # First timepoint to include in analysis.
+    # Default is 0 (beginning of timeseries).
+    # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
+    # Note: the selection here applies to all scans of all participants.
+    start_tr: 2
+
+  despiking:
+    # Run AFNI 3dDespike
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: 
+      - On
+
+  motion_estimates_and_correction:
+    motion_correction:
+      using: [3dvolreg]
+
+  distortion_correction:
+    using:
+       - PhaseDiff
+       - Blip-FSL-TOPUP
+
+  func_masking:
+    using: [FSL_AFNI]
+    FSL_AFNI:
+      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz  # different space!
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
+nuisance_corrections:
+  2-nuisance_regression:
+    Regressors:
+      - Name: Motion-regressor-no-GSR-or-aCompCor
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+
+      - Name: Regressor-with-GSR
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        GlobalSignal:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+
+      - Name: Regressor-with-aCompCor
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        aCompCor:
+          summary:
+            method: DetrendPC
+            components: 5
+          tissues:
+            - WhiteMatter
+            - CerebrospinalFluid
+          extraction_resolution: 2
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks:
+
+      erode_csf:
+        # Target volume ratio, if using erosion.
+        # Default proportion is None for CSF (cerebrospinal fluid) mask.
+        # Recommend to do not use erosion in both proportion and millimeter method.
+        csf_erosion_prop: 0.9
+
+        # Erode brain mask in millimeter, default of csf is 30 mm
+        # CSF erosion default is using millimeter erosion method when use erosion for CSF.
+        csf_mask_erosion_mm:
+
+
+timeseries_extraction:
+  run: On
+  connectivity_matrix:
+    using:
+      - Nilearn
+    measure:
+      - Pearson
+      - Partial
+  tse_roi_paths:
+    # AAL
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Atlases
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Slab
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # HO: Thresholded
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # Jeulich
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    # CC
+    /cpac_templates/CC200.nii.gz: Avg
+    /cpac_templates/CC400.nii.gz: Avg
+    # Schaefer
+    /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-200Parcels17NetworksOrder.nii.gz: Avg
+    /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-300Parcels17NetworksOrder.nii.gz: Avg
+    /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-400Parcels17NetworksOrder.nii.gz: Avg
+    /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-1000Parcels17NetworksOrder.nii.gz: Avg
+    # Networks
+    #  Yeo
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    #  Smith 2009  (to be included after https://github.com/FCP-INDI/C-PAC/issues/1640 is resolved)
+    # /cpac_templates/Smith_space-MNI152NLin6_res-3x3x3_desc-thresh3_mask.nii.gz: Avg
+
+# OUTPUTS AND DERIVATIVES
+# -----------------------
+post_processing: 
+  spatial_smoothing:
+    output: [smoothed, nonsmoothed]
+    smoothing_method: [AFNI]
+    fwhm: [6]
+  z-scoring:
+    output: [z-scored, raw]
+
+seed_based_correlation_analysis:
+  run: Off
+
+regional_homogeneity:
+  run: On

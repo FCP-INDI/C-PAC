@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import sys
 import time
@@ -6,12 +22,13 @@ import shutil
 import pickle
 import copy
 import faulthandler
-import yaml
 
-import logging as cb_logging
+from logging import getLogger
 from time import strftime
 
 import nipype
+import yaml
+
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
@@ -22,7 +39,8 @@ from indi_aws import aws_utils, fetch_creds
 
 import CPAC
 
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool, wrap_block 
+from CPAC.pipeline.check_outputs import check_outputs
+from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_preproc,
     freesurfer_abcd_preproc,
@@ -49,11 +67,9 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_acpc_unet,
     brain_mask_acpc_freesurfer,
     brain_mask_acpc_freesurfer_abcd,
-    brain_extraction,
     correct_restore_brain_intensity_abcd,
     brain_mask_acpc_freesurfer_fsl_tight,
     brain_mask_acpc_freesurfer_fsl_loose,
-    brain_extraction,
     brain_extraction_temp,
     brain_extraction,
     anatomical_init_T2,
@@ -93,7 +109,9 @@ from CPAC.registration.registration import (
     warp_deriv_mask_to_EPItemplate,
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
-    warp_timeseries_to_T1template_dcan_nhp
+    warp_timeseries_to_T1template_dcan_nhp,
+    warp_Tissuemask_to_T1template,
+    warp_Tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -131,28 +149,27 @@ from CPAC.func_preproc.func_preproc import (
 
 from CPAC.distortion_correction.distortion_correction import (
     distcor_phasediff_fsl_fugue,
-    distcor_blip_afni_qwarp
+    distcor_blip_afni_qwarp,
+    distcor_blip_fsl_topup
 )
 
 from CPAC.nuisance.nuisance import (
+    choose_nuisance_blocks,
     ICA_AROMA_ANTsreg,
     ICA_AROMA_FSLreg,
     ICA_AROMA_ANTsEPIreg,
     ICA_AROMA_FSLEPIreg,
-    nuisance_regressors_generation,
-    nuisance_regression,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
     erode_mask_WM,
-    nuisance_regressors_generation_EPItemplate,
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
     erode_mask_boldWM
 )
 
-from CPAC.surface.surf_preproc import surface_preproc
+from CPAC.surface.surf_preproc import surface_postproc
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -179,23 +196,22 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
-from CPAC.utils.datasource import (
-    gather_extraction_maps
-)
+from CPAC.pipeline.random_state import set_up_random_state_logger
+from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration
 
 from CPAC.qc.pipeline import create_qc_workflow
-from CPAC.qc.utils import generate_qc_pages
+from CPAC.qc.xcp import qc_xcp
 
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
+                                  set_up_logger
+from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
 )
-
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
-from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
 faulthandler.enable()
@@ -238,7 +254,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'string for the optional "plugin" argument, but a '
             f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
             'was provided.')
-    exitcode = 0
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -255,8 +270,14 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-    # TODO ASH Enforce c.run_logging to be boolean
-    # TODO ASH Schema validation
+    set_up_logger(f'{subject_id}_expectedOutputs',
+                  filename=f'{bidsier_prefix(c["subject_id"])}_'
+                           'expectedOutputs.yml',
+                  level='info', log_dir=log_dir, mock=True,
+                  overwrite_existing=True)
+    if c.pipeline_setup['Debugging']['verbose']:
+        set_up_logger('engine', level='debug', log_dir=log_dir, mock=True)
+
     config.update_config({
         'logging': {
             'log_directory': log_dir,
@@ -288,6 +309,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     plugin_args['memory_gb'] = sub_mem_gb
     plugin_args['n_procs'] = num_cores_per_sub
+    plugin_args['raise_insufficient'] = c['pipeline_setup', 'system_config',
+                                          'raise_insufficient']
     plugin_args['status_callback'] = log_nodes_cb
 
     # perhaps in future allow user to set threads maximum
@@ -340,14 +363,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     C-PAC version: {cpac_version}
 
+    {license_notice}
+
     Setting maximum number of cores per participant to {cores}
     Setting number of participants at once to {participants}
     Setting OMP_NUM_THREADS to {omp_threads}
     Setting MKL_NUM_THREADS to 1
     Setting ANTS/ITK thread usage to {ants_threads}
     Maximum potential number of cores that might be used during this run: {max_cores}
-
-"""
+{random_seed}
+"""  # noqa: E501
 
     execution_info = """
 
@@ -361,10 +386,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
         System time of start:      {run_start}
         System time of completion: {run_finish}
+        {output_check}
+"""  # noqa: E501
 
-"""
-
-    logger.info(information.format(
+    logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
@@ -372,9 +397,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'num_participants_at_once'],
         omp_threads=c.pipeline_setup['system_config']['num_OMP_threads'],
         ants_threads=c.pipeline_setup['system_config']['num_ants_threads'],
-        max_cores=max_core_usage
-    ))
-
+        max_cores=max_core_usage,
+        random_seed=(
+            '    Random seed: %s' %
+            c.pipeline_setup['system_config']['random_seed']) if
+        c.pipeline_setup['system_config']['random_seed'] is not None else '',
+        license_notice=CPAC.license_notice.replace('\n', '\n    ')))
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
@@ -407,6 +435,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if 's3://' not in c.pipeline_setup['output_directory']['path']:
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(
             c.pipeline_setup['output_directory']['path'])
+
+    if c.pipeline_setup['system_config']['random_seed'] is not None:
+        set_up_random_state_logger(log_dir)
 
     workflow = build_workflow(
         subject_id, sub_dict, c, p_name, num_ants_cores
@@ -469,8 +500,7 @@ Please, make yourself aware of how it works and its assumptions:
             subject_info['status'] = 'Running'
 
             # Create callback logger
-            cb_log_filename = os.path.join(log_dir,
-                                           'callback.log')
+            cb_log_filename = os.path.join(log_dir, 'callback.log')
 
             try:
                 if not os.path.exists(os.path.dirname(cb_log_filename)):
@@ -479,10 +509,8 @@ Please, make yourself aware of how it works and its assumptions:
                 pass
 
             # Add handler to callback log file
-            cb_logger = cb_logging.getLogger('callback')
-            cb_logger.setLevel(cb_logging.DEBUG)
-            handler = cb_logging.FileHandler(cb_log_filename)
-            cb_logger.addHandler(handler)
+            set_up_logger('callback', cb_log_filename, 'debug', log_dir,
+                          mock=True)
 
             # Log initial information from all the nodes
             log_nodes_initial(workflow)
@@ -540,7 +568,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             # have this check in case the user runs cpac_runner from terminal and
             # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info != None:
+            if pipeline_timing_info is not None:
 
                 # pipeline_timing_info list:
                 #  [0] - unique pipeline ID
@@ -636,7 +664,7 @@ Please, make yourself aware of how it works and its assumptions:
                             if 'Start_Time' in line:
                                 headerExists = True
 
-                        if headerExists == False:
+                        if headerExists is False:
                             timeWriter.writerow(timeHeader)
 
                         timeWriter.writerow(pipelineTimeDict)
@@ -677,12 +705,12 @@ Please, make yourself aware of how it works and its assumptions:
                         os.remove(log_f)
 
                 except Exception as exc:
-                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                    err_msg = (
+                        'Unable to upload CPAC log files in: %s.\nError: %s')
                     logger.error(err_msg, log_dir, exc)
 
-        except Exception as e:
+        except Exception:
             import traceback
-            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -695,23 +723,28 @@ CPAC run error:
     Elapsed run time (minutes): {elapsed}
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
+    {output_check}
 
 """
 
         finally:
 
             if workflow:
+                if os.path.exists(cb_log_filename):
+                    resource_report(cb_log_filename,
+                                    num_cores_per_sub, logger)
 
-                resource_report(cb_log_filename,
-                                num_cores_per_sub, logger)
-
-                logger.info(execution_info.format(
+                logger.info('%s', execution_info.format(
                     workflow=workflow.name,
                     pipeline=c.pipeline_setup['pipeline_name'],
                     log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
-                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S"),
+                    output_check=check_outputs(
+                                 c.pipeline_setup['output_directory']['path'],
+                                 log_dir, c.pipeline_setup['pipeline_name'],
+                                 c['subject_id'])
                 ))
 
                 # Remove working directory when done
@@ -790,7 +823,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    pipeline_blocks += [freesurfer_preproc]
+    if not rpool.check_rpool('freesurfer-subject-dir'):
+        pipeline_blocks += [freesurfer_preproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -805,7 +839,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
                 acpc_blocks.append(
                     [brain_mask_acpc_freesurfer_fsl_tight,
-                    brain_mask_acpc_freesurfer_fsl_loose]
+                     brain_mask_acpc_freesurfer_fsl_loose]
                 )
             else:
                 acpc_blocks = [
@@ -834,7 +868,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
 
         anat_preproc_blocks = [
-            (non_local_means, ('T1w', ['desc-preproc_T1w', 
+            (non_local_means, ('T1w', ['desc-preproc_T1w',
                                        'desc-reorient_T1w',
                                        'T1w'])),
             n4_bias_correction
@@ -846,7 +880,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += anat_blocks
 
-        pipeline_blocks += [freesurfer_abcd_preproc]
+        if not rpool.check_rpool('freesurfer-subject-dir'):
+            pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
@@ -859,19 +894,18 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
              brain_mask_freesurfer_abcd,
              brain_mask_freesurfer_fsl_tight,
              brain_mask_freesurfer_fsl_loose]
-            #  brain_mask_freesurfer
         ]
         pipeline_blocks += anat_brain_mask_blocks
 
     # T2w Anatomical Preprocessing
-    if rpool.check_rpool('T2w'): 
+    if rpool.check_rpool('T2w'):
         if not rpool.check_rpool('desc-reorient_T2w'):
             anat_init_blocks_T2 = [
-                anatomical_init_T2                    
+                anatomical_init_T2
             ]
             pipeline_blocks += anat_init_blocks_T2
-        
-        # TODO: T2 freesurfer_preproc? 
+
+        # TODO: T2 freesurfer_preproc?
         # pipeline_blocks += [freesurfer_preproc]
 
         if not rpool.check_rpool('desc-preproc_T2w'):
@@ -904,7 +938,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                     ]
 
             anat_preproc_blocks_T2 = [
-                registration_T2w_to_T1w, 
+                registration_T2w_to_T1w,
                 non_local_means_T2,
                 n4_bias_correction_T2,
                 t1t2_bias_correction
@@ -915,7 +949,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 anat_blocks_T2 = anat_preproc_blocks_T2 + acpc_blocks_T2
 
             pipeline_blocks += anat_blocks_T2
-    
+
     # Anatomical T1 brain extraction
     if not rpool.check_rpool('desc-brain_T1w'):
         anat_brain_blocks = [
@@ -948,9 +982,12 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
     if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
-             overwrite_transform_anat_to_template,
-             correct_restore_brain_intensity_abcd # ABCD-options pipeline
+            overwrite_transform_anat_to_template,
         ]
+
+
+    if not rpool.check_rpool('desc-restore-brain_T1w'):
+        reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
@@ -971,7 +1008,6 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
-             #tissue_seg_freesurfer
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -979,14 +1015,49 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         if 'EPI_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
             seg_blocks.append(tissue_seg_EPI_template_based)
-            
+
         pipeline_blocks += seg_blocks
+
+    if cfg.registration_workflows['anatomical_registration']['run'] and 'T1_Template' in cfg.segmentation[
+    'tissue_segmentation']['Template_Based']['template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+
 
     return pipeline_blocks
 
 
-def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+def list_blocks(pipeline_blocks, indent=None):
+    """Function to list node blocks line by line
 
+    Parameters
+    ----------
+    pipeline_blocks : list or tuple
+
+    indent : int or None
+       number of spaces after a tab indent
+
+    Returns
+    -------
+    str
+    """
+    blockstring = yaml.dump([
+        getattr(block, '__name__', getattr(block, 'name', yaml.safe_load(
+            list_blocks(list(block))) if
+            isinstance(block, (tuple, list, set)) else str(block))
+        ) for block in pipeline_blocks])
+    if isinstance(indent, int):
+        blockstring = '\n'.join([
+            '\t' + ' ' * indent + line.replace('- - ', '- ') for
+            line in blockstring.split('\n')])
+    return blockstring
+
+
+def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+    logger.info('\n'.join([
+        'Connecting pipeline blocks:',
+        list_blocks(pipeline_blocks, indent=1)]))
+
+    previous_nb = None
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block)
@@ -1001,6 +1072,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"'{NodeBlock(block).get_name()}' "
                 f"to workflow '{wf}' " + previous_nb_str + e.args[0],
             )
+            if cfg.pipeline_setup['Debugging']['verbose']:
+                verbose_logger = getLogger('engine')
+                verbose_logger.debug(e.args[0])
+                verbose_logger.debug(rpool)
             raise
         previous_nb = nb
 
@@ -1047,10 +1122,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     pipeline_blocks = build_segmentation_stack(rpool, cfg, pipeline_blocks)
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if cfg.functional_preproc['run'] and \
-            (not rpool.check_rpool('desc-brain_bold') or
-             not rpool.check_rpool('space-bold_desc-brain_mask') or
-             not rpool.check_rpool('movement-parameters')):
+    if cfg.functional_preproc['run']:
         func_init_blocks = [
             func_scaling,
             func_truncate
@@ -1060,16 +1132,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_slice_time,
             func_reorient
         ]
+
+        if not rpool.check_rpool('desc-mean_bold'):
+            func_preproc_blocks.append(func_mean)
+
+        func_mask_blocks = []
+        if not rpool.check_rpool('space-bold_desc-brain_mask'):
+            func_mask_blocks = [
+                [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
+                 bold_mask_anatomical_refined, bold_mask_anatomical_based,
+                 bold_mask_anatomical_resampled, bold_mask_ccs],
+                bold_masking]
+
         func_prep_blocks = [
-            [bold_mask_afni, bold_mask_fsl, bold_mask_fsl_afni,
-             bold_mask_anatomical_refined, bold_mask_anatomical_based,
-             bold_mask_anatomical_resampled,
-             bold_mask_ccs],
-            bold_masking,
             calc_motion_stats,
-            func_mean,
-            func_normalize#,
-            #func_mask_normalize
+            func_normalize
         ]
 
         # Distortion/Susceptibility Correction
@@ -1077,32 +1154,40 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
-        if rpool.check_rpool('epi_1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp)
+        if rpool.check_rpool('epi-1'):
+            distcor_blocks.append(distcor_blip_afni_qwarp) 
+            distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:
                 distcor_blocks = [distcor_blocks]
             func_prep_blocks += distcor_blocks
 
-        if cfg['functional_preproc']['motion_estimates_and_correction'][
-            'motion_estimates']['calculate_motion_first']:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_estimates,
-                motion_estimate_filter
-            ]
-            func_blocks = func_init_blocks + func_motion_blocks + \
-                          func_preproc_blocks + [func_motion_correct_only] + \
-                          func_prep_blocks
+        func_motion_blocks = []
+        if not rpool.check_rpool('movement-parameters'):
+            if cfg['functional_preproc']['motion_estimates_and_correction'][
+                'motion_estimates']['calculate_motion_first']:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_estimates,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_motion_blocks + \
+                              func_preproc_blocks + [func_motion_correct_only] + \
+                              func_mask_blocks + func_prep_blocks
+            else:
+                func_motion_blocks = [
+                    get_motion_ref,
+                    func_motion_correct,
+                    motion_estimate_filter
+                ]
+                func_blocks = func_init_blocks + func_preproc_blocks + \
+                              func_motion_blocks + func_mask_blocks + \
+                              func_prep_blocks
         else:
-            func_motion_blocks = [
-                get_motion_ref,
-                func_motion_correct,
-                motion_estimate_filter
-            ]
             func_blocks = func_init_blocks + func_preproc_blocks + \
-                          func_motion_blocks + func_prep_blocks
+                          func_motion_blocks + func_mask_blocks + \
+                          func_prep_blocks
 
         pipeline_blocks += func_blocks
 
@@ -1125,6 +1210,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             [register_ANTs_EPI_to_template, register_FSL_EPI_to_template]
         ]
         pipeline_blocks += EPI_reg_blocks
+
+    if cfg.registration_workflows['functional_registration']['EPI_registration']['run'
+    ] and 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']:
+        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
+
+
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
@@ -1151,47 +1242,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks
-
-        if 'T1_template' in \
-            cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template']['using']:
-            if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "desc-stc_bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regressors_generation, ("desc-preproc_bold", "bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
-
-        if 'EPI_template' in \
-            cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['target_template'][
-                'using']:
-            if cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'default':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", ["desc-preproc_bold", "bold"])))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'single_step_resampling':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "desc-stc_bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "desc-stc_bold")))
-            elif cfg.registration_workflows['functional_registration'][
-                'func_registration_to_template']['apply_transform']['using'] == 'abcd':
-                nuisance.append((nuisance_regressors_generation_EPItemplate, ("desc-preproc_bold", "bold")))
-                nuisance.append((nuisance_regression, ("desc-preproc_bold", "bold")))
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg)
 
         pipeline_blocks += nuisance
 
+    apply_func_warp = {}
+    _r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'coregistration']['run'] and cfg.registration_workflows[
-        'functional_registration']['func_registration_to_template']['run']
+    apply_func_warp['T1'] = (
+        _r_w_f_r['coregistration']['run'] and
+        _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-brain_bold',
@@ -1201,9 +1261,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['T1'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['T1']:
 
         ts_to_T1template_block = [warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
@@ -1223,8 +1283,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    apply_func_warp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['run_EPI']
+    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+
+    if 'T1_template' in template:
+	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+    else:
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
+    del _r_w_f_r
+
     template_funcs = [
         'space-EPItemplate_desc-cleaned_bold',
         'space-EPItemplate_desc-brain_bold',
@@ -1234,19 +1300,19 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
-            apply_func_warp = False
+            apply_func_warp['EPI'] = False
 
-    if apply_func_warp:
+    if apply_func_warp['EPI']:
         pipeline_blocks += [warp_timeseries_to_EPItemplate,
                             warp_bold_mean_to_EPItemplate]
-                            
+
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
-        pipeline_blocks += [surface_preproc]
+        pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
@@ -1289,17 +1355,38 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             vmhc]
 
     if not rpool.check_rpool('centrality') and \
-            any([cfg.network_centrality[option]['weight_options'] for option in valid_options['centrality']['method_options']]):
+            any(cfg.network_centrality[option]['weight_options'] for
+                option in valid_options['centrality']['method_options']):
         pipeline_blocks += [network_centrality]
 
-    if cfg.pipeline_setup['output_directory'][
-        'generate_quality_control_images']:
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_xcpqc_files'
+    ]:
+        pipeline_blocks += [qc_xcp]
+
+    if cfg.pipeline_setup['output_directory']['quality_control'][
+        'generate_quality_control_images'
+    ]:
         qc_stack, qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(cfg)
         pipeline_blocks += qc_stack
 
     # Connect the entire pipeline!
-    wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+    try:
+        wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+    except LookupError as lookup_error:
+        errorstrings = lookup_error.args[0].split('\n')
+        missing_key = errorstrings[
+            errorstrings.index('[!] C-PAC says: The listed resource is not '
+                               'in the resource pool:') + 1]
+        if missing_key.endswith('_bold') and 'func' not in sub_dict:
+            raise FileNotFoundError(
+                'The provided pipeline configuration requires functional '
+                'data but no functional data were found for ' +
+                '/'.join([sub_dict[key] for key in ['site', 'subject_id',
+                         'unique_id'] if key in sub_dict]) + '. Please check '
+                'your data and pipeline configurations.') from lookup_error
+        raise lookup_error
 
     # Write out the data
     # TODO enforce value with schema validation

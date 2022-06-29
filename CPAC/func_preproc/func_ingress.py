@@ -1,5 +1,5 @@
 from nipype import logging
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 
@@ -29,12 +29,12 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
             func_paths_dict = sub_dict['rest']
 
         if unique_id is None:
-            workflow_name=f'func_gather_{num_strat}'
+            workflow_name = f'func_gather_{num_strat}'
         else:
-            workflow_name=f'func_gather_{unique_id}_{num_strat}'
+            workflow_name = f'func_gather_{unique_id}_{num_strat}'
 
         func_wf = create_func_datasource(func_paths_dict,
-                                        workflow_name)
+                                         workflow_name)
 
         func_wf.inputs.inputnode.set(
             subject=subject_id,

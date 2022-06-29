@@ -1,13 +1,15 @@
 import glob
 import json
-import logging
 import os
 import math
 import networkx as nx
 import socketserver
 import threading
 
+from traits.trait_base import Undefined
+
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from .custom_logging import getLogger
 
 
 # Log initial information from all the nodes
@@ -24,7 +26,7 @@ def recurse_nodes(workflow, prefix=''):
 
 
 def log_nodes_initial(workflow):
-    logger = logging.getLogger('callback')
+    logger = getLogger('callback')
     for node in recurse_nodes(workflow):
         logger.debug(json.dumps(node))
 
@@ -53,7 +55,7 @@ def log_nodes_cb(node, status):
 
     import nipype.pipeline.engine.nodes as nodes
 
-    logger = logging.getLogger('callback')
+    logger = getLogger('callback')
 
     if isinstance(node, nodes.MapNode):
         return
@@ -76,6 +78,12 @@ def log_nodes_cb(node, status):
         'estimated_memory_gb': node.mem_gb,
         'num_threads': node.n_procs,
     }
+
+    if (
+        hasattr(node, 'input_data_shape') and
+        node.input_data_shape is not Undefined
+    ):
+        status_dict['input_data_shape'] = node.input_data_shape
 
     if status_dict['start'] is None or status_dict['finish'] is None:
         status_dict['error'] = True

@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.2.dev
+# Version 1.8.4
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -11,14 +11,19 @@ FROM: fmriprep-options
 
 
 pipeline_setup: 
-
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac_fx-options
 
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
 nuisance_corrections: 
-
   2-nuisance_regression: 
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
@@ -61,23 +66,18 @@ nuisance_corrections:
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: 
-
     # Process and refine masks used to produce regressors and time series for
     # regression.
     regressor_masks: 
-
       erode_anatomical_brain_mask: 
-
         # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
         run: On
 
       erode_csf: 
-
         # Erode binarized csf tissue mask.
         run: On
 
       erode_wm: 
-
         # Erode WM binarized tissue mask.
         run: On
 

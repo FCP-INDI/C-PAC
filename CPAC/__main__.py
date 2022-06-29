@@ -1,5 +1,20 @@
 #!/usr/bin/env python
+"""Copyright (C) 2022  C-PAC Developers
 
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import pkg_resources as p
 import click
@@ -313,10 +328,15 @@ def crash(crash_file):
         from nipype.scripts.crash_files import display_crash_file
         display_crash_file(crash_file, False, False, None)
 
+
 @utils.group()
-def data_config():
-    from CPAC.utils.ga import track_config
-    track_config('cli')
+@click.option('--tracking_opt-out', is_flag=True,
+              help='Disable usage tracking.')
+def data_config(tracking_opt_out):
+    if not tracking_opt_out:
+        # pylint: disable=import-outside-toplevel
+        from CPAC.utils.ga import track_config
+        track_config('cli')
 
 
 @data_config.command()
@@ -333,8 +353,13 @@ def build(data_settings_file):
 
 
 @utils.group()
-def pipe_config():
-    pass
+@click.option('--tracking_opt-out', is_flag=True,
+              help='Disable usage tracking.')
+def pipe_config(tracking_opt_out):
+    if not tracking_opt_out:
+        # pylint: disable=import-outside-toplevel
+        from CPAC.utils.ga import track_config
+        track_config('cli')
 
 
 @pipe_config.command(name='new_template')
@@ -344,8 +369,13 @@ def new_pipeline_template():
 
 
 @utils.group()
-def group_config():
-    pass
+@click.option('--tracking_opt-out', is_flag=True,
+              help='Disable usage tracking.')
+def group_config(tracking_opt_out):
+    if not tracking_opt_out:
+        # pylint: disable=import-outside-toplevel
+        from CPAC.utils.ga import track_config
+        track_config('cli')
 
 
 @group_config.command(name='new_template')

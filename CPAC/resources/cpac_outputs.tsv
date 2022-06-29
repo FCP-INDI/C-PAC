@@ -1,3 +1,4 @@
+
 Resource	Type	Space	Sub-Directory	File	To Smooth	To z-std	4D Time Series	Optional: Debugging	Multi-File
 alff	alff	functional	func	NIfTI	Yes	Yes			
 desc-sm_alff	alff	functional	func	NIfTI		Yes			

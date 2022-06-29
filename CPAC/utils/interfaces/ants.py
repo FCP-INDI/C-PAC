@@ -2,88 +2,59 @@
 # -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
-"""
-Nipype interfaces for ANTs commands
-"""
+"""Nipype interfaces for ANTs commands
 
-# Some of this functionality is adapted from poldracklab/niworkflows:
-# https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/ants.py
-# https://fmriprep.readthedocs.io/
-# https://poldracklab.stanford.edu/
-# We are temporarily maintaining our own copy for more granular control.
+Some of this functionality is adapted from nipreps/niworkflows:
+- https://github.com/nipreps/niworkflows/blob/5a0f4bd3/niworkflows/interfaces/ants.py
+- https://fmriprep.readthedocs.io/
+- https://poldracklab.stanford.edu/
+We are temporarily maintaining our own copy for more granular control.
 
+Adapted from niworkflows:
+  - AIInputSpec
+  - AIOutputSpec
+  - AI
+  - ImageMathInputSpec
+  - ImageMathOuputSpec
+  - ImageMath
+  - ResampleImageBySpacingInputSpec
+  - ResampleImageBySpacingOutputSpec
+  - ResampleImageBySpacing
+  - ThresholdImageInputSpec
+  - ThresholdImageOutputSpec
+  - ThresholdImage
+
+STATEMENT OF CHANGES:
+    This file is derived from sources licensed under the Apache-2.0 terms,
+    and this file has been changed.
+
+CHANGES:
+    * Made private classes public
+    * Removed original example code
+
+ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+Modifications Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+"""  # noqa: E501  # pylint: disable=line-too-long
 import os
-from glob import glob
 from nipype.interfaces import base
 from nipype.interfaces.ants.base import ANTSCommandInputSpec, ANTSCommand
 from nipype.interfaces.base import traits, isdefined
-
-
-class CopyImageHeaderInformationInputSpec(ANTSCommandInputSpec):
-    """InputSpec for ``CopyImageHeaderInformation``.
-
-    ``imagetocopyrefimageinfoto`` is also used for ``imageout`` if
-    ``imageout`` is not specified.
-    """
-    def __setattr__(self, name, value):
-        super(ANTSCommandInputSpec, self).__setattr__(name, value)
-        if name == 'imagetocopyrefimageinfoto':
-            self._infer_imageout()
-
-    def _infer_imageout(self):
-        if (self.imageout == base.Undefined):
-            self.trait_set(imageout=self.imagetocopyrefimageinfoto)
-
-    refimage = base.File(position=1, argstr='%s', name_source=['refimage'],
-                         desc='reference image (with header to copy from)',
-                         exists=True, mandatory=True)
-
-    imagetocopyrefimageinfoto = base.File(position=2, argstr='%s',
-                                          name_source=[
-                                              'imagetocopyrefimageinfoto'
-                                          ], desc='image to copy header to',
-                                          exists=True, mandatory=True)
-
-    imageout = base.File(position=3, argstr='%s', name_sources=[
-                            'imagetocopyrefimageinfoto',
-                            'imageout'
-                         ],
-                         desc='output image file', usedefault=True)
-
-    boolcopydirection = traits.Bool(True, argstr='%d', position=4,
-                                    desc='copy direction?', usedefault=True)
-
-    boolcopyorigin = traits.Bool(True, argstr='%d', position=5,
-                                 desc='copy origin?', usedefault=True)
-
-    boolcopyspacing = traits.Bool(True, argstr='%d', position=6,
-                                  desc='copy spacing?', usedefault=True)
-
-
-class CopyImageHeaderInformationOutputSpec(base.TraitedSpec):
-    """OutputSpec for CopyImageHeaderInformation"""
-    imageout = base.File(exists=True, desc='output image file')
-
-
-class CopyImageHeaderInformation(ANTSCommand):
-    """Copy image header information from one file to another,
-    optionally as a copy.
-
-    Examples
-    --------
-    >>> CopyImageHeaderInformation(
-    ...     refimage='/cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz',
-    ...     imagetocopyrefimageinfoto='/cpac_templates/MacaqueYerkes19_'
-    ...                               'T1w_2mm_brain_mask.nii.gz'
-    ... ).cmdline
-    'CopyImageHeaderInformation /cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz /cpac_templates/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz 1 1 1'
-    """  # noqa: E501
-    _cmd = 'CopyImageHeaderInformation'
-    input_spec = CopyImageHeaderInformationInputSpec
-    output_spec = CopyImageHeaderInformationOutputSpec
-
-    def _list_outputs(self):
-        return {'imageout': self.inputs.imageout}
 
 
 class ImageMathInputSpec(ANTSCommandInputSpec):
@@ -112,10 +83,47 @@ class ImageMath(ANTSCommand):
     --------
 
     """
-
     _cmd = 'ImageMath'
     input_spec = ImageMathInputSpec
     output_spec = ImageMathOuputSpec
+
+
+class PrintHeaderInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ``PrintHeader``.
+
+    See `PrintHeader: DESCRIPTION <https://manpages.debian.org/testing/ants/PrintHeader.1.en.html#DESCRIPTION>`_ for ``what_information`` values.
+    """  # noqa: E501  # pylint: disable=line-too-long
+    image = base.File(position=2, argstr='%s', name_source=['image'],
+                      desc='image to read header from', exists=True,
+                      mandatory=True)
+
+    what_information = traits.Int(position=3, argstr='%i',
+                                  name='what_information',
+                                  desc='read what from header')
+
+
+class PrintHeaderOutputSpec(base.TraitedSpec):
+    """OutputSpec for ``PrintHeader``."""
+    header = traits.String(name='header')
+
+
+class PrintHeader(ANTSCommand):
+    """Print image header information."""
+    _cmd = 'PrintHeader'
+    # pylint: disable=protected-access
+    _gen_filename = base.StdOutCommandLine._gen_filename
+    input_spec = PrintHeaderInputSpec
+    output_spec = PrintHeaderOutputSpec
+    _terminal_output = 'stream'
+
+    def aggregate_outputs(self, runtime=None, needed_outputs=None):
+        outputs = super().aggregate_outputs(runtime, needed_outputs)
+        outputs.trait_set(header=runtime.stdout)
+        self.output_spec().trait_set(header=runtime.stdout)
+        return outputs
+
+    def _list_outputs(self):
+        return self._outputs().get()
 
 
 class ResampleImageBySpacingInputSpec(ANTSCommandInputSpec):
@@ -187,6 +195,40 @@ class ResampleImageBySpacing(ANTSCommand):
 
         return super(ResampleImageBySpacing, self)._format_arg(
             name, trait_spec, value)
+
+
+class SetDirectionByMatrixInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ``SetDirectionByMatrix``."""
+    infile = base.File(position=2, argstr='%s', name_source=['infile'],
+                       desc='image to copy header to', exists=True,
+                       mandatory=True)
+    outfile = base.File(position=3, argstr='%s',
+                        name_sources=['infile', 'outfile'],
+                        desc='output image file', usedefault=True)
+    direction = traits.String(argstr='%s', position=4,
+                              desc='dimensions, x-delimited')
+
+
+class SetDirectionByMatrixOutputSpec(base.TraitedSpec):
+    """OutputSpec for ``SetDirectionByMatrix``"""
+    outfile = base.File(exists=True, desc='output image file')
+
+
+class SetDirectionByMatrix(ANTSCommand):
+    """Set image header information from a matrix of dimensions."""
+    _cmd = 'SetDirectionByMatrix'
+    # pylint: disable=protected-access
+    _gen_filename = base.StdOutCommandLine._gen_filename
+    input_spec = SetDirectionByMatrixInputSpec
+    output_spec = SetDirectionByMatrixOutputSpec
+
+    def _format_arg(self, name, trait_spec, value):
+        if name == 'direction':
+            return value.replace('x', ' ')
+        return super()._format_arg(name, trait_spec, value)
+
+    def _list_outputs(self):
+        return {'outfile': self.inputs.outfile}
 
 
 class ThresholdImageInputSpec(ANTSCommandInputSpec):
@@ -310,13 +352,7 @@ class AIOuputSpec(base.TraitedSpec):
 
 
 class AI(ANTSCommand):
-    """
-    The replacement for ``AffineInitializer``.
-
-    Example:
-    --------
-
-    """
+    """Replaces ``AffineInitializer``."""
 
     _cmd = 'antsAI'
     input_spec = AIInputSpec
@@ -355,5 +391,3 @@ class AI(ANTSCommand):
 
     def _list_outputs(self):
         return getattr(self, '_output')
-
-

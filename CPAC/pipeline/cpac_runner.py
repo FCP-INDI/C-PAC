@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import sys
 import warnings
@@ -106,6 +122,8 @@ def run_cpac_on_cluster(config_file, subject_list_file,
             'max_cores_per_participant'],
         'memory_gb': pipeline_config.pipeline_setup['system_config'][
             'maximum_memory_per_participant'],
+        'raise_insufficient': pipeline_config.pipeline_setup['system_config'][
+            'raise_insufficient'],
         'status_callback': log_nodes_cb}
 
     # Set up run command dictionary

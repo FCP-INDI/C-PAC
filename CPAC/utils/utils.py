@@ -2,17 +2,17 @@ import os
 import collections.abc
 import fnmatch
 import gzip
+import json
 import numbers
 import pickle
-import threading
 import numpy as np
-import json
 import yaml
 
+from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
-from optparse import OptionError
 from voluptuous.error import Invalid
+from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -96,6 +96,32 @@ def check_prov_for_motion_tool(prov):
             return None
 
 
+def cl_strip_brackets(arg_list):
+    """Removes '[' from before first and ']' from after final
+    arguments in a list of commandline arguments
+
+    Parameters
+    ----------
+    arg_list : list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> cl_strip_brackets('[a b c]'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('a b c'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('[ a b c ]'.split(' '))
+    ['a', 'b', 'c']
+    """
+    arg_list[0] = arg_list[0].lstrip('[')
+    arg_list[-1] = arg_list[-1].rstrip(']')
+    return [arg for arg in arg_list if arg]
+
+
 def get_flag(in_flag):
     return in_flag
 
@@ -136,7 +162,7 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
 
     if atlas_id:
         if '_' in atlas_id:
-            atlas_id = atlas_id.replace("_", "")
+            atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
     if 'sub-' not in unique_id:
@@ -225,8 +251,8 @@ def get_zscore(map_node=False, wf_name='z_score'):
     >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
     >>> wf.run()  # doctest: +SKIP
-    """  # noqa
-
+    """  # noqa: E501  # pylint: disable=line-too-long
+    # pylint: disable=import-outside-toplevel,redefined-outer-name,reimported
     from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
@@ -926,8 +952,8 @@ def check_tr(tr, in_file):
             TR = header_tr
 
         import warnings
-        warnings.warn(
-            'Warning: The TR information does not match between the config and subject list files.')
+        warnings.warn('Warning: The TR information does not match between '
+                      'the config and subject list files.')
 
     return TR
 
@@ -1306,10 +1332,6 @@ def check_system_deps(check_ants=False,
 
 # Check pipeline config againts computer resources
 def check_config_resources(c):
-    '''
-    docstring
-    '''
-
     # Import packages
     import psutil
     from multiprocessing import cpu_count
@@ -1334,10 +1356,10 @@ def check_config_resources(c):
         if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
-                      'and try again.' % (c.pipeline_setup['system_config'][
-                                              'maximum_memory_per_participant'],
+                      'and try again.' % (c.pipeline_setup[
+                          'system_config']['maximum_memory_per_participant'],
                                           c.network_centrality[
-                                              'memory_allocation'])
+                          'memory_allocation'])
             raise Exception(err_msg)
 
     # Check for pipeline threads
@@ -1348,13 +1370,12 @@ def check_config_resources(c):
                            c.pipeline_setup['system_config'][
                                'max_cores_per_participant']
         if total_user_cores > num_cores:
-            err_msg = 'Config file specifies more subjects running in ' \
-                      'parallel than number of threads available. Change ' \
-                      'this and try again'
-            raise Exception(err_msg)
-        else:
-            num_cores_per_sub = c.pipeline_setup['system_config'][
-                'max_cores_per_participant']
+            raise SystemError('Configuration specifies more threads running '
+                              'in parallel (%d) than number of threads '
+                              'available (%d). Change this and try again' %
+                              (total_user_cores, num_cores))
+        num_cores_per_sub = c.pipeline_setup['system_config'][
+            'max_cores_per_participant']
     else:
         num_cores_per_sub = num_cores / c.pipeline_setup['system_config'][
             'num_participants_at_once']
@@ -1404,7 +1425,8 @@ def _check_nested_types(d, keys):
     if not isinstance(d, dict):
         raise TypeError(f'Expected dict, got {type(d).__name__}: {str(d)}')
     if not isinstance(keys, list) and not isinstance(keys, tuple):
-        raise TypeError(f'Expected list, got {type(keys).__name}: {str(keys)}')
+        raise TypeError(
+            f'Expected list, got {type(keys).__name__}: {str(keys)}')
 
 
 def delete_nested_value(d, keys):
@@ -1431,7 +1453,7 @@ def delete_nested_value(d, keys):
     if len(keys) == 1:
         del d[keys[0]]
         return d
-    if not len(keys):
+    if not len(keys):  # pylint: disable=len-as-condition
         return d
     d[keys[0]] = delete_nested_value(d.get(keys[0], {}), keys[1:])
     return d
@@ -1441,22 +1463,12 @@ def load_preconfig(pipeline_label):
     import os
     import pkg_resources as p
 
-    avail_configs = \
-        p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources",
-                "configs")
-        )
-    avail_configs = os.listdir(avail_configs)
-    avail_configs = [x.split('_')[2].replace('.yml', '') for x
-                     in avail_configs if 'pipeline_config' in x]
-
-    if pipeline_label not in avail_configs:
-        raise OptionError(
+    if pipeline_label not in ALL_PIPELINE_CONFIGS:
+        raise BadParameter(
             "The pre-configured pipeline name '{0}' you provided is not one "
             "of the available pipelines.\n\nAvailable pipelines:\n"
-            "{1}\n".format(pipeline_label, str(avail_configs)), pipeline_label)
+            "{1}\n".format(pipeline_label, str(AVAILABLE_PIPELINE_CONFIGS)),
+            param='preconfig')
 
     pipeline_file = \
         p.resource_filename(
@@ -1496,7 +1508,7 @@ def repickle(directory):
     -------
     None
     """
-    for root, dirs, files in os.walk(directory, followlinks=True):
+    for root, _, files in os.walk(directory, followlinks=True):
         for fn in files:
             p = os.path.join(root, fn)
             if fn.endswith(".pkl"):
@@ -1640,7 +1652,7 @@ def dct_diff(dct1, dct2):
     ...     'pipeline_config_fmriprep-options.yml')
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''  # noqa
+    '''
     diff = {}
     for key in dct1:
         if isinstance(dct1[key], dict):
@@ -1666,12 +1678,13 @@ def dct_diff(dct1, dct2):
                 diff[key] = dct2[key]
 
         # only return non-empty diffs
-        return {k: diff[k] for k in diff if k in dct2}
+        return {k: v for k, v in diff.items() if k in dct2}
 
     return {}
 
 
-def list_item_replace(l, old, new):  # noqa E741
+def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
+                      old, new):
     '''Function to replace an item in a list
 
     Parameters
@@ -1699,7 +1712,7 @@ def list_item_replace(l, old, new):  # noqa E741
     if isinstance(l, list) and old in l:
         l[l.index(old)] = new
     elif isinstance(l, str):
-        l = l.replace(old, new)  # noqa E741
+        l = l.replace(old, new)  # noqa: E741
     return l
 
 
@@ -1804,9 +1817,7 @@ def remove_None(d, k):
     return set_nested_value(d, k, value)
 
 
-def replace_in_strings(d, replacements=[
-    (r'${resolution_for_func_preproc}', r'${func_resolution}')
-]):
+def replace_in_strings(d, replacements=None):
     '''Helper function to recursively replace substrings.
 
     Parameters
@@ -1829,6 +1840,9 @@ def replace_in_strings(d, replacements=[
     >>> replace_in_strings({'key': 'test${resolution_for_func_preproc}'})
     {'key': 'test${func_resolution}'}
     '''
+    if replacements is None:
+        replacements = [(r'${resolution_for_func_preproc}',
+                         r'${func_resolution}')]
     if isinstance(d, dict):
         return {k: replace_in_strings(d[k], replacements) for k in d}
     if isinstance(d, list):
@@ -1862,7 +1876,7 @@ def set_nested_value(d, keys, value):
     if len(keys) == 1:
         d.update({keys[0]: value})
         return d
-    if not len(keys):
+    if not len(keys):  # pylint: disable=len-as-condition
         return d
     new_d = {
         keys[0]: set_nested_value(d.get(keys[0], {}), keys[1:], value)
@@ -1891,14 +1905,15 @@ def update_config_dict(old_dict):
 
     Examples
     --------
-    >>> a, b, c = update_config_dict({'pipelineName': 'example-pipeline', '2': None})
+    >>> a, b, c = update_config_dict({
+    ...     'pipelineName': 'example-pipeline', '2': None})
     >>> a
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}}
     >>> b
     {'2': None}
     >>> c
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
-    ''' # noqa
+    '''
     def _append_to_list(current_value, new_value):
         '''Helper function to add new_value to the current_value list
         or create a list if one does not exist. Skips falsy elements
@@ -1975,7 +1990,7 @@ def update_config_dict(old_dict):
         'test_str'
         '''
         if isinstance(old_value, list):
-            if any([bool(i) for i in old_value]):
+            if any(bool(i) for i in old_value):
                 return value_if_true
         elif bool(old_value):
             return value_if_true
@@ -2132,14 +2147,14 @@ def update_config_dict(old_dict):
                 # post_processing.spatial_smoothing.output
                 elif key == 'run_smoothing':
                     new_value = [_bool_to_str(old_value, 'smoothed')]
-                    if any([not bool(value) for value in old_value]):
+                    if any(not bool(value) for value in old_value):
                         new_value.append('nonsmoothed')
                     current_value = new_value
 
                 # post_processing.z-scoring.output
                 elif key == 'runZScoring':
                     new_value = [_bool_to_str(old_value, 'z-scored')]
-                    if any([not bool(value) for value in old_value]):
+                    if any(not bool(value) for value in old_value):
                         new_value.append('raw')
                     current_value = new_value
 
@@ -2191,7 +2206,9 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     'write_func_outputs': False,
     ...     'write_debugging_outputs': False,
     ...     'output_tree': 'default',
-    ...     'generate_quality_control_images': True},
+    ...     'quality_control': {
+    ...         'generate_quality_control_images': True,
+    ...         'generate_xcpqc_files': True}},
     ...     'working_directory': {'path': '/tmp', 'remove_working_dir': True},
     ...     'log_directory': {'run_logging': True, 'path': '/logs'},
     ...     'system_config': {'maximum_memory_per_participant': 1,
@@ -2207,7 +2224,9 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {
     ...         'path': '/output', 'write_func_outputs': False,
     ...         'write_debugging_outputs': False, 'output_tree': 'default',
-    ...         'generate_quality_control_images': True
+    ...         'quality_control': {
+    ...             'generate_quality_control_images': True,
+    ...             'generate_xcpqc_files': True}
     ...     }, 'working_directory': {
     ...        'path': '/tmp', 'remove_working_dir': True
     ...     }, 'log_directory': {'run_logging': True, 'path': '/logs'},
@@ -2258,13 +2277,13 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     ...     '/cpac_templates/aal_mask_pad.nii.gz': 'Voxel'
     ... }, 'realignment': 'ROI_to_func'}})
     True
-    """  # noqa
+    """  # noqa: E501  # pylint: disable=line-too-long
 
     # short-circuit if d_update has `*_roi_paths` and
     # `roi_paths_fully_specified` children
     if fully_specified:
         return d_update
-    if any([k.endswith('_roi_paths') for k in d_update.keys()]):
+    if any(k.endswith('_roi_paths') for k in d_update.keys()):
         fully_specified = d_update.pop('roi_paths_fully_specified', True)
     else:
         fully_specified = False
@@ -2300,8 +2319,9 @@ def update_pipeline_values_1_8(d_old):
     >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
     ...     'using': ['FSL-FAST Thresholding']}}})
     {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Auto'}}}}}
-    '''  # noqa
-    from CPAC.pipeline.schema import valid_options
+    '''  # noqa: E501  # pylint: disable=line-too-long
+    from CPAC.pipeline.schema import valid_options \
+        # pylint: disable=import-outside-toplevel
 
     d = replace_in_strings(d_old.copy())
 
@@ -2352,7 +2372,7 @@ def update_pipeline_values_1_8(d_old):
         centr_keys = ['network_centrality', centr, 'weight_options']
         try:
             centr_value = lookup_nested_value(d, centr_keys)
-            if any([isinstance(v, bool) for v in centr_value]):
+            if any(isinstance(v, bool) for v in centr_value):
                 for i in range(2):
                     if centr_value[i] is True:
                         centr_value[i] = valid_options['centrality'][
@@ -2463,18 +2483,18 @@ def update_values_from_list(d_old, last_exception=None):
                 raise e
 
         if expected == 'bool':
-            if isinstance(observed, int):
+            if isinstance(observed, int):  # pylint: disable=no-else-return
                 return update_values_from_list(
                     set_nested_value(d, e.path, bool(observed)), e)
             elif isinstance(observed, list):
-                if len(observed) == 0:
+                if len(observed) == 0:  # pylint: disable=no-else-return
                     return update_values_from_list(set_nested_value(
                         d, e.path, False), e)
                 else:
                     # maintain a list if list expected
                     list_expected = (e.path[-1] == 0)
                     e_path = e.path[:-1] if list_expected else e.path
-                    if len(observed) == 1:
+                    if len(observed) == 1:  # pylint: disable=no-else-return
                         if isinstance(observed[0], int):
                             value = bool(observed[0])
                         elif observed[0] in {'On', 'True'}:

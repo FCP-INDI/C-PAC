@@ -14,6 +14,7 @@ linux_openmp_64/3dinfo
 linux_openmp_64/3dLFCD
 linux_openmp_64/3dmask_tool
 linux_openmp_64/3dmaskave
+linux_openmp_64/3dNetCorr
 linux_openmp_64/3dpc
 linux_openmp_64/3dQwarp
 linux_openmp_64/3drefit

@@ -1,41 +1,56 @@
-import os
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import ast
-import six
-import json
-import warnings
 import logging
+import os
+import warnings
 import copy
-from unittest import TestCase
+import yaml
 
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from nipype.interfaces.utility import Rename
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.pipeline import \
+    nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype.interfaces.utility import \
+    Rename  # pylint: disable=wrong-import-order
 
+from CPAC.image_utils.spatial_smoothing import spatial_smoothing
+from CPAC.image_utils.statistical_transforms import z_score_standardize, \
+    fisher_z_score_standardize
+from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.nuisance import NuisanceRegressor
-
 from CPAC.utils import Outputs
-from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
-    get_last_prov_entry, ordereddict_to_dict, check_prov_for_regtool
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
     ingress_func_metadata,
     create_general_datasource,
-    create_check_for_s3_node,
     resolve_resolution
 )
-from CPAC.image_utils.spatial_smoothing import spatial_smoothing
-from CPAC.image_utils.statistical_transforms import z_score_standardize, \
-    fisher_z_score_standardize
-from CPAC.pipeline.nipype_pipeline_engine import get_data_size
+from CPAC.utils.docs import grab_docstring_dct
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
+    get_last_prov_entry, check_prov_for_regtool
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
+verbose_logger = logging.getLogger('engine')
 
 
-class ResourcePool(object):
+class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
         if not rpool:
@@ -79,7 +94,12 @@ class ResourcePool(object):
             self.smooth_opts = cfg.post_processing['spatial_smoothing'][
                 'smoothing_method']
 
-        self.xfm = ['alff', 'falff', 'reho']
+        self.xfm = ['alff', 'desc-sm_alff', 'desc-zstd_alff', 
+                    'desc-sm-zstd_alff',
+                    'falff', 'desc-sm_falff', 'desc-zstd_falff',
+                    'desc-sm-zstd_falff',
+                    'reho', 'desc-sm_reho', 'desc-zstd_reho',
+                    'desc-sm-zstd_reho']
 
     def append_name(self, name):
         self.name.append(name)
@@ -210,15 +230,29 @@ class ResourcePool(object):
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
-            
+
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info
+        self.rpool[resource][new_pipe_idx]['json'] = json_info 
 
     def get(self, resource, pipe_idx=None, report_fetched=False,
             optional=False):
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        
+        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
+                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
+                   "can enable a node block earlier in the pipeline which " \
+                   "produces these resources. Check the 'outputs:' field in " \
+                   "a node block's documentation.\n- You can directly " \
+                   "provide this required data by pulling it from another " \
+                   "BIDS directory using 'source_outputs_dir:' in the " \
+                   "pipeline configuration, or by placing it directly in " \
+                   "your C-PAC output directory.\n- If you have done these, " \
+                   "and you still get this message, please let us know " \
+                   "through any of our support channels at: " \
+                   "https://fcp-indi.github.io/\n"
+        
         if isinstance(resource, list):
             # if a list of potential inputs are given, pick the first one
             # found
@@ -232,21 +266,14 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n[!] C-PAC says: None of the listed "
-                                "resources are in the resource pool:\n"
-                                f"{resource}\n")
+                raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
                     if report_fetched:
                         return (None, None)
                     return None
-                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
-                                  f"not in the resource pool:\n{resource}\n\n"
-                                  "Developer Note: This may be due to a mis"
-                                  "match between the node block's docstring "
-                                  "'input' field and a strat_pool.get_data() "
-                                  "call within the block function.\n")
+                raise LookupError(info_msg)
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -277,6 +304,10 @@ class ResourcePool(object):
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
             raise Exception(f"[!] {resource} not in the resource pool.")
+
+    def update_resource(self, resource, new_name):
+        # move over any new pipe_idx's
+        self.rpool[new_name].update(self.rpool[resource])
 
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
@@ -316,12 +347,12 @@ class ResourcePool(object):
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
-        
+
     def generate_prov_list(self, prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
-                            f'entry for {prov} has to be a string.\n')
-        return (ast.literal_eval(prov_str))
+                            f'entry for {str(prov_str)} has to be a string.\n')
+        return ast.literal_eval(prov_str)
 
     def get_resource_strats_from_prov(self, prov):
         # if you provide the provenance of a resource pool output, this will
@@ -355,15 +386,17 @@ class ResourcePool(object):
                     flat_prov.append(entry)
             return flat_prov
 
-    def get_strats(self, resources):
+    def get_strats(self, resources, debug=False):
 
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
         import itertools
-        
+
         linked_resources = []
         resource_list = []
+        if debug:
+            verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
@@ -385,6 +418,10 @@ class ResourcePool(object):
         total_pool = []
         variant_pool = {}
         len_inputs = len(resource_list)
+        if debug:
+            verbose_logger.debug('linked_resources: %s',
+                                 linked_resources)
+            verbose_logger.debug('resource_list: %s', resource_list)
         for resource in resource_list:
             rp_dct, fetched_resource = self.get(resource,
                                                 report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
@@ -393,7 +430,8 @@ class ResourcePool(object):
                 len_inputs -= 1
                 continue
             sub_pool = []
-
+            if debug:
+                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -404,9 +442,18 @@ class ResourcePool(object):
                     for key, val in json_info['CpacVariant'].items():
                         if val not in variant_pool[fetched_resource]:
                             variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f'NO-{val[0]}')
+                            variant_pool[fetched_resource].append(
+                                f'NO-{val[0]}')
 
+            if debug:
+                verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
+
+        if not total_pool:
+            raise LookupError('\n\n[!] C-PAC says: None of the listed '
+                              'resources in the node block being connected '
+                              'exist in the resource pool.\n\nResources:\n'
+                              '%s\n\n' % resource_list)
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -433,6 +480,9 @@ class ResourcePool(object):
                     strat_str_list.append(strat_str)
                     strat_list_list.append(strat_list)
 
+            if debug:
+                verbose_logger.debug('len(strat_list_list): %s\n',
+                                     len(strat_list_list))
             for strat_list in strat_list_list:
 
                 json_dct = {}
@@ -510,7 +560,7 @@ class ResourcePool(object):
                                             if in_current_strat:
                                                 drop = True
                                                 break
-                                            
+
                                     if in_other_strat:
                                         if in_other_spread:
                                             if not in_current_strat:
@@ -563,11 +613,11 @@ class ResourcePool(object):
                     if data_type not in new_strats[pipe_idx].rpool['json']['subjson']:
                         new_strats[pipe_idx].rpool['json']['subjson'][data_type] = {}
                     new_strats[pipe_idx].rpool['json']['subjson'][data_type].update(copy.deepcopy(resource_strat_dct['json']))
-
         return new_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx,
                        pipe_x):
+
         if label in self.xfm:
 
             json_info = dict(json_info)
@@ -620,7 +670,6 @@ class ResourcePool(object):
                 new_prov = json_info['CpacProvenance'] + xfm_prov
                 json_info['CpacProvenance'] = new_prov
                 new_pipe_idx = self.generate_prov_string(new_prov)
-
                 self.set_data(label, xfm, 'outputspec.out_file', json_info,
                               new_pipe_idx, f'{label}_xfm_{num}', fork=True)
 
@@ -630,6 +679,8 @@ class ResourcePool(object):
                      outs):
 
         input_type = 'func_derivative'
+
+        post_labels = [(label, connection[0], connection[1])]
 
         if 'centrality' in label or 'lfcd' in label:
             mask = 'template-specification-file'
@@ -675,6 +726,8 @@ class ResourcePool(object):
                                 smlabel = label.replace(tag, newtag)
                                 break
 
+                    post_labels.append((smlabel, sm, 'outputspec.out_file'))
+
                     self.set_data(smlabel, sm, 'outputspec.out_file',
                                   json_info, pipe_idx,
                                   f'spatial_smoothing_{smooth_opt}',
@@ -683,70 +736,77 @@ class ResourcePool(object):
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
 
-        if self.run_zscoring:
+        if self.run_zscoring:            
+            for label_con_tpl in post_labels:
+                label = label_con_tpl[0]
+                connection = (label_con_tpl[1], label_con_tpl[2])
+                if label in Outputs.to_zstd:
+                    zstd = z_score_standardize(f'{label}_zstd_{pipe_x}',
+                                               input_type)
 
-            if 'desc-' not in label:
-                if 'space-template' in label:
-                    label = label.replace('space-template',
-                                          'space-template_desc-zstd')
-                else:
-                    label = f'desc-zstd_{label}'
-            else:
-                for tag in label.split('_'):
-                    if 'desc-' in tag:
-                        newtag = f'{tag}-zstd'
-                        new_label = label.replace(tag, newtag)
-                        break
+                    wf.connect(connection[0], connection[1],
+                               zstd, 'inputspec.in_file')
 
-            if label in Outputs.to_zstd:
+                    node, out = self.get_data(mask, pipe_idx=mask_idx)
+                    wf.connect(node, out, zstd, 'inputspec.mask')
 
-                zstd = z_score_standardize(f'{label}_zstd_{pipe_x}',
-                                           input_type)
+                    if 'desc-' not in label:
+                        if 'space-template' in label:
+                            new_label = label.replace('space-template',
+                                                      'space-template_desc-zstd')
+                        else:
+                            new_label = f'desc-zstd_{label}'
+                    else:
+                        for tag in label.split('_'):
+                            if 'desc-' in tag:
+                                newtag = f'{tag}-zstd'
+                                new_label = label.replace(tag, newtag)
+                                break
 
-                wf.connect(connection[0], connection[1],
-                           zstd, 'inputspec.in_file')
+                    post_labels.append((new_label, zstd, 'outputspec.out_file'))
 
-                node, out = self.get_data(mask, pipe_idx=mask_idx)
-                wf.connect(node, out, zstd, 'inputspec.mask')
+                    self.set_data(new_label, zstd, 'outputspec.out_file',
+                                  json_info, pipe_idx, f'zscore_standardize',
+                                  fork=True)
 
-                self.set_data(new_label, zstd, 'outputspec.out_file',
-                              json_info, pipe_idx, f'zscore_standardize',
-                              fork=True)
+                elif label in Outputs.to_fisherz:
 
-            elif label in Outputs.to_fisherz:
+                    zstd = fisher_z_score_standardize(f'{label}_zstd_{pipe_x}',
+                                                      label, input_type)
 
-                zstd = fisher_z_score_standardize(f'{label}_zstd_{pipe_x}',
-                                                  label, input_type)
+                    wf.connect(connection[0], connection[1],
+                               zstd, 'inputspec.correlation_file')
 
-                wf.connect(connection[0], connection[1],
-                           zstd, 'inputspec.correlation_file')
+                    # if the output is 'desc-MeanSCA_correlations', we want
+                    # 'desc-MeanSCA_timeseries'
+                    oned = label.replace('correlations', 'timeseries')
 
-                # if the output is 'desc-MeanSCA_correlations', we want
-                # 'desc-MeanSCA_timeseries'
-                oned = label.replace('correlations', 'timeseries')
+                    node, out = outs[oned]
+                    wf.connect(node, out, zstd, 'inputspec.timeseries_oned')
 
-                node, out = outs[oned]
-                wf.connect(node, out, zstd, 'inputspec.timeseries_oned')
+                    post_labels.append((new_label, zstd, 'outputspec.out_file'))
 
-                self.set_data(new_label, zstd, 'outputspec.out_file',
-                              json_info, pipe_idx,
-                              'fisher_zscore_standardize',
-                              fork=True)
+                    self.set_data(new_label, zstd, 'outputspec.out_file',
+                                  json_info, pipe_idx,
+                                  'fisher_zscore_standardize',
+                                  fork=True)
 
-        return wf
+        return (wf, post_labels)
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-       
         excl = []
         substring_excl = []
+        outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
+        expected_outputs = ExpectedOutputs()
 
         if add_excl:
             excl += add_excl
-                       
-        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing']['output']:
+
+        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing'][
+                'output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
-            
+
         if 'raw' not in cfg.post_processing['z-scoring']['output']:
             excl += Outputs.native_raw
             excl += Outputs.template_raw
@@ -756,13 +816,12 @@ class ResourcePool(object):
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-        
             if resource not in Outputs.any:
                 continue
-        
+
             if resource in excl:
                 continue
-                
+
             drop = False
             for substring_list in substring_excl:
                 bool_list = []
@@ -780,7 +839,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-                
+
             subdir = 'other'
             if resource in Outputs.anat:
                 subdir = 'anat'
@@ -811,7 +870,8 @@ class ResourcePool(object):
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-
+        #print(Outputs.any)
+        #print(self.rpool.keys())
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
@@ -837,7 +897,7 @@ class ResourcePool(object):
                     break
             if drop:
                 continue
-            
+
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
@@ -866,10 +926,11 @@ class ResourcePool(object):
                 if num_variant:
                     for key in out_dct['filename'].split('_'):
                         if 'desc-' in key:
-                            out_dct['filename'] = out_dct['filename'
-                            ].replace(key, f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key,
-                                                            f'{key}-{num_variant}')
+                            out_dct['filename'] = out_dct[
+                                'filename'].replace(key,
+                                                    f'{key}-{num_variant}')
+                            resource_idx = resource.replace(key, f'{key}-'
+                                                            f'{num_variant}')
                             break
                         else:
                             suff = resource.split('_')[-1]
@@ -878,6 +939,8 @@ class ResourcePool(object):
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
+                expected_outputs += (out_dct['subdir'],
+                                     out_dct['filename'][len(unique_id)+1:])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -938,7 +1001,11 @@ class ResourcePool(object):
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                wf.connect(node, out, nii_name, 'in_file')
+                try:
+                    wf.connect(node, out, nii_name, 'in_file')
+                except OSError as os_error:
+                    logger.warning(os_error)
+                    continue
 
                 write_json_imports = ['import os', 'import json']
                 write_json = pe.Node(Function(input_names=['json_data',
@@ -969,8 +1036,23 @@ class ResourcePool(object):
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
 
+        outputs_logger.info(expected_outputs)
 
-class NodeBlock(object):
+    def node_data(self, resource, **kwargs):
+        '''Factory function to create NodeData objects
+
+        Parameters
+        ----------
+        resource : str
+
+        Returns
+        -------
+        NodeData
+        '''
+        return NodeData(self, resource, **kwargs)
+
+
+class NodeBlock:
     def __init__(self, node_block_functions):
 
         if not isinstance(node_block_functions, list):
@@ -986,12 +1068,12 @@ class NodeBlock(object):
                 node_block_function = node_block_function[0]
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
-        
-            init_dct = self.grab_docstring_dct(node_block_function.__doc__)
+
+            init_dct = grab_docstring_dct(node_block_function)
             name = init_dct['name']
             self.name = name
             self.node_blocks[name] = {}
-            
+
             if self.input_interface:
                 for interface in self.input_interface:
                     for orig_input in init_dct['inputs']:
@@ -1024,23 +1106,6 @@ class NodeBlock(object):
     def get_name(self):
         return self.name
 
-    def grab_docstring_dct(self, fn_docstring):
-        init_dct_schema = ['name', 'config', 'switch', 'option_key',
-                           'option_val', 'inputs', 'outputs']
-        if 'Node Block:' in fn_docstring:
-            fn_docstring = fn_docstring.split('Node Block:')[1]
-        fn_docstring = fn_docstring.lstrip().replace('\n', '')
-        dct = ast.literal_eval(fn_docstring)
-        for key in init_dct_schema:
-            if key not in dct.keys():
-                raise Exception('\n[!] Developer info: At least one of the '
-                                'required docstring keys in your node block '
-                                'is missing.\n\nNode block docstring keys:\n'
-                                f'{init_dct_schema}\n\nYou provided:\n'
-                                f'{dct.keys()}\n\nDocstring:\n{fn_docstring}'
-                                '\n\n')
-        return dct
-
     def check_null(self, val):
         if isinstance(val, str):
             val = None if val.lower() == 'none' else val
@@ -1048,9 +1113,9 @@ class NodeBlock(object):
 
     def check_output(self, outputs, label, name):
         if label not in outputs:
-            raise Exception('\n[!] Output name in the block function does '
-                            'not match the outputs list in Node Block '
-                            f'{name}\n')
+            raise NameError(f'\n[!] Output name "{label}" in the block '
+                            'function does not match the outputs list '
+                            f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg
@@ -1059,6 +1124,7 @@ class NodeBlock(object):
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
+        debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
         for name, block_dct in self.node_blocks.items():
             opts = []
@@ -1084,8 +1150,8 @@ class NodeBlock(object):
                                 opts.append(option)
                         except AttributeError as err:
                             raise Exception(f"{err}\nNode Block: {name}")
-                            
-                if opts == None:
+
+                if opts is None:
                     opts = [opts]
 
             elif option_key and not option_val:
@@ -1183,8 +1249,9 @@ class NodeBlock(object):
                     switch = [switch]
 
             if True in switch:
-                print(f"Connecting {name}...\n")
-                for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                logger.info('Connecting %s...', name)
+                for pipe_idx, strat_pool in rpool.get_strats(
+                        inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
@@ -1220,22 +1287,28 @@ class NodeBlock(object):
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
 
-                        if cfg.pipeline_setup['Debugging']['verbose']:
-                            print('\n=======================')
-                            print(f'Node name: {node_name}')
+                        if debug:
+                            verbose_logger.debug('\n=======================')
+                            verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
-                                rpool.get_resource_strats_from_prov(ast.literal_eval(pipe_idx))
+                                rpool.get_resource_strats_from_prov(
+                                    ast.literal_eval(pipe_idx))
                             for key, val in prov_dct.items():
-                                print('-------------------')
-                                print(f'Input - {key}:')
+                                verbose_logger.debug('-------------------')
+                                verbose_logger.debug('Input - %s:', key)
                                 sub_prov_dct = \
                                     rpool.get_resource_strats_from_prov(val)
                                 for sub_key, sub_val in sub_prov_dct.items():
                                     sub_sub_dct = \
-                                    rpool.get_resource_strats_from_prov(sub_val)
-                                    print(f'  sub-input - {sub_key}:')
-                                    print(f'    prov = {sub_val}')
-                                    print(f'    sub_sub_inputs = {sub_sub_dct.keys()}')
+                                        rpool.get_resource_strats_from_prov(
+                                            sub_val)
+                                    verbose_logger.debug('  sub-input - %s:',
+                                                         sub_key)
+                                    verbose_logger.debug('    prov = %s',
+                                                         sub_val)
+                                    verbose_logger.debug(
+                                        '    sub_sub_inputs = %s',
+                                        sub_sub_dct.keys())
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
@@ -1294,23 +1367,25 @@ class NodeBlock(object):
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
-
+ 
                             rpool.set_data(label,
                                            connection[0],
                                            connection[1],
                                            new_json_info,
                                            pipe_idx, node_name, fork)
 
-                            if rpool.func_reg:
-                                wf = rpool.derivative_xfm(wf, label,
-                                                          connection,
-                                                          new_json_info,
-                                                          pipe_idx,
-                                                          pipe_x)
+                            wf, post_labels = rpool.post_process(wf, label, connection,
+                                                                 new_json_info, pipe_idx,
+                                                                 pipe_x, outs)
 
-                            wf = rpool.post_process(wf, label, connection,
-                                                    new_json_info, pipe_idx,
-                                                    pipe_x, outs)
+                            if rpool.func_reg:
+                                for postlabel in post_labels:
+                                    connection = (postlabel[1], postlabel[2])
+                                    wf = rpool.derivative_xfm(wf, postlabel[0],
+                                                              connection,
+                                                              new_json_info,
+                                                              pipe_idx,
+                                                              pipe_x)
 
         return wf
 
@@ -1384,30 +1459,32 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-                          
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
-                          
+
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_T1w_gather_{part_id}_{ses_id}')
 
+    anat = {}
     if type(data_paths['anat']) is str:
-        anat_T1=data_paths['anat']
+        anat['T1']=data_paths['anat']
     elif 'T1w' in data_paths['anat']:
-        anat_T1=data_paths['anat']['T1w']
+        anat['T1']=data_paths['anat']['T1w']
 
-    anat_flow.inputs.inputnode.set(
-        subject=part_id,
-        anat=anat_T1,
-        creds_path=data_paths['creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path'],
-        img_type='anat'
-    )
-    rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
-                   "", "anat_ingress")
+    if 'T1' in anat:
+        anat_flow.inputs.inputnode.set(
+            subject=part_id,
+            anat=anat['T1'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'],
+            img_type='anat'
+        )
+        rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
+                    "", "anat_ingress")
     
     if 'T2w' in data_paths['anat']: 
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
@@ -1443,7 +1520,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                    "func_ingress")
     rpool.set_data('bold', func_wf, 'outputspec.rest', {}, "", "func_ingress")
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
-    rpool.set_data('scan_params', func_wf, 'outputspec.scan_params', {}, "",
+    rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
 
     wf, rpool, diff, blip, fmap_rp_list = \
@@ -1457,7 +1534,10 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
     if local_func_scans:
+        # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
+        if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
     return (wf, rpool, diff, blip, fmap_rp_list)
@@ -1511,8 +1591,10 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             if not os.listdir(out_dir):
                 raise Exception(f"\nSource directory {out_dir} does not exist!")
         
-        cpac_dir = os.path.join(out_dir,
-                                unique_id)
+        cpac_dir = os.path.join(out_dir, unique_id)
+        if not os.path.isdir(cpac_dir):
+            unique_id = unique_id.split('_')[0]
+            cpac_dir = os.path.join(out_dir, unique_id)
 
     print(f"\nPulling outputs from {cpac_dir}.\n")
 
@@ -1529,6 +1611,7 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                 if ext in filename:
                     all_output_dir.append(os.path.join(cpac_dir_anat,
                                                        filename))
+
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
             for ext in exts:
@@ -1620,7 +1703,14 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = ""
         else:
-            pipe_idx = ""
+            json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin']
+            if not 'Description' in json_info:
+                json_info['Description'] = 'This data was generated elsewhere and ' \
+                                           'supplied by the user into this C-PAC run\'s '\
+                                           'output directory. This JSON file was '\
+                                           'automatically generated by C-PAC because a '\
+                                           'JSON file was not supplied with the data.'
+            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
             node_name = f"{data_label}_ingress"
 
         resource = data_label
@@ -1670,7 +1760,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('$FSLDIR', cfg.pipeline_setup[
                 'system_config']['FSLDIR'])
         if '$priors_path' in val:
-            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path'] or ''
             if '$FSLDIR' in priors_path:
                 priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
             val = val.replace('$priors_path', priors_path)
@@ -1854,10 +1944,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     if data_paths:
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
-
-        wf, rpool, diff, blip, fmap_rp_list = \
-            ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                  part_id, ses_id)
+        if 'func' in data_paths:
+            wf, rpool, diff, blip, fmap_rp_list = \
+                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                      part_id, ses_id)
 
     # grab already-processed data from the output directory
     rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
@@ -1910,3 +2000,46 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
+
+
+class NodeData:
+    r"""Class to hold outputs of
+    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do
+
+    ``node_data = strat_pool.node_data(resource)`` and have
+    ``node_data.node`` and ``node_data.out`` instead of doing
+    ``node, out = strat_pool.get_data(resource)`` and needing two
+    variables (``node`` and ``out``) to store that information.
+
+    Also includes ``variant`` attribute providing the resource's self-
+    keyed value within its ``CpacVariant`` dictionary.
+
+    Examples
+    --------
+    >>> rp = ResourcePool()
+    >>> rp.node_data(None)
+    NotImplemented (NotImplemented)
+
+    >>> rp.set_data('test',
+    ...             pe.Node(Function(input_names=[]), 'test'),
+    ...             'b', [], 0, 'test')
+    >>> rp.node_data('test')
+    test (b)
+    >>> rp.node_data('test').out
+    'b'
+
+    >>> try:
+    ...     rp.node_data('b')
+    ... except LookupError as lookup_error:
+    ...     print(str(lookup_error).strip().split('\n')[0].strip())
+    [!] C-PAC says: None of the listed resources are in the resource pool:
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, strat_pool=None, resource=None, **kwargs):
+        self.node = NotImplemented
+        self.out = NotImplemented
+        if strat_pool is not None and resource is not None:
+            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+
+    def __repr__(self):
+        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
