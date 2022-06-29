@@ -9,7 +9,7 @@ parameters:
     default: false
 workflows:
   setup:
-    when: << pipeline.parameters.run_tests >>
+    when: always()
     jobs:
       - continuation/continue:
           configuration_path: ".circleci/main.yml"
