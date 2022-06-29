@@ -11,6 +11,9 @@ parameters:
   run_tests:
     type: boolean
     default: false
+  tag:
+    type: string
+    default: untagged
 
 commands:
   push-to-docker-hub:
