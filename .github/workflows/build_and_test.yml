@@ -48,6 +48,7 @@ jobs:
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
+    if: github.ref_name == 'develop' || github.ref_name == 'main'
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
@@ -92,6 +93,7 @@ jobs:
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -103,12 +105,7 @@ jobs:
             echo "ref: $GITHUB_REF_NAME"
             TEXT="Triggered pipeline at "
             U1="https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline"
-            if [[ "${GITHUB_REF_TYPE}" == "tag" ]]
-            then
-              export DATA="{\"tag\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
-            else
-              export DATA="{\"branch\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
-            fi
+            export DATA="{\"branch\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
             echo "URL ${U1}"
             echo "data ${DATA}"
             PIPELINE_NUMBER=$(curl \
@@ -133,3 +130,39 @@ jobs:
               jq '.items[0].id' |
               tr -d '"')
             echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/workflows/${WORKFLOW_ID}
+
+  Deploy_to_Docker_Hub:
+    needs:
+      - C-PAC
+    if: github.ref_type == 'tag'
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    with:
+      variant: ''
+    secrets: inherit
+
+  Deploy_to_Docker_Hub-lite:
+    needs:
+      - C-PAC-lite
+    if: github.ref_type == 'tag'
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    with:
+      variant: 'lite'
+    secrets: inherit
+
+  Deploy_to_Docker_Hub-ABCD-HCP:
+    needs:
+      - C-PAC-ABCD-HCP
+    if: github.ref_type == 'tag'
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    with:
+      variant: 'ABCD-HCP'
+    secrets: inherit
+
+  Deploy_to_Docker_Hub-fMRIPrep-LTS:
+    needs:
+      - C-PAC-fMRIPrep-LTS
+    if: github.ref_type == 'tag'
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    with:
+      variant: 'fMRIPrep-LTS'
+    secrets: inherit
