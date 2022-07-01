@@ -332,11 +332,14 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
         with open(data_config_scan_params, 'r') as f:
             data_config_scan_params = json.load(f)
 
-    echo_time = data_config_scan_params.get("EchoTime")
-    dwell_time = data_config_scan_params.get("DwellTime")
-    pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
+    def warn_on_missing(params_dict, key):
+        value = params_dict.get(key)
+        if value is None:
+            logger.warning('"%s" not found in metadata', key)
+        return value
 
-    return (echo_time, dwell_time, pe_direction)
+    return tuple(warn_on_missing(data_config_scan_params, key) for key in [
+                 "EchoTime", "DwellTime", "PhaseEncodingDirection"])
 
 
 def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
