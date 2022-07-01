@@ -112,11 +112,11 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                    name=f'post_freesurfer_{pipe_num}')
 
     resolutions = {
-        2: 8617,
-        10: 28224,
-        32: 91282
+        2: '8617',
+        10: '28224',
+        32: '91282'
     }
-    raise Exception(print(resolutions(2)))
+    
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
@@ -134,6 +134,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
+    raise Exception(str(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']))
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
