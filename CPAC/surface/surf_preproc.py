@@ -134,8 +134,8 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
-    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])]+'_Greyordinates')
-    raise Exception(surf.inputs.low_res_mesh)
+    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[surf.inputs.low_res_mesh]+'_Greyordinates')
+    raise Exception(surf.inputs.gray_ordinates_dir)
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
