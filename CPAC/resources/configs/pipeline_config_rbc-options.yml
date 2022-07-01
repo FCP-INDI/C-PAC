@@ -113,7 +113,7 @@ functional_preproc:
 nuisance_corrections:
   2-nuisance_regression:
     Regressors:
-      - Name: Regressor-with-GSR
+      - Name: 36-parameter
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -141,7 +141,7 @@ nuisance_corrections:
           include_squared: true
           summary: Mean
 
-      - Name: Regressor-with-aCompCor
+      - Name: aCompCor
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
