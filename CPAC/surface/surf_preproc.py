@@ -112,9 +112,9 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                    name=f'post_freesurfer_{pipe_num}')
 
     resolutions = {
-        2: '8617',
-        10: '28224',
-        32: '91282'
+        '2': '8617',
+        '10': '28224',
+        '32': '91282'
     }
     
     surf.inputs.subject = cfg['subject_id']
@@ -124,7 +124,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
         f'post_freesurfer_{pipe_num}')
 
     surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
-    surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
+    #surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
     surf.inputs.subcortical_gray_labels = cfg.surface_analysis['post_freesurfer']['subcortical_gray_labels']
     surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer']['freesurfer_labels']
 
@@ -134,7 +134,8 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
-    raise Exception(str(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']))
+    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])]+'_Greyordinates')
+    raise Exception(surf.inputs.low_res_mesh)
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
