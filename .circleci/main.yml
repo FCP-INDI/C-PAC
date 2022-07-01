@@ -181,24 +181,6 @@ jobs:
       - combine-coverage
       - store_artifacts:
           path: htmlcov
-  push-release:
-    parameters:
-      variant:
-        type: string
-        default: ""
-    machine:
-      image: ubuntu-2004:202010-01
-    resource_class: medium
-    steps:
-      - checkout
-      - set-up-variant:
-          variant: "<< parameters.variant >>"
-      - attach_workspace:
-          at: /home/circleci/
-      - push-to-docker-hub:
-          tag: release-$CIRCLE_TAG
-      - push-to-docker-hub:
-          tag: latest
   push-branch-to-docker-hub:
     parameters:
       variant:
@@ -300,21 +282,6 @@ workflows:
                 - fMRIPrep-LTS
           requires:
             - "Combine coverage"
-      - push-release:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-          matrix:
-            parameters:
-              variant:
-                - ""
-                - lite
-                - ABCD-HCP
-                - fMRIPrep-LTS
-          requires:
-            - "Combine coverage"          
       - pytest-docker:
           name: "Test in Docker"
       - pytest-docker:

@@ -111,6 +111,12 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
+    resolutions = {
+        2: 8617,
+        10: 28224,
+        32: 91282
+    }
+    raise Exception(print(resolutions(2)))
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],

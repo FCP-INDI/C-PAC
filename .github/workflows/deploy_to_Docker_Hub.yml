@@ -1,0 +1,40 @@
+name: Deploy to Docker Hub
+
+on:
+  workflow_call:
+    inputs:
+      variant:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USER:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  Deploy_to_Docker_Hub:
+    name: Deploy to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Pull, tag and push
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          TAG1=latest$VARIANT
+          TAG2=release-${{ github.ref_name }}$VARIANT
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "original tag: ${DOCKER_TAG}:${TAG1}"
+          echo "new tags: fcpindi/c-pac:${TAG1} fcpindi/c-pac:${TAG2}"
+          docker pull ${DOCKER_TAG}:${TAG1}
+          docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG1}
+          docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG2}
+          docker push fcpindi/c-pac:${TAG1}
+          docker push fcpindi/c-pac:${TAG2}
