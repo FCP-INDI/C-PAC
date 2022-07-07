@@ -171,7 +171,7 @@ packages:
  - numpy 1.21.*
  - openslide-python v1.1.2
  - pkg-config
- - python 3.9.*
+ - python 3.10.*
  - tk 8.6.*
  - wxpython 4.1.*
  - zlib 1.2.*
