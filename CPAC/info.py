@@ -43,8 +43,8 @@ This file is part of C-PAC."""
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 4
-_version_extra = ''
+_version_micro = 5
+_version_extra = 'dev'
 
 
 def get_cpac_gitversion():
