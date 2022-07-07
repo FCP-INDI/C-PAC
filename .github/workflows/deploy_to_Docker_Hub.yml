@@ -32,17 +32,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Pull, tag and push
+        if: github.ref_type == 'tag'
         run: |
           if [[ "${{ inputs.variant }}" != "" ]]
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          if [[ "${{ github.ref_type == 'tag' }}" ]]
-          then
-            TAG1=latest$VARIANT
-          else
-            TAG1=nightly$VARIANT
-          fi
+          TAG1=latest$VARIANT
           TAG2=release-${{ github.ref_name }}$VARIANT
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "original tag: ${DOCKER_TAG}:${TAG1}"
@@ -52,3 +48,17 @@ jobs:
           docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG2}
           docker push fcpindi/c-pac:${TAG1}
           docker push fcpindi/c-pac:${TAG2}
+      - name: Pull, tag and push
+        if: github.ref_type == 'branch'
+        run: |
+          if [[ "${{ inputs.variant }}" != "" ]]
+          then
+            VARIANT=-${{ inputs.variant }}
+          fi
+          TAG1=nightly$VARIANT
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "original tag: ${DOCKER_TAG}:${TAG1}"
+          echo "new tag: fcpindi/c-pac:${TAG1}"
+          docker pull ${DOCKER_TAG}:${TAG1}
+          docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG1}
+          docker push fcpindi/c-pac:${TAG1}
