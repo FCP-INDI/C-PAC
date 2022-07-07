@@ -134,7 +134,7 @@ jobs:
   Deploy_to_Docker_Hub:
     needs:
       - C-PAC
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || github.ref_name == 'develop'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: ''
@@ -143,7 +143,7 @@ jobs:
   Deploy_to_Docker_Hub-lite:
     needs:
       - C-PAC-lite
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || github.ref_name == 'develop'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'lite'
@@ -152,7 +152,7 @@ jobs:
   Deploy_to_Docker_Hub-ABCD-HCP:
     needs:
       - C-PAC-ABCD-HCP
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || github.ref_name == 'develop'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'ABCD-HCP'
@@ -161,7 +161,7 @@ jobs:
   Deploy_to_Docker_Hub-fMRIPrep-LTS:
     needs:
       - C-PAC-fMRIPrep-LTS
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || github.ref_name == 'develop'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'fMRIPrep-LTS'

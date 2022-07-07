@@ -28,7 +28,12 @@ jobs:
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          TAG1=latest$VARIANT
+          if [[ "${{ github.ref_type == 'tag' }}" ]]
+          then
+            TAG1=latest$VARIANT
+          else
+            TAG1=nightly$VARIANT
+          fi
           TAG2=release-${{ github.ref_name }}$VARIANT
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "original tag: ${DOCKER_TAG}:${TAG1}"
