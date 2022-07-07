@@ -134,7 +134,7 @@ jobs:
   Deploy_to_Docker_Hub:
     needs:
       - C-PAC
-    if: github.ref_type == 'tag' || github.ref_name == 'develop'
+    if: github.ref_type == 'tag' || github.ref_name == 'CI/update'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: ''
