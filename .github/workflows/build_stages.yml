@@ -20,6 +20,32 @@ on:
 
 
 jobs:
+  error-check:
+    name: Cancel GitHub check
+    if: ${{ cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update check's target URL
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: error
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
+
+  fail-check:
+    name: Fail GitHub check
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update check's target URL
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: failure
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
+
   update-check:
     name: Update GitHub check
     runs-on: ubuntu-latest
