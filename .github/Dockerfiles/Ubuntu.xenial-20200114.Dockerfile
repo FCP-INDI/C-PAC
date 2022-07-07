@@ -1,6 +1,6 @@
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 FROM ubuntu:xenial-20200114 AS dcan-hcp
-FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 
 ARG DEBIAN_FRONTEND=noninteractive
 
