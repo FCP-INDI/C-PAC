@@ -1337,10 +1337,6 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f'gen_motion_stats_{pipe_num}',
         motion_correct_tool=motion_correct_tool)
 
-    # Special case where the workflow is not getting outputs from
-    # resource pool but is connected to functional datasource
-
-
     node, out_file = strat_pool.get_data('scan')
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.scan_id')
@@ -1381,8 +1377,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power-params': (gen_motion_stats, 'outputspec.power_params'),
         'motion-params': (gen_motion_stats, 'outputspec.motion_params'),
-        'motion':(gen_motion_stats, 'outputspec.motion'),
-        'summary-motion':(gen_motion_stats, 'outputspec.summary-motion')}
+        'motion': (gen_motion_stats, 'outputspec.motion'),
+        'summary-motion': (gen_motion_stats, 'outputspec.summary-motion')}
 
     return (wf, outputs)
 
@@ -2065,11 +2061,9 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_tmp_brain_mask.inputs.dilate = 1
     func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
-
     node, out = strat_pool.get_data(["desc-motion_bold",
-                                    "desc-preproc_bold",
-                                    "bold"])
-
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_tmp_brain_mask, 'in_file')
 
     # Extract 8th volume as func ROI
@@ -2078,11 +2072,9 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_min = 7
     func_roi.inputs.t_size = 1
 
-
     node, out = strat_pool.get_data(["desc-motion_bold",
-                                    "desc-preproc_bold",
-                                    "bold"])
-
+                                     "desc-preproc_bold",
+                                     "bold"])
     wf.connect(node, out, func_roi, 'in_file')
 
     # Apply func initial mask on func ROI volume
