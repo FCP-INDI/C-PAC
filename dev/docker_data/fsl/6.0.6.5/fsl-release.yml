@@ -41,6 +41,7 @@ base-packages:
  - numpy
  - python
  - tk
+ - vtk
  - zlib
 
 # List of all packages that comprise a FSL
@@ -173,6 +174,7 @@ packages:
  - pkg-config
  - python 3.10.*
  - tk 8.6.*
+ - vtk 9.1
  - wxpython 4.1.*
  - zlib 1.2.*
 
