@@ -52,9 +52,9 @@ packages:
  - ciftilib 1.5.3
  - c-compiler
  - cxx-compiler
- - fmrib-unpack 3.2.3
+ - fmrib-unpack 3.3.1
  - fsleyes 1.4.6
- - fslpy 3.9.5
+ - fslpy 3.10.0
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
