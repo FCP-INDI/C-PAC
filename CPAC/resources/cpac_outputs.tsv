@@ -97,9 +97,9 @@ space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI
 space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI					
 space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
 space-template_desc-bold_mask	mask	template	func	NIfTI					
-space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI				
-motion-filter-info	motion		func	text				
-motion-filter-plot	motion		func	png			
+space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
+motion-filter-info	motion		func	text					
+motion-filter-plot	motion		func	png					
 movement-parameters	motion		func	1D					
 label-CSF_probseg	probseg	T1w	anat	NIfTI					
 label-GM_probseg	probseg	T1w	anat	NIfTI					
@@ -210,6 +210,6 @@ space-template_label-WM_mask	mask	template	anat	NIfTI
 space-template_label-GM_mask	mask	template	anat	NIfTI					
 space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
-space-EPItemplate_label-GM_mask	mask	template	func	NIfTI	
-motion	motion		func	TSV
-summary-motion	motion		func	TSV	
+space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
+motion	motion		func	TSV					
+summary-motion	motion		func	TSV					

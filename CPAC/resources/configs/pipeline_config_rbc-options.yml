@@ -1,11 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file for RBC options
-<<<<<<< HEAD
 # Version 1.8.5.dev
-=======
-# Version 1.8.5.dev
->>>>>>> fa959a45ea02cfa3aad1c16db02e385f937ab9af
 #
 # http://fcp-indi.github.io for more info.
 #
