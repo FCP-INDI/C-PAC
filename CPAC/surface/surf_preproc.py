@@ -39,7 +39,8 @@ def run_surface(post_freesurfer_folder,
     import os
     import subprocess
 
-    freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
+    surf_folder = os.path.join(freesurfer_folder, 'recon_all')
+    
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
@@ -111,11 +112,13 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
-    resolutions = {
-        '2': '8617',
-        '10': '28224',
-        '32': '91282'
-    }
+    #resolutions = {
+    #    '2': '8617',
+    #    '10': '28224',
+    #    '32': '91282'
+    #}
+
+    
     
     surf.inputs.subject = cfg['subject_id']
 
@@ -134,7 +137,8 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
-    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[surf.inputs.low_res_mesh]+'_Greyordinates')
+    #surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[surf.inputs.low_res_mesh]+'_Greyordinates')
+    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'])
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
@@ -148,10 +152,12 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
+    
 
     node, out = strat_pool.get_data(restore) 
     wf.connect(node, out, surf, 't1w_restore_image')
-
+    
+    
     node, out = strat_pool.get_data(space_temp) 
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 

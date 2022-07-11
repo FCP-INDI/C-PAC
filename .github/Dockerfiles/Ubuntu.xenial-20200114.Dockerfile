@@ -164,6 +164,7 @@ COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/gl
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs

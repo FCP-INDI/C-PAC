@@ -203,7 +203,7 @@ surface_analysis:
 
     surf_atlas_dir: /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases
 
-    gray_ordinates_dir: /opt/dcan-tools/pipeline/global/templates
+    gray_ordinates_dir: /opt/dcan-tools/pipeline/global/templates/Greyordinates
 
     gray_ordinates_res: 2
 
