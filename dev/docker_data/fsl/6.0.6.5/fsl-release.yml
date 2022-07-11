@@ -19,7 +19,6 @@ miniconda:
 channels:
  - https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
  - conda-forge
- - defaults
 
 # Private internal channel for development and
 # testing releases. This is prepended to the
