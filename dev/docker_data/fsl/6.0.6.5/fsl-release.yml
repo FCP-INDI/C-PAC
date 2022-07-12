@@ -120,7 +120,7 @@ packages:
  - fsl-meshclass 2111.0
  - fsl-misc_c 2111.0
  - fsl-misc_scripts 2111.0
- - fsl-misc_tcl 2205.1
+ - fsl-misc_tcl 2205.3
  - fsl-miscmaths 2203.1
  - fsl-miscvis 2201.0
  - fsl-mist 2111.1
