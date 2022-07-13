@@ -1,5 +1,6 @@
-FROM neurodebian:bionic-non-free AS dcan-hcp
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
+FROM neurodebian:bionic-non-free AS dcan-hcp
+
 
 ARG DEBIAN_FRONTEND=noninteractive
 
