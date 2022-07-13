@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac_templates:latest_surface-resources as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 
