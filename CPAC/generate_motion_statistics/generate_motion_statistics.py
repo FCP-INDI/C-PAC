@@ -357,7 +357,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     fd : array
         Frame-wise displacement mat
     """
-    motion_params = os.path.join(os.getcwd(), 'motion.tsv')
+   
     if motion_correct_tool == '3dvolreg':
         pm_ = np.genfromtxt(in_file)
 
@@ -483,9 +483,7 @@ def gen_motion_parameters(movement_parameters, max_displacement,
     ]
 
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
-    summary_motion_params = os.path.join(os.getcwd(),
-                                         'summary_motion_params.tsv')
-    with open(out_file, 'w') as f:
+    
         f.write(','.join(t for t, v in info))
         f.write('\n')
         f.write(','.join(
