@@ -55,14 +55,16 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     '''
     nuisance = []
     to_template_cfg = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']
-    out = {'default': ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-           'abcd': ("desc-preproc_bold", "bold"),
-           'single_step_resampling': ("desc-preproc_bold",
-                                      ["desc-preproc_bold", "bold"]),
-           'single_step_resampling_from_stc': ("desc-preproc_bold",
-                                               "desc-stc_bold")
-           }.get(to_template_cfg['apply_transform']['using'])
+        'func_registration_to_template']['apply_transform']['using']
+    apply_transform_using = to_template_cfg
+    out = {'default': ('desc-preproc_bold', ['desc-preproc_bold', 'bold']),
+           'abcd': ('desc-preproc_bold', 'bold'),
+           'single_step_resampling': ('space-template_desc-preproc_bold',
+                                      ['space-template_desc-preproc_bold',
+                                       'bold']),
+           'single_step_resampling_from_stc': ('desc-preproc_bold',
+                                               'desc-stc_bold')
+           }.get(apply_transform_using)
     if out is not None:
         if 'T1_template' in to_template_cfg['target_template']['using']:
             nuisance.append((nuisance_regressors_generation, out))
@@ -70,7 +72,10 @@ def choose_nuisance_blocks(cfg, generate_only=False):
             nuisance.append((nuisance_regressors_generation_EPItemplate, out))
 
         if not generate_only:
-            nuisance.append((nuisance_regression, out))
+            if apply_transform_using.startswith('single_step_'):
+                nuisance.append((nuisance_regression_template, out))
+            else:
+                nuisance.append((nuisance_regression_bold, out))
 
     return nuisance
 
@@ -2294,26 +2299,23 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Node Block:
-    {"name": "nuisance_regression",
-     "config": ["nuisance_corrections", "2-nuisance_regression"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "regressors",
-                 "space-bold_desc-brain_mask",
-                 "framewise-displacement-jenkinson",
-                 "framewise-displacement-power",
-                 "dvars"),
-                "TR"],
-     "outputs": ["desc-preproc_bold",
-                 "desc-cleaned_bold",
-                 "regressors"]}
-    '''
+def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
+    '''Nuisance regression in native (BOLD) or template space
 
+    Parameters
+    ----------
+    wf, cfg, strat_pool, pipe_num, opt
+        pass through from Node Block
+
+    space : str
+        bold or template
+
+    Returns
+    -------
+    wf : nipype.pipeline.engine.workflows.Workflow
+
+    outputs : dict
+    '''
     regressor_prov = strat_pool.get_cpac_provenance('regressors')
     regressor_strat_name = regressor_prov[-1].split('_')[-1]
 
@@ -2324,53 +2326,59 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             break
 
     nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
-                                               f'_{opt["Name"]}_{pipe_num}')
+                                               f'_{space}_{opt["Name"]}'
+                                               f'_{pipe_num}')
 
-    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    desc_keys = ('desc-preproc_bold', 'desc-cleaned_bold')
+    if space != 'bold':
+        desc_keys = tuple(f'space-{space}_{key}' for key in desc_keys)
+
+    node, out = strat_pool.get_data(f"space-{space}_desc-brain_mask")
     wf.connect(node, out, nuis, 'inputspec.functional_brain_mask_file_path')
 
-    node, out = strat_pool.get_data("regressors")
+    node, out = strat_pool.get_data('regressors')
     wf.connect(node, out, nuis, 'inputspec.regressor_file')
 
     if strat_pool.check_rpool('framewise-displacement-jenkinson'):
-        node, out = strat_pool.get_data("framewise-displacement-jenkinson")
+        node, out = strat_pool.get_data('framewise-displacement-jenkinson')
         wf.connect(node, out, nuis, 'inputspec.fd_j_file_path')
 
     if strat_pool.check_rpool('framewise-displacement-power'):
-        node, out = strat_pool.get_data("framewise-displacement-power")
+        node, out = strat_pool.get_data('framewise-displacement-power')
         wf.connect(node, out, nuis, 'inputspec.fd_p_file_path')
 
     if strat_pool.check_rpool('dvars'):
-        node, out = strat_pool.get_data("dvars")
+        node, out = strat_pool.get_data('dvars')
         wf.connect(node, out, nuis, 'inputspec.dvars_file_path')
 
     if 'Bandpass' in opt:
         filt = filtering_bold_and_regressors(opt, name=f'filtering_bold_and_'
-                                             f'regressors_{opt["Name"]}_{pipe_num}')
+                                             f'regressors_{opt["Name"]}'
+                                             f'_{pipe_num}')
         filt.inputs.inputspec.nuisance_selectors = opt
 
-        node, out = strat_pool.get_data("regressors")
+        node, out = strat_pool.get_data('regressors')
         wf.connect(node, out, filt, 'inputspec.regressors_file_path')
 
-        node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+        node, out = strat_pool.get_data(f'space-{space}_desc-brain_mask')
         wf.connect(node, out,
                    filt, 'inputspec.functional_brain_mask_file_path')
 
         node, out = strat_pool.get_data('TR')
         wf.connect(node, out, filt, 'inputspec.tr')
 
-        if cfg.nuisance_corrections['2-nuisance_regression'][
-            'bandpass_filtering_order'] == 'After':
+        if cfg['nuisance_corrections', '2-nuisance_regression',
+               'bandpass_filtering_order'] == 'After':
 
-            node, out = strat_pool.get_data("desc-preproc_bold")
+            node, out = strat_pool.get_data(desc_keys[0])
             wf.connect(node, out, nuis, 'inputspec.functional_file_path')
 
             wf.connect(nuis, 'outputspec.residual_file_path',
                        filt, 'inputspec.functional_file_path')
 
             outputs = {
-                'desc-preproc_bold': (filt, 'outputspec.residual_file_path'),
-                'desc-cleaned_bold': (filt, 'outputspec.residual_file_path'),
+                desc_keys[0]: (filt, 'outputspec.residual_file_path'),
+                desc_keys[1]: (filt, 'outputspec.residual_file_path'),
                 'regressors': (filt, 'outputspec.residual_regressor')
             }
 
@@ -2384,21 +2392,76 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                        nuis, 'inputspec.functional_file_path')
 
             outputs = {
-                'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
-                'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
-                'regressors': (filt, 'outputspec.residual_regressor')
-            }
+                desc_keys[0]: (nuis, 'outputspec.residual_file_path'),
+                desc_keys[1]: (nuis, 'outputspec.residual_file_path'),
+                'regressors': (filt, 'outputspec.residual_regressor')}
 
     else:
-        node, out = strat_pool.get_data("desc-preproc_bold")
+        node, out = strat_pool.get_data(desc_keys[0])
         wf.connect(node, out, nuis, 'inputspec.functional_file_path')
 
         outputs = {
-            'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
-            'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
+            desc_keys[0]: (nuis, 'outputspec.residual_file_path'),
+            desc_keys[1]: (nuis, 'outputspec.residual_file_path'),
         }
 
     return (wf, outputs)
+
+
+def nuisance_regression_bold(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Apply nuisance regression to native-space BOLD image
+
+    Node Block:
+    {"name": "nuisance_regression",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-preproc_bold",
+                 "regressors",
+                 "space-bold_desc-brain_mask",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
+                 "dvars"),
+                "TR"],
+     "outputs": {"desc-preproc_bold": {
+        "Description": "Preprocessed BOLD image that was nusiance-"
+                       "regressed in native space"},
+                 "desc-cleaned_bold": {
+        "Description": "Preprocessed BOLD image that was nusiance-"
+                       "regressed in native space"},
+                 "regressors": {
+        "Description": "Regressors that were applied in native space"}}}
+    '''
+    return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'bold')
+
+
+def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Apply nuisance regression to template-space BOLD image
+
+    Node Block:
+    {"name": "nuisance_regression",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("space-template_desc-preproc_bold",
+                 "regressors",
+                 "space-template_desc-brain_mask",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
+                 "dvars"),
+                "TR"],
+     "outputs": {"space-template_desc-preproc_bold": {
+        "Description": "Preprocessed BOLD image that was nusiance-"
+                       "regressed in template space"},
+                 "space-template_desc-cleaned_bold": {
+        "Description": "Preprocessed BOLD image that was nusiance-"
+                       "regressed in template space"},
+                 "regressors": {
+        "Description": "Regressors that were applied in template space"}}}
+    '''
+    return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'template')
 
 
 def erode_mask_bold(wf, cfg, strat_pool, pipe_num, opt=None):
