@@ -3667,7 +3667,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "option_key": ["apply_transform", "using"],
      "option_val": "single_step_resampling",
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
-                 "desc-preproc_bold",
+                 "desc-stc_bold",
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
                  "coordinate-transformation",
@@ -3715,7 +3715,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     split_func.inputs.dimension = 't'
 
-    node, out = strat_pool.get_data('desc-preproc_bold')
+    node, out = strat_pool.get_data('desc-stc_bold')
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
@@ -3998,7 +3998,7 @@ def single_step_resample_stc_timeseries_to_T1template(wf, cfg, strat_pool,
 
     outputs = {
         'space-template_desc-stc_bold': (merge_func_to_standard,
-                                             'merged_file'),
+                                         'merged_file'),
         'space-template_desc-stc-brain_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
             'output_image'),

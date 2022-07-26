@@ -166,7 +166,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
-    erode_mask_boldWM
+    erode_mask_boldWM,
+    nuisance_regression_template
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -1230,6 +1231,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
+    generate_only = True in cfg['nuisance_corrections',
+                                '2-nuisance_regression', 'run']
     if not rpool.check_rpool('desc-cleaned_bold'):
         nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
                     ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
@@ -1242,7 +1245,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
 
         pipeline_blocks += nuisance
 
@@ -1309,6 +1312,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # Template-space nuisance regression
+    if cfg['nuisance_corrections', '2-nuisance_regression', 'space'
+           ] == 'template' and not generate_only:
+        pipeline_blocks += [(nuisance_regression_template,
+                            ("desc-preproc_bold", "desc-stc_bold"))]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):

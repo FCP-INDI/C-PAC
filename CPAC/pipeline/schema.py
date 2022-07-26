@@ -22,6 +22,7 @@ from itertools import chain, permutations
 import numpy as np
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
+from voluptuous.util import Lower
 from voluptuous.validators import ExactSequence, Maybe
 
 from CPAC import docs_prefix
@@ -907,6 +908,7 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
+            'space': All(Lower, In({'bold', 'template'})),
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),

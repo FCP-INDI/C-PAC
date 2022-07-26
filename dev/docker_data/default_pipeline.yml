@@ -1313,6 +1313,11 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+    # Run nuisance regression in BOLD or template space
+    # If set to template, will use the brain mask configured in
+    # functional_preproc: func_masking: FSL_AFNI: brain_mask
+    space: BOLD
+
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
 
