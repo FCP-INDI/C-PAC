@@ -55,27 +55,30 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     '''
     nuisance = []
     to_template_cfg = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['apply_transform']['using']
-    apply_transform_using = to_template_cfg
-    out = {'default': ('desc-preproc_bold', ['desc-preproc_bold', 'bold']),
-           'abcd': ('desc-preproc_bold', 'bold'),
-           'single_step_resampling': ('space-template_desc-preproc_bold',
-                                      ['space-template_desc-preproc_bold',
-                                       'bold']),
-           'single_step_resampling_from_stc': ('desc-preproc_bold',
-                                               'desc-stc_bold')
-           }.get(apply_transform_using)
-    if out is not None:
+        'func_registration_to_template']
+    apply_transform_using = to_template_cfg['apply_transform']['using']
+    input_interface = {
+        'default': ('desc-preproc_bold', ['desc-preproc_bold', 'bold']),
+        'abcd': ('desc-preproc_bold', 'bold'),
+        'single_step_resampling': ('space-template_desc-preproc_bold',
+                                   ['space-template_desc-preproc_bold',
+                                    'bold']),
+        'single_step_resampling_from_stc': ('desc-preproc_bold',
+                                            'desc-stc_bold')
+    }.get(apply_transform_using)
+    if input_interface is not None:
         if 'T1_template' in to_template_cfg['target_template']['using']:
-            nuisance.append((nuisance_regressors_generation, out))
+            nuisance.append((nuisance_regressors_generation, input_interface))
         if 'EPI_template' in to_template_cfg['target_template']['using']:
-            nuisance.append((nuisance_regressors_generation_EPItemplate, out))
+            nuisance.append((nuisance_regressors_generation_EPItemplate,
+                             input_interface))
 
         if not generate_only:
             if apply_transform_using.startswith('single_step_'):
-                nuisance.append((nuisance_regression_template, out))
+                nuisance.append((nuisance_regression_template,
+                                 input_interface))
             else:
-                nuisance.append((nuisance_regression_bold, out))
+                nuisance.append((nuisance_regression_bold, input_interface))
 
     return nuisance
 
