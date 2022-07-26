@@ -709,8 +709,8 @@ latest_schema = Schema({
                     'identity_matrix': Maybe(str),
                 },
                 'apply_transform': {
-                    'using': In({'default', 'single_step_resampling', 'abcd', 
-                                 'single_step_resampling_from_stc', 'dcan_nhp'}),
+                    'using': In({'default', 'abcd', 'dcan_nhp',
+                                 'single_step_resampling_from_stc'}),
                 },
             },
         },

@@ -60,9 +60,6 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     input_interface = {
         'default': ('desc-preproc_bold', ['desc-preproc_bold', 'bold']),
         'abcd': ('desc-preproc_bold', 'bold'),
-        'single_step_resampling': ('space-template_desc-preproc_bold',
-                                   ['space-template_desc-preproc_bold',
-                                    'bold']),
         'single_step_resampling_from_stc': ('desc-preproc_bold',
                                             'desc-stc_bold')
     }.get(apply_transform_using)
