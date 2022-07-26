@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - For Nilearn-generated correlation matrices, diagonals are now set to all `1`s (were all `0`s)
+- Added ability to apply nusiance correction to template-space BOLD images
+- Removed ability to run single-step-resampling on motion-corrected BOLD data
 
 ## [v1.8.4] - 2022-06-27
 
