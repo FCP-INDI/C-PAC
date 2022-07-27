@@ -1231,8 +1231,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
-    generate_only = True in cfg['nuisance_corrections',
-                                '2-nuisance_regression', 'run']
+    generate_only = True not in cfg['nuisance_corrections',
+                                    '2-nuisance_regression', 'run']
     if not rpool.check_rpool('desc-cleaned_bold'):
         nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
                     ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]

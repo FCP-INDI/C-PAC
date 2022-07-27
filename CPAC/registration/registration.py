@@ -3660,12 +3660,50 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                                                   pipe_num, opt=None):
     """
-    {"name": "single_step_resample_timeseries_to_T1template",
+    Apply motion correction, coreg, anat-to-template transforms on
+    slice-time corrected functional timeseries based on fMRIPrep
+    pipeline
+
+    Copyright (c) 2015-2018, the CRN developers team.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+
+    * Neither the name of fmriprep nor the names of its contributors
+    may be used to endorse or promote products derived from this
+    software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+    OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Ref: https://github.com/nipreps/fmriprep/blob/84a6005b/fmriprep/workflows/bold/resampling.py#L159-L419
+
+    Node Block:
+    {"name": "single_step_resample_stc_timeseries_to_T1template",
      "config": ["registration_workflows", "functional_registration",
                 "func_registration_to_template"],
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
-     "option_val": "single_step_resampling",
+     "option_val": "single_step_resampling_from_stc",
      "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
                  "desc-stc_bold",
                  "motion-basefile",
@@ -3680,11 +3718,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold",
                  "space-template_desc-bold_mask"]}
-    """
-
-    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
-    # Ref: https://github.com/nipreps/fmriprep/blob/master/fmriprep/workflows/bold/resampling.py#L159-L419
-
+    """  # noqa: 501
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
                                                  'transform_file'],
@@ -3830,183 +3864,6 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     }
 
     return (wf, outputs)
-
-
-def single_step_resample_stc_timeseries_to_T1template(wf, cfg, strat_pool,
-                                                      pipe_num, opt=None):
-    """
-    {"name": "single_step_resample_stc_timeseries_to_T1template",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
-     "option_val": "single_step_resampling_from_stc",
-     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
-                 "desc-stc_bold",
-                 "motion-basefile",
-                 "space-bold_desc-brain_mask",
-                 "coordinate-transformation",
-                 "from-T1w_to-template_mode-image_xfm",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "from-bold_to-template_mode-image_xfm",
-                 "T1w",
-                 "desc-brain_T1w",
-                 "T1w-brain-template-funcreg")],
-     "outputs": ["space-template_desc-stc_bold",
-                 "space-template_desc-stc-brain_bold",
-                 "space-template_desc-bold_mask"]}
-    """
-
-    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries based on fMRIPrep pipeline
-    # Ref: https://github.com/nipreps/fmriprep/blob/84a6005b/fmriprep/workflows/bold/resampling.py#L159-L419
-
-    bbr2itk = pe.Node(util.Function(input_names=['reference_file',
-                                                 'source_file',
-                                                 'transform_file'],
-                                    output_names=['itk_transform'],
-                                    function=run_c3d),
-                      name=f'convert_bbr2itk_{pipe_num}')
-
-    if cfg.registration_workflows['functional_registration'][
-            'coregistration']['boundary_based_registration'][
-            'reference'] == 'whole-head':
-        node, out = strat_pool.get_data('T1w')
-        wf.connect(node, out, bbr2itk, 'reference_file')
-
-    elif cfg.registration_workflows['functional_registration'][
-            'coregistration']['boundary_based_registration'][
-            'reference'] == 'brain':
-        node, out = strat_pool.get_data('desc-brain_T1w')
-        wf.connect(node, out, bbr2itk, 'reference_file')
-
-    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
-    wf.connect(node, out, bbr2itk, 'source_file')
-
-    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
-    wf.connect(node, out, bbr2itk, 'transform_file')
-
-    split_func = pe.Node(interface=fsl.Split(),
-        name=f'split_func_{pipe_num}')
-
-    split_func.inputs.dimension = 't'
-
-    node, out = strat_pool.get_data('desc-stc_bold')
-    wf.connect(node, out, split_func, 'in_file')
-
-    ### Loop starts! ###
-    motionxfm2itk = pe.MapNode(util.Function(
-        input_names=['reference_file',
-                     'source_file',
-                     'transform_file'],
-        output_names=['itk_transform'],
-        function=run_c3d),
-        name=f'convert_motionxfm2itk_{pipe_num}',
-        iterfield=['transform_file'])
-
-    node, out = strat_pool.get_data('motion-basefile')
-    wf.connect(node, out, motionxfm2itk, 'reference_file')
-    wf.connect(node, out, motionxfm2itk, 'source_file')
-
-    node, out = strat_pool.get_data('coordinate-transformation')
-    motion_correct_tool = check_prov_for_motion_tool(
-        strat_pool.get_cpac_provenance('coordinate-transformation'))
-    if motion_correct_tool == 'mcflirt':
-        wf.connect(node, out, motionxfm2itk, 'transform_file')
-    elif motion_correct_tool == '3dvolreg':
-        convert_transform = pe.Node(util.Function(
-            input_names=['one_d_filename'],
-            output_names=['transform_directory'],
-            function=one_d_to_mat,
-            imports=['import os', 'import numpy as np']),
-            name=f'convert_transform_{pipe_num}')
-        wf.connect(node, out, convert_transform, 'one_d_filename')
-        wf.connect(convert_transform, 'transform_directory',
-                   motionxfm2itk, 'transform_file')
-
-    collectxfm = pe.MapNode(util.Merge(4),
-                            name=f'collectxfm_func_to_standard_{pipe_num}',
-                            iterfield=['in4'])
-
-    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
-    wf.connect(node, out, collectxfm, 'in1')
-
-    wf.connect(bbr2itk, 'itk_transform',
-               collectxfm, 'in2')
-
-    collectxfm.inputs.in3 = 'identity'
-
-    wf.connect(motionxfm2itk, 'itk_transform',
-               collectxfm, 'in4')
-
-    applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
-                                           name=f'applyxfm_func_to_standard_{pipe_num}',
-                                           iterfield=['input_image', 'transforms'])
-
-    applyxfm_func_to_standard.inputs.float = True
-    applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
-
-    wf.connect(split_func, 'out_files',
-               applyxfm_func_to_standard, 'input_image')
-
-    node, out = strat_pool.get_data('T1w-brain-template-funcreg')
-    wf.connect(node, out, applyxfm_func_to_standard, 'reference_image')
-
-    wf.connect(collectxfm, 'out',
-               applyxfm_func_to_standard, 'transforms')
-
-    ### Loop ends! ###
-
-    merge_func_to_standard = pe.Node(interface=fslMerge(),
-                                     name=f'merge_func_to_standard_{pipe_num}')
-
-    merge_func_to_standard.inputs.dimension = 't'
-
-    wf.connect(applyxfm_func_to_standard, 'output_image',
-        merge_func_to_standard, 'in_files')
-
-    applyxfm_func_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
-                                             name=f'applyxfm_func_mask_to_standard_{pipe_num}')
-
-    applyxfm_func_mask_to_standard.inputs.interpolation = 'MultiLabel'
-
-    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
-    wf.connect(node, out, applyxfm_func_mask_to_standard, 'input_image')
-
-    node, out = strat_pool.get_data('T1w-brain-template-funcreg')
-    wf.connect(node, out, applyxfm_func_mask_to_standard, 'reference_image')
-
-    collectxfm_mask = pe.Node(util.Merge(2),
-                              name=f'collectxfm_func_mask_to_standard_{pipe_num}')
-
-    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
-    wf.connect(node, out, collectxfm_mask, 'in1')
-
-    wf.connect(bbr2itk, 'itk_transform',
-        collectxfm_mask, 'in2')
-
-    wf.connect(collectxfm_mask, 'out',
-        applyxfm_func_mask_to_standard, 'transforms')
-
-    apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
-                         name=f'get_func_brain_to_standard_{pipe_num}')
-
-    wf.connect(merge_func_to_standard, 'merged_file',
-        apply_mask, 'in_file')
-
-    wf.connect(applyxfm_func_mask_to_standard, 'output_image',
-        apply_mask, 'mask_file')
-
-    outputs = {
-        'space-template_desc-stc_bold': (merge_func_to_standard,
-                                         'merged_file'),
-        'space-template_desc-stc-brain_bold': (apply_mask, 'out_file'),
-        'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
-            'output_image'),
-    }
-
-    return (wf, outputs)
-
-
 
 
 def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
