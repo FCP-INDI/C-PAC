@@ -323,16 +323,17 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pass
 
         elif step == 'resolution':
-        
+
             if all_bold:
                 pass
 
             if csf_mask_exist:
                 mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                name='{}_flirt'.format(node_mask_key),
-                                mem_gb=3.63,
-                                mem_x=(3767129957844731 / 1208925819614629174706176,
-                                    'in_file'))
+                                      name=f'{node_mask_key}_flirt',
+                                      mem_gb=3.63,
+                                      mem_x=(3767129957844731 /
+                                             1208925819614629174706176,
+                                             'in_file'))
 
                 mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -345,7 +346,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                         (mask_to_epi, 'reference')
                     ))
                     nuisance_wf.connect(*(
-                        pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
+                        pipeline_resource_pool['Transformations'][
+                            'anat_to_func_linear_xfm'] +
                         (mask_to_epi, 'in_matrix_file')
                     ))
 
@@ -354,8 +356,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     mask_to_epi.inputs.apply_isoxfm = resolution
 
                     nuisance_wf.connect(*(
-                        pipeline_resource_pool['Anatomical_{}mm'
-                                           .format(resolution)] +
+                        pipeline_resource_pool[
+                            f'Anatomical_{resolution}mm'] +
                         (mask_to_epi, 'reference')
                     ))
 
@@ -368,23 +370,24 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     (mask_to_epi, 'out_file')
 
             if full_mask_key.startswith('CerebrospinalFluid'):
-                pipeline_resource_pool = generate_summarize_tissue_mask_ventricles_masking(
-                    nuisance_wf,
-                    pipeline_resource_pool,
-                    regressor_descriptor,
-                    regressor_selector,
-                    node_mask_key,
-                    csf_mask_exist,
-                    use_ants,
-                    ventricle_mask_exist
-                )
+                pipeline_resource_pool = \
+                    generate_summarize_tissue_mask_ventricles_masking(
+                        nuisance_wf,
+                        pipeline_resource_pool,
+                        regressor_descriptor,
+                        regressor_selector,
+                        node_mask_key,
+                        csf_mask_exist,
+                        use_ants,
+                        ventricle_mask_exist)
 
         elif step == 'erosion':
 
             erode_mask_node = pe.Node(
-                afni.Calc(args='-b a+i -c a-i -d a+j -e a-j -f a+k -g a-k', expr='a*(1-amongst(0,b,c,d,e,f,g))', outputtype='NIFTI_GZ'),
-                name='{}'.format(node_mask_key)
-            )
+                afni.Calc(args='-b a+i -c a-i -d a+j -e a-j -f a+k -g a-k',
+                          expr='a*(1-amongst(0,b,c,d,e,f,g))',
+                          outputtype='NIFTI_GZ'),
+                name=f'{node_mask_key}')
 
             nuisance_wf.connect(*(
                 pipeline_resource_pool[prev_mask_key] +
@@ -394,7 +397,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pipeline_resource_pool[mask_key] = \
                 (erode_mask_node, 'out_file')
 
-    return pipeline_resource_pool, full_mask_key   
+    return pipeline_resource_pool, full_mask_key
 
 
 def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
@@ -404,20 +407,22 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       mask_key,
                                                       csf_mask_exist,
                                                       use_ants=True,
-                                                      ventricle_mask_exist=True):
+                                                      ventricle_mask_exist=True
+                                                      ):
 
-    if csf_mask_exist == False:
+    if csf_mask_exist is False:
         logger.warning('Segmentation is Off, - therefore will be using '
-                        'lateral_ventricle_mask as CerebrospinalFluid_mask.')
+                       'lateral_ventricle_mask as CerebrospinalFluid_mask.')
 
     # Mask CSF with Ventricles
-    if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
+    if f'{mask_key}_Unmasked' not in pipeline_resource_pool:
 
         if ventricle_mask_exist:
             ventricles_key = 'VentriclesToAnat'
 
             if 'resolution' in regressor_descriptor:
-                ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
+                ventricles_key += '_{}'.format(
+                    regressor_descriptor['resolution'])
 
             if ventricles_key not in pipeline_resource_pool:
 
@@ -426,16 +431,25 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 if use_ants is True:
 
                     # perform the transform using ANTS
-                    collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
+                    collect_linear_transforms = pe.Node(
+                        util.Merge(3),
+                        name=f'{ventricles_key}_ants_transforms')
 
-                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (collect_linear_transforms, 'in1')))
+                    nuisance_wf.connect(*(
+                        transforms['mni_to_anat_linear_xfm'] +
+                        (collect_linear_transforms, 'in1')))
 
-                    # generate inverse transform flags, which depends on the number of transforms
-                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'],
-                                                                    output_names=['inverse_transform_flags'],
-                                                                    function=generate_inverse_transform_flags),
-                                                                    name='{0}_inverse_transform_flags'.format(ventricles_key))
-                    nuisance_wf.connect(collect_linear_transforms, 'out', inverse_transform_flags, 'transform_list')
+                    # generate inverse transform flags, which depends
+                    # on the number of transforms
+                    inverse_transform_flags = pe.Node(
+                        util.Function(input_names=['transform_list'],
+                                      output_names=['inverse_transform_flags'],
+                                      function=generate_inverse_transform_flags
+                                      ),
+                        name=f'{ventricles_key}_inverse_transform_flags')
+                    nuisance_wf.connect(collect_linear_transforms, 'out',
+                                        inverse_transform_flags,
+                                        'transform_list')
 
                     lat_ven_mni_to_anat = pe.Node(
                         interface=ants.ApplyTransforms(),
@@ -443,13 +457,20 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                         mem_gb=0.683,
                         mem_x=(3811976743057169 / 302231454903657293676544,
                                'input_image'))
-                    lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
+                    lat_ven_mni_to_anat.inputs.interpolation = \
+                        'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
-                    nuisance_wf.connect(inverse_transform_flags, 'inverse_transform_flags', lat_ven_mni_to_anat, 'invert_transform_flags')
-                    nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
+                    nuisance_wf.connect(inverse_transform_flags,
+                                        'inverse_transform_flags',
+                                        lat_ven_mni_to_anat,
+                                        'invert_transform_flags')
+                    nuisance_wf.connect(collect_linear_transforms, 'out',
+                                        lat_ven_mni_to_anat, 'transforms')
 
-                    nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Ventricles'] +
+                        (lat_ven_mni_to_anat, 'input_image')))
                     resolution = regressor_selector['extraction_resolution']
 
                     if csf_mask_exist:
@@ -462,40 +483,58 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                             (lat_ven_mni_to_anat, 'reference_image')))
                     else:
                         nuisance_wf.connect(*(
-                            pipeline_resource_pool['Anatomical_{}mm'.format(resolution)] + 
+                            pipeline_resource_pool[
+                                f'Anatomical_{resolution}mm'] +
                             (lat_ven_mni_to_anat, 'reference_image')))
 
-                    pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
+                    pipeline_resource_pool[ventricles_key] = (
+                        lat_ven_mni_to_anat, 'output_image')
 
                 else:
                     # perform the transform using FLIRT
-                    lat_ven_mni_to_anat = pe.Node(interface=fsl.ApplyWarp(),
-                                                  name='{}_fsl_applywarp'.format(ventricles_key))
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=fsl.ApplyWarp(),
+                        name=f'{ventricles_key}_fsl_applywarp')
                     lat_ven_mni_to_anat.inputs.interp = 'nn'
 
-                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'field_file')))
-                    nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
-                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'ref_file')))
+                    nuisance_wf.connect(*(
+                        transforms['mni_to_anat_linear_xfm'] +
+                        (lat_ven_mni_to_anat, 'field_file')))
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Ventricles'] +
+                        (lat_ven_mni_to_anat, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (
+                        lat_ven_mni_to_anat, 'ref_file')))
 
-                    pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
+                    pipeline_resource_pool[ventricles_key] = (
+                        lat_ven_mni_to_anat, 'out_file')
 
             if csf_mask_exist:
                 # reduce CSF mask to the lateral ventricles
-                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'),
-                                                name='{}_Ventricles'.format(mask_key))
+                mask_csf_with_lat_ven = pe.Node(
+                    interface=afni.Calc(outputtype='NIFTI_GZ'),
+                    name=f'{mask_key}_Ventricles')
                 mask_csf_with_lat_ven.inputs.expr = 'a*b'
-                mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
+                mask_csf_with_lat_ven.inputs.out_file = \
+                    'csf_lat_ven_mask.nii.gz'
 
-                nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
-                nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool[ventricles_key] + (
+                        mask_csf_with_lat_ven, 'in_file_a')))
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool[mask_key] + (
+                        mask_csf_with_lat_ven, 'in_file_b')))
 
-                pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
-                pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
+                pipeline_resource_pool[f'{mask_key}_Unmasked'
+                                       ] = pipeline_resource_pool[mask_key]
+                pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven,
+                                                    'out_file')
 
             else:
-                pipeline_resource_pool[mask_key] = pipeline_resource_pool[ventricles_key]
-        
-        return pipeline_resource_pool
+                pipeline_resource_pool[mask_key] = pipeline_resource_pool[
+                    ventricles_key]
+
+    return pipeline_resource_pool
 
 
 

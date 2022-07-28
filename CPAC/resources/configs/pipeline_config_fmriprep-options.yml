@@ -339,7 +339,7 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
-    # run nuisance regression in BOLD or template space
+    # run nuisance regression in native or template space
     space: template
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors

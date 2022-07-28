@@ -40,7 +40,7 @@ from .bandpass import (bandpass_voxels, afni_1dBandpass)
 logger = logging.getLogger('nipype.workflow')
 
 
-def choose_nuisance_blocks(cfg, generate_only=False):
+def choose_nuisance_blocks(cfg, space, generate_only=False):
     '''
     Function to handle selecting appropriate blocks based on
     existing config and resource pool
@@ -48,6 +48,9 @@ def choose_nuisance_blocks(cfg, generate_only=False):
     Parameters
     ----------
     cfg : CPAC.utils.configuration.Configuration
+
+    space : str
+        'native' or 'template'
 
     generate_only : boolean
         generate but don't run
@@ -74,10 +77,12 @@ def choose_nuisance_blocks(cfg, generate_only=False):
             nuisance.append((nuisance_regressors_generation_EPItemplate,
                              input_interface))
 
-        if not generate_only and cfg['nuisance_corrections',
-                                     '2-nuisance_regression', 'space'
-                                     ] == 'bold':
-            nuisance.append((nuisance_regression_bold, input_interface))
+        if not generate_only:
+            if space == 'native':
+                nuisance.append((nuisance_regression_bold, input_interface))
+            elif space == 'template':
+                nuisance.append((nuisance_regression_template,
+                                 input_interface))
 
     return nuisance
 
@@ -136,7 +141,8 @@ def erode_mask(name, segmentmap=True):
                                                    imports=ero_imports),
                                      name='erode_mask')
 
-        wf.connect(eroded_mask, 'output_roi_mask', erosion_segmentmap, 'roi_mask')
+        wf.connect(eroded_mask, 'output_roi_mask',
+                   erosion_segmentmap, 'roi_mask')
 
         wf.connect(inputspec, 'erode_prop', erosion_segmentmap, 'erosion_prop')
         wf.connect(inputspec, 'erode_mm', erosion_segmentmap, 'erosion_mm')
@@ -479,18 +485,37 @@ def create_regressor_workflow(nuisance_selectors,
                               ventricle_mask_exist,
                               csf_mask_exist,
                               all_bold=False,
-                              name='nuisance_regressors'):
+                              name='nuisance_regressors',
+                              space='native'):
     """
-    Workflow for the removal of various signals considered to be noise from resting state
-    fMRI data.  The residual signals for linear regression denoising is performed in a single
-    model.  Therefore the residual time-series will be orthogonal to all signals.
+    Workflow for the removal of various signals considered to be noise
+    from resting state fMRI data.  The residual signals for linear
+    regression denoising is performed in a single model.  Therefore the
+    residual time-series will be orthogonal to all signals.
 
     Parameters
     ----------
-    :param nuisance_selectors: dictionary describing nuisance regression to be performed
-    :param use_ants: flag indicating whether FNIRT or ANTS is used
-    :param name: Name of the workflow, defaults to 'nuisance'
-    :return: nuisance : nipype.pipeline.engine.Workflow
+    nuisance_selectors : dict
+        describing nuisance regression to be performed
+
+    use_ants : bool
+        flag indicating whether FNIRT or ANTS is used
+
+    ventricle_mask_exist : bool
+
+    csf_mask_exist : bool
+
+    all_bold : bool, optional
+
+    name : str, optional
+        Name of the workflow, defaults to 'nuisance_regressors'
+
+    space : str, optional
+        'native' or 'template', default == 'native'
+
+    Returns
+    -------
+    nuisance : nipype.pipeline.engine.Workflow
         Nuisance workflow.
 
     Notes
@@ -774,9 +799,10 @@ def create_regressor_workflow(nuisance_selectors,
     # Resources to create regressors
     pipeline_resource_pool = {
         "Anatomical": (inputspec, 'anatomical_file_path'),
-        "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
+        "AnatomicalErodedMask": (inputspec,
+                                 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
-        "Functional_mean" : (functional_mean, 'out_file'),
+        "Functional_mean": (functional_mean, 'out_file'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
@@ -784,10 +810,14 @@ def create_regressor_workflow(nuisance_selectors,
         "Ventricles": (inputspec, 'lat_ventricles_mask_file_path'),
 
         "Transformations": {
-            "func_to_anat_linear_xfm": (inputspec, "func_to_anat_linear_xfm_file_path"),
-            "anat_to_func_linear_xfm": (inputspec, "anat_to_func_linear_xfm_file_path"),
-            "mni_to_anat_linear_xfm": (inputspec, "mni_to_anat_linear_xfm_file_path"),
-            "anat_to_mni_linear_xfm": (inputspec, "anat_to_mni_linear_xfm_file_path")
+            "func_to_anat_linear_xfm": (inputspec,
+                                        "func_to_anat_linear_xfm_file_path"),
+            "anat_to_func_linear_xfm": (inputspec,
+                                        "anat_to_func_linear_xfm_file_path"),
+            "mni_to_anat_linear_xfm": (inputspec,
+                                       "mni_to_anat_linear_xfm_file_path"),
+            "anat_to_mni_linear_xfm": (inputspec,
+                                       "anat_to_mni_linear_xfm_file_path")
         },
 
         "DVARS": (inputspec, 'dvars_file_path'),
@@ -872,10 +902,11 @@ def create_regressor_workflow(nuisance_selectors,
                     name='custom_ort_merge'
                 )
 
-                for i, custom_check_s3_node in enumerate(custom_ort_check_s3_nodes):
+                for i, custom_check_s3_node in enumerate(
+                        custom_ort_check_s3_nodes):
                     nuisance_wf.connect(
                         custom_check_s3_node, 'local_path',
-                        custom_ort_merge, "in{}".format(i + 1)
+                        custom_ort_merge, f'in{i + 1}'
                     )
 
                 pipeline_resource_pool['custom_ort_file_paths'] = \
@@ -890,10 +921,11 @@ def create_regressor_workflow(nuisance_selectors,
                     name='custom_dsort_convolve_merge'
                 )
 
-                for i, custom_check_s3_node in enumerate(custom_dsort_convolve_nodes):
+                for i, custom_check_s3_node in enumerate(
+                        custom_dsort_convolve_nodes):
                     nuisance_wf.connect(
                         custom_check_s3_node, 'local_path',
-                        custom_dsort_convolve_merge, "in{}".format(i + 1)
+                        custom_dsort_convolve_merge, f'in{i + 1}'
                     )
 
             if len(custom_dsort_check_s3_nodes) > 0:
@@ -907,10 +939,11 @@ def create_regressor_workflow(nuisance_selectors,
                     name='custom_dsort_merge'
                 )
 
-                for i, custom_check_s3_node in enumerate(custom_dsort_check_s3_nodes):
+                for i, custom_check_s3_node in enumerate(
+                        custom_dsort_check_s3_nodes):
                     nuisance_wf.connect(
                         custom_check_s3_node, 'local_path',
-                        custom_dsort_merge, "in{}".format(i + 1)
+                        custom_dsort_merge, f'in{i + 1}'
                     )
 
                 if len(custom_dsort_convolve_nodes) > 0:
@@ -990,33 +1023,48 @@ def create_regressor_workflow(nuisance_selectors,
                 else:
                     degree = 1
 
-                temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
-                                                     by_slice=regressor_selector['by_slice'],
-                                                     erosion=erosion_mm,
-                                                     degree=degree)
+                temporal_wf = temporal_variance_mask(
+                    regressor_selector['threshold'],
+                    by_slice=regressor_selector['by_slice'],
+                    erosion=erosion_mm, degree=degree)
 
-                nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
+                nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (
+                    temporal_wf, 'inputspec.functional_file_path')))
 
-                if erosion_mm: # TODO: in func/anat space
+                # TODO: in func/anat space
+                if space == 'native' and erosion_mm:
                     # transform eroded anat brain mask to functional space
                     # convert_xfm
-                    anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
+                    anat_to_func_linear_xfm = pe.Node(
+                        interface=fsl.ConvertXFM(),
+                        name='anat_to_func_linear_xfm')
                     anat_to_func_linear_xfm.inputs.invert_xfm = True
-                    nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[
+                        'Transformations']['func_to_anat_linear_xfm'] + (
+                            anat_to_func_linear_xfm, 'in_file')))
 
                     # flirt
-                    anat_to_func_mask = pe.Node(interface=fsl.FLIRT(), name='Functional_eroded_mask')
+                    anat_to_func_mask = pe.Node(interface=fsl.FLIRT(),
+                                                name='Functional_eroded_mask')
                     anat_to_func_mask.inputs.output_type = 'NIFTI_GZ'
                     anat_to_func_mask.inputs.apply_xfm = True
                     anat_to_func_mask.inputs.interp = 'nearestneighbour'
-                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_mask, 'in_matrix_file')
-                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'in_file')))
-                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (anat_to_func_mask, 'reference')))
+                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file',
+                                        anat_to_func_mask, 'in_matrix_file')
+                    nuisance_wf.connect(*(pipeline_resource_pool[
+                        'AnatomicalErodedMask'] + (anat_to_func_mask,
+                                                   'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[
+                        'GlobalSignal'] + (anat_to_func_mask, 'reference')))
 
                     # connect workflow
-                    nuisance_wf.connect(anat_to_func_mask, 'out_file', temporal_wf, 'inputspec.mask_file_path')
+                    nuisance_wf.connect(anat_to_func_mask, 'out_file',
+                                        temporal_wf,
+                                        'inputspec.mask_file_path')
                 else:
-                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[
+                        'GlobalSignal'] + (temporal_wf,
+                                           'inputspec.mask_file_path')))
 
                 pipeline_resource_pool[regressor_descriptor['tissue']] = \
                     (temporal_wf, 'outputspec.mask')
@@ -1029,13 +1077,13 @@ def create_regressor_workflow(nuisance_selectors,
 
             # Add selector into regressor description
 
-            if regressor_selector.get('extraction_resolution'):
-                regressor_descriptor['resolution'] = \
-                    str(regressor_selector['extraction_resolution']) + "mm"
-
-            elif regressor_type in tissues:
+            if regressor_type in tissues:
                 regressor_selector['extraction_resolution'] = "Functional"
                 regressor_descriptor['resolution'] = "Functional"
+
+            elif regressor_selector.get('extraction_resolution'):
+                regressor_descriptor['resolution'] = \
+                    str(regressor_selector['extraction_resolution']) + "mm"
 
             if regressor_selector.get('erode_mask'):
                 regressor_descriptor['erosion'] = 'Eroded'
@@ -1080,7 +1128,8 @@ def create_regressor_workflow(nuisance_selectors,
                         mem_x=(3767129957844731 / 1208925819614629174706176,
                                'in_file')
                     )
-                    anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
+                    anat_resample.inputs.apply_isoxfm = regressor_selector[
+                        "extraction_resolution"]
 
                     nuisance_wf.connect(*(
                         pipeline_resource_pool['Anatomical'] +
@@ -1108,7 +1157,8 @@ def create_regressor_workflow(nuisance_selectors,
                     func_resample.inputs.apply_xfm = True
 
                     nuisance_wf.connect(*(
-                        pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] +
+                        pipeline_resource_pool['Transformations'][
+                            'func_to_anat_linear_xfm'] +
                         (func_resample, 'in_matrix_file')
                     ))
 
@@ -1130,8 +1180,8 @@ def create_regressor_workflow(nuisance_selectors,
             for tissue in regressor_descriptor['tissue']:
 
                 # Ignore non tissue masks
-                if tissue not in tissues and \
-                    not tissue.startswith('FunctionalVariance'):
+                if (tissue not in tissues and
+                        not tissue.startswith('FunctionalVariance')):
                     regressor_mask_file_resource_keys += [tissue]
                     continue
 
@@ -1149,8 +1199,7 @@ def create_regressor_workflow(nuisance_selectors,
                         csf_mask_exist,
                         use_ants=use_ants,
                         ventricle_mask_exist=ventricle_mask_exist,
-                        all_bold=all_bold
-                    )
+                        all_bold=all_bold)
 
                 regressor_mask_file_resource_keys += \
                     [regressor_mask_file_resource_key]
@@ -1180,7 +1229,8 @@ def create_regressor_workflow(nuisance_selectors,
                         enumerate(regressor_mask_file_resource_keys):
 
                     node, node_output = \
-                        pipeline_resource_pool[regressor_mask_file_resource_key]
+                        pipeline_resource_pool[
+                            regressor_mask_file_resource_key]
 
                     nuisance_wf.connect(
                         node, node_output,
@@ -1201,14 +1251,15 @@ def create_regressor_workflow(nuisance_selectors,
                 )
 
                 functional_key = 'Functional'
-                if regressor_selector.get('extraction_resolution') and \
-                        regressor_selector["extraction_resolution"] != "Functional":
-
+                if (regressor_selector.get('extraction_resolution') and
+                    regressor_selector["extraction_resolution"] !=
+                        "Functional"):
                     functional_key = 'Functional_{}mm'.format(
                         regressor_selector['extraction_resolution']
                     )
 
-                summary_filter = regressor_selector['summary'].get('filter', '')
+                summary_filter = regressor_selector['summary'].get('filter',
+                                                                   '')
                 summary_filter_input = pipeline_resource_pool[functional_key]
 
                 summary_method = regressor_selector['summary']['method']
@@ -1222,20 +1273,20 @@ def create_regressor_workflow(nuisance_selectors,
                                        'import numpy as np',
                                        'from CPAC.utils import safe_shape']
 
-                    compcor_node = pe.Node(Function(input_names=['data_filename',
-                                                                 'num_components',
-                                                                 'mask_filename'],
-                                                    output_names=[
-                                                        'compcor_file'],
-                                                    function=calc_compcor_components,
-                                                    imports=compcor_imports),
-                                           name='{}_DetrendPC'.format(regressor_type),
-                                           mem_gb=0.4,
-                                           mem_x=(3811976743057169 /
-                                                  151115727451828646838272,
-                                                  'data_filename'))
+                    compcor_node = pe.Node(
+                        Function(input_names=['data_filename',
+                                              'num_components',
+                                              'mask_filename'],
+                                 output_names=['compcor_file'],
+                                 function=calc_compcor_components,
+                                 imports=compcor_imports),
+                        name=f'{regressor_type}_DetrendPC',
+                        mem_gb=0.4,
+                        mem_x=(3811976743057169 / 151115727451828646838272,
+                               'data_filename'))
 
-                    compcor_node.inputs.num_components = regressor_selector['summary']['components']
+                    compcor_node.inputs.num_components = regressor_selector[
+                        'summary']['components']
 
                     nuisance_wf.connect(
                         summary_method_input[0], summary_method_input[1],
@@ -1268,11 +1319,11 @@ def create_regressor_workflow(nuisance_selectors,
                             summary_filter_input[0], summary_filter_input[1],
                             cosfilter_node, 'input_image_path'
                         )
-                        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
-                                                                     output_names=[
-                                                                         'tr_float'],
-                                                                     function=TR_string_to_float),
-                                                       name='{}_tr_string2float'.format(regressor_type))
+                        tr_string2float_node = pe.Node(
+                            util.Function(input_names=['tr'],
+                                          output_names=['tr_float'],
+                                          function=TR_string_to_float),
+                            name=f'{regressor_type}_tr_string2float')
 
                         nuisance_wf.connect(
                             inputspec, 'tr',
@@ -2160,74 +2211,6 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-
-def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
-                                               opt=None):
-    '''
-    Node Block:
-    {"name": "nuisance_regressors_generation_EPItemplate",
-     "config": ["nuisance_corrections", "2-nuisance_regression"],
-     "switch": ["create_regressors"],
-     "option_key": "Regressors",
-     "option_val": "USER-DEFINED",
-     "inputs": [("desc-preproc_bold",
-                 "desc-brain_bold",
-                 "space-bold_desc-brain_mask",
-                 "movement-parameters",
-                 "framewise-displacement-jenkinson",
-                 "framewise-displacement-power",
-                 "dvars",
-                 ["space-bold_desc-eroded_mask", "space-bold_desc-brain_mask"],
-                 ["space-bold_label-CSF_desc-eroded_mask",
-                  "space-bold_label-CSF_desc-preproc_mask",
-                  "space-bold_label-CSF_mask"],
-                 ["space-bold_label-WM_desc-eroded_mask",
-                  "space-bold_label-WM_desc-preproc_mask",
-                  "space-bold_label-WM_mask"],
-                 ["space-bold_label-GM_desc-eroded_mask",
-                  "space-bold_label-GM_desc-preproc_mask",
-                  "space-bold_label-GM_mask"],
-                 "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
-                 "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
-                "lateral-ventricles-mask",
-                "TR"],
-     "outputs": ["regressors", "censor-indices"]}
-    '''
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
-                                          'bold')
-
-
-def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
-                                       ):
-    '''
-    Node Block:
-    {"name": "nuisance_regressors_generation",
-     "config": ["nuisance_corrections", "2-nuisance_regression"],
-     "switch": ["create_regressors"],
-     "option_key": "Regressors",
-     "option_val": "USER-DEFINED",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "movement-parameters",
-                 "framewise-displacement-jenkinson",
-                 "framewise-displacement-power",
-                 "dvars",
-                 "desc-brain_T1w",
-                 ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
-                 ["label-CSF_desc-eroded_mask", "label-CSF_desc-preproc_mask", "label-CSF_mask"],
-                 ["label-WM_desc-eroded_mask", "label-WM_desc-preproc_mask", "label-WM_mask"],
-                 ["label-GM_desc-eroded_mask", "label-GM_desc-preproc_mask", "label-GM_mask"],
-                 "from-template_to-T1w_mode-image_desc-linear_xfm",
-                 "from-T1w_to-template_mode-image_desc-linear_xfm"),
-                "lateral-ventricles-mask",
-                "TR"],
-     "outputs": ["regressors", "censor-indices"]}
-    '''
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
-                                          'T1w')
-
-
 def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
     '''
     Parameters
@@ -2236,7 +2219,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
         pass through from Node Block
 
     space : str
-        T1w or bold
+        'T1w' (native), 'bold' (native), 'T1template' (T1w) or
+        'EPItemplate' (BOLD)
 
     Returns
     -------
@@ -2244,19 +2228,19 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
 
     outputs : dict
     '''
-
     prefixes = [f'space-{space}_'] * 2
+    if space in ['T1w', 'T1template']:
+        xfm = 'from-template_to-T1w_mode-image_desc-linear_xfm'
+        if space == 'T1w':
+            prefixes[0] = ''
+        else:
+            prefixes = ['space-template'] * 2
+    elif space in ['bold', 'EPItemplate']:
+        xfm = 'from-EPItemplate_to-bold_mode-image_desc-linear_xfm'
+
     reg_tool = None
-    if space == 'T1w':
-        prefixes[0] = ''
-        if strat_pool.check_rpool(
-            'from-template_to-T1w_mode-image_desc-linear_xfm'):
-            xfm_prov = strat_pool.get_cpac_provenance(
-                'from-template_to-T1w_mode-image_desc-linear_xfm')
-            reg_tool = check_prov_for_regtool(xfm_prov)
-    elif space == 'bold':
-        xfm_prov = strat_pool.get_cpac_provenance(
-            'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
+    if strat_pool.check_rpool(xfm):
+        xfm_prov = strat_pool.get_cpac_provenance(xfm)
         reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == 'ants'
@@ -2282,8 +2266,12 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
     wf.connect(node, out,
                regressors, 'inputspec.functional_brain_mask_file_path')
 
-    if strat_pool.check_rpool(f'desc-brain_{space}'):
-        node, out = strat_pool.get_data(f'desc-brain_{space}')
+    desc_brain = {'T1template': 'space-template_desc-brain_T1w',
+                  'EPItemplate': 'space-EPItemplate_desc-brain_bold',
+                  **{space: f'desc-brain_{space}' for space in
+                     ['T1w', 'bold']}}
+    if strat_pool.check_rpool(desc_brain[space]):
+        node, out = strat_pool.get_data(desc_brain[space])
         wf.connect(node, out, regressors, 'inputspec.anatomical_file_path')
 
     if strat_pool.check_rpool([f'{prefixes[1]}desc-eroded_mask',
@@ -2352,36 +2340,43 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
             anat2func_linear_xfm.inputs.invert_xfm = True
             wf.connect(node, out, anat2func_linear_xfm, 'in_file')
 
-            wf.connect(anat2func_linear_xfm, 'out_file',
-                       regressors,
+            wf.connect(anat2func_linear_xfm, 'out_file', regressors,
                        'inputspec.anat_to_func_linear_xfm_file_path')
 
         if strat_pool.check_rpool(
                 'from-template_to-T1w_mode-image_desc-linear_xfm'):
             node, out = strat_pool.get_data(
                 'from-template_to-T1w_mode-image_desc-linear_xfm')
-            wf.connect(node, out,
-                       regressors,
+            wf.connect(node, out, regressors,
                        'inputspec.mni_to_anat_linear_xfm_file_path')
 
         if strat_pool.check_rpool(
-            'from-T1w_to-template_mode-image_desc-linear_xfm'):
+                'from-T1w_to-template_mode-image_desc-linear_xfm'):
             node, out = strat_pool.get_data(
                 'from-T1w_to-template_mode-image_desc-linear_xfm')
-            wf.connect(node, out,
-                       regressors,
+            wf.connect(node, out, regressors,
                        'inputspec.anat_to_mni_linear_xfm_file_path')
 
-    elif space == 'bold':
+    elif space == 'T1template':
+        if strat_pool.check_rpool('from-bold_to-template_mode-image_xfm'):
+            node, out = strat_pool.get_data(
+                'from-bold_to-template_mode-image_xfm')
+            wf.connect(node, out, regressors,
+                       'inputspec.mni_to_anat_linear_xfm_file_path')
+        if strat_pool.check_rpool('from-template_to-bold_mode-image_xfm'):
+            node, out = strat_pool.get_data(
+                'from-template_to-bold_mode-image_xfm')
+            wf.connect(node, out, regressors,
+                       'inputspec.anat_to_mni_linear_xfm_file_path')
+
+    elif space in ['bold', 'EPItemplate']:
         if strat_pool.check_rpool(
                 'from-EPItemplate_to-bold_mode-image_desc-linear_xfm'):
             node, out = strat_pool.get_data(
                 'from-EPItemplate_to-bold_mode-image_desc-linear_xfm')
-            wf.connect(node, out,
-                       regressors,
+            wf.connect(node, out, regressors,
                        'inputspec.mni_to_anat_linear_xfm_file_path')
-            wf.connect(node, out,
-                       regressors,
+            wf.connect(node, out, regressors,
                        'inputspec.anat_to_func_linear_xfm_file_path')
 
         if strat_pool.check_rpool(
@@ -2423,8 +2418,115 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
     return (wf, outputs)
 
 
+def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
+                                               opt=None):
+    '''
+    Node Block:
+    {"name": "nuisance_regressors_generation_EPItemplate",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["create_regressors"],
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [("desc-preproc_bold",
+                 "desc-brain_bold",
+                 "space-bold_desc-brain_mask",
+                 "movement-parameters",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
+                 "dvars",
+                 ["space-bold_desc-eroded_mask", "space-bold_desc-brain_mask"],
+                 ["space-bold_label-CSF_desc-eroded_mask",
+                  "space-bold_label-CSF_desc-preproc_mask",
+                  "space-bold_label-CSF_mask"],
+                 ["space-bold_label-WM_desc-eroded_mask",
+                  "space-bold_label-WM_desc-preproc_mask",
+                  "space-bold_label-WM_mask"],
+                 ["space-bold_label-GM_desc-eroded_mask",
+                  "space-bold_label-GM_desc-preproc_mask",
+                  "space-bold_label-GM_mask"],
+                 "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
+                 "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
+                "lateral-ventricles-mask",
+                "TR"],
+     "outputs": ["regressors", "censor-indices"]}
+    '''
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+                                          'bold')
+
+
+def nuisance_regressors_generation_T1template(wf, cfg, strat_pool, pipe_num,
+                                              opt=None):
+    '''
+    Node Block:
+    {"name": "nuisance_regressors_generation",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["create_regressors"],
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [("space-template_desc-preproc_bold",
+                 "space-template_desc-brain_mask",
+                 "movement-parameters",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
+                 "dvars",
+                 "spaec-template_desc-brain_T1w",
+                 ["space-template_desc-eroded_mask",
+                  "space-template_desc-brain_mask"],
+                 ["space-template_label-CSF_desc-eroded_mask",
+                  "space-template_label-CSF_desc-preproc_mask",
+                  "space-template_label-CSF_mask"],
+                 ["space-template_label-WM_desc-eroded_mask",
+                  "space-template_label-WM_desc-preproc_mask",
+                  "space-template_label-WM_mask"],
+                 ["space-template_label-GM_desc-eroded_mask",
+                  "space-template_label-GM_desc-preproc_mask",
+                  "space-template_label-GM_mask"],
+                 "from-template_to-bold_mode-image_xfm",
+                 "from-bold_to-template_mode-image_xfm"),
+                "lateral-ventricles-mask",
+                "TR"],
+     "outputs": ["regressors", "censor-indices"]}
+    '''
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+                                          'T1template')
+
+
+def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
+                                       ):
+    '''
+    Node Block:
+    {"name": "nuisance_regressors_generation",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["create_regressors"],
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [("desc-preproc_bold",
+                 "space-bold_desc-brain_mask",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "movement-parameters",
+                 "framewise-displacement-jenkinson",
+                 "framewise-displacement-power",
+                 "dvars",
+                 "desc-brain_T1w",
+                 ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
+                 ["label-CSF_desc-eroded_mask", "label-CSF_desc-preproc_mask",
+                  "label-CSF_mask"],
+                 ["label-WM_desc-eroded_mask", "label-WM_desc-preproc_mask",
+                  "label-WM_mask"],
+                 ["label-GM_desc-eroded_mask", "label-GM_desc-preproc_mask",
+                  "label-GM_mask"],
+                 "from-template_to-T1w_mode-image_desc-linear_xfm",
+                 "from-T1w_to-template_mode-image_desc-linear_xfm"),
+                "lateral-ventricles-mask",
+                "TR"],
+     "outputs": ["regressors", "censor-indices"]}
+    '''
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+                                          'T1w')
+
+
 def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
-    '''Nuisance regression in native (BOLD) or template space
+    '''Nuisance regression in native or template space
 
     Parameters
     ----------
@@ -2432,7 +2534,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
         pass through from Node Block
 
     space : str
-        bold or template
+        'T1w' or 'bold'
 
     Returns
     -------
