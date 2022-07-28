@@ -110,8 +110,8 @@ from CPAC.registration.registration import (
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
-    warp_Tissuemask_to_T1template,
-    warp_Tissuemask_to_EPItemplate
+    warp_tissuemask_to_T1template,
+    warp_tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -1021,7 +1021,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
 
     if cfg.registration_workflows['anatomical_registration']['run'] and 'T1_Template' in cfg.segmentation[
     'tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+        pipeline_blocks.append(warp_tissuemask_to_T1template)
 
 
     return pipeline_blocks
@@ -1212,11 +1212,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         pipeline_blocks += EPI_reg_blocks
 
-    if cfg.registration_workflows['functional_registration']['EPI_registration']['run'
-    ] and 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
-
-
+    if (cfg['registration_workflows', 'functional_registration',
+            'EPI_registration', 'run'] and
+        'EPI_Template' in cfg['segmentation', 'tissue_segmentation',
+                              'Template_Based', 'template_for_segmentation']):
+        pipeline_blocks.append(warp_tissuemask_to_EPItemplate)
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
