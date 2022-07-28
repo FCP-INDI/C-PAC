@@ -484,6 +484,7 @@ def gen_motion_parameters(movement_parameters, max_displacement,
 
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
     
+    with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')
         f.write(','.join(
