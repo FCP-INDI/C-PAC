@@ -2,10 +2,12 @@ import re
 import os
 import numpy as np
 import nibabel as nb
+# pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import CPAC
 
+from nipype import logging
 from nipype.interfaces import fsl
 from nipype.interfaces import ants
 from nipype.interfaces import c3
@@ -35,6 +37,7 @@ from CPAC.seg_preproc.utils import erosion, mask_erosion
 from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import (bandpass_voxels, afni_1dBandpass)
+logger = logging.getLogger('nipype.workflow')
 
 
 def choose_nuisance_blocks(cfg, generate_only=False):
@@ -2289,6 +2292,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                                          f'{prefixes[1]}desc-brain_mask'])
         wf.connect(node, out, regressors,
                    'inputspec.anatomical_eroded_brain_mask_file_path')
+    else:
+        logger.warning('No %s-space brain mask found in resource pool.', space)
 
     if strat_pool.check_rpool([f'{prefixes[0]}label-CSF_desc-eroded_mask',
                                f'{prefixes[0]}label-CSF_desc-preproc_mask',
@@ -2299,6 +2304,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                                          'desc-preproc_mask',
                                          f'{prefixes[0]}label-CSF_mask'])
         wf.connect(node, out, regressors, 'inputspec.csf_mask_file_path')
+    else:
+        logger.warning('No %s-space CSF mask found in resource pool.', space)
 
     if strat_pool.check_rpool([f'{prefixes[0]}label-WM_desc-eroded_mask',
                                f'{prefixes[0]}label-WM_desc-preproc_mask',
@@ -2309,6 +2316,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                                          'desc-preproc_mask',
                                          f'{prefixes[0]}label-WM_mask'])
         wf.connect(node, out, regressors, 'inputspec.wm_mask_file_path')
+    else:
+        logger.warning('No %s-space WM mask found in resource pool.', space)
 
     if strat_pool.check_rpool([f'{prefixes[0]}label-GM_desc-eroded_mask',
                                f'{prefixes[0]}label-GM_desc-preproc_mask',
@@ -2319,6 +2328,8 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                                          'desc-preproc_mask',
                                          f'{prefixes[0]}label-GM_mask'])
         wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
+    else:
+        logger.warning('No %s-space GM mask found in resource pool.', space)
 
     if ventricle:
         node, out = strat_pool.get_data('lateral-ventricles-mask')
