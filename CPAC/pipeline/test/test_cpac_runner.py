@@ -5,6 +5,7 @@ import pytest
 from CPAC.pipeline.cpac_runner import run_T1w_longitudinal
 from CPAC.pipeline.cpac_pipeline import load_cpac_pipe_config
 from CPAC.utils.bids_utils import create_cpac_data_config
+from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
 
 
 @pytest.mark.skip(reason='not a pytest test')
@@ -23,7 +24,7 @@ def test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id):
     run_T1w_longitudinal(sub_data_list, cfg)
 
 
-cfg = "/code/default_pipeline.yml"
+cfg = DEFAULT_PIPELINE_FILE
 bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
 test_dir = "/test_dir"
 part_id = "0025427"
