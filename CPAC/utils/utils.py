@@ -1625,20 +1625,121 @@ def concat_list(in_list1=None, in_list2=None):
     return out_list
 
 
+class DiffDict(dict):
+    '''Class to sematically store a dictionary of set differences from
+    Configuration(S) - Configuration(T)
+
+    Attributes
+    ----------
+    left : dict
+        dictionary of differing values from Configuration(S)
+        (alias for t_value)
+
+    minuend : dict
+        dictionary of differing values from Configuration(S)
+        (alias for t_value)
+
+    right : dict
+        dictionary of differing values from Configuration(T)
+        (alias for t_value)
+
+    subtrahend : dict
+        dictionary of differing values from Configuration(T)
+        (alias for t_value)
+
+    s_value : dict
+        dictionary of differing values from Configuration(S)
+
+    t_value : dict
+        dictionary of differing values from Configuration(T)
+    '''
+    def __init__(self, *args, **kwargs):
+        '''Dictionary of difference Configuration(S) - Configuration(T).
+
+        Each value in a DiffDict should be either a DiffDict or a DiffValue.
+        '''
+        super().__init__(*args, **kwargs)
+        self.left = self.minuend = self.s_value = self._s_value()
+        self.right = self.subtrahend = self.t_value = self._t_value()
+
+    def _return_one_value(self, which_value):
+        return_dict = {}
+        for k, v in self.items():
+            if isinstance(v, (DiffDict, DiffValue)):
+                return_dict[k] = getattr(v, which_value)
+            else:
+                return_dict[k] = v
+        return return_dict
+
+    def _s_value(self):
+        '''Get a dictionary of only the differing 'S' values that differ
+        in S - T'''
+        return self._return_one_value('s_value')
+
+    def _t_value(self):
+        '''Get a dictionary of only the differing 'T' values that differ
+        in S - T'''
+        return self._return_one_value('t_value')
+
+
+# pylint: disable=too-few-public-methods
+class DiffValue:
+    '''Class to semantically store values of set difference from
+    Configuration(S) - Configuration(T)
+
+    Attributes
+    ----------
+    left : any
+        value from Configuration(S) (alias for s_value)
+
+    minuend : dict
+        value from Configuration(S) (alias for s_value)
+
+    right : dict
+        value from Configuration(T) (alias for t_value)
+
+    subtrahend : dict
+        value from Configuration(T) (alias for t_value)
+
+    s_value : any
+        value from Configuration(S)
+
+    t_value : any
+        value from Configuration(T)
+    '''
+    def __init__(self, s_value, t_value):
+        '''Different values from Configuration(S) - Configuration(T)
+
+        Parameters
+        ----------
+        s_value : any
+           value from Configuration(S)
+
+        t_value : any
+           value from Configuration(T)
+        '''
+        self.left = self.minuend = self.s_value = s_value
+        self.right = self.subtrahend = self.t_value = t_value
+
+    def __repr__(self):
+        return str(tuple((self.s_value, self.t_value)))
+
+
 def dct_diff(dct1, dct2):
     '''Function to compare 2 nested dicts, dropping values unspecified
-    in the second. Adapted from https://github.com/sgiavasis/CPAC_regtest_pack/blob/9056ef63cbe693f436c4ea8a5fee669f8d2e35f7/cpac_pipe_diff.py#L31-L78
+    in the second. Adapted from https://github.com/FCP-INDI/CPAC_regtest_pack/blob/9056ef63/cpac_pipe_diff.py#L31-L78
 
     Parameters
     ----------
-    dct1 : dict
+    dct1 : dict or CPAC.utils.Configuration
 
-    dct2 : dict
+    dct2 : dict or CPAC.utils.Configuration
 
     Returns
     -------
-    diff : set
-    a tuple of values from dct1, dct2 for each differing key
+    diff : dict
+       each value is a DiffValue of values from dct1, dct2 for each
+       differing key between original dicts or a subdictionary thereof
 
     Example
     -------
@@ -1652,8 +1753,8 @@ def dct_diff(dct1, dct2):
     ...     'pipeline_config_fmriprep-options.yml')
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''
-    diff = {}
+    '''  # pylint: disable=line-too-long  # noqa: E501
+    diff = DiffDict()
     for key in dct1:
         if isinstance(dct1[key], dict):
             if not isinstance(dct2, dict):
@@ -1669,7 +1770,7 @@ def dct_diff(dct1, dct2):
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
 
             if dct1_val != dct2_val:
-                diff[key] = (dct1_val, dct2_val)
+                diff[key] = DiffValue(dct1_val, dct2_val)
 
     # add any new keys
     if isinstance(dct2, dict):
@@ -1678,9 +1779,46 @@ def dct_diff(dct1, dct2):
                 diff[key] = dct2[key]
 
         # only return non-empty diffs
-        return {k: v for k, v in diff.items() if k in dct2}
+        return DiffDict({k: v for k, v in diff.items() if k in dct2})
 
-    return {}
+    return DiffDict()
+
+
+def diff_dict(diff):
+    '''Method to return a dict of only changes given a nested dict
+    of (dict1_value, dict2_value) tuples
+
+    Parameters
+    ----------
+    diff : dict
+        output of `dct_diff`
+
+    Returns
+    -------
+    dict
+        dict of only changed values
+
+    Examples
+    --------
+    >>> diff_dict({'anatomical_preproc': {
+    ...     'brain_extraction': {'extraction': {
+    ...         'run': ([True], False),
+    ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
+    {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
+    '''  # noqa: E501  # pylint: disable=line-too-long
+    if isinstance(diff, DiffValue) and len(diff) == 2:
+        return diff.T
+    if isinstance(diff, dict):
+        i = {}
+        for k in diff:
+            try:
+                j = diff_dict(diff[k])
+                if j != {}:
+                    i[k] = j
+            except KeyError:
+                continue
+        return i
+    return diff
 
 
 def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name

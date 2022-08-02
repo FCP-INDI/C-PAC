@@ -8,7 +8,7 @@ from warnings import warn
 
 import yaml
 
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.utils import dct_diff, load_preconfig
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
@@ -179,10 +179,13 @@ class Configuration:
         else:
             self.key_type_error(key)
 
+    def __sub__(self: 'Configuration', other: 'Configuration'):
+        '''Return the set difference between two Configurations'''
+        return(dct_diff(self.dict(), other.dict()))
+
     def dict(self):
         '''Show contents of a C-PAC configuration as a dict'''
-        return {k: self[k] for k in self.__dict__ if not callable(
-            self.__dict__[k])}
+        return {k: v for k, v in self.__dict__.items() if not callable(v)}
 
     def _nonestr_to_None(self, d):
         '''Recursive method to type convert 'None' to None in nested

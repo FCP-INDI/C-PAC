@@ -4,8 +4,9 @@ import yaml
 from click import BadParameter
 from datetime import datetime
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
-    update_config_dict, update_pipeline_values_1_8
+from CPAC.utils.utils import dct_diff, diff_dict, load_preconfig, \
+                             lookup_nested_value, update_config_dict, \
+                             update_pipeline_values_1_8
 
 
 def create_yaml_from_template(
@@ -59,42 +60,6 @@ def create_yaml_from_template(
         2
         '''
         return (len(line) - len(line.lstrip())) // 2
-
-    def _create_import_dict(diff):
-        '''Method to return a dict of only changes given a nested dict
-        of (dict1_value, dict2_value) tuples
-
-        Parameters
-        ----------
-        diff : dict
-            output of `dct_diff`
-
-        Returns
-        -------
-        dict
-            dict of only changed values
-
-        Examples
-        --------
-        >>> _create_import_dict({'anatomical_preproc': {
-        ...     'brain_extraction': {'extraction': {
-        ...         'run': ([True], False),
-        ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
-        {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
-        '''  # noqa: E501  # pylint: disable=line-too-long
-        if isinstance(diff, tuple) and len(diff) == 2:
-            return diff[1]
-        if isinstance(diff, dict):
-            i = {}
-            for k in diff:
-                try:
-                    j = _create_import_dict(diff[k])
-                    if j != {}:
-                        i[k] = j
-                except KeyError:
-                    continue
-            return i
-        return diff
 
     def _format_key(key, level):
         '''Helper method to format YAML keys
@@ -184,9 +149,9 @@ def create_yaml_from_template(
     # update values
     if include_all:
         d_default.update(d)
-        d = _create_import_dict(dct_diff({}, d_default))
+        d = diff_dict(dct_diff({}, d_default))
     else:
-        d = _create_import_dict(dct_diff(d_default, d))
+        d = diff_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
     template_dict = yaml.safe_load(open(template, 'r'))

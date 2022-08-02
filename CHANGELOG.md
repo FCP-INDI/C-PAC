@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
+
 ### Changed
 - For Nilearn-generated correlation matrices, diagonals are now set to all `1`s (were all `0`s)
 - Added ability to apply nusiance correction to template-space BOLD images
