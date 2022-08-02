@@ -48,23 +48,29 @@ def dct_diff(dct1, dct2):
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
     '''  # pylint: disable=line-too-long  # noqa: E501
+    for _d in [dct1, dct2]:
+        if not isinstance(_d, dict):
+            try:
+                _d = _d.dict()
+            except AttributeError:
+                # pylint: disable=raise-missing-from
+                raise TypeError(f'{_d} is not a dict.')
     diff = DiffDict()
-    for key in dct1:
-        if isinstance(dct1[key], dict):
-            if not isinstance(dct2, dict):
-                try:
-                    dct2 = dct2.dict()
-                except AttributeError:
-                    raise TypeError(f'{dct2} is not a dict.')
-            diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+    for key, dct1_value in dct1.items():
+        # handle parts of config where user-defined paths are keys
+        dct2_value = dct2.get(key, {}) if isinstance(dct2, dict) else None
+        if key.endswith('_roi_paths') and isinstance(dct1_value, dict):
+            paths1 = set(dct1_value.keys())
+            paths2 = set(dct2_value.keys() if dct2_value else {})
+            if paths1 != paths2:
+                diff[key] = DiffValue(dct1_value, dct2_value)
+        elif isinstance(dct1_value, dict):
+            diff[key] = dct_diff(dct1_value, dct2_value)
             if diff[key] == {}:
                 del diff[key]
         else:
-            dct1_val = dct1.get(key)
-            dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
-
-            if dct1_val != dct2_val:
-                diff[key] = DiffValue(dct1_val, dct2_val)
+            if dct1_value != dct2_value:
+                diff[key] = DiffValue(dct1_value, dct2_value)
 
     # add any new keys
     if isinstance(dct2, dict):
@@ -105,9 +111,9 @@ def diff_dict(diff):
         return diff.t_value
     if isinstance(diff, dict):
         i = DiffDict()
-        for k in diff:
+        for k, v in diff.items():
             try:
-                j = diff_dict(diff[k])
+                j = diff_dict(v)
                 if j != {}:
                     i[k] = j
             except KeyError:
