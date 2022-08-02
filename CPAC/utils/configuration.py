@@ -150,11 +150,12 @@ class Configuration:
         self.__update_attr()
 
     def __str__(self):
-        return 'C-PAC Configuration'
+        return ('C-PAC Configuration '
+                f"('{self['pipeline_setup', 'pipeline_name']}')")
 
     def __repr__(self):
         # show Configuration as a dict when accessed directly
-        return self.__str__()
+        return str(self.dict())
 
     def __copy__(self):
         newone = type(self)({})
