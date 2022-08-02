@@ -45,7 +45,7 @@ def run_surface(post_freesurfer_folder,
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
     cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
-        '--freesurfer_folder', freesurfer_folder, '--subject', subject, \
+        '--freesurfer_folder', surf_folder, '--subject', subject, \
         '--t1w_restore', t1w_restore_image, '--atlas_t1w', atlas_space_t1w_image, \
         '--atlas_transform', atlas_transform, '--inverse_atlas_transform', inverse_atlas_transform, \
         '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
@@ -112,13 +112,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
-    #resolutions = {
-    #    '2': '8617',
-    #    '10': '28224',
-    #    '32': '91282'
-    #}
-
-    
     
     surf.inputs.subject = cfg['subject_id']
 
@@ -127,7 +120,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
         f'post_freesurfer_{pipe_num}')
 
     surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
-    #surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
+    surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
     surf.inputs.subcortical_gray_labels = cfg.surface_analysis['post_freesurfer']['subcortical_gray_labels']
     surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer']['freesurfer_labels']
 
@@ -137,8 +130,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.low_res_mesh = str(cfg.surface_analysis['post_freesurfer']['low_res_mesh'])
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
-    #surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'], resolutions[surf.inputs.low_res_mesh]+'_Greyordinates')
-    surf.inputs.gray_ordinates_dir = os.path.join(cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir'])
 
     restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
