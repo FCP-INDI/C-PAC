@@ -59,7 +59,20 @@ def choose_nuisance_blocks(cfg, space, generate_only=False):
     -------
     nuisance : list
     '''
-    nuisance = []
+    # TODO: refactor ICA-AROMA for template-space regression or add
+    # comment to clarify that it works as-is
+    nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
+                ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
+    nuisance_masks = [erode_mask_T1w,
+                      erode_mask_CSF,
+                      erode_mask_GM,
+                      erode_mask_WM,
+                      erode_mask_bold,
+                      erode_mask_boldCSF,
+                      erode_mask_boldGM,
+                      erode_mask_boldWM]
+    nuisance += nuisance_masks
+
     to_template_cfg = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']
     apply_transform_using = to_template_cfg['apply_transform']['using']
@@ -71,19 +84,21 @@ def choose_nuisance_blocks(cfg, space, generate_only=False):
     }.get(apply_transform_using)
     if input_interface is not None:
         if 'T1_template' in to_template_cfg['target_template']['using']:
-            nuisance.append((nuisance_regressors_generation_T1w,
-                             input_interface))
+            if space == 'native':
+                nuisance.append((nuisance_regressors_generation_T1w,
+                                 input_interface))
+            elif space == 'template':
+                nuisance.append((nuisance_regressors_generation_T1template,
+                                 input_interface))
         if 'EPI_template' in to_template_cfg['target_template']['using']:
             nuisance.append((nuisance_regressors_generation_EPItemplate,
                              input_interface))
-
         if not generate_only:
             if space == 'native':
                 nuisance.append((nuisance_regression_bold, input_interface))
             elif space == 'template':
                 nuisance.append((nuisance_regression_template,
                                  input_interface))
-
     return nuisance
 
 

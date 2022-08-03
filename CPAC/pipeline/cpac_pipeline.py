@@ -153,21 +153,7 @@ from CPAC.distortion_correction.distortion_correction import (
     distcor_blip_fsl_topup
 )
 
-from CPAC.nuisance.nuisance import (
-    choose_nuisance_blocks,
-    ICA_AROMA_ANTsreg,
-    ICA_AROMA_FSLreg,
-    ICA_AROMA_ANTsEPIreg,
-    ICA_AROMA_FSLEPIreg,
-    erode_mask_T1w,
-    erode_mask_CSF,
-    erode_mask_GM,
-    erode_mask_WM,
-    erode_mask_bold,
-    erode_mask_boldCSF,
-    erode_mask_boldGM,
-    erode_mask_boldWM
-)
+from CPAC.nuisance.nuisance import choose_nuisance_blocks
 
 from CPAC.surface.surf_preproc import surface_postproc
 
@@ -1237,23 +1223,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                     '2-nuisance_regression', 'run']
     nuisance_space = cfg['nuisance_corrections', '2-nuisance_regression',
                          'space']
+    # Native space nuisance correction
     if not rpool.check_rpool('desc-cleaned_bold'
                              ) and nuisance_space == 'native':
-        nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
-                    ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
-
-        nuisance_masks = [erode_mask_T1w,
-                          erode_mask_CSF,
-                          erode_mask_GM,
-                          erode_mask_WM,
-                          erode_mask_bold,
-                          erode_mask_boldCSF,
-                          erode_mask_boldGM,
-                          erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(
-            cfg, nuisance_space, generate_only)
-
-        pipeline_blocks += nuisance
+        pipeline_blocks += choose_nuisance_blocks(cfg, nuisance_space,
+                                                  generate_only)
 
     apply_func_warp = {}
     _r_w_f_r = cfg.registration_workflows['functional_registration']
@@ -1322,22 +1296,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # Template-space nuisance regression
     if not rpool.check_rpool('desc-cleaned_bold'
                              ) and nuisance_space == 'template':
-        # TODO: refactor ICA-AROMA for template-space regression or add
-        # comment to clarify that it works as-is
-        nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
-                    ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
-
-        nuisance_masks = [erode_mask_T1w,
-                          erode_mask_CSF,
-                          erode_mask_GM,
-                          erode_mask_WM,
-                          erode_mask_bold,
-                          erode_mask_boldCSF,
-                          erode_mask_boldGM,
-                          erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(
-            cfg, nuisance_space, generate_only)
-        pipeline_blocks += nuisance
+        pipeline_blocks += choose_nuisance_blocks(cfg, nuisance_space,
+                                                  generate_only)
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
