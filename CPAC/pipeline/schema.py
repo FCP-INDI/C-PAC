@@ -22,6 +22,7 @@ from itertools import chain, permutations
 import numpy as np
 from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
+from voluptuous.error import ExclusiveInvalid
 from voluptuous.util import Lower
 from voluptuous.validators import ExactSequence, Maybe
 
@@ -908,7 +909,7 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'space': All(Lower, In({'bold', 'template'})),
+            'space': All(Lower, In({'native', 'template'})),
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
@@ -1091,7 +1092,35 @@ latest_schema = Schema({
 
 
 def schema(config_dict):
-    return latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    '''Validate a pipeline configuration against the latest validation schema
+    by first applying backwards-compatibility patches, then applying
+    Voluptuous validation, then handling complex configuration interaction
+    checks before returning validated config_dict.
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    Returns
+    -------
+    dict
+    '''
+    partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    if (partially_validated['registration_workflows'][
+        'functional_registration'
+    ]['func_registration_to_template']['apply_transform'][
+        'using'
+    ] == 'single_step_resampling_from_stc' and partially_validated[
+        'nuisance_corrections'
+    ]['2-nuisance_regression']['space'] != 'template'):
+        raise ExclusiveInvalid(
+            '``single_step_resampling_from_stc`` requires template-space '
+            'nuisance regression. Either set ``nuisance_corrections: '
+            '2-nuisance_regression: space`` to ``template`` or choose a '
+            'different option for ``registration_workflows: '
+            'functional_registration: func_registration_to_template: '
+            'apply_transform: using``')
+    return partially_validated
 
 
 schema.schema = latest_schema.schema

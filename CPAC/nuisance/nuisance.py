@@ -76,8 +76,8 @@ def choose_nuisance_blocks(cfg, generate_only=False):
 
         if not generate_only and cfg['nuisance_corrections',
                                      '2-nuisance_regression', 'space'
-                                     ] == 'bold':
-            nuisance.append((nuisance_regression_bold, input_interface))
+                                     ] == 'native':
+            nuisance.append((nuisance_regression_native, input_interface))
 
     return nuisance
 
@@ -2432,7 +2432,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
         pass through from Node Block
 
     space : str
-        bold or template
+        native or template
 
     Returns
     -------
@@ -2454,12 +2454,12 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
                                                f'_{pipe_num}')
 
     desc_keys = ('desc-preproc_bold', 'desc-cleaned_bold')
-    if space != 'bold':
+    if space != 'native':
         desc_keys = tuple(f'space-{space}_{key}' for key in desc_keys)
 
     brain_mask = 'FSL-AFNI-brain-mask' if (
         space == 'template'
-    ) else f'space-{space}_desc-brain_mask'
+    ) else 'space-bold_desc-brain_mask'
 
     node, out = strat_pool.get_data(brain_mask)
     wf.connect(node, out, nuis, 'inputspec.functional_brain_mask_file_path')
@@ -2511,9 +2511,9 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
             }
 
         elif cfg.nuisance_corrections['2-nuisance_regression'][
-            'bandpass_filtering_order'] == 'Before':
+                'bandpass_filtering_order'] == 'Before':
 
-            node, out = strat_pool.get_data("desc-preproc_bold")
+            node, out = strat_pool.get_data(desc_keys[0])
             wf.connect(node, out, filt, 'inputspec.functional_file_path')
 
             wf.connect(filt, 'outputspec.residual_file_path',
@@ -2536,11 +2536,11 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
     return (wf, outputs)
 
 
-def nuisance_regression_bold(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Apply nuisance regression to native-space BOLD image
+def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Apply nuisance regression to native-space image
 
     Node Block:
-    {"name": "nuisance_regression_bold",
+    {"name": "nuisance_regression_native",
      "config": ["nuisance_corrections", "2-nuisance_regression"],
      "switch": ["run"],
      "option_key": "None",
@@ -2561,11 +2561,11 @@ def nuisance_regression_bold(wf, cfg, strat_pool, pipe_num, opt=None):
                  "regressors": {
         "Description": "Regressors that were applied in native space"}}}
     '''
-    return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'bold')
+    return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'native')
 
 
 def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Apply nuisance regression to template-space BOLD image
+    '''Apply nuisance regression to template-space image
 
     Node Block:
     {"name": "nuisance_regression_template",
