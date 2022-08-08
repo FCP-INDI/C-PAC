@@ -39,13 +39,13 @@ def run_surface(post_freesurfer_folder,
     import os
     import subprocess
 
-    surf_folder = os.path.join(freesurfer_folder, 'recon_all')
+    freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
     
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
     cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
-        '--freesurfer_folder', surf_folder, '--subject', subject, \
+        '--freesurfer_folder', freesurfer_folder, '--subject', subject, \
         '--t1w_restore', t1w_restore_image, '--atlas_t1w', atlas_space_t1w_image, \
         '--atlas_transform', atlas_transform, '--inverse_atlas_transform', inverse_atlas_transform, \
         '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \

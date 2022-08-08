@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac_templates:latest_surface-resources as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 
@@ -153,8 +153,6 @@ COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atla
 
 # Installing surface files for downsampling
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
 
 

@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac_templates:latest_surface-resources as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 FROM ubuntu:xenial-20200114 AS dcan-hcp
 
@@ -162,8 +162,6 @@ COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/gl
 
 # Installing surface files for downsampling
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/28224_Greyordinates/
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/ /opt/dcan-tools/pipeline/global/templates/8617_Greyordinates/
 COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
