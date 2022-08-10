@@ -48,6 +48,7 @@ def dct_diff(dct1, dct2):
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
     '''  # pylint: disable=line-too-long  # noqa: E501
+    dcts = []
     for _d in [dct1, dct2]:
         if not isinstance(_d, dict):
             try:
@@ -55,6 +56,9 @@ def dct_diff(dct1, dct2):
             except AttributeError:
                 # pylint: disable=raise-missing-from
                 raise TypeError(f'{_d} is not a dict.')
+        dcts.append(_d)
+    dct1, dct2 = dcts  # pylint: disable=unbalanced-tuple-unpacking
+    del dcts
     diff = DiffDict()
     for key, dct1_value in dct1.items():
         # handle parts of config where user-defined paths are keys
