@@ -1106,20 +1106,23 @@ def schema(config_dict):
     dict
     '''
     partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
-    if (partially_validated['registration_workflows'][
-        'functional_registration'
-    ]['func_registration_to_template']['apply_transform'][
-        'using'
-    ] == 'single_step_resampling_from_stc' and partially_validated[
-        'nuisance_corrections'
-    ]['2-nuisance_regression']['space'] != 'template'):
-        raise ExclusiveInvalid(
-            '``single_step_resampling_from_stc`` requires template-space '
-            'nuisance regression. Either set ``nuisance_corrections: '
-            '2-nuisance_regression: space`` to ``template`` or choose a '
-            'different option for ``registration_workflows: '
-            'functional_registration: func_registration_to_template: '
-            'apply_transform: using``')
+    try:
+        if (partially_validated['registration_workflows'][
+            'functional_registration'
+        ]['func_registration_to_template']['apply_transform'][
+            'using'
+        ] == 'single_step_resampling_from_stc' and partially_validated[
+            'nuisance_corrections'
+        ]['2-nuisance_regression']['space'] != 'template'):
+            raise ExclusiveInvalid(
+                '``single_step_resampling_from_stc`` requires template-space '
+                'nuisance regression. Either set ``nuisance_corrections: '
+                '2-nuisance_regression: space`` to ``template`` or choose a '
+                'different option for ``registration_workflows: '
+                'functional_registration: func_registration_to_template: '
+                'apply_transform: using``')
+    except KeyError:
+        pass
     return partially_validated
 
 
