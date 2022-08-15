@@ -909,7 +909,7 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'space': All(Lower, In({'native', 'template'})),
+            'space': [All(Lower, In({'native', 'template'}))],
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),

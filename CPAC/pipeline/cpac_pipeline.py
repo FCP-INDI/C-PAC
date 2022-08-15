@@ -1314,8 +1314,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_deriv_mask_to_EPItemplate]
 
     # Template-space nuisance regression
-    if cfg['nuisance_corrections', '2-nuisance_regression', 'space'
-           ] == 'template' and not generate_only:
+    if 'template' in cfg['nuisance_corrections', '2-nuisance_regression',
+                         'space'] and not generate_only:
         pipeline_blocks += [(nuisance_regression_template,
                             ("desc-preproc_bold", "desc-stc_bold"))]
 

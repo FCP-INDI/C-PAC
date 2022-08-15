@@ -74,9 +74,9 @@ def choose_nuisance_blocks(cfg, generate_only=False):
             nuisance.append((nuisance_regressors_generation_EPItemplate,
                              input_interface))
 
-        if not generate_only and cfg['nuisance_corrections',
-                                     '2-nuisance_regression', 'space'
-                                     ] == 'native':
+        if not generate_only and 'native' in cfg['nuisance_corrections',
+                                                 '2-nuisance_regression',
+                                                 'space']:
             nuisance.append((nuisance_regression_native, input_interface))
 
     return nuisance
@@ -2543,8 +2543,8 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "nuisance_regression_native",
      "config": ["nuisance_corrections", "2-nuisance_regression"],
      "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
+     "option_key": "space",
+     "option_val": "native",
      "inputs": [("desc-preproc_bold",
                  "regressors",
                  "space-bold_desc-brain_mask",
@@ -2571,8 +2571,8 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "nuisance_regression_template",
      "config": ["nuisance_corrections", "2-nuisance_regression"],
      "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
+     "option_key": "space",
+     "option_val": "template",
      "inputs": [("desc-stc_bold",
                  "space-template_desc-preproc_bold",
                  "regressors",
