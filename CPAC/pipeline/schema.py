@@ -1112,7 +1112,7 @@ def schema(config_dict):
             'using'
         ] == 'single_step_resampling_from_stc' and partially_validated[
             'nuisance_corrections'
-        ]['2-nuisance_regression']['space'] != 'template'):
+        ]['2-nuisance_regression']['space'] != ['template']):
             raise ExclusiveInvalid(
                 '``single_step_resampling_from_stc`` requires template-space '
                 'nuisance regression. Either set ``nuisance_corrections: '

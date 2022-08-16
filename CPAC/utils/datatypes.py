@@ -25,7 +25,7 @@ class ListFromItem(list):
     >>> ListFromItem(None)
     []
     """
-    def __init__(self, /, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize ListFromItem"""
         if len(args) == 1 and not isinstance(args[0], (list, tuple)):
             if args[0] is None:
