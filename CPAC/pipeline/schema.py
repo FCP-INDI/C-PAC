@@ -18,15 +18,12 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
-
 import numpy as np
-from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
-                       Range, Required, Schema
-from voluptuous.error import ExclusiveInvalid
-from voluptuous.util import Lower
-from voluptuous.validators import ExactSequence, Maybe
-
+from voluptuous import All, ALLOW_EXTRA, Any, Coerce, ExactSequence, \
+                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
+                       Optional, Range, Required, Schema
 from CPAC import docs_prefix
+from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
 
@@ -41,7 +38,7 @@ resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
-forkable = Any(bool, [bool])
+forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -644,7 +641,8 @@ latest_schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
+                        'Mean_Functional', 'Selected_Functional_Volume',
+                        'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
@@ -909,7 +907,8 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'space': [All(Lower, In({'native', 'template'}))],
+            'space': All(Coerce(ListFromItem),
+                         [All(Lower, In({'native', 'template'}))]),
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
