@@ -440,9 +440,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if c.pipeline_setup['system_config']['random_seed'] is not None:
         set_up_random_state_logger(log_dir)
 
-    workflow = build_workflow(
-        subject_id, sub_dict, c, p_name, num_ants_cores
-    )
+    try:
+        workflow = build_workflow(
+            subject_id, sub_dict, c, p_name, num_ants_cores
+        )
+    except Exception as exception:
+        logger.exception('Building workflow failed')
+        raise exception
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
