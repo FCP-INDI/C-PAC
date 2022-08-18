@@ -22,6 +22,8 @@ import subprocess
 import sys
 import time
 import shutil
+from warnings import simplefilter
+from nipype import config as nipype_config, logging
 import yaml
 
 from CPAC import license_notice, __version__
@@ -31,28 +33,21 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration
+from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
-
-import yamlordereddictloader
-from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
-
+logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
-if not os.path.exists(DEFAULT_PIPELINE):
-    DEFAULT_PIPELINE = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yml"
-    )
 
 
-def run(command, env={}):
+def run(command, env=None):
+    if env is None:
+        env = {}
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
                                shell=True, env=env)
@@ -66,11 +61,12 @@ def run(command, env={}):
 def parse_yaml(value):
     try:
         config = yaml.safe_load(value)
-        if type(config) != dict:
-            raise
+        if not isinstance(config, dict):
+            raise TypeError("config must be a dictionary")
         return config
-    except:
-        raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+    except Exception:
+        # pylint: disable=raise-missing-from
+        raise argparse.ArgumentTypeError(f"Invalid configuration: '{value}'")
 
 
 def resolve_aws_credential(source):
@@ -139,7 +135,7 @@ def run_main():
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
-                        default=DEFAULT_PIPELINE)
+                        default=DEFAULT_PIPELINE_FILE)
     parser.add_argument('--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
@@ -469,10 +465,9 @@ def run_main():
         if 'pipeline_setup' not in c:
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
                     '1.7-1.8-nesting-mappings')
-
-            warn('\nC-PAC changed its pipeline configuration format in '
-                 f'v1.8.0.\nSee {_url} for details.\n',
-                 category=DeprecationWarning)
+            logger.warning('\nC-PAC changed its pipeline configuration '
+                           'format in v1.8.0.\nSee %s for details.\n',
+                           _url, category=DeprecationWarning)
 
             updated_config = os.path.join(
                 output_dir,
@@ -660,17 +655,20 @@ def run_main():
         # update config file
         if not output_dir_is_s3:
             pipeline_config_file = os.path.join(
-                output_dir, "cpac_pipeline_config_{0}.yml".format(st)
+                output_dir, f"cpac_pipeline_config_{st}.yml"
             )
         else:
             pipeline_config_file = os.path.join(
-                DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
+                DEFAULT_TMP_DIR, f"cpac_pipeline_config_{st}.yml"
             )
 
-        open(pipeline_config_file, 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, True))
-        open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, False))
+        with open(pipeline_config_file, "w", encoding="utf-8") as full_config:
+            full_config.write(
+                create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
+        with open(f"{pipeline_config_file[:-4]}_min.yml", "w",
+                  encoding="utf-8") as min_config:
+            min_config.write(
+                create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
 
         if args.participant_label:
             args.participant_label = cl_strip_brackets(args.participant_label)
@@ -804,4 +802,21 @@ def run_main():
 
 
 if __name__ == '__main__':
-    run_main()
+    try:
+        run_main()
+    except Exception as exception:
+        # if we hit an exception before the pipeline starts to build but
+        # we're still able to create a logfile, log the error in the file
+        if len(sys.argv) > 2:
+            log_dir = os.path.join(sys.argv[2], 'log')
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            nipype_config.update_config({
+                'logging': {'log_directory': log_dir,
+                            'log_to_file': True},
+                'execution': {'crashfile_format': 'txt',
+                              'resource_monitor_frequency': 0.2}})
+            nipype_config.enable_resource_monitor()
+            logging.update_logging(nipype_config)
+        logger.exception('C-PAC failed to start')
+        raise exception

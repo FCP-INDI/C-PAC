@@ -28,12 +28,11 @@ from time import strftime
 
 import nipype
 import yaml
-
+# pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
-from nipype import config
-from nipype import logging
+from nipype import config, logging
 
 from indi_aws import aws_utils, fetch_creds
 
