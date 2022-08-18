@@ -22,6 +22,8 @@ import subprocess
 import sys
 import time
 import shutil
+from logging import Formatter
+from logging.handlers import RotatingFileHandler as RFHandler
 from warnings import simplefilter
 from nipype import config as nipype_config, logging
 import yaml
@@ -816,7 +818,12 @@ if __name__ == '__main__':
                             'log_to_file': True},
                 'execution': {'crashfile_format': 'txt',
                               'resource_monitor_frequency': 0.2}})
-            nipype_config.enable_resource_monitor()
-            logging.update_logging(nipype_config)
+            hdlr = RFHandler(
+                os.path.join(log_dir, "failedToStart.log"),
+                maxBytes=int(nipype_config.get("logging", "log_size")),
+                backupCount=int(nipype_config.get("logging", "log_rotate")))
+            hdlr.setFormatter(Formatter(fmt=logging.fmt,
+                                        datefmt=logging.datefmt))
+            logger.addHandler(hdlr)
         logger.exception('C-PAC failed to start')
         raise exception
