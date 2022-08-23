@@ -226,6 +226,10 @@ class Configuration:
         '''Show contents of a C-PAC configuration as a dict'''
         return {k: v for k, v in self.__dict__.items() if not callable(v)}
 
+    def keys(self):
+        '''Show toplevel keys of a C-PAC configuration dict'''
+        return self.dict().keys()
+
     def _nonestr_to_None(self, d):
         '''Recursive method to type convert 'None' to None in nested
         config

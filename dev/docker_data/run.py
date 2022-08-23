@@ -22,10 +22,8 @@ import subprocess
 import sys
 import time
 import shutil
-from logging import Formatter
-from logging.handlers import RotatingFileHandler as RFHandler
 from warnings import simplefilter
-from nipype import config as nipype_config, logging
+from nipype import logging
 import yaml
 
 from CPAC import license_notice, __version__
@@ -37,7 +35,7 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   sub_list_filter_by_labels
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.docs import DOCS_URL_PREFIX
-from CPAC.utils.monitoring import log_nodes_cb
+from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
@@ -809,21 +807,6 @@ if __name__ == '__main__':
     except Exception as exception:
         # if we hit an exception before the pipeline starts to build but
         # we're still able to create a logfile, log the error in the file
-        if len(sys.argv) > 2:
-            log_dir = os.path.join(sys.argv[2], 'log')
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
-            nipype_config.update_config({
-                'logging': {'log_directory': log_dir,
-                            'log_to_file': True},
-                'execution': {'crashfile_format': 'txt',
-                              'resource_monitor_frequency': 0.2}})
-            hdlr = RFHandler(
-                os.path.join(log_dir, "failedToStart.log"),
-                maxBytes=int(nipype_config.get("logging", "log_size")),
-                backupCount=int(nipype_config.get("logging", "log_rotate")))
-            hdlr.setFormatter(Formatter(fmt=logging.fmt,
-                                        datefmt=logging.datefmt))
-            logger.addHandler(hdlr)
-        logger.exception('C-PAC failed to start')
+        failed_to_start(sys.argv[2] if len(sys.argv) > 2 else os.getcwd(),
+                        exception)
         raise exception

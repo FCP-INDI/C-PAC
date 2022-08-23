@@ -1,9 +1,23 @@
-'''Funtions for logging.'''
+"""Funtions for logging."""
 import logging
 import os
 
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
+
+
+def failed_to_start(log_dir):
+    """Launch a failed-to-start logger for a run that failed to start.
+    Must be called from within an ``except`` block.
+
+    Parameters
+    ----------
+    log_dir : str
+        path to logging directory
+    """
+    logger = set_up_logger('failedToStart', 'failedToStart.log', 'error',
+                           log_dir, True)
+    logger.exception('C-PAC failed to start')
 
 
 def getLogger(name):  # pylint: disable=invalid-name
@@ -25,15 +39,15 @@ def getLogger(name):  # pylint: disable=invalid-name
 
 # pylint: disable=too-few-public-methods
 class MockHandler:
-    '''Handler for MockLogger.'''
-    def __init__(self, baseFilename):
-        self.baseFilename = baseFilename  # pylint: disable=invalid-name
+    """Handler for MockLogger."""
+    def __init__(self, filename):
+        self.baseFilename = filename  # pylint: disable=invalid-name
 
 
 # pylint: disable=too-few-public-methods
 class MockLogger:
-    '''Mock logging.Logger to provide the same API without keeping the
-    logger in memory.'''
+    """Mock logging.Logger to provide the same API without keeping the
+    logger in memory."""
     def __init__(self, name, filename, level, log_dir):
         self.name = name
         self.level = level
@@ -56,13 +70,13 @@ class MockLogger:
         return _log
 
     def delete(self):
-        '''Delete the mock logger from memory.'''
+        """Delete the mock logger from memory."""
         del MOCK_LOGGERS[self.name]
 
 
 def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
                   overwrite_existing=False):
-    r'''Function to initialize a logger
+    r"""Function to initialize a logger
 
     Parameters
     ----------
@@ -109,7 +123,7 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
     >>> lg.delete()
     >>> 'third_test' in MOCK_LOGGERS
     False
-    '''
+    """
     if filename is None:
         filename = f'{name}.log'
     try:
