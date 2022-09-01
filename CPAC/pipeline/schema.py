@@ -1002,6 +1002,7 @@ latest_schema = Schema({
     'regional_homogeneity': {
         'run': bool,
         'cluster_size': In({7, 19, 27}),
+        'target_space': In({'Template', 'Native'}),
     },
     'post_processing': {
         'spatial_smoothing': {

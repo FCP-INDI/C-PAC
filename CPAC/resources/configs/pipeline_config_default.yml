@@ -1611,6 +1611,8 @@ regional_homogeneity:
   # 19 (Faces + Edges)
   # 27 (Faces + Edges + Corners)
   cluster_size: 27
+  # space: Template or Native
+  target_space: Native
 
 
 voxel_mirrored_homotopic_connectivity:
