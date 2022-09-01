@@ -1,0 +1,23 @@
+name: Delete untagged staging images
+
+on:
+  schedule:
+    - cron: '17 2 * * 5'  # Every Friday at 2:17 AM
+
+jobs:
+  delete-images:
+    strategy:
+      matrix:
+        ghcr-image:
+          - c-pac
+          - c-pac/neuroparc
+          - c-pac/ubuntu
+    runs-on: ubuntu-latest
+    steps:
+        -   name: Delete untagged staging images
+            uses: davahome/ghcr-cleanup@v1.1
+            with:
+                token: ${{ secrets.API_PACKAGE_READ_DELETE }}
+                package: ${{ matrix.ghcr-image }}
+                owner: orgs/FCP-INDI
+                delete_untagged: 1
