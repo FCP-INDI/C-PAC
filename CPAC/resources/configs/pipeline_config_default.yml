@@ -1593,6 +1593,9 @@ amplitude_low_frequency_fluctuation:
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: On
 
+  # space: Template or Native
+  target_space: Native
+
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
   highpass_cutoff: [0.01]
 
@@ -1606,13 +1609,14 @@ regional_homogeneity:
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: On
 
+  # space: Template or Native
+  target_space: Native
+
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)
   # 19 (Faces + Edges)
   # 27 (Faces + Edges + Corners)
   cluster_size: 27
-  # space: Template or Native
-  target_space: Native
 
 
 voxel_mirrored_homotopic_connectivity:

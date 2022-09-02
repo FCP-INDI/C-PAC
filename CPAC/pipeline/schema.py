@@ -985,6 +985,7 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool,
+        'target_space': In({'Template', 'Native'}),
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
