@@ -160,7 +160,7 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold", "space-template_bold"],
-                "space-bold_desc-brain_mask"],
+                "space-template_desc-bold_mask"],
      "outputs": ["space-template_reho"]}
     '''
 
@@ -181,7 +181,7 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_desc-preproc_bold", "space-template_bold"])
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
-    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
+    node, out_file = strat_pool.get_data('space-template_desc-bold_mask')
     wf.connect(node, out_file, reho, 'inputspec.rest_mask')
 
     outputs = {
