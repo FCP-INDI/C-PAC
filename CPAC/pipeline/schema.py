@@ -36,8 +36,12 @@ scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
 # ) 0 or more times
 resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
-
-Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
+CoercedFloat = Coerce(float)
+CoercedInt = Coerce(int)
+Number = Any(CoercedFloat, CoercedInt,
+             All(str, Match(scientific_notation_str_regex)))
+Resolution = Any(CoercedInt, CoercedFloat, 'Functional',
+                 All(str, Match(resolution_regex)))
 forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
 valid_options = {
     'acpc': {
@@ -73,27 +77,25 @@ valid_options = {
     },
     'Regressors': {
         'CompCor': {
-            'degree': int,
+            'degree': CoercedInt,
             'erode_mask_mm': bool,
             'summary': {
                 'method': str,
-                'components': int,
+                'components': CoercedInt,
                 'filter': str,
             },
             'threshold': str,
             'tissues': [str],
-            'extraction_resolution': int
+            'extraction_resolution': Resolution
         },
         'segmentation': {
             'erode_mask': bool,
-            'extraction_resolution': Any(
-                int, float, 'Functional', All(str, Match(resolution_regex))
-            ),
+            'extraction_resolution': Resolution,
             'include_delayed': bool,
             'include_delayed_squared': bool,
             'include_squared': bool,
             'summary': Any(
-                str, {'components': int, 'method': str}
+                str, {'components': CoercedInt, 'method': str}
             ),
         },
     }
@@ -105,17 +107,17 @@ mutex = {  # mutually exclusive booleans
                   'surfaces'],
         # the remaining keys: validators for FSL-BET
         'rem': {
-            'frac': float,
+            'frac': CoercedFloat,
             'mesh_boolean': bool,
             'outline': bool,
-            'radius': int,
+            'radius': CoercedInt,
             'skull': bool,
             'threshold': bool,
             'vertical_gradient': Range(min=-1, max=1, min_included=False,
                                        max_included=False),
             'functional_mean_thr': {
                 'run': bool,
-                'threshold_value': Maybe(int),
+                'threshold_value': Maybe(CoercedInt),
             },
             'functional_mean_bias_correction': bool,
         }
@@ -125,8 +127,8 @@ ANTs_parameter_transforms = {
     'gradientStep': Number,
     'metric': {
         'type': str,
-        'metricWeight': int,
-        'numberOfBins': int,
+        'metricWeight': CoercedInt,
+        'numberOfBins': CoercedInt,
         'samplingStrategy': str,
         'samplingPercentage': Number,
         'radius': Number,
@@ -134,7 +136,7 @@ ANTs_parameter_transforms = {
     'convergence': {
         'iteration': All(str, Match(resolution_regex)),
         'convergenceThreshold': Number,
-        'convergenceWindowSize': int,
+        'convergenceWindowSize': CoercedInt,
     },
     'smoothing-sigmas': All(str, Match(resolution_regex)),
     'shrink-factors': All(str, Match(resolution_regex)),
@@ -142,18 +144,18 @@ ANTs_parameter_transforms = {
     'updateFieldVarianceInVoxelSpace': Number,
     'totalFieldVarianceInVoxelSpace': Number,
     'winsorize-image-intensities': {
-        'lowerQuantile': float,
-        'upperQuantile': float,
+        'lowerQuantile': CoercedFloat,
+        'upperQuantile': CoercedFloat,
     },
 }
 ANTs_parameters = [Any(
     {
-        'collapse-output-transforms': int
+        'collapse-output-transforms': CoercedInt
     }, {
-        'dimensionality': int
+        'dimensionality': CoercedInt
     }, {
         'initial-moving-transform': {
-            'initializationFeature': int,
+            'initializationFeature': CoercedInt,
         },
     }, {
         'transforms': [Any({
@@ -401,13 +403,13 @@ latest_schema = Schema({
             },
             'maximum_memory_per_participant': Number,
             'raise_insufficient': bool,
-            'max_cores_per_participant': int,
-            'num_ants_threads': int,
-            'num_OMP_threads': int,
-            'num_participants_at_once': int,
+            'max_cores_per_participant': CoercedInt,
+            'num_ants_threads': CoercedInt,
+            'num_OMP_threads': CoercedInt,
+            'num_participants_at_once': CoercedInt,
             'random_seed': Maybe(Any(
                 'random',
-                All(int, Range(min=1, max=np.iinfo(np.int32).max)))),
+                All(CoercedInt, Range(min=1, max=np.iinfo(np.int32).max)))),
             'observed_usage': {
                 'callback_log': Maybe(str),
                 'buffer': Number,
@@ -430,16 +432,16 @@ latest_schema = Schema({
         },
         'n4_bias_field_correction': {
             'run': forkable,
-            'shrink_factor': int,
+            'shrink_factor': CoercedInt,
         },
         't1t2_bias_field_correction': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
-                'BiasFieldSmoothingSigma': Maybe(int),
+                'BiasFieldSmoothingSigma': Maybe(CoercedInt),
             }, {
                 'run': True,
-                'BiasFieldSmoothingSigma': Maybe(int),
+                'BiasFieldSmoothingSigma': Maybe(CoercedInt),
             },),
         ),
         'acpc_alignment': Required(
@@ -448,7 +450,7 @@ latest_schema = Schema({
             Any({
                 'run': False,
                 'run_before_preproc': Maybe(bool),
-                'brain_size': Maybe(int),
+                'brain_size': Maybe(CoercedInt),
                 'FOV_crop': Maybe(In({'robustfov', 'flirt'})),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
                 'align_brain_mask': Maybe(bool),
@@ -459,7 +461,7 @@ latest_schema = Schema({
             }, {
                 'run': True,
                 'run_before_preproc': bool,
-                'brain_size': int,
+                'brain_size': CoercedInt,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][1],
                 'align_brain_mask': Maybe(bool),
@@ -470,7 +472,7 @@ latest_schema = Schema({
             }, {
                 'run': True,
                 'run_before_preproc': bool,
-                'brain_size': int,
+                'brain_size': CoercedInt,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][0],
                 'align_brain_mask': Maybe(bool),
@@ -492,19 +494,19 @@ latest_schema = Schema({
                 'var_shrink_fac': bool,
                 'shrink_factor_bot_lim': Number,
                 'avoid_vent': bool,
-                'n_iterations': int,
+                'n_iterations': CoercedInt,
                 'pushout': bool,
                 'touchup': bool,
-                'fill_hole': int,
-                'NN_smooth': int,
-                'smooth_final': int,
+                'fill_hole': CoercedInt,
+                'NN_smooth': CoercedInt,
+                'smooth_final': CoercedInt,
                 'avoid_eyes': bool,
                 'use_edge': bool,
                 'exp_frac': Number,
                 'push_to_edge': bool,
                 'use_skull': bool,
                 'perc_int': Number,
-                'max_inter_iter': int,
+                'max_inter_iter': CoercedInt,
                 'fac': Number,
                 'blur_fwhm': Number,
                 'monkey': bool,
@@ -520,7 +522,7 @@ latest_schema = Schema({
                 'mesh_boolean': bool,
                 'outline': bool,
                 'padding': bool,
-                'radius': int,
+                'radius': CoercedInt,
                 'reduce_bias': bool,
                 'remove_eyes': bool,
                 'robust': bool,
@@ -553,9 +555,9 @@ latest_schema = Schema({
                 'thresholding': {
                     'use': In({'Auto', 'Custom'}),
                     'Custom': {
-                        'CSF_threshold_value': float,
-                        'WM_threshold_value': float,
-                        'GM_threshold_value': float,
+                        'CSF_threshold_value': CoercedFloat,
+                        'WM_threshold_value': CoercedFloat,
+                        'GM_threshold_value': CoercedFloat,
                     },
                 },
                 'use_priors': {
@@ -567,18 +569,18 @@ latest_schema = Schema({
                 },
             },
             'FreeSurfer': {
-                'erode': Maybe(int),
-                'CSF_label': Maybe([int]),
-                'GM_label': Maybe([int]),
-                'WM_label': Maybe([int]),
+                'erode': Maybe(CoercedInt),
+                'CSF_label': Maybe([CoercedInt]),
+                'GM_label': Maybe([CoercedInt]),
+                'WM_label': Maybe([CoercedInt]),
             },
             'ANTs_Prior_Based': {
                 'run': forkable,
                 'template_brain_list': Maybe(Any([str], [])),
                 'template_segmentation_list': Maybe(Any([str], [])),
-                'CSF_label': [int],
-                'GM_label': [int],
-                'WM_label': [int],
+                'CSF_label': [CoercedInt],
+                'GM_label': [CoercedInt],
+                'WM_label': [CoercedInt],
             },
             'Template_Based': {
                 'run': forkable,
@@ -634,7 +636,6 @@ latest_schema = Schema({
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'using': str,
                 'input': str,
-                'interpolation': str,
                 'cost': str,
                 'dof': int,
                 'arguments': Maybe(str),
@@ -648,7 +649,7 @@ latest_schema = Schema({
                         'n4_correct_func': bool
                     },
                     'Selected Functional Volume': {
-                        'func_reg_input_volume': int
+                        'func_reg_input_volume': CoercedInt
                     },
                 },
                 'boundary_based_registration': {
@@ -725,13 +726,13 @@ latest_schema = Schema({
             'run': bool,
             'surf_atlas_dir': Maybe(str),
             'gray_ordinates_dir': Maybe(str),
-            'gray_ordinates_res': Maybe(int),
-            'high_res_mesh': Maybe(int),
-            'low_res_mesh': Maybe(int),
+            'gray_ordinates_res': Maybe(CoercedInt),
+            'high_res_mesh': Maybe(CoercedInt),
+            'low_res_mesh': Maybe(CoercedInt),
             'subcortical_gray_labels': Maybe(str),
             'freesurfer_labels': Maybe(str),
-            'fmri_res': Maybe(int),
-            'smooth_fwhm': Maybe(int),
+            'fmri_res': Maybe(CoercedInt),
+            'smooth_fwhm': Maybe(CoercedInt),
         },
     },
     'longitudinal_template_generation': {
@@ -742,14 +743,14 @@ latest_schema = Schema({
         'cost': In({
             'corratio', 'mutualinfo', 'normmi', 'normcorr', 'leastsq',
             'labeldiff', 'bbr'}),
-        'thread_pool': int,
+        'thread_pool': CoercedInt,
         'convergence_threshold': Number,
     },
     'functional_preproc': {
         'run': bool,
         'truncation': {
-            'start_tr': int,
-            'stop_tr': Maybe(Any(int, 'End'))
+            'start_tr': CoercedInt,
+            'stop_tr': Maybe(Any(CoercedInt, 'End'))
         },
         'scaling': {
             'run': bool,
@@ -761,7 +762,7 @@ latest_schema = Schema({
         'slice_timing_correction': {
             'run': forkable,
             'tpattern': Maybe(str),
-            'tzero': Maybe(int),
+            'tzero': Maybe(CoercedInt),
         },
         'motion_estimates_and_correction': {
             'run': bool,
@@ -775,15 +776,16 @@ latest_schema = Schema({
                     'functional_volreg_twopass': bool,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume', 'fmriprep_reference'})],
-                'motion_correction_reference_volume': int,
+                    'mean', 'median', 'selected_volume',
+                    'fmriprep_reference'})],
+                'motion_correction_reference_volume': CoercedInt,
             },
             'motion_estimate_filter': Required(
                 Any({  # no motion estimate filter
                     'run': Maybe(Any(
                         ExactSequence([False]), ExactSequence([]), False)),
                     'filter_type': Maybe(In({'notch', 'lowpass'})),
-                    'filter_order': Maybe(int),
+                    'filter_order': Maybe(CoercedInt),
                     'breathing_rate_min': Maybe(Number),
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
@@ -792,7 +794,7 @@ latest_schema = Schema({
                 }, {  # notch filter with breathing_rate_* set
                     Required('run'): forkable,
                     Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
+                    Required('filter_order'): CoercedInt,
                     Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Number,
                     'center_frequency': Maybe(Number),
@@ -801,7 +803,7 @@ latest_schema = Schema({
                 }, {  # notch filter with manual parameters set
                     Required('run'): forkable,
                     Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
+                    Required('filter_order'): CoercedInt,
                     'breathing_rate_min': None,
                     'breathing_rate_max': None,
                     Required('center_frequency'): Number,
@@ -810,7 +812,7 @@ latest_schema = Schema({
                 }, {  # lowpass filter with breathing_rate_min
                     Required('run'): forkable,
                     Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
+                    Required('filter_order'): CoercedInt,
                     Required('breathing_rate_min'): Number,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
@@ -819,7 +821,7 @@ latest_schema = Schema({
                 }, {  # lowpass filter with lowpass_cutoff
                     Required('run'): forkable,
                     Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
+                    Required('filter_order'): CoercedInt,
                     Required('breathing_rate_min', default=None): None,
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
@@ -836,24 +838,24 @@ latest_schema = Schema({
             'using': [In(['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP'])],
             'PhaseDiff': {
                 'fmap_skullstrip_option': In(['BET', 'AFNI']),
-                'fmap_skullstrip_BET_frac': float,
-                'fmap_skullstrip_AFNI_threshold': float,
+                'fmap_skullstrip_BET_frac': CoercedFloat,
+                'fmap_skullstrip_AFNI_threshold': CoercedFloat,
             },
             'Blip-FSL-TOPUP': {
-                'warpres': int,
-                'subsamp': int,
-                'fwhm': int,
-                'miter': int,
-                'lambda': int,
-                'ssqlambda': int,
+                'warpres': CoercedInt,
+                'subsamp': CoercedInt,
+                'fwhm': CoercedInt,
+                'miter': CoercedInt,
+                'lambda': CoercedInt,
+                'ssqlambda': CoercedInt,
                 'regmod': In({'bending_energy', 'membrane_energy'}),
-                'estmov': int,
-                'minmet': int,
-                'splineorder': int,
+                'estmov': CoercedInt,
+                'minmet': CoercedInt,
+                'splineorder': CoercedInt,
                 'numprec': str,
                 'interp': In({'spline', 'linear'}),
-                'scale': int,
-                'regrid': int                
+                'scale': CoercedInt,
+                'regrid': CoercedInt
             }
         },
         'func_masking': {
@@ -916,10 +918,10 @@ latest_schema = Schema({
                     'method': str,
                     'thresholds': [{
                         'type': str,
-                        'value': float,
+                        'value': CoercedFloat,
                     }],
-                    'number_of_previous_trs_to_censor': Maybe(int),
-                    'number_of_subsequent_trs_to_censor': Maybe(int),
+                    'number_of_previous_trs_to_censor': Maybe(CoercedInt),
+                    'number_of_subsequent_trs_to_censor': Maybe(CoercedInt),
                 },
                 'Motion': {
                     'include_delayed': bool,
@@ -938,10 +940,10 @@ latest_schema = Schema({
                     'Regressors'
                 ]['segmentation'],
                 'GlobalSignal': {'summary': str},
-                'PolyOrt': {'degree': int},
+                'PolyOrt': {'degree': CoercedInt},
                 'Bandpass': {
-                    'bottom_frequency': float,
-                    'top_frequency': float,
+                    'bottom_frequency': CoercedFloat,
+                    'top_frequency': CoercedFloat,
                     'method': str,
                 }  # how to check if [0] is > than [1]?
             }, extra=ALLOW_EXTRA)]),
@@ -978,8 +980,8 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool,
-        'highpass_cutoff': [float],
-        'lowpass_cutoff': [float],
+        'highpass_cutoff': [CoercedFloat],
+        'lowpass_cutoff': [CoercedFloat],
     },
     'voxel_mirrored_homotopic_connectivity': {
         'run': bool,
@@ -1000,7 +1002,7 @@ latest_schema = Schema({
         'spatial_smoothing': {
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
-            'fwhm': [int]
+            'fwhm': [CoercedInt]
         },
         'z-scoring': {
             'output': [In({'z-scored', 'raw'})],
@@ -1084,7 +1086,7 @@ latest_schema = Schema({
         'minimal_nuisance_correction': {
             'peer_gsr': bool,
             'peer_scrub': bool,
-            'scrub_thresh': float,
+            'scrub_thresh': CoercedFloat,
         },
     },
 })
