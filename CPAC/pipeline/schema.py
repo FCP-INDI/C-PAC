@@ -1007,11 +1007,13 @@ latest_schema = Schema({
     },
     'post_processing': {
         'spatial_smoothing': {
+            'run': bool,
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
             'fwhm': [int]
         },
         'z-scoring': {
+            'run': bool,
             'output': [In({'z-scored', 'raw'})],
         },
     },
