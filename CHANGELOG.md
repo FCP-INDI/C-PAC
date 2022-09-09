@@ -14,6 +14,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## unreleased
+
+### Added
+- Added the ability to ingress TotalReadoutTime from epi field map meta-data from the JSON sidecars.
+- Added the ability to use TotalReadoutTime of epi field maps in the calculation of FSL topup distortion correction.
+
+### Fixed
+- Fixed an issue that was causing some epi field maps to not be ingressed if the BIDS tags were not in the correct order.
+
 ## [v1.8.4] - 2022-06-27
 
 ### Added
