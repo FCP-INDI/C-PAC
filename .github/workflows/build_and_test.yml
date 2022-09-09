@@ -40,24 +40,42 @@ jobs:
     with:
       variant: fMRIPrep-LTS
 
-  smoke-tests-participant:
-    name: Run participant-level smoke tests
+  smoke-tests-participant-small:
+    name: Run participant-level smoke tests (small set)
+    if: github.ref_name != 'main'
+    needs:
+      - C-PAC
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Participant-level smoke tests (small set)
+        run: |
+          pip install pyyaml
+          gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} --json $(python ./.github/scripts/choose_participant_subset.py random)
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+
+  smoke-tests-participant-large:
+    name: Run participant-level smoke tests (large set)
+    if: github.ref_name == 'main'
     needs:
       - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     runs-on: ubuntu-latest
-    if: github.ref_name == 'develop' || github.ref_name == 'main'
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Participant-level smoke tests
+      - name: Participant-level smoke tests (large set)
         run: |
           pip install pyyaml
-          gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} --json $(python ./.github/scripts/choose_participant_subset.py)
+          gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME} --json $(python ./.github/scripts/choose_participant_subset.py all)
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
 

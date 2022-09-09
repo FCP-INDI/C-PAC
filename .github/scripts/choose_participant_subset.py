@@ -1,4 +1,6 @@
-"""choose_participant_subset: choose 1 sub per dataset, only on main image
+"""choose_participant_subset
+
+Choose 1 sub per dataset or all subjects, only on main image
 
 Copyright (C) 2022  C-PAC Developers
 
@@ -17,6 +19,7 @@ License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import random
+import sys
 from os.path import dirname
 import json
 import yaml
@@ -24,6 +27,14 @@ import yaml
 TEST_DATA = f'{dirname(dirname(__file__))}/test_data.yml'
 with open(TEST_DATA, 'r', encoding='utf-8') as tds:
     TEST_DATA = yaml.safe_load(tds)
+
+
+def all_participants():
+    '''Return all subjects per dataset per species'''
+    return {f'{species}_participants': [str(subject) for dataset in
+            TEST_DATA['labels']['participant'][species] for subject in
+            TEST_DATA['labels']['participant'][species][dataset]
+            ] for species in TEST_DATA['labels']['participant']}
 
 
 def random_participants():
@@ -37,4 +48,11 @@ def random_participants():
 
 if __name__ == '__main__':
     '''Return JSON to pass to `workflow_dispatch` inputs'''
-    print("'" + json.dumps({'variant': [''], **random_participants()}) + "'")
+    args = sys.argv[1:]
+    if args:
+        if args[0] == 'random':
+            print("'" + json.dumps({'variant': [''], **random_participants()}
+                                   ) + "'")
+        elif args[0] == 'all':
+            print("'" + json.dumps({'variant': [''], **all_participants()}) +
+                  "'")
