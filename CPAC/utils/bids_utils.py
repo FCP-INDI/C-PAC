@@ -702,7 +702,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'T2w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
+    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'magnitude',
                 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):

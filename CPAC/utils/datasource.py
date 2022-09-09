@@ -335,8 +335,9 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     echo_time = data_config_scan_params.get("EchoTime")
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
+    total_readout = data_config_scan_params.get("TotalReadoutTime")
 
-    return (echo_time, dwell_time, pe_direction)
+    return (echo_time, dwell_time, pe_direction, total_readout)
 
 
 def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
@@ -445,7 +446,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 input_names=['data_config_scan_params'],
                 output_names=['echo_time',
                               'dwell_time',
-                              'pe_direction'],
+                              'pe_direction',
+                              'total_readout'],
                 function=get_fmap_phasediff_metadata,
                 imports=get_fmap_metadata_imports),
                 name=f'{key}_get_metadata')
@@ -459,6 +461,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
             rpool.set_data(f'{key}-pedir', get_fmap_metadata,
                            'pe_direction', {}, "", "fmap_pedir_ingress")
+            rpool.set_data(f'{key}-total-readout', get_fmap_metadata,
+                           'total_readout', {}, "", "fmap_readout_ingress")
 
             fmap_TE_list.append(f"{key}-TE")
 

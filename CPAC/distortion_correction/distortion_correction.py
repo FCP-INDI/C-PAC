@@ -486,10 +486,12 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                 "epi-1-pedir",
                 "epi-1-TE",
                 "epi-1-dwell",
+                "epi-1-total-readout",
                 "epi-2",
                 "epi-2-pedir",
                 "epi-2-TE",
-                "epi-2-dwell"],
+                "epi-2-dwell",
+                "epi-2-total-readout"],
      "outputs": ["desc-reginput_bold",
                  "space-bold_desc-brain_mask",
                  "blip-warp"]}
@@ -588,7 +590,9 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                 "phase_one",
                 "phase_two",
                 "dwell_time_one",
-                "dwell_time_two"
+                "dwell_time_two",
+                "ro_time_one",
+                "ro_time_two"
             ],
             output_names=["acq_params"],
             function=phase_encode,
@@ -604,12 +608,22 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     
     node, out = strat_pool.get_data('pe-direction')
     wf.connect(node, out, phase_encoding, 'unwarp_dir')
-        
-    node, out = strat_pool.get_data('epi-1-dwell')
-    wf.connect(node, out, phase_encoding, 'dwell_time_one')
     
-    node, out = strat_pool.get_data('epi-2-dwell')
-    wf.connect(node, out, phase_encoding, 'dwell_time_two')
+    if strat_pool.check_rpool('epi-1-dwell'):
+        node, out = strat_pool.get_data('epi-1-dwell')
+        wf.connect(node, out, phase_encoding, 'dwell_time_one')
+    
+    if strat_pool.check_rpool('epi-2-dwell'):
+        node, out = strat_pool.get_data('epi-2-dwell')
+        wf.connect(node, out, phase_encoding, 'dwell_time_two')
+
+    if strat_pool.check_rpool('epi-1-total-readout'):
+        node, out = strat_pool.get_data('epi-1-total-readout')
+        wf.connect(node, out, phase_encoding, 'ro_time_one')
+    
+    if strat_pool.check_rpool('epi-2-total-readout'):
+        node, out = strat_pool.get_data('epi-2-total-readout')
+        wf.connect(node, out, phase_encoding, 'ro_time_two')
 
     topup_imports = ["import os",
                      "import subprocess"]
