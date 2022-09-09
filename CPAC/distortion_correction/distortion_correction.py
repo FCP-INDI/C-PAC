@@ -609,19 +609,21 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('pe-direction')
     wf.connect(node, out, phase_encoding, 'unwarp_dir')
     
-    if strat_pool.check_rpool('epi-1-dwell'):
+    if strat_pool.check_rpool('epi-1-dwell') and \
+            strat_pool.check_rpool('epi-2-dwell'):
+
         node, out = strat_pool.get_data('epi-1-dwell')
         wf.connect(node, out, phase_encoding, 'dwell_time_one')
-    
-    if strat_pool.check_rpool('epi-2-dwell'):
+
         node, out = strat_pool.get_data('epi-2-dwell')
         wf.connect(node, out, phase_encoding, 'dwell_time_two')
 
-    if strat_pool.check_rpool('epi-1-total-readout'):
+    if strat_pool.check_rpool('epi-1-total-readout') and \
+            strat_pool.check_rpool('epi-2-total-readout'):
+
         node, out = strat_pool.get_data('epi-1-total-readout')
         wf.connect(node, out, phase_encoding, 'ro_time_one')
     
-    if strat_pool.check_rpool('epi-2-total-readout'):
         node, out = strat_pool.get_data('epi-2-total-readout')
         wf.connect(node, out, phase_encoding, 'ro_time_two')
 

@@ -170,6 +170,13 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
 
     """
 
+    meta_data = [dwell_time_one, dwell_time_two,
+                 ro_time_one, ro_time_two]
+    if not any(meta_data):
+        raise Exception("\n[!] Blip-FSL-TOPUP workflow: neither "
+                        "TotalReadoutTime nor DwellTime is present in the "
+                        "epi field map meta-data.")
+
     # create text file
     acq_params = os.path.join(os.getcwd(), "acqparams.txt")
 
