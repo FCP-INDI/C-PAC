@@ -1,0 +1,48 @@
+labels:
+  participant:
+    human:
+      ADHD200:
+        - 1019436
+        - 2014113
+        - 3154996
+        - 3699991
+        - 3884955
+      HBN with EPI field maps:
+        - NDARAA504CRN
+        - NDARAA947ZG5
+        - NDARAB348EWR
+        - NDARAB458VK9
+      HBN with gradient echo field maps:
+        - NDARAD481FXF
+        - NDARAV894XWD
+        - NDARCA186WGH
+      CoRR HNU:
+        - 0025428
+        - 0025429
+        - 0025448
+        - 0025452
+        - 0025453
+    nhp:
+      Newcastle:
+        - 032102
+        - 032106
+      Oxford:
+        - 032164
+        - 032167
+      UC Davis:
+        - 032130
+        - 032128
+      UW Madison:
+        - 2215
+        - 2312
+      UWO:
+        - 032191
+        - 032195
+    rodent:
+      Ioanas & Rudin (2019):
+      - 4007
+image variants:
+  - ''
+  - lite
+  - ABCD-HCP
+  - fMRIPrep-LTS

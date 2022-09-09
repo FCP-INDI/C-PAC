@@ -2,6 +2,23 @@ name: Run participant smoke test
 
 on:
   workflow_dispatch:
+    inputs:
+      variants:
+        description: Which C-PAC variant images to test on
+        required: true
+        type: string
+      human_participants:
+        description: Labels of human participants to test
+        required: true
+        type: string
+      nhp_participants:
+        description: Labels of non-human primate participants to test
+        required: true
+        type: string
+      rodent_participants:
+        description: Labels of rodent participants to test
+        required: true
+        type: string
 
 jobs:
   set-up-check:
@@ -41,16 +58,8 @@ jobs:
           # - regtest-2
           # - regtest-3
           # - regtest-4
-        variant:
-          - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
-        participant:
-          - 1019436 2014113 3154996 3699991 3884955  # ADHD200
-          - NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9  # HBN with EPI field maps
-          - NDARAD481FXF NDARAV894XWD NDARCA186WGH  # HBN with gradient echo field maps
-          - 0025428 0025429 0025448 0025452 0025453 # CoRR HNU
+        variant: ${{ inputs.variants }}
+        participant: ${{ inputs.human_participants }}
     steps:
       - name: Get C-PAC
         run: |
@@ -115,17 +124,8 @@ jobs:
           - monkey
           # - monkey-ABCD
           - nhp-macaque
-        variant:
-          - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
-        participant:
-          - 032102 032106 # Newcastle
-          - 032164 032167 # Oxford
-          - 032130 032128 # UC Davis
-          - 2215 2312 # UW Madison
-          - 032191 032195 # UWO
+        variant: ${{ inputs.variants }}
+        participant: ${{ inputs.nhp_participants }}
         exclude:
           # No T2w
           - preconfig: monkey-ABCD
@@ -191,11 +191,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant:
-          - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
+        variant: ${{ inputs.variants }}
+        participant: ${{ inputs.nhp_participants }}
     steps:
       - name: Get C-PAC
         run: |
@@ -239,6 +236,7 @@ jobs:
             ${{ env.DOCKER_TAG }} \
             /test-data /outputs test_config \
             --preconfig rodent \
+            --participant_label ${{ matrix.participant }} \
             --n_cpus 2
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
