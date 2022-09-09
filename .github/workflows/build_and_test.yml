@@ -16,35 +16,58 @@ jobs:
           state: pending
           target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
 
+  pre_job:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v4
+        with:
+          concurrent_skipping: same_content_newer
+
   C-PAC:
-    needs: update-check
+    needs:
+      - update-check
+      - pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ''
 
   C-PAC-lite:
-    needs: C-PAC
+    needs:
+      - C-PAC
+      - pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: lite
 
   C-PAC-ABCD-HCP:
-    needs: update-check
+    needs:
+      - update-check
+      - pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
-    needs: update-check
+    needs:
+      - update-check
+      - pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: fMRIPrep-LTS
 
   smoke-tests-participant-small:
     name: Run participant-level smoke tests (small set)
-    if: github.ref_name != 'main'
-    needs:
+    needs: 
+      - pre_job
       - C-PAC
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_name != 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -60,12 +83,13 @@ jobs:
 
   smoke-tests-participant-large:
     name: Run participant-level smoke tests (large set)
-    if: github.ref_name == 'main'
     needs:
       - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -113,7 +137,8 @@ jobs:
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
-    if: github.ref_type == 'branch'
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -154,7 +179,8 @@ jobs:
   Deploy_to_Docker_Hub:
     needs:
       - C-PAC
-    if: github.ref_type == 'tag'
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_type == 'tag'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: ''
@@ -163,7 +189,8 @@ jobs:
   Deploy_to_Docker_Hub-lite:
     needs:
       - C-PAC-lite
-    if: github.ref_type == 'tag'
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_type == 'tag'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'lite'
@@ -172,7 +199,8 @@ jobs:
   Deploy_to_Docker_Hub-ABCD-HCP:
     needs:
       - C-PAC-ABCD-HCP
-    if: github.ref_type == 'tag'
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_type == 'tag'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'ABCD-HCP'
@@ -181,7 +209,8 @@ jobs:
   Deploy_to_Docker_Hub-fMRIPrep-LTS:
     needs:
       - C-PAC-fMRIPrep-LTS
-    if: github.ref_type == 'tag'
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && github.ref_type == 'tag'
     uses: ./.github/workflows/deploy_to_Docker_Hub.yml
     with:
       variant: 'fMRIPrep-LTS'

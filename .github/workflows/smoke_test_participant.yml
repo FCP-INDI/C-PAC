@@ -33,11 +33,24 @@ jobs:
           context: "Smoke tests"
           state: pending
           target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
+
+  pre_job:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v4
+        with:
+          concurrent_skipping: same_content_newer
+
   smoke_test_human:
     name: Human ${{ matrix.preconfig }} participant smoke tests
     runs-on: ubuntu-latest
     needs:
       - set-up-check
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -117,6 +130,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - set-up-check
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -188,6 +203,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - set-up-check
+      - pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
       fail-fast: false
       matrix:
