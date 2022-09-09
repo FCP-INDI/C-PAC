@@ -738,7 +738,7 @@ class ResourcePool:
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
 
-        if self.run_zscoring:            
+        if self.zscoring_bool:            
             for label_con_tpl in post_labels:
                 label = label_con_tpl[0]
                 connection = (label_con_tpl[1], label_con_tpl[2])
