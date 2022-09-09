@@ -575,10 +575,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 try:
                     run_workflow(sub, c, True, pipeline_timing_info,
                                  p_name, plugin, plugin_args, test_config)
-                except Exception:  # pylint: disable=broad-except
+                except Exception as exception:  # pylint: disable=broad-except
                     exitcode = 1
                     failed_to_start(c['pipeline_setup', 'log_directory',
-                                      'path'])
+                                      'path'], exception)
             return exitcode
 
         pid = open(os.path.join(

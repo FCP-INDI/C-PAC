@@ -23,7 +23,6 @@ from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
-from CPAC.pipeline.engine import ResourcePool
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -34,7 +33,6 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     one_d_to_mat, \
                                     run_c3d, \
                                     run_c4d
-from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
@@ -4144,8 +4142,8 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm,
     return (wf, outputs)
 
 
-def warp_resource_to_template(wf: pe.Workflow, cfg: Configuration,
-                              strat_pool: ResourcePool, pipe_num: int,
+def warp_resource_to_template(wf: pe.Workflow, cfg: 'Configuration',
+                              strat_pool: 'ResourcePool', pipe_num: int,
                               input_resource: Union[str, list], xfm: str,
                               reference: Optional[str] = None,
                               time_series: bool = False) -> Tuple[
