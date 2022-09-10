@@ -101,7 +101,7 @@ class ResourcePool:
                     'falff', 'desc-sm_falff', 'desc-zstd_falff',
                     'desc-sm-zstd_falff',
                     'reho', 'desc-sm_reho', 'desc-zstd_reho',
-                    'desc-sm-zstd_reho']
+                    'desc-sm-zstd_reho', 'space-template_reho']
 
     def append_name(self, name):
         self.name.append(name)
