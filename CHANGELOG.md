@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
 
 ### Changed
+- Changed the 1mm atlases chosen in the rbc-options preconfig to the 2mm versions
 - For Nilearn-generated correlation matrices, diagonals are now set to all `1`s (were all `0`s)
 - Added ability to apply nusiance correction to template-space BOLD images
 - Removed ability to run single-step-resampling on motion-corrected BOLD data
