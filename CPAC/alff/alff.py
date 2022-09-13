@@ -278,14 +278,13 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "alff_falff",
+    {"name": "alff_falff_space_template",
      "config": ["amplitude_low_frequency_fluctuation"],
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold", "space-template_desc-brain_bold", "space-template_desc-preproc_bold",
-                 "space-template_bold"],
-                "space-bold_desc-brain_mask"],
+     "inputs": [["space-template_desc-denoisedNofilt_bold"],
+                "space-template_desc-bold_mask"],
      "outputs": ["space-template_alff",
                  "space-template_falff"]}
     '''
@@ -299,11 +298,10 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
-                                     "space-template_desc-preproc_bold", "space-template_bold"])
+    node, out = strat_pool.get_data(["space-template_desc-denoisedNofilt_bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
 
-    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(node, out, alff, 'inputspec.rest_mask')
 
     outputs = {

@@ -1598,7 +1598,7 @@ amplitude_low_frequency_fluctuation:
   run: On
 
   # space: Template or Native
-  target_space: Native
+  target_space: ['Native']
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
   highpass_cutoff: [0.01]
@@ -1614,7 +1614,7 @@ regional_homogeneity:
   run: On
 
   # space: Template or Native
-  target_space: Native
+  target_space: ['Native']
 
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)

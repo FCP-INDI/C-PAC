@@ -98,6 +98,12 @@ valid_options = {
                 str, {'components': int, 'method': str}
             ),
         },
+    },
+    'amplitude_low_frequency_fluctuation': {
+        'target_space': ['Native', 'Template']
+    },
+    'regional_homogeneity': {
+        'target_space': ['Native', 'Template']
     }
 }
 mutex = {  # mutually exclusive booleans
@@ -985,7 +991,8 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool,
-        'target_space': In({'Template', 'Native'}),
+        #'target_space': In({'Template', 'Native'}),
+        'target_space': [In(valid_options['amplitude_low_frequency_fluctuation']['target_space'])],
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
@@ -1002,7 +1009,8 @@ latest_schema = Schema({
     },
     'regional_homogeneity': {
         'run': bool,
-        'target_space': In({'Template', 'Native'}),
+        #'target_space': In({'Template', 'Native'}),
+        'target_space': [In(valid_options['regional_homogeneity']['target_space'])],
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {

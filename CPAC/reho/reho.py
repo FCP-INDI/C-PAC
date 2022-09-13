@@ -153,7 +153,7 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "ReHo",
+    {"name": "ReHo_space_template",
      "config": ["regional_homogeneity"],
      "switch": ["run"],
      "option_key": "None",
