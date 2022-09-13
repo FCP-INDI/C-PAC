@@ -16,7 +16,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 # TODO: replace Tuple with tuple, Union with |, once Python >= 3.9, 3.10
-from typing import Optional, overload, Tuple, Union
+from typing import Optional, Tuple, Union
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
@@ -31,7 +31,6 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     change_itk_transform_type, \
                                     hardcoded_reg, \
                                     one_d_to_mat, \
-                                    run_ants_apply_warp, \
                                     run_c3d, \
                                     run_c4d
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
@@ -3897,11 +3896,10 @@ def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-template_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'desc-mean_bold', xfm,
-        reference='T1w-brain-template-funcreg', time_series=False)
-    outputs = {
-        'space-template_desc-mean_bold':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        reference='T1w-brain-template-funcreg', time_series=False)[:2]
+    outputs = {'space-template_desc-mean_bold':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3924,11 +3922,10 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-template_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
-        reference='T1w-brain-template-funcreg', time_series=False)
-    outputs = {
-        'space-template_desc-bold_mask':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        reference='T1w-brain-template-funcreg', time_series=False)[:2]
+    outputs = {'space-template_desc-bold_mask':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3953,11 +3950,10 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-template_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
-        reference='T1w-brain-template-deriv', time_series=False)
-    outputs = {
-        'space-template_res-derivative_desc-bold_mask':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        reference='T1w-brain-template-deriv', time_series=False)[:2]
+    outputs = {'space-template_res-derivative_desc-bold_mask':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3981,10 +3977,9 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     wf, apply_xfm, resource = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, ['desc-preproc_bold', 'bold'], xfm,
         time_series=True)
-    outputs = {
-        f'space-EPItemplate_{resource}':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+    outputs = {f'space-EPItemplate_{resource}':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4004,11 +3999,10 @@ def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'desc-mean_bold', xfm,
-        time_series=False)
-    outputs = {
-        'space-EPItemplate_desc-mean_bold':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        time_series=False)[:2]
+    outputs = {'space-EPItemplate_desc-mean_bold':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4028,11 +4022,10 @@ def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
-        time_series=False)
-    outputs = {
-        'space-EPItemplate_desc-bold_mask':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        time_series=False)[:2]
+    outputs = {'space-EPItemplate_desc-bold_mask':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4054,11 +4047,10 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
-        time_series=False)
-    outputs = {
-        'space-EPItemplate_res-derivative_desc-bold_mask':
-            (apply_xfm, 'outputspec.output_image')}
-    return (wf, outputs)
+        time_series=False)[:2]
+    outputs = {'space-EPItemplate_res-derivative_desc-bold_mask':
+               (apply_xfm, 'outputspec.output_image')}
+    return _warp_return(wf, apply_xfm, outputs)
 
 
 def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4133,40 +4125,25 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm,
     for tissue in tissue_types:
         wf, apply_xfm[tissue] = warp_resource_to_template(
             wf, cfg, strat_pool, pipe_num, f'label-{tissue}_mask', xfm,
-            time_series=False)
+            time_series=False)[:2]
     if template_space == 'T1':
         template_space = ''
     outputs = {f'space-{template_space}template_label-{tissue}_mask': (
         apply_xfm[tissue], 'outputspec.output_image') for
                tissue in tissue_types}
+    return _warp_return(wf, apply_xfm, outputs)
 
-    return (wf, outputs)
 
-
-@overload
-def warp_resource_to_template(wf: pe.Workflow, cfg,
-                              strat_pool, pipe_num: int,
-                              input_resource: str, xfm: str,
+def warp_resource_to_template(wf: pe.Workflow, cfg, strat_pool, pipe_num: int,
+                              input_resource: Union[list, str], xfm: str,
                               reference: Optional[str] = None,
-                              time_series: bool = False) -> Tuple[
-                                  pe.Workflow, pe.Workflow]: ...
-
-
-@overload
-def warp_resource_to_template(wf, cfg, strat_pool, pipe_num,
-                              input_resource: list, xfm: str,
-                              reference: Optional[str] = None,
-                              time_series: bool = False) -> Tuple[
-                                  pe.Workflow, pe.Workflow, str]: ...
-
-
-def warp_resource_to_template(wf, cfg, strat_pool, pipe_num, input_resource,
-                              xfm, reference=None, time_series=False):
+                              time_series: Optional[bool] = False
+                              ) -> Tuple[pe.Workflow, pe.Workflow, str]:
     '''Function to warp a resource into a template space
 
     Parameters
     ----------
-    wf : nipype.pipeline.engine.workflows.Workflow
+    wf : pe.Workflow
 
     cfg : CPAC.utils.configuration.Configuration
 
@@ -4188,28 +4165,30 @@ def warp_resource_to_template(wf, cfg, strat_pool, pipe_num, input_resource,
 
     Returns
     -------
-    wf : nipype.pipeline.engine.workflows.Workflow
+    wf : pe.Workflow
         original workflow with subworkflow to warp resource to template
         connected
 
-    apply_xfm : nipype.pipeline.engine.workflows.Workflow
+    apply_xfm : pe.Workflow
         subworkflow added to warp resource to template
 
     resource : str
-        key of input resource in strat_pool, only if input_resource was
-        a list
+        key of input resource in strat_pool
     '''
+    # determine space we're warping to
     template_space = xfm.split('_to-', 1)[1].split('template')[0]
     if template_space == '':
         template_space = 'T1w'
+    # determine tool used for registration
     xfm_prov = strat_pool.get_cpac_provenance(xfm)
     reg_tool = check_prov_for_regtool(xfm_prov)
-    return_resource = False
+    # set 'resource'
     if strat_pool.check_rpool(input_resource):
-        if isinstance(input_resource, list):
-            return_resource = True
         resource, input_resource = strat_pool.get_data(input_resource,
                                                        report_fetched=True)
+    else:
+        return wf, None, input_resource
+    # set 'reference' if not passed and determine subworkflow name
     if reference is None:
         subwf_input_name = input_resource
         reference = f'{template_space}-template'
@@ -4217,6 +4196,7 @@ def warp_resource_to_template(wf, cfg, strat_pool, pipe_num, input_resource,
         subwf_input_name = '-'.join([
             reference.split('-')[-1].split('_')[-1],
             input_resource.split('-')[-1].split('_')[-1]])
+    # set up 'apply_transform' subworkflow
     apply_xfm = apply_transform(f'warp_{subwf_input_name}_to_'
                                 f'{template_space}template_{pipe_num}',
                                 reg_tool, time_series=time_series,
@@ -4224,16 +4204,24 @@ def warp_resource_to_template(wf, cfg, strat_pool, pipe_num, input_resource,
                                     'max_cores_per_participant'],
                                 num_ants_cores=cfg.pipeline_setup[
                                     'system_config']['num_ants_threads'])
+    # set appropriate 'interpolation' input based on registration tool
     if reg_tool == 'ants':
         apply_xfm.inputs.inputspec.interpolation = 'NearestNeighbor'
     elif reg_tool == 'fsl':
         apply_xfm.inputs.inputspec.interpolation = 'nn'
+    # connect nodes to subworkflow
     node, out = resource
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
     node, out = strat_pool.get_data(reference)
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
     node, out = strat_pool.get_data(xfm)
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
-    if return_resource:
-        return wf, apply_xfm, input_resource
-    return wf, apply_xfm
+    return wf, apply_xfm, input_resource
+
+
+def _warp_return(wf: pe.Workflow, apply_xfm: Union[pe.Workflow, None],
+                 outputs: dict) -> Tuple[pe.Workflow, dict]:
+    """Check if we have a transform to apply; if not, don't add the outputs"""
+    if apply_xfm is None:
+        return wf, {}
+    return wf, outputs
