@@ -20,7 +20,7 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 from itertools import chain, permutations
 
 import numpy as np
-from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
+from voluptuous import All, Capitalize, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
                        Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
 
@@ -749,7 +749,7 @@ latest_schema = Schema({
         'run': bool,
         'truncation': {
             'start_tr': int,
-            'stop_tr': Maybe(Any(int, 'End'))
+            'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
         'scaling': {
             'run': bool,
