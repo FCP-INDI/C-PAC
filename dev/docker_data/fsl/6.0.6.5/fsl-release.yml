@@ -109,6 +109,7 @@ packages:
  - fsl-get_standard 0.1.0
  - fsl-giftiio 2111.0
  - fsl-gps 2111.0
+ - fsl-installer 2.1.0
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
  - fsl-libmeshutils 2111.0
