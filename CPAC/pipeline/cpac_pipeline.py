@@ -263,10 +263,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         subject_id += "_" + sub_dict['unique_id']
 
     c['subject_id'] = subject_id
-
+    if p_name is None:
+        p_name = f'pipeline_{c.pipeline_setup["pipeline_name"]}'
     log_dir = os.path.join(c.pipeline_setup['log_directory']['path'],
-                           f'pipeline_{c.pipeline_setup["pipeline_name"]}',
-                           subject_id)
+                           p_name, subject_id)
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
@@ -449,7 +449,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                     'not run')
     else:
         working_dir = os.path.join(
-            c.pipeline_setup['working_directory']['path'], workflow.name)
+            c.pipeline_setup['working_directory']['path'], p_name,
+            workflow.name)
 
         # if c.write_debugging_outputs:
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
