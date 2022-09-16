@@ -1292,7 +1292,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_deriv_mask_to_T1template]
         
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
-    if 'Template' in target_space_alff:
+    if 'Template' in target_space_alff and not rpool.check_rpool('space-template_desc-denoisedNofilt_bold'):
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
