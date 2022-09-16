@@ -853,7 +853,7 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'cpac_{pipe_name}', unique_id)
+                container = os.path.join(f'pipeline_{pipe_name}', unique_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -1582,9 +1582,9 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
-            
-        cpac_dir = os.path.join(out_dir,
-                                f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+
+        cpac_dir = os.path.join(out_dir, 'pipeline_'
+                                f'{cfg.pipeline_setup["pipeline_name"]}',
                                 unique_id)
     else:
         if os.path.isdir(out_dir):

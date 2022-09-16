@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Added a level of depth to working directories to match log and output directory structure
+- Added a level of depth to `working` directories to match `log` and `output` directory structure
+- Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths
 
 ## [v1.8.4] - 2022-06-27
 
