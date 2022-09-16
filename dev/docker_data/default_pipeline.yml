@@ -10,6 +10,7 @@
 pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
+  # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
   output_directory:

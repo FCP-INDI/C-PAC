@@ -17,11 +17,12 @@ License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
+import re
 from itertools import chain, permutations
-
 import numpy as np
-from voluptuous import All, Capitalize, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
-                       Range, Required, Schema
+from pathvalidate import sanitize_filename
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, In, Length, Match, \
+                       Optional, Range, Required, Schema
 from voluptuous.validators import ExactSequence, Maybe
 
 from CPAC import docs_prefix
@@ -363,10 +364,15 @@ def _changes_1_8_0_to_1_8_1(config_dict):
     return config_dict
 
 
+def sanitize(filename):
+    '''Sanitize a filename and replace whitespaces with underscores'''
+    return re.sub(r'\s+', '_', sanitize_filename(filename))
+
+
 latest_schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
-        'pipeline_name': All(str, Length(min=1)),
+        'pipeline_name': All(str, Length(min=1), sanitize),
         'output_directory': {
             'path': str,
             'source_outputs_dir': Maybe(str),
