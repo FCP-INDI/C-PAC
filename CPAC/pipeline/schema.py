@@ -19,9 +19,9 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
 import numpy as np
-from voluptuous import All, ALLOW_EXTRA, Any, Coerce, ExactSequence, \
-                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
-                       Optional, Range, Required, Schema
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
+                       ExactSequence, ExclusiveInvalid, In, Length, Lower, \
+                       Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
@@ -749,7 +749,7 @@ latest_schema = Schema({
         'run': bool,
         'truncation': {
             'start_tr': int,
-            'stop_tr': Maybe(Any(int, 'End'))
+            'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
         'scaling': {
             'run': bool,

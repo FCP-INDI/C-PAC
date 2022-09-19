@@ -574,7 +574,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     else:
         startidx = int(start_idx)
 
-    if (stop_idx == None) or (int(stop_idx) > (nvols - 1)):
+    if (stop_idx in [None, "End"]) or (int(stop_idx) > (nvols - 1)):
         stopidx = nvols - 1
     else:
         stopidx = int(stop_idx)
