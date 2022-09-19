@@ -109,8 +109,7 @@ class Configuration:
                 Configuration(from_config).dict(), config_map)
 
         # base everything on default pipeline
-        config_map = _enforce_forkability(
-            update_nested_dict(default_config, config_map))
+        config_map = update_nested_dict(default_config, config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -398,50 +397,6 @@ def configuration_from_file(config_file):
     """
     with open(config_file, 'r') as config:
         return Configuration(yaml.safe_load(config))
-
-
-def _enforce_forkability(config_dict):
-    '''Function to set forkable booleans as lists of booleans.
-
-    Parameters
-    ----------
-    config_dict : dict
-
-    Returns
-    -------
-    config_dict : dict
-
-    Examples
-    --------
-    >>> c = Configuration().dict()
-    >>> c['functional_preproc']['despiking']['run']
-    [False]
-    >>> c['functional_preproc']['despiking']['run'] = True
-    >>> c['functional_preproc']['despiking']['run']
-    True
-    >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
-    [True]
-    '''
-    from CPAC.pipeline.schema import schema
-    from CPAC.utils.utils import lookup_nested_value, set_nested_value
-
-    key_list_list = collect_key_list(config_dict)
-    for key_list in key_list_list:
-        try:
-            schema_check = lookup_nested_value(schema.schema, key_list)
-        except KeyError:
-            continue
-        if hasattr(schema_check, 'validators'):
-            schema_check = schema_check.validators
-            if bool in schema_check and [bool] in schema_check:
-                try:
-                    value = lookup_nested_value(config_dict, key_list)
-                except KeyError:
-                    continue
-                if isinstance(value, bool):
-                    config_dict = set_nested_value(
-                        config_dict, key_list, [value])
-    return config_dict
 
 
 class Preconfiguration(Configuration):
