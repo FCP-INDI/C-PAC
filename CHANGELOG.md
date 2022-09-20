@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated the smoke test strategy
+- Upgraded Miniconda 4.12.0 ← 4.8.2
 
 ## [v1.8.4] - 2022-06-27
 

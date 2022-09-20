@@ -105,9 +105,9 @@ RUN groupadd -r c-pac && \
       libxp-dev && \
     add-apt-repository --remove --yes ppa:zeehio/libxp && \
     apt-get update && \
-    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
-    bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
+    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
+    bash Miniconda3-py37_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-py37_4.12.0-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
