@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.4
+FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.5.dev
 LABEL org.opencontainers.image.description "Full C-PAC image"
 USER root
 

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the ability to downsample to 10K or 2K resolution for freesurfer runs
 - Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
 
 ### Changed
@@ -26,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed ability to run single-step-resampling on motion-corrected BOLD data
 - Moved default pipeline config into directory with other preconfigs
 - Added crash messages from during and before graph building to logs
+
+### Fixed
 
 ## [v1.8.4] - 2022-06-27
 
