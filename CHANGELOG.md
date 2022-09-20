@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
 
 ### Changed
+- Changed the 1mm atlases chosen in the rbc-options preconfig to the 2mm versions
 
 ### Fixed
 
