@@ -40,6 +40,7 @@ def run_surface(post_freesurfer_folder,
     import subprocess
 
     freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
+    
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
@@ -111,6 +112,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
+    
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
@@ -141,10 +143,12 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
+    
 
     node, out = strat_pool.get_data(restore) 
     wf.connect(node, out, surf, 't1w_restore_image')
-
+    
+    
     node, out = strat_pool.get_data(space_temp) 
     wf.connect(node, out, surf, 'atlas_space_t1w_image')
 
