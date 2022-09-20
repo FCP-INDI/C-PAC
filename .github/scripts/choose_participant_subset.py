@@ -46,13 +46,18 @@ def random_participants():
         TEST_DATA['labels']['participant']}
 
 
+def _stringify_values(_d):
+    '''Make non-string values in a given dict strings'''
+    return {_k: str(_v) for _k, _v in _d.items()}
+
+
 if __name__ == '__main__':
     '''Return JSON to pass to `workflow_dispatch` inputs'''
     args = sys.argv[1:]
     if args:
         if args[0] == 'random':
-            print("'" + json.dumps({'variant': [''], **random_participants()}
-                                   ) + "'")
+            print(json.dumps({'variant': "['']",
+                              **_stringify_values(random_participants())}))
         elif args[0] == 'all':
-            print("'" + json.dumps({'variant': [''], **all_participants()}) +
-                  "'")
+            print(json.dumps({'variant': "['']",
+                              **_stringify_values(all_participants())}))

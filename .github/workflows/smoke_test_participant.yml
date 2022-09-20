@@ -71,8 +71,8 @@ jobs:
           # - regtest-2
           # - regtest-3
           # - regtest-4
-        variant: ${{ inputs.variants }}
-        participant: ${{ inputs.human_participants }}
+        variant: ${{ fromJson(inputs.variants) }}
+        participant: ${{ fromJson(inputs.human_participants) }}
     steps:
       - name: Get C-PAC
         run: |
@@ -139,8 +139,8 @@ jobs:
           - monkey
           # - monkey-ABCD
           - nhp-macaque
-        variant: ${{ inputs.variants }}
-        participant: ${{ inputs.nhp_participants }}
+        variant: ${{ fromJson(inputs.variants) }}
+        participant: ${{ fromJson(inputs.nhp_participants) }}
         exclude:
           # No T2w
           - preconfig: monkey-ABCD
@@ -208,8 +208,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: ${{ inputs.variants }}
-        participant: ${{ inputs.nhp_participants }}
+        variant: ${{ fromJson(inputs.variants) }}
+        participant: ${{ fromJson(inputs.rodent_participants) }}
     steps:
       - name: Get C-PAC
         run: |
