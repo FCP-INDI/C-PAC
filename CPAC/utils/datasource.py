@@ -876,8 +876,8 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         resample.inputs.resample_mode = 'Cu'
         resample.inputs.in_file = local_path
         resample.base_dir = '.'
-
-        resampled_template = resample.run()
+        # if we already have a resampled template, just update the hash
+        resampled_template = resample.run(updatehash=True)
         local_path = resampled_template.outputs.out_file
 
     return local_path
