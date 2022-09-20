@@ -106,10 +106,13 @@ jobs:
   finish-build-check:
     name: Finish GitHub check
     needs:
+      - pre_job
       - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
+      - smoke-tests-participant-small
+      - smoke-tests-participant-large
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -122,6 +125,8 @@ jobs:
           then export STATUS=success
           fi
           echo "STATUS=$STATUS" >> $GITHUB_ENV
+        env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
       - name: Finish check
         uses: Sibz/github-status-action@v1.1.6
         with:
