@@ -16,9 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added the ability to downsample to 10K or 2K resolution for freesurfer runs
+
 ### Changed
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
 - Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths
+- Changed the 1mm atlases chosen in the rbc-options preconfig to the 2mm versions
+
 
 ## [v1.8.4] - 2022-06-27
 
