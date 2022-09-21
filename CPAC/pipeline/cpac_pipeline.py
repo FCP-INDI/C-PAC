@@ -430,8 +430,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                       check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
-    c.pipeline_setup['working_directory']['path'] = os.path.abspath(
-        c.pipeline_setup['working_directory']['path'])
+    c.pipeline_setup['working_directory']['path'] = os.path.join(
+        os.path.abspath(c.pipeline_setup['working_directory']['path']),
+        p_name)
     if 's3://' not in c.pipeline_setup['output_directory']['path']:
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(
             c.pipeline_setup['output_directory']['path'])
@@ -449,8 +450,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                     'not run')
     else:
         working_dir = os.path.join(
-            c.pipeline_setup['working_directory']['path'], p_name,
-            workflow.name)
+            c.pipeline_setup['working_directory']['path'], workflow.name)
 
         # if c.write_debugging_outputs:
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
