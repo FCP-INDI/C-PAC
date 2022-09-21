@@ -465,9 +465,10 @@ def run_main():
         if 'pipeline_setup' not in c:
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
                     '1.7-1.8-nesting-mappings')
-            logger.warning('\nC-PAC changed its pipeline configuration '
-                           'format in v1.8.0.\nSee %s for details.\n',
-                           _url, category=DeprecationWarning)
+
+            warn('\nC-PAC changed its pipeline configuration format in '
+                 f'v1.8.0.\nSee {_url} for details.\n',
+                 category=DeprecationWarning)
 
             updated_config = os.path.join(
                 output_dir,
@@ -606,10 +607,10 @@ def run_main():
             c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(output_dir, "working")
         else:
-            warn('Cannot write working directory to S3 bucket. '
-                 'Either change the output directory to something '
-                 'local or turn off the --save_working_dir flag',
-                 category=UserWarning)
+            logger.warn('Cannot write working directory to S3 bucket. '
+                        'Either change the output directory to something '
+                        'local or turn off the --save_working_dir flag',
+                        category=UserWarning)
 
         if c['pipeline_setup']['output_directory']['quality_control'][
                 'generate_xcpqc_files']:
@@ -650,25 +651,8 @@ def run_main():
             c['pipeline_setup']['system_config']['num_ants_threads']))
 
         # create a timestamp for writing config files
+        # pylint: disable=invalid-name
         st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
-
-        # update config file
-        if not output_dir_is_s3:
-            pipeline_config_file = os.path.join(
-                output_dir, f"cpac_pipeline_config_{st}.yml"
-            )
-        else:
-            pipeline_config_file = os.path.join(
-                DEFAULT_TMP_DIR, f"cpac_pipeline_config_{st}.yml"
-            )
-
-        with open(pipeline_config_file, "w", encoding="utf-8") as full_config:
-            full_config.write(
-                create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
-        with open(f"{pipeline_config_file[:-4]}_min.yml", "w",
-                  encoding="utf-8") as min_config:
-            min_config.write(
-                create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
 
         if args.participant_label:
             args.participant_label = cl_strip_brackets(args.participant_label)
@@ -719,8 +703,8 @@ def run_main():
                     sub_list[participant_ndx]["subject_id"]
                 ))
                 sub_list = [sub_list[participant_ndx]]
-                data_config_file = ("cpac_data_config_"
-                                    f"{hash_data_config(sub_list)}_idx-"
+                data_hash = hash_data_config(sub_list)
+                data_config_file = (f"cpac_data_config_{data_hash}_idx-"
                                     f"{args.participant_ndx}_{st}.yml")
             else:
                 print("Participant ndx {0} is out of bounds [0, {1})".format(
@@ -729,20 +713,34 @@ def run_main():
                 ))
                 sys.exit(1)
         else:
+            data_hash = hash_data_config(sub_list)
             # write out the data configuration file
-            data_config_file = ("cpac_data_config_"
-                                f"{hash_data_config(sub_list)}_{st}.yml")
+            data_config_file = (f"cpac_data_config_{data_hash}_{st}.yml")
 
         if not output_dir_is_s3:
             data_config_file = os.path.join(output_dir, data_config_file)
         else:
             data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
 
-        with open(data_config_file, 'w') as f:
+        with open(data_config_file, 'w', encoding='utf-8') as _f:
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
-            yaml.dump(sub_list, f, default_flow_style=False,
+            yaml.dump(sub_list, _f, default_flow_style=False,
                       Dumper=noalias_dumper)
+
+        # update and write out pipeline config file
+        if not output_dir_is_s3:
+            pipeline_config_file = os.path.join(
+                output_dir, f"cpac_pipeline_config_{data_hash}_{st}.yml")
+        else:
+            pipeline_config_file = os.path.join(
+                DEFAULT_TMP_DIR, f"cpac_pipeline_config_{data_hash}_{st}.yml")
+
+        with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+        with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
+                  encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way
