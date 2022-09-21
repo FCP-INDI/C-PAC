@@ -737,10 +737,10 @@ def run_main():
                 DEFAULT_TMP_DIR, f"cpac_pipeline_config_{data_hash}_{st}.yml")
 
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
         with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
                   encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, False))
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way
