@@ -17,9 +17,9 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
 from datetime import datetime
+from hashlib import sha1
 import yaml
 from click import BadParameter
-
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.configuration.diff import dct_diff, diff_dict
 from CPAC.utils.utils import load_preconfig, \
@@ -78,6 +78,42 @@ def create_yaml_from_template(
         2
         '''
         return (len(line) - len(line.lstrip())) // 2
+
+    def _create_import_dict(diff):
+        '''Method to return a dict of only changes given a nested dict
+        of (dict1_value, dict2_value) tuples
+
+        Parameters
+        ----------
+        diff : dict
+            output of `dct_diff`
+
+        Returns
+        -------
+        dict
+            dict of only changed values
+
+        Examples
+        --------
+        >>> _create_import_dict({'anatomical_preproc': {
+        ...     'brain_extraction': {'extraction': {
+        ...         'run': ([True], False),
+        ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
+        {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
+        '''  # noqa: E501  # pylint: disable=line-too-long
+        if isinstance(diff, tuple) and len(diff) == 2:
+            return diff[1]
+        if isinstance(diff, dict):
+            i = {}
+            for k in diff:
+                try:
+                    j = _create_import_dict(diff[k])
+                    if j != {}:
+                        i[k] = j
+                except KeyError:
+                    continue
+            return i
+        return diff
 
     def _format_key(key, level):
         '''Helper method to format YAML keys
@@ -167,9 +203,9 @@ def create_yaml_from_template(
     # update values
     if include_all:
         d_default.update(d)
-        d = diff_dict(dct_diff({}, d_default))
+        d = _create_import_dict(dct_diff({}, d_default))
     else:
-        d = diff_dict(dct_diff(d_default, d))
+        d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
     template_dict = yaml.safe_load(open(template, 'r'))
@@ -297,6 +333,23 @@ def create_yaml_from_template(
     while '\n\n\n' in output:
         output = output.replace('\n\n\n', '\n\n')
     return output.lstrip('\n').replace('null', '')
+
+
+def hash_data_config(sub_list):
+    '''Function to generate a short SHA1 hash from a data config
+    subject list of dicts
+
+    Parameters
+    ----------
+    sub_list : list of dicts
+
+    Returns
+    -------
+    data_config_hash : str, len(8)
+    '''
+    return sha1('_'.join([','.join([run.get(key, '') for run in sub_list]) for
+                key in ['site_id', 'subject_id',
+                        'unique_id']]).encode('utf-8')).hexdigest()[:8]
 
 
 def indent(line_level):

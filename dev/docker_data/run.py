@@ -25,7 +25,6 @@ import shutil
 from warnings import simplefilter
 from nipype import logging
 import yaml
-
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
@@ -37,6 +36,7 @@ from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
+                                     hash_data_config, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
@@ -719,8 +719,9 @@ def run_main():
                     sub_list[participant_ndx]["subject_id"]
                 ))
                 sub_list = [sub_list[participant_ndx]]
-                data_config_file = "cpac_data_config_idx-%s_%s.yml" % (
-                    args.participant_ndx, st)
+                data_config_file = ("cpac_data_config_"
+                                    f"{hash_data_config(sub_list)}_idx-"
+                                    f"{args.participant_ndx}_{st}.yml")
             else:
                 print("Participant ndx {0} is out of bounds [0, {1})".format(
                     participant_ndx,
@@ -729,7 +730,8 @@ def run_main():
                 sys.exit(1)
         else:
             # write out the data configuration file
-            data_config_file = "cpac_data_config_{0}.yml".format(st)
+            data_config_file = ("cpac_data_config_"
+                                f"{hash_data_config(sub_list)}_{st}.yml")
 
         if not output_dir_is_s3:
             data_config_file = os.path.join(output_dir, data_config_file)
