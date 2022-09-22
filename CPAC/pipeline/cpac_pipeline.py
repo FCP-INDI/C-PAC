@@ -259,6 +259,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     c = copy.copy(c)
 
     subject_id, p_name, log_dir = set_subject(sub_dict, c)
+    c['subject_id'] = subject_id
 
     set_up_logger(f'{subject_id}_expectedOutputs',
                   filename=f'{bidsier_prefix(c["subject_id"])}_'
