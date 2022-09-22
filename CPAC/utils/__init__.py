@@ -10,7 +10,7 @@ from .datasource import create_fmap_datasource
 from .datasource import create_roi_mask_dataflow
 from .datasource import create_grp_analysis_dataflow
 from .datasource import create_spatial_map_dataflow
-from .configuration import Configuration
+from .configuration import Configuration, set_subject
 from .strategy import Strategy
 from .outputs import Outputs
 
@@ -42,6 +42,4 @@ from .utils import (
     repickle,
 )
 
-__all__ = [
-    'function'
-]
+__all__ = ['Configuration', 'function', 'set_subject']

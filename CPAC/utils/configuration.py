@@ -2,12 +2,10 @@
 import re
 import os
 import warnings
-
 from itertools import repeat
+from typing import Optional, Tuple
 from warnings import warn
-
 import yaml
-
 from CPAC.utils.utils import load_preconfig
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
@@ -452,3 +450,57 @@ def set_from_ENV(conf):  # pylint: disable=invalid-name
                 conf = re.sub(
                     _pattern, os.environ.get(_match, f'${_match}'), conf)
     return conf
+
+
+def set_subject(sub_dict: dict, pipe_config: 'Configuration',
+                p_name: Optional[str] = None) -> Tuple[str, str, str]:
+    '''Function to set pipeline name and log directory path for a given
+    sub_dict
+
+    Parameters
+    ----------
+    sub_dict : dict
+
+    pipe_config : CPAC.utils.configuration.Configuration
+
+    p_name : str, optional
+        pipeline name string
+
+    Returns
+    -------
+    subject_id : str
+
+    p_name : str
+        pipeline name string
+
+    log_dir : str
+        path to subject log directory
+
+    Examples
+    --------
+    >>> from tempfile import TemporaryDirectory
+    >>> from CPAC.utils.configuration import Configuration
+    >>> sub_dict = {'site_id': 'site1', 'subject_id': 'sub1',
+    ...             'unique_id': 'uid1'}
+    >>> with TemporaryDirectory() as tmpdir:
+    ...     subject_id, p_name, log_dir = set_subject(
+    ...         sub_dict, Configuration({'pipeline_setup': {'log_directory':
+    ...             {'path': tmpdir}}}))
+    >>> subject_id
+    'sub1_uid1'
+    >>> p_name
+    'pipeline_cpac-default-pipeline'
+    >>> log_dir.endswith(f'{p_name}/{subject_id}')
+    True
+    '''
+    subject_id = sub_dict['subject_id']
+    if sub_dict.get('unique_id'):
+        subject_id += f'_{sub_dict["unique_id"]}'
+    if p_name is None or p_name == pipe_config['pipeline_setup',
+                                               'pipeline_name']:
+        p_name = f'pipeline_{pipe_config["pipeline_setup", "pipeline_name"]}'
+    log_dir = os.path.join(pipe_config.pipeline_setup['log_directory']['path'],
+                           p_name, subject_id)
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
+    return subject_id, p_name, log_dir

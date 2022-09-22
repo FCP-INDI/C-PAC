@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 import shutil
+from warnings import simplefilter, warn
 import yaml
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
@@ -30,7 +31,7 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration
+from CPAC.utils.configuration import Configuration, set_subject
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -38,9 +39,6 @@ from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
-
-import yamlordereddictloader
-from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
@@ -721,8 +719,9 @@ def run_main():
             data_hash = hash_data_config(sub_list)
             data_config_file = (f"cpac_data_config_{data_hash}_{st}.yml")
 
+        sublogdirs = [set_subject(sub, c)[2] for sub in sub_list]
         # write out the data configuration file
-        data_config_file = os.path.join(log_dir, data_config_file)
+        data_config_file = os.path.join(sublogdirs[0], data_config_file)
         with open(data_config_file, 'w', encoding='utf-8') as _f:
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
@@ -731,12 +730,21 @@ def run_main():
 
         # update and write out pipeline config file
         pipeline_config_file = os.path.join(
-            log_dir, f"cpac_pipeline_config_{data_hash}_{st}.yml")
+            sublogdirs[0], f"cpac_pipeline_config_{data_hash}_{st}.yml")
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
             _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
         with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
                   encoding='utf-8') as _f:
             _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, False))
+
+        if len(sublogdirs) > 1:
+            # If more than one run is included in the given data config
+            # file, an identical copy of the data and pipeline config
+            # will be included in the log directory for each run
+            for sublogdir in sublogdirs[1:]:
+                for config_file in data_config_file, pipeline_config_file:
+                    os.link(config_file, config_file.replace(
+                        sublogdirs[0], sublogdir))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way

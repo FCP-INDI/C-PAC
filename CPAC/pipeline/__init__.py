@@ -28,4 +28,5 @@ AVAILABLE_PIPELINE_CONFIGS = [preconfig for preconfig in ALL_PIPELINE_CONFIGS
                               if preconfig != 'benchmark-ANTS' and
                               not preconfig.startswith('regtest-')]
 
+
 __all__ = ['ALL_PIPELINE_CONFIGS', 'AVAILABLE_PIPELINE_CONFIGS']
