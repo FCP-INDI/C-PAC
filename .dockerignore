@@ -1,8 +1,8 @@
-!.github/scripts/**
 bids-examples
 .circleci
 cpac_runs
 .env*
 .git
 .github
+!.github/scripts/**
 *.tar.gz
