@@ -519,6 +519,7 @@ def run_main():
         else:
             c['pipeline_setup']['log_directory']['path'] = os.path.join(
                 DEFAULT_TMP_DIR, "log")
+        log_dir = c['pipeline_setup']['log_directory']['path']
 
         if args.mem_gb:
             c['pipeline_setup']['system_config'][
@@ -718,14 +719,10 @@ def run_main():
                 sys.exit(1)
         else:
             data_hash = hash_data_config(sub_list)
-            # write out the data configuration file
             data_config_file = (f"cpac_data_config_{data_hash}_{st}.yml")
 
-        if not output_dir_is_s3:
-            data_config_file = os.path.join(output_dir, data_config_file)
-        else:
-            data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
-
+        # write out the data configuration file
+        data_config_file = os.path.join(log_dir, data_config_file)
         with open(data_config_file, 'w', encoding='utf-8') as _f:
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
@@ -733,13 +730,8 @@ def run_main():
                       Dumper=noalias_dumper)
 
         # update and write out pipeline config file
-        if not output_dir_is_s3:
-            pipeline_config_file = os.path.join(
-                output_dir, f"cpac_pipeline_config_{data_hash}_{st}.yml")
-        else:
-            pipeline_config_file = os.path.join(
-                DEFAULT_TMP_DIR, f"cpac_pipeline_config_{data_hash}_{st}.yml")
-
+        pipeline_config_file = os.path.join(
+            log_dir, f"cpac_pipeline_config_{data_hash}_{st}.yml")
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
             _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
         with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
