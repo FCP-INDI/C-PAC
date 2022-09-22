@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [unreleased]
 
 ### Added
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
 - Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths
 - Changed the 1mm atlases chosen in the rbc-options preconfig to the 2mm versions
+- Added data-config-specific hash string to C-PAC-generated config files
 
 
 ## [v1.8.4] - 2022-06-27

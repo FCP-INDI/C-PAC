@@ -23,7 +23,6 @@ import sys
 import time
 import shutil
 import yaml
-
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
@@ -35,6 +34,7 @@ from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
+                                     hash_data_config, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
@@ -655,22 +655,8 @@ def run_main():
             c['pipeline_setup']['system_config']['num_ants_threads']))
 
         # create a timestamp for writing config files
+        # pylint: disable=invalid-name
         st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
-
-        # update config file
-        if not output_dir_is_s3:
-            pipeline_config_file = os.path.join(
-                output_dir, "cpac_pipeline_config_{0}.yml".format(st)
-            )
-        else:
-            pipeline_config_file = os.path.join(
-                DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
-            )
-
-        open(pipeline_config_file, 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, True))
-        open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
         if args.participant_label:
             args.participant_label = cl_strip_brackets(args.participant_label)
@@ -721,8 +707,9 @@ def run_main():
                     sub_list[participant_ndx]["subject_id"]
                 ))
                 sub_list = [sub_list[participant_ndx]]
-                data_config_file = "cpac_data_config_idx-%s_%s.yml" % (
-                    args.participant_ndx, st)
+                data_hash = hash_data_config(sub_list)
+                data_config_file = (f"cpac_data_config_{data_hash}_idx-"
+                                    f"{args.participant_ndx}_{st}.yml")
             else:
                 print("Participant ndx {0} is out of bounds [0, {1})".format(
                     participant_ndx,
@@ -730,19 +717,34 @@ def run_main():
                 ))
                 sys.exit(1)
         else:
+            data_hash = hash_data_config(sub_list)
             # write out the data configuration file
-            data_config_file = "cpac_data_config_{0}.yml".format(st)
+            data_config_file = (f"cpac_data_config_{data_hash}_{st}.yml")
 
         if not output_dir_is_s3:
             data_config_file = os.path.join(output_dir, data_config_file)
         else:
             data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
 
-        with open(data_config_file, 'w') as f:
+        with open(data_config_file, 'w', encoding='utf-8') as _f:
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
-            yaml.dump(sub_list, f, default_flow_style=False,
+            yaml.dump(sub_list, _f, default_flow_style=False,
                       Dumper=noalias_dumper)
+
+        # update and write out pipeline config file
+        if not output_dir_is_s3:
+            pipeline_config_file = os.path.join(
+                output_dir, f"cpac_pipeline_config_{data_hash}_{st}.yml")
+        else:
+            pipeline_config_file = os.path.join(
+                DEFAULT_TMP_DIR, f"cpac_pipeline_config_{data_hash}_{st}.yml")
+
+        with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+        with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
+                  encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way

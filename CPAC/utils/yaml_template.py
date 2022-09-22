@@ -1,8 +1,9 @@
 import os
 import re
+from datetime import datetime
+from hashlib import sha1
 import yaml
 from click import BadParameter
-from datetime import datetime
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
     update_config_dict, update_pipeline_values_1_8
@@ -314,6 +315,32 @@ def create_yaml_from_template(
     while '\n\n\n' in output:
         output = output.replace('\n\n\n', '\n\n')
     return output.lstrip('\n').replace('null', '')
+
+
+def hash_data_config(sub_list):
+    '''Function to generate a short SHA1 hash from a data config
+    subject list of dicts
+
+    Parameters
+    ----------
+    sub_list : list of dicts
+
+    Returns
+    -------
+    data_config_hash : str, len(8)
+
+    Examples
+    --------
+    >>> sub_list = [{'site_id': f'site{i}', 'subject_id': f'sub{i}',
+    ...              'unique_id': f'uid{i}'} for i in range(1, 4)]
+    >>> sub_list[0]
+    {'site_id': 'site1', 'subject_id': 'sub1', 'unique_id': 'uid1'}
+    >>> hash_data_config(sub_list)
+    '6f49a278'
+    '''
+    return sha1('_'.join([','.join([run.get(key, '') for run in sub_list]) for
+                key in ['site_id', 'subject_id',
+                        'unique_id']]).encode('utf-8')).hexdigest()[:8]
 
 
 def indent(line_level):
