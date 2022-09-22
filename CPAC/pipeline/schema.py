@@ -18,13 +18,12 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
-
 import numpy as np
-from voluptuous import All, Capitalize, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
-                       Range, Required, Schema
-from voluptuous.validators import ExactSequence, Maybe
-
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
+                       ExactSequence, ExclusiveInvalid, In, Length, Lower, \
+                       Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
+from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
 
@@ -39,7 +38,7 @@ resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
-forkable = Any(bool, [bool])
+forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -642,7 +641,8 @@ latest_schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
+                        'Mean_Functional', 'Selected_Functional_Volume',
+                        'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
@@ -709,8 +709,8 @@ latest_schema = Schema({
                     'identity_matrix': Maybe(str),
                 },
                 'apply_transform': {
-                    'using': In({'default', 'single_step_resampling', 'abcd', 
-                                 'single_step_resampling_from_stc', 'dcan_nhp'}),
+                    'using': In({'default', 'abcd', 'dcan_nhp',
+                                 'single_step_resampling_from_stc'}),
                 },
             },
         },
@@ -907,6 +907,8 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
+            'space': All(Coerce(ListFromItem),
+                         [All(Lower, In({'native', 'template'}))]),
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
@@ -1089,7 +1091,38 @@ latest_schema = Schema({
 
 
 def schema(config_dict):
-    return latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    '''Validate a pipeline configuration against the latest validation schema
+    by first applying backwards-compatibility patches, then applying
+    Voluptuous validation, then handling complex configuration interaction
+    checks before returning validated config_dict.
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    Returns
+    -------
+    dict
+    '''
+    partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    try:
+        if (partially_validated['registration_workflows'][
+            'functional_registration'
+        ]['func_registration_to_template']['apply_transform'][
+            'using'
+        ] == 'single_step_resampling_from_stc' and partially_validated[
+            'nuisance_corrections'
+        ]['2-nuisance_regression']['space'] != ['template']):
+            raise ExclusiveInvalid(
+                '``single_step_resampling_from_stc`` requires template-space '
+                'nuisance regression. Either set ``nuisance_corrections: '
+                '2-nuisance_regression: space`` to ``template`` or choose a '
+                'different option for ``registration_workflows: '
+                'functional_registration: func_registration_to_template: '
+                'apply_transform: using``')
+    except KeyError:
+        pass
+    return partially_validated
 
 
 schema.schema = latest_schema.schema
