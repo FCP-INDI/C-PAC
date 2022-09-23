@@ -17,8 +17,8 @@ License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 from .configuration import Configuration, DEFAULT_PIPELINE_FILE, \
-                           Preconfiguration
+                           Preconfiguration, set_subject
 from . import configuration, diff
 
 __all__ = ['Configuration', 'configuration', 'DEFAULT_PIPELINE_FILE', 'diff',
-           'Preconfiguration']
+           'Preconfiguration', 'set_subject']

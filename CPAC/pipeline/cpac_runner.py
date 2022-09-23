@@ -17,18 +17,15 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import sys
 import warnings
-import yaml
 from multiprocessing import Process
 from time import strftime
+import yaml
 from voluptuous.error import Invalid
-from CPAC.utils.configuration import Configuration
+from CPAC.utils.configuration import Configuration, set_subject
 from CPAC.utils.ga import track_run
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
-from CPAC.longitudinal_pipeline.longitudinal_workflow import (
-    anat_longitudinal_wf,
-    func_preproc_longitudinal_wf,
-    func_longitudinal_template_wf
-)
+from CPAC.longitudinal_pipeline.longitudinal_workflow import \
+    anat_longitudinal_wf
 from CPAC.utils.yaml_template import upgrade_pipeline_to_1_8
 
 
@@ -577,8 +574,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                  p_name, plugin, plugin_args, test_config)
                 except Exception as exception:  # pylint: disable=broad-except
                     exitcode = 1
-                    failed_to_start(c['pipeline_setup', 'log_directory',
-                                      'path'], exception)
+                    failed_to_start(set_subject(sub, c)[2], exception)
             return exitcode
 
         pid = open(os.path.join(
@@ -597,15 +593,15 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         ]
 
         # If we're allocating more processes than are subjects, run them all
-        if len(sublist) <= c.pipeline_setup['system_config']['num_participants_at_once']:
-            for p in processes:
+        if len(sublist) <= c.pipeline_setup['system_config'][
+                'num_participants_at_once']:
+            for i, _p in enumerate(processes):
                 try:
-                    p.start()
-                    print(p.pid, file=pid)
-                except Exception:  # pylint: disable=broad-except
+                    _p.start()
+                    print(_p.pid, file=pid)
+                except Exception as exception:  # pylint: disable=broad-except
                     exitcode = 1
-                    failed_to_start(c['pipeline_setup', 'log_directory',
-                                      'path'])
+                    failed_to_start(set_subject(sublist[i], c)[2], exception)
 
         # Otherwise manage resources to run processes incrementally
         else:
@@ -616,17 +612,18 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in processes[idc: idc + c.pipeline_setup[
+                    for _p in processes[idc: idc + c.pipeline_setup[
                             'system_config']['num_participants_at_once']]:
                         try:
-                            p.start()
-                            print(p.pid, file=pid)
-                            job_queue.append(p)
+                            _p.start()
+                            print(_p.pid, file=pid)
+                            job_queue.append(_p)
                             idx += 1
-                        except Exception:  # pylint: disable=broad-except
+                        # pylint: disable=broad-except
+                        except Exception as exception:
                             exitcode = 1
-                            failed_to_start(c['pipeline_setup',
-                                              'log_directory', 'path'])
+                            failed_to_start(set_subject(sublist[idx], c)[2],
+                                            exception)
                 # Otherwise, jobs are running - check them
                 else:
                     # Check every job in the queue's status
@@ -644,10 +641,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                 # Append this to job queue and increment index
                                 job_queue.append(processes[idx])
                                 idx += 1
-                            except Exception:  # pylint: disable=broad-except
+                            # pylint: disable=broad-except
+                            except Exception as exception:
                                 exitcode = 1
-                                failed_to_start(c['pipeline_setup',
-                                                  'log_directory', 'path'])
+                                failed_to_start(set_subject(sublist[idx],
+                                                            c)[2],
+                                                exception)
                     # Add sleep so while loop isn't consuming 100% of CPU
                     time.sleep(2)
         # set exitcode to 1 if any exception
