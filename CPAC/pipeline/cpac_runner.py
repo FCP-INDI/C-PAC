@@ -21,10 +21,9 @@ import yaml
 from multiprocessing import Process
 from time import strftime
 from voluptuous.error import Invalid
-
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
-from CPAC.utils.monitoring import log_nodes_cb
+from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.longitudinal_pipeline.longitudinal_workflow import (
     anat_longitudinal_wf,
     func_preproc_longitudinal_wf,
@@ -338,7 +337,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         print("Subject list is not in proper YAML format. Please check " \
               "your file")
         raise Exception
-    
+
     # Populate subject scan map
     sub_scan_map = {}
     try:
@@ -542,7 +541,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                                 ses['resource_pool'][strat_key].update({
                                                     keys[-2]: f
                                                 })
-                
                 for key in subject_specific_dict:
                     ses_list = [subj for subj in sublist if key in subj['anat']]
                     for ses in ses_list:
@@ -560,7 +558,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                 pass
 
                 yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
-            
                 print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
 
                 # skip main preprocessing
@@ -578,9 +575,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 try:
                     run_workflow(sub, c, True, pipeline_timing_info,
                                  p_name, plugin, plugin_args, test_config)
-                except Exception as e:
+                except Exception as exception:  # pylint: disable=broad-except
                     exitcode = 1
-                    raise e
+                    failed_to_start(c['pipeline_setup', 'log_directory',
+                                      'path'], exception)
             return exitcode
 
         pid = open(os.path.join(
@@ -601,8 +599,13 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.pipeline_setup['system_config']['num_participants_at_once']:
             for p in processes:
-                p.start()
-                print(p.pid, file=pid)
+                try:
+                    p.start()
+                    print(p.pid, file=pid)
+                except Exception:  # pylint: disable=broad-except
+                    exitcode = 1
+                    failed_to_start(c['pipeline_setup', 'log_directory',
+                                      'path'])
 
         # Otherwise manage resources to run processes incrementally
         else:
@@ -613,11 +616,17 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in processes[idc: idc+c.pipeline_setup['system_config']['num_participants_at_once']]:
-                        p.start()
-                        print(p.pid, file=pid)
-                        job_queue.append(p)
-                        idx += 1
+                    for p in processes[idc: idc + c.pipeline_setup[
+                            'system_config']['num_participants_at_once']]:
+                        try:
+                            p.start()
+                            print(p.pid, file=pid)
+                            job_queue.append(p)
+                            idx += 1
+                        except Exception:  # pylint: disable=broad-except
+                            exitcode = 1
+                            failed_to_start(c['pipeline_setup',
+                                              'log_directory', 'path'])
                 # Otherwise, jobs are running - check them
                 else:
                     # Check every job in the queue's status
@@ -630,14 +639,20 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                             del job_queue[loc]
                             # ...and start the next available process
                             # (subject)
-                            processes[idx].start()
-                            # Append this to job queue and increment index
-                            job_queue.append(processes[idx])
-                            idx += 1
+                            try:
+                                processes[idx].start()
+                                # Append this to job queue and increment index
+                                job_queue.append(processes[idx])
+                                idx += 1
+                            except Exception:  # pylint: disable=broad-except
+                                exitcode = 1
+                                failed_to_start(c['pipeline_setup',
+                                                  'log_directory', 'path'])
                     # Add sleep so while loop isn't consuming 100% of CPU
                     time.sleep(2)
         # set exitcode to 1 if any exception
-        exitcode = exitcode or pid.exitcode
+        if hasattr(pid, 'exitcode'):
+            exitcode = exitcode or pid.exitcode
         # Close PID txt file to indicate finish
         pid.close()
     sys.exit(exitcode)

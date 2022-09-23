@@ -1,3 +1,19 @@
+"""Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import collections.abc
 import fnmatch
@@ -1623,64 +1639,6 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
 
     return out_list
-
-
-def dct_diff(dct1, dct2):
-    '''Function to compare 2 nested dicts, dropping values unspecified
-    in the second. Adapted from https://github.com/sgiavasis/CPAC_regtest_pack/blob/9056ef63cbe693f436c4ea8a5fee669f8d2e35f7/cpac_pipe_diff.py#L31-L78
-
-    Parameters
-    ----------
-    dct1 : dict
-
-    dct2 : dict
-
-    Returns
-    -------
-    diff : set
-    a tuple of values from dct1, dct2 for each differing key
-
-    Example
-    -------
-    >>> import yaml
-    >>> def read_yaml_file(yaml_file):
-    ...     return yaml.safe_load(open(yaml_file, 'r'))
-    >>> pipeline = read_yaml_file('/code/dev/docker_data/default_pipeline.yml')
-    >>> dct_diff(pipeline, pipeline)
-    {}
-    >>> pipeline2 = read_yaml_file('/code/CPAC/resources/configs/'
-    ...     'pipeline_config_fmriprep-options.yml')
-    >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
-    ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''
-    diff = {}
-    for key in dct1:
-        if isinstance(dct1[key], dict):
-            if not isinstance(dct2, dict):
-                try:
-                    dct2 = dct2.dict()
-                except AttributeError:
-                    raise TypeError(f'{dct2} is not a dict.')
-            diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
-            if diff[key] == {}:
-                del diff[key]
-        else:
-            dct1_val = dct1.get(key)
-            dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
-
-            if dct1_val != dct2_val:
-                diff[key] = (dct1_val, dct2_val)
-
-    # add any new keys
-    if isinstance(dct2, dict):
-        for key in dct2:
-            if key not in dct1:
-                diff[key] = dct2[key]
-
-        # only return non-empty diffs
-        return {k: v for k, v in diff.items() if k in dct2}
-
-    return {}
 
 
 def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name

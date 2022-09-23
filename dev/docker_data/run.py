@@ -22,7 +22,8 @@ import subprocess
 import sys
 import time
 import shutil
-from warnings import simplefilter, warn
+from warnings import simplefilter
+from nipype import logging
 import yaml
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
@@ -31,26 +32,23 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration, set_subject
+from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE, \
+                                     set_subject
 from CPAC.utils.docs import DOCS_URL_PREFIX
-from CPAC.utils.monitoring import log_nodes_cb
+from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
                                      hash_data_config, \
                                      upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
-
+logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
-if not os.path.exists(DEFAULT_PIPELINE):
-    DEFAULT_PIPELINE = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yml"
-    )
 
 
-def run(command, env={}):
+def run(command, env=None):
+    if env is None:
+        env = {}
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
                                shell=True, env=env)
@@ -64,11 +62,12 @@ def run(command, env={}):
 def parse_yaml(value):
     try:
         config = yaml.safe_load(value)
-        if type(config) != dict:
-            raise
+        if not isinstance(config, dict):
+            raise TypeError("config must be a dictionary")
         return config
-    except:
-        raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+    except Exception:
+        # pylint: disable=raise-missing-from
+        raise argparse.ArgumentTypeError(f"Invalid configuration: '{value}'")
 
 
 def resolve_aws_credential(source):
@@ -137,7 +136,7 @@ def run_main():
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
-                        default=DEFAULT_PIPELINE)
+                        default=DEFAULT_PIPELINE_FILE)
     parser.add_argument('--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
@@ -610,10 +609,10 @@ def run_main():
             c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(output_dir, "working")
         else:
-            warn('Cannot write working directory to S3 bucket. '
-                 'Either change the output directory to something '
-                 'local or turn off the --save_working_dir flag',
-                 category=UserWarning)
+            logger.warn('Cannot write working directory to S3 bucket. '
+                        'Either change the output directory to something '
+                        'local or turn off the --save_working_dir flag',
+                        category=UserWarning)
 
         if c['pipeline_setup']['output_directory']['quality_control'][
                 'generate_xcpqc_files']:
@@ -732,10 +731,10 @@ def run_main():
         pipeline_config_file = os.path.join(
             sublogdirs[0], f"cpac_pipeline_config_{data_hash}_{st}.yml")
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
         with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
                   encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE, False))
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
 
         if len(sublogdirs) > 1:
             # If more than one run is included in the given data config
@@ -806,4 +805,11 @@ def run_main():
 
 
 if __name__ == '__main__':
-    run_main()
+    try:
+        run_main()
+    except Exception as exception:
+        # if we hit an exception before the pipeline starts to build but
+        # we're still able to create a logfile, log the error in the file
+        failed_to_start(sys.argv[2] if len(sys.argv) > 2 else os.getcwd(),
+                        exception)
+        raise exception
