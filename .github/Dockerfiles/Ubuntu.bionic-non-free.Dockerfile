@@ -124,7 +124,7 @@ ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
 COPY requirements.txt /opt/requirements.txt
 RUN conda update conda -y && \
     conda install nomkl && \
-    conda install -y  \
+    conda install -c conda-forge -y  \
       blas \
       cython \
       matplotlib==3.1.3 \
