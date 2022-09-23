@@ -133,7 +133,7 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
 # install conda dependencies
 RUN conda update conda -y && \
     conda install nomkl && \
-    conda install -y  \
+    conda install -c conda-forge -y  \
         blas \
         cython \
         matplotlib==2.2.2 \
