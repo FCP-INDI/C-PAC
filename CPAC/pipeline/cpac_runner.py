@@ -578,81 +578,82 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     failed_to_start(set_subject(sub, c)[2], exception)
             return exitcode
 
-        pid = open(os.path.join(
-            c.pipeline_setup['working_directory']['path'], 'pid.txt'
-        ), 'w')
-
         # Init job queue
         job_queue = []
 
         # Allocate processes
-        processes = [
-            Process(target=run_workflow,
-                    args=(sub, c, True, pipeline_timing_info,
-                          p_name, plugin, plugin_args, test_config))
-            for sub in sublist
-        ]
-
-        # If we're allocating more processes than are subjects, run them all
-        if len(sublist) <= c.pipeline_setup['system_config'][
-                'num_participants_at_once']:
-            for i, _p in enumerate(processes):
-                try:
-                    _p.start()
-                    print(_p.pid, file=pid)
-                except Exception as exception:  # pylint: disable=broad-except
-                    exitcode = 1
-                    failed_to_start(set_subject(sublist[i], c)[2], exception)
-
-        # Otherwise manage resources to run processes incrementally
-        else:
-            idx = 0
-            while idx < len(sublist):
-                # If the job queue is empty and we haven't started indexing
-                if len(job_queue) == 0 and idx == 0:
-                    # Init subject process index
-                    idc = idx
-                    # Launch processes (one for each subject)
-                    for _p in processes[idc: idc + c.pipeline_setup[
-                            'system_config']['num_participants_at_once']]:
-                        try:
-                            _p.start()
-                            print(_p.pid, file=pid)
-                            job_queue.append(_p)
-                            idx += 1
-                        # pylint: disable=broad-except
-                        except Exception as exception:
-                            exitcode = 1
-                            failed_to_start(set_subject(sublist[idx], c)[2],
-                                            exception)
-                # Otherwise, jobs are running - check them
-                else:
-                    # Check every job in the queue's status
-                    for job in job_queue:
-                        # If the job is not alive
-                        if not job.is_alive():
-                            # Find job and delete it from queue
-                            print('found dead job ', job)
-                            loc = job_queue.index(job)
-                            del job_queue[loc]
-                            # ...and start the next available process
-                            # (subject)
+        processes = [Process(target=run_workflow,
+                             args=(sub, c, True, pipeline_timing_info, p_name,
+                                   plugin, plugin_args, test_config)) for
+                     sub in sublist]
+        # Set PID context to pipeline-specific file
+        with open(os.path.join(c.pipeline_setup['working_directory']['path'],
+                               p_name, 'pid.txt'), 'w', encoding='utf-8'
+                  ) as pid:
+            # If we're allocating more processes than are subjects, run
+            # them all
+            if len(sublist) <= c.pipeline_setup['system_config'][
+                    'num_participants_at_once']:
+                for i, _p in enumerate(processes):
+                    try:
+                        _p.start()
+                        print(_p.pid, file=pid)
+                    # pylint: disable=broad-except
+                    except Exception as exception:
+                        exitcode = 1
+                        failed_to_start(set_subject(sublist[i], c)[2],
+                                        exception)
+            # Otherwise manage resources to run processes incrementally
+            else:
+                idx = 0
+                while idx < len(sublist):
+                    # If the job queue is empty and we haven't started indexing
+                    if len(job_queue) == 0 and idx == 0:
+                        # Init subject process index
+                        idc = idx
+                        # Launch processes (one for each subject)
+                        for _p in processes[idc: idc + c.pipeline_setup[
+                                'system_config']['num_participants_at_once']]:
                             try:
-                                processes[idx].start()
-                                # Append this to job queue and increment index
-                                job_queue.append(processes[idx])
+                                _p.start()
+                                print(_p.pid, file=pid)
+                                job_queue.append(_p)
                                 idx += 1
                             # pylint: disable=broad-except
                             except Exception as exception:
                                 exitcode = 1
                                 failed_to_start(set_subject(sublist[idx],
-                                                            c)[2],
-                                                exception)
-                    # Add sleep so while loop isn't consuming 100% of CPU
-                    time.sleep(2)
-        # set exitcode to 1 if any exception
-        if hasattr(pid, 'exitcode'):
-            exitcode = exitcode or pid.exitcode
-        # Close PID txt file to indicate finish
-        pid.close()
+                                                            c)[2], exception)
+                    # Otherwise, jobs are running - check them
+                    else:
+                        # Check every job in the queue's status
+                        for job in job_queue:
+                            # If the job is not alive
+                            if not job.is_alive():
+                                # Find job and delete it from queue
+                                print('found dead job ', job)
+                                loc = job_queue.index(job)
+                                del job_queue[loc]
+                                # ...and start the next available
+                                # process (subject)
+                                try:
+                                    processes[idx].start()
+                                    # Append this to job queue and
+                                    # increment index
+                                    # pylint: disable=modified-iterating-list
+                                    job_queue.append(processes[idx])
+                                    idx += 1
+                                # pylint: disable=broad-except
+                                except Exception as exception:
+                                    exitcode = 1
+                                    failed_to_start(set_subject(sublist[idx],
+                                                                c)[2],
+                                                    exception)
+                        # Add sleep so while loop isn't consuming 100% of CPU
+                        time.sleep(2)
+            # set exitcode to 1 if any exception
+            if hasattr(pid, 'exitcode'):
+                exitcode = exitcode or pid.exitcode
+            # Close PID txt file to indicate finish
+            pid.close()
     sys.exit(exitcode)
