@@ -355,6 +355,43 @@ class Configuration:
             ]))
 
 
+def check_pname(p_name: str, pipe_config: Configuration) -> str:
+    '''Function to check / set `p_name`, the string representation of a
+    pipeline for use in filetrees
+
+    Parameters
+    ----------
+    p_name : str or None
+
+    pipe_config : Configuration
+
+    Returns
+    -------
+    p_name
+
+    Examples
+    --------
+    >>> c = Configuration()
+    >>> check_pname(None, c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('pipeline_cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('different-name', Configuration())
+    'pipeline_different-name'
+    >>> p_name = check_pname(None, Preconfiguration('blank'))
+    Loading the 'blank' pre-configured pipeline.
+    >>> p_name
+    'pipeline_cpac-blank-template'
+    '''
+    if p_name is None:
+        p_name = f'pipeline_{pipe_config["pipeline_setup", "pipeline_name"]}'
+    elif not p_name.startswith('pipeline_'):
+        p_name = f'pipeline_{p_name}'
+    return p_name
+
+
 def collect_key_list(config_dict):
     '''Function to return a list of lists of keys for a nested dictionary
 
@@ -498,9 +535,7 @@ def set_subject(sub_dict: dict, pipe_config: 'Configuration',
     subject_id = sub_dict['subject_id']
     if sub_dict.get('unique_id'):
         subject_id += f'_{sub_dict["unique_id"]}'
-    if p_name is None or p_name == pipe_config['pipeline_setup',
-                                               'pipeline_name']:
-        p_name = f'pipeline_{pipe_config["pipeline_setup", "pipeline_name"]}'
+    p_name = check_pname(p_name, pipe_config)
     log_dir = os.path.join(pipe_config.pipeline_setup['log_directory']['path'],
                            p_name, subject_id)
     if not os.path.exists(log_dir):

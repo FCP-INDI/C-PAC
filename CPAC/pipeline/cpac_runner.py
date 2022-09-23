@@ -21,7 +21,7 @@ from multiprocessing import Process
 from time import strftime
 import yaml
 from voluptuous.error import Invalid
-from CPAC.utils.configuration import Configuration, set_subject
+from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.ga import track_run
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.longitudinal_pipeline.longitudinal_workflow import \
@@ -321,10 +321,11 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         warnings.warn("We recommend that the working directory full path "
                       "should have less then 70 characters. "
                       "Long paths might not work in your operating system.")
-        warnings.warn("Current working directory: %s" % c.pipeline_setup['working_directory']['path'])
+        warnings.warn("Current working directory: "
+                      f"{c.pipeline_setup['working_directory']['path']}")
 
     # Get the pipeline name
-    p_name = p_name or c.pipeline_setup['pipeline_name']
+    p_name = check_pname(p_name, c)
 
     # Load in subject list
     try:
