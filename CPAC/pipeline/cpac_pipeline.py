@@ -28,12 +28,11 @@ from time import strftime
 
 import nipype
 import yaml
-
+# pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
-from nipype import config
-from nipype import logging
+from nipype import config, logging
 
 from indi_aws import aws_utils, fetch_creds
 
@@ -110,8 +109,8 @@ from CPAC.registration.registration import (
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
-    warp_Tissuemask_to_T1template,
-    warp_Tissuemask_to_EPItemplate
+    warp_tissuemask_to_T1template,
+    warp_tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -166,7 +165,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
-    erode_mask_boldWM
+    erode_mask_boldWM,
+    nuisance_regression_template
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -440,9 +440,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if c.pipeline_setup['system_config']['random_seed'] is not None:
         set_up_random_state_logger(log_dir)
 
-    workflow = build_workflow(
-        subject_id, sub_dict, c, p_name, num_ants_cores
-    )
+    try:
+        workflow = build_workflow(
+            subject_id, sub_dict, c, p_name, num_ants_cores
+        )
+    except Exception as exception:
+        logger.exception('Building workflow failed')
+        raise exception
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -1021,7 +1025,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
 
     if cfg.registration_workflows['anatomical_registration']['run'] and 'T1_Template' in cfg.segmentation[
     'tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+        pipeline_blocks.append(warp_tissuemask_to_T1template)
 
 
     return pipeline_blocks
@@ -1212,11 +1216,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         pipeline_blocks += EPI_reg_blocks
 
-    if cfg.registration_workflows['functional_registration']['EPI_registration']['run'
-    ] and 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
-
-
+    if (cfg['registration_workflows', 'functional_registration',
+            'EPI_registration', 'run'] and
+        'EPI_Template' in cfg['segmentation', 'tissue_segmentation',
+                              'Template_Based', 'template_for_segmentation']):
+        pipeline_blocks.append(warp_tissuemask_to_EPItemplate)
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
@@ -1231,6 +1235,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
+    generate_only = True not in cfg['nuisance_corrections',
+                                    '2-nuisance_regression', 'run']
     if not rpool.check_rpool('desc-cleaned_bold'):
         nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
                     ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
@@ -1243,7 +1249,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
 
         pipeline_blocks += nuisance
 
@@ -1310,6 +1316,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-EPItemplate_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
+
+    # Template-space nuisance regression
+    if 'template' in cfg['nuisance_corrections', '2-nuisance_regression',
+                         'space'] and not generate_only:
+        pipeline_blocks += [(nuisance_regression_template,
+                            ("desc-preproc_bold", "desc-stc_bold"))]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
