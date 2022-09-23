@@ -1,10 +1,15 @@
 import os
 import pytest
 from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf, \
-    load_cpac_pipe_config, connect_pipeline, build_anat_preproc_stack, build_workflow
-from CPAC.pipeline.engine import ResourcePool, ingress_raw_anat_data, ingress_raw_func_data, \
-    ingress_pipeconfig_paths, initiate_rpool
+                                        load_cpac_pipe_config, \
+                                        connect_pipeline, \
+                                        build_anat_preproc_stack, \
+                                        build_workflow
+from CPAC.pipeline.engine import ResourcePool, ingress_raw_anat_data, \
+                                 ingress_raw_func_data, \
+                                 ingress_pipeconfig_paths, initiate_rpool
 from CPAC.utils.bids_utils import create_cpac_data_config
+# from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
 
 
 @pytest.mark.skip(reason='not a pytest test')
@@ -149,7 +154,7 @@ def test_build_workflow(pipe_config, bids_dir, test_dir):
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
-# cfg = "/code/default_pipeline.yml"
+# cfg = DEFAULT_PIPELINE_FILE
 # bids_dir = "/Users/steven.giavasis/data/HBN-SI_dataset/rawdata"
 # test_dir = "/test_dir"
 

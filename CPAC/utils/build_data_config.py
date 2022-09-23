@@ -1652,22 +1652,20 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
 def util_copy_template(template_type=None):
     """Copy the data settings YAML file template to the current directory."""
-
     import os
     import shutil
     import pkg_resources as p
+    from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
 
     if not template_type:
-        type = 'data_settings'
+        type = "data_settings"
     else:
         type = template_type
 
-    settings_template = "/cpac_resources/default_pipeline.yml" if (
+    settings_template = DEFAULT_PIPELINE_FILE if (
         type == "pipeline_config"
-    ) else p.resource_filename("CPAC",
-        os.path.join("resources",
-                     "configs",
-                     "{0}_template.yml".format(type)))
+    ) else p.resource_filename("CPAC", os.path.join(
+        "resources", "configs", "{0}_template.yml".format(type)))
 
     settings_file = os.path.join(os.getcwd(), "{0}.yml".format(type))
 
