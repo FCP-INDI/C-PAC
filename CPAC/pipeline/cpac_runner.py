@@ -586,9 +586,13 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                              args=(sub, c, True, pipeline_timing_info, p_name,
                                    plugin, plugin_args, test_config)) for
                      sub in sublist]
+        working_dir = os.path.join(c['pipeline_setup', 'working_directory',
+                                     'path'], p_name)
+        # Create pipeline-specific working dir if not exists
+        if not os.path.exists(working_dir):
+            os.makedirs(working_dir)
         # Set PID context to pipeline-specific file
-        with open(os.path.join(c.pipeline_setup['working_directory']['path'],
-                               p_name, 'pid.txt'), 'w', encoding='utf-8'
+        with open(os.path.join(working_dir, 'pid.txt'), 'w', encoding='utf-8'
                   ) as pid:
             # If we're allocating more processes than are subjects, run
             # them all
