@@ -2311,6 +2311,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                 "TR"],
      "outputs": ["desc-preproc_bold",
                  "desc-cleaned_bold",
+                 "desc-cleanedNofilt_bold",
                  "regressors"]}
     '''
 
@@ -2371,6 +2372,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             outputs = {
                 'desc-preproc_bold': (filt, 'outputspec.residual_file_path'),
                 'desc-cleaned_bold': (filt, 'outputspec.residual_file_path'),
+                'desc-cleanedNofilt_bold': (nuis, 'outputspec.residual_file_path'),
                 'regressors': (filt, 'outputspec.residual_regressor')
             }
 
@@ -2396,6 +2398,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
         outputs = {
             'desc-preproc_bold': (nuis, 'outputspec.residual_file_path'),
             'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path'),
+            'desc-cleanedNofilt_bold': (nuis, 'outputspec.residual_file_path')
         }
 
     return (wf, outputs)
