@@ -1947,9 +1947,6 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                 ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
 
-    # grab already-processed data from the output directory
-    rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
-
     # grab any file paths from the pipeline config YAML
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
