@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [unreleased]
 
 ### Added
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed ability to run single-step-resampling on motion-corrected BOLD data
 - Moved default pipeline config into directory with other preconfigs
 - Added crash messages from during and before graph building to logs
+- Added data-config-specific hash string to C-PAC-generated config files
 
 
 ## [v1.8.4] - 2022-06-27

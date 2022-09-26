@@ -346,6 +346,15 @@ def hash_data_config(sub_list):
     Returns
     -------
     data_config_hash : str, len(8)
+
+    Examples
+    --------
+    >>> sub_list = [{'site_id': f'site{i}', 'subject_id': f'sub{i}',
+    ...              'unique_id': f'uid{i}'} for i in range(1, 4)]
+    >>> sub_list[0]
+    {'site_id': 'site1', 'subject_id': 'sub1', 'unique_id': 'uid1'}
+    >>> hash_data_config(sub_list)
+    '6f49a278'
     '''
     return sha1('_'.join([','.join([run.get(key, '') for run in sub_list]) for
                 key in ['site_id', 'subject_id',
