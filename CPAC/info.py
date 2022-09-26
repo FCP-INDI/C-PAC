@@ -185,6 +185,7 @@ REQUIREMENTS = [
     "nose==1.3.7",
     "numpy==1.16.4",
     "pandas==0.23.4",
+    "pathvalidate==2.5.2",
     "patsy==0.5.0",
     "prov==1.5.2",
     "psutil==5.4.6",

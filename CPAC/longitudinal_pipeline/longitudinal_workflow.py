@@ -446,7 +446,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         workflow.run()
 
-        cpac_dir = os.path.join(out_dir, f'cpac_{orig_pipe_name}',
+        cpac_dir = os.path.join(out_dir, f'pipeline_{orig_pipe_name}',
                                 f'{subject_id}_{unique_id}')
         cpac_dirs.append(os.path.join(cpac_dir, 'anat'))
 

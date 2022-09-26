@@ -48,7 +48,7 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     """
     outputs_logger = getLogger(f'{unique_id}_expectedOutputs')
     missing_outputs = ExpectedOutputs()
-    container = os.path.join(f'cpac_{pipe_name}', unique_id)
+    container = os.path.join(f'pipeline_{pipe_name}', unique_id)
     if (
         isinstance(outputs_logger, (Logger, MockLogger)) and
         len(outputs_logger.handlers)
