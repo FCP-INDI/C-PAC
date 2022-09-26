@@ -88,8 +88,10 @@ class ResourcePool:
 
             self.run_smoothing = 'smoothed' in cfg.post_processing[
                 'spatial_smoothing']['output']
+            self.smoothing_bool = cfg.post_processing['spatial_smoothing']['run']
             self.run_zscoring = 'z-scored' in cfg.post_processing[
                 'z-scoring']['output']
+            self.zscoring_bool = cfg.post_processing['z-scoring']['run']
             self.fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
             self.smooth_opts = cfg.post_processing['spatial_smoothing'][
                 'smoothing_method']
@@ -697,7 +699,7 @@ class ResourcePool:
                     mask_idx = self.generate_prov_string(mask_prov)[1]
                     break
 
-        if self.run_smoothing:
+        if self.smoothing_bool:
             if label in Outputs.to_smooth:
                 for smooth_opt in self.smooth_opts:
 
