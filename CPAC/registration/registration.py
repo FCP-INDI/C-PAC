@@ -2753,7 +2753,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
                  "T1w"),
-                "diffphase-effectiveEchoSpacing",
+                ["diffphase-effectiveEchoSpacing",
+                 "func-effectiveEchoSpacing"],
                 "diffphase-pedir"],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
@@ -2818,7 +2819,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
     if diff_complete:
-        node, out = strat_pool.get_data('diffphase-effectiveEchoSpacing')
+        node, out = strat_pool.get_data(["diffphase-effectiveEchoSpacing",
+                                         "func-effectiveEchoSpacing"])
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
         node, out = strat_pool.get_data('diffphase-pedir')
@@ -2899,7 +2901,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
-            node, out = strat_pool.get_data('diffphase-effectiveEchoSpacing')
+            node, out = strat_pool.get_data(['diffphase-effectiveEchoSpacing',
+                                             'func-effectiveEchoSpacing'])
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 

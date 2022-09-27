@@ -430,8 +430,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     blip = False
     fmap_rp_list = []
     fmap_TE_list = []
-
+    need_effective_echo_spacing = False
     if "fmap" in sub_dict:
+        need_effective_echo_spacing = True
         second = False
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
@@ -503,31 +504,36 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 function=calc_delta_te_and_asym_ratio),
                 name='diff_distcor_calc_delta')
 
-            node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
-                "['diffphase-effectiveEchoSpacing:"
-                "fmap_effectiveEchoSpacing_ingress']"
-            ]['data']  # <--- there will only be one pipe_idx
-            wf.connect(node, out_file,
-                       calc_delta_ratio, 'effective_echo_spacing')
-
-            node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
-            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
-
-            node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
-                f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
-            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
-
-            if len(fmap_TE_list) > 2:
-                node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
-                    f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
+            try:
+                node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
+                    "['diffphase-effectiveEchoSpacing:"
+                    "fmap_effectiveEchoSpacing_ingress']"
+                ]['data']  # <--- there will only be one pipe_idx
                 wf.connect(node, out_file,
-                           calc_delta_ratio, 'echo_time_three')
+                           calc_delta_ratio, 'effective_echo_spacing')
 
-            rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
-                           "deltaTE_ingress")
-            rpool.set_data('ees-asym-ratio', calc_delta_ratio,
-                           'ees_asym_ratio', {}, "", "ees_asym_ratio_ingress")
+                node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
+                    f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
+                wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
+
+                node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
+                    f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
+                wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
+
+                if len(fmap_TE_list) > 2:
+                    node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
+                        f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
+                    wf.connect(node, out_file,
+                               calc_delta_ratio, 'echo_time_three')
+
+                rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
+                               'deltaTE_ingress')
+                rpool.set_data('ees-asym-ratio', calc_delta_ratio,
+                               'ees_asym_ratio', {}, '',
+                               'ees_asym_ratio_ingress')
+                need_effective_echo_spacing = False
+            except KeyError:
+                need_effective_echo_spacing = True
 
     # Add in nodes to get parameters from configuration file
     # a node which checks if scan_parameters are present for each scan
@@ -541,7 +547,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                          'pipeconfig_tr',
                          'pipeconfig_tpattern',
                          'pipeconfig_start_indx',
-                         'pipeconfig_stop_indx'],
+                         'pipeconfig_stop_indx',
+                         'effective_echo_spacing'],
             output_names=['tr',
                           'tpattern',
                           'ref_slice',
@@ -576,7 +583,37 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     rpool.set_data('pe-direction', scan_params, 'pe_direction', {}, "",
                    "func_metadata_ingress")
 
-    return (wf, rpool, diff, blip, fmap_rp_list)
+    if need_effective_echo_spacing:
+        rpool.set_data('func-effectiveEchoSpacing', scan_params,
+                       'effective_echo_spacing', {}, '',
+                       'func_effectiveEchoSpacing_ingress')
+        node, out_file = rpool.get('func-effectiveEchoSpacing')[
+            "['func-effectiveEchoSpacing:"
+            "func_effectiveEchoSpacing_ingress']"]['data']
+        wf.connect(node, out_file,
+                   calc_delta_ratio, 'effective_echo_spacing')
+
+        node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
+            f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
+        wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
+
+        node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
+            f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
+        wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
+
+        if len(fmap_TE_list) > 2:
+            node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
+                f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
+            wf.connect(node, out_file,
+                       calc_delta_ratio, 'echo_time_three')
+
+        rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
+                       'deltaTE_ingress')
+        rpool.set_data('ees-asym-ratio', calc_delta_ratio,
+                       'ees_asym_ratio', {}, '',
+                       'ees_asym_ratio_ingress')
+
+    return wf, rpool, diff, blip, fmap_rp_list
 
 
 def create_general_datasource(wf_name):

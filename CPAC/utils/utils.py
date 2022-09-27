@@ -715,6 +715,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
         starting TR or starting volume index
     last_tr : an integer
         ending TR or ending volume index
+    effective_echo_spacing : float
     """
 
     import os
@@ -733,6 +734,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     last_tr = ''
     unit = 's'
     pe_direction = ''
+    effective_echo_spacing = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -755,16 +757,20 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             # TODO: better handling of errant key values!!!
             if "RepetitionTime" in params_dct.keys():
                 TR = float(check(params_dct, subject_id, scan,
-                                 'RepetitionTime', False))
+                                 "RepetitionTime", False))
             if "SliceTiming" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
-                                    'SliceTiming', False))
+                                    "SliceTiming", False))
             elif "SliceAcquisitionOrder" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
-                                    'SliceAcquisitionOrder', False))
+                                    "SliceAcquisitionOrder", False))
             if "PhaseEncodingDirection" in params_dct.keys():
                 pe_direction = str(check(params_dct, subject_id, scan,
-                                         'PhaseEncodingDirection', False))
+                                         "PhaseEncodingDirection", False))
+            if "EffectiveEchoSpacing" in params_dct.keys():
+                effective_echo_spacing = float(check(params_dct, subject_id,
+                                                     scan, "EffectiveEcho"
+                                                     "Spacing", False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
@@ -808,16 +814,20 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             pe_direction = check(params_dct, subject_id, scan,
                                  'PhaseEncodingDirection', False)
 
+            effective_echo_spacing = float(
+                try_fetch_parameter(params_dct, subject_id, scan,
+                                    ["EffectiveEchoSpacing"]))
+
         else:
             err = "\n\n[!] Could not read the format of the scan parameters " \
                   "information included in the data configuration file for " \
-                  "the participant {0}.\n\n".format(subject_id)
+                  f"the participant {subject_id}.\n\n"
             raise Exception(err)
 
-    if first_tr == '' or first_tr == None:
+    if first_tr == '' or first_tr is None:
         first_tr = pipeconfig_start_indx
 
-    if last_tr == '' or last_tr == None:
+    if last_tr == '' or last_tr is None:
         last_tr = pipeconfig_stop_indx
 
     unit = 's'
@@ -926,7 +936,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
         ref_slice,
         start_indx,
         stop_indx,
-        pe_direction
+        pe_direction,
+        effective_echo_spacing
     )
 
 

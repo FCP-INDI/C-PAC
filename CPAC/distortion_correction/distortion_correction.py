@@ -104,7 +104,8 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["diffphase",
                 "diffmag",
                 "deltaTE",
-                "diffphase-effectiveEchoSpacing",
+                ["diffphase-effectiveEchoSpacing",
+                 "func-effectiveEchoSpacing"],
                 "ees-asym-ratio"],
      "outputs": ["despiked-fieldmap",
                  "fieldmap-mask"]}
