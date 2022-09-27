@@ -333,14 +333,34 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
             data_config_scan_params = json.load(f)
 
     echo_time = data_config_scan_params.get("EchoTime")
+    effective_echo_spacing = data_config_scan_params.get(
+        "EffectiveEchoSpacing")
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
 
-    return (echo_time, dwell_time, pe_direction)
+    return echo_time, effective_echo_spacing, dwell_time, pe_direction
 
 
-def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
-                                echo_time_three=None):
+def calc_delta_te_and_asym_ratio(effective_echo_spacing, echo_time_one,
+                                 echo_time_two, echo_time_three=None):
+    """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
+
+    Parameters
+    ----------
+    effective_echo_spacing : float
+
+    echo_time_one : float
+
+    echo_time_two : float
+
+    echo_time_three : float, optional
+
+    Returns
+    -------
+    deltaTE : float
+
+    ees_asym_ratio : float
+    """
     echo_times = [echo_time_one, echo_time_two]
     if echo_time_three:
         # get only the two different ones
@@ -354,9 +374,8 @@ def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
         echo_times[1] = echo_times[1] * 1000
 
     deltaTE = abs(echo_times[0] - echo_times[1])
-    dwell_asym_ratio = (dwell_time / deltaTE)
-
-    return (deltaTE, dwell_asym_ratio)
+    ees_asym_ratio = (effective_echo_spacing / deltaTE)
+    return deltaTE, ees_asym_ratio
 
 
 def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
@@ -444,6 +463,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             get_fmap_metadata = pe.Node(Function(
                 input_names=['data_config_scan_params'],
                 output_names=['echo_time',
+                              'effective_echo_spacing',
                               'dwell_time',
                               'pe_direction'],
                 function=get_fmap_phasediff_metadata,
@@ -455,6 +475,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
                            {}, "", "fmap_TE_ingress")
+            rpool.set_data(f'{key}-effectiveEchoSpacing', get_fmap_metadata,
+                           'effective_echo_spacing', {}, "",
+                           "fmap_effectiveEchoSpacing_ingress")
             rpool.set_data(f'{key}-dwell', get_fmap_metadata,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
             rpool.set_data(f'{key}-pedir', get_fmap_metadata,
@@ -471,18 +494,21 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
         if diff:
             calc_delta_ratio = pe.Node(Function(
-                input_names=['dwell_time',
+                input_names=['effective_echo_spacing',
                              'echo_time_one',
                              'echo_time_two',
                              'echo_time_three'],
                 output_names=['deltaTE',
-                              'dwell_asym_ratio'],
-                function=calc_deltaTE_and_asym_ratio),
+                              'ees_asym_ratio'],
+                function=calc_delta_te_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-                
-            node, out_file = rpool.get('diffphase-dwell')[
-                "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
-            wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
+
+            node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
+                "['diffphase-effectiveEchoSpacing:"
+                "fmap_effectiveEchoSpacing_ingress']"
+            ]['data']  # <--- there will only be one pipe_idx
+            wf.connect(node, out_file,
+                       calc_delta_ratio, 'effective_echo_spacing')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
                 f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
@@ -500,9 +526,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
                            "deltaTE_ingress")
-            rpool.set_data('dwell-asym-ratio',
-                           calc_delta_ratio, 'dwell_asym_ratio', {}, "",
-                           "dwell_asym_ratio_ingress")
+            rpool.set_data('ees-asym-ratio', calc_delta_ratio,
+                           'ees_asym_ratio', {}, "", "ees_asym_ratio_ingress")
 
     # Add in nodes to get parameters from configuration file
     # a node which checks if scan_parameters are present for each scan

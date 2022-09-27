@@ -104,8 +104,8 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["diffphase",
                 "diffmag",
                 "deltaTE",
-                "diffphase-dwell",
-                "dwell-asym-ratio"],
+                "diffphase-effectiveEchoSpacing",
+                "ees-asym-ratio"],
      "outputs": ["despiked-fieldmap",
                  "fieldmap-mask"]}
     '''
@@ -209,10 +209,10 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
 
-    node, out = strat_pool.get_data('diffphase-dwell')
+    # FSL calls EffectiveEchoSpacing "dwell_time"
+    node, out = strat_pool.get_data('diffphase-effectiveEchoSpacing')
     wf.connect(node, out, fugue1, 'dwell_time')
-
-    node, out = strat_pool.get_data('dwell-asym-ratio')
+    node, out = strat_pool.get_data('ees-asym-ratio')
     wf.connect(node, out, fugue1, 'dwell_to_asym_ratio')
 
     wf.connect(prepare, 'out_fieldmap', fugue1, 'fmap_in_file')
@@ -598,16 +598,16 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, phase_encoding, 'phase_one')
-        
+
     node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, phase_encoding, 'phase_two')
-    
+
     node, out = strat_pool.get_data('pe-direction')
     wf.connect(node, out, phase_encoding, 'unwarp_dir')
-        
+
     node, out = strat_pool.get_data('epi-1-dwell')
     wf.connect(node, out, phase_encoding, 'dwell_time_one')
-    
+
     node, out = strat_pool.get_data('epi-2-dwell')
     wf.connect(node, out, phase_encoding, 'dwell_time_two')
 

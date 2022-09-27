@@ -1,26 +1,21 @@
 from nipype import logging
-logger = logging.getLogger('nipype.workflow')
-
+from nipype.interfaces import afni
 from CPAC.pipeline import nipype_pipeline_engine as pe
-
-import nipype.interfaces.afni as afni
-
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import (
-    get_scan_params
-)
-
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_fmap_datasource,
     get_fmap_phasediff_metadata,
-    calc_deltaTE_and_asym_ratio
+    calc_delta_te_and_asym_ratio
 )
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.utils import (
+    get_scan_params
+)
+logger = logging.getLogger('nipype.workflow')
 
 
 def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                          input_creds_path, unique_id=None):
-
     for num_strat, strat in enumerate(strat_list):
 
         if 'func' in sub_dict:
@@ -75,14 +70,14 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
 
                 fmap_rp_list.append(key)
 
-                if key == "diff_phase" or key == "diff_mag_one" or \
-                                key == "diff_mag_two":
+                if key in ("diff_phase", "diff_mag_one", "diff_mag_two"):
                     diff = True
 
                     get_fmap_metadata_imports = ['import json']
                     get_fmap_metadata = pe.Node(Function(
                         input_names=['data_config_scan_params'],
                         output_names=['echo_time',
+                                      'effective_echo_spacing',
                                       'dwell_time',
                                       'pe_direction'],
                         function=get_fmap_phasediff_metadata,
@@ -95,14 +90,13 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                                      'data_config_scan_params')
 
                     strat.update_resource_pool({
-                        "{}_TE".format(key): (get_fmap_metadata,
-                                              'echo_time'),
-                        "{}_dwell".format(key): (get_fmap_metadata,
-                                                 'dwell_time'),
-                        "{}_pedir".format(key): (get_fmap_metadata,
-                                                 'pe_direction')
+                        f"{key}_TE": (get_fmap_metadata, 'echo_time'),
+                        f"{key}_effectiveEchoSpacing": (
+                            get_fmap_metadata, 'effective_echo_spacing'),
+                        f"{key}_dwell": (get_fmap_metadata, 'dwell_time'),
+                        f"{key}_pedir": (get_fmap_metadata, 'pe_direction')
                     })
-                    fmap_TE_list.append("{}_TE".format(key))
+                    fmap_TE_list.append(f"{key}_TE")
 
                 if "epi_" in key:
                     blip = True
@@ -115,8 +109,8 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                                  'echo_time_three'],
                     output_names=['deltaTE',
                                   'dwell_asym_ratio'],
-                    function=calc_deltaTE_and_asym_ratio),
-                    name='diff_distcor_calc_delta_{}'.format(num_strat))
+                    function=calc_delta_te_and_asym_ratio),
+                    name=f'diff_distcor_calc_delta_{num_strat}')
 
                 node, out_file = strat['diff_phase_dwell']
                 workflow.connect(node, out_file, calc_delta_ratio,
