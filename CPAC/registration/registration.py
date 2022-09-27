@@ -3719,7 +3719,7 @@ def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                                                   pipe_num, opt=None):
-    """
+    '''
     Apply motion correction, coreg, anat-to-template transforms on
     slice-time corrected functional timeseries based on fMRIPrep
     pipeline
@@ -3778,7 +3778,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold",
                  "space-template_desc-bold_mask"]}
-    """  # noqa: 501
+    '''  # noqa: 501
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
                                                  'transform_file'],
