@@ -432,7 +432,6 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     fmap_TE_list = []
     need_effective_echo_spacing = False
     if "fmap" in sub_dict:
-        need_effective_echo_spacing = True
         second = False
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
@@ -494,6 +493,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 blip = True
 
         if diff:
+            need_effective_echo_spacing = True
             calc_delta_ratio = pe.Node(Function(
                 input_names=['effective_echo_spacing',
                              'echo_time_one',
