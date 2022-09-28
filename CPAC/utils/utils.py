@@ -715,6 +715,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
         starting TR or starting volume index
     last_tr : an integer
         ending TR or ending volume index
+    pe_direction : str
     effective_echo_spacing : float
     """
 

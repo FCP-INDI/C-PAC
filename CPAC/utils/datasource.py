@@ -532,7 +532,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                                'ees_asym_ratio', {}, '',
                                'ees_asym_ratio_ingress')
                 need_effective_echo_spacing = False
-            except KeyError:
+            except LookupError:
                 need_effective_echo_spacing = True
 
     # Add in nodes to get parameters from configuration file
@@ -547,14 +547,14 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                          'pipeconfig_tr',
                          'pipeconfig_tpattern',
                          'pipeconfig_start_indx',
-                         'pipeconfig_stop_indx',
-                         'effective_echo_spacing'],
+                         'pipeconfig_stop_indx'],
             output_names=['tr',
                           'tpattern',
                           'ref_slice',
                           'start_indx',
                           'stop_indx',
-                          'pe_direction'],
+                          'pe_direction',
+                          'effective_echo_spacing'],
             function=get_scan_params,
             imports=scan_params_imports
         ), name=f"bold_scan_params_{subject_id}_{unique_id}")
