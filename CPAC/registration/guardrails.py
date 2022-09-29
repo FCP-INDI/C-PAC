@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
+from nipype.interfaces.utility import Function
+from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
 
 
@@ -42,7 +44,17 @@ class BadRegistrationError(ValueError):
         super().__init__(msg, *args, **kwargs)
 
 
-def registration_guardrail(registered: str, target: str) -> str:
+def registration_guardrail_node(name=None, ):
+    """Convenience method to get a new registration_guardrail Node"""
+    if name is None:
+        name = 'registration_guardrail'
+    return Node(Function(input_names=['registered_mask',
+                                      'reference_mask'],
+                         output_names=['registered_mask'],
+                         function=registration_guardrail), name=name)
+
+
+def registration_guardrail(registered: str, reference: str) -> str:
     """Check QC metrics post-registration and throw an exception if
     metrics are below given thresholds.
 
@@ -56,7 +68,7 @@ def registration_guardrail(registered: str, target: str) -> str:
 
     Parameters
     ----------
-    registered, target : str
+    registered, reference : str
         path to mask
 
     Returns
@@ -64,7 +76,7 @@ def registration_guardrail(registered: str, target: str) -> str:
     registered_mask : str
         path to mask
     """
-    qc_metrics = qc_masks(registered, target)
+    qc_metrics = qc_masks(registered, reference)
     for metric, threshold in REGISTRATION_GUARDRAIL_THRESHOLDS.items():
         if threshold is not None:
             value = qc_metrics.get(metric)
