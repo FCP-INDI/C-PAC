@@ -434,14 +434,11 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     if "fmap" in sub_dict:
         second = False
         for key in sub_dict["fmap"]:
-            gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                 f"fmap_gather_{key}_"
-                                                 f"{subject_id}")
+            gather_fmap = create_fmap_datasource(
+                sub_dict["fmap"], f"fmap_gather_{key}_{subject_id}")
             gather_fmap.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=cfg.pipeline_setup['working_directory']['path']
-            )
+                subject=subject_id, creds_path=input_creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path'])
             gather_fmap.inputs.inputnode.scan = key
 
             orig_key = key
@@ -532,7 +529,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                                'ees_asym_ratio', {}, '',
                                'ees_asym_ratio_ingress')
                 need_effective_echo_spacing = False
-            except LookupError:
+            except (KeyError, LookupError, TypeError):
                 need_effective_echo_spacing = True
 
     # Add in nodes to get parameters from configuration file
