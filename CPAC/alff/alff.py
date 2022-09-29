@@ -262,7 +262,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
 
-    node, out = strat_pool.get_data(["desc-cleanedNofilt_bold", "desc-brain_bold",
+    node, out = strat_pool.get_data(["desc-denoisedNofilt_bold", "desc-brain_bold",
                                      "desc-preproc_bold", "bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
 
