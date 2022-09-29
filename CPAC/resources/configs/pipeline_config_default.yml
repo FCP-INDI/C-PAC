@@ -586,6 +586,16 @@ segmentation:
 
 registration_workflows:
 
+  # Minimum QC values to allow a run to complete post-registration
+  # Set any metric empty (like "Dice:") or to None to disable that guardrail
+  # Default thresholds adopted from XCP-Engine
+  # (https://github.com/PennLINC/xcpEngine/blob/397ab6cf/designs/cbf_all.dsn#L66)
+  quality_thresholds:
+    Dice: 0.8
+    Jaccard: 0.9
+    CrossCorr: 0.7
+    Coverage: 0.8
+
   anatomical_registration:
 
     run: On
