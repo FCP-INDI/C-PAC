@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
+- Added ability to set minimum quality measure thresholds to all registration steps
 - Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
 
 ### Changed

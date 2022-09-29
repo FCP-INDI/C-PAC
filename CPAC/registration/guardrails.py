@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
-from CPAC.qc.qcmetrics import qc_masks
+from CPAC.qc import qc_masks
 
 
 class BadRegistrationError(ValueError):

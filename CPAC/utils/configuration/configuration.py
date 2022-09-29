@@ -25,6 +25,7 @@ from warnings import warn
 
 import yaml
 
+from CPAC.qc import REGISTRATION_GUARDRAIL_THRESHOLDS
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
@@ -151,6 +152,10 @@ class Configuration:
         for key in config_map:
             # set attribute
             setattr(self, key, set_from_ENV(config_map[key]))
+
+        # set global QC thresholds
+        REGISTRATION_GUARDRAIL_THRESHOLDS.update(self[
+            'registration_workflows', 'quality_thresholds'])
 
         self.__update_attr()
 
