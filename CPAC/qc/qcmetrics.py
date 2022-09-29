@@ -1,12 +1,61 @@
+# Modifications: Copyright (C) 2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+
+# Original code: BSD 3-Clause License
+
+# Copyright (c) 2020, Lifespan Informatics and Neuroimaging Center
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 """QC metrics from XCP-D v0.0.9
 
 Ref: https://github.com/PennLINC/xcp_d/tree/0.0.9
 """
+# LGPL-3.0-or-later: Module docstring and lint exclusions
 # pylint: disable=invalid-name, redefined-outer-name
+# BSD-3-Clause: imports and unspecified sections
 import nibabel as nb
 import numpy as np
 
 
+# BSD-3-Clause
 def coverage(input1, input2):
     """Estimate the coverage between two masks."""
     input1 = nb.load(input1).get_fdata()
@@ -22,6 +71,7 @@ def coverage(input1, input2):
     return cov
 
 
+# BSD-3-Clause
 def crosscorr(input1, input2):
     r"""cross correlation: compute cross correction bewteen input masks"""
     input1 = nb.load(input1).get_fdata()
@@ -32,6 +82,7 @@ def crosscorr(input1, input2):
     return cc
 
 
+# BSD-3-Clause
 def dc(input1, input2):
     r"""
     Dice coefficient
@@ -84,6 +135,7 @@ def dc(input1, input2):
     return dc
 
 
+# BSD-3-Clause
 def jc(input1, input2):
     r"""
     Jaccard coefficient
@@ -119,6 +171,7 @@ def jc(input1, input2):
     return jc
 
 
+# LGPL-3.0-or-later
 def _prefix_regqc_keys(qc_dict: dict, prefix: str) -> str:
     """Prepend string to each key in a qc dict
 
@@ -137,6 +190,8 @@ def _prefix_regqc_keys(qc_dict: dict, prefix: str) -> str:
     return {f'{prefix}{_key}': _value for _key, _value in qc_dict.items()}
 
 
+# BSD-3-Clause: logic
+# LGPL-3.0-or-later: docstring and refactored function
 def qc_masks(registered_mask: str, native_mask: str) -> dict:
     """Return QC measures for coregistration
 
@@ -158,6 +213,8 @@ def qc_masks(registered_mask: str, native_mask: str) -> dict:
             'Coverage': [coverage(registered_mask, native_mask)]}
 
 
+# BSD-3-Clause: name and signature
+# LGPL-3.0-or-later: docstring and refactored function
 def regisQ(bold2t1w_mask: str, t1w_mask: str, bold2template_mask: str,
            template_mask: str) -> dict:
     """Collect coregistration QC measures
