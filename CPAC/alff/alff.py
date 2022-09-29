@@ -246,7 +246,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-cleanedNofilt_bold", "desc-brain_bold", 
+     "inputs": [["desc-denoisedNofilt_bold", "desc-brain_bold", 
                  "desc-preproc_bold", "bold"],
                 "space-bold_desc-brain_mask"],
      "outputs": ["alff",
