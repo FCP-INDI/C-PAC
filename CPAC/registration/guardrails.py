@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
-from CPAC.qc import qc_masks
+from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
 
 
 class BadRegistrationError(ValueError):
@@ -42,27 +42,33 @@ class BadRegistrationError(ValueError):
         super().__init__(msg, *args, **kwargs)
 
 
-def registration_guardrail(registered_mask: str, target_mask: str,
-                           thresholds: dict) -> None:
+def registration_guardrail(registered: str, target: str) -> str:
     """Check QC metrics post-registration and throw an exception if
-    metrics are below given thresholds
+    metrics are below given thresholds.
+
+    If inputs point to images that are not masks, images will be
+    binarized before being compared.
+
+    .. seealso::
+
+       :py:mod:`CPAC.qc.qcmetrics`
+          Documentation of the :py:mod:`CPAC.qc.qcmetrics` module.
 
     Parameters
     ----------
-    registerd_mask, target_mask : str
+    registered, target : str
         path to mask
-
-    thresholds : RegistrationThreshold
-        thresholds to check against
 
     Returns
     -------
-    None
+    registered_mask : str
+        path to mask
     """
-    qc_metrics = qc_masks(registered_mask, target_mask)
-    for metric, threshold in thresholds.items():
+    qc_metrics = qc_masks(registered, target)
+    for metric, threshold in REGISTRATION_GUARDRAIL_THRESHOLDS.items():
         if threshold is not None:
             value = qc_metrics.get(metric)
             if value < threshold:
                 raise BadRegistrationError(metric=metric, value=value,
                                            threshold=threshold)
+    return registered

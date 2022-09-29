@@ -24,6 +24,7 @@ from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+from CPAC.registration.guardrails import registration_guardrail
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -192,6 +193,14 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         #       go in as a warpfield file
         wf.connect(inputNode, 'transform', apply_warp, 'field_file')
 
+        # Guardrail: check QC metrics
+        guardrail = pe.Node(util.Function(input_names=['registered_mask',
+                                                       'target_mask'],
+                                          output_names=['registered_mask'],
+                                          function=registration_guardrail),
+                            name='registration_guardrail')
+        wf.connect(inputNode, 'reference', guardrail, 'target')
+
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
@@ -232,12 +241,14 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
             wf.connect(apply_warp, 'out_file', func_concat, 'in_files')
-
-            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
+            wf.connect(func_concat, 'out_file', guardrail, 'registered')
 
         else:
             wf.connect(inputNode, 'input_image', apply_warp, 'in_file')
-            wf.connect(apply_warp, 'out_file', outputNode, 'output_image')
+            wf.connect(apply_warp, 'out_file', guardrail, 'registered')
+
+    # Pass output through guardrail before continuing
+    wf.connect(guardrail, 'registered', outputNode, 'output_image')
 
     return wf
 
