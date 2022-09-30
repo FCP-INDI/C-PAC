@@ -1,11 +1,10 @@
 import csv
 import json
-import nipype.interfaces.utility as util
+import re
+from typing import Optional, Tuple
 from nipype import logging
-# pylint: disable=ungrouped-imports, wrong-import-order
+from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.afni as afni
-
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
@@ -341,13 +340,17 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     return echo_time, effective_echo_spacing, dwell_time, pe_direction
 
 
-def calc_delta_te_and_asym_ratio(effective_echo_spacing, echo_time_one,
-                                 echo_time_two, echo_time_three=None):
+def calc_delta_te_and_asym_ratio(fmap_ees: Optional[float],
+                                 func_ees: Optional[float],
+                                 echo_time_one: float, echo_time_two: float,
+                                 echo_time_three: Optional[float] = None
+                                 ) -> Tuple[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
 
     Parameters
     ----------
-    effective_echo_spacing : float
+    fmap_ees, func_ees : float
+        EffectiveEchoSpacing from sidecar JSON
 
     echo_time_one : float
 
@@ -361,6 +364,14 @@ def calc_delta_te_and_asym_ratio(effective_echo_spacing, echo_time_one,
 
     ees_asym_ratio : float
     """
+    if isinstance(fmap_ees, float):
+        effective_echo_spacing = fmap_ees
+    elif isinstance(func_ees, float):
+        effective_echo_spacing = func_ees
+    else:
+        raise LookupError('C-PAC could not find `EffectiveEchoSpacing` in '
+                          'either fmap or func sidecar JSON, but that field '
+                          'is required for PhaseDiff distortion correction.')
     echo_times = [echo_time_one, echo_time_two]
     if echo_time_three:
         # get only the two different ones
@@ -424,13 +435,16 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
 
 
 def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
-                          input_creds_path, unique_id=None):
+                          input_creds_path, unique_id=None, num_strat=None):
+    name_suffix = ''
+    for suffix_part in (unique_id, num_strat):
+        if suffix_part is not None:
+            name_suffix += f'_{suffix_part}'
     # Grab field maps
     diff = False
     blip = False
     fmap_rp_list = []
     fmap_TE_list = []
-    need_effective_echo_spacing = False
     if "fmap" in sub_dict:
         second = False
         for key in sub_dict["fmap"]:
@@ -465,7 +479,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'pe_direction'],
                 function=get_fmap_phasediff_metadata,
                 imports=get_fmap_metadata_imports),
-                name=f'{key}_get_metadata')
+                name=f'{key}_get_metadata{name_suffix}')
 
             wf.connect(gather_fmap, 'outputspec.scan_params',
                        get_fmap_metadata, 'data_config_scan_params')
@@ -482,85 +496,70 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_TE_list.append(f"{key}-TE")
 
-            keywords = ['diffphase', 'diffmag']
-            if key in keywords:
+            if re.search('diff.*(phase|mag)', key):
                 diff = True
 
-            if orig_key == "epi_AP" or orig_key == "epi_PA":
+            if re.match('epi_[AP]{2}', orig_key):
                 blip = True
 
         if diff:
-            need_effective_echo_spacing = True
             calc_delta_ratio = pe.Node(Function(
-                input_names=['effective_echo_spacing',
+                input_names=['fmap_ees',
+                             'func_ees',
                              'echo_time_one',
                              'echo_time_two',
                              'echo_time_three'],
                 output_names=['deltaTE',
                               'ees_asym_ratio'],
                 function=calc_delta_te_and_asym_ratio),
-                name='diff_distcor_calc_delta')
+                name=f'diff_distcor_calc_delta{name_suffix}')
 
-            try:
-                node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
-                    "['diffphase-effectiveEchoSpacing:"
-                    "fmap_effectiveEchoSpacing_ingress']"
-                ]['data']  # <--- there will only be one pipe_idx
+            node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
+                "['diffphase-effectiveEchoSpacing:"
+                "fmap_effectiveEchoSpacing_ingress']"
+            ]['data']  # <--- there will only be one pipe_idx
+            wf.connect(node, out_file,
+                       calc_delta_ratio, 'fmap_ees')
+
+            node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
+                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
+            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
+
+            node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
+                f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
+            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
+
+            if len(fmap_TE_list) > 2:
+                node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
+                    f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
                 wf.connect(node, out_file,
-                           calc_delta_ratio, 'effective_echo_spacing')
-
-                node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-                    f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
-                wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
-
-                node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
-                    f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
-                wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
-
-                if len(fmap_TE_list) > 2:
-                    node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
-                        f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
-                    wf.connect(node, out_file,
-                               calc_delta_ratio, 'echo_time_three')
-
-                rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
-                               'deltaTE_ingress')
-                rpool.set_data('ees-asym-ratio', calc_delta_ratio,
-                               'ees_asym_ratio', {}, '',
-                               'ees_asym_ratio_ingress')
-                need_effective_echo_spacing = False
-            except (KeyError, LookupError, TypeError):
-                need_effective_echo_spacing = True
+                           calc_delta_ratio, 'echo_time_three')
 
     # Add in nodes to get parameters from configuration file
     # a node which checks if scan_parameters are present for each scan
-    scan_params_imports = ['from CPAC.utils.utils import check, '
-                           'try_fetch_parameter']
-    scan_params = \
-        pe.Node(Function(
-            input_names=['data_config_scan_params',
-                         'subject_id',
-                         'scan',
-                         'pipeconfig_tr',
-                         'pipeconfig_tpattern',
-                         'pipeconfig_start_indx',
-                         'pipeconfig_stop_indx'],
-            output_names=['tr',
-                          'tpattern',
-                          'ref_slice',
-                          'start_indx',
-                          'stop_indx',
-                          'pe_direction',
-                          'effective_echo_spacing'],
-            function=get_scan_params,
-            imports=scan_params_imports
-        ), name=f"bold_scan_params_{subject_id}_{unique_id}")
+    scan_params = pe.Node(Function(
+        input_names=['data_config_scan_params',
+                     'subject_id',
+                     'scan',
+                     'pipeconfig_tr',
+                     'pipeconfig_tpattern',
+                     'pipeconfig_start_indx',
+                     'pipeconfig_stop_indx'],
+        output_names=['tr',
+                      'tpattern',
+                      'ref_slice',
+                      'start_indx',
+                      'stop_indx',
+                      'pe_direction',
+                      'effective_echo_spacing'],
+        function=get_scan_params,
+        imports=['from CPAC.utils.utils import check, try_fetch_parameter']
+    ), name=f"bold_scan_params_{subject_id}{name_suffix}")
     scan_params.inputs.subject_id = subject_id
     scan_params.inputs.set(
         pipeconfig_start_indx=cfg.functional_preproc['truncation'][
             'start_tr'],
-        pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr']
-    )
+        pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr'])
 
     # wire in the scan parameter workflow
     node, out = rpool.get('scan-params')[
@@ -580,30 +579,15 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     rpool.set_data('pe-direction', scan_params, 'pe_direction', {}, "",
                    "func_metadata_ingress")
 
-    if need_effective_echo_spacing:
+    if diff:
+        # Connect EffectiveEchoSpacing from functional metadata
         rpool.set_data('func-effectiveEchoSpacing', scan_params,
                        'effective_echo_spacing', {}, '',
                        'func_effectiveEchoSpacing_ingress')
         node, out_file = rpool.get('func-effectiveEchoSpacing')[
             "['func-effectiveEchoSpacing:"
             "func_effectiveEchoSpacing_ingress']"]['data']
-        wf.connect(node, out_file,
-                   calc_delta_ratio, 'effective_echo_spacing')
-
-        node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-            f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
-        wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
-
-        node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
-            f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
-        wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
-
-        if len(fmap_TE_list) > 2:
-            node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
-                f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
-            wf.connect(node, out_file,
-                       calc_delta_ratio, 'echo_time_three')
-
+        wf.connect(node, out_file, calc_delta_ratio, 'func_ees')
         rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
                        'deltaTE_ingress')
         rpool.set_data('ees-asym-ratio', calc_delta_ratio,
@@ -895,7 +879,7 @@ def res_string_to_tuple(resolution):
 
 
 def resolve_resolution(resolution, template, template_name, tag=None):
-    import nipype.interfaces.afni as afni
+    from nipype.interfaces import afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.datasource import check_for_s3
 

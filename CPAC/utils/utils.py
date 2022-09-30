@@ -931,15 +931,13 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     start_indx = first_tr
     stop_indx = last_tr
 
-    return (
-        tr if tr else None,
-        tpattern if tpattern else None,
-        ref_slice,
-        start_indx,
-        stop_indx,
-        pe_direction,
-        effective_echo_spacing
-    )
+    return (tr if tr else None,
+            tpattern if tpattern else None,
+            ref_slice,
+            start_indx,
+            stop_indx,
+            pe_direction,
+            effective_echo_spacing)
 
 
 def get_tr(tr):

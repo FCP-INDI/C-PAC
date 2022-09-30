@@ -1,15 +1,13 @@
-import os
-import six
-import warnings
 import logging
-
+import six
+from CPAC.pipeline.engine import ResourcePool
 logger = logging.getLogger('nipype.workflow')
 
 
-class Strategy(object):
+class Strategy:
 
     def __init__(self):
-        self.resource_pool = {}
+        self._resource_pool = ResourcePool({})
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []
@@ -41,6 +39,16 @@ class Strategy(object):
         except:
             logger.error('No node for output: %s', resource_key)
             raise
+
+    @property
+    def resource_pool(self):
+        '''Strategy's ResourcePool dict'''
+        return self._resource_pool.get_entire_rpool()
+
+    @property
+    def rpool(self):
+        '''Strategy's ResourcePool'''
+        return self._resource_pool
 
     def update_resource_pool(self, resources, override=False):
         for key, value in resources.items():
