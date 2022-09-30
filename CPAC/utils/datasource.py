@@ -515,7 +515,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                              'echo_time_three'],
                 output_names=['deltaTE',
                               'ees_asym_ratio'],
-                function=calc_delta_te_and_asym_ratio),
+                function=calc_delta_te_and_asym_ratio,
+                imports=['from typing import Optional, Tuple']),
                 name=f'diff_distcor_calc_delta{name_suffix}')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
