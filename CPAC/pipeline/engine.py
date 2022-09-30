@@ -1956,7 +1956,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 def run_node_blocks(blocks, data_paths, cfg=None):
     import os
     from CPAC.pipeline import nipype_pipeline_engine as pe
-    from CPAC.utils.strategy import NodeBlock
+    from CPAC.pipeline.engine import NodeBlock
 
     if not cfg:
         cfg = {
