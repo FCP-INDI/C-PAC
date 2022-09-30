@@ -31,7 +31,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils import Outputs
+from CPAC.utils.outputs import Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,

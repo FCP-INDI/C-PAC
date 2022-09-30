@@ -60,14 +60,12 @@ from CPAC.longitudinal_pipeline.longitudinal_preproc import (
     subject_specific_template
 )
 
-from CPAC.utils import Strategy, find_files, function, Outputs
-from CPAC.utils.utils import check_prov_for_regtool
-
+from CPAC.utils import find_files, function
+from CPAC.utils.outputs import Outputs
+from CPAC.utils.strategy import Strategy
 from CPAC.utils.utils import (
     check_config_resources,
-    check_system_deps,
-    get_scan_params,
-    get_tr
+    check_prov_for_regtool
 )
 
 logger = logging.getLogger('nipype.workflow')
