@@ -769,9 +769,9 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                 pe_direction = str(check(params_dct, subject_id, scan,
                                          "PhaseEncodingDirection", False))
             if "EffectiveEchoSpacing" in params_dct.keys():
-                effective_echo_spacing = float(check(params_dct, subject_id,
-                                                     scan, "EffectiveEcho"
-                                                     "Spacing", False))
+                effective_echo_spacing = float(
+                    check(params_dct, subject_id, scan,
+                          "EffectiveEchoSpacing", False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):

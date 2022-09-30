@@ -104,8 +104,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["diffphase",
                 "diffmag",
                 "deltaTE",
-                ["diffphase-effectiveEchoSpacing",
-                 "func-effectiveEchoSpacing"],
+                "effectiveEchoSpacing",
                 "ees-asym-ratio"],
      "outputs": ["despiked-fieldmap",
                  "fieldmap-mask"]}
@@ -211,7 +210,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
 
     # FSL calls EffectiveEchoSpacing "dwell_time"
-    node, out = strat_pool.get_data('diffphase-effectiveEchoSpacing')
+    node, out = strat_pool.get_data('effectiveEchoSpacing')
     wf.connect(node, out, fugue1, 'dwell_time')
     node, out = strat_pool.get_data('ees-asym-ratio')
     wf.connect(node, out, fugue1, 'dwell_to_asym_ratio')

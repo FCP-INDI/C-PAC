@@ -326,22 +326,19 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
 
 
 def get_fmap_phasediff_metadata(data_config_scan_params):
-    if not isinstance(data_config_scan_params, dict) and \
-                    ".json" in data_config_scan_params:
-        with open(data_config_scan_params, 'r') as f:
-            data_config_scan_params = json.load(f)
+    if (not isinstance(data_config_scan_params, dict) and
+            ".json" in data_config_scan_params):
+        with open(data_config_scan_params, 'r', encoding='utf-8') as _f:
+            data_config_scan_params = json.load(_f)
 
     echo_time = data_config_scan_params.get("EchoTime")
-    effective_echo_spacing = data_config_scan_params.get(
-        "EffectiveEchoSpacing")
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
 
-    return echo_time, effective_echo_spacing, dwell_time, pe_direction
+    return echo_time, dwell_time, pe_direction
 
 
-def calc_delta_te_and_asym_ratio(fmap_ees: Optional[float],
-                                 func_ees: Optional[float],
+def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
                                  echo_time_one: float, echo_time_two: float,
                                  echo_time_three: Optional[float] = None
                                  ) -> Tuple[float, float]:
@@ -349,7 +346,7 @@ def calc_delta_te_and_asym_ratio(fmap_ees: Optional[float],
 
     Parameters
     ----------
-    fmap_ees, func_ees : float
+    effective_echo_spacing : float
         EffectiveEchoSpacing from sidecar JSON
 
     echo_time_one : float
@@ -364,11 +361,7 @@ def calc_delta_te_and_asym_ratio(fmap_ees: Optional[float],
 
     ees_asym_ratio : float
     """
-    if isinstance(fmap_ees, float):
-        effective_echo_spacing = fmap_ees
-    elif isinstance(func_ees, float):
-        effective_echo_spacing = func_ees
-    else:
+    if not isinstance(effective_echo_spacing, float):
         raise LookupError('C-PAC could not find `EffectiveEchoSpacing` in '
                           'either fmap or func sidecar JSON, but that field '
                           'is required for PhaseDiff distortion correction.')
@@ -474,7 +467,6 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             get_fmap_metadata = pe.Node(Function(
                 input_names=['data_config_scan_params'],
                 output_names=['echo_time',
-                              'effective_echo_spacing',
                               'dwell_time',
                               'pe_direction'],
                 function=get_fmap_phasediff_metadata,
@@ -486,9 +478,6 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
                            {}, "", "fmap_TE_ingress")
-            rpool.set_data(f'{key}-effectiveEchoSpacing', get_fmap_metadata,
-                           'effective_echo_spacing', {}, "",
-                           "fmap_effectiveEchoSpacing_ingress")
             rpool.set_data(f'{key}-dwell', get_fmap_metadata,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
             rpool.set_data(f'{key}-pedir', get_fmap_metadata,
@@ -504,8 +493,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
         if diff:
             calc_delta_ratio = pe.Node(Function(
-                input_names=['fmap_ees',
-                             'func_ees',
+                input_names=['effective_echo_spacing',
                              'echo_time_one',
                              'echo_time_two',
                              'echo_time_three'],
@@ -514,15 +502,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 function=calc_delta_te_and_asym_ratio),
                 name=f'diff_distcor_calc_delta{name_suffix}')
 
-            node, out_file = rpool.get('diffphase-effectiveEchoSpacing')[
-                "['diffphase-effectiveEchoSpacing:"
-                "fmap_effectiveEchoSpacing_ingress']"
-            ]['data']  # <--- there will only be one pipe_idx
-            wf.connect(node, out_file,
-                       calc_delta_ratio, 'fmap_ees')
-
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
+                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"
+            ]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
 
             node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
@@ -581,13 +563,12 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
     if diff:
         # Connect EffectiveEchoSpacing from functional metadata
-        rpool.set_data('func-effectiveEchoSpacing', scan_params,
+        rpool.set_data('effectiveEchoSpacing', scan_params,
                        'effective_echo_spacing', {}, '',
-                       'func_effectiveEchoSpacing_ingress')
-        node, out_file = rpool.get('func-effectiveEchoSpacing')[
-            "['func-effectiveEchoSpacing:"
-            "func_effectiveEchoSpacing_ingress']"]['data']
-        wf.connect(node, out_file, calc_delta_ratio, 'func_ees')
+                       'func_metadata_ingress')
+        node, out_file = rpool.get('effectiveEchoSpacing')[
+            "['effectiveEchoSpacing:func_metadata_ingress']"]['data']
+        wf.connect(node, out_file, calc_delta_ratio, 'effective_echo_spacing')
         rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
                        'deltaTE_ingress')
         rpool.set_data('ees-asym-ratio', calc_delta_ratio,
