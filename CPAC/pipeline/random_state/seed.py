@@ -186,5 +186,6 @@ def set_up_random_state_logger(log_dir):
     ----------
     log_dir : str
     '''
-    set_up_logger('random', level='info', log_dir=log_dir)
-    getLogger('random').info('seed: %s', random_seed())
+    set_up_logger('random', filename='random.tsv', level='info',
+                  log_dir=log_dir)
+    getLogger('random').info('seed\tnode')

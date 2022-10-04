@@ -399,10 +399,9 @@ class Node(pe.Node):
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
-                random_state_logger.info('%s',
-                                         '%s  # (Atropos constant)' %
-                                         self.name if 'atropos' in
-                                         self.name else self.name)
+                random_state_logger.info('%s\t%s', '# (Atropos constant)' if
+                                         'atropos' in self.name else
+                                         str(self.seed), self.name)
         return super().run(updatehash)
 
 
