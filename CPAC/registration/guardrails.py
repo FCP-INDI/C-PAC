@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
 from copy import deepcopy
+from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
 from nipype.interfaces.utility import Function
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
@@ -24,8 +25,8 @@ from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
 
 
 _SPEC_KEYS = {
-    FLIRT: {'reference': 'reference', 'registered': 'out_file'}
-}
+    FLIRT: {'reference': 'reference', 'registered': 'out_file'},
+    Registration: {'reference': 'reference', 'registered': 'out_file'}}
 
 
 class BadRegistrationError(ValueError):
@@ -113,7 +114,7 @@ def registration_guardrail_node(name=None):
                          function=registration_guardrail), name=name)
 
 
-def registration_guardrail_workflow(name, registration_node, retry=False):
+def registration_guardrail_workflow(registration_node, retry=False):
     """A workflow to handle hitting a registration guardrail
 
     Parameters
@@ -128,15 +129,13 @@ def registration_guardrail_workflow(name, registration_node, retry=False):
     -------
     Workflow
     """
-    if name is None:
-        name = 'registration_guardrail_wf'
-    wf = Workflow(name=name)
-    inputspec = deepcopy(registration_node.inputs)
+    name = f'{registration_node.name}_guardrail'
+    wf = Workflow(name=f'{name}_wf')
     outputspec = deepcopy(registration_node.outputs)
-    guardrail = registration_guardrail_node(f'{name}_guardrail')
+    guardrail = registration_guardrail_node(name)
     outkey = spec_key(registration_node, 'registered')
     wf.connect([
-        (inputspec, guardrail, [
+        (registration_node, guardrail, [
             (spec_key(registration_node, 'reference'), 'reference')]),
         (registration_node, guardrail, [(outkey, 'registered')])])
     if retry:
@@ -168,8 +167,8 @@ def retry_registration(wf, registration_node, registered):
                                inputs=['registered', 'registration_node'],
                                outputs=['registered']), name=name)
     retry_node.inputs.registration_node = registration_node
-    inputspec = deepcopy(registration_node.inputs)
-    outputspec = deepcopy(registration_node.outputs)
+    inputspec = registration_node.inputs
+    outputspec = registration_node.outputs
     outkey = spec_key(registration_node, 'registered')
     guardrail = registration_guardrail_node(f'{name}_guardrail')
     wf = connect_from_spec(wf, inputspec, retry_node)
