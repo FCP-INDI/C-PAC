@@ -3,6 +3,9 @@ import os
 import nibabel as nb
 import numpy as np
 import pandas as pd
+import scipy.stats
+from scipy.stats import t
+from numpy import inf
 
 from CPAC.cwas.mdmr import mdmr
 from CPAC.utils import correlation
@@ -35,7 +38,7 @@ def joint_mask(subjects, mask_file=None):
         mask_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
         create_merged_copefile(files, cope_file)
         create_merge_mask(cope_file, mask_file)
-
+        #np.save()
     return mask_file
 
 
@@ -48,7 +51,6 @@ def calc_mdmrs(D, regressor, cols, permutations):
 def calc_subdists(subjects_data, voxel_range):
     subjects, voxels, _ = subjects_data.shape
     D = np.zeros((len(voxel_range), subjects, subjects))
-
     for i, v in enumerate(voxel_range):
         profiles = np.zeros((subjects, voxels))
         for si in range(subjects):
@@ -67,6 +69,12 @@ def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, v
         D, regressor, regressor_selected_cols, permutations)
     return F_set, p_set
 
+def pval_to_zval(p_set, permu):
+    inv_pval = 1 - p_set
+    zvals = t.ppf(inv_pval,(len(p_set)-1))
+    zvals[zvals == -inf] = permu/(permu+1)
+    zvals[zvals == inf] = permu/(permu+1)
+    return zvals
 
 def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
                columns_string, permutations, voxel_range):
@@ -130,7 +138,8 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
         for sub_id in subject_ids:
             if str(sub_id).lstrip('0') == str(pheno_sub_id):
                 regressor_data.at[index, participant_column] = str(sub_id)
-
+    
+    #print(regressor_data)
     regressor_data.index = regressor_data[participant_column]
 
     # Keep only data from specific subjects
@@ -144,45 +153,45 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
     if len(regressor_selected_cols) == 0:
         regressor_selected_cols = [i for i, c in enumerate(regressor_cols)]
     regressor_selected_cols = np.array(regressor_selected_cols)
-
     # Remove participant id column from the dataframe and convert it to a numpy matrix
     regressor = ordered_regressor_data \
         .drop(columns=[participant_column]) \
         .reset_index(drop=True) \
         .values \
         .astype(np.float64)
-
+    #print(regressor)
     if len(regressor.shape) == 1:
         regressor = regressor[:, np.newaxis]
     elif len(regressor.shape) != 2:
         raise ValueError('Bad regressor shape: %s' % str(regressor.shape))
-
+        
     if len(subject_files) != regressor.shape[0]:
         raise ValueError('Number of subjects does not match regressor size')
-
-    mask = nb.load(mask_file).get_data().astype('bool')
+    
+    mask = nb.load(mask_file).get_fdata().astype('bool')
     mask_indices = np.where(mask)
-
+    
     subjects_data = np.array([
-        nb.load(subject_file).get_data().astype('float64')[mask_indices].T
+        nb.load(subject_file).get_fdata().astype('float64')[mask_indices]
         for subject_file in subject_files
-    ])
-
+        ])
+    
     F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols,
                              permutations, voxel_range)
-
+    
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
     p_file = os.path.join(cwd, 'significance_p.npy')
 
     np.save(F_file, F_set)
     np.save(p_file, p_set)
+        
 
     return F_file, p_file, voxel_range
 
 
 def create_cwas_batches(mask_file, batches):
-    mask = nb.load(mask_file).get_data().astype('bool')
+    mask = nb.load(mask_file).get_fdata().astype('bool')
     voxels = mask.sum(dtype=int)
     return np.array_split(np.arange(voxels), batches)
 
@@ -198,7 +207,7 @@ def volumize(mask_image, data):
     )
 
 
-def merge_cwas_batches(cwas_batches, mask_file):
+def merge_cwas_batches(cwas_batches, mask_file, z_score, permutations):
     _, _, voxel_range = zip(*cwas_batches)
     voxels = np.array(np.concatenate(voxel_range))
 
@@ -211,18 +220,37 @@ def merge_cwas_batches(cwas_batches, mask_file):
         p_set[voxel_range] = np.load(p_file)
 
     log_p_set = -np.log10(p_set)
+    one_p_set = 1 - p_set
 
     F_vol = volumize(mask_image, F_set)
     p_vol = volumize(mask_image, p_set)
     log_p_vol = volumize(mask_image, log_p_set)
+    one_p_vol = volumize(mask_image, one_p_set)
 
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F_volume.nii.gz')
     p_file = os.path.join(cwd, 'p_significance_volume.nii.gz')
     log_p_file = os.path.join(cwd, 'neglog_p_significance_volume.nii.gz')
+    one_p_file = os.path.join(cwd, 'one_minus_p_values.nii.gz')
 
     F_vol.to_filename(F_file)
     p_vol.to_filename(p_file)
     log_p_vol.to_filename(log_p_file)
+    one_p_vol.to_filename(one_p_file)
 
-    return F_file, p_file, log_p_file
+    if 1 in z_score:
+        zvals = pval_to_zval(p_set, permutations)
+        z_file = zstat_image(zvals, mask_file)
+    
+    return F_file, p_file, log_p_file, one_p_file, z_file
+    
+def zstat_image(zvals, mask_file):
+    mask_image = nb.load(mask_file)
+
+    z_vol = volumize(mask_image, zvals)
+
+    cwd = os.getcwd()
+    z_file = os.path.join(cwd, 'zstat.nii.gz')
+ 
+    z_vol.to_filename(z_file)
+    return z_file

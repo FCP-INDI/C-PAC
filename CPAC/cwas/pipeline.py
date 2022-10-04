@@ -1,7 +1,8 @@
 
 import os
-from CPAC.pipeline import nipype_pipeline_engine as pe
+import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+from nipype import config
 
 from CPAC.utils.interfaces.function import Function
 
@@ -11,6 +12,7 @@ from .cwas import (
     create_cwas_batches,
     merge_cwas_batches,
     nifti_cwas,
+    zstat_image,
 )
 
 
@@ -54,6 +56,8 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
             Pseudo F values of CWAS
         outputspec.p_map : string (nifti file)
             Significance p values calculated from permutation tests
+        outputspec.z_map : string (nifti file)
+            Significance p values converted to z-scores 
             
     CWAS Procedure:
     
@@ -83,10 +87,10 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     
     References
     ----------
-    .. [1] Shehzad Z, Kelly C, Reiss PT, Emerson JW, McMahon K, Copland DA, Castellanos FX, Milham MP. An Analytic Framework for Connectome-Wide Association Studies. Under Review.
+    .. [1] Shehzad Z, Kelly C, Reiss PT, Cameron Craddock R, Emerson JW, McMahon K, Copland DA, Castellanos FX, Milham MP. A multivariate distance-based analytic framework for connectome-wide association studies. Neuroimage. 2014 Jun;93 Pt 1(0 1):74-94. doi: 10.1016/j.neuroimage.2014.02.024. Epub 2014 Feb 28. PMID: 24583255; PMCID: PMC4138049.
     
     """
-
+    #config.enable_debug_mode()
     if not working_dir:
         working_dir = os.path.join(os.getcwd(), 'MDMR_work_dir')
     if not crash_dir:
@@ -95,7 +99,8 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     workflow = pe.Workflow(name=name)
     workflow.base_dir = working_dir
     workflow.config['execution'] = {'hash_method': 'timestamp',
-                                    'crashdump_dir': os.path.abspath(crash_dir)}
+                                    'crashdump_dir': os.path.abspath(crash_dir), 
+                                    'crashfile_format': 'txt'}
 
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
@@ -103,12 +108,15 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
                                                        'participant_column',
                                                        'columns',
                                                        'permutations',
-                                                       'parallel_nodes']),
+                                                       'parallel_nodes',
+                                                       'z_score']),
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['F_map',
                                                         'p_map',
-                                                        'neglog_p_map']),
+                                                        'neglog_p_map',
+                                                        'one_p_map',
+                                                        'z_map']),
                          name='outputspec')
 
     ccb = pe.Node(Function(input_names=['mask_file',
@@ -139,10 +147,14 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
                     name='joint_mask')
 
     mcwasb = pe.Node(Function(input_names=['cwas_batches',
-                                           'mask_file'],
+                                           'mask_file',
+                                           'z_score',
+                                           'permutations'],
                               output_names=['F_file',
                                             'p_file',
-                                            'neglog_p_file'],
+                                            'neglog_p_file',
+                                            'one_p_file',
+                                            'z_file'],
                               function=merge_cwas_batches,
                               as_module=True),
                      name='cwas_volumes')
@@ -181,9 +193,15 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
                      mcwasb, 'cwas_batches')
     workflow.connect(jmask, 'joint_mask',
                      mcwasb, 'mask_file')
+    workflow.connect(inputspec, 'z_score',
+                     mcwasb, 'z_score')
+    workflow.connect(inputspec, 'permutations',
+                     mcwasb, 'permutations')
 
     workflow.connect(mcwasb, 'F_file', outputspec, 'F_map')
     workflow.connect(mcwasb, 'p_file', outputspec, 'p_map')
     workflow.connect(mcwasb, 'neglog_p_file', outputspec, 'neglog_p_map')
+    workflow.connect(mcwasb, 'one_p_file', outputspec, 'one_p_map')
+    workflow.connect(mcwasb, 'z_file', outputspec, 'z_map')
 
     return workflow

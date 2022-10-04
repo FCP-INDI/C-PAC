@@ -16,7 +16,6 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import fnmatch
-import pandas
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.monitoring import log_nodes_cb
 
@@ -49,10 +48,10 @@ def load_config_yml(config_file, individual=False):
         raise Exception(err)
 
     if individual:
-        config.pipeline_setup['log_directory']['path'] = os.path.abspath(config.pipeline_setup['log_directory']['path'])
-        config.pipeline_setup['working_directory']['path'] = os.path.abspath(config.pipeline_setup['working_directory']['path'])
-        config.pipeline_setup['output_directory']['path'] = os.path.abspath(config.pipeline_setup['output_directory']['path'])
-        config.pipeline_setup['crash_log_directory']['path'] = os.path.abspath(config.pipeline_setup['crash_log_directory']['path'])
+        config.logDirectory = os.path.abspath(config.logDirectory)
+        config.workingDirectory = os.path.abspath(config.workingDirectory)
+        config.outputDirectory = os.path.abspath(config.outputDirectory)
+        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
 
     return config
 
@@ -133,9 +132,9 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     import glob
     import pandas as pd
     import pkg_resources as p
-    from __builtin__ import any as b_any
+    #from __builtin__ import any as any
 
-    ext = ".nii"
+    exts = ".nii"
     nifti_globs = []
 
     keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
@@ -189,7 +188,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
         while len(glob.glob(glob_string)) != 0:
 
-            if b_any(ext in x for x in glob.glob(glob_string)) == True:
+            if any(exts in x for x in glob.glob(glob_string)) == True:
                 nifti_globs.append(glob_string)
                 
             glob_string = os.path.join(glob_string, "*")
@@ -355,7 +354,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                 keys['Values'] == 'z-stat']['Resource'])
 
         if pull_func:
-            derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
+            derivatives = derivatives + list(keys[keys['Type'] == 'bold']['Resource'])
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -408,7 +407,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                 continue
 
             series_id_string = filepath_pieces[2]
-            strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
+            strat_info = "_".join(filepath_pieces[3:])[:-len(exts)]
 
             unique_resource_id = (resource_id, strat_info)
 
@@ -525,14 +524,14 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     More info:
       https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/
           UserGuide#Paired_Two-Group_Difference_.28Two-Sample_Paired_T-Test.29
-
+    
     Sample input:
         pheno_df
           sub01
           sub02
         sessions_list
           [ses01, ses02]
-
+    
     Expected output:
         pheno_df      Sessions  participant_sub01  participant_sub02
           sub01          ses01                  1                  0
@@ -1113,9 +1112,9 @@ def run_feat(group_config_file, feat=True):
     # get group pipeline config loaded
     c = load_config_yml(group_config_file)
 
-    pipeline_dir = c.pipeline_dir
-    model_name = c.model_name
-    out_dir = c.output_dir
+    pipeline_dir = c["pipeline_setup"]["output_directory"]["source_outputs_path"]
+    model_name = c["fsl_feat"]["model_name"]
+    out_dir = c["pipeline_setup"]["output_directory"]["output_path"]
 
     pipeline_name = pipeline_dir.rstrip('/').split('/')[-1]
 
@@ -1178,7 +1177,7 @@ def run_feat(group_config_file, feat=True):
                                 models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
         work_dir = work_dir.replace('cpac_group_analysis', 'cpac_group_analysis_workdir')
         work_dir = work_dir.replace('model_files/', '')
-        log_dir = os.path.join(c.log_dir,
+        log_dir = os.path.join(c["pipeline_setup"]["log_directory"]["path"],
                                models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
         log_dir = log_dir.replace('cpac_group_analysis', 'cpac_group_analysis_logdir')
         log_dir = log_dir.replace('model_files/', '')
@@ -1204,9 +1203,9 @@ def run_feat(group_config_file, feat=True):
                                                       design_matrix.columns,
                                                       None, None,
                                                       custom_contrasts_csv,
-                                                      None, c.group_sep,
+                                                      None, c["fsl_feat"]["group_sep"],
                                                       grp_vector,
-                                                      c.coding_scheme,
+                                                      c["fsl_feat"]["coding_scheme"],
                                                       model_name,
                                                       id_tuple[0],
                                                       input_files_dir)
@@ -1245,17 +1244,18 @@ def run_feat(group_config_file, feat=True):
                                         f_test, mat, con, grp, model_out_dir,
                                         work_dir, log_dir, model_name, fts)))
 
-    manage_processes(procss, out_dir, c.num_models_at_once)
+    manage_processes(procss, out_dir, c["fsl_feat"]["num_models_at_once"])
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                    regressor_file, participant_column, columns,
-                   permutations, parallel_nodes, inclusion=None):
+                   permutations, parallel_nodes, plugin_args, z_score, inclusion=None):
 
     import os
     import numpy as np
     from multiprocessing import pool
     from CPAC.cwas.pipeline import create_cwas
+    from nipype import config
 
     pipeline_dir = os.path.abspath(pipeline_dir)
 
@@ -1269,12 +1269,13 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                              os.path.basename(pipeline_dir))
 
     inclusion_list = None
+    
     if inclusion:
         inclusion_list = load_text_file(inclusion, "MDMR participant "
                                                    "inclusion list")
 
     output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard"],
+                                   ['space-template_bold'],
                                    inclusion_list, False, False,
                                    get_func=True)
 
@@ -1293,7 +1294,7 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                 df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
         else:
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
-
+	
         for df_scan in df_dct.keys():
             func_paths = {
                 p.split("_")[0]: f
@@ -1303,6 +1304,11 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                     df_dct[df_scan].Filepath
                 )
             }
+            
+            if plugin_args['n_procs'] == 1:
+                plugin = 'Linear'
+            else:
+                plugin = 'MultiProc'
 
             cwas_wf = create_cwas(name="MDMR_{0}".format(df_scan),
                                   working_dir=working_dir,
@@ -1314,7 +1320,8 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
             cwas_wf.inputs.inputspec.columns = columns
             cwas_wf.inputs.inputspec.permutations = permutations
             cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
-            cwas_wf.run()
+            cwas_wf.inputs.inputspec.z_score = z_score
+            cwas_wf.run(plugin=plugin, plugin_args=plugin_args)
 
 
 def run_cwas(pipeline_config):
@@ -1325,37 +1332,50 @@ def run_cwas(pipeline_config):
     pipeline_config = os.path.abspath(pipeline_config)
 
     pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
+    plugin_args = {'n_procs' : 8, 'memory_gb' : 10}
+    
+    if "num_cpus" in pipeconfig_dct.keys():
+        num_cpus = pipeconfig_dct["pipeline_setup"]["system_config"]["num_cpus"]
 
-    pipeline = pipeconfig_dct["pipeline_dir"]
-    output_dir = pipeconfig_dct["output_dir"]
-    working_dir = pipeconfig_dct["work_dir"]
-    crash_dir = pipeconfig_dct["log_dir"]
+    if "maximum_memory_per_participant" in pipeconfig_dct.keys():
+        mem_gb = pipeconfig_dct["pipeline_setup"]["system_config"]["num_memory"]
 
-    roi_file = pipeconfig_dct["mdmr_roi_file"]
-    regressor_file = pipeconfig_dct["mdmr_regressor_file"]
-    participant_column = pipeconfig_dct["mdmr_regressor_participant_column"]
-    columns = pipeconfig_dct["mdmr_regressor_columns"]
-    permutations = pipeconfig_dct["mdmr_permutations"]
-    parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
-    inclusion = pipeconfig_dct["participant_list"]
+    pipeline = pipeconfig_dct["pipeline_setup"]["output_directory"]["source_outputs_path"]
+    output_dir = pipeconfig_dct["pipeline_setup"]["output_directory"]["output_path"]
+    working_dir = pipeconfig_dct["pipeline_setup"]["working_directory"]["path"]
+    crash_dir = pipeconfig_dct["pipeline_setup"]["log_directory"]["path"]
+
+    roi_file = pipeconfig_dct["mdmr"]["roi_file"]
+    regressor_file = pipeconfig_dct["mdmr"]["regressor_file"]
+    participant_column = pipeconfig_dct["mdmr"]["regressor_participant_column"]
+    columns = pipeconfig_dct["mdmr"]["regressor_columns"]
+    permutations = pipeconfig_dct["mdmr"]["permutations"]
+    parallel_nodes = pipeconfig_dct["mdmr"]["parallel_nodes"]
+    inclusion = pipeconfig_dct["mdmr"]["inclusion_list"]
+    plugin_args['n_procs'] = num_cpus
+    plugin_args['memory_gb'] = mem_gb
+    z_score = pipeconfig_dct["mdmr"]["zscore"]
 
     if not inclusion or "None" in inclusion or "none" in inclusion:
         inclusion = None
 
     run_cwas_group(pipeline, output_dir, working_dir, crash_dir, roi_file,
                    regressor_file, participant_column, columns,
-                   permutations, parallel_nodes,
+                   permutations, parallel_nodes, plugin_args, z_score,
                    inclusion=inclusion)
 
 
 def find_other_res_template(template_path, new_resolution):
-    """Find the same template/standard file in another resolution, if it
+    """
+    Find the same template/standard file in another resolution, if it
     exists.
-
+    
     template_path: file path to the template NIfTI file
+    
     new_resolution: (int) the resolution of the template file you need
-
+    
     NOTE: Makes an assumption regarding the filename format of the files.
+    
     """
 
     # TODO: this is assuming there is a mm resolution in the file path - not
@@ -1373,8 +1393,8 @@ def find_other_res_template(template_path, new_resolution):
         template_parts[0] = str(new_resolution).join(template_parts[0].rsplit(template_parts[0][-1], 1))
         ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
 
-    elif "${func_resolution}" in template_path:
-        ref_file = template_path.replace("${func_resolution}",
+    elif "${resolution_for_func_preproc}" in template_path:
+        ref_file = template_path.replace("${resolution_for_func_preproc}",
                                          "{0}mm".format(new_resolution))
 
     if ref_file:
@@ -1474,11 +1494,12 @@ def launch_PyBASC(pybasc_config):
 
 
 def run_basc(pipeline_config):
-    """Run the PyBASC module.
-
+    """
+    Run the PyBASC module.
+    
     PyBASC is a separate Python package built and maintained by Aki Nikolaidis
     which implements the BASC analysis via Python.
-
+    
     PyBASC is based off of the following work:
         - Garcia-Garcia, M., Nikolaidis, A., Bellec, P., Craddock, R. C., Cheung, B., Castellanos, F. X., & Milham, M. P. (2017).
               Detecting stable individual differences in the functional organization of the human basal ganglia. NeuroImage.
@@ -1486,16 +1507,16 @@ def run_basc(pipeline_config):
               Multi-level bootstrap analysis of stable clusters in resting-state fMRI. Neuroimage, 51(3), 1126-1139.
         - Bellec, P., Marrelec, G., & Benali, H. (2008).
               A bootstrap test to investigate changes in brain connectivity for functional MRI. Statistica Sinica, 1253-1268.
-
+    
     PyBASC GitHub repository:
         https://github.com/AkiNikolaidis/PyBASC
-
+    
     PyBASC author:
         https://www.researchgate.net/profile/Aki_Nikolaidis
-
+    
     Inputs
         pipeline_config: path to C-PAC pipeline configuration YAML file
-
+    
     Steps (of the C-PAC interface for PyBASC, not PyBASC itself)
         1. Read in the PyBASC-relevant pipeline config items and create a new
            PyBASC config dictionary.
@@ -1508,7 +1529,7 @@ def run_basc(pipeline_config):
            selected to run PyBASC for (preprocessed and template-space
            functional time series are pulled from each pipeline output
            directory, for input into PyBASC).
-        6. Gather functional_to_standard outputs from each pipeline.
+        6. Gather space-template_bold outputs from each pipeline.
         7. Create further sub-directories for each nuisance regression
            strategy and functional scan within each C-PAC pipeline, and
            separate the functional outputs by strategy and scan as well.
@@ -1518,7 +1539,7 @@ def run_basc(pipeline_config):
            into a config YAML file for each pipeline-strategy-scan we are
            running.
         10. Launch PyBASC for each configuration generated.
-
+   
     """
 
     import os
@@ -1530,27 +1551,28 @@ def run_basc(pipeline_config):
 
     pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
 
-    output_dir = os.path.abspath(pipeconfig_dct["output_dir"])
-    working_dir = os.path.abspath(pipeconfig_dct['work_dir'])
-    if pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials']:
-        creds_path = os.path.abspath(pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials'])
+    output_dir = os.path.abspath(pipeconfig_dct["pipeline_setup"]["output_directory"]["output_path"])
+    working_dir = os.path.abspath(pipeconfig_dct["pipeline_setup"]["working_directory"]["path"])
+    if pipeconfig_dct["pipeline_setup"]["Amazon-AWS"]['aws_output_bucket_credentials']:
+        creds_path = os.path.abspath(
+            pipeconfig_dct["pipeline_setup"]["Amazon-AWS"]['aws_output_bucket_credentials'])
 
-    func_template = pipeconfig_dct["template_brain_only_for_func"]
+    func_template = pipeconfig_dct["basc"]["template_brain_only_for_func"]
     if '$FSLDIR' in func_template:
         if os.environ.get('FSLDIR'):
             func_template = func_template.replace('$FSLDIR',
                                                   os.environ['FSLDIR'])
 
-    basc_inclusion = pipeconfig_dct["participant_list"]
-    basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
-    basc_resolution = pipeconfig_dct["basc_resolution"]
+    basc_inclusion = pipeconfig_dct["pipeline_setup"]["output_directory"]["participant_list"]
+    basc_scan_inclusion = pipeconfig_dct["basc"]["scan_inclusion"]
+    basc_resolution = pipeconfig_dct["basc"]["resolution"]
 
     basc_config_dct = {'run': True,
                        'reruns': 1}
 
     for key in pipeconfig_dct.keys():
         if 'basc' in key:
-            basc_config_dct[key.replace('basc_', '')] = pipeconfig_dct[key]
+            basc_config_dct = pipeconfig_dct[key]
 
     iterables = ['dataset_bootstrap_list', 'timeseries_bootstrap_list',
                  'blocklength_list', 'n_clusters_list', 'output_sizes']
@@ -1610,7 +1632,8 @@ def run_basc(pipeline_config):
         roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
         basc_config_dct['cross_cluster_mask_file'] = roi_file_two
 
-    pipeline_dir = os.path.abspath(pipeconfig_dct["pipeline_dir"])
+    pipeline_dir = os.path.abspath(pipeconfig_dct["pipeline_setup"]
+    ["output_directory"]["source_outputs_path"])
 
     out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
                            '{0}mm_resolution'.format(basc_resolution),
@@ -1638,8 +1661,7 @@ def run_basc(pipeline_config):
     # - each dataframe will contain output filepaths and their associated
     #   information, and each dataframe will include ALL SERIES/SCANS
     output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard",
-                                    "functional_mni"],
+                                   ["space-template_bold"],
                                    inclusion_list, False, False,
                                    get_func=True)
 
@@ -1671,8 +1693,8 @@ def run_basc(pipeline_config):
                 if df_scan not in scan_inclusion:
                     continue
 
-            basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
-                                                              df_scan)
+            basc_config_dct['analysis_ID'] = '{0}_{1}'.format(
+                os.path.basename(pipeline_dir), df_scan)
 
             # add scan label and nuisance regression strategy label to the
             # output directory path
@@ -1688,7 +1710,7 @@ def run_basc(pipeline_config):
 
             # affinity threshold is an iterable, and must match the number of
             # functional file paths for the MapNodes
-            affinity_thresh = pipeconfig_dct['basc_affinity_thresh'] * len(func_paths)
+            affinity_thresh = pipeconfig_dct["basc"]["affinity_thresh"] * len(func_paths)
 
             # resampling if necessary
             #     each run should take the file, resample it and write it
@@ -1746,26 +1768,26 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
     output_df_dct = gather_outputs(
         pipeline_dir,
-        ["functional_to_standard", "roi_timeseries"],
+        ["space-template_bold", "desc-Mean_timeseries"],
         inclusion_list=None,
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard", "roi_timeseries"],
-        exts=['nii', 'nii.gz', 'csv']
+        derivatives=["space-template_bold", "desc-Mean_timeseries"],
+        #exts=['nii', 'nii.gz', 'csv']
     )
 
     iteration_ids = []
-    for preproc_strat in output_df_dct.keys():
+    for preproc_strat in output_df_dct.items():
         # go over each preprocessing strategy
 
         derivative, _ = preproc_strat
 
-        if "voxel" not in levels and derivative == "functional_to_standard":
+        if "voxel" not in levels and derivative == "space-template_bold":
             continue
 
-        if "roi" not in levels and derivative == "roi_timeseries":
+        if "roi" not in levels and derivative == "desc-Mean_timeseries":
             continue
 
-        if derivative == "roi_timeseries":
+        if derivative == "desc-Mean_timeseries":
             if roi_inclusion:
                 # backwards because ROI labels embedded as substrings
                 for roi_label in roi_inclusion:
@@ -1775,7 +1797,6 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     print("ROI label '{0}' not found in\n"
                           "{1}/{2}\n".format(roi_label, derivative, _))
                     continue
-
 
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
@@ -1803,10 +1824,12 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                unique_out_dir = os.path.join(out_dir, "ISC", derivative, _, df_scan)
+                unique_out_dir = os.path.join(out_dir, "ISC", derivative, _,
+                                              df_scan)
 
                 it_id = "ISC_{0}_{1}_{2}".format(df_scan, derivative,
-                                                 _.replace('.', '').replace('+', ''))
+                                                 _.replace('.', '').replace(
+                                                    '+', ''))
 
                 isc_wf = create_isc(name=it_id,
                                     output_dir=unique_out_dir,
@@ -1816,10 +1839,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isc_wf.inputs.inputspec.permutations = permutations
                 isc_wf.inputs.inputspec.std = std_filter
                 isc_wf.inputs.inputspec.collapse_subj = False
-                plugin_args = {'n_procs': num_cpus,
-                               'status_callback': log_nodes_cb}
-                isc_wf.run(plugin=MultiProcPlugin(plugin_args),
-                           plugin_args=plugin_args)
+                isc_wf.run(plugin='MultiProc',
+                           plugin_args={'n_procs': num_cpus})
 
         if isfc:
             for df_scan in df_dct.keys():
@@ -1835,10 +1856,12 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                unique_out_dir = os.path.join(out_dir, "ISFC", derivative, _, df_scan)
+                unique_out_dir = os.path.join(out_dir, "ISFC", derivative, _,
+                                              df_scan)
 
                 it_id = "ISFC_{0}_{1}_{2}".format(df_scan, derivative,
-                                                  _.replace('.', '').replace('+', ''))
+                                                  _.replace('.', '').replace(
+                                                    '+', ''))
 
                 isfc_wf = create_isfc(name=it_id,
                                       output_dir=unique_out_dir,
@@ -1848,10 +1871,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf.inputs.inputspec.permutations = permutations
                 isfc_wf.inputs.inputspec.std = std_filter
                 isfc_wf.inputs.inputspec.collapse_subj = False
-                plugin_args = {'n_procs': num_cpus,
-                               'status_callback': log_nodes_cb}
-                isfc_wf.run(plugin=MultiProcPlugin(plugin_args),
-                            plugin_args=plugin_args)
+                isfc_wf.run(plugin='MultiProc',
+                            plugin_args={'n_procs': num_cpus})
 
 
 def run_isc(pipeline_config):
@@ -1863,23 +1884,23 @@ def run_isc(pipeline_config):
 
     pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
 
-    pipeline_dir = pipeconfig_dct["pipeline_dir"]
+    pipeline_dir = pipeconfig_dct["pipeline_setup"]["output_directory"]["source_outputs_path"]
 
-    output_dir = pipeconfig_dct["output_dir"]
-    working_dir = pipeconfig_dct["work_dir"]
-    crash_dir = pipeconfig_dct["log_dir"]
+    output_dir = pipeconfig_dct["pipeline_setup"]["output_directory"]["output_path"]
+    working_dir = pipeconfig_dct["pipeline_setup"]["working_directory"]["path"]
+    crash_dir = pipeconfig_dct["pipeline_setup"]["log_directory"]["path"]
 
     scan_inclusion = None
     if "scan_inclusion" in pipeconfig_dct.keys():
-        scan_inclusion = pipeconfig_dct["scan_inclusion"]
+        scan_inclusion = pipeconfig_dct["pipeline_setup"]["system_config"]["scan_inclusion"]
 
     roi_inclusion = None
     if "isc_roi_inclusion" in pipeconfig_dct.keys():
-        roi_inclusion = pipeconfig_dct["isc_roi_inclusion"]
+        roi_inclusion = pipeconfig_dct["isc_isfc"]["roi_inclusion"]
 
     num_cpus = 1
     if "num_cpus" in pipeconfig_dct.keys():
-        num_cpus = pipeconfig_dct["num_cpus"]
+        num_cpus = pipeconfig_dct["pipeline_setup"]["system_config"]["num_cpus"]
 
     isc = 1 in pipeconfig_dct.get("runISC", [])
     isfc = 1 in pipeconfig_dct.get("runISFC", [])
@@ -1933,12 +1954,12 @@ def run_qpp(group_config_file):
 
     c = load_config_yml(group_config_file)
 
-    pipeline_dir = os.path.abspath(c.pipeline_dir)
-    out_dir = os.path.join(c.output_dir, 'cpac_group_analysis', 'QPP',
+    pipeline_dir = os.path.abspath(c["pipeline_setup"]["output_directory"]["source_outputs_path"])
+    out_dir = os.path.join(c["pipeline_setup"]["output_directory"]["output_path"], 'cpac_group_analysis', 'QPP',
                            os.path.basename(pipeline_dir))
-    working_dir = os.path.join(c.work_dir, 'cpac_group_analysis', 'QPP',
+    working_dir = os.path.join(c["pipeline_setup"]["working_directory"]["path"], 'cpac_group_analysis', 'QPP',
                                os.path.basename(pipeline_dir))
-    crash_dir = os.path.join(c.log_dir, 'cpac_group_analysis', 'QPP',
+    crash_dir = os.path.join(c["pipeline_setup"]["crash_log_directory"]["path"], 'cpac_group_analysis', 'QPP',
                              os.path.basename(pipeline_dir))
 
     try:
@@ -1950,28 +1971,29 @@ def run_qpp(group_config_file):
 
     outputs = gather_outputs(
         pipeline_dir,
-        ["functional_to_standard"],
-        inclusion_list=c.participant_list,
+        ["space-template_bold"],
+        inclusion_list=c["pipeline_setup"]["output_directory"]
+        ["participant_list"],
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard"],
-        exts=['nii', 'nii.gz']
+        derivatives=["space-template_bold"],
+        #exts=['nii', 'nii.gz']
     )
 
-    if c.qpp_stratification == 'Scan':
+    if c["qpp"]["stratification"] == 'Scan':
         qpp_stratification = ['Series']
-    elif c.qpp_stratification == 'Session':
+    elif c["qpp"]["stratification"] == 'Session':
         qpp_stratification = ['Sessions']
-    elif c.qpp_stratification in ['Session and Scan', 'Scan and Session']:
+    elif c["qpp"]["stratification"] in ['Session and Scan', 'Scan and Session']:
         qpp_stratification = ['Sessions', 'Series']
     else:
         qpp_stratification = []
 
     for (resource_id, strat_info), output_df in outputs.items():
 
-        if c.qpp_session_inclusion:
-            output_df = output_df[output_df["Sessions"].isin(c.qpp_session_inclusion)]
-        if c.qpp_scan_inclusion:
-            output_df = output_df[output_df["Series"].isin(c.qpp_scan_inclusion)]
+        if c["qpp"]["session_inclusion"]:
+            output_df = output_df[output_df["Sessions"].isin(c["qpp"]["session_inclusion"])]
+        if c["qpp"]["scan_inclusion"]:
+            output_df = output_df[output_df["Series"].isin(c["qpp"]["scan_inclusion"])]
 
         if qpp_stratification:
             output_df_groups = output_df.groupby(by=qpp_stratification)
@@ -2000,12 +2022,12 @@ def run_qpp(group_config_file):
 
             wf = create_qpp(name="QPP", working_dir=group_working_dir, crash_dir=group_crash_dir)
 
-            wf.inputs.inputspec.window_length = c.qpp_window
-            wf.inputs.inputspec.permutations = c.qpp_permutations
-            wf.inputs.inputspec.lower_correlation_threshold = c.qpp_initial_threshold
-            wf.inputs.inputspec.higher_correlation_threshold = c.qpp_final_threshold
-            wf.inputs.inputspec.iterations = c.qpp_iterations
-            wf.inputs.inputspec.correlation_threshold_iteration = c.qpp_initial_threshold_iterations
+            wf.inputs.inputspec.window_length = c["qpp"]["window"]
+            wf.inputs.inputspec.permutations = c["qpp"]["permutations"]
+            wf.inputs.inputspec.lower_correlation_threshold = c["qpp"]["initial_threshold"]
+            wf.inputs.inputspec.higher_correlation_threshold = c["qpp"]["final_threshold"]
+            wf.inputs.inputspec.iterations = c["qpp"]["iterations"]
+            wf.inputs.inputspec.correlation_threshold_iteration = c["qpp"]["initial_threshold_iterations"]
             wf.inputs.inputspec.convergence_iterations = 1
 
             wf.inputs.inputspec.datasets = output_df_group.Filepath.tolist()
@@ -2069,25 +2091,26 @@ def run(config_file):
     c = load_config_yml(config_file)
 
     # Run MDMR, if selected
-    if 1 in c.runMDMR:
+    if 1 in c["mdmr"]["run"]:
         run_cwas(config_file)
 
     # Run ISC, if selected
-    if 1 in c.runISC or 1 in c.runISFC:
+    if 1 in c["isc_isfc"]["runISC"] or 1 in c["isc_isfc"]["runISFC"]:
         run_isc(config_file)
 
     # Run PyBASC, if selected
-    if 1 in c.run_basc:
+    if 1 in c["basc"]["run"]:
         run_basc(config_file)
 
     # Run FSL FEAT group analysis, if selected
-    if 1 in c.run_fsl_feat:
+    if 1 in c["fsl_feat"]["run"]:
         run_feat(config_file)
 
     # Run randomise, if selected
-    if 1 in c.run_randomise:
+    if 1 in c["fsl_randomise"]["run"]:
         run_feat(config_file, feat=False)
 
     #Run QPP, if selected
-    if 1 in c.run_qpp:
+    if 1 in c["qpp"]["run"]:
         run_qpp(config_file)
+        
