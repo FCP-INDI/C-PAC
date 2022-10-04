@@ -7,7 +7,7 @@
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
 
-FROM: fx-options
+FROM: fmriprep-options
 
 pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
@@ -33,24 +33,12 @@ pipeline_setup:
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: On
 
-anatomical_preproc:
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction:
-    # this is a fork option
-    run:
-      - On
-
 registration_workflows:
   anatomical_registration:
-    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
-    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
-
+    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
   functional_registration:
-    coregistration:
-      func_input_prep:
-        input: [fmriprep_reference]
-
     func_registration_to_template:
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
@@ -73,11 +61,10 @@ registration_workflows:
 
       target_template:
         T1_template:
-          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
-          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
-          T1w_template_for_resample: 
-          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
-
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_mask_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_template_for_resample: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
 functional_preproc:
   truncation:
@@ -93,10 +80,6 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: 
       - On
-
-  motion_estimates_and_correction:
-    motion_correction:
-      using: [3dvolreg]
 
   distortion_correction:
     using:
@@ -185,7 +168,6 @@ nuisance_corrections:
         # Erode brain mask in millimeter, default of csf is 30 mm
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
         csf_mask_erosion_mm:
-
 
 timeseries_extraction:
   run: On
