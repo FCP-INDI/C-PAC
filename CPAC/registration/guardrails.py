@@ -15,9 +15,17 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
+from copy import deepcopy
+from nipype.interfaces.fsl import FLIRT
 from nipype.interfaces.utility import Function
-from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
+from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
 from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
+
+
+_SPEC_KEYS = {
+    FLIRT: {'reference': 'reference', 'registered': 'out_file'}
+}
 
 
 class BadRegistrationError(ValueError):
@@ -44,17 +52,8 @@ class BadRegistrationError(ValueError):
         super().__init__(msg, *args, **kwargs)
 
 
-def registration_guardrail_node(name=None, ):
-    """Convenience method to get a new registration_guardrail Node"""
-    if name is None:
-        name = 'registration_guardrail'
-    return Node(Function(input_names=['registered_mask',
-                                      'reference_mask'],
-                         output_names=['registered_mask'],
-                         function=registration_guardrail), name=name)
-
-
-def registration_guardrail(registered: str, reference: str) -> str:
+def registration_guardrail(registered: str, reference: str, retry: bool = False
+                           ) -> str:
     """Check QC metrics post-registration and throw an exception if
     metrics are below given thresholds.
 
@@ -71,6 +70,9 @@ def registration_guardrail(registered: str, reference: str) -> str:
     registered, reference : str
         path to mask
 
+    retry : bool
+        can retry?
+
     Returns
     -------
     registered_mask : str
@@ -81,6 +83,141 @@ def registration_guardrail(registered: str, reference: str) -> str:
         if threshold is not None:
             value = qc_metrics.get(metric)
             if value < threshold:
-                raise BadRegistrationError(metric=metric, value=value,
-                                           threshold=threshold)
+                with open(f'{registered}.failed_qc', 'w',
+                          encoding='utf-8') as _f:
+                    _f.write(True)
+                if retry:
+                    registered = f'{registered}-failed'
+                else:
+                    raise BadRegistrationError(metric=metric, value=value,
+                                               threshold=threshold)
     return registered
+
+
+def registration_guardrail_node(name=None):
+    """Convenience method to get a new registration_guardrail Node
+
+    Parameters
+    ----------
+    name : str, optional
+
+    Returns
+    -------
+    Node
+    """
+    if name is None:
+        name = 'registration_guardrail'
+    return Node(Function(input_names=['registered',
+                                      'reference'],
+                         output_names=['registered'],
+                         function=registration_guardrail), name=name)
+
+
+def registration_guardrail_workflow(name, registration_node, retry=False):
+    """A workflow to handle hitting a registration guardrail
+
+    Parameters
+    ----------
+    name : str
+
+    registration_node : Node
+
+    retry : bool, optional
+
+    Returns
+    -------
+    Workflow
+    """
+    if name is None:
+        name = 'registration_guardrail_wf'
+    wf = Workflow(name=name)
+    inputspec = deepcopy(registration_node.inputs)
+    outputspec = deepcopy(registration_node.outputs)
+    guardrail = registration_guardrail_node(f'{name}_guardrail')
+    outkey = spec_key(registration_node, 'registered')
+    wf.connect([
+        (inputspec, guardrail, [
+            (spec_key(registration_node, 'reference'), 'reference')]),
+        (registration_node, guardrail, [(outkey, 'registered')])])
+    if retry:
+        wf = retry_registration(wf, registration_node,
+                                guardrail.outputs.registered)
+    else:
+        wf.connect(guardrail, 'registered', outputspec, outkey)
+        wf = connect_from_spec(wf, outputspec, registration_node, outkey)
+    return wf
+
+
+def retry_registration(wf, registration_node, registered):
+    """Function conditionally retry registration if previous attempt failed
+
+    Parameters
+    ----------
+    wf : Workflow
+
+    registration_node : Node
+
+    registered : str
+
+    Returns
+    -------
+    Workflow
+    """
+    name = f'retry_{registration_node.name}'
+    retry_node = Node(Function(function=retry_registration_node,
+                               inputs=['registered', 'registration_node'],
+                               outputs=['registered']), name=name)
+    retry_node.inputs.registration_node = registration_node
+    inputspec = deepcopy(registration_node.inputs)
+    outputspec = deepcopy(registration_node.outputs)
+    outkey = spec_key(registration_node, 'registered')
+    guardrail = registration_guardrail_node(f'{name}_guardrail')
+    wf = connect_from_spec(wf, inputspec, retry_node)
+    wf.connect([
+        (inputspec, guardrail, [
+            (spec_key(retry_node, 'reference'), 'reference')]),
+        (retry_node, guardrail, [(outkey, 'registered')]),
+        (guardrail, outputspec, [('registered', outkey)])])
+    wf = connect_from_spec(wf, retry_node, outputspec, registered)
+    return wf
+
+
+def retry_registration_node(registered, registration_node):
+    """Retry registration if previous attempt failed
+
+    Parameters
+    ----------
+    registered : str
+
+    registration_node : Node
+
+    Returns
+    -------
+    Node
+    """
+    from CPAC.pipeline.random_state.seed import random_seed
+    seed = random_seed()
+    if registered.endswith('-failed') and isinstance(seed, int):
+        retry_node = registration_node.clone(
+            name=f'{registration_node.name}-retry')
+        retry_node.seed = seed + 1
+        return retry_node
+    return registration_node
+
+
+def spec_key(interface, guardrail_key):
+    """Function to get the canonical key to connect to a guardrail
+
+    Parameters
+    ----------
+    interface : Interface or Node
+
+    guardrail_key : str
+
+    Returns
+    -------
+    str
+    """
+    if isinstance(interface, Node):
+        interface = interface.interface
+    return _SPEC_KEYS.get(interface, {}).get(guardrail_key, guardrail_key)
