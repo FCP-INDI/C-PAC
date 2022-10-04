@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
 - Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
+- Calculate reho and alff when timeseries in template space
 
 ### Changed
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
