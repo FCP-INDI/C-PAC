@@ -17,11 +17,11 @@
 """Validation schema for C-PAC pipeline configurations"""
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
-import numpy as np
 from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
                        ExactSequence, ExclusiveInvalid, In, Length, Lower, \
                        Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
+from CPAC.pipeline.random_state.seed import MAX_SEED
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
                              set_nested_value
@@ -406,7 +406,7 @@ latest_schema = Schema({
             'num_participants_at_once': int,
             'random_seed': Maybe(Any(
                 'random',
-                All(int, Range(min=1, max=np.iinfo(np.int32).max)))),
+                All(int, Range(min=1, max=MAX_SEED)))),
             'observed_usage': {
                 'callback_log': Maybe(str),
                 'buffer': Number,

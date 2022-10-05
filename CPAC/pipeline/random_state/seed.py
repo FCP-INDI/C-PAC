@@ -29,6 +29,7 @@ from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
+MAX_SEED = np.iinfo(np.int32).max
 _seed = {'seed': None}
 
 
@@ -45,10 +46,10 @@ def random_random_seed():
 
     Examples
     --------
-    >>> 0 < random_random_seed() <= np.iinfo(np.int32).max
+    >>> 0 < random_random_seed() <= MAX_SEED
     True
     '''
-    return random.randint(1, np.iinfo(np.int32).max)
+    return random.randint(1, MAX_SEED)
 
 
 def random_seed():
@@ -183,7 +184,7 @@ def set_up_random_state(seed):
             seed = random_random_seed()
         if (seed != 'random' and not (
             isinstance(seed, int) and
-            (0 < int(seed) <= np.iinfo(np.int32).max)
+            (0 < int(seed) <= MAX_SEED)
         )):
             raise ValueError('Valid random seeds are positive integers up to '
                              f'2147483647, "random", or None, not {seed}')
