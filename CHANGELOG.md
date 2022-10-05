@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved default pipeline config into directory with other preconfigs
 - Added crash messages from during and before graph building to logs
 - Added data-config-specific hash string to C-PAC-generated config files
+- Updated `rbc-options` preconfig to use `fmriprep-options` preprocessing
 
 
 ## [v1.8.4] - 2022-06-27
