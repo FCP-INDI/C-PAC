@@ -157,9 +157,9 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                   mem_gb=2.5)
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
-            wf.connect(apply_warp, 'output_image', guardrail, 'registered')
-            wf.connect(guardrail, 'registered', func_concat, 'in_files')
-            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
+            wf.connect(apply_warp, 'output_image', func_concat, 'in_files')
+            wf.connect(func_concat, 'out_file', guardrail, 'registered')
+            wf.connect(guardrail, 'registered', outputNode, 'output_image')
 
         else:
             wf.connect(inputNode, 'input_image', apply_warp, 'input_image')
