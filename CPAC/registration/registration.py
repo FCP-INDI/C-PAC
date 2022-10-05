@@ -66,6 +66,10 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         # time series chunks
         multi_input = True
 
+    # Guardrail: check QC metrics
+    guardrail = registration_guardrail_node()
+    wf.connect(inputNode, 'reference', guardrail, 'reference')
+
     if reg_tool == 'ants':
 
         if multi_input:
@@ -86,10 +90,6 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
         apply_warp.inputs.dimension = 3
         apply_warp.interface.num_threads = int(num_ants_cores)
-
-        # Guardrail: check QC metrics
-        guardrail = registration_guardrail_node()
-        wf.connect(inputNode, 'reference', guardrail, 'reference')
 
         if time_series:
             apply_warp.inputs.input_image_type = 3
@@ -196,10 +196,6 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         #       inputNode 'transform' is a linear xfm, it's a .nii and must
         #       go in as a warpfield file
         wf.connect(inputNode, 'transform', apply_warp, 'field_file')
-
-        # Guardrail: check QC metrics
-        guardrail = registration_guardrail_node()
-        wf.connect(inputNode, 'reference', guardrail, 'reference')
 
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
