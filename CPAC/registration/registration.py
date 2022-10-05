@@ -67,7 +67,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         multi_input = True
 
     # Guardrail: check QC metrics
-    guardrail = registration_guardrail_node()
+    guardrail = registration_guardrail_node(f'{wf_name}_guardrail')
     wf.connect(inputNode, 'reference', guardrail, 'reference')
 
     if reg_tool == 'ants':
@@ -331,7 +331,7 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
 
-    guardrail = registration_guardrail_node()
+    guardrail = registration_guardrail_node(f'{name}_guardrail')
 
     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
                             name='inv_linear_reg0_xfm')
@@ -710,7 +710,7 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
         name='outputspec')
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_func_to_anat')
-    guardrail = registration_guardrail_node()
+    guardrail = registration_guardrail_node(f'{name}_guardrail')
 
     linear_reg.inputs.interp = config.registration_workflows[
         'functional_registration']['coregistration']['interpolation']
@@ -1023,7 +1023,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
             inputNode_echospacing, 'echospacing',
             bbreg_func_to_anat, 'echospacing')
 
-    guardrail = registration_guardrail_node()
+    guardrail = registration_guardrail_node(name=f'{name}_guardrail')
     register_bbregister_func_to_anat.connect(inputspec, 'anat',
                                              guardrail, 'reference')
     register_bbregister_func_to_anat.connect(
@@ -1255,7 +1255,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
 
     select_inverse_warp.inputs.selection = "Inverse"
 
-    guardrail = registration_guardrail_node()
+    guardrail = registration_guardrail_node(f'{name}_guardrail')
     calc_ants_warp_wf.connect(inputspec, 'moving_brain',
                               calculate_ants_warp, 'moving_brain')
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
@@ -3692,7 +3692,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                                     output_names=['itk_transform'],
                                     function=run_c3d),
                       name=f'convert_bbr2itk_{pipe_num}')
-    guardrail_preproc = registration_guardrail_node()
+    guardrail_preproc = registration_guardrail_node(
+        'single-step-resampling-preproc_guardrail')
     if cfg.registration_workflows['functional_registration'][
             'coregistration']['boundary_based_registration'][
             'reference'] == 'whole-head':
@@ -3768,7 +3769,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     applyxfm_func_to_standard.inputs.float = True
     applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
-    guardrail_brain = registration_guardrail_node()
+    guardrail_brain = registration_guardrail_node(
+        'single-step-resampling-brain_guardrail')
 
     wf.connect(split_func, 'out_files',
                applyxfm_func_to_standard, 'input_image')
