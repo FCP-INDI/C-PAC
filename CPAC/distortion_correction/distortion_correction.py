@@ -495,8 +495,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "Blip-FSL-TOPUP",
-     "inputs": [(["desc-preproc_bold", "bold"],
-                 "space-bold_desc-brain_mask"),
+     "inputs": [("desc-mean_bold", "space-bold_desc-brain_mask"),
                 "pe-direction",
                 "epi-1",
                 "epi-1-pedir",
@@ -547,12 +546,12 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     else:
     '''
-           
+
     create_list = pe.Node(interface=util.Merge(2), name="create_list")
 
     node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, create_list, 'in1')
-        
+
     node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, create_list, 'in2')
 
@@ -566,26 +565,28 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     Mask.inputs.operand_value = 0
     Mask.inputs.operation = "mul"
     Mask.inputs.args = "-add 1"
-    
+
     node, out = strat_pool.get_data('epi-1')
     wf.connect(node, out, Mask, 'in_file')
 
-    #zpad_phases = z_pad("zpad_phases")
-    #wf.connect(merge_image, "merged_file", zpad_phases, "inputspec.input_image")
+    # zpad_phases = z_pad("zpad_phases")
+    # wf.connect(merge_image, "merged_file", zpad_phases, "inputspec.input_image")
 
-    #zpad_mask = z_pad("zpad_mask")
-    #wf.connect(Mask, "out_file", zpad_mask, "inputspec.input_image")
+    # zpad_mask = z_pad("zpad_mask")
+    # wf.connect(Mask, "out_file", zpad_mask, "inputspec.input_image")
 
     # extrapolate existing values beyond the mask
-    extrap_vals = pe.Node(interface=fsl.maths.BinaryMaths(), 
+    extrap_vals = pe.Node(interface=fsl.maths.BinaryMaths(),
                           name="extrap_vals")
     extrap_vals.inputs.operation = "add"
     extrap_vals.inputs.operand_value = 1
     extrap_vals.inputs.args = "-abs -dilM -dilM -dilM -dilM -dilM"
-    
-    #wf.connect(zpad_phases, "outputspec.output_image", extrap_vals, "in_file")
-    #wf.connect(zpad_mask, "outputspec.output_image", extrap_vals, "operand_file")
-    
+
+    # wf.connect(zpad_phases, "outputspec.output_image",
+    #            extrap_vals,  "in_file")
+    # wf.connect(zpad_mask, "outputspec.output_image",
+    #            extrap_vals, "operand_file")
+
     wf.connect(merge_image, "merged_file", extrap_vals, "in_file")
     wf.connect(Mask, "out_file", extrap_vals, "operand_file")
 
@@ -647,24 +648,23 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(phase_encoding, "acq_params", run_topup, "acqparams")
 
     choose_phase = pe.Node(
-       util.Function(
-            input_names=["phase_imgs", 
+        util.Function(
+            input_names=["phase_imgs",
                          "unwarp_dir"],
             output_names=["out_phase_image",
                           "vnum"],
             function=choose_phase_image
-      ),
-        name="choose_phase",
+        ), name="choose_phase",
     )
-    
+
     wf.connect(create_list, 'out', choose_phase, 'phase_imgs')
 
     node, out = strat_pool.get_data("pe-direction")
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
     vnum_base = pe.Node(
-       util.Function(
-            input_names=["vnum", 
+        util.Function(
+            input_names=["vnum",
                          "motion_mat_list",
                          "jac_matrix_list",
                          "warp_field_list"],
@@ -672,72 +672,69 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                           "out_jacobian",
                           "out_warp_field"],
             function=find_vnum_base
-      ),
-        name="Motion_Jac_Warp_matrices",
-    ) 
+        ), name="Motion_Jac_Warp_matrices",
+    )
 
     wf.connect(choose_phase, 'vnum', vnum_base, 'vnum')
     wf.connect(run_topup, 'out_xfms', vnum_base, 'motion_mat_list')
     wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
     wf.connect(run_topup, 'out_warps', vnum_base, 'warp_field_list')
 
-    create_scout = pe.Node(interface=afni_utils.Calc(),
-                           name="topupwf_create_scout")
-    create_scout.inputs.set(
-        expr='a',
-        single_idx=0,
-        outputtype='NIFTI_GZ'
-    )
+    # create_scout = pe.Node(interface=afni_utils.Calc(),
+    #                        name="topupwf_create_scout")
+    # create_scout.inputs.set(
+    #     expr='a',
+    #     single_idx=0,
+    #     outputtype='NIFTI_GZ'
+    # )
 
-    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
-    wf.connect(node, out, create_scout, 'in_file_a')
+    mean_bold = strat_pool.node_data("desc-mean_bold")
+    # node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
+    # wf.connect(node, out, create_scout, 'in_file_a')
 
     flirt = pe.Node(interface=fsl.FLIRT(), name="flirt")
     flirt.inputs.dof = 6
     flirt.inputs.interp = 'spline'
     flirt.inputs.out_matrix_file = 'SBRef2PhaseTwo_gdc.mat'
 
-    wf.connect(create_scout, 'out_file', flirt, 'in_file')
+    wf.connect(mean_bold.node, mean_bold.out, flirt, 'in_file')
     wf.connect(choose_phase, 'out_phase_image', flirt, 'reference')
-  
-    #fsl_convert_xfm
+
+    # fsl_convert_xfm
     convert_xfm = pe.Node(interface=fsl.ConvertXFM(), name="convert_xfm")
     convert_xfm.inputs.concat_xfm = True
     convert_xfm.inputs.out_file = 'SBRef2WarpField.mat'
 
-    wf.connect(flirt, 'out_matrix_file', convert_xfm,'in_file')
-    wf.connect(vnum_base, 'out_motion_mat', convert_xfm,'in_file2')
+    wf.connect(flirt, 'out_matrix_file', convert_xfm, 'in_file')
+    wf.connect(vnum_base, 'out_motion_mat', convert_xfm, 'in_file2')
 
-    #fsl_convert_warp
+    # fsl_convert_warp
     convert_warp = pe.Node(interface=fsl.ConvertWarp(),
-                           name = "convert_warp")
+                           name="convert_warp")
     convert_warp.inputs.relwarp = True
     convert_warp.inputs.out_relwarp = True
     convert_warp.inputs.out_file = 'WarpField.nii.gz'
 
     wf.connect(choose_phase, 'out_phase_image', convert_warp, 'reference')
     wf.connect(vnum_base, 'out_warp_field', convert_warp, 'warp1')
-    wf.connect(convert_xfm, 'out_file' ,convert_warp, 'premat')
+    wf.connect(convert_xfm, 'out_file', convert_warp, 'premat')
 
-    out_convert_warp = (convert_warp,'out_file')
-
-    VolumeNumber = 1+1
+    VolumeNumber = 1 + 1
     vnum = str(VolumeNumber).zfill(2)
     name = "PhaseTwo_aw"
 
     vnum_base_two = pe.Node(
-       util.Function(
+        util.Function(
             input_names=["vnum",
                          "motion_mat_list",
                          "jac_matrix_list",
                          "warp_field_list"],
-            output_names=["out_motion_mat", 
-                          "out_jacobian", 
+            output_names=["out_motion_mat",
+                          "out_jacobian",
                           "out_warp_field"],
             function=find_vnum_base
-      ),
-        name=f"Motion_Jac_Warp_matrices_{name}",
-    ) 
+        ), name=f"Motion_Jac_Warp_matrices_{name}",
+    )
     vnum_base_two.inputs.vnum = vnum
 
     wf.connect(run_topup, 'out_xfms', vnum_base_two, 'motion_mat_list')
@@ -748,7 +745,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     aw_two = pe.Node(interface=fsl.ApplyWarp(), name="aw_two")
     aw_two.inputs.relwarp = True
     aw_two.inputs.interp = 'spline'
-    
+
     node, out = strat_pool.get_data('epi-2')
     wf.connect(node, out, aw_two, 'in_file')
     wf.connect(node, out, aw_two, 'ref_file')
@@ -762,14 +759,15 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(aw_two, 'out_file', mul_phase_two, 'in_file')
     wf.connect(vnum_base_two, 'out_jacobian', mul_phase_two, 'operand_file')
-    
-    # PhaseOne (first vol) - warp and Jacobian modulate to get distortion corrected output
-    VolumeNumber= 0 + 1
+
+    # PhaseOne (first vol) - warp and Jacobian modulate to get
+    # distortion corrected output
+    VolumeNumber = 0 + 1
     vnum = str(VolumeNumber).zfill(2)
     name = "PhaseOne_aw"
 
     vnum_base_one = pe.Node(
-       util.Function(
+        util.Function(
             input_names=["vnum",
                          "motion_mat_list",
                          "jac_matrix_list",
@@ -778,9 +776,8 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                           "out_jacobian",
                           "out_warp_field"],
             function=find_vnum_base
-      ),
-        name=f"Motion_Jac_Warp_matrices_{name}",
-    ) 
+        ), name=f"Motion_Jac_Warp_matrices_{name}",
+    )
     vnum_base_one.inputs.vnum = vnum
 
     wf.connect(run_topup, 'out_xfms', vnum_base_one, 'motion_mat_list')
@@ -788,7 +785,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(run_topup, 'out_warps', vnum_base_one, 'warp_field_list')
 
     # fsl_applywarp to phaseOne
-    aw_one = pe.Node(interface=fsl.ApplyWarp(),name = "aw_one")
+    aw_one = pe.Node(interface=fsl.ApplyWarp(), name="aw_one")
     aw_one.inputs.relwarp = True
     aw_one.inputs.interp = 'spline'
 
@@ -799,7 +796,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(vnum_base_one, 'out_motion_mat', aw_one, 'premat')
     wf.connect(vnum_base_one, 'out_warp_field', aw_one, 'field_file')
 
-    mul_phase_one = pe.Node(interface = fsl.BinaryMaths(), name="mul_phase_one")
+    mul_phase_one = pe.Node(interface=fsl.BinaryMaths(), name="mul_phase_one")
     mul_phase_one.inputs.operation = 'mul'
 
     wf.connect(aw_one, 'out_file', mul_phase_one, 'in_file')
@@ -810,19 +807,20 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     aw_jac.inputs.relwarp = True
     aw_jac.inputs.interp = 'spline'
 
-    wf.connect(create_scout, 'out_file', aw_jac, 'in_file') #SBRef.nii.gz
-    wf.connect(create_scout, 'out_file', aw_jac, 'ref_file') #SBRef.nii.gz
+    wf.connect(mean_bold.node, mean_bold.out, aw_jac, 'in_file') # SBRef.nii.gz
+    wf.connect(mean_bold.node, mean_bold.out,
+               aw_jac, 'ref_file') # SBRef.nii.gz
     wf.connect(convert_warp, 'out_file', aw_jac, 'field_file')
 
-    mul_jac = pe.Node(interface = fsl.BinaryMaths(),name = "mul_jac")
+    mul_jac = pe.Node(interface=fsl.BinaryMaths(), name="mul_jac")
     mul_jac.inputs.operation = 'mul'
     mul_jac.inputs.out_file = "SBRef_dc_jac.nii.gz"
 
     wf.connect(aw_jac, 'out_file', mul_jac, 'in_file')
     wf.connect(vnum_base, 'out_jacobian', mul_jac, 'operand_file')
 
-    #Calculate Equivalent Field Map
-    tp_field_map = pe.Node(interface = fsl.BinaryMaths(),name = "tp_field_map")
+    # Calculate Equivalent Field Map
+    tp_field_map = pe.Node(interface=fsl.BinaryMaths(), name="tp_field_map")
     tp_field_map.inputs.operation = 'mul'
     tp_field_map.inputs.operand_value = 6.283
 
@@ -835,8 +833,8 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(run_topup, 'corrected_outfile', mag_field_map, 'in_file')
 
-    #fsl_bet
-    bet = pe.Node(interface = fsl.BET(), name="bet")
+    # fsl_bet
+    bet = pe.Node(interface=fsl.BET(), name="bet")
     bet.inputs.frac = 0.35
     bet.inputs.mask = True
 
