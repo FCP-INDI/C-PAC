@@ -178,7 +178,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
 
     np.save(F_file, F_set)
     np.save(p_file, p_set)
-        
 
     return F_file, p_file, voxel_range
 
