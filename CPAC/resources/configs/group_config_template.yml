@@ -11,7 +11,7 @@
 pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
-  pipeline_name: cpac-blank-template
+  pipeline_name: cpac-group-template
 
   output_directory:
 
