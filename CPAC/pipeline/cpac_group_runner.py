@@ -389,7 +389,6 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
             if not any(filepath.endswith(ext) for ext in exts):
                 continue
-            
             relative_filepath = filepath.split(pipeline_output_folder)[1]
             filepath_pieces = [_f for _f in relative_filepath.split("/") if _f]
             
