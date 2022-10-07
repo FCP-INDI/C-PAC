@@ -177,8 +177,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
     for resource_name in dirs_to_grab:
         glob_string = os.path.join(pipeline_output_folder, "*", "*", 
-                                   "*"+resource_name+"*")
-        print(glob_string)
+                                   f"*{resource_name}*")
         # get all glob strings that result in a list of paths where every path
         # ends with a NIFTI file
         prog_string = ".."
