@@ -70,9 +70,9 @@ def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, v
 
 def pval_to_zval(p_set, permu):
     inv_pval = 1 - p_set
-    zvals = t.ppf(inv_pval,(len(p_set)-1))
-    zvals[zvals == -inf] = permu/(permu+1)
-    zvals[zvals == inf] = permu/(permu+1)
+    zvals = t.ppf(inv_pval, (len(p_set) - 1))
+    zvals[zvals == -inf] = permu / (permu + 1)
+    zvals[zvals == inf] = permu / (permu + 1)
     return zvals
 
 def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
