@@ -90,7 +90,6 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     .. [1] Shehzad Z, Kelly C, Reiss PT, Cameron Craddock R, Emerson JW, McMahon K, Copland DA, Castellanos FX, Milham MP. A multivariate distance-based analytic framework for connectome-wide association studies. Neuroimage. 2014 Jun;93 Pt 1(0 1):74-94. doi: 10.1016/j.neuroimage.2014.02.024. Epub 2014 Feb 28. PMID: 24583255; PMCID: PMC4138049.
     
     """
-    #config.enable_debug_mode()
     if not working_dir:
         working_dir = os.path.join(os.getcwd(), 'MDMR_work_dir')
     if not crash_dir:
