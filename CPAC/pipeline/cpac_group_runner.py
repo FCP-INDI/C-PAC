@@ -521,7 +521,6 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
           sub02
         sessions_list
           [ses01, ses02]
-    
     Expected output:
         pheno_df      Sessions  participant_sub01  participant_sub02
           sub01          ses01                  1                  0
