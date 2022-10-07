@@ -111,6 +111,10 @@ def registration_guardrail_node(name=None):
     return Node(Function(input_names=['registered',
                                       'reference'],
                          output_names=['registered'],
+                         imports=['from CPAC.qc import qc_masks, '
+                                  'REGISTRATION_GUARDRAIL_THRESHOLDS',
+                                  'from CPAC.registration.guardrails '
+                                  'import BadRegistrationError'],
                          function=registration_guardrail), name=name)
 
 
