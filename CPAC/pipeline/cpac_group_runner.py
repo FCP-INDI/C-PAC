@@ -2105,4 +2105,3 @@ def run(config_file):
     #Run QPP, if selected
     if 1 in c["qpp"]["run"]:
         run_qpp(config_file)
-        
