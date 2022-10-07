@@ -113,7 +113,30 @@ functional_preproc:
 nuisance_corrections:
   2-nuisance_regression:
     Regressors:
-      - Name: 36-parameter
+      - Name: Motion-regressor-no-GSR-or-aCompCor
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+        CerebrospinalFluid:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+        Motion:
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+        WhiteMatter:
+          erode_mask: false
+          extraction_resolution: 2
+          include_delayed: true
+          include_delayed_squared: true
+          include_squared: true
+          summary: Mean
+
+      - Name: Regressor-with-GSR
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -141,7 +164,7 @@ nuisance_corrections:
           include_squared: true
           summary: Mean
 
-      - Name: aCompCor
+      - Name: Regressor-with-aCompCor
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -197,17 +220,17 @@ timeseries_extraction:
       - Partial
   tse_roi_paths:
     # AAL
-    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     # Atlases
-    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     # Slab
-    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     # HO: Thresholded
-    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     # Jeulich
-    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     # CC
     /cpac_templates/CC200.nii.gz: Avg
     /cpac_templates/CC400.nii.gz: Avg
@@ -218,10 +241,10 @@ timeseries_extraction:
     /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-1000Parcels17NetworksOrder.nii.gz: Avg
     # Networks
     #  Yeo
-    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     #  Smith 2009  (to be included after https://github.com/FCP-INDI/C-PAC/issues/1640 is resolved)
     # /cpac_templates/Smith_space-MNI152NLin6_res-3x3x3_desc-thresh3_mask.nii.gz: Avg
 

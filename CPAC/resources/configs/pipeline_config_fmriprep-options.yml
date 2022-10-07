@@ -293,11 +293,11 @@ registration_workflows:
 
       apply_transform:
 
-        # options: 'default', 'abcd', 'single_step_resampling_from_stc'
+        # options: 'default', 'abcd', 'single_step_resampling'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
         # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
-        # 'single_step_resampling_from_stc': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
-        using: 'single_step_resampling_from_stc'
+        # 'single_step_resampling': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        using: 'single_step_resampling'
 
 functional_preproc: 
   motion_estimates_and_correction: 
@@ -338,9 +338,6 @@ nuisance_corrections:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
-
-    # run nuisance regression in BOLD or template space
-    space: template
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
