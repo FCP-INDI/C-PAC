@@ -172,7 +172,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
 
     F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols,
                              permutations, voxel_range)
-    
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
     p_file = os.path.join(cwd, 'significance_p.npy')
