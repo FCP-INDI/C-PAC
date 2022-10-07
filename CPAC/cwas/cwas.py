@@ -161,7 +161,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
         regressor = regressor[:, np.newaxis]
     elif len(regressor.shape) != 2:
         raise ValueError('Bad regressor shape: %s' % str(regressor.shape))
-        
     if len(subject_files) != regressor.shape[0]:
         raise ValueError('Number of subjects does not match regressor size')
     
