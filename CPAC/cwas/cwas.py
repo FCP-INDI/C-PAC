@@ -38,7 +38,6 @@ def joint_mask(subjects, mask_file=None):
         mask_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
         create_merged_copefile(files, cope_file)
         create_merge_mask(cope_file, mask_file)
-        #np.save()
     return mask_file
 
 
