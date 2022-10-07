@@ -118,7 +118,7 @@ def registration_guardrail_node(name=None):
                          function=registration_guardrail), name=name)
 
 
-def registration_guardrail_workflow(registration_node, retry=False):
+def registration_guardrail_workflow(registration_node, retry=True):
     """A workflow to handle hitting a registration guardrail
 
     Parameters
@@ -200,13 +200,14 @@ def retry_registration_node(registered, registration_node):
     """
     from CPAC.pipeline.random_state.seed import MAX_SEED, random_seed
     seed = random_seed()
-    if registered.endswith('-failed') and isinstance(seed, int):
+    if registered.endswith('-failed'):
         retry_node = registration_node.clone(
             name=f'{registration_node.name}-retry')
-        if seed < MAX_SEED:  # increment random seed
-            retry_node.seed = seed + 1
-        else:  # loop back to minumum seed
-            retry_node.seed = 1
+        if isinstance(seed, int):
+            if seed < MAX_SEED:  # increment random seed
+                retry_node.seed = seed + 1
+            else:  # loop back to minumum seed
+                retry_node.seed = 1
         return retry_node
     return registration_node
 
