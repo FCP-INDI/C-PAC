@@ -391,9 +391,9 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                 continue
             relative_filepath = filepath.split(pipeline_output_folder)[1]
             filepath_pieces = [_f for _f in relative_filepath.split("/") if _f]
-            
+
             resource_id = '_'.join(filepath_pieces[2].split(".")[0].split("_")[3:])
-            
+
             if resource_id not in search_dirs:
                 continue
 
