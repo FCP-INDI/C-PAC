@@ -40,7 +40,8 @@ def load_config_yml(config_file, individual=False):
 
         config_dict = yaml.safe_load(open(config_path, 'r'))
 
-        config = Configuration(config_dict)
+        #config = Configuration(config_dict)
+        config = config_dict
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
@@ -137,24 +138,22 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     exts = ".nii"
     nifti_globs = []
 
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_csv)
+        keys = pd.read_csv(keys_tsv, delimiter='\t')
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
         raise Exception(err)
 
     derivative_list = list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-score']['Resource'])
+        keys[keys['Sub-Directory'] == 'func']['Resource'])
     derivative_list = derivative_list + list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-stat']['Resource'])
+        keys[keys['Sub-Directory'] == 'anat']['Resource'])
 
     if pull_func:
         derivative_list = derivative_list + list(
-            keys[keys['Functional timeseries'] == 'yes']['Resource'])
+            keys[keys['Space'] == 'functional']['Resource'])
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
@@ -175,17 +174,16 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
                 dirs_to_grab.append(derivative_name)
 
     # grab MeanFD_Jenkinson just in case
-    dirs_to_grab.append("power_params")
+    dirs_to_grab.append("framewise-displacement-jenkinson")
 
     for resource_name in dirs_to_grab:
-        glob_string = os.path.join(pipeline_output_folder, "*",
-                                   resource_name, "*", "*")
-
+        glob_string = os.path.join(pipeline_output_folder, "*", "*", 
+                                   "*"+resource_name+"*")
+        print(glob_string)
         # get all glob strings that result in a list of paths where every path
         # ends with a NIFTI file
-
         prog_string = ".."
-
+        
         while len(glob.glob(glob_string)) != 0:
 
             if any(exts in x for x in glob.glob(glob_string)) == True:
@@ -193,7 +191,6 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
                 
             glob_string = os.path.join(glob_string, "*")
             prog_string = prog_string + "."
-            print(prog_string)
 
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
@@ -338,23 +335,22 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
     if derivatives is None:
 
-        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+        keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
         try:
-            keys = pd.read_csv(keys_csv)
+            keys = pd.read_csv(keys_tsv,delimiter='\t')
         except Exception as e:
             err = "\n[!] Could not access or read the cpac_outputs.csv " \
-                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
             raise Exception(err)
 
         derivatives = list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-score']['Resource'])
+            keys[keys['Sub-Directory'] == 'func']['Resource'])
         derivatives = derivatives + list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-stat']['Resource'])
+            keys[keys['Sub-Directory'] == 'anat']['Resource'])
 
         if pull_func:
-            derivatives = derivatives + list(keys[keys['Type'] == 'bold']['Resource'])
+            derivatives = derivatives + list(
+                keys[keys['Space'] == 'functional']['Resource'])
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -380,7 +376,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
     '''
 
     # grab MeanFD_Jenkinson just in case
-    search_dirs += ["power_params"]
+    search_dirs += ["framewise-displacement-jenkinson"]
 
     exts = ['.' + ext.lstrip('.') for ext in exts]
 
@@ -391,23 +387,23 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
         for filename in files:
 
             filepath = os.path.join(root, filename)
-
+            
             if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
                 continue
 
             if not any(filepath.endswith(ext) for ext in exts):
                 continue
-
+            
             relative_filepath = filepath.split(pipeline_output_folder)[1]
             filepath_pieces = [_f for _f in relative_filepath.split("/") if _f]
-
-            resource_id = filepath_pieces[1]
-
+            
+            resource_id = '_'.join(filepath_pieces[2].split(".")[0].split("_")[3:])
+            
             if resource_id not in search_dirs:
                 continue
 
-            series_id_string = filepath_pieces[2]
-            strat_info = "_".join(filepath_pieces[3:])[:-len(exts)]
+            series_id_string = filepath_pieces[2].split("_")[1]
+            strat_info = "_".join(filepath_pieces[2].split("_")[2:3])
 
             unique_resource_id = (resource_id, strat_info)
 
@@ -428,7 +424,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             new_row_dict["Filepath"] = filepath
 
             print('{0} - {1} - {2}'.format(
-                unique_id,
+                unique_id.split("_")[0],
                 series_id,
                 resource_id
             ))
@@ -717,12 +713,12 @@ def prep_feat_inputs(group_config_file):
     import pandas as pd
     import pkg_resources as p
 
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    keys_tsv = p.resource_filename('CPAC', 'resources/cpac_outputs.tsv')
     try:
-        keys = pd.read_csv(keys_csv)
+        keys = pd.read_csv(keys_tsv, delimiter='\t')
     except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        err = "\n[!] Could not access or read the cpac_outputs.tsv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
         raise Exception(err)
 
     derivatives = list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
@@ -1275,7 +1271,7 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                                                    "inclusion list")
 
     output_df_dct = gather_outputs(pipeline_dir,
-                                   ['space-template_bold'],
+                                   ['space-template_desc-preproc_bold'],
                                    inclusion_list, False, False,
                                    get_func=True)
 
@@ -1309,7 +1305,7 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                 plugin = 'Linear'
             else:
                 plugin = 'MultiProc'
-
+            
             cwas_wf = create_cwas(name="MDMR_{0}".format(df_scan),
                                   working_dir=working_dir,
                                   crash_dir=crash_dir)
@@ -1332,13 +1328,11 @@ def run_cwas(pipeline_config):
     pipeline_config = os.path.abspath(pipeline_config)
 
     pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
-    plugin_args = {'n_procs' : 8, 'memory_gb' : 10}
     
-    if "num_cpus" in pipeconfig_dct.keys():
-        num_cpus = pipeconfig_dct["pipeline_setup"]["system_config"]["num_cpus"]
-
-    if "maximum_memory_per_participant" in pipeconfig_dct.keys():
-        mem_gb = pipeconfig_dct["pipeline_setup"]["system_config"]["num_memory"]
+    num_cpus = pipeconfig_dct["pipeline_setup"]["system_config"]["num_cpus"]
+    mem_gb = pipeconfig_dct["pipeline_setup"]["system_config"]["num_memory"]
+    
+    plugin_args = {'n_procs' : num_cpus, 'memory_gb' : mem_gb}
 
     pipeline = pipeconfig_dct["pipeline_setup"]["output_directory"]["source_outputs_path"]
     output_dir = pipeconfig_dct["pipeline_setup"]["output_directory"]["output_path"]
@@ -1352,8 +1346,6 @@ def run_cwas(pipeline_config):
     permutations = pipeconfig_dct["mdmr"]["permutations"]
     parallel_nodes = pipeconfig_dct["mdmr"]["parallel_nodes"]
     inclusion = pipeconfig_dct["mdmr"]["inclusion_list"]
-    plugin_args['n_procs'] = num_cpus
-    plugin_args['memory_gb'] = mem_gb
     z_score = pipeconfig_dct["mdmr"]["zscore"]
 
     if not inclusion or "None" in inclusion or "none" in inclusion:
