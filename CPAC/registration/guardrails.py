@@ -83,6 +83,8 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
     for metric, threshold in REGISTRATION_GUARDRAIL_THRESHOLDS.items():
         if threshold is not None:
             value = qc_metrics.get(metric)
+            if isinstance(value, list):
+                value = value[0]
             if value < threshold:
                 with open(f'{registered}.failed_qc', 'w',
                           encoding='utf-8') as _f:
