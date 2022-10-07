@@ -1625,7 +1625,7 @@ def run_basc(pipeline_config):
         basc_config_dct['cross_cluster_mask_file'] = roi_file_two
 
     pipeline_dir = os.path.abspath(pipeconfig_dct["pipeline_setup"]
-    ["output_directory"]["source_outputs_path"])
+                                   ["output_directory"]["source_outputs_path"])
 
     out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
                            '{0}mm_resolution'.format(basc_resolution),
