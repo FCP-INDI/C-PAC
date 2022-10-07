@@ -88,7 +88,7 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
             if value < threshold:
                 with open(f'{registered}.failed_qc', 'w',
                           encoding='utf-8') as _f:
-                    _f.write(True)
+                    _f.write(f'{metric}: {value} < {threshold}')
                 if retry:
                     registered = f'{registered}-failed'
                 else:
