@@ -181,7 +181,6 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
         # get all glob strings that result in a list of paths where every path
         # ends with a NIFTI file
         prog_string = ".."
-        
         while len(glob.glob(glob_string)) != 0:
 
             if any(exts in x for x in glob.glob(glob_string)) == True:
