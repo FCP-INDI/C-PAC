@@ -157,7 +157,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
         .reset_index(drop=True) \
         .values \
         .astype(np.float64)
-    #print(regressor)
     if len(regressor.shape) == 1:
         regressor = regressor[:, np.newaxis]
     elif len(regressor.shape) != 2:
