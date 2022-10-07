@@ -168,8 +168,8 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
     subjects_data = np.array([
         nb.load(subject_file).get_fdata().astype('float64')[mask_indices]
         for subject_file in subject_files
-        ])
-    
+    ])
+
     F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols,
                              permutations, voxel_range)
     
