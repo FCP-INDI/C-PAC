@@ -515,7 +515,6 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     More info:
       https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/
           UserGuide#Paired_Two-Group_Difference_.28Two-Sample_Paired_T-Test.29
-    
     Sample input:
         pheno_df
           sub01
