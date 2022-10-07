@@ -384,7 +384,6 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
         for filename in files:
 
             filepath = os.path.join(root, filename)
-            
             if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
                 continue
 
