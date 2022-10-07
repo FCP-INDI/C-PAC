@@ -165,7 +165,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
         raise ValueError('Number of subjects does not match regressor size')
     mask = nb.load(mask_file).get_fdata().astype('bool')
     mask_indices = np.where(mask)
-    
     subjects_data = np.array([
         nb.load(subject_file).get_fdata().astype('float64')[mask_indices]
         for subject_file in subject_files
