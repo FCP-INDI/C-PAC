@@ -133,7 +133,6 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
     import glob
     import pandas as pd
     import pkg_resources as p
-    #from __builtin__ import any as any
 
     exts = ".nii"
     nifti_globs = []
