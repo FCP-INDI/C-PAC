@@ -138,7 +138,6 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
             if str(sub_id).lstrip('0') == str(pheno_sub_id):
                 regressor_data.at[index, participant_column] = str(sub_id)
     
-    #print(regressor_data)
     regressor_data.index = regressor_data[participant_column]
 
     # Keep only data from specific subjects
