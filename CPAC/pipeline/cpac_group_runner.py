@@ -1489,7 +1489,6 @@ def run_basc(pipeline_config):
               A bootstrap test to investigate changes in brain connectivity for functional MRI. Statistica Sinica, 1253-1268.
     PyBASC GitHub repository:
         https://github.com/AkiNikolaidis/PyBASC
-    
     PyBASC author:
         https://www.researchgate.net/profile/Aki_Nikolaidis
     
