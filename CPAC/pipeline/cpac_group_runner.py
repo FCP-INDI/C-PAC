@@ -1355,7 +1355,6 @@ def find_other_res_template(template_path, new_resolution):
     template_path: file path to the template NIfTI file
     
     new_resolution: (int) the resolution of the template file you need
-    
     NOTE: Makes an assumption regarding the filename format of the files.
     
     """
