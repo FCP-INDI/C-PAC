@@ -1487,7 +1487,6 @@ def run_basc(pipeline_config):
               Multi-level bootstrap analysis of stable clusters in resting-state fMRI. Neuroimage, 51(3), 1126-1139.
         - Bellec, P., Marrelec, G., & Benali, H. (2008).
               A bootstrap test to investigate changes in brain connectivity for functional MRI. Statistica Sinica, 1253-1268.
-    
     PyBASC GitHub repository:
         https://github.com/AkiNikolaidis/PyBASC
     
