@@ -1491,7 +1491,6 @@ def run_basc(pipeline_config):
         https://github.com/AkiNikolaidis/PyBASC
     PyBASC author:
         https://www.researchgate.net/profile/Aki_Nikolaidis
-    
     Inputs
         pipeline_config: path to C-PAC pipeline configuration YAML file
     
