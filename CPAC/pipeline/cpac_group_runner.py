@@ -40,8 +40,7 @@ def load_config_yml(config_file, individual=False):
 
         config_dict = yaml.safe_load(open(config_path, 'r'))
 
-        #config = Configuration(config_dict)
-        config = config_dict
+        config = Configuration(config_dict)
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
@@ -49,10 +48,10 @@ def load_config_yml(config_file, individual=False):
         raise Exception(err)
 
     if individual:
-        config.logDirectory = os.path.abspath(config.logDirectory)
-        config.workingDirectory = os.path.abspath(config.workingDirectory)
-        config.outputDirectory = os.path.abspath(config.outputDirectory)
-        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
+        config.logDirectory = os.path.abspath(config["pipeline_setup"]["log_directory"]["path"])
+        config.workingDirectory = os.path.abspath(config["pipeline_setup"]["working_directory"]["path"])
+        config.outputDirectory = os.path.abspath(config["pipeline_setup"]["output_directory"]["output_path"])
+        config.crashLogDirectory = os.path.abspath(config["pipeline_setup"]["crash_log_directory"]["path"])
 
     return config
 
