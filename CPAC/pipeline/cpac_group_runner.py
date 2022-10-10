@@ -1480,7 +1480,6 @@ def run_basc(pipeline_config):
     
     PyBASC is a separate Python package built and maintained by Aki Nikolaidis
     which implements the BASC analysis via Python.
-    
     PyBASC is based off of the following work:
         - Garcia-Garcia, M., Nikolaidis, A., Bellec, P., Craddock, R. C., Cheung, B., Castellanos, F. X., & Milham, M. P. (2017).
               Detecting stable individual differences in the functional organization of the human basal ganglia. NeuroImage.
