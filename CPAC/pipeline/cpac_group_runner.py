@@ -1493,7 +1493,6 @@ def run_basc(pipeline_config):
         https://www.researchgate.net/profile/Aki_Nikolaidis
     Inputs
         pipeline_config: path to C-PAC pipeline configuration YAML file
-    
     Steps (of the C-PAC interface for PyBASC, not PyBASC itself)
         1. Read in the PyBASC-relevant pipeline config items and create a new
            PyBASC config dictionary.
