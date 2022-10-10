@@ -1751,7 +1751,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
     )
 
     iteration_ids = []
-    for preproc_strat in output_df_dct.items():
+    for preproc_strat in output_df_dct.keys():
         # go over each preprocessing strategy
 
         derivative, _ = preproc_strat
