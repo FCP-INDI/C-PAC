@@ -1352,7 +1352,6 @@ def find_other_res_template(template_path, new_resolution):
     """
     Find the same template/standard file in another resolution, if it
     exists.
-    
     template_path: file path to the template NIfTI file
     
     new_resolution: (int) the resolution of the template file you need
