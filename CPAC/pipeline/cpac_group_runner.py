@@ -1515,7 +1515,6 @@ def run_basc(pipeline_config):
            into a config YAML file for each pipeline-strategy-scan we are
            running.
         10. Launch PyBASC for each configuration generated.
-   
     """
 
     import os
