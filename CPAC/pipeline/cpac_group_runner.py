@@ -1282,7 +1282,6 @@ def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                 df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
         else:
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
-	
         for df_scan in df_dct.keys():
             func_paths = {
                 p.split("_")[0]: f
