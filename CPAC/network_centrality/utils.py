@@ -95,6 +95,7 @@ def sep_nifti_subbriks(nifti_file, out_names):
     nii_arr = nii_img.get_data()
     nii_affine = nii_img.get_affine()
     nii_dims = nii_arr.shape
+    raise Exception(nii_arr.shape, len(out_names), nii_img)
 
     if nii_dims[-1] != len(out_names):
         if len(nii_dims) == 3 and len(out_names) == 1:
