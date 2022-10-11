@@ -33,14 +33,13 @@ def load_config_yml(config_file, individual=False):
     import os
     import yaml
     import yamlordereddictloader
-    from CPAC.utils import Configuration
 
     try:
         config_path = os.path.realpath(config_file)
 
         config_dict = yaml.safe_load(open(config_path, 'r'))
 
-        config = Configuration(config_dict)
+        config = config_dict
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
