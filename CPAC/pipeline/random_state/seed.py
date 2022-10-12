@@ -166,16 +166,15 @@ def set_up_random_state(seed):
     if seed is not None:
         if seed == 'random':
             seed = random_random_seed()
-        if (seed != 'random' and not (
-            isinstance(seed, int) and
-            (0 < int(seed) <= np.iinfo(np.int32).max)
-        )):
-            raise ValueError('Valid random seeds are positive integers up to '
-                             f'2147483647, "random", or None, not {seed}')
-    try:
-        _seed['seed'] = int(seed)
-    except (TypeError, ValueError):
-        _seed['seed'] = seed
+        else:
+            try:
+                seed = int(seed)
+                assert 0 < seed <= np.iinfo(np.int32).max
+            except(ValueError, TypeError, AssertionError):
+                raise ValueError('Valid random seeds are positive integers up to '
+                                    f'2147483647, "random", or None, not {seed}')
+    
+    _seed['seed'] = seed
     return random_seed()
 
 
