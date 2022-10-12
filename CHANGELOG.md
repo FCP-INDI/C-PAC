@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relicensed C-PAC from BSD-3-Clause to LGPL-3.0-or-later
 
 ### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1741) that was causing `single_step_resampling` to inadvertently cause unexpected forks in the pipeline past transform application.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1686) that was causing datasets containing phase-difference field maps to crash.
