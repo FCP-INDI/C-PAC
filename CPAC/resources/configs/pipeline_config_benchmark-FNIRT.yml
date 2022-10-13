@@ -336,7 +336,7 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: [Binarized, Weighted]
+    weight_options: ['Binarized', 'Weighted']
 
   local_functional_connectivity_density:
 
