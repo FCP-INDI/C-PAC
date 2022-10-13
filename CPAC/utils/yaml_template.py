@@ -21,15 +21,18 @@ from hashlib import sha1
 import yaml
 from click import BadParameter
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.configuration.diff import dct_diff, diff_dict
+from CPAC.utils.configuration.diff import dct_diff
 from CPAC.utils.utils import load_preconfig, \
                              lookup_nested_value, update_config_dict, \
-                             update_pipeline_values_1_8
+                             update_pipeline_values_1_8, YAML_BOOLS
+
+YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for
+               yaml_str in value}
 
 
-def create_yaml_from_template(
-    d, template=DEFAULT_PIPELINE_FILE, include_all=False
-):
+def create_yaml_from_template(d,  # pylint: disable=invalid-name
+                              template=DEFAULT_PIPELINE_FILE,
+                              include_all=False):
     """Save dictionary to a YAML file, keeping the structure
     (such as first level comments and ordering) from the template
 
@@ -76,8 +79,15 @@ def create_yaml_from_template(
     >>> fmriprep_options - Configuration(yaml.safe_load(
     ...     create_yaml_from_template(fmriprep_options, include_all=False)))
     {}
-    >>> different_sca_options = Configuration({})
-    """  # noqa: E501 # pylint: disable=line-too-long
+    >>> different_sca = Configuration({'pipeline_setup': {
+    ...     'pipeline_name': 'different_SCA'},
+    ...     'seed_based_correlation_analysis': {'run': 'y',
+    ...     'norm_timeseries_for_DR': 'Off'}})
+    >>> (Configuration(yaml.safe_load(create_yaml_from_template(
+    ...     different_sca))) - Configuration()).get(
+    ...     'seed_based_correlation_analysis') not in (None, {})
+    True
+    """
     def _count_indent(line):
         '''Helper method to determine indentation level
 
@@ -293,13 +303,12 @@ def create_yaml_from_template(
                             # Use 'On' and 'Off' for bools
                             if (isinstance(orig_value, bool) or (
                                 isinstance(orig_value, str) and
-                                orig_value in {'On', 'Off'}
-                            ) or (isinstance(orig_value, list) and all([(
+                                orig_value.lower() in YAML_LOOKUP
+                            ) or (isinstance(orig_value, list) and all((
                                 isinstance(orig_item, bool) or (
                                     isinstance(orig_item, str) and
-                                    orig_item in {'On', 'Off'}
-                                )
-                            ) for orig_item in orig_value])
+                                    orig_item.lower() in YAML_LOOKUP
+                                )) for orig_item in orig_value)
                             )):
                                 value = yaml_bool(value)
                             # prepend comment from template
@@ -414,13 +423,10 @@ def yaml_bool(value):
     >>> yaml_bool([False, 'On', True])
     ['Off', 'On', 'On']
     '''
-    yaml_lookup = {
-        True: 'On', 'True': 'On', 1: 'On',
-        False: 'Off', 'False': 'Off', 0: 'Off'}
-    if (
-        isinstance(value, bool) or isinstance(value, str)
-    ) and value in yaml_lookup:
-        return yaml_lookup[value]
+    if isinstance(value, str):
+        lookup_value = value.lower()
+        if lookup_value in YAML_LOOKUP:
+            return YAML_LOOKUP[lookup_value]
     elif isinstance(value, list):
         return [yaml_bool(item) for item in value]
     elif isinstance(value, dict):

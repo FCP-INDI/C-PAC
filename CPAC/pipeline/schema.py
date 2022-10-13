@@ -27,7 +27,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
-                             set_nested_value
+                             set_nested_value, YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -62,9 +62,8 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
                 return False
         except ValueError:
             pass
-        x = True if str(x).lower() in (
-            'on', 'y', 'yes') else False if str(x).lower() in (
-            '0', 'false', 'n', 'no', 'off') else x
+        x = (True if str(x).lower() in YAML_BOOLS[True] else
+             False if str(x).lower() in YAML_BOOLS[False] else x)
     return bool(x)
 
 
