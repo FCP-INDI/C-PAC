@@ -49,7 +49,7 @@ def create_yaml_from_template(
     Examples
     --------
     >>> import yaml
-    >>> from CPAC.utils.configuration import Configuration
+    >>> from CPAC.utils.configuration import Configuration, Preconfiguration
     >>> Configuration(yaml.safe_load(create_yaml_from_template({}))).dict(
     ...     ) == Configuration({}).dict()
     True
@@ -58,6 +58,25 @@ def create_yaml_from_template(
     Traceback (most recent call last):
         ...
     ValueError: 'Lil BUB' is not a valid path nor a defined preconfig.
+    >>> fmriprep_options = Preconfiguration('fmriprep-options')
+    Loading the 'fmriprep-options' pre-configured pipeline.
+    >>> fmriprep_options - Configuration({}) != {}
+    True
+    >>> fmriprep_options - fmriprep_options
+    {}
+    >>> fmriprep_options - Preconfiguration('fmriprep-options')
+    Loading the 'fmriprep-options' pre-configured pipeline.
+    {}
+    >>> fmriprep_options - Configuration({'FROM': 'fmriprep-options'})
+    Loading the 'fmriprep-options' pre-configured pipeline.
+    {}
+    >>> fmriprep_options - Configuration(yaml.safe_load(
+    ...     create_yaml_from_template(fmriprep_options, include_all=True)))
+    {}
+    >>> fmriprep_options - Configuration(yaml.safe_load(
+    ...     create_yaml_from_template(fmriprep_options, include_all=False)))
+    {}
+    >>> different_sca_options = Configuration({})
     """  # noqa: E501 # pylint: disable=line-too-long
     def _count_indent(line):
         '''Helper method to determine indentation level
