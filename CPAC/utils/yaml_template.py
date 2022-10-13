@@ -19,15 +19,128 @@ import re
 from datetime import datetime
 from hashlib import sha1
 import yaml
-from click import BadParameter
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.configuration.diff import dct_diff
-from CPAC.utils.utils import load_preconfig, \
-                             lookup_nested_value, update_config_dict, \
-                             update_pipeline_values_1_8, YAML_BOOLS
+from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, \
+                             YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for
                yaml_str in value}
+
+
+class YamlTemplate():  # pylint: disable=too-few-public-methods
+    """A class to link YAML comments to the contents of a YAML file"""
+    def __init__(self, original_yaml):
+        """
+        Parameters
+        ----------
+        original_yaml : str
+            raw YAML or path to YAML file
+        """
+        if os.path.exists(original_yaml):
+            with open(original_yaml, 'r', encoding='utf-8') as _f:
+                original_yaml = _f.read()
+        self.comments = {}
+        self.original = original_yaml
+        self._dict = yaml.safe_load(self.original)
+        self._parse_comments()
+
+    get_nested = Configuration.get_nested
+
+    def dump(self, new_dict, parents=None):
+        """Dump a YAML file from a new dictionary with the comments from
+        the template dictionary
+
+        Parameters
+        ----------
+        new_dict : dict
+
+        parents : list of str
+
+        Returns
+        -------
+        str
+        """
+        parents = parents if parents is not None else []
+        line_level = len(parents)
+        _dump = []
+        for key in (self.get_nested(new_dict, parents) if
+                    parents else new_dict):
+            keys = [*parents, key]
+            comment = self.comments.get('.'.join(keys))
+            try:
+                value = self.get_nested(new_dict, keys)
+            except KeyError:  # exclude unincluded keys
+                continue
+            indented_key = f'{indent(line_level, 0)}{key}:'
+            if comment:
+                _dump += ['']
+                _dump += [indent(line_level, 0) + line for line in comment]
+            else:
+                while _dump and _dump[-1].strip() == '':
+                    _dump = _dump[:-1]
+            if value is not None:
+                if isinstance(value, dict):
+                    _dump += [indented_key, self.dump(new_dict, keys)]
+                elif isinstance(value, list):
+                    list_line = _format_list_items(value, line_level + 1)
+                    if '\n' in list_line:
+                        _dump += [indented_key, *list_line.split('\n')]
+                    else:
+                        _dump += [f'{indented_key} {list_line}']
+                elif isinstance(value, bool) or (isinstance(value, str) and
+                                                 value.lower() in YAML_LOOKUP):
+                    if isinstance(value, str):
+                        value = YAML_LOOKUP[value.lower()]
+                    value = 'On' if value is True else 'Off'
+                    _dump += [f'{indented_key} {value}']
+                else:
+                    _dump += [f'{indented_key} {value}']
+            else:
+                _dump += [indented_key]
+        while _dump and _dump[0] == '\n':
+            _dump = _dump[1:]
+        return re.sub('\n{3,}', '\n\n', '\n'.join(_dump)).rstrip() + '\n'
+
+    def _parse_comments(self):
+        yaml_lines = self.original.split('\n')
+        comment = []
+        key = []
+        for line in yaml_lines:
+            line_level = _count_indent(line)
+            stripped_line = line.strip()
+            if stripped_line.startswith('#'):
+                comment.append(stripped_line)
+            elif not any(stripped_line.startswith(seq) for
+                         seq in ('%YAML', '---')):
+                if ':' in stripped_line:
+                    line_key = stripped_line.split(':', 1)[0]
+                    if line_level == 0:
+                        key = [line_key]
+                    else:
+                        key = [*key[:line_level], line_key]
+                    self.comments['.'.join(key)] = comment
+                    comment = []
+
+
+def _count_indent(line):
+    '''Helper method to determine indentation level
+
+    Parameters
+    ----------
+    line : str
+
+    Returns
+    -------
+    number_of_indents : int
+
+    Examples
+    --------
+    >>> _count_indent('No indent')
+    0
+    >>> _count_indent('    Four spaces')
+    2
+    '''
+    return (len(line) - len(line.lstrip())) // 2
 
 
 def create_yaml_from_template(d,  # pylint: disable=invalid-name
@@ -44,7 +157,10 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     d : dict or Configuration
 
     template : str
-        path to template or name of preconfig
+        path to template or YAML as a string
+
+        .. versionchanged:: 1.8.5
+           used to take path to template or name of preconfig
 
     include_all : bool
         include every key, even those that are unchanged
@@ -56,11 +172,6 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     >>> Configuration(yaml.safe_load(create_yaml_from_template({}))).dict(
     ...     ) == Configuration({}).dict()
     True
-    >>> Configuration(yaml.safe_load(create_yaml_from_template({},
-    ...     template='Lil BUB')))
-    Traceback (most recent call last):
-        ...
-    ValueError: 'Lil BUB' is not a valid path nor a defined preconfig.
     >>> fmriprep_options = Preconfiguration('fmriprep-options')
     Loading the 'fmriprep-options' pre-configured pipeline.
     >>> fmriprep_options - Configuration({}) != {}
@@ -88,279 +199,46 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     ...     'seed_based_correlation_analysis') not in (None, {})
     True
     """
-    def _count_indent(line):
-        '''Helper method to determine indentation level
+    yaml_template = YamlTemplate(template)
+    d = d.dict() if isinstance(d, Configuration) else d
+    return yaml_template.dump(new_dict=d)
 
-        Parameters
-        ----------
-        line : str
 
-        Returns
-        -------
-        number_of_indents : int
+def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
+                       line_level):
+    '''Helper method to handle lists in the YAML
 
-        Examples
-        --------
-        >>> _count_indent('No indent')
-        0
-        >>> _count_indent('    Four spaces')
-        2
-        '''
-        return (len(line) - len(line.lstrip())) // 2
+    Parameters
+    ----------
+    l : list
 
-    def _create_import_dict(diff):
-        '''Method to return a dict of only changes given a nested dict
-        of (dict1_value, dict2_value) tuples
+    line_level : int
 
-        Parameters
-        ----------
-        diff : dict
-            output of `dct_diff`
+    Returns
+    -------
+    yaml : str
 
-        Returns
-        -------
-        dict
-            dict of only changed values
-
-        Examples
-        --------
-        >>> _create_import_dict({'anatomical_preproc': {
-        ...     'brain_extraction': {'extraction': {
-        ...         'run': ([True], False),
-        ...         'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
-        {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
-        '''  # noqa: E501  # pylint: disable=line-too-long
-        if isinstance(diff, tuple) and len(diff) == 2:
-            return diff[1]
-        if isinstance(diff, dict):
-            i = {}
-            for k in diff:
-                try:
-                    j = _create_import_dict(diff[k])
-                    if j != {}:
-                        i[k] = j
-                except KeyError:
-                    continue
-            return i
-        return diff
-
-    def _format_key(key, level):
-        '''Helper method to format YAML keys
-
-        Parameters
-        ----------
-        key : str
-        level : int
-
-        Returns
-        -------
-        yaml : str
-
-        Examples
-        --------
-        >>> _format_key('base', 0)
-        '\nbase: '
-        >>> _format_key('indented', 2)
-        '\n    indented:'
-        '''
-        return f'\n{" " * level * 2}{key}: '
-
-    def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
-                           line_level):
-        '''Helper method to handle lists in the YAML
-
-        Parameters
-        ----------
-        l : list
-
-        line_level : int
-
-        Returns
-        -------
-        yaml : str
-
-        Examples
-        --------
-        >>> _format_list_items([1, 2, {'nested': 3}], 0)
-        '  - 1\n  - 2\n  - nested: 3'
-        >>> _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1)
-        '    - 1\n    - 2\n    - nested:\n      - 3\n      - deep:\n        - 4'
-        '''  # noqa: E501  # pylint: disable=line-too-long
-        # keep short, simple lists in square brackets
-        if all(isinstance(item, (str, bool, int, float)) for item in l):
-            if len(str(l)) < 50:
-                return str(l).replace("'", '').replace('"', '')
-        # list long or complex lists on lines with indented '-' lead-ins
-        return '\n' + '\n'.join([
-            f'{indent(line_level)}{li}' for li in yaml.dump(
-                yaml_bool(l)
-            ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
-        ]).rstrip()
-
-    # set starting values
-    output = ''
-    comment = ''
-    space_match = r'^\s+.*'
-    level = 0
-    nest = []
-    list_item = False
-    list_level = 0
-    line_level = 0
-    template_name = template
-    if isinstance(d, Configuration):
-        d = d.dict()
-    try:
-        template = load_preconfig(template)
-    except BadParameter as bad_parameter:
-        if 'default' in template.lower():
-            template = DEFAULT_PIPELINE_FILE
-        if not os.path.exists(template) or os.path.islink(template):
-            raise ValueError(f'\'{template_name}\' is not a valid path nor a '
-                             'defined preconfig.') from bad_parameter
-    template_included = False
-
-    # load default values
-    d_default = Configuration(yaml.safe_load(open(template, 'r'))).dict()
-
-    if (
-        template == DEFAULT_PIPELINE_FILE or
-        not dct_diff(
-            yaml.safe_load(open(DEFAULT_PIPELINE_FILE, 'r')), d_default)
-    ):
-        template_name = 'default'
-
-    # update values
-    if include_all:
-        d_default.update(d)
-        d = _create_import_dict(dct_diff({}, d_default))
-    else:
-        d = _create_import_dict(dct_diff(d_default, d))
-
-    # generate YAML from template with updated values
-    template_dict = yaml.safe_load(open(template, 'r'))
-    with open(template, 'r') as f:
-        for line in f:
-
-            # persist comments and frontmatter
-            if line.startswith('%') or line.startswith('---') or re.match(
-                r'^\s*#.*$', line
-            ):
-                list_item = False
-                line = line.strip('\n')
-                comment += f'\n{line}'
-            elif len(line.strip()):
-                if re.match(space_match, line):
-                    line_level = _count_indent(line)
-                else:
-                    line_level = 0
-
-                # handle lists as a unit
-                if list_item:
-                    if line_level < list_level - 1:
-                        list_item = False
-                        level = list_level
-                        list_level = 0
-                elif line.lstrip().startswith('-'):
-                    list_item = True
-                    list_level = line_level - 1
-
-                else:
-                    # extract dict key
-                    key_group = re.match(
-                        r'^\s*(([a-z0-9A-Z_]+://){0,1}'
-                        r'[a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
-                    if key_group:
-                        if not template_included:
-                            # prepend comment from template
-                            if len(comment.strip()):
-                                comment = re.sub(
-                                    r'(?<=# based on )(.* pipeline)',
-                                    f'{template_name} pipeline',
-                                    comment
-                                )
-                                output += comment
-                                output += f'\nFROM: {template_name}\n'
-                                comment = ''
-                            template_included = True
-                        key = key_group.group(1).strip()
-
-                        # calculate key depth
-                        if line_level == level:
-                            if level > 0:
-                                nest = nest[:-1] + [key]
-                            else:
-                                nest = [key]
-                        elif line_level == level + 1:
-                            nest += [key]
-                        elif line_level < level:
-                            nest = nest[:line_level] + [key]
-
-                        # only include updated and new values
-                        try:
-                            # get updated value for key
-                            value = lookup_nested_value(d, nest)
-                            orig_value = lookup_nested_value(d_default, nest)
-                            # Use 'On' and 'Off' for bools
-                            if (isinstance(orig_value, bool) or (
-                                isinstance(orig_value, str) and
-                                orig_value.lower() in YAML_LOOKUP
-                            ) or (isinstance(orig_value, list) and all((
-                                isinstance(orig_item, bool) or (
-                                    isinstance(orig_item, str) and
-                                    orig_item.lower() in YAML_LOOKUP
-                                )) for orig_item in orig_value)
-                            )):
-                                value = yaml_bool(value)
-                            # prepend comment from template
-                            if len(comment.strip()):
-                                output += comment
-                            else:
-                                output += '\n'
-
-                            # write YAML
-                            output += _format_key(key, line_level)
-                            if isinstance(value, list):
-                                output += _format_list_items(
-                                    value, line_level)
-                            elif isinstance(value, dict):
-                                for k in value.keys():
-                                    try:
-                                        lookup_nested_value(template_dict,
-                                                            nest + [k])
-                                    # include keys not in template
-                                    except KeyError:
-                                        output += _format_key(
-                                            k, line_level + 1)
-                                        parsed = _format_list_items(
-                                            value[k],
-                                            line_level + 1
-                                        ) if isinstance(
-                                            value[k], list) else yaml_bool(
-                                                value[k])
-                                        if isinstance(parsed, (int, float)):
-                                            parsed = str(parsed)
-                                        elif parsed is None:
-                                            parsed = ''
-                                        output += parsed if (
-                                            isinstance(parsed, str)
-                                        ) else (
-                                            '\n' + indent(line_level + 1) +
-                                            f'\n{indent(line_level + 1)}' +
-                                            yaml.dump(parsed) + '\n')
-                            else:
-                                output += str(value)
-                        except KeyError:
-                            # clear comment for excluded key
-                            comment = '\n'
-
-                        # reset variables for loop
-                        comment = '\n'
-                        level = line_level
-            elif len(comment) > 1 and comment[-2] != '\n':
-                comment += '\n'
-    while '\n\n\n' in output:
-        output = output.replace('\n\n\n', '\n\n')
-    return output.lstrip('\n').replace('null', '')
+    Examples
+    --------
+    # >>> _format_list_items([1, 2, {'nested': 3}], 0
+    # ... ) == r'\n  - 1\n  - 2\n  - nested: 3'
+    # True
+    # >>> _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1
+    # ... ) == (r'\n    - 1\n    - 2\n    - nested:\n      - 3\n'
+    # ...       '      - deep:\n        - 4')
+    # True
+    '''
+    # keep short, simple lists in square brackets
+    if all(isinstance(item, (str, bool, int, float)) for item in l):
+        preformat = str([yaml_bool(item) for item in l])
+        if len(preformat) < 50:
+            return preformat.replace("'", '').replace('"', '')
+    # list long or complex lists on lines with indented '-' lead-ins
+    return '\n' + '\n'.join([
+        f'{indent(line_level)}{li}' for li in yaml.dump(
+            yaml_bool(l)
+        ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
+    ]).rstrip()
 
 
 def hash_data_config(sub_list):
@@ -389,7 +267,7 @@ def hash_data_config(sub_list):
                         'unique_id']]).encode('utf-8')).hexdigest()[:8]
 
 
-def indent(line_level):
+def indent(line_level, plus=2):
     '''Function to return an indent string for a given level
 
     Parameters
@@ -402,7 +280,7 @@ def indent(line_level):
     str
         The string of spaces to use for indentation
     '''
-    return " " * (2 * line_level + 2)
+    return " " * (2 * line_level + plus)
 
 
 def yaml_bool(value):
@@ -426,11 +304,15 @@ def yaml_bool(value):
     if isinstance(value, str):
         lookup_value = value.lower()
         if lookup_value in YAML_LOOKUP:
-            return YAML_LOOKUP[lookup_value]
+            value = YAML_LOOKUP[lookup_value]
     elif isinstance(value, list):
         return [yaml_bool(item) for item in value]
     elif isinstance(value, dict):
         return {k: yaml_bool(value[k]) for k in value}
+    if isinstance(value, bool):
+        if value is True:
+            return 'On'
+        return 'Off'
     return value
 
 

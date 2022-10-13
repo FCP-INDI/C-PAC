@@ -338,10 +338,10 @@ class Configuration:
             else:
                 return d[keys[0]]
 
-    def set_nested(self, d, keys, value):
+    def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
             d[keys] = value
-        elif isinstance(keys, tuple) or isinstance(keys, list):
+        elif isinstance(keys, (list, tuple)):
             if len(keys) > 1:
                 d[keys[0]] = self.set_nested(d[keys[0]], keys[1:], value)
             else:
