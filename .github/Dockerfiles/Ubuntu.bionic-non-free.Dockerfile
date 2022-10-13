@@ -148,6 +148,7 @@ RUN conda update conda -y && \
 COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
 COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/MSMConfig/MSMSulcStrainFinalconf /opt/dcan-tools/pipeline/MSMConfig/MSMSulcStrainFinalconf
 
 ENTRYPOINT ["/bin/bash"]
 
