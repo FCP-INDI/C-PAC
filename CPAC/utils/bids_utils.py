@@ -724,6 +724,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
+                    if suf == 'epi' and 'acq-fMRI' not in s3_obj.key:
+                        continue
                     if str(s3_obj.key).endswith("json"):
                         try:
                             config_dict[s3_obj.key.replace(prefix, "")
@@ -743,6 +745,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
             if files:
                 for f in files:
                     for suf in suffixes:
+                        if suf == 'epi' and 'acq-fMRI' not in f:
+                            continue
                         if 'nii' in f and suf in f:
                             file_paths += [os.path.join(root, f)
                                            .replace(bids_dir, '').lstrip('/')]

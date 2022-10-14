@@ -574,7 +574,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     else:
         startidx = int(start_idx)
 
-    if (stop_idx == None) or (int(stop_idx) > (nvols - 1)):
+    if (stop_idx in [None, "End"]) or (int(stop_idx) > (nvols - 1)):
         stopidx = nvols - 1
     else:
         stopidx = int(stop_idx)
@@ -1000,19 +1000,21 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
                 "tpattern"],
      "outputs": {
          "desc-preproc_bold": {
-             "Description": "Slice-time corrected BOLD time-series via AFNI 3dTShift."
+             "Description": "Slice-time corrected BOLD time-series via"
+                            " AFNI 3dTShift."
          },
          "desc-stc_bold": {
-             "Description": "Slice-time corrected BOLD time-series via AFNI 3dTShift."}}
+             "Description": "Slice-time corrected BOLD time-series via"
+                            " AFNI 3dTShift."}}
     }
     '''
 
     slice_time = slice_timing_wf(name='func_slice_timing_correction_'
-                                 f'{pipe_num}',
+                                      f'{pipe_num}',
                                  tpattern=cfg.functional_preproc[
-                                 'slice_timing_correction']['tpattern'],
+                                     'slice_timing_correction']['tpattern'],
                                  tzero=cfg.functional_preproc[
-                                 'slice_timing_correction']['tzero'])
+                                     'slice_timing_correction']['tzero'])
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, slice_time, 'inputspec.func_ts')

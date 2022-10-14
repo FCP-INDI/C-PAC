@@ -44,9 +44,8 @@ jobs:
             VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
             cd ..
             echo "v${VERSION}" > version
-            sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
             find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-            git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+            git add version CPAC/resources/configs
             if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
             then
               git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"

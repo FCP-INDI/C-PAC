@@ -110,7 +110,7 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     timeser = masker.fit_transform(in_file)
     correlation_measure = ConnectivityMeasure(kind=method)
     corr_matrix = correlation_measure.fit_transform([timeser])[0]
-    np.fill_diagonal(corr_matrix, 0)
+    np.fill_diagonal(corr_matrix, 1)
     np.savetxt(output, corr_matrix, delimiter='\t')
     return output
 

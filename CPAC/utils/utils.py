@@ -1,3 +1,19 @@
+# Copyright (C) 2012-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import collections.abc
 import fnmatch
@@ -699,6 +715,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
         starting TR or starting volume index
     last_tr : an integer
         ending TR or ending volume index
+    pe_direction : str
+    effective_echo_spacing : float
     """
 
     import os
@@ -717,6 +735,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     last_tr = ''
     unit = 's'
     pe_direction = ''
+    effective_echo_spacing = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -739,16 +758,20 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             # TODO: better handling of errant key values!!!
             if "RepetitionTime" in params_dct.keys():
                 TR = float(check(params_dct, subject_id, scan,
-                                 'RepetitionTime', False))
+                                 "RepetitionTime", False))
             if "SliceTiming" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
-                                    'SliceTiming', False))
+                                    "SliceTiming", False))
             elif "SliceAcquisitionOrder" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
-                                    'SliceAcquisitionOrder', False))
+                                    "SliceAcquisitionOrder", False))
             if "PhaseEncodingDirection" in params_dct.keys():
                 pe_direction = str(check(params_dct, subject_id, scan,
-                                         'PhaseEncodingDirection', False))
+                                         "PhaseEncodingDirection", False))
+            if "EffectiveEchoSpacing" in params_dct.keys():
+                effective_echo_spacing = float(
+                    check(params_dct, subject_id, scan,
+                          "EffectiveEchoSpacing", False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
@@ -792,16 +815,20 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             pe_direction = check(params_dct, subject_id, scan,
                                  'PhaseEncodingDirection', False)
 
+            effective_echo_spacing = float(
+                try_fetch_parameter(params_dct, subject_id, scan,
+                                    ["EffectiveEchoSpacing"]))
+
         else:
             err = "\n\n[!] Could not read the format of the scan parameters " \
                   "information included in the data configuration file for " \
-                  "the participant {0}.\n\n".format(subject_id)
+                  f"the participant {subject_id}.\n\n"
             raise Exception(err)
 
-    if first_tr == '' or first_tr == None:
+    if first_tr == '' or first_tr is None:
         first_tr = pipeconfig_start_indx
 
-    if last_tr == '' or last_tr == None:
+    if last_tr == '' or last_tr is None:
         last_tr = pipeconfig_stop_indx
 
     unit = 's'
@@ -904,14 +931,13 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     start_indx = first_tr
     stop_indx = last_tr
 
-    return (
-        tr if tr else None,
-        tpattern if tpattern else None,
-        ref_slice,
-        start_indx,
-        stop_indx,
-        pe_direction
-    )
+    return (tr if tr else None,
+            tpattern if tpattern else None,
+            ref_slice,
+            start_indx,
+            stop_indx,
+            pe_direction,
+            effective_echo_spacing)
 
 
 def get_tr(tr):
@@ -1592,6 +1618,141 @@ def _pickle2(p, z=False):
     return False
 
 
+def _changes_1_8_0_to_1_8_1(config_dict):
+    '''
+    Examples
+    --------
+    Starting with 1.8.0
+    >>> zero = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': 0,
+    ...             'left_GM_label': 1,
+    ...             'right_GM_label': 2,
+    ...             'left_WM_label': 3,
+    ...             'right_WM_label': 4}}}}
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(zero)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+
+    Starting with 1.8.1
+    >>> one = {'anatomical_preproc': {
+    ...     'non_local_means_filtering': True,
+    ...     'n4_bias_field_correction': True
+    ... }, 'functional_preproc': {
+    ...     'motion_estimates_and_correction': {
+    ...         'calculate_motion_first': False
+    ...     }
+    ... }, 'segmentation': {
+    ...     'tissue_segmentation': {
+    ...         'ANTs_Prior_Based': {
+    ...             'CSF_label': [0],
+    ...             'GM_label': [1, 2],
+    ...             'WM_label': [3, 4]}}}}
+    >>> updated_apb = _changes_1_8_0_to_1_8_1(one)[
+    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
+    >>> updated_apb['CSF_label']
+    [0]
+    >>> updated_apb['GM_label']
+    [1, 2]
+    >>> updated_apb['WM_label']
+    [3, 4]
+    '''
+    for key_sequence in {
+        ('anatomical_preproc', 'non_local_means_filtering'),
+        ('anatomical_preproc', 'n4_bias_field_correction')
+    }:
+        config_dict = _now_runswitch(config_dict, key_sequence)
+    for combiners in {
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'CSF_label'),
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'CSF_label')),
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'left_GM_label'),
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'right_GM_label')
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'GM_label')),
+        ((
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'left_WM_label'),
+            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+             'right_WM_label')
+        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
+            'WM_label'))
+    }:
+        config_dict = _combine_labels(config_dict, *combiners)
+    try:
+        calculate_motion_first = lookup_nested_value(
+            config_dict,
+            ['functional_preproc', 'motion_estimates_and_correction',
+                'calculate_motion_first']
+        )
+    except KeyError:
+        calculate_motion_first = None
+    if calculate_motion_first is not None:
+        del config_dict['functional_preproc'][
+            'motion_estimates_and_correction']['calculate_motion_first']
+        config_dict = set_nested_value(config_dict, [
+            'functional_preproc', 'motion_estimates_and_correction',
+            'motion_estimates', 'calculate_motion_first'
+        ], calculate_motion_first)
+
+    return config_dict
+
+
+def _combine_labels(config_dict, list_to_combine, new_key):
+    '''
+    Helper function to combine formerly separate keys into a
+    combined key.
+
+    Parameters
+    ----------
+    config_dict: dict
+
+    key_sequence: iterable of lists or tuples
+
+    new_key: list or tuple
+
+    Returns
+    -------
+    updated_config_dict: dict
+    '''
+    new_value = []
+    any_old_values = False
+    for _to_combine in list_to_combine:
+        try:
+            old_value = lookup_nested_value(config_dict, _to_combine)
+        except KeyError:
+            old_value = None
+        if old_value is not None:
+            any_old_values = True
+            if isinstance(old_value, (list, set, tuple)):
+                for value in old_value:
+                    new_value.append(value)
+            else:
+                new_value.append(old_value)
+            config_dict = delete_nested_value(config_dict, _to_combine)
+    if any_old_values:
+        return set_nested_value(config_dict, new_key, new_value)
+    return config_dict
+
+
 def concat_list(in_list1=None, in_list2=None):
     """
     Parameters
@@ -1623,64 +1784,6 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
 
     return out_list
-
-
-def dct_diff(dct1, dct2):
-    '''Function to compare 2 nested dicts, dropping values unspecified
-    in the second. Adapted from https://github.com/sgiavasis/CPAC_regtest_pack/blob/9056ef63cbe693f436c4ea8a5fee669f8d2e35f7/cpac_pipe_diff.py#L31-L78
-
-    Parameters
-    ----------
-    dct1 : dict
-
-    dct2 : dict
-
-    Returns
-    -------
-    diff : set
-    a tuple of values from dct1, dct2 for each differing key
-
-    Example
-    -------
-    >>> import yaml
-    >>> def read_yaml_file(yaml_file):
-    ...     return yaml.safe_load(open(yaml_file, 'r'))
-    >>> pipeline = read_yaml_file('/code/dev/docker_data/default_pipeline.yml')
-    >>> dct_diff(pipeline, pipeline)
-    {}
-    >>> pipeline2 = read_yaml_file('/code/CPAC/resources/configs/'
-    ...     'pipeline_config_fmriprep-options.yml')
-    >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
-    ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''
-    diff = {}
-    for key in dct1:
-        if isinstance(dct1[key], dict):
-            if not isinstance(dct2, dict):
-                try:
-                    dct2 = dct2.dict()
-                except AttributeError:
-                    raise TypeError(f'{dct2} is not a dict.')
-            diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
-            if diff[key] == {}:
-                del diff[key]
-        else:
-            dct1_val = dct1.get(key)
-            dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
-
-            if dct1_val != dct2_val:
-                diff[key] = (dct1_val, dct2_val)
-
-    # add any new keys
-    if isinstance(dct2, dict):
-        for key in dct2:
-            if key not in dct1:
-                diff[key] = dct2[key]
-
-        # only return non-empty diffs
-        return {k: v for k, v in diff.items() if k in dct2}
-
-    return {}
 
 
 def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
@@ -1748,6 +1851,31 @@ def lookup_nested_value(d, keys):
         except KeyError as e:
             e.args = (keys,)
             raise
+
+
+def _now_runswitch(config_dict, key_sequence):
+    '''
+    Helper function to convert a formerly forkable value to a
+    runswitch.
+
+    Parameters
+    ----------
+    config_dict: dict
+
+    key_sequence: list or tuple
+
+    Returns
+    -------
+    updated_config_dict: dict
+    '''
+    try:
+        old_forkable = lookup_nested_value(config_dict, key_sequence)
+    except KeyError:
+        return config_dict
+    if isinstance(old_forkable, (bool, list)):
+        return set_nested_value(
+            config_dict, key_sequence, {'run': old_forkable})
+    return config_dict
 
 
 def _remove_somethings(value, things_to_remove):

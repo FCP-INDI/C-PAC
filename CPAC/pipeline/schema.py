@@ -17,16 +17,15 @@ License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
+import re
 from itertools import chain, permutations
-
 import numpy as np
-from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Optional, \
-                       Range, Required, Schema
-from voluptuous.validators import ExactSequence, Maybe
-
+from pathvalidate import sanitize_filename
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
+                       ExactSequence, ExclusiveInvalid, In, Length, Lower, \
+                       Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
-from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
-                             set_nested_value
+from CPAC.utils.datatypes import ListFromItem
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -39,7 +38,7 @@ resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
-forkable = Any(bool, [bool])
+forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -203,170 +202,15 @@ Available analyses for \'{key}\' are {options}
 '''
 
 
-def _combine_labels(config_dict, list_to_combine, new_key):
-    '''
-    Helper function to combine formerly separate keys into a
-    combined key.
-
-    Parameters
-    ----------
-    config_dict: dict
-
-    key_sequence: iterable of lists or tuples
-
-    new_key: list or tuple
-
-    Returns
-    -------
-    updated_config_dict: dict
-    '''
-    new_value = []
-    any_old_values = False
-    for _to_combine in list_to_combine:
-        try:
-            old_value = lookup_nested_value(config_dict, _to_combine)
-        except KeyError:
-            old_value = None
-        if old_value is not None:
-            any_old_values = True
-            if isinstance(old_value, (list, set, tuple)):
-                for value in old_value:
-                    new_value.append(value)
-            else:
-                new_value.append(old_value)
-            config_dict = delete_nested_value(config_dict, _to_combine)
-    if any_old_values:
-        return set_nested_value(config_dict, new_key, new_value)
-    return config_dict
-
-
-def _now_runswitch(config_dict, key_sequence):
-    '''
-    Helper function to convert a formerly forkable value to a
-    runswitch.
-
-    Parameters
-    ----------
-    config_dict: dict
-
-    key_sequence: list or tuple
-
-    Returns
-    -------
-    updated_config_dict: dict
-    '''
-    try:
-        old_forkable = lookup_nested_value(config_dict, key_sequence)
-    except KeyError:
-        return config_dict
-    if isinstance(old_forkable, bool) or isinstance(old_forkable, list):
-        return set_nested_value(
-            config_dict, key_sequence, {'run': old_forkable})
-    return config_dict
-
-
-def _changes_1_8_0_to_1_8_1(config_dict):
-    '''
-    Examples
-    --------
-    Starting with 1.8.0
-    >>> zero = {'anatomical_preproc': {
-    ...     'non_local_means_filtering': True,
-    ...     'n4_bias_field_correction': True
-    ... }, 'functional_preproc': {
-    ...     'motion_estimates_and_correction': {
-    ...         'calculate_motion_first': False
-    ...     }
-    ... }, 'segmentation': {
-    ...     'tissue_segmentation': {
-    ...         'ANTs_Prior_Based': {
-    ...             'CSF_label': 0,
-    ...             'left_GM_label': 1,
-    ...             'right_GM_label': 2,
-    ...             'left_WM_label': 3,
-    ...             'right_WM_label': 4}}}}
-    >>> updated_apb = _changes_1_8_0_to_1_8_1(zero)[
-    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
-    >>> updated_apb['CSF_label']
-    [0]
-    >>> updated_apb['GM_label']
-    [1, 2]
-    >>> updated_apb['WM_label']
-    [3, 4]
-
-    Starting with 1.8.1
-    >>> one = {'anatomical_preproc': {
-    ...     'non_local_means_filtering': True,
-    ...     'n4_bias_field_correction': True
-    ... }, 'functional_preproc': {
-    ...     'motion_estimates_and_correction': {
-    ...         'calculate_motion_first': False
-    ...     }
-    ... }, 'segmentation': {
-    ...     'tissue_segmentation': {
-    ...         'ANTs_Prior_Based': {
-    ...             'CSF_label': [0],
-    ...             'GM_label': [1, 2],
-    ...             'WM_label': [3, 4]}}}}
-    >>> updated_apb = _changes_1_8_0_to_1_8_1(one)[
-    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
-    >>> updated_apb['CSF_label']
-    [0]
-    >>> updated_apb['GM_label']
-    [1, 2]
-    >>> updated_apb['WM_label']
-    [3, 4]
-    '''
-    for key_sequence in {
-        ('anatomical_preproc', 'non_local_means_filtering'),
-        ('anatomical_preproc', 'n4_bias_field_correction')
-    }:
-        config_dict = _now_runswitch(config_dict, key_sequence)
-    for combiners in {
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'CSF_label'),
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'CSF_label')),
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'left_GM_label'),
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'right_GM_label')
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'GM_label')),
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'left_WM_label'),
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'right_WM_label')
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'WM_label'))
-    }:
-        config_dict = _combine_labels(config_dict, *combiners)
-    try:
-        calculate_motion_first = lookup_nested_value(
-            config_dict,
-            ['functional_preproc', 'motion_estimates_and_correction',
-                'calculate_motion_first']
-        )
-    except KeyError:
-        calculate_motion_first = None
-    if calculate_motion_first is not None:
-        del config_dict['functional_preproc'][
-            'motion_estimates_and_correction']['calculate_motion_first']
-        config_dict = set_nested_value(config_dict, [
-            'functional_preproc', 'motion_estimates_and_correction',
-            'motion_estimates', 'calculate_motion_first'
-        ], calculate_motion_first)
-
-    return config_dict
+def sanitize(filename):
+    '''Sanitize a filename and replace whitespaces with underscores'''
+    return re.sub(r'\s+', '_', sanitize_filename(filename))
 
 
 latest_schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
-        'pipeline_name': All(str, Length(min=1)),
+        'pipeline_name': All(str, Length(min=1), sanitize),
         'output_directory': {
             'path': str,
             'source_outputs_dir': Maybe(str),
@@ -642,7 +486,8 @@ latest_schema = Schema({
                 'func_input_prep': {
                     'reg_with_skull': bool,
                     'input': [In({
-                        'Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference'
+                        'Mean_Functional', 'Selected_Functional_Volume',
+                        'fmriprep_reference'
                     })],
                     'Mean Functional': {
                         'n4_correct_func': bool
@@ -709,8 +554,8 @@ latest_schema = Schema({
                     'identity_matrix': Maybe(str),
                 },
                 'apply_transform': {
-                    'using': In({'default', 'single_step_resampling', 'abcd', 
-                                 'single_step_resampling_from_stc', 'dcan_nhp'}),
+                    'using': In({'default', 'abcd', 'dcan_nhp',
+                                 'single_step_resampling_from_stc'}),
                 },
             },
         },
@@ -749,7 +594,7 @@ latest_schema = Schema({
         'run': bool,
         'truncation': {
             'start_tr': int,
-            'stop_tr': Maybe(Any(int, 'End'))
+            'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
         'scaling': {
             'run': bool,
@@ -907,6 +752,8 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
+            'space': All(Coerce(ListFromItem),
+                         [All(Lower, In({'native', 'template'}))]),
             'create_regressors': bool,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
@@ -1089,7 +936,39 @@ latest_schema = Schema({
 
 
 def schema(config_dict):
-    return latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    '''Validate a pipeline configuration against the latest validation schema
+    by first applying backwards-compatibility patches, then applying
+    Voluptuous validation, then handling complex configuration interaction
+    checks before returning validated config_dict.
+
+    Parameters
+    ----------
+    config_dict : dict
+
+    Returns
+    -------
+    dict
+    '''
+    from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
+    partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    try:
+        if (partially_validated['registration_workflows'][
+            'functional_registration'
+        ]['func_registration_to_template']['apply_transform'][
+            'using'
+        ] == 'single_step_resampling_from_stc' and partially_validated[
+            'nuisance_corrections'
+        ]['2-nuisance_regression']['space'] != ['template']):
+            raise ExclusiveInvalid(
+                '``single_step_resampling_from_stc`` requires template-space '
+                'nuisance regression. Either set ``nuisance_corrections: '
+                '2-nuisance_regression: space`` to ``template`` or choose a '
+                'different option for ``registration_workflows: '
+                'functional_registration: func_registration_to_template: '
+                'apply_transform: using``')
+    except KeyError:
+        pass
+    return partially_validated
 
 
 schema.schema = latest_schema.schema

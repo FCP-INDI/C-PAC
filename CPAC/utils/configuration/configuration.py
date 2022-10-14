@@ -1,4 +1,21 @@
-"""C-PAC Configuration class"""
+"""C-PAC Configuration class and related functions
+
+Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import re
 import os
 import warnings
@@ -9,27 +26,16 @@ from warnings import warn
 import yaml
 
 from CPAC.utils.utils import load_preconfig
+from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
 
-# Find default config
-# in-container location
-DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline.yml'
-if not os.path.exists(DEFAULT_PIPELINE_FILE):
-    CPAC_DIRECTORY = os.path.abspath(os.path.join(
+DEFAULT_PIPELINE_FILE = os.path.join(
+    os.path.abspath(os.path.join(
         __file__,
-        *repeat(os.path.pardir, 3)))
-    # package location
-    DEFAULT_PIPELINE_FILE = os.path.join(
-        CPAC_DIRECTORY,
-        'CPAC/resources/configs/default_pipeline.yml')
-    # source code (developer) location
-    if not os.path.exists(DEFAULT_PIPELINE_FILE):
-        DEFAULT_PIPELINE_FILE = os.path.join(
-            CPAC_DIRECTORY,
-            'dev/docker_data/default_pipeline.yml')
-    del CPAC_DIRECTORY
+        *repeat(os.path.pardir, 4))),
+    'CPAC/resources/configs/pipeline_config_default.yml')
 
 with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
     default_config = yaml.safe_load(dp_fp)
@@ -103,8 +109,7 @@ class Configuration:
                 Configuration(from_config).dict(), config_map)
 
         # base everything on default pipeline
-        config_map = _enforce_forkability(
-            update_nested_dict(default_config, config_map))
+        config_map = update_nested_dict(default_config, config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -150,11 +155,12 @@ class Configuration:
         self.__update_attr()
 
     def __str__(self):
-        return 'C-PAC Configuration'
+        return ('C-PAC Configuration '
+                f"('{self['pipeline_setup', 'pipeline_name']}')")
 
     def __repr__(self):
         # show Configuration as a dict when accessed directly
-        return self.__str__()
+        return str(self.dict())
 
     def __copy__(self):
         newone = type(self)({})
@@ -178,10 +184,50 @@ class Configuration:
         else:
             self.key_type_error(key)
 
+    def __sub__(self: 'Configuration', other: 'Configuration'):
+        '''Return the set difference between two Configurations
+
+        Examples
+        --------
+        >>> diff = (Preconfiguration('fmriprep-options') - Configuration()) \
+        # doctest: +NORMALIZE_WHITESPACE
+        Loading the 'fmriprep-options' pre-configured pipeline.
+        >>> diff['pipeline_setup']['pipeline_name']
+        ('cpac_fmriprep-options', 'cpac-default-pipeline')
+        >>> diff['pipeline_setup']['pipeline_name'].s_value
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].t_value
+        'cpac-default-pipeline'
+        >>> diff.s_value['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff.t_value['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        >>> diff['pipeline_setup']['pipeline_name'].left
+        'cpac_fmriprep-options'
+        >>> diff.left['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].minuend
+        'cpac_fmriprep-options'
+        >>> diff.minuend['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].right
+        'cpac-default-pipeline'
+        >>> diff.right['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        >>> diff['pipeline_setup']['pipeline_name'].subtrahend
+        'cpac-default-pipeline'
+        >>> diff.subtrahend['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        '''
+        return(dct_diff(self.dict(), other.dict()))
+
     def dict(self):
         '''Show contents of a C-PAC configuration as a dict'''
-        return {k: self[k] for k in self.__dict__ if not callable(
-            self.__dict__[k])}
+        return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
+    def keys(self):
+        '''Show toplevel keys of a C-PAC configuration dict'''
+        return self.dict().keys()
 
     def _nonestr_to_None(self, d):
         '''Recursive method to type convert 'None' to None in nested
@@ -351,50 +397,6 @@ def configuration_from_file(config_file):
     """
     with open(config_file, 'r') as config:
         return Configuration(yaml.safe_load(config))
-
-
-def _enforce_forkability(config_dict):
-    '''Function to set forkable booleans as lists of booleans.
-
-    Parameters
-    ----------
-    config_dict : dict
-
-    Returns
-    -------
-    config_dict : dict
-
-    Examples
-    --------
-    >>> c = Configuration().dict()
-    >>> c['functional_preproc']['despiking']['run']
-    [False]
-    >>> c['functional_preproc']['despiking']['run'] = True
-    >>> c['functional_preproc']['despiking']['run']
-    True
-    >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
-    [True]
-    '''
-    from CPAC.pipeline.schema import schema
-    from CPAC.utils.utils import lookup_nested_value, set_nested_value
-
-    key_list_list = collect_key_list(config_dict)
-    for key_list in key_list_list:
-        try:
-            schema_check = lookup_nested_value(schema.schema, key_list)
-        except KeyError:
-            continue
-        if hasattr(schema_check, 'validators'):
-            schema_check = schema_check.validators
-            if bool in schema_check and [bool] in schema_check:
-                try:
-                    value = lookup_nested_value(config_dict, key_list)
-                except KeyError:
-                    continue
-                if isinstance(value, bool):
-                    config_dict = set_nested_value(
-                        config_dict, key_list, [value])
-    return config_dict
 
 
 class Preconfiguration(Configuration):
