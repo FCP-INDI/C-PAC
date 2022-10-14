@@ -1,19 +1,19 @@
-"""Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2022  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 # TODO: replace Tuple with tuple, Union with |, once Python >= 3.9, 3.10
 from typing import Optional, Tuple, Union
@@ -2744,7 +2744,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
                  "despiked-fieldmap",
-                 "fieldmap-mask"),
+                 "fieldmap-mask",
+                 "effectiveEchoSpacing",
+                 "diffphase-pedir"),
                 ("desc-brain_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2752,9 +2754,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
-                 "T1w"),
-                "diffphase-dwell",
-                "diffphase-pedir"],
+                 "T1w")],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
@@ -2817,9 +2817,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data('desc-restore-brain_T1w')
         wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
-
     if diff_complete:
-        node, out = strat_pool.get_data('diffphase-dwell')
+        node, out = strat_pool.get_data('effectiveEchoSpacing')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
         node, out = strat_pool.get_data('diffphase-pedir')
@@ -2900,7 +2899,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
-            node, out = strat_pool.get_data('diffphase-dwell')
+            node, out = strat_pool.get_data('effectiveEchoSpacing')
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 

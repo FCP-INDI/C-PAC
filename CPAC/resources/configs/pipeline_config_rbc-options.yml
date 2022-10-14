@@ -7,7 +7,7 @@
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
 
-FROM: fx-options
+FROM: fmriprep-options
 
 pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
@@ -33,24 +33,12 @@ pipeline_setup:
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: On
 
-anatomical_preproc:
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction:
-    # this is a fork option
-    run:
-      - On
-
 registration_workflows:
   anatomical_registration:
-    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
-    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
-
+    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
   functional_registration:
-    coregistration:
-      func_input_prep:
-        input: [fmriprep_reference]
-
     func_registration_to_template:
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
@@ -73,11 +61,10 @@ registration_workflows:
 
       target_template:
         T1_template:
-          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
-          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
-          T1w_template_for_resample: 
-          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
-
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_mask_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_template_for_resample: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
 functional_preproc:
   truncation:
@@ -94,10 +81,6 @@ functional_preproc:
     run: 
       - On
 
-  motion_estimates_and_correction:
-    motion_correction:
-      using: [3dvolreg]
-
   distortion_correction:
     using:
        - PhaseDiff
@@ -113,30 +96,7 @@ functional_preproc:
 nuisance_corrections:
   2-nuisance_regression:
     Regressors:
-      - Name: Motion-regressor-no-GSR-or-aCompCor
-        Bandpass:
-          bottom_frequency: 0.01
-          top_frequency: 0.1
-        CerebrospinalFluid:
-          erode_mask: false
-          extraction_resolution: 2
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
-          summary: Mean
-        Motion:
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
-        WhiteMatter:
-          erode_mask: false
-          extraction_resolution: 2
-          include_delayed: true
-          include_delayed_squared: true
-          include_squared: true
-          summary: Mean
-
-      - Name: Regressor-with-GSR
+      - Name: 36-parameter
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -164,7 +124,7 @@ nuisance_corrections:
           include_squared: true
           summary: Mean
 
-      - Name: Regressor-with-aCompCor
+      - Name: aCompCor
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -209,7 +169,6 @@ nuisance_corrections:
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
         csf_mask_erosion_mm:
 
-
 timeseries_extraction:
   run: On
   connectivity_matrix:
@@ -220,17 +179,17 @@ timeseries_extraction:
       - Partial
   tse_roi_paths:
     # AAL
-    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     # Atlases
-    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     # Slab
-    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     # HO: Thresholded
-    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     # Jeulich
-    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     # CC
     /cpac_templates/CC200.nii.gz: Avg
     /cpac_templates/CC400.nii.gz: Avg
@@ -241,10 +200,10 @@ timeseries_extraction:
     /cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-1000Parcels17NetworksOrder.nii.gz: Avg
     # Networks
     #  Yeo
-    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     #  Smith 2009  (to be included after https://github.com/FCP-INDI/C-PAC/issues/1640 is resolved)
     # /cpac_templates/Smith_space-MNI152NLin6_res-3x3x3_desc-thresh3_mask.nii.gz: Avg
 

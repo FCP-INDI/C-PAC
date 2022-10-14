@@ -14,7 +14,6 @@ from nipype.interfaces import c3
 from nipype.interfaces import afni
 from nipype.interfaces.afni import utils as afni_utils
 from scipy.fftpack import fft, ifft
-from CPAC import utils
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
