@@ -197,7 +197,6 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
-from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
@@ -248,6 +247,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    from CPAC.utils.datasource import bidsier_prefix
+
     if plugin is not None and not isinstance(plugin, str):
         raise TypeError(
             'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
@@ -1080,6 +1081,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
 
 def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                    num_ants_cores=1):
+    from CPAC.utils.datasource import gather_extraction_maps
 
     # Workflow setup
     wf = initialize_nipype_wf(cfg, sub_dict)

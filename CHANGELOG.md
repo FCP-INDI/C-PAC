@@ -30,7 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved default pipeline config into directory with other preconfigs
 - Added crash messages from during and before graph building to logs
 - Added data-config-specific hash string to C-PAC-generated config files
+- Updated `rbc-options` preconfig to use `fmriprep-options` preprocessing
 
+### Fixed
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
+- Replaces ``DwellTime`` with ``EffectiveEchoSpacing`` for FSL usage of the term
 
 ## [v1.8.4] - 2022-06-27
 

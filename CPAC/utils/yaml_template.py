@@ -21,7 +21,7 @@ from hashlib import sha1
 import yaml
 from click import BadParameter
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.configuration.diff import dct_diff, diff_dict
+from CPAC.utils.configuration.diff import dct_diff
 from CPAC.utils.utils import load_preconfig, \
                              lookup_nested_value, update_config_dict, \
                              update_pipeline_values_1_8

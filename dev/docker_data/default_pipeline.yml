@@ -1,0 +1,14 @@
+%YAML 1.1
+---
+# CPAC Pipeline Configuration YAML file
+# Version 1.8.5.dev
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+# The default C-PAC pipeline was relocated from `dev/docker_data/default_pipeline.yml` to `CPAC/resources/configs/pipeline_config_default.yml`
+# This file (`dev/docker_data/default_pipeline.yml`) is included for backwards-compatibility and will be removed in a future version.
+
+# import full default pipeline
+FROM: default
