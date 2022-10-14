@@ -564,11 +564,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
     fmap_pedir_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
                                    "sub-{participant}_ses-{session}/"
-                                   "dir-*_acq-fMRI_epi.nii.gz")
+                                   "*acq-fMR*_epi.nii.gz")
 
     fmap_pedir = os.path.join(bids_base_dir,
                               "sub-{participant}/fmap/sub-{participant}"
-                              "_dir-*_acq-fMRI_epi.nii.gz")
+                              "*acq-fMR*_epi.nii.gz")
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
@@ -582,7 +582,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_pedir_scan_glob = os.path.join(bids_base_dir,
                                         "sub-*fmap/"
-                                        "sub-*_dir-*_acq-fMRI_epi.nii.gz")
+                                        "sub-*_*acq-fMR*_epi.nii.gz")
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
@@ -648,7 +648,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 fmap_mag = os.path.join(bids_base_dir,
                                         "sub-{participant}/fmap/sub-{participant}"
                                         "*magnitud*.nii.gz")
-
+            
             '''
             if fnmatch.fnmatch(filepath, fmap_pedir_scan_glob):
                 # check if there is a scan level for the fmap magnitude files
