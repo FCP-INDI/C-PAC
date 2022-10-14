@@ -1,4 +1,4 @@
-name: Check updated version
+name: Check updated preconfigs
 
 on:
   pull_request_target:
@@ -6,8 +6,8 @@ on:
   push:
 
 jobs:
-  check-updated-version:
-    name: Check if version updated
+  check-updated-preconfigs:
+    name: Check if preconfigs need updated
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -37,6 +37,12 @@ jobs:
             [skip ci]"
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
+          python3 ./CPAC/utils/yaml_template.py
+          if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
+            then
+              git commit -m ":bulb: Update comments based on default preconfig"
+            fi
+          fi
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
           then
@@ -55,7 +61,7 @@ jobs:
           fi
 
   trigger-next-workflow:
-    needs: check-updated-version
+    needs: check-updated-preconfigs
     runs-on: ubuntu-latest
     steps:
       - name: Set up check
