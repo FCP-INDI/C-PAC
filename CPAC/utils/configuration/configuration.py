@@ -70,7 +70,7 @@ class Configuration:
     --------
     >>> c = Configuration({})
     >>> c['pipeline_setup', 'pipeline_name']
-    'cpac-default-pipeline'
+    'cpac-blank-template'
     >>> c = Configuration({'pipeline_setup': {
     ...     'pipeline_name': 'example_pipeline'}})
     >>> c['pipeline_setup', 'pipeline_name']
@@ -125,9 +125,11 @@ class Configuration:
         try:
             if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
                     'brain_extraction']['using']:
-                config_map['surface_analysis']['freesurfer']['run'] = False
+                self.set_nested(config_map,
+                                ['surface_analysis', 'freesurfer', 'run'],
+                                False)
                 warn(DOUBLERUN_GUARD_MESSAGE)
-        except TypeError:
+        except (KeyError, TypeError):
             pass
 
         config_map = schema(config_map)
@@ -183,7 +185,8 @@ class Configuration:
 
         Examples
         --------
-        >>> diff = (Preconfiguration('fmriprep-options') - Configuration()) \
+        >>> diff = (Preconfiguration('fmriprep-options')
+        ...         - Preconfiguration('default')) \
         # doctest: +NORMALIZE_WHITESPACE
         >>> diff['pipeline_setup']['pipeline_name']
         ('cpac_fmriprep-options', 'cpac-default-pipeline')

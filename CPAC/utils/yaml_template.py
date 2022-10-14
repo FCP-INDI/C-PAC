@@ -30,27 +30,6 @@ YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for
                yaml_str in value}
 
 
-def promote_key(to_resort, key):
-    """Function to promte an item by key to the first position in a
-    dictionary
-
-    Parameters
-    ----------
-    to_resort : dict
-
-    key : str
-
-    Returns
-    -------
-    dict
-    """
-    if key in to_resort:
-        name_dict = {key: to_resort.pop(key)}
-        name_dict.update(to_resort)
-        to_resort = name_dict
-    return to_resort
-
-
 class YamlTemplate():  # pylint: disable=too-few-public-methods
     """A class to link YAML comments to the contents of a YAML file
 
@@ -150,9 +129,6 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                              parents else new_dict)
         # Grab special key to print first
         import_from = loop_dict.pop('FROM', None)
-        # Promote name to top if name is a key
-        for key in ['Name', 'pipeline_name']:
-            loop_dict = promote_key(loop_dict, key)
         # Iterate through mutated dict
         for key in loop_dict:
             # List of progressively-indented key strings
@@ -192,7 +168,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 if isinstance(value, dict):
                     _dump += [indented_key, self.dump(new_dict, keys)]
                 elif isinstance(value, list):
-                    list_line = _format_list_items(value, line_level + 1)
+                    list_line = _format_list_items(value, line_level)
                     if '\n' in list_line:
                         _dump += [indented_key, *list_line.split('\n')]
                     else:
@@ -344,13 +320,11 @@ def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
     Examples
     --------
     >>> print(_format_list_items([1, 2, {'nested': 3}], 0))
-    <BLANKLINE>
       - 1
       - 2
       - nested: 3
     >>> print(
     ...     _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1))
-    <BLANKLINE>
         - 1
         - 2
         - nested:
@@ -364,7 +338,7 @@ def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
         if len(preformat) < 50:
             return preformat.replace("'", '').replace('"', '')
     # list long or complex lists on lines with indented '-' lead-ins
-    return '\n' + '\n'.join([
+    return '\n'.join([
         f'{indent(line_level)}{li}' for li in yaml.dump(
             yaml_bool(l), sort_keys=False
         ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
@@ -439,8 +413,8 @@ def yaml_bool(value):
         return [yaml_bool(item) for item in value]
     elif isinstance(value, dict):
         # if 'Name' is a key, promote that item to the top
-        value = promote_key(value, 'Name')
-        return {k: yaml_bool(value[k]) for k in value}
+        return {**({'Name': value['Name']} if 'Name' in value else {}),
+                **{k: yaml_bool(value[k]) for k in value if k != 'Name'}}
     if isinstance(value, bool):
         if value is True:
             return 'On'
@@ -471,8 +445,10 @@ def upgrade_pipeline_to_1_8(path):
     now = datetime.isoformat(datetime.now()).replace(':', '_')
     backup = f'{path}.{now}.bak'
     print(f'Backing up {path} to {backup} and upgrading to C-PAC 1.8')
-    original = open(path, 'r').read()
-    open(backup, 'w').write(original)
+    with open(path, 'r', encoding='utf-8') as _f:
+        original = _f.read()
+    with open(backup, 'w', encoding='utf-8') as _f:
+        _f.write(original)
     # upgrade and overwrite
     orig_dict = yaml.safe_load(original)
     # set Regressor 'Name's if not provided
@@ -482,10 +458,40 @@ def upgrade_pipeline_to_1_8(path):
             if 'Name' not in regressor:
                 regressor['Name'] = f'Regressor-{str(i + 1)}'
     if 'pipelineName' in orig_dict and len(original.strip()):
-        middle_dict, leftovers_dict, complete_dict = update_config_dict(
+        middle_dict, leftovers_dict, _complete_dict = update_config_dict(
             orig_dict)
-        open(path, 'w').write(create_yaml_from_template(
-            update_pipeline_values_1_8(middle_dict))
-        )
+        with open(path, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(
+                update_pipeline_values_1_8(middle_dict)))
         if leftovers_dict:
-            open(f'{path}.rem', 'w').write(yaml.dump(leftovers_dict))
+            with open(f'{path}.rem', 'w', encoding='utf-8') as _f:
+                _f.write(yaml.dump(leftovers_dict))
+
+
+def update_a_preconfig(preconfig, import_from):
+    """
+    Parameters
+    ----------
+    preconfig : str
+
+    import_from : str
+    """
+    import sys
+    print(f'Updating {preconfig} preconfig…', file=sys.stderr)
+    updated = create_yaml_from_template(Preconfiguration(preconfig),
+                                        import_from=import_from)
+    with open(preconfig_yaml(preconfig), 'w', encoding='utf-8') as _f:
+        _f.write(updated)
+
+
+def update_all_preconfigs():
+    """Update all other preconfigs with comments from default"""
+    from CPAC.pipeline import ALL_PIPELINE_CONFIGS
+    full = ['blank', 'default']
+    update_a_preconfig('blank', None)
+    for preconfig in [_ for _ in ALL_PIPELINE_CONFIGS if _ not in full]:
+        update_a_preconfig(preconfig, 'blank')
+
+
+if __name__ == '__main__':
+    update_all_preconfigs()

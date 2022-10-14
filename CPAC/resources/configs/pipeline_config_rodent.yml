@@ -6,15 +6,23 @@
 # http://fcp-indi.github.io for more info.
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
+FROM: blank
 
-FROM: default
+pipeline_setup:
 
-
-pipeline_setup: 
   # Name for this pipeline configuration - useful for identification.
+  # This string will be sanitized and used in filepaths
   pipeline_name: analysis
+  output_directory:
 
-  system_config: 
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: Off
+
+  system_config:
+
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
     # - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
@@ -43,29 +51,178 @@ pipeline_setup:
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
     FSLDIR: FSLDIR
 
-anatomical_preproc: 
-  run: Off
+    # Random seed used to fix the state of execution.
+    # If unset, each process uses its own default.
+    # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
+    # If set to a positive integer (up to 2147483647), that integer will be used to seed each process that accepts a random seed.
+    # If set to 'random', a random positive integer (up to 2147483647) will be generated and that seed will be used to seed each process that accepts a random seed.
+    random_seed:
 
-segmentation: 
-  run: Off
+    # Prior to running a pipeline C-PAC makes a rough estimate of a worst-case-scenario maximum concurrent memory usage with high-resoltion data, raising an exception describing the recommended minimum memory allocation for the given configuration.
+    # Turning this option off will allow pipelines to run without allocating the recommended minimum, allowing for more efficient runs at the risk of out-of-memory crashes (use at your own risk)
+    raise_insufficient: On
 
-registration_workflows: 
-  anatomical_registration: 
+    # A callback.log file from a previous run can be provided to estimate memory usage based on that run.
+    observed_usage:
+
+      # Path to callback log file with previously observed usage.
+      # Can be overridden with the commandline flag `--runtime_usage`.
+      callback_log:
+
+      # Percent. E.g., `buffer: 10` would estimate 1.1 * the observed memory usage from the callback log provided in "usage".
+      # Can be overridden with the commandline flag `--runtime_buffer`.
+      buffer: 10
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Add extra arguments to recon-all command
+    reconall_args:
+
+    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
+    freesurfer_dir:
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer:
     run: Off
+    subcortical_gray_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferSubcorticalLabelTableLut.txt
+    freesurfer_labels: /opt/dcan-tools/pipeline/global/config/FreeSurferAllLut.txt
+    surf_atlas_dir: /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases
+    gray_ordinates_dir: /opt/dcan-tools/pipeline/global/templates/Greyordinates
+    gray_ordinates_res: 2
+    high_res_mesh: 164
+    low_res_mesh: 32
+    fmri_res: 2
+    smooth_fwhm: 2
 
-  functional_registration: 
-    coregistration:
+anatomical_preproc:
+  acpc_alignment:
+    T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
+
+    # Choose a tool to crop the FOV in ACPC alignment.
+    # Using FSL's robustfov or flirt command.
+    # Default: robustfov for human data, flirt for monkey data.
+    FOV_crop: robustfov
+
+    # Run ACPC alignment on brain mask
+    # If the brain mask is in native space, turn it on
+    # If the brain mask is ACPC aligned, turn it off
+    align_brain_mask: Off
+    T2w_ACPC_template:
+    T2w_brain_ACPC_template:
+
+  brain_extraction:
+    run: On
+    FreeSurfer-BET:
+
+      # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
+      T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
+
+  run_t2: Off
+
+  # Bias field correction based on square root of T1w * T2w
+  t1t2_bias_field_correction:
+    run: Off
+    BiasFieldSmoothingSigma: 5
+
+registration_workflows:
+  anatomical_registration:
+    registration:
+      FSL-FNIRT:
+
+        # The resolution to which anatomical images should be transformed during registration.
+        # This is the resolution at which processed anatomical files will be output.
+        # specifically for monkey pipeline
+        ref_resolution: 2mm
+
+        # Template to be used during registration.
+        # It is for monkey pipeline specifically.
+        FNIRT_T1w_brain_template:
+
+        # Template to be used during registration.
+        # It is for monkey pipeline specifically.
+        FNIRT_T1w_template:
+
+        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
+
+    overwrite_transform:
       run: Off
 
+      # Choose the tool to overwrite transform, currently only support 'FSL' to overwrite 'ANTs' transforms in ABCD-options pipeline.
+      # using: 'FSL'
+      using: FSL
+
+  functional_registration:
+    coregistration:
+      func_input_prep:
+
+        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
+        reg_with_skull: Off
+
+      boundary_based_registration:
+
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [On]
+
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: whole-head
+
+        # choose which FAST map to generate BBR WM mask
+        # options: 'probability_map', 'partial_volume_map'
+        bbr_wm_map: probability_map
+
+        # optional FAST arguments to generate BBR WM mask
+        bbr_wm_mask_args: -thr 0.5 -bin
+
+      # reference: 'brain' or 'restore-brain'
+      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
+      reference: brain
+
+      # Choose FSL or ABCD as coregistration method
+      using: FSL
+
+      # Choose brain or whole-head as coregistration input
+      input: brain
+
+      # Choose coregistration interpolation
+      interpolation: trilinear
+
+      # Choose coregistration cost function
+      cost: corratio
+
+      # Choose coregistration degree of freedom
+      dof: 6
+
+      # Extra arguments for FSL flirt
+      arguments:
+
     EPI_registration:
+
+      # directly register the mean functional to an EPI template
+      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
+      #   coregistered to anatomical/T1 space
       run: On
 
+      # EPI template for direct functional-to-template registration
+      # (bypassing coregistration and the anatomical-to-template transforms)
       EPI_template: /cpac_templates/chd8_functional_template_sk.nii
+      ANTs:
 
-      ANTs: 
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
-        parameters: 
+        parameters:
           - dimensionality: 3
           - initial-moving-transform:
               initializationFeature: 1
@@ -93,11 +250,14 @@ registration_workflows:
                 totalFieldVarianceInVoxelSpace: 1
                 updateFieldVarianceInVoxelSpace: 5
 
-    func_registration_to_template: 
+    func_registration_to_template:
 
-      run_EPI: On
+      # these options modify the application (to the functional data), not the calculation, of the
+      # T1-to-template and EPI-to-template transforms calculated earlier during registration
+      # apply the functional-to-template (T1 template) registration transform to the functional data
+      run: On
+      output_resolution:
 
-      output_resolution: 
         # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
         # NOTE:
         #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
@@ -113,12 +273,17 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 2.3mmx2.3mmx6mm
 
-      target_template: 
-      
-        using: [EPI_template]
+      target_template:
 
-        # option parameters
-        T1_template: 
+        # choose which template space to transform derivatives towards
+        # using: ['T1_template', 'EPI_template']
+        # this is a fork point
+        # NOTE:
+        #   this will determine which registration transform to use to warp the functional
+        #   outputs and derivatives to template space
+        using: [EPI_template]
+        T1_template:
+
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_brain_template_funcreg: /template/study_based_functional_template_sk.nii.gz
@@ -126,82 +291,171 @@ registration_workflows:
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /template/study_based_functional_template.nii.gz
-          
+
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: None
+          T1w_brain_template_mask_funcreg:
 
           # a standard template for resampling if using float resolution
-          T1w_template_for_resample: None
+          T1w_template_for_resample:
 
-        EPI_template: 
+        EPI_template:
+
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
           EPI_template_funcreg: /cpac_templates/chd8_functional_template_sk.nii
-          
-          # EPI template mask.
-          EPI_template_mask_funcreg: None
-          
-          # a standard template for resampling if using float resolution
-          EPI_template_for_resample: None
 
-      ANTs_pipelines: 
+          # a standard template for resampling if using float resolution
+          EPI_template_for_resample:
+
+      ANTs_pipelines:
+
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
-functional_preproc: 
-  slice_timing_correction: 
-    # Interpolate voxel time courses so they are sampled at the same time points.
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
+      # apply the functional-to-template (EPI template) registration transform to the functional data
+      run_EPI: On
+      apply_transform:
 
-  motion_estimates_and_correction: 
+        # options: 'default', 'abcd', 'single_step_resampling_from_stc', 'dcan_nhp'
+        # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
+        # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
+        # 'single_step_resampling_from_stc': apply motion correction, func-to-anat and anat-to-template transforms on each of slice-time-corrected functional volume using ANTs antsApplyTransform based on fMRIPrep pipeline.
+        #   - if 'single_step_resampling_from_stc', 'template' is the only valid option for ``nuisance_corrections: 2-nuisance_regression: space``
+        using: default
+
+functional_preproc:
+  run: On
+  slice_timing_correction:
+
+    # use specified slice time pattern rather than one in header
+    tpattern:
+
+    # align each slice to given time offset
+    # The default alignment time is the average of the 'tpattern' values (either from the dataset header or from the tpattern option).
+    tzero:
+
+  motion_estimates_and_correction:
     motion_correction:
+
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
-      using: ['mcflirt']
+      using: [mcflirt]
 
       # option parameters
-      AFNI-3dvolreg: 
+      AFNI-3dvolreg:
+
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: Off
 
-  distortion_correction: 
-    run: [Off]
+    run: On
 
-  func_masking: 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+  distortion_correction:
+    Blip-FSL-TOPUP:
+
+      # (approximate) resolution (in mm) of warp basis for the different sub-sampling levels, default 10
+      warpres: 10
+
+      # sub-sampling scheme, default 1
+      subsamp: 1
+
+      # FWHM (in mm) of gaussian smoothing kernel, default 8
+      fwhm: 8
+
+      # Max # of non-linear iterations, default 5
+      miter: 5
+
+      # Weight of regularisation, default depending on --ssqlambda and --regmod switches. See user documentation.
+      lambda: 1
+
+      # If set (=1), lambda is weighted by current ssq, default 1
+      ssqlambda: 1
+
+      # Model for regularisation of warp-field [membrane_energy bending_energy], default bending_energy
+      regmod: bending_energy
+
+      # Estimate movements if set, default 1 (true)
+      estmov: 1
+
+      # Minimisation method 0=Levenberg-Marquardt, 1=Scaled Conjugate Gradient, default 0 (LM)
+      minmet: 0
+
+      # Order of spline, 2->Qadratic spline, 3->Cubic spline. Default=3
+      splineorder: 3
+
+      # Precision for representing Hessian, double or float. Default double
+      numprec: double
+
+      # Image interpolation model, linear or spline. Default spline
+      interp: spline
+
+      # If set (=1), the images are individually scaled to a common mean, default 0 (false)
+      scale: 0
+
+      # If set (=1), the calculations are done in a different grid, default 1 (true)
+      regrid: 1
+
+  func_masking:
+
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+    # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
+    # Anatomical_Refined: 1. binarize anat mask, in case it is not a binary mask. 2. fill holes of anat mask 3. init_bold_mask : input raw func → dilate init func brain mask 4. refined_bold_mask : input motion corrected func → dilate anatomical mask 5. get final func mask
+    # Anatomical_Based: Generate the BOLD mask by basing it off of the anatomical brain mask. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+    # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
+    # CCS_Anatomical_Refined: Generate the BOLD mask by basing it off of the anatomical brain. Adapted from the BOLD mask method from the CCS pipeline.
     # this is a fork point
     using: [FSL]
+    FSL-BET:
 
-    FSL-BET: 
       # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
-      
-      # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
-      functional_mean_thr: 
-        run: On
-        threshold_value: 98
 
-      # Bias correct the functional mean image to improve skull stripping performances of FSL BET on rodent scans
-      functional_mean_bias_correction: On
-      
       # Integer value of head radius
       radius: 50
 
       # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
       robust: On
 
-nuisance_corrections: 
+      # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
+      functional_mean_thr:
+        run: On
+        threshold_value: 98
+
+      # Bias correct the functional mean image to improve skull stripping performances of FSL BET on rodent scans
+      functional_mean_bias_correction: On
+
+    FSL_AFNI:
+      bold_ref:
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
+    # Apply functional mask in native space
+    apply_func_mask_in_native_space: On
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: On
+
+nuisance_corrections:
   2-nuisance_regression:
 
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
     # Select which nuisance signal corrections to apply
-    Regressors: 
-      - Bandpass:
+    Regressors:
+      - Name: Regressor-1
+        Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
           method: AFNI
@@ -214,16 +468,56 @@ nuisance_corrections:
           include_delayed: Off
           include_delayed_squared: Off
           include_squared: Off
-        Name: Regressor-1
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: /cpac_templates/chd8_functional_template_noise_mask_ag.nii
 
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks:
+      erode_anatomical_brain_mask:
+
+        # Erode brain mask in millimeters, default for brain mask is 30 mm
+        # Brain erosion default is using millimeters.
+        brain_mask_erosion_mm: 30
+
+      erode_csf:
+
+        # Erode cerebrospinal fluid mask in millimeters, default for cerebrospinal fluid is 30mm
+        # Cerebrospinal fluid erosion default is using millimeters.
+        csf_mask_erosion_mm: 30
+
+      erode_wm:
+
+        # Target volume ratio, if using erosion.
+        # Default proportion is 0.6 for white matter mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        # White matter erosion default is using proportion erosion method when use erosion for white matter.
+        wm_erosion_prop: 0.6
+
+      erode_gm:
+
+        # Target volume ratio, if using erosion.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        gm_erosion_prop: 0.6
+
+    # this is a fork point
+    # Run nuisance regression in native or template space
+    #   - If set to [native, template], the number of outputs will be double what it would be if only one space were chosen. Nuisance regression will only be run once per fork.
+    #   - If set to template, will use the brain mask configured in
+    #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
+    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
+    space: [native]
+
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: On
+
 # OUTPUTS AND DERIVATIVES
 # -----------------------
-post_processing: 
-  spatial_smoothing: 
+post_processing:
+  spatial_smoothing:
+
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
@@ -234,31 +528,22 @@ post_processing:
     #   i.e. multiple kernels - fwhm: [4,6,8]
     fwhm: [6]
 
-timeseries_extraction: 
-  run: Off
+timeseries_extraction:
+  connectivity_matrix:
 
-seed_based_correlation_analysis: 
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: Off
+    # Create a connectivity matrix from timeseries data
+    # Options:
+    #  ['AFNI', 'Nilearn', 'ndmg']
+    using: [Nilearn, ndmg]
 
-amplitude_low_frequency_fluctuation: 
-  # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: Off
+    # Options:
+    #  ['Pearson', 'Partial']
+    # Note: These options are not configurable for ndmg, which will ignore these options
+    measure: [Pearson, Partial]
 
-regional_homogeneity: 
-  # ReHo
-  # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: Off
+voxel_mirrored_homotopic_connectivity:
+  symmetric_registration:
 
-voxel_mirrored_homotopic_connectivity: 
-  # VMHC
-  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: Off
-
-  symmetric_registration: 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     T1w_brain_template_symmetric: /template/study_based_functional_template_sk.nii.gz
@@ -279,13 +564,3 @@ voxel_mirrored_homotopic_connectivity:
 
     # A reference symmetric brain mask template for resampling
     dilated_symmetric_brain_mask_for_resample: /template/study_based_functional_template_mask.nii.gz
-
-network_centrality: 
-  # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: Off
-
-# PACKAGE INTEGRATIONS
-# --------------------
-PyPEER: 
-  # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

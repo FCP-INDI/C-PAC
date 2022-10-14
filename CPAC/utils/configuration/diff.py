@@ -81,10 +81,7 @@ def dct_diff(dct1, dct2):
             if key not in dct1:
                 diff[key] = dct2[key]
 
-        # only return non-empty diffs
-        return DiffDict({k: v for k, v in diff.items() if k in dct2})
-
-    return DiffDict()
+    return DiffDict(diff)
 
 
 def diff_dict(diff):
