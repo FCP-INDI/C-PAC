@@ -10,7 +10,6 @@ from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
 
-from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
@@ -92,6 +91,7 @@ def random_seed_flags():
     ...     'functions', 'interfaces']])
     True
     '''
+    from CPAC.registration.utils import hardcoded_reg
     seed = random_seed()
     if seed is None:
         return {'functions': {}, 'interfaces': {}}

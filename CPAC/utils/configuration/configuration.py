@@ -19,12 +19,10 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import re
 import os
 import warnings
-
 from itertools import repeat
+from typing import Optional, Tuple
 from warnings import warn
-
 import yaml
-
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
@@ -357,6 +355,43 @@ class Configuration:
             ]))
 
 
+def check_pname(p_name: str, pipe_config: Configuration) -> str:
+    '''Function to check / set `p_name`, the string representation of a
+    pipeline for use in filetrees
+
+    Parameters
+    ----------
+    p_name : str or None
+
+    pipe_config : Configuration
+
+    Returns
+    -------
+    p_name
+
+    Examples
+    --------
+    >>> c = Configuration()
+    >>> check_pname(None, c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('pipeline_cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('different-name', Configuration())
+    'pipeline_different-name'
+    >>> p_name = check_pname(None, Preconfiguration('blank'))
+    Loading the 'blank' pre-configured pipeline.
+    >>> p_name
+    'pipeline_cpac-blank-template'
+    '''
+    if p_name is None:
+        p_name = f'pipeline_{pipe_config["pipeline_setup", "pipeline_name"]}'
+    elif not p_name.startswith('pipeline_'):
+        p_name = f'pipeline_{p_name}'
+    return p_name
+
+
 def collect_key_list(config_dict):
     '''Function to return a list of lists of keys for a nested dictionary
 
@@ -454,3 +489,55 @@ def set_from_ENV(conf):  # pylint: disable=invalid-name
                 conf = re.sub(
                     _pattern, os.environ.get(_match, f'${_match}'), conf)
     return conf
+
+
+def set_subject(sub_dict: dict, pipe_config: 'Configuration',
+                p_name: Optional[str] = None) -> Tuple[str, str, str]:
+    '''Function to set pipeline name and log directory path for a given
+    sub_dict
+
+    Parameters
+    ----------
+    sub_dict : dict
+
+    pipe_config : CPAC.utils.configuration.Configuration
+
+    p_name : str, optional
+        pipeline name string
+
+    Returns
+    -------
+    subject_id : str
+
+    p_name : str
+        pipeline name string
+
+    log_dir : str
+        path to subject log directory
+
+    Examples
+    --------
+    >>> from tempfile import TemporaryDirectory
+    >>> from CPAC.utils.configuration import Configuration
+    >>> sub_dict = {'site_id': 'site1', 'subject_id': 'sub1',
+    ...             'unique_id': 'uid1'}
+    >>> with TemporaryDirectory() as tmpdir:
+    ...     subject_id, p_name, log_dir = set_subject(
+    ...         sub_dict, Configuration({'pipeline_setup': {'log_directory':
+    ...             {'path': tmpdir}}}))
+    >>> subject_id
+    'sub1_uid1'
+    >>> p_name
+    'pipeline_cpac-default-pipeline'
+    >>> log_dir.endswith(f'{p_name}/{subject_id}')
+    True
+    '''
+    subject_id = sub_dict['subject_id']
+    if sub_dict.get('unique_id'):
+        subject_id += f'_{sub_dict["unique_id"]}'
+    p_name = check_pname(p_name, pipe_config)
+    log_dir = os.path.join(pipe_config.pipeline_setup['log_directory']['path'],
+                           p_name, subject_id)
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
+    return subject_id, p_name, log_dir

@@ -5,7 +5,9 @@ from . import build_data_config
 from .interfaces import function, masktool
 from .extract_data import run
 from .datatypes import ListFromItem
-from .configuration import Configuration
+from .configuration import check_pname, Configuration, set_subject
+from .strategy import Strategy
+from .outputs import Outputs
 
 from .utils import (
     get_zscore,
@@ -35,6 +37,5 @@ from .utils import (
     repickle,
 )
 
-__all__ = [
-    'function', 'ListFromItem'
-]
+__all__ = ['check_pname', 'Configuration', 'function', 'ListFromItem',
+           'set_subject']
