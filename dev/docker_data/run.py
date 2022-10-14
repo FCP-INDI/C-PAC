@@ -746,7 +746,8 @@ def run_main():
             # file, an identical copy of the data and pipeline config
             # will be included in the log directory for each run
             for sublogdir in sublogdirs[1:]:
-                for config_file in data_config_file, pipeline_config_file:
+                for config_file in (data_config_file, pipeline_config_file,
+                                    minimized_config):
                     os.link(config_file, config_file.replace(
                         sublogdirs[0], sublogdir))
 
