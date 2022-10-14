@@ -18,13 +18,12 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
-import sys
-import warnings
 from warnings import warn
 
 import pkg_resources as p
 import yaml
 
+from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
@@ -83,8 +82,7 @@ class Configuration:
     def __init__(self, config_map=None):
         from click import BadParameter
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
-            update_nested_dict
+        from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
         if config_map is None:
             config_map = {}
@@ -128,9 +126,7 @@ class Configuration:
             if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
                     'brain_extraction']['using']:
                 config_map['surface_analysis']['freesurfer']['run'] = False
-                print('FreeSurfer will run as part of configured brain '
-                      'extraction, so its independent run was automatically '
-                      'disabled.', file=sys.stderr)
+                warn(DOUBLERUN_GUARD_MESSAGE)
         except TypeError:
             pass
 
@@ -295,11 +291,10 @@ class Configuration:
     def __update_attr(self):
 
         def check_path(key):
-            if type(key) is str and '/' in key:
+            if isinstance(key, str) and '/' in key:
                 if not os.path.exists(key):
-                    warnings.warn(
-                        "Invalid path- %s. Please check your configuration "
-                        "file" % key)
+                    warn(f"Invalid path- {key}. Please check your "
+                         "configuration file")
 
         attributes = [(attr, getattr(self, attr)) for attr in dir(self)
                       if not callable(attr) and not attr.startswith("__")]
