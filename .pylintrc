@@ -435,6 +435,7 @@ good-names=c,
            ex,
            nb,
            Run,
+           TR,
            v,
            wf,
            _,
@@ -443,6 +444,7 @@ good-names=c,
 # they will always be accepted
 good-names-rgxs=^_version_(extra|m[a-n]{2}[or]{2})$,  # version parts in info.py
                 .*EPI.*,
+                .*TE.*,
                 .*T1.*,
                 .*T2.*
 

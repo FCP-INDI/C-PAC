@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added crash messages from during and before graph building to logs
 - Added data-config-specific hash string to C-PAC-generated config files
 
+### Fixed
+- Replaces ``DwellTime`` with ``EffectiveEchoSpacing`` for FSL usage of the term
 
 ## [v1.8.4] - 2022-06-27
 

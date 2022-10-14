@@ -1,19 +1,19 @@
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2021-2022  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
 import logging
 import os
@@ -31,7 +31,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils import Outputs
+from CPAC.utils.outputs import Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -1956,7 +1956,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 def run_node_blocks(blocks, data_paths, cfg=None):
     import os
     from CPAC.pipeline import nipype_pipeline_engine as pe
-    from CPAC.utils.strategy import NodeBlock
+    from CPAC.pipeline.engine import NodeBlock
 
     if not cfg:
         cfg = {
