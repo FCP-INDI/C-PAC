@@ -732,9 +732,14 @@ def run_main():
             sublogdirs[0], f"cpac_pipeline_config_{data_hash}_{st}.yml")
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
             _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
-        with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
+        minimized_config = f'{pipeline_config_file[:-4]}_min.yml'
+        with open(minimized_config, 'w',
                   encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
+            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE,
+                                               False))
+        for config_file in (data_config_file, pipeline_config_file,
+                            minimized_config):
+            os.chmod(config_file, 0x444)  # Make config files readonly
 
         if len(sublogdirs) > 1:
             # If more than one run is included in the given data config
