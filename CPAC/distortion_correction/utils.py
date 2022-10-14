@@ -184,27 +184,27 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
         unwarp_dir = unwarp_dir.decode()
 
     if unwarp_dir in ["x", "x-", "-x","i","-i","i-"]:
-        if not ro_time_one or not ro_time_two:  
-            if dwell_time_one and dwell_time_two:
-                dim = nibabel.load(phase_one).shape[0]
-                n_PE_steps = dim - 1
-                ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
-                ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-            else:
-                raise Exception("[!] No dwell time or total readout time "
-                                "present for the acq-fMRI EPI field maps.")
-        ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
+        if dwell_time_one and dwell_time_two:
+            dim = nibabel.load(phase_one).shape[0]
+            n_PE_steps = dim - 1
+            ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+            ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        elif ro_time_one and ro_time_two:
+            ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
+        else:
+            raise Exception("[!] No dwell time or total readout time "
+                            "present for the acq-fMRI EPI field maps.")
     elif unwarp_dir in ["y", "y-", "-y","j","-j","j-"]:
-        if not ro_time_one or not ro_time_two:
-            if dwell_time_one and dwell_time_two:
-                dim = nibabel.load(phase_one).shape[1]
-                n_PE_steps = dim - 1
-                ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
-                ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-            else:
-                raise Exception("[!] No dwell time or total readout time "
-                                "present for the acq-fMRI EPI field maps.")
-        ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
+        if dwell_time_one and dwell_time_two:
+            dim = nibabel.load(phase_one).shape[1]
+            n_PE_steps = dim - 1
+            ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+            ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        elif ro_time_one and ro_time_two:
+            ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
+        else:
+            raise Exception("[!] No dwell time or total readout time "
+                            "present for the acq-fMRI EPI field maps.")
     else:
         raise Exception(f"unwarp_dir={unwarp_dir} is unsupported.")
 
