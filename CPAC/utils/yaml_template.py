@@ -220,13 +220,20 @@ def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
 
     Examples
     --------
-    # >>> _format_list_items([1, 2, {'nested': 3}], 0
-    # ... ) == r'\n  - 1\n  - 2\n  - nested: 3'
-    # True
-    # >>> _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1
-    # ... ) == (r'\n    - 1\n    - 2\n    - nested:\n      - 3\n'
-    # ...       '      - deep:\n        - 4')
-    # True
+    >>> print(_format_list_items([1, 2, {'nested': 3}], 0))
+    <BLANKLINE>
+      - 1
+      - 2
+      - nested: 3
+    >>> print(
+    ...     _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1))
+    <BLANKLINE>
+        - 1
+        - 2
+        - nested:
+          - 3
+          - deep:
+            - 4
     '''
     # keep short, simple lists in square brackets
     if all(isinstance(item, (str, bool, int, float)) for item in l):
