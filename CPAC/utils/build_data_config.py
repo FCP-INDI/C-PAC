@@ -1655,46 +1655,41 @@ def util_copy_template(template_type=None):
     import os
     import shutil
     import pkg_resources as p
-    from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
+    from CPAC.utils.configuration import preconfig_yaml
 
-    if not template_type:
-        type = "data_settings"
-    else:
-        type = template_type
+    template_type = "data_settings" if not template_type else template_type
 
-    settings_template = DEFAULT_PIPELINE_FILE if (
-        type == "pipeline_config"
+    settings_template = preconfig_yaml('default') if (
+        template_type == "pipeline_config"
     ) else p.resource_filename("CPAC", os.path.join(
-        "resources", "configs", "{0}_template.yml".format(type)))
+        "resources", "configs", f"{template_type}_template.yml"))
 
-    settings_file = os.path.join(os.getcwd(), "{0}.yml".format(type))
+    settings_file = os.path.join(os.getcwd(), f"{template_type}.yml")
 
     try:
         if os.path.exists(settings_file):
             settings_file = os.path.join(os.getcwd(),
-                                         "{0}_1.yml".format(type))
+                                         f"{template_type}_1.yml")
             while os.path.exists(settings_file):
                 idx = int(
                     os.path.basename(settings_file).split("_")[2].replace(
                         ".yml", ""))
                 settings_file = os.path.join(os.getcwd(),
-                                             "{0}_{1}.yml".format(
-                                                 type, idx + 1))
+                                             f"{template_type}_{idx + 1}.yml")
         shutil.copy(settings_template, settings_file)
-    except:
-        err = "\n[!] Could not write the {0} file template " \
-              "to the current directory.\n".format(type)
-        raise Exception(err)
+    except Exception as exception:
+        raise Exception(f"\n[!] Could not write the {template_type} file "
+                        "template to the current directory.\n") from exception
 
-    print("\nGenerated a default {0} YAML file for editing:\n" \
-          "{1}\n\n".format(type, settings_file))
+    print(f"\nGenerated a default {template_type} YAML file for editing:\n"
+          f"{settings_file}\n\n")
     if type == 'data_settings':
         print("This file can be completed and entered into the C-PAC "
-          "command-line interface to generate a data configuration file "
-          "for individual-level analysis by running 'cpac utils "
-          "data_config build {data settings file}'.\nAdditionally, it can "
-          "also be loaded into the CPAC data configuration file builder UI "
-          "using the 'Load Preset' button.\n")
+              "command-line interface to generate a data configuration file "
+              "for individual-level analysis by running 'cpac utils "
+              "data_config build {data settings file}'.\nAdditionally, it can "
+              "also be loaded into the CPAC data configuration file builder "
+              "UI using the 'Load Preset' button.\n")
     elif type == 'pipeline_config':
         print("This file can be edited and then used in a C-PAC run by "
               "running 'cpac run --pipe_config {pipeline config file} "

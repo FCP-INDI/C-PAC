@@ -32,7 +32,7 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
+from CPAC.utils.configuration import Configuration, preconfig_yaml
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -135,7 +135,7 @@ def run_main():
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
-                        default=DEFAULT_PIPELINE_FILE)
+                        default=preconfig_yaml('default'))
     parser.add_argument('--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
@@ -737,10 +737,10 @@ def run_main():
                 DEFAULT_TMP_DIR, f"cpac_pipeline_config_{data_hash}_{st}.yml")
 
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
+            _f.write(create_yaml_from_template(c))
         with open(f'{pipeline_config_file[:-4]}_min.yml', 'w',
                   encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, False))
+            _f.write(create_yaml_from_template(c, import_from='blank'))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way

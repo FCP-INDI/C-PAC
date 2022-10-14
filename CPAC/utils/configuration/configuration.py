@@ -16,13 +16,13 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
-import re
 import os
+import re
+import sys
 import warnings
-
-from itertools import repeat
 from warnings import warn
 
+import pkg_resources as p
 import yaml
 
 from CPAC.utils.utils import load_preconfig
@@ -31,21 +31,14 @@ from .diff import dct_diff
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
 
-DEFAULT_PIPELINE_FILE = os.path.join(
-    os.path.abspath(os.path.join(
-        __file__,
-        *repeat(os.path.pardir, 4))),
-    'CPAC/resources/configs/pipeline_config_default.yml')
-
-with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
-    default_config = yaml.safe_load(dp_fp)
-
 
 class ConfigurationDictUpdateConflation(SyntaxError):
+    """Custom exception to clarify similar methods"""
     def __init__(self):
         self.msg = (
             '`Configuration().update` requires a key and a value. '
             'Perhaps you meant `Configuration().dict().update`?')
+        super().__init__()
 
 
 class Configuration:
@@ -96,20 +89,22 @@ class Configuration:
         if config_map is None:
             config_map = {}
 
-        base_config = config_map.get('FROM', 'default_pipeline')
+        base_config = config_map.pop('FROM', None)
+        if base_config:
+            if base_config.lower() in ['default', 'default_pipeline']:
+                base_config = 'default'
 
-        # import another config (specified with 'FROM' key)
-        if base_config not in ['default', 'default_pipeline']:
+            # import another config (specified with 'FROM' key)
             try:
-                base_config = load_preconfig(base_config)
+                base_config = Preconfiguration(base_config)
             except BadParameter:
-                pass
-            from_config = yaml.safe_load(open(base_config, 'r'))
-            config_map = update_nested_dict(
-                Configuration(from_config).dict(), config_map)
+                with open(base_config, 'r', encoding='utf-8') as _f:
+                    base_config = Configuration(yaml.safe_load(_f))
+            config_map = update_nested_dict(base_config.dict(), config_map)
 
-        # base everything on default pipeline
-        config_map = update_nested_dict(default_config, config_map)
+        # base everything on blank pipeline for unspecified keys
+        with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
+            config_map = update_nested_dict(yaml.safe_load(_f), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -133,6 +128,9 @@ class Configuration:
             if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
                     'brain_extraction']['using']:
                 config_map['surface_analysis']['freesurfer']['run'] = False
+                print('FreeSurfer will run as part of configured brain '
+                      'extraction, so its independent run was automatically '
+                      'disabled.', file=sys.stderr)
         except TypeError:
             pass
 
@@ -191,7 +189,6 @@ class Configuration:
         --------
         >>> diff = (Preconfiguration('fmriprep-options') - Configuration()) \
         # doctest: +NORMALIZE_WHITESPACE
-        Loading the 'fmriprep-options' pre-configured pipeline.
         >>> diff['pipeline_setup']['pipeline_name']
         ('cpac_fmriprep-options', 'cpac-default-pipeline')
         >>> diff['pipeline_setup']['pipeline_name'].s_value
@@ -397,6 +394,22 @@ def configuration_from_file(config_file):
     """
     with open(config_file, 'r') as config:
         return Configuration(yaml.safe_load(config))
+
+
+def preconfig_yaml(preconfig_name='default'):
+    """Get the path to a preconfigured pipeline's YAML file
+
+    Parameters
+    ----------
+    preconfig_name : str
+
+    Returns
+    -------
+    str
+        path to YAML file
+    """
+    return p.resource_filename("CPAC", os.path.join(
+        "resources", "configs", f"pipeline_config_{preconfig_name}.yml"))
 
 
 class Preconfiguration(Configuration):

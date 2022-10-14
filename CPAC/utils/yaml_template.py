@@ -14,34 +14,82 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+from copy import deepcopy
 import os
 import re
 from datetime import datetime
 from hashlib import sha1
 import yaml
-from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, \
-                             YAML_BOOLS
+from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
+from CPAC.utils.configuration import Configuration, Preconfiguration, \
+                                     preconfig_yaml
+from CPAC.utils.utils import set_nested_value, update_config_dict, \
+                             update_pipeline_values_1_8, YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for
                yaml_str in value}
 
 
+def promote_key(to_resort, key):
+    """Function to promte an item by key to the first position in a
+    dictionary
+
+    Parameters
+    ----------
+    to_resort : dict
+
+    key : str
+
+    Returns
+    -------
+    dict
+    """
+    if key in to_resort:
+        name_dict = {key: to_resort.pop(key)}
+        name_dict.update(to_resort)
+        to_resort = name_dict
+    return to_resort
+
+
 class YamlTemplate():  # pylint: disable=too-few-public-methods
-    """A class to link YAML comments to the contents of a YAML file"""
-    def __init__(self, original_yaml):
+    """A class to link YAML comments to the contents of a YAML file
+
+    Attributes
+    ----------
+    comments : dict
+        Flat dictionary with '.'-delimited pseudo-nested structure.
+        E.g., comments for ``{'pipeline_setup': {'pipeline_name': value}}``
+        would be keyed ``{'pipeline_setup': comment0,
+                          'pipeline_setup.pipeline_name: comment1}`` to
+        allow comments at each level of depth.
+
+    dump : method
+
+    get_nested : method
+
+    original : str
+    """
+    def __init__(self, original_yaml, base_config=None):
         """
         Parameters
         ----------
         original_yaml : str
             raw YAML or path to YAML file
+
+        base_config : Configuration, optional
         """
+        preconfig_path = preconfig_yaml(original_yaml)
+        if os.path.exists(preconfig_path):
+            original_yaml = preconfig_path
         if os.path.exists(original_yaml):
             with open(original_yaml, 'r', encoding='utf-8') as _f:
                 original_yaml = _f.read()
         self.comments = {}
-        self.original = original_yaml
-        self._dict = yaml.safe_load(self.original)
+        self.template = original_yaml
+        if base_config is None:
+            self._dict = yaml.safe_load(self.template)
+        else:
+            self._dict = base_config.dict()
         self._parse_comments()
 
     get_nested = Configuration.get_nested
@@ -60,25 +108,87 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
         -------
         str
         """
-        parents = parents if parents is not None else []
+        # Initialize variable for autmatically updated value
+        if parents == ['surface_analysis', 'freesurfer'] or parents is None:
+            freesurfer_extraction = False
+            try:
+                brain_extractions = self.get_nested(
+                    new_dict, ['anatomical_preproc', 'brain_extraction',
+                               'using'])
+            except KeyError:
+                brain_extractions = []
+            if (brain_extractions is not None and
+                    'FreeSurfer-ABCD' in brain_extractions):
+                freesurfer_extraction = True
+        # SSOT FSLDIR
+        try:  # Get from current config
+            fsldir = self.get_nested(new_dict,
+                                     ['pipeline_setup', 'system_config',
+                                      'FSLDIR'])
+        except KeyError:  # Get from imported base
+            fsldir = self.get_nested(self._dict,
+                                     ['pipeline_setup', 'system_config',
+                                      'FSLDIR'])
+        # Add YAML version directive to top of document and ensure
+        # C-PAC version comment and 'FROM' are at the top of the YAML
+        # output
+        if parents is None:
+            parents = []
+            _dump = ['%YAML 1.1', '---']
+            if 'pipeline_setup' not in new_dict:
+                new_dict['pipeline_setup'] = None
+            # Insert automatically-changed value in original dict
+            if freesurfer_extraction:
+                new_dict = set_nested_value(
+                    new_dict, ['surface_analysis', 'freesurfer', 'run'], False)
+        else:
+            _dump = []
+        # Prepare for indentation
         line_level = len(parents)
-        _dump = []
-        for key in (self.get_nested(new_dict, parents) if
-                    parents else new_dict):
+        # Get a safely mutable copy of the dict
+        loop_dict = deepcopy(self.get_nested(new_dict, parents) if
+                             parents else new_dict)
+        # Grab special key to print first
+        import_from = loop_dict.pop('FROM', None)
+        # Promote name to top if name is a key
+        for key in ['Name', 'pipeline_name']:
+            loop_dict = promote_key(loop_dict, key)
+        # Iterate through mutated dict
+        for key in loop_dict:
+            # List of progressively-indented key strings
             keys = [*parents, key]
+            # Comments are stored in a flat dictionary with
+            # '.'-delimited pseudonested keys
             comment = self.comments.get('.'.join(keys))
+            # This exception should only happen from mutations
+            # introduced this function
             try:
                 value = self.get_nested(new_dict, keys)
             except KeyError:  # exclude unincluded keys
                 continue
-            indented_key = f'{indent(line_level, 0)}{key}:'
+            # Add comment for automatically changed value
+            if (keys == ['surface_analysis', 'freesurfer', 'run'] and
+                    freesurfer_extraction):
+                if comment is None:
+                    comment = []
+                comment.append(f'# {DOUBLERUN_GUARD_MESSAGE}')
+            # Print comment if there's one above this key in the template
             if comment:
-                _dump += ['']
+                if key != 'pipeline_setup':
+                    _dump += ['']  # Add a blank line above the comment
                 _dump += [indent(line_level, 0) + line for line in comment]
-            else:
-                while _dump and _dump[-1].strip() == '':
-                    _dump = _dump[:-1]
+            # Print 'FROM' between preamble comment and rest of config
+            # if applicable
+            if key == 'pipeline_setup' and import_from is not None:
+                _dump += [f'FROM: {import_from}', '']
+            # Apply indentation to key
+            indented_key = f'{indent(line_level, 0)}{key}:'
+            # Print YAML-formatted value
             if value is not None:
+                # SSOT FSLDIR
+                if (isinstance(value, str) and fsldir in value and
+                        key != 'FSLDIR'):
+                    value = value.replace(fsldir, '$FSLDIR')
                 if isinstance(value, dict):
                     _dump += [indented_key, self.dump(new_dict, keys)]
                 elif isinstance(value, list):
@@ -95,30 +205,39 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                     _dump += [f'{indented_key} {value}']
                 else:
                     _dump += [f'{indented_key} {value}']
-            else:
+            elif key != 'pipeline_setup':
                 _dump += [indented_key]
-        while _dump and _dump[0] == '\n':
-            _dump = _dump[1:]
+        # Normalize line spacing and return YAML string
         return re.sub('\n{3,}', '\n\n', '\n'.join(_dump)).rstrip() + '\n'
 
     def _parse_comments(self):
-        yaml_lines = self.original.split('\n')
+        # Split YAML into lines
+        yaml_lines = self.template.split('\n')
+        # Initialize comment and key
         comment = []
         key = []
         for line in yaml_lines:
+            # Calculate indentation
             line_level = _count_indent(line)
+            # Remove indentation and trailing whitespace
             stripped_line = line.strip()
+            # Collect a line of a comment
             if stripped_line.startswith('#'):
                 comment.append(stripped_line)
+            # If a line is not a comment line:
             elif not any(stripped_line.startswith(seq) for
                          seq in ('%YAML', '---')):
+                # If the line is a key
                 if ':' in stripped_line:
-                    line_key = stripped_line.split(':', 1)[0]
+                    # Set the key for the comments dictionary
+                    line_key = stripped_line.split(':', 1)[0].strip()
                     if line_level == 0:
                         key = [line_key]
                     else:
                         key = [*key[:line_level], line_key]
+                    # Store the full list of comment lines
                     self.comments['.'.join(key)] = comment
+                    # Reset the comment variable to collect the next comment
                     comment = []
 
 
@@ -144,8 +263,7 @@ def _count_indent(line):
 
 
 def create_yaml_from_template(d,  # pylint: disable=invalid-name
-                              template=DEFAULT_PIPELINE_FILE,
-                              include_all=False):
+                              template='default', import_from=None):
     """Save dictionary to a YAML file, keeping the structure
     (such as first level comments and ordering) from the template
 
@@ -157,13 +275,10 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     d : dict or Configuration
 
     template : str
-        path to template or YAML as a string
+        path to template, name of preconfig, or YAML as a string
 
-        .. versionchanged:: 1.8.5
-           used to take path to template or name of preconfig
-
-    include_all : bool
-        include every key, even those that are unchanged
+    import_from : str, optional
+        name of a preconfig. Full config is generated if omitted
 
     Examples
     --------
@@ -173,22 +288,23 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     ...     ) == Configuration({}).dict()
     True
     >>> fmriprep_options = Preconfiguration('fmriprep-options')
-    Loading the 'fmriprep-options' pre-configured pipeline.
     >>> fmriprep_options - Configuration({}) != {}
     True
     >>> fmriprep_options - fmriprep_options
     {}
     >>> fmriprep_options - Preconfiguration('fmriprep-options')
-    Loading the 'fmriprep-options' pre-configured pipeline.
     {}
     >>> fmriprep_options - Configuration({'FROM': 'fmriprep-options'})
-    Loading the 'fmriprep-options' pre-configured pipeline.
     {}
     >>> fmriprep_options - Configuration(yaml.safe_load(
-    ...     create_yaml_from_template(fmriprep_options, include_all=True)))
+    ...     create_yaml_from_template(fmriprep_options, import_from=None)))
     {}
     >>> fmriprep_options - Configuration(yaml.safe_load(
-    ...     create_yaml_from_template(fmriprep_options, include_all=False)))
+    ...     create_yaml_from_template(fmriprep_options,
+    ...                               import_from='default')))
+    {}
+    >>> fmriprep_options - Configuration(yaml.safe_load(
+    ...     create_yaml_from_template(fmriprep_options, import_from='blank')))
     {}
     >>> different_sca = Configuration({'pipeline_setup': {
     ...     'pipeline_name': 'different_SCA'},
@@ -199,8 +315,15 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
     ...     'seed_based_correlation_analysis') not in (None, {})
     True
     """
-    yaml_template = YamlTemplate(template)
-    d = d.dict() if isinstance(d, Configuration) else d
+    if import_from is None:  # full config
+        d = d.dict() if isinstance(d, Configuration) else d
+        base_config = None
+    else:  # config based on preconfig
+        d = Configuration(d) if not isinstance(d, Configuration) else d
+        base_config = Preconfiguration(import_from)
+        d = (d - base_config).left
+        d.update({'FROM': import_from})
+    yaml_template = YamlTemplate(template, base_config)
     return yaml_template.dump(new_dict=d)
 
 
@@ -243,7 +366,7 @@ def _format_list_items(l,  # noqa: E741  # pylint:disable=invalid-name
     # list long or complex lists on lines with indented '-' lead-ins
     return '\n' + '\n'.join([
         f'{indent(line_level)}{li}' for li in yaml.dump(
-            yaml_bool(l)
+            yaml_bool(l), sort_keys=False
         ).replace("'On'", 'On').replace("'Off'", 'Off').split('\n')
     ]).rstrip()
 
@@ -315,6 +438,8 @@ def yaml_bool(value):
     elif isinstance(value, list):
         return [yaml_bool(item) for item in value]
     elif isinstance(value, dict):
+        # if 'Name' is a key, promote that item to the top
+        value = promote_key(value, 'Name')
         return {k: yaml_bool(value[k]) for k in value}
     if isinstance(value, bool):
         if value is True:

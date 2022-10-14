@@ -16,9 +16,8 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
-from .configuration import Configuration, DEFAULT_PIPELINE_FILE, \
-                           Preconfiguration
+from .configuration import Configuration, Preconfiguration, preconfig_yaml
 from . import configuration, diff
 
-__all__ = ['Configuration', 'configuration', 'DEFAULT_PIPELINE_FILE', 'diff',
-           'Preconfiguration']
+__all__ = ['Configuration', 'configuration', 'diff', 'Preconfiguration',
+           'preconfig_yaml']

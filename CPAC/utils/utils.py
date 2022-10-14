@@ -15,6 +15,7 @@ License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
+import sys
 import collections.abc
 import fnmatch
 import gzip
@@ -1500,7 +1501,8 @@ def load_preconfig(pipeline_label):
             )
         )
 
-    print("Loading the '{0}' pre-configured pipeline.".format(pipeline_label))
+    print(f"Loading the '{pipeline_label}' pre-configured pipeline.",
+          file=sys.stderr)
 
     return pipeline_file
 
