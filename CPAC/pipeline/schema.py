@@ -26,8 +26,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
                        Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
-from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
-                             set_nested_value, YAML_BOOLS
+from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -230,166 +229,6 @@ def permutation_message(key, options):
 Available analyses for \'{key}\' are {options}
 
 '''
-
-
-def _combine_labels(config_dict, list_to_combine, new_key):
-    '''
-    Helper function to combine formerly separate keys into a
-    combined key.
-
-    Parameters
-    ----------
-    config_dict: dict
-
-    key_sequence: iterable of lists or tuples
-
-    new_key: list or tuple
-
-    Returns
-    -------
-    updated_config_dict: dict
-    '''
-    new_value = []
-    any_old_values = False
-    for _to_combine in list_to_combine:
-        try:
-            old_value = lookup_nested_value(config_dict, _to_combine)
-        except KeyError:
-            old_value = None
-        if old_value is not None:
-            any_old_values = True
-            if isinstance(old_value, (list, set, tuple)):
-                for value in old_value:
-                    new_value.append(value)
-            else:
-                new_value.append(old_value)
-            config_dict = delete_nested_value(config_dict, _to_combine)
-    if any_old_values:
-        return set_nested_value(config_dict, new_key, new_value)
-    return config_dict
-
-
-def _now_runswitch(config_dict, key_sequence):
-    '''
-    Helper function to convert a formerly forkable value to a
-    runswitch.
-
-    Parameters
-    ----------
-    config_dict: dict
-
-    key_sequence: list or tuple
-
-    Returns
-    -------
-    updated_config_dict: dict
-    '''
-    try:
-        old_forkable = lookup_nested_value(config_dict, key_sequence)
-    except KeyError:
-        return config_dict
-    if isinstance(old_forkable, bool) or isinstance(old_forkable, list):
-        return set_nested_value(
-            config_dict, key_sequence, {'run': old_forkable})
-    return config_dict
-
-
-def _changes_1_8_0_to_1_8_1(config_dict):
-    '''
-    Examples
-    --------
-    Starting with 1.8.0
-    >>> zero = {'anatomical_preproc': {
-    ...     'non_local_means_filtering': True,
-    ...     'n4_bias_field_correction': True
-    ... }, 'functional_preproc': {
-    ...     'motion_estimates_and_correction': {
-    ...         'calculate_motion_first': False
-    ...     }
-    ... }, 'segmentation': {
-    ...     'tissue_segmentation': {
-    ...         'ANTs_Prior_Based': {
-    ...             'CSF_label': 0,
-    ...             'left_GM_label': 1,
-    ...             'right_GM_label': 2,
-    ...             'left_WM_label': 3,
-    ...             'right_WM_label': 4}}}}
-    >>> updated_apb = _changes_1_8_0_to_1_8_1(zero)[
-    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
-    >>> updated_apb['CSF_label']
-    [0]
-    >>> updated_apb['GM_label']
-    [1, 2]
-    >>> updated_apb['WM_label']
-    [3, 4]
-
-    Starting with 1.8.1
-    >>> one = {'anatomical_preproc': {
-    ...     'non_local_means_filtering': True,
-    ...     'n4_bias_field_correction': True
-    ... }, 'functional_preproc': {
-    ...     'motion_estimates_and_correction': {
-    ...         'calculate_motion_first': False
-    ...     }
-    ... }, 'segmentation': {
-    ...     'tissue_segmentation': {
-    ...         'ANTs_Prior_Based': {
-    ...             'CSF_label': [0],
-    ...             'GM_label': [1, 2],
-    ...             'WM_label': [3, 4]}}}}
-    >>> updated_apb = _changes_1_8_0_to_1_8_1(one)[
-    ...     'segmentation']['tissue_segmentation']['ANTs_Prior_Based']
-    >>> updated_apb['CSF_label']
-    [0]
-    >>> updated_apb['GM_label']
-    [1, 2]
-    >>> updated_apb['WM_label']
-    [3, 4]
-    '''
-    for key_sequence in {
-        ('anatomical_preproc', 'non_local_means_filtering'),
-        ('anatomical_preproc', 'n4_bias_field_correction')
-    }:
-        config_dict = _now_runswitch(config_dict, key_sequence)
-    for combiners in {
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'CSF_label'),
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'CSF_label')),
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'left_GM_label'),
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'right_GM_label')
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'GM_label')),
-        ((
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'left_WM_label'),
-            ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-             'right_WM_label')
-        ), ('segmentation', 'tissue_segmentation', 'ANTs_Prior_Based',
-            'WM_label'))
-    }:
-        config_dict = _combine_labels(config_dict, *combiners)
-    try:
-        calculate_motion_first = lookup_nested_value(
-            config_dict,
-            ['functional_preproc', 'motion_estimates_and_correction',
-                'calculate_motion_first']
-        )
-    except KeyError:
-        calculate_motion_first = None
-    if calculate_motion_first is not None:
-        del config_dict['functional_preproc'][
-            'motion_estimates_and_correction']['calculate_motion_first']
-        config_dict = set_nested_value(config_dict, [
-            'functional_preproc', 'motion_estimates_and_correction',
-            'motion_estimates', 'calculate_motion_first'
-        ], calculate_motion_first)
-
-    return config_dict
 
 
 def sanitize(filename):
@@ -1046,9 +885,9 @@ latest_schema = Schema({
         Optional('roi_paths_fully_specified'): bool1_1,
         'tse_roi_paths': Optional(
             Maybe({
-                str: In({', '.join([
-                    option for option in options
-                ]) for options in list(chain.from_iterable([list(
+                str: In({', '.join(
+                    list(options)
+                ) for options in list(chain.from_iterable([list(
                     permutations(valid_options['timeseries']['roi_paths'],
                                  number_of)
                 ) for number_of in range(1, 6)]))}),
@@ -1067,9 +906,9 @@ latest_schema = Schema({
         Optional('roi_paths_fully_specified'): bool1_1,
         'sca_roi_paths': Optional(
             Maybe({
-                str: In({', '.join([
-                    option for option in options
-                ]) for options in list(chain.from_iterable([list(
+                str: In({', '.join(list(
+                    options
+                )) for options in list(chain.from_iterable([list(
                     permutations(valid_options['sca']['roi_paths'], number_of)
                 ) for number_of in range(1, 4)]))})
             }),
@@ -1139,6 +978,7 @@ def schema(config_dict):
     -------
     dict
     '''
+    from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
     partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
     try:
         if (partially_validated['registration_workflows'][

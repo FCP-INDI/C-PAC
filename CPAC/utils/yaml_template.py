@@ -487,9 +487,14 @@ def update_a_preconfig(preconfig, import_from):
 def update_all_preconfigs():
     """Update all other preconfigs with comments from default"""
     from CPAC.pipeline import ALL_PIPELINE_CONFIGS
-    full = ['blank', 'default']
+    not_from_blank = ['blank', 'default', 'fx-options', 'nhp-macaque',
+                      'rbc-options']
     update_a_preconfig('blank', None)
-    for preconfig in [_ for _ in ALL_PIPELINE_CONFIGS if _ not in full]:
+    for preconfig in ['fx-options', 'rbc-options']:
+        update_a_preconfig(preconfig, 'fmriprep-options')
+    update_a_preconfig('nhp-macaque', 'monkey')
+    for preconfig in [_ for _ in ALL_PIPELINE_CONFIGS if
+                      _ not in not_from_blank]:
         update_a_preconfig(preconfig, 'blank')
 
 
