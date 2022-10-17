@@ -74,6 +74,8 @@ def create_centrality_wf(wf_name, method_option, weight_options,
         afni_centrality_node.inputs.out_file = \
             'eigenvector_centrality_merged.nii.gz'
         afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
+        if 'Binarized' in weight_options:
+            afni_centrality_node.inputs.args = '-do_binary'
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
