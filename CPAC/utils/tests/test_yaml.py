@@ -21,7 +21,7 @@ import tempfile
 import yaml
 
 from CPAC.utils.configuration import preconfig_yaml
-from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.configuration.yaml_template import create_yaml_from_template
 
 
 def test_yaml_template():

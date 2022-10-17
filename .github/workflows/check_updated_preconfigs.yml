@@ -43,7 +43,7 @@ jobs:
           fi
           export PYTHONPATH=$PWD
           pip install nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
-          python ./CPAC/utils/yaml_template.py
+          python ./CPAC/utils/configuration/yaml_template.py
           if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
           then
             git add CPAC/resources/configs
