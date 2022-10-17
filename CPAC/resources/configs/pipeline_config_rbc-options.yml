@@ -252,11 +252,6 @@ timeseries_extraction:
     #  ['AFNI', 'Nilearn', 'ndmg']
     using: [Nilearn]
 
-    # Options:
-    #  ['Pearson', 'Partial']
-    # Note: These options are not configurable for ndmg, which will ignore these options
-    measure: [Pearson, Partial]
-
 regional_homogeneity:
 
   # ReHo

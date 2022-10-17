@@ -14,6 +14,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - uses: actions/setup-python@v4 
+        with:
+          cache: 'pip'
       - name: Check if version updated
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
@@ -37,9 +40,12 @@ jobs:
             [skip ci]"
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
-          python3 ./CPAC/utils/yaml_template.py
+          export PYTHONPATH=$PWD
+          pip install nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
+          python ./CPAC/utils/yaml_template.py
           if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
             then
+              git add CPAC/resources/configs
               git commit -m ":bulb: Update comments based on default preconfig"
             fi
           fi
@@ -54,7 +60,7 @@ jobs:
             git add version CPAC/resources/configs
             if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
             then
-              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)" || true
               git push origin HEAD:${GITHUB_BRANCH} || true
             fi
             cd ..
