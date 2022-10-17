@@ -44,10 +44,9 @@ jobs:
           pip install nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
           python ./CPAC/utils/yaml_template.py
           if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
-            then
-              git add CPAC/resources/configs
-              git commit -m ":bulb: Update comments based on default preconfig"
-            fi
+          then
+            git add CPAC/resources/configs
+            git commit -m ":bulb: Update comments based on default preconfig"
           fi
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]

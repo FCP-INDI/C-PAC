@@ -90,18 +90,16 @@ class Configuration:
         if base_config:
             if base_config.lower() in ['default', 'default_pipeline']:
                 base_config = 'default'
-
             # import another config (specified with 'FROM' key)
             try:
                 base_config = Preconfiguration(base_config)
             except BadParameter:
-                with open(base_config, 'r', encoding='utf-8') as _f:
-                    base_config = Configuration(yaml.safe_load(_f))
+                base_config = configuration_from_file(base_config)
             config_map = update_nested_dict(base_config.dict(), config_map)
-
-        # base everything on blank pipeline for unspecified keys
-        with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
-            config_map = update_nested_dict(yaml.safe_load(_f), config_map)
+        else:
+            # base everything on blank pipeline for unspecified keys
+            with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
+                config_map = update_nested_dict(yaml.safe_load(_f), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -427,22 +425,28 @@ def configuration_from_file(config_file):
     -------
     Configuration
     """
-    with open(config_file, 'r') as config:
+    with open(config_file, 'r', encoding='utf-8') as config:
         return Configuration(yaml.safe_load(config))
 
 
-def preconfig_yaml(preconfig_name='default'):
+def preconfig_yaml(preconfig_name='default', load=False):
     """Get the path to a preconfigured pipeline's YAML file
 
     Parameters
     ----------
     preconfig_name : str
 
+    load : boolean
+        return dict if True, str if False
+
     Returns
     -------
-    str
-        path to YAML file
+    str or dict
+        path to YAML file or dict loaded from YAML
     """
+    if load:
+        with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:
+            return yaml.safe_load(_f)
     return p.resource_filename("CPAC", os.path.join(
         "resources", "configs", f"pipeline_config_{preconfig_name}.yml"))
 
@@ -456,8 +460,7 @@ class Preconfiguration(Configuration):
         The canonical name of the preconfig to load
     """
     def __init__(self, preconfig):
-        with open(load_preconfig(preconfig), 'r') as preconfig_yaml:
-            super().__init__(config_map=yaml.safe_load(preconfig_yaml))
+        super().__init__(config_map=preconfig_yaml(preconfig, True))
 
 
 def set_from_ENV(conf):  # pylint: disable=invalid-name

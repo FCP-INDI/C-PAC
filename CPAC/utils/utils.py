@@ -2417,18 +2417,18 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     # `roi_paths_fully_specified` children
     if fully_specified:
         return d_update
-    if any(k.endswith('_roi_paths') for k in d_update.keys()):
-        fully_specified = d_update.pop('roi_paths_fully_specified', True)
-    else:
-        fully_specified = False
     d_new = {} if d_base is None else deepcopy(d_base)
-
     for k, v in d_update.items():
-        if isinstance(v, collections.abc.Mapping):
-            d_new[k] = update_nested_dict(
-                d_new.get(k, {}), v, fully_specified)
+        if k.endswith('_roi_paths'):
+            fully_specified = d_update.get('roi_paths_fully_specified', True)
         else:
-            d_new[k] = v
+            fully_specified = False
+        if k != 'roi_paths_fully_specified':
+            if isinstance(v, collections.abc.Mapping):
+                d_new[k] = update_nested_dict(d_new.get(k, {}), v,
+                                              fully_specified)
+            else:
+                d_new[k] = v
     return d_new
 
 
