@@ -140,11 +140,9 @@ def gradient_distortion_correction(wf, inp_image, name):
     return (wf, out_warpmask, out_applywarp)
 
 
-def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one, 
-                 dwell_time_two):
-    """
-
-    Calculate readout time and populate parameter file
+def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None, 
+                 dwell_time_two=None, ro_time_one=None, ro_time_two=None):
+    """Calculate readout time and populate parameter file
 
     Parameters
     __________
@@ -159,8 +157,10 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one,
         echo spacing of phase one
     dwell_time_two
         echo spacing of phase two
-    fsl_dir
-        FSL directory
+    ro_time_one
+        total readout time of phase one
+    ro_time_two
+        total readout time of phase two
 
     Returns
     _______
@@ -170,6 +170,13 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one,
 
     """
 
+    meta_data = [dwell_time_one, dwell_time_two,
+                 ro_time_one, ro_time_two]
+    if not any(meta_data):
+        raise Exception("\n[!] Blip-FSL-TOPUP workflow: neither "
+                        "TotalReadoutTime nor DwellTime is present in the "
+                        "epi field map meta-data.")
+
     # create text file
     acq_params = os.path.join(os.getcwd(), "acqparams.txt")
 
@@ -177,21 +184,29 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one,
         unwarp_dir = unwarp_dir.decode()
 
     if unwarp_dir in ["x", "x-", "-x","i","-i","i-"]:
-        dim = nibabel.load(phase_one).shape[0]
-        n_PE_steps = dim - 1
-        ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
-        ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-        ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
+        if dwell_time_one and dwell_time_two:
+            dim = nibabel.load(phase_one).shape[0]
+            n_PE_steps = dim - 1
+            ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+            ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        elif ro_time_one and ro_time_two:
+            ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
+        else:
+            raise Exception("[!] No dwell time or total readout time "
+                            "present for the acq-fMRI EPI field maps.")
     elif unwarp_dir in ["y", "y-", "-y","j","-j","j-"]:
-        dim = nibabel.load(phase_one).shape[1]
-        n_PE_steps = dim - 1
-        ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
-        ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-        ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
+        if dwell_time_one and dwell_time_two:
+            dim = nibabel.load(phase_one).shape[1]
+            n_PE_steps = dim - 1
+            ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
+            ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
+        elif ro_time_one and ro_time_two:
+            ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
+        else:
+            raise Exception("[!] No dwell time or total readout time "
+                            "present for the acq-fMRI EPI field maps.")
     else:
         raise Exception(f"unwarp_dir={unwarp_dir} is unsupported.")
-
-
 
     # get number of volumes
     dims = [

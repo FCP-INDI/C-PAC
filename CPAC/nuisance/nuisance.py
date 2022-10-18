@@ -14,7 +14,6 @@ from nipype.interfaces import c3
 from nipype.interfaces import afni
 from nipype.interfaces.afni import utils as afni_utils
 from scipy.fftpack import fft, ifft
-from CPAC import utils
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
@@ -2453,7 +2452,8 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
                                                f'_{space}_{opt["Name"]}'
                                                f'_{pipe_num}')
 
-    desc_keys = ('desc-preproc_bold', 'desc-cleaned_bold')
+    desc_keys = ('desc-preproc_bold', 'desc-cleaned_bold',
+                 'desc-denoisedNofilt_bold')
     if space != 'native':
         desc_keys = tuple(f'space-{space}_{key}' for key in desc_keys)
 
@@ -2507,6 +2507,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
             outputs = {
                 desc_keys[0]: (filt, 'outputspec.residual_file_path'),
                 desc_keys[1]: (filt, 'outputspec.residual_file_path'),
+                desc_keys[2]: (nuis, 'outputspec.residual_file_path'),
                 'regressors': (filt, 'outputspec.residual_regressor')
             }
 
@@ -2531,6 +2532,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
         outputs = {
             desc_keys[0]: (nuis, 'outputspec.residual_file_path'),
             desc_keys[1]: (nuis, 'outputspec.residual_file_path'),
+            desc_keys[2]: (nuis, 'outputspec.residual_file_path')
         }
 
     return (wf, outputs)
@@ -2553,10 +2555,13 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars"),
                 "TR"],
      "outputs": {"desc-preproc_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in native space"},
                  "desc-cleaned_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
+                       "regressed in native space"},
+                 "desc-denoisedNofilt_bold": {
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in native space"},
                  "regressors": {
         "Description": "Regressors that were applied in native space"}}}
@@ -2582,10 +2587,13 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars"),
                 "TR"],
      "outputs": {"space-template_desc-preproc_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
                  "space-template_desc-cleaned_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
+                       "regressed in template space"},
+                 "space-template_desc-denoisedNofilt_bold": {
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
                  "regressors": {
         "Description": "Regressors that were applied in template space"}}}

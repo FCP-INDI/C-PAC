@@ -105,7 +105,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
-        wf.connect(interp_string, 'interpolation', apply_warp, 'interpolation')
+        wf.connect(interp_string, 'interpolation',
+                   apply_warp, 'interpolation')
 
         ants_xfm_list = \
             pe.Node(util.Function(input_names=['transform'],
@@ -899,8 +900,9 @@ def create_register_func_to_anat_use_T2(config,
         linear_reg_func_to_t1, 'out_matrix_file',
         outputspec, 'func_to_anat_linear_xfm_nobbreg')
     register_func_to_anat_use_T2.connect(convert_warp, 'out_file',
-                                         outputspec, 'func_to_anat_linear_'
-                                                     'warp_nobbreg')
+                                         outputspec,
+                                         'func_to_anat_linear_warp_nobbreg')
+
     register_func_to_anat_use_T2.connect(linear_reg_func_to_t1, 'out_file',
                                          guardrail_t1, 'registered')
     register_func_to_anat_use_T2.connect(guardrail_t1, 'registered',
@@ -2710,7 +2712,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
                  "despiked-fieldmap",
-                 "fieldmap-mask"),
+                 "fieldmap-mask",
+                 "effectiveEchoSpacing",
+                 "diffphase-pedir"),
                 ("desc-brain_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2718,9 +2722,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
-                 "T1w"),
-                "diffphase-dwell",
-                "diffphase-pedir"],
+                 "T1w")],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
@@ -2783,9 +2785,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data('desc-restore-brain_T1w')
         wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
-
     if diff_complete:
-        node, out = strat_pool.get_data('diffphase-dwell')
+        node, out = strat_pool.get_data('effectiveEchoSpacing')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
         node, out = strat_pool.get_data('diffphase-pedir')
@@ -2866,7 +2867,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
-            node, out = strat_pool.get_data('diffphase-dwell')
+            node, out = strat_pool.get_data('effectiveEchoSpacing')
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 
@@ -3692,18 +3693,18 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                                     output_names=['itk_transform'],
                                     function=run_c3d),
                       name=f'convert_bbr2itk_{pipe_num}')
-    guardrail_preproc = registration_guardrail_node(
-        'single-step-resampling-preproc_guardrail')
+
     if cfg.registration_workflows['functional_registration'][
             'coregistration']['boundary_based_registration'][
             'reference'] == 'whole-head':
         node, out = strat_pool.get_data('T1w')
+        wf.connect(node, out, bbr2itk, 'reference_file')
+
     elif cfg.registration_workflows['functional_registration'][
             'coregistration']['boundary_based_registration'][
             'reference'] == 'brain':
         node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, bbr2itk, 'reference_file')
-    wf.connect(node, out, guardrail_preproc, 'reference')
+        wf.connect(node, out, bbr2itk, 'reference_file')
 
     node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
     wf.connect(node, out, bbr2itk, 'source_file')
@@ -3769,16 +3770,15 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     applyxfm_func_to_standard.inputs.float = True
     applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
-    guardrail_brain = registration_guardrail_node(
-        'single-step-resampling-brain_guardrail')
 
     wf.connect(split_func, 'out_files',
                applyxfm_func_to_standard, 'input_image')
 
     node, out = strat_pool.get_data('T1w-brain-template-funcreg')
     wf.connect(node, out, applyxfm_func_to_standard, 'reference_image')
-    wf.connect(node, out, guardrail_brain, 'reference')
-    wf.connect(collectxfm, 'out', applyxfm_func_to_standard, 'transforms')
+
+    wf.connect(collectxfm, 'out',
+               applyxfm_func_to_standard, 'transforms')
 
     ### Loop ends! ###
 
@@ -3818,13 +3818,11 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                apply_mask, 'in_file')
     wf.connect(applyxfm_func_mask_to_standard, 'output_image',
                apply_mask, 'mask_file')
-    wf.connect(merge_func_to_standard, 'merged_file',
-               guardrail_preproc, 'registered')
-    wf.connect(apply_mask, 'out_file', guardrail_brain, 'registered')
 
     outputs = {
-        'space-template_desc-preproc_bold': (guardrail_preproc, 'registered'),
-        'space-template_desc-brain_bold': (guardrail_brain, 'registered'),
+        'space-template_desc-preproc_bold': (merge_func_to_standard,
+                                             'merged_file'),
+        'space-template_desc-brain_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
                                           'output_image'),
     }
