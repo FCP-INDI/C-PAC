@@ -446,8 +446,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     wf_graph = c['pipeline_setup', 'log_directory', 'graphviz',
                  'entire_workflow']
     if wf_graph.get('generate'):
-        dotfilename = os.path.join(log_dir, f'{p_name}.dot')
         for graph2use in wf_graph.get('graph2use'):
+            dotfilename = os.path.join(log_dir, f'{p_name}_{graph2use}.dot')
             for graph_format in wf_graph.get('format'):
                 try:
                     workflow.write_graph(dotfilename=dotfilename,
