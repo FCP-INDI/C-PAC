@@ -7,6 +7,19 @@ from CPAC.utils.docs import docstring_parameter
                      t_options=valid_options['centrality'][
                         'threshold_options'],
                      w_options=valid_options['centrality']['weight_options'])
+## new function ##
+def eig_centrality_binarized(memory,environ,in_file,mask,sparsity=None,thresh=None):
+    import subprocess
+    
+    out_file = 'eigenvector_centrality_merged.nii.gz'
+    
+    cmd = ['3dECM', '-mask', mask, '-memory', memory, '-prefix', out_file, \
+        '-sparsity', sparsity, '-thresh', thresh, in_file, '-do_binary']
+
+    subprocess.check_output(cmd)
+    
+    return out_file
+
 def create_centrality_wf(wf_name, method_option, weight_options,
                          threshold_option, threshold, num_threads=1,
                          memory_gb=1.0):
@@ -68,14 +81,29 @@ def create_centrality_wf(wf_name, method_option, weight_options,
 
     # Eigenvector centrality
     elif method_option == 'eigenvector_centrality':
-        afni_centrality_node = pe.Node(ECM(environ={
-            'OMP_NUM_THREADS': str(num_threads)
-        }), name='afni_centrality', mem_gb=memory_gb)
-        afni_centrality_node.inputs.out_file = \
-            'eigenvector_centrality_merged.nii.gz'
-        afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
         if 'Binarized' in weight_options:
-            afni_centrality_node.inputs.args = '-do_binary'
+            ##### new code #####
+            afni_centrality_node = pe.Node(util.Function(input_names=['memory',
+                                              'environ',
+                                              'in_file',
+                                              'mask',
+                                              'sparsity',
+                                              'thresh'],
+                                 output_names=['out_file'],
+                                 function=eig_centrality_binarized),
+                   name=f'afni_centrality')
+            afni_centrality_node.inputs.environ = {'OMP_NUM_THREADS': str(num_threads)}
+            afni_centrality_node.inputs.memory = memory_gb
+            afni_centrality_node.inputs.out_file = \
+            'eigenvector_centrality_merged.nii.gz'
+        else:
+            afni_centrality_node = pe.Node(ECM(environ={
+            'OMP_NUM_THREADS': str(num_threads)
+                }), name='afni_centrality', mem_gb=memory_gb)
+            afni_centrality_node.inputs.out_file = \
+            'eigenvector_centrality_merged.nii.gz'
+            afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
+            ######
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
@@ -89,7 +117,7 @@ def create_centrality_wf(wf_name, method_option, weight_options,
     afni_centrality_node.interface.num_threads = num_threads
 
     # Connect input image and mask tempalte
-    centrality_wf.connect(input_node, 'in_file',
+    node, out = centrality_wf.connect(input_node, 'in_file',
                           afni_centrality_node, 'in_file')
     centrality_wf.connect(input_node, 'template',
                           afni_centrality_node, 'mask')
