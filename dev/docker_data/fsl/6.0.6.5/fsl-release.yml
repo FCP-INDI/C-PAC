@@ -122,11 +122,11 @@ packages:
  - fsl-misc_c 2111.0
  - fsl-misc_scripts 2111.0
  - fsl-misc_tcl 2206.0
- - fsl-miscmaths 2203.1
+ - fsl-miscmaths 2203.2
  - fsl-miscvis 2201.0
  - fsl-mist 2111.3
  - fsl-mm 2111.0
- - fsl_mrs 2.0.5
+ - fsl_mrs 2.0.6
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
@@ -138,7 +138,7 @@ packages:
  - fsl-possum 2111.2
  - fsl-ptx2 2111.2
  - fsl-pyfeeds 0.10.1
- - fsl-pyfeeds-tests 2208.0
+ - fsl-pyfeeds-tests 2210.0
  - fsl-qboot 2111.0
  - fsl-randomise 2203.2
  - fsl-relax 2111.0
