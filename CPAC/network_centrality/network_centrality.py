@@ -117,7 +117,7 @@ def create_centrality_wf(wf_name, method_option, weight_options,
     afni_centrality_node.interface.num_threads = num_threads
 
     # Connect input image and mask tempalte
-    node, out = centrality_wf.connect(input_node, 'in_file',
+    centrality_wf.connect(input_node, 'in_file',
                           afni_centrality_node, 'in_file')
     centrality_wf.connect(input_node, 'template',
                           afni_centrality_node, 'mask')
