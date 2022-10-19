@@ -62,7 +62,7 @@ def random_seed():
     -------
     seed : int or None
     '''
-    if _seed['seed'] == 'random':
+    if _seed['seed'] in ['random', None]:
         _seed['seed'] = random_random_seed()
     return _seed['seed']
 
@@ -151,6 +151,24 @@ def _reusable_flags():
         'ANTs': [f'--random-seed {seed}'],
         'FSL': [f'-seed {seed}']
     }
+
+
+def seed_plus_1(seed=None):
+    '''Increment seed, looping back to 1 at MAX_SEED
+
+    Parameters
+    ----------
+    seed : int, optional
+        Uses configured seed if not specified
+
+    Returns
+    -------
+    int
+    '''
+    seed = random_seed() if seed is None else int(seed)
+    if seed < MAX_SEED:  # increment random seed
+        return seed + 1
+    return 1  # loop back to 1
 
 
 def set_up_random_state(seed):

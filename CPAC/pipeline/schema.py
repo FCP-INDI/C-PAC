@@ -18,9 +18,8 @@
 # pylint: disable=too-many-lines
 import re
 from itertools import chain, permutations
-import numpy as np
 from pathvalidate import sanitize_filename
-from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, Equal, \
                        ExactSequence, ExclusiveInvalid, In, Length, Lower, \
                        Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
@@ -484,7 +483,6 @@ latest_schema = Schema({
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'using': str,
                 'input': str,
-                'interpolation': str,
                 'cost': str,
                 'dof': int,
                 'arguments': Maybe(str),
@@ -502,11 +500,14 @@ latest_schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'run': forkable,
+                    'run': All(Coerce(ListFromItem),
+                               [Any(bool, All(Lower, Equal('fallback')))],
+                               Length(max=3)),
                     'bbr_schedule': str,
-                    'bbr_wm_map': In({'probability_map', 'partial_volume_map'}),
+                    'bbr_wm_map': In(('probability_map',
+                                      'partial_volume_map')),
                     'bbr_wm_mask_args': str,
-                    'reference': In({'whole-head', 'brain'})
+                    'reference': In(('whole-head', 'brain'))
                 },
             },
             'EPI_registration': {

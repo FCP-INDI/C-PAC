@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
+import logging
 from copy import deepcopy
 from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
@@ -23,7 +24,7 @@ from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
 from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
 
-
+logger = logging.getLogger('nipype.workflow')
 _SPEC_KEYS = {
     FLIRT: {'reference': 'reference', 'registered': 'out_file'},
     Registration: {'reference': 'reference', 'registered': 'out_file'}}
@@ -54,7 +55,7 @@ class BadRegistrationError(ValueError):
 
 
 def registration_guardrail(registered: str, reference: str, retry: bool = False
-                           ) -> str:
+                           ):
     """Check QC metrics post-registration and throw an exception if
     metrics are below given thresholds.
 
@@ -78,23 +79,29 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
     -------
     registered_mask : str
         path to mask
+
+    failed_qc : int
+        metrics met specified thresholds?, used as index for selecting
+        outputs
     """
     qc_metrics = qc_masks(registered, reference)
+    failed_qc = 0
     for metric, threshold in REGISTRATION_GUARDRAIL_THRESHOLDS.items():
         if threshold is not None:
             value = qc_metrics.get(metric)
             if isinstance(value, list):
                 value = value[0]
             if value < threshold:
+                failed_qc = 1
                 with open(f'{registered}.failed_qc', 'w',
                           encoding='utf-8') as _f:
                     _f.write(f'{metric}: {value} < {threshold}')
                 if retry:
                     registered = f'{registered}-failed'
                 else:
-                    raise BadRegistrationError(metric=metric, value=value,
-                                               threshold=threshold)
-    return registered
+                    logger.error(str(BadRegistrationError(
+                        metric=metric, value=value, threshold=threshold)))
+    return registered, failed_qc
 
 
 def registration_guardrail_node(name=None):
@@ -112,7 +119,8 @@ def registration_guardrail_node(name=None):
         name = 'registration_guardrail'
     return Node(Function(input_names=['registered',
                                       'reference'],
-                         output_names=['registered'],
+                         output_names=['registered',
+                                       'failed_qc'],
                          imports=['from CPAC.qc import qc_masks, '
                                   'REGISTRATION_GUARDRAIL_THRESHOLDS',
                                   'from CPAC.registration.guardrails '
@@ -146,10 +154,10 @@ def registration_guardrail_workflow(registration_node, retry=True):
         (registration_node, guardrail, [(outkey, 'registered')])])
     if retry:
         wf = retry_registration(wf, registration_node,
-                                guardrail.outputs.registered)
+                                guardrail.outputs.registered)[0]
     else:
         wf.connect(guardrail, 'registered', outputspec, outkey)
-        wf = connect_from_spec(wf, outputspec, registration_node, outkey)
+        connect_from_spec(outputspec, registration_node, outkey)
     return wf
 
 
@@ -167,6 +175,8 @@ def retry_registration(wf, registration_node, registered):
     Returns
     -------
     Workflow
+
+    Node
     """
     name = f'retry_{registration_node.name}'
     retry_node = Node(Function(function=retry_registration_node,
@@ -177,14 +187,14 @@ def retry_registration(wf, registration_node, registered):
     outputspec = registration_node.outputs
     outkey = spec_key(registration_node, 'registered')
     guardrail = registration_guardrail_node(f'{name}_guardrail')
-    wf = connect_from_spec(wf, inputspec, retry_node)
+    connect_from_spec(inputspec, retry_node)
     wf.connect([
         (inputspec, guardrail, [
             (spec_key(retry_node, 'reference'), 'reference')]),
         (retry_node, guardrail, [(outkey, 'registered')]),
         (guardrail, outputspec, [('registered', outkey)])])
-    wf = connect_from_spec(wf, retry_node, outputspec, registered)
-    return wf
+    connect_from_spec(retry_node, outputspec, registered)
+    return wf, retry_node
 
 
 def retry_registration_node(registered, registration_node):
@@ -200,16 +210,12 @@ def retry_registration_node(registered, registration_node):
     -------
     Node
     """
-    from CPAC.pipeline.random_state.seed import MAX_SEED, random_seed
-    seed = random_seed()
+    from CPAC.pipeline.random_state.seed import seed_plus_1
     if registered.endswith('-failed'):
         retry_node = registration_node.clone(
             name=f'{registration_node.name}-retry')
-        if isinstance(seed, int):
-            if seed < MAX_SEED:  # increment random seed
-                retry_node.seed = seed + 1
-            else:  # loop back to minumum seed
-                retry_node.seed = 1
+        if isinstance(retry_node.seed, int):
+            retry_node.seed = seed_plus_1()
         return retry_node
     return registration_node
 

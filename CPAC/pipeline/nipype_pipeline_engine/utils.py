@@ -17,7 +17,7 @@
 """Custom nipype utilities"""
 
 
-def connect_from_spec(wf, spec, original_spec, exclude=None):
+def connect_from_spec(spec, original_spec, exclude=None):
     """Function to connect all original inputs to a new spec"""
     for _item, _value in original_spec.items():
         if isinstance(exclude, (list, tuple)):
@@ -25,4 +25,3 @@ def connect_from_spec(wf, spec, original_spec, exclude=None):
                 setattr(spec.inputs, _item, _value)
         elif _item != exclude:
             setattr(spec.inputs, _item, _value)
-    return wf
