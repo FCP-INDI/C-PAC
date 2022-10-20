@@ -189,7 +189,7 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
             n_PE_steps = dim - 1
             ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
             ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-        elif ro_time_one and ro_time_two:
+        if ro_time_one and ro_time_two:
             ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
         else:
             raise Exception("[!] No dwell time or total readout time "
@@ -200,7 +200,7 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
             n_PE_steps = dim - 1
             ro_time_one = np.round(dwell_time_one * n_PE_steps, 6)
             ro_time_two = np.round(dwell_time_two * n_PE_steps, 6)
-        elif ro_time_one and ro_time_two:
+        if ro_time_one and ro_time_two:
             ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
         else:
             raise Exception("[!] No dwell time or total readout time "
