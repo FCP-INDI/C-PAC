@@ -467,9 +467,9 @@ def run_main():
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
                     '1.7-1.8-nesting-mappings')
 
-            warn('\nC-PAC changed its pipeline configuration format in '
-                 f'v1.8.0.\nSee {_url} for details.\n',
-                 category=DeprecationWarning)
+            logger.warning('\nC-PAC changed its pipeline configuration '
+                           'format in v1.8.0.\nSee %s for details.\n', _url,
+                           category=DeprecationWarning)
 
             updated_config = os.path.join(
                 output_dir,
@@ -516,7 +516,6 @@ def run_main():
         else:
             c['pipeline_setup']['log_directory']['path'] = os.path.join(
                 DEFAULT_TMP_DIR, "log")
-        log_dir = c['pipeline_setup']['log_directory']['path']
 
         if args.mem_gb:
             c['pipeline_setup']['system_config'][

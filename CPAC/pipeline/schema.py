@@ -25,8 +25,6 @@ from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, Equal, \
 from CPAC import docs_prefix
 from CPAC.pipeline.random_state.seed import MAX_SEED
 from CPAC.utils.datatypes import ListFromItem
-from CPAC.utils.utils import delete_nested_value, lookup_nested_value, \
-                             set_nested_value
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -231,6 +229,16 @@ latest_schema = Schema({
         'log_directory': {
             'run_logging': bool,
             'path': str,
+            'graphviz': {
+                'entire_workflow': {
+                    'generate': bool,
+                    'graph2use': Maybe(All(Coerce(ListFromItem),
+                                           [All(Lower,
+                                            In(('orig', 'hierarchical', 'flat',
+                                                'exec', 'colored')))])),
+                    'format': Maybe(All(Coerce(ListFromItem),
+                                        [All(Lower, In(('png', 'svg')))])),
+                    'simple_form': Maybe(bool)}}
         },
         'crash_log_directory': {
             'path': Maybe(str),
