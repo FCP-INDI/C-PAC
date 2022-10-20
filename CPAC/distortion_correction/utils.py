@@ -183,7 +183,7 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
     if isinstance(unwarp_dir, bytes):
         unwarp_dir = unwarp_dir.decode()
 
-    if unwarp_dir in ["x", "x-", "-x","i","-i","i-"]:
+    if unwarp_dir in ["x", "x-", "-x", "i", "-i", "i-"]:
         if dwell_time_one and dwell_time_two:
             dim = nibabel.load(phase_one).shape[0]
             n_PE_steps = dim - 1
@@ -194,7 +194,7 @@ def phase_encode(unwarp_dir, phase_one, phase_two, dwell_time_one=None,
         else:
             raise Exception("[!] No dwell time or total readout time "
                             "present for the acq-fMRI EPI field maps.")
-    elif unwarp_dir in ["y", "y-", "-y","j","-j","j-"]:
+    elif unwarp_dir in ["y", "y-", "-y", "j", "-j", "j-"]:
         if dwell_time_one and dwell_time_two:
             dim = nibabel.load(phase_one).shape[1]
             n_PE_steps = dim - 1
