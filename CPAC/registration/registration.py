@@ -1573,7 +1573,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
                       output_names=['checked_transform_list',
                                     'list_length'],
                       function=check_transforms),
-        name=f'check_transforms',
+        name='check_transforms',
         mem_gb=6)
 
     wf.connect(collect_transforms, 'out', check_transform, 'transform_list')
