@@ -1,16 +1,15 @@
 from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
+import subprocess
 
 
 @docstring_parameter(m_options=valid_options['centrality']['method_options'],
                      t_options=valid_options['centrality'][
                         'threshold_options'],
                      w_options=valid_options['centrality']['weight_options'])
-## new function ##
+
 def eig_centrality_binarized(memory,environ,in_file,mask,sparsity=None,thresh=None):
-    import subprocess
-    
     out_file = 'eigenvector_centrality_merged.nii.gz'
     
     cmd = ['3dECM', '-mask', mask, '-memory', memory, '-prefix', out_file, \
@@ -82,7 +81,7 @@ def create_centrality_wf(wf_name, method_option, weight_options,
     # Eigenvector centrality
     elif method_option == 'eigenvector_centrality':
         if 'Binarized' in weight_options:
-            ##### new code #####
+            eig_centrality_binarized_import = ['subprocess']
             afni_centrality_node = pe.Node(util.Function(input_names=['memory',
                                               'environ',
                                               'in_file',
@@ -91,6 +90,7 @@ def create_centrality_wf(wf_name, method_option, weight_options,
                                               'thresh'],
                                  output_names=['out_file'],
                                  function=eig_centrality_binarized),
+                                imports=eig_centrality_binarized_import,
                    name=f'afni_centrality')
             afni_centrality_node.inputs.environ = {'OMP_NUM_THREADS': str(num_threads)}
             afni_centrality_node.inputs.memory = memory_gb
@@ -103,7 +103,6 @@ def create_centrality_wf(wf_name, method_option, weight_options,
             afni_centrality_node.inputs.out_file = \
             'eigenvector_centrality_merged.nii.gz'
             afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
-            ######
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
