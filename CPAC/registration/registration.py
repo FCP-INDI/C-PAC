@@ -2829,11 +2829,29 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
                 'bbr_wm_mask_args']
-        bbreg_guardrail = registration_guardrail_node('bbreg_guardrail_'
-                                                      f'{pipe_num}')
+        bbreg_guardrail = registration_guardrail_node(
+            f'bbreg{bbreg_status}_guardrail_{pipe_num}')
+        if opt is True:
+            # Retry once on failure
+            retry_node = create_bbregister_func_to_anat(diff_complete,
+                                                        f'retry_func_to_anat_'
+                                                        f'bbreg_{pipe_num}',
+                                                        retry=True)
+            retry_node.inputs.inputspec.bbr_schedule = cfg[
+                'registration_workflows', 'functional_registration',
+                'coregistration', 'boundary_based_registration',
+                'bbr_schedule']
+            retry_node.inputs.inputspec.bbr_wm_mask_args = cfg[
+                'registration_workflows', 'functional_registration',
+                'coregistration', 'boundary_based_registration',
+                'bbr_wm_mask_args']
+            retry_guardrail = registration_guardrail_node(
+                f'retry_bbreg_guardrail_{pipe_num}')
 
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
+        if opt is True:
+            wf.connect(node, out, retry_node, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
@@ -2841,6 +2859,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data('T1w')
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
             wf.connect(node, out, bbreg_guardrail, 'reference')
+            if opt is True:
+                wf.connect(node, out, retry_node, 'inputspec.anat')
+                wf.connect(node, out, retry_guardrail, 'reference')
 
         elif cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
@@ -2848,14 +2869,19 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             node, out = strat_pool.get_data('desc-brain_T1w')
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
             wf.connect(node, out, bbreg_guardrail, 'reference')
+            if opt is True:
+                wf.connect(node, out, retry_node, 'inputspec.anat')
+                wf.connect(node, out, retry_guardrail, 'reference')
 
         wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
                    func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
+        if opt is True:
+            wf.connect(func_to_anat,
+                       'outputspec.func_to_anat_linear_xfm_nobbreg',
+                       retry_node, 'inputspec.linear_reg_matrix')
 
         if strat_pool.check_rpool('space-bold_label-WM_mask'):
             node, out = strat_pool.get_data(["space-bold_label-WM_mask"])
-            wf.connect(node, out,
-                       func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
         else:
             if cfg['registration_workflows', 'functional_registration',
                    'coregistration', 'boundary_based_registration',
@@ -2867,47 +2893,54 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                      'bbr_wm_map'] == 'partial_volume_map':
                 node, out = strat_pool.get_data(["label-WM_pveseg",
                                                  "label-WM_mask"])
-            wf.connect(node, out,
-                       func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+        wf.connect(node, out,
+                   func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
+        if opt is True:
+            wf.connect(node, out, retry_node, 'inputspec.anat_wm_segmentation')
 
         if diff_complete:
             node, out = strat_pool.get_data('effectiveEchoSpacing')
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
+            if opt is True:
+                wf.connect(node, out,
+                           retry_node, 'echospacing_input.echospacing')
 
             node, out = strat_pool.get_data('diffphase-pedir')
             wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
+            if opt is True:
+                wf.connect(node, out, retry_node, 'pedir_input.pedir')
 
             node, out = strat_pool.get_data("despiked-fieldmap")
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.fieldmap')
+            if opt is True:
+                wf.connect(node, out, retry_node, 'inputspec.fieldmap')
 
             node, out = strat_pool.get_data("fieldmap-mask")
             wf.connect(node, out,
                        func_to_anat_bbreg, 'inputspec.fieldmapmask')
+            if opt is True:
+                wf.connect(node, out, retry_node, 'inputspec.fieldmapmask')
 
         wf.connect(func_to_anat_bbreg, 'outputspec.anat_func',
                    bbreg_guardrail, 'registered')
+        if opt is True:
+            wf.connect(func_to_anat_bbreg, 'outputspec.anat_func',
+                       retry_guardrail, 'registered')
 
         mean_bolds = pe.Node(Merge(2), run_without_submitting=True,
-                                 name=f'bbreg_mean_bold_choices_{pipe_num}')
+                             name=f'bbreg_mean_bold_choices_{pipe_num}')
         xfms = pe.Node(Merge(2), run_without_submitting=True,
-                        name=f'bbreg_xfm_choices_{pipe_num}')
+                       name=f'bbreg_xfm_choices_{pipe_num}')
         fallback_mean_bolds = pe.Node(Select, run_without_submitting=True,
-                                        name='bbreg_choose_mean_bold_'
-                                        f'{pipe_num}')
+                                      name=f'bbreg_choose_mean_bold_{pipe_num}'
+                                      )
         fallback_xfms = pe.Node(Select, run_without_submitting=True,
                                 name=f'bbreg_choose_xfm_{pipe_num}')
         if opt is True:
-            # Retry once on failure
-            retry_node = create_bbregister_func_to_anat(diff_complete,
-                                                        f'retry_func_to_anat_'
-                                                        f'bbreg_{pipe_num}',
-                                                        retry=True)
             wf.connect([
-                (func_to_anat_bbreg, mean_bolds, ['outputspec.anat_func',
-                                                  'in1']),
-                (retry_node, mean_bolds, ['outputspec.anat_func_nobbreg',
-                                            'in1']),
+                (bbreg_guardrail, mean_bolds, ['registered', 'in1']),
+                (retry_guardrail, mean_bolds, ['registered', 'in1']),
                 (func_to_anat_bbreg, xfms, [
                     'outputspec.func_to_anat_linear_xfm', 'in2']),
                 (retry_node, xfms, [
@@ -2915,8 +2948,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         else:
             # Fall back to no-BBReg
             wf.connect([
-                (func_to_anat_bbreg, mean_bolds, ['outputspec.anat_func',
-                                                  'in1']),
+                (bbreg_guardrail, mean_bolds, ['registered', 'in1']),
                 (func_to_anat, mean_bolds, ['outputspec.anat_func_nobbreg',
                                             'in1']),
                 (func_to_anat_bbreg, xfms, [
@@ -2932,8 +2964,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             'space-T1w_desc-mean_bold': (fallback_mean_bolds, 'out'),
             'from-bold_to-T1w_mode-image_desc-linear_xfm': (fallback_xfms,
                                                             'out')}
-    print(2938)
-    print(outputs)
     return wf, outputs
 
 
