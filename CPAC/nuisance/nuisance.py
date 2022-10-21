@@ -1772,7 +1772,7 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_bold", "bold"],
+     "inputs": ["desc-preproc_bold",
                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
                 "from-T1w_to-template_mode-image_xfm"],
      "outputs": ["desc-preproc_bold",
@@ -1790,7 +1790,7 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
     aroma_preproc.inputs.params.denoise_type = \
         cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type']
 
-    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
+    node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
 
     node, out = strat_pool.get_data(
@@ -1821,7 +1821,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "desc-mean_bold",
                  "from-bold_to-template_mode-image_xfm",
                  "from-template_to-bold_mode-image_xfm"),
@@ -1894,7 +1894,8 @@ def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-brain_bold", "desc-motion_bold",
                  "desc-preproc_bold", "bold"],
                 "from-bold_to-EPItemplate_mode-image_xfm"],
-     "outputs": ["desc-cleaned_bold"]}
+     "outputs": ["desc-preproc_bold",
+                 "desc-cleaned_bold"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance('from-bold_to-EPItemplate_mode-image_xfm')
@@ -1921,6 +1922,7 @@ def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = (aroma_preproc, 'outputspec.aggr_denoised_file')
 
     outputs = {
+        'desc-preproc_bold': (node, out),
         'desc-cleaned_bold': (node, out)
     }
 
@@ -1937,7 +1939,7 @@ def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
                  "EPI_registration", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "desc-mean_bold",
                  "from-bold_to-EPItemplate_mode-image_xfm",
                  "from-EPItemplate_to-bold_mode-image_xfm"),

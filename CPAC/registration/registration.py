@@ -1936,9 +1936,10 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+     "inputs": [(["desc-preproc_T1w",
                   "space-longitudinal_desc-reorient_T1w"],
-                 ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"]),
+                 ["desc-brain_T1w", 
+                  "space-longitudinal_desc-brain_T1w"]),
                 "T1w-template",
                 "T1w-brain-template",
                 "FNIRT-T1w-template",
@@ -1992,7 +1993,6 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, fsl, 'inputspec.reference_head')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w",
-                                     "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
@@ -2021,7 +2021,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "switch": ["run"],
      "option_key": ["registration", "using"],
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+     "inputs": [(["desc-preproc_T1w",
                   "space-longitudinal_desc-reorient_T1w"],
                  ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"]),
                 "T1w-template-symmetric",
@@ -2060,7 +2060,6 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w",
-                                     "desc-reorient_T1w", "T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
@@ -2095,7 +2094,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": ["FSL", "FSL-linear"],
-     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
+     "inputs": [("sbref",
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
@@ -2118,13 +2117,13 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['FSL-FNIRT'][
         'fnirt_config']
 
-    node, out = strat_pool.get_data(["desc-reginput_bold", "desc-mean_bold"])
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI-template')
     wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-reginput_bold", "desc-mean_bold"])
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, fsl, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI-template')
@@ -2359,7 +2358,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "ANTS",
-     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
+     "inputs": [("sbref",
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
@@ -2382,13 +2381,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['ANTs'][
         'interpolation']
 
-    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI-template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI-template')
@@ -2639,8 +2638,8 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Selected_Functional_Volume",
      "inputs": [("desc-brain_bold",
                  ["desc-motion_bold", "bold"],
-                 "desc-reginput_bold")],
-     "outputs": ["desc-reginput_bold"]}
+                 "sbref")],
+     "outputs": ["sbref"]}
     '''
 
     get_func_volume = pe.Node(interface=afni.Calc(),
@@ -2666,7 +2665,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     coreg_input = (get_func_volume, 'out_file')
 
     outputs = {
-        'desc-reginput_bold': coreg_input
+        'sbref': coreg_input
     }
 
     return (wf, outputs)
@@ -2681,7 +2680,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["func_input_prep", "input"],
      "option_val": "Mean_Functional",
      "inputs": ["desc-mean_bold"],
-     "outputs": ["desc-reginput_bold"]}
+     "outputs": ["sbref"]}
     '''
 
     coreg_input = strat_pool.get_data("desc-mean_bold")
@@ -2705,7 +2704,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
         coreg_input = (n4_correct_func, 'output_image')
 
     outputs = {
-        'desc-reginput_bold': coreg_input
+        'sbref': coreg_input
     }
 
     return (wf, outputs)
@@ -2720,13 +2719,13 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["func_input_prep", "input"],
      "option_val": "fmriprep_reference",
      "inputs": ["desc-ref_bold"],
-     "outputs": ["desc-reginput_bold"]}
+     "outputs": ["sbref"]}
     '''
 
     coreg_input = strat_pool.get_data("desc-ref_bold")
 
     outputs = {
-        'desc-reginput_bold': coreg_input
+        'sbref': coreg_input
     }
 
     return (wf, outputs)
@@ -2740,7 +2739,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-reginput_bold",
+     "inputs": [("sbref",
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
                  "despiked-fieldmap",
@@ -2806,7 +2805,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         func_to_anat.inputs.inputspec.interp = cfg.registration_workflows[
         'functional_registration']['coregistration']['interpolation']
 
-        node, out = strat_pool.get_data('desc-reginput_bold')
+        node, out = strat_pool.get_data('sbref')
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
@@ -2864,7 +2863,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'bbr_wm_mask_args']
 
-        node, out = strat_pool.get_data('desc-reginput_bold')
+        node, out = strat_pool.get_data('sbref')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
@@ -2934,7 +2933,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
-     "inputs": [("desc-reginput_bold",
+     "inputs": [("sbref",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("from-T1w_to-template_mode-image_xfm",
                  "from-template_to-T1w_mode-image_xfm",
@@ -2960,7 +2959,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out, xfm, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('desc-reginput_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, xfm, 'inputspec.mean_bold')
 
     node, out = strat_pool.get_data('T1w-brain-template-funcreg')
@@ -2992,8 +2991,8 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
      "inputs": [("from-T1w_to-symtemplate_mode-image_xfm",
                  "from-symtemplate_to-T1w_mode-image_xfm",
                  "desc-brain_T1w"),
-                ("from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "desc-mean_bold"),
+                ("sbref",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 "T1w-brain-template-symmetric-deriv"],
      "outputs": ["from-bold_to-symtemplate_mode-image_xfm",
                  "from-symtemplate_to-bold_mode-image_xfm"]}
@@ -3015,7 +3014,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('desc-brain_T1w')
     wf.connect(node, out, xfm, 'inputspec.input_brain')
 
-    node, out = strat_pool.get_data('desc-mean_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, xfm, 'inputspec.mean_bold')
 
     node, out = strat_pool.get_data('T1w-brain-template-symmetric-deriv')
@@ -3042,15 +3041,10 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "default",
-     "inputs": [(["desc-preproc_bold", "desc-cleaned_bold",
-                  "desc-brain_bold", "desc-motion_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-funcreg"],
-     "outputs": ["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_bold"]}
+     "outputs": ["space-template_desc-preproc_bold"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -3075,12 +3069,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
             'functional_registration']['func_registration_to_template'][
             'FNIRT_pipelines']['interpolation']
 
-    connect, resource = strat_pool.get_data(["desc-preproc_bold",
-                                             "desc-cleaned_bold",
-                                             "desc-brain_bold",
-                                             "desc-motion_bold",
-                                             "bold"],
-                                            report_fetched=True)
+    connect = strat_pool.get_data("desc-preproc_bold")
     node, out = connect
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
@@ -3091,7 +3080,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+        'space-template_desc-preproc_bold': (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -3105,20 +3094,19 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "abcd",
-     "inputs": [["desc-cleaned_bold", "desc-brain_bold",
-                  "desc-motion_bold", "desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "bold",
                  "motion-basefile",
-                 "coordinate-transformation",
-                 "from-T1w_to-template_mode-image_xfm",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                 "from-bold_to-template_mode-image_xfm",
-                 "blip-warp",
-                 "desc-preproc_T1w",
-                 "space-template_res-bold_desc-brain_T1w",
-                 "space-template_desc-bold_mask",
-                 "T1w-brain-template-funcreg"],
-     "outputs": ["space-template_desc-brain_bold",
+                 "coordinate-transformation"),
+                "from-T1w_to-template_mode-image_xfm",
+                "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                "from-bold_to-template_mode-image_xfm",
+                "blip-warp",
+                "desc-preproc_T1w",
+                "space-template_res-bold_desc-brain_T1w",
+                "space-template_desc-bold_mask",
+                "T1w-brain-template-funcreg"],
+     "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-scout_bold",
                  "space-template_desc-head_bold"]}
     """
@@ -3374,7 +3362,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         extract_scout_brain, 'operand_files')
 
     outputs = {
-        'space-template_desc-brain_bold': (extract_func_brain, 'out_file'),
+        'space-template_desc-preproc_bold': (extract_func_brain, 'out_file'),
         'space-template_desc-scout_bold': (extract_scout_brain, 'out_file'),
         'space-template_desc-head_bold': (merge_func_to_standard, 'merged_file')
     }
@@ -3710,7 +3698,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "switch": ["run"],
      "option_key": ["apply_transform", "using"],
      "option_val": "single_step_resampling_from_stc",
-     "inputs": [(["desc-reginput_bold", "desc-mean_bold"],
+     "inputs": [("sbref",
                  "desc-stc_bold",
                  "motion-basefile",
                  "space-bold_desc-brain_mask",
@@ -3744,7 +3732,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         node, out = strat_pool.get_data('desc-brain_T1w')
         wf.connect(node, out, bbr2itk, 'reference_file')
 
-    node, out = strat_pool.get_data(['desc-reginput_bold', 'desc-mean_bold'])
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, bbr2itk, 'source_file')
 
     node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
@@ -3964,19 +3952,18 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run_EPI"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [(["desc-preproc_bold", "bold"],
+     "inputs": [("desc-preproc_bold",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],
-     "outputs": ["space-EPItemplate_desc-cleaned_bold",
-                 "space-EPItemplate_desc-brain_bold",
-                 "space-EPItemplate_desc-preproc_bold",
-                 "space-EPItemplate_bold"]}
+     "outputs": {
+         "space-template_desc-preproc_bold": {
+             "Template": "EPI-template"}}}
     '''
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm, resource = warp_resource_to_template(
-        wf, cfg, strat_pool, pipe_num, ['desc-preproc_bold', 'bold'], xfm,
+        wf, cfg, strat_pool, pipe_num, 'desc-preproc_bold', xfm,
         time_series=True)
-    outputs = {f'space-EPItemplate_{resource}':
+    outputs = {f'space-template_{resource}':
                (apply_xfm, 'outputspec.output_image')}
     return _warp_return(wf, apply_xfm, outputs)
 
@@ -3993,13 +3980,15 @@ def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-mean_bold",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],
-     "outputs": ["space-EPItemplate_desc-mean_bold"]}
+     "outputs": {
+         "space-template_desc-mean_bold": {
+             "Template": "EPI-template"}}}
     '''
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'desc-mean_bold', xfm,
         time_series=False)[:2]
-    outputs = {'space-EPItemplate_desc-mean_bold':
+    outputs = {'space-template_desc-mean_bold':
                (apply_xfm, 'outputspec.output_image')}
     return _warp_return(wf, apply_xfm, outputs)
 
@@ -4016,13 +4005,15 @@ def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],
-     "outputs": ["space-EPItemplate_desc-bold_mask"]}
+     "outputs": {
+         "space-template_desc-bold_mask": {
+             "Template": "EPI-template"}}}
     '''
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
         time_series=False)[:2]
-    outputs = {'space-EPItemplate_desc-bold_mask':
+    outputs = {'space-template_desc-bold_mask':
                (apply_xfm, 'outputspec.output_image')}
     return _warp_return(wf, apply_xfm, outputs)
 
@@ -4041,13 +4032,15 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],
-     "outputs": ["space-EPItemplate_res-derivative_desc-bold_mask"]}
+     "outputs": {
+         "space-template_res-derivative_desc-bold_mask": {
+             "Template": "EPI-template"}}}
     '''
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
         time_series=False)[:2]
-    outputs = {'space-EPItemplate_res-derivative_desc-bold_mask':
+    outputs = {'space-template_res-derivative_desc-bold_mask':
                (apply_xfm, 'outputspec.output_image')}
     return _warp_return(wf, apply_xfm, outputs)
 
@@ -4088,9 +4081,13 @@ def warp_tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-GM_mask",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template"],
-     "outputs": ["space-EPItemplate_label-CSF_mask",
-                 "space-EPItemplate_label-WM_mask",
-                 "space-EPItemplate_label-GM_mask"]}
+     "outputs": {
+         "space-template_label-CSF_mask": {
+             "Template": "EPI-template"},
+         "space-template_label-WM_mask": {
+             "Template": "EPI-template"},
+         "space-template_label-GM_mask": {
+             "Template": "EPI-template"}}}
     '''
     return warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num,
                                        xfm='from-bold_to-EPItemplate_'
