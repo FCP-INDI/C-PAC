@@ -1384,7 +1384,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
                    write_invlin_composite_xfm, 'premat')
 
         outputs = {
-            f'space-{sym}{tmpl}template_desc-brain_{orig}': (
+            f'space-{sym}template_desc-brain_{orig}': (
                 flirt_reg_anat_mni, 'outputspec.output_brain'),
             f'from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm': (
                 write_lin_composite_xfm, 'out_file'),
@@ -1433,7 +1433,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
             cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
             # NOTE: this is an UPDATE because of the opt block above
             added_outputs = {
-                f'space-{sym}{tmpl}template_desc-brain_{orig}': (
+                f'space-{sym}template_desc-brain_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_brain'),
                 f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
                     fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm')
@@ -1442,13 +1442,13 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         else:
             # NOTE: this is an UPDATE because of the opt block above
             added_outputs = {
-                f'space-{sym}{tmpl}template_desc-brain_{orig}': (
+                f'space-{sym}template_desc-brain_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_brain'),
-                f'space-{sym}{tmpl}template_desc-head_{orig}': (
+                f'space-{sym}template_desc-head_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_head'),
-                f'space-{sym}{tmpl}template_desc-{orig}_mask': (
+                f'space-{sym}template_desc-{orig}_mask': (
                     fnirt_reg_anat_mni, 'outputspec.output_mask'),
-                f'space-{sym}{tmpl}template_desc-T1wT2w_biasfield': (
+                f'space-{sym}template_desc-T1wT2w_biasfield': (
                     fnirt_reg_anat_mni, 'outputspec.output_biasfield'),
                 f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
                     fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
@@ -1775,7 +1775,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
                write_composite_inv_xfm, 'invert_transform_flags')
 
     outputs = {
-        f'space-{sym}{tmpl}template_desc-brain_{orig}': (
+        f'space-{sym}template_desc-brain_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
         f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
@@ -2098,10 +2098,11 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
-     "outputs": ["space-EPItemplate_desc-brain_bold",
+     "outputs": {"space-template_desc-brain_bold": {
+                     "Template": "EPI-template"},
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm",
                  "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
-                 "from-bold_to-EPItemplate_mode-image_xfm"]}
+                 "from-bold_to-EPItemplate_mode-image_xfm"}}
     '''
 
     fsl, outputs = FSL_registration_connector(f'register_{opt}_EPI_to_'
@@ -2362,13 +2363,14 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
-     "outputs": ["space-EPItemplate_desc-brain_bold",
+     "outputs": {"space-template_desc-brain_bold": {
+                     "Template": "EPI-template"},
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm",
                  "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
                  "from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm",
                  "from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm",
                  "from-bold_to-EPItemplate_mode-image_xfm",
-                 "from-EPItemplate_to-bold_mode-image_xfm"]}
+                 "from-EPItemplate_to-bold_mode-image_xfm"}}
     '''
     params = cfg.registration_workflows['functional_registration'][
         'EPI_registration']['ANTs']['parameters']
