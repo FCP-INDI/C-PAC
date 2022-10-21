@@ -71,4 +71,41 @@ def grab_docstring_dct(fn):
     return dct
 
 
+def retry_docstring(orig):
+    """Decorator to autodocument retries.
+
+    Examples
+    --------
+    >>> @retry_docstring(grab_docstring_dct)
+    ... def do_nothing():
+    ...     '''Does this do anything?'''
+    ...     pass
+    >>> print(do_nothing.__doc__)
+    Does this do anything?
+    Retries the following after a failed QC check:
+    Function to grab a NodeBlock dictionary from a docstring.
+    <BLANKLINE>
+        Parameters
+        ----------
+        fn : function
+            The NodeBlock function with the docstring to be parsed.
+    <BLANKLINE>
+        Returns
+        -------
+        dct : dict
+            A NodeBlock configuration dictionary.
+    <BLANKLINE>
+    """
+    def retry(obj):
+        if obj.__doc__ is None:
+            obj.__doc__ = ''
+        origdoc = (f'{orig.__module__}.{orig.__name__}' if
+                   orig.__doc__ is None else orig.__doc__)
+        obj.__doc__ = '\n'.join([
+            obj.__doc__, 'Retries the following after a failed QC check:',
+            origdoc])
+        return obj
+    return retry
+
+
 DOCS_URL_PREFIX = _docs_url_prefix()

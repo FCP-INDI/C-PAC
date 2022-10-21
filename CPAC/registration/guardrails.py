@@ -22,8 +22,10 @@ from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
 from nipype.interfaces.utility import Function
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
-from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
+# from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
+from CPAC.registration.utils import hardcoded_reg
+from CPAC.utils.docs import retry_docstring
 
 _SPEC_KEYS = {
     FLIRT: {'reference': 'reference', 'registered': 'out_file'},
@@ -112,12 +114,15 @@ def registration_guardrail(registered: str, reference: str,
     return registered, failed_qc
 
 
-def registration_guardrail_node(name=None):
+def registration_guardrail_node(name=None, retry_num=0):
     """Convenience method to get a new registration_guardrail Node
 
     Parameters
     ----------
     name : str, optional
+
+    retry_num : int, optional
+        how many previous tries?
 
     Returns
     -------
@@ -125,10 +130,8 @@ def registration_guardrail_node(name=None):
     """
     if name is None:
         name = 'registration_guardrail'
-    return Node(Function(input_names=['registered',
-                                      'reference'],
-                         output_names=['registered',
-                                       'failed_qc'],
+    node = Node(Function(input_names=['registered', 'reference', 'retry_num'],
+                         output_names=['registered', 'failed_qc'],
                          imports=['import logging',
                                   'from typing import Tuple',
                                   'from CPAC.qc import qc_masks, '
@@ -136,6 +139,9 @@ def registration_guardrail_node(name=None):
                                   'from CPAC.registration.guardrails '
                                   'import BadRegistrationError'],
                          function=registration_guardrail), name=name)
+    if retry_num:
+        node.inputs.retry_num = retry_num
+    return node
 
 
 def registration_guardrail_workflow(registration_node, retry=True):
@@ -167,7 +173,7 @@ def registration_guardrail_workflow(registration_node, retry=True):
                                 guardrail.outputs.registered)[0]
     else:
         wf.connect(guardrail, 'registered', outputspec, outkey)
-        connect_from_spec(outputspec, registration_node, outkey)
+        # connect_from_spec(outputspec, registration_node, outkey)
     return wf
 
 
@@ -197,14 +203,27 @@ def retry_registration(wf, registration_node, registered):
     outputspec = registration_node.outputs
     outkey = spec_key(registration_node, 'registered')
     guardrail = registration_guardrail_node(f'{name}_guardrail')
-    connect_from_spec(inputspec, retry_node)
+    # connect_from_spec(inputspec, retry_node)
     wf.connect([
         (inputspec, guardrail, [
             (spec_key(retry_node, 'reference'), 'reference')]),
         (retry_node, guardrail, [(outkey, 'registered')]),
         (guardrail, outputspec, [('registered', outkey)])])
-    connect_from_spec(retry_node, outputspec, registered)
+    # connect_from_spec(retry_node, outputspec, registered)
     return wf, retry_node
+
+
+@retry_docstring(hardcoded_reg)
+def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
+                        reference_skull, ants_para, moving_mask=None,
+                        reference_mask=None, fixed_image_mask=None,
+                        interp=None, reg_with_skull=0, previous_failure=False):
+    if previous_failure:
+        return [], None
+    return hardcoded_reg(moving_brain, reference_brain, moving_skull,
+                         reference_skull, ants_para, moving_mask,
+                         reference_mask, fixed_image_mask, interp,
+                         reg_with_skull)
 
 
 def retry_registration_node(registered, registration_node):
