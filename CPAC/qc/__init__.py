@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Quality control utilities for C-PAC"""
-from CPAC.qc.globals import REGISTRATION_GUARDRAIL_THRESHOLDS
+from CPAC.qc.globals import registration_guardrail_thresholds, \
+                            update_thresholds
 from CPAC.qc.qcmetrics import qc_masks
-__all__ = ['qc_masks', 'REGISTRATION_GUARDRAIL_THRESHOLDS']
+__all__ = ['qc_masks', 'registration_guardrail_thresholds',
+           'update_thresholds']

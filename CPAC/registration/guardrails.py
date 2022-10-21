@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
+import logging
 from copy import deepcopy
 from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
 from nipype.interfaces.utility import Function
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
-from CPAC.qc import qc_masks, REGISTRATION_GUARDRAIL_THRESHOLDS
+from CPAC.qc import qc_masks, registration_guardrail_thresholds
 
 _SPEC_KEYS = {
     FLIRT: {'reference': 'reference', 'registered': 'out_file'},
@@ -82,11 +83,10 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
         metrics met specified thresholds?, used as index for selecting
         outputs
     """
-    import logging
     logger = logging.getLogger('nipype.workflow')
     qc_metrics = qc_masks(registered, reference)
     failed_qc = 0
-    for metric, threshold in REGISTRATION_GUARDRAIL_THRESHOLDS.items():
+    for metric, threshold in registration_guardrail_thresholds().items():
         if threshold is not None:
             value = qc_metrics.get(metric)
             if isinstance(value, list):
@@ -121,8 +121,9 @@ def registration_guardrail_node(name=None):
                                       'reference'],
                          output_names=['registered',
                                        'failed_qc'],
-                         imports=['from CPAC.qc import qc_masks, '
-                                  'REGISTRATION_GUARDRAIL_THRESHOLDS',
+                         imports=['import logging',
+                                  'from CPAC.qc import qc_masks, '
+                                  'registration_guardrail_thresholds',
                                   'from CPAC.registration.guardrails '
                                   'import BadRegistrationError'],
                          function=registration_guardrail), name=name)

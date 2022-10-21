@@ -15,4 +15,28 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Global QC values"""
-REGISTRATION_GUARDRAIL_THRESHOLDS = {}
+_REGISTRATION_GUARDRAIL_THRESHOLDS = {'thresholds': {}}
+
+
+def registration_guardrail_thresholds() -> dict:
+    """Get registration guardrail thresholds
+
+    Returns
+    -------
+    dict
+    """
+    return _REGISTRATION_GUARDRAIL_THRESHOLDS['thresholds']
+
+
+def update_thresholds(thresholds) -> None:
+    """Set a registration guardrail threshold
+
+    Parameters
+    ----------
+    thresholds : dict of {str: float or int}
+
+    Returns
+    -------
+    None
+    """
+    _REGISTRATION_GUARDRAIL_THRESHOLDS['thresholds'].update(thresholds)

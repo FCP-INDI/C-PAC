@@ -23,7 +23,7 @@ from itertools import repeat
 from typing import Optional, Tuple
 from warnings import warn
 import yaml
-from CPAC.qc import REGISTRATION_GUARDRAIL_THRESHOLDS
+from CPAC.qc import update_thresholds
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
@@ -152,8 +152,7 @@ class Configuration:
             setattr(self, key, set_from_ENV(config_map[key]))
 
         # set global QC thresholds
-        REGISTRATION_GUARDRAIL_THRESHOLDS.update(self[
-            'registration_workflows', 'quality_thresholds'])
+        update_thresholds(self['registration_workflows', 'quality_thresholds'])
 
         self.__update_attr()
 
