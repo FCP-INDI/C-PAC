@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
 import logging
+from typing import Tuple
 from copy import deepcopy
 from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
@@ -53,8 +54,9 @@ class BadRegistrationError(ValueError):
         super().__init__(msg, *args, **kwargs)
 
 
-def registration_guardrail(registered: str, reference: str, retry: bool = False
-                           ):
+def registration_guardrail(registered: str, reference: str,
+                           retry: bool = False, retry_num: int = 0
+                           ) -> Tuple[str, int]:
     """Check QC metrics post-registration and throw an exception if
     metrics are below given thresholds.
 
@@ -71,8 +73,11 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
     registered, reference : str
         path to mask
 
-    retry : bool
+    retry : bool, optional
         can retry?
+
+    retry_num : int, optional
+        how many previous tries?
 
     Returns
     -------
@@ -99,8 +104,11 @@ def registration_guardrail(registered: str, reference: str, retry: bool = False
                 if retry:
                     registered = f'{registered}-failed'
                 else:
-                    logger.error(str(BadRegistrationError(
-                        metric=metric, value=value, threshold=threshold)))
+                    bad_registration = BadRegistrationError(
+                        metric=metric, value=value, threshold=threshold)
+                    logger.error(str(bad_registration))
+                    if retry_num:  # if we've already retried, raise the error
+                        raise bad_registration
     return registered, failed_qc
 
 
@@ -122,6 +130,7 @@ def registration_guardrail_node(name=None):
                          output_names=['registered',
                                        'failed_qc'],
                          imports=['import logging',
+                                  'from typing import Tuple',
                                   'from CPAC.qc import qc_masks, '
                                   'registration_guardrail_thresholds',
                                   'from CPAC.registration.guardrails '
