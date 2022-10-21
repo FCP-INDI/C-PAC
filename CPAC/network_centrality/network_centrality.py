@@ -1,6 +1,7 @@
 from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
+from CPAC.utils.interfaces.function import Function
 import subprocess
 
 
@@ -81,8 +82,8 @@ def create_centrality_wf(wf_name, method_option, weight_options,
     # Eigenvector centrality
     elif method_option == 'eigenvector_centrality':
         if 'Binarized' in weight_options:
-            eig_centrality_binarized_import = ['subprocess']
-            afni_centrality_node = pe.Node(util.Function(input_names=['memory',
+            eig_centrality_binarized_import = ['import subprocess']
+            afni_centrality_node = pe.Node(Function(input_names=['memory',
                                               'environ',
                                               'in_file',
                                               'mask',
