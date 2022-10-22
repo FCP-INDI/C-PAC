@@ -20,7 +20,7 @@ from typing import Tuple
 from copy import deepcopy
 from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
-from nipype.interfaces.utility import Function
+from nipype.interfaces.utility import Function, Merge, Select
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 # from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
@@ -54,6 +54,36 @@ class BadRegistrationError(ValueError):
             msg += f" ({metric}: {value} < {threshold})"
         msg += "."
         super().__init__(msg, *args, **kwargs)
+
+
+def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
+                        ) -> Node:
+    """Generate requisite Nodes for choosing a path through the graph
+    with retries
+
+    Parameters
+    ----------
+    wf : Workflow
+
+    node1, node2 : Node
+        try guardrail, retry guardrail
+
+    Returns
+    -------
+    select : Node
+    """
+    # pylint: disable=redefined-outer-name,reimported,unused-import
+    from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
+    name = node1.name
+    choices = Node(Merge(2), run_without_submitting=True,
+                   name=f'{name}_choices')
+    select = Node(Select(), run_without_submitting=True,
+                  name=f'choose_{name}')
+    wf.connect([(node1, choices, [('registered', 'in1')]),
+                (node2, choices, [('registered', 'in2')]),
+                (choices, select, [('out', 'inlist')]),
+                (node1, select, [('failed_qc', 'index')])])
+    return select
 
 
 def registration_guardrail(registered: str, reference: str,
