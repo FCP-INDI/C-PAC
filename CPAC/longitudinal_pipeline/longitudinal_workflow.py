@@ -42,19 +42,13 @@ from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf, \
     build_segmentation_stack
 from CPAC.pipeline.engine import initiate_rpool, ingress_output_dir
 
-from CPAC.registration import (
+from CPAC.registration.registration import (
+    apply_transform,
     create_fsl_flirt_linear_reg,
     create_fsl_fnirt_nonlinear_reg,
-    create_wf_calculate_ants_warp
-)
+    create_wf_calculate_ants_warp)
 
-from CPAC.registration.registration import apply_transform
-
-from CPAC.utils.datasource import (
-    resolve_resolution,
-    create_anat_datasource,
-    create_check_for_s3_node
-)
+from CPAC.utils.datasource import resolve_resolution
 
 from CPAC.longitudinal_pipeline.longitudinal_preproc import (
     subject_specific_template

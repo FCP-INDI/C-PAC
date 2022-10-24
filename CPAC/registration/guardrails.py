@@ -73,6 +73,7 @@ def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
     select : Node
     """
     # pylint: disable=redefined-outer-name,reimported,unused-import
+    # noqa: F401
     from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
     name = node1.name
     choices = Node(Merge(2), run_without_submitting=True,

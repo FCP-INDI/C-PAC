@@ -30,7 +30,6 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.registration.registration import transform_derivative
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
@@ -617,6 +616,7 @@ class ResourcePool:
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx,
                        pipe_x):
+        from CPAC.registration.registration import transform_derivative
 
         if label in self.xfm:
 
