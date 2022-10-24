@@ -24,36 +24,13 @@ from nipype.interfaces.utility import Function, Merge, Select
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 # from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
+from CPAC.registration.exceptions import BadRegistrationError
 from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.docs import retry_docstring
 
 _SPEC_KEYS = {
     FLIRT: {'reference': 'reference', 'registered': 'out_file'},
     Registration: {'reference': 'reference', 'registered': 'out_file'}}
-
-
-class BadRegistrationError(ValueError):
-    """Exception for when a QC measure for a registration falls below a
-    specified threshold"""
-    def __init__(self, *args, metric=None, value=None, threshold=None,
-                 **kwargs):
-        """
-        Parameters
-        ----------
-        metric : str
-            QC metric
-
-        value : float
-            calculated QC value
-
-        threshold : float
-            specified threshold
-        """
-        msg = "Registration failed quality control"
-        if all(arg is not None for arg in (metric, value, threshold)):
-            msg += f" ({metric}: {value} < {threshold})"
-        msg += "."
-        super().__init__(msg, *args, **kwargs)
 
 
 def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',

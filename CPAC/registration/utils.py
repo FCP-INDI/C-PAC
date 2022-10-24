@@ -66,6 +66,8 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, ants_para, moving_mask=None,
                   reference_mask=None, fixed_image_mask=None, interp=None,
                   reg_with_skull=0):
+    import subprocess
+    from CPAC.registration.exceptions import BadRegistrationError
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]
@@ -444,10 +446,14 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
         f.write(' '.join(regcmd))
 
     try:
-        retcode = subprocess.check_output(regcmd)
+        subprocess.check_output(regcmd)
+    except BadRegistrationError as bad_registration:
+        raise bad_registration
     except Exception as e:
-        raise Exception('[!] ANTS registration did not complete successfully.'
-                        '\n\nError details:\n{0}\n{1}\n'.format(e, e.output))
+        msg = '[!] ANTS registration did not complete successfully.'
+        if hasattr(e, 'output'):
+            msg += '\n\nError details:\n{e}\n{e.output}\n'
+        raise Exception(msg)  # pylint: disable=raise-missing-from
 
     warp_list = []
     warped_image = None
