@@ -1216,7 +1216,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
         interface=util.Function(input_names=[*warp_inputs, 'previous_failure'],
                                 output_names=warp_outputs,
                                 function=retry_hardcoded_reg,
-                                imports=['from CPAC.registration.utils '
+                                imports=[*reg_imports,
+                                         'from CPAC.registration.utils '
                                          'import hardcoded_reg',
                                          'from CPAC.utils.docs import '
                                          'retry_docstring']),
