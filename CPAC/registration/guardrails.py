@@ -34,7 +34,8 @@ _SPEC_KEYS = {
 
 
 def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
-                        ) -> Node:
+                        output_key: str = 'registered',
+                        guardrail_node: 'Node' = None) -> Node:
     """Generate requisite Nodes for choosing a path through the graph
     with retries
 
@@ -43,7 +44,13 @@ def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
     wf : Workflow
 
     node1, node2 : Node
-        try guardrail, retry guardrail
+        first try, retry
+
+    output_key : str
+        field to choose
+
+    guardrail_node : Node
+        guardrail to collect 'failed_qc' from if not node1
 
     Returns
     -------
@@ -52,15 +59,19 @@ def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
     # pylint: disable=redefined-outer-name,reimported,unused-import
     # noqa: F401
     from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
+    if guardrail_node is None:
+        guardrail_node = node1
     name = node1.name
+    if output_key != 'registered':
+        name = f'{name}_{output_key}'
     choices = Node(Merge(2), run_without_submitting=True,
                    name=f'{name}_choices')
     select = Node(Select(), run_without_submitting=True,
                   name=f'choose_{name}')
-    wf.connect([(node1, choices, [('registered', 'in1')]),
-                (node2, choices, [('registered', 'in2')]),
+    wf.connect([(node1, choices, [(output_key, 'in1')]),
+                (node2, choices, [(output_key, 'in2')]),
                 (choices, select, [('out', 'inlist')]),
-                (node1, select, [('failed_qc', 'index')])])
+                (guardrail_node, select, [('failed_qc', 'index')])])
     return select
 
 

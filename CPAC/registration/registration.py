@@ -58,7 +58,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         name='inputspec')
 
     outputNode = pe.Node(
-        util.IdentityInterface(fields=['output_image']),
+        util.IdentityInterface(fields=['output_image', 'failed_qc']),
         name='outputspec')
 
     if int(num_cpus) > 1 and time_series:
@@ -101,7 +101,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                                                            'reg_tool'],
                                               output_names=['interpolation'],
                                               function=interpolation_string),
-                                name=f'interp_string',
+                                name='interp_string',
                                 mem_gb=2.5)
         interp_string.inputs.reg_tool = reg_tool
 
@@ -113,7 +113,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             pe.Node(util.Function(input_names=['transform'],
                                   output_names=['transform_list'],
                                   function=single_ants_xfm_to_list),
-                    name=f'single_ants_xfm_to_list',
+                    name='single_ants_xfm_to_list',
                     mem_gb=2.5)
 
         wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
@@ -133,7 +133,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                             name=f'chunk_{wf_name}',
                             mem_gb=2.5)
 
-            #chunk.inputs.n_chunks = int(num_cpus)
+            # chunk.inputs.n_chunks = int(num_cpus)
 
             # 10-TR sized chunks
             chunk.inputs.chunk_size = 10
@@ -213,7 +213,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                             name=f'chunk_{wf_name}',
                             mem_gb=2.5)
 
-            #chunk.inputs.n_chunks = int(num_cpus)
+            # chunk.inputs.n_chunks = int(num_cpus)
 
             # 10-TR sized chunks
             chunk.inputs.chunk_size = 10
@@ -247,6 +247,7 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
 
         # Pass output through guardrail before continuing
         wf.connect(guardrail, 'registered', outputNode, 'output_image')
+        wf.connect(guardrail, 'failed_qc', outputNode, 'failed_qc')
 
     return wf
 
@@ -256,6 +257,7 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
     '''Transform output derivatives to template space.
 
     This function is designed for use with the NodeBlock connection engine.
+    This function is not guardrailed.
     '''
 
     wf = pe.Workflow(name=wf_name)
@@ -288,10 +290,13 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
     wf.connect(inputnode, 'reference', apply_xfm, 'inputspec.reference')
     wf.connect(inputnode, 'transform', apply_xfm, 'inputspec.transform')
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                        'failed_qc']),
                          name='outputspec')
 
-    wf.connect(apply_xfm, 'outputspec.output_image', outputnode, 'out_file')
+    wf.connect([
+        (apply_xfm, outputnode, [('outputspec.output_image', 'out_file'),
+                                 ('outputspec.failed_qc', 'failed_qc')])])
 
     return wf
 
@@ -752,8 +757,7 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
     return register_func_to_anat
 
 
-def create_register_func_to_anat_use_T2(config,
-                                        name='register_func_to_anat_use_T2'):
+def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     # for monkey data
     # ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L287-L295
     # https://github.com/HechengJin0/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L524-L535
@@ -764,8 +768,6 @@ def create_register_func_to_anat_use_T2(config,
 
     Parameters
     ----------
-    config : configuration, mandatory
-        Pipeline configuration.
     name : string, optional
         Name of the workflow.
 
@@ -814,37 +816,42 @@ def create_register_func_to_anat_use_T2(config,
     linear_reg_func_to_t2.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_z = [30, 30]
+    retry_linear_reg_func_to_t2 = increment_seed(linear_reg_func_to_t2.clone(
+        f'retry_{linear_reg_func_to_t2.name}'))
 
-    guardrail_t1 = registration_guardrail_node('guardrail_T1')
-    guardrail_t2 = registration_guardrail_node('guardrail_T2')
-
-    register_func_to_anat_use_T2.connect(inputspec, 'func',
-                                         linear_reg_func_to_t2, 'in_file')
-    register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
-                                         linear_reg_func_to_t2, 'reference')
-    register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
-                                         guardrail_t2, 'reference')
+    guardrails = []
+    for i, node in enumerate(linear_reg_func_to_t2,
+                             retry_linear_reg_func_to_t2):
+        register_func_to_anat_use_T2.connect(inputspec, 'func',
+                                             node, 'in_file')
+        register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
+                                             node, 'reference')
+        guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
+                                                    i)
+        register_func_to_anat_use_T2.connect(node, 'out_file',
+                                             guardrails[i], 'registered')
+        register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
+                                             guardrails[i], 'reference')
+    linear_reg_func_to_t2_matrix = guardrail_selection(
+        register_func_to_anat_use_T2, linear_reg_func_to_t2,
+        retry_linear_reg_func_to_t2, 'out_matrix_file', guardrails[0])
 
     # ${FSLDIR}/bin/convert_xfm -omat "$fMRIFolder"/T2w2Scout.mat -inverse "$fMRIFolder"/Scout2T2w.mat
     invt = pe.Node(interface=fsl.ConvertXFM(), name='convert_xfm')
     invt.inputs.invert_xfm = True
 
-    register_func_to_anat_use_T2.connect(
-        linear_reg_func_to_t2, 'out_matrix_file', invt, 'in_file')
+    register_func_to_anat_use_T2.connect(linear_reg_func_to_t2_matrix, 'out',
+                                         invt, 'in_file')
 
     # ${FSLDIR}/bin/applywarp --interp=nn -i ${T1wFolder}/${T2wRestoreImageBrain} -r ${fMRIFolder}/${ScoutName}_gdc --premat="$fMRIFolder"/T2w2Scout.mat -o ${fMRIFolder}/Scout_brain_mask.nii.gz
     anat_to_func = pe.Node(interface=fsl.ApplyWarp(),
                            name='anat_to_func')
     anat_to_func.inputs.interp = 'nn'
 
-    guardrail_anat_to_func = registration_guardrail_node('guardrail_'
-                                                         'anat-to-func')
     register_func_to_anat_use_T2.connect(inputspec, 'T2_brain',
                                          anat_to_func, 'in_file')
     register_func_to_anat_use_T2.connect(inputspec, 'func',
                                          anat_to_func, 'ref_file')
-    register_func_to_anat_use_T2.connect(inputspec, 'func',
-                                         guardrail_anat_to_func, 'reference')
     register_func_to_anat_use_T2.connect(invt, 'out_file',
                                          anat_to_func, 'premat')
 
@@ -854,8 +861,6 @@ def create_register_func_to_anat_use_T2(config,
     func_brain_mask.inputs.args = '-bin'
 
     register_func_to_anat_use_T2.connect(anat_to_func, 'out_file',
-                                         guardrail_anat_to_func, 'registered')
-    register_func_to_anat_use_T2.connect(guardrail_anat_to_func, 'registered',
                                          func_brain_mask, 'in_file')
 
     # ${FSLDIR}/bin/fslmaths ${fMRIFolder}/${ScoutName}_gdc -mas ${fMRIFolder}/Scout_brain_mask.nii.gz ${fMRIFolder}/Scout_brain_dc.nii.gz
@@ -878,13 +883,28 @@ def create_register_func_to_anat_use_T2(config,
     linear_reg_func_to_t1.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_z = [30, 30]
+    retry_linear_reg_func_to_t1 = increment_seed(linear_reg_func_to_t1.clone(
+        f'retry_{linear_reg_func_to_t1.name}'))
 
-    register_func_to_anat_use_T2.connect(func_brain, 'out_file',
-                                         linear_reg_func_to_t1, 'in_file')
-    register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
-                                         linear_reg_func_to_t1, 'reference')
-    register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
-                                         guardrail_t1, 'reference')
+    guardrails = []
+    for i, node in enumerate(linear_reg_func_to_t1,
+                             retry_linear_reg_func_to_t1):
+        register_func_to_anat_use_T2.connect(func_brain, 'out_file',
+                                             node, 'in_file')
+        register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
+                                             node, 'reference')
+        guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
+                                                    i)
+        register_func_to_anat_use_T2.connect(node, 'out_file',
+                                             guardrails[i], 'registered')
+        register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
+                                             guardrails[i], 'reference')
+    # pylint: disable=no-value-for-parameter
+    select_linear_reg_func_to_t1 = guardrail_selection(
+        register_func_to_anat_use_T2, *guardrails)
+    linear_reg_func_to_t1_matrix = guardrail_selection(
+        register_func_to_anat_use_T2, linear_reg_func_to_t1,
+        retry_linear_reg_func_to_t1, 'out_matrix_file', guardrails[0])
 
     # #taking out warpfield as it is not being made without a fieldmap.
     # ${FSLDIR}/bin/convertwarp --relout --rel -r ${T1wFolder}/${T2wRestoreImage} --postmat=${fMRIFolder}/${ScoutName}_gdc2T1w_init.mat -o ${fMRIFolder}/${ScoutName}_gdc2T1w_init_warp
@@ -893,20 +913,17 @@ def create_register_func_to_anat_use_T2(config,
     convert_warp.inputs.out_relwarp = True
     convert_warp.inputs.relwarp = True
 
-    register_func_to_anat_use_T2.connect(
-        linear_reg_func_to_t1, 'out_matrix_file', convert_warp, 'postmat')
+    register_func_to_anat_use_T2.connect(linear_reg_func_to_t1_matrix, 'out',
+                                         convert_warp, 'postmat')
     register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
                                          convert_warp, 'reference')
     register_func_to_anat_use_T2.connect(
-        linear_reg_func_to_t1, 'out_matrix_file',
+        linear_reg_func_to_t1_matrix, 'out',
         outputspec, 'func_to_anat_linear_xfm_nobbreg')
     register_func_to_anat_use_T2.connect(convert_warp, 'out_file',
                                          outputspec,
                                          'func_to_anat_linear_warp_nobbreg')
-
-    register_func_to_anat_use_T2.connect(linear_reg_func_to_t1, 'out_file',
-                                         guardrail_t1, 'registered')
-    register_func_to_anat_use_T2.connect(guardrail_t1, 'registered',
+    register_func_to_anat_use_T2.connect(select_linear_reg_func_to_t1, 'out',
                                          outputspec, 'anat_func_nobbreg')
 
     return register_func_to_anat_use_T2
@@ -1840,12 +1857,12 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
             name='change_transform_type')
 
         wf.connect(fsl_reg_2_itk, 'itk_transform',
-                         change_transform, 'input_affine_file')
+                   change_transform, 'input_affine_file')
 
         # combine ALL xfm's into one - makes it easier downstream
         write_composite_xfm = pe.Node(
             interface=ants.ApplyTransforms(),
-            name=f'write_composite_xfm',
+            name='write_composite_xfm',
             mem_gb=1.5)
         write_composite_xfm.inputs.print_out_composite_warp_file = True
         write_composite_xfm.inputs.output_image = \
@@ -2450,12 +2467,10 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num,
             interface=ants.ApplyTransforms(),
             name=f'ANTS-ABCD_T1_to_template_{pipe_num}')
         ants_apply_warp_t1_to_template.inputs.dimension = 3
-        ants_apply_warp_t1_to_template.inputs.print_out_composite_warp_file = True
-        ants_apply_warp_t1_to_template.inputs.output_image = 'ANTs_CombinedWarp.nii.gz'
-
-        guardrail_brain = registration_guardrail_node('guardrail_brain_T1w')
-        guardrail_head = registration_guardrail_node('guardrail_head_T1w')
-        guardrail_mask = registration_guardrail_node('guardrail_T1w_mask')
+        ants_apply_warp_t1_to_template.inputs.print_out_composite_warp_file = \
+            True
+        ants_apply_warp_t1_to_template.inputs.output_image = \
+            'ANTs_CombinedWarp.nii.gz'
 
         node, out = strat_pool.get_data(['desc-restore_T1w',
                                          'desc-preproc_T1w',
@@ -2465,8 +2480,6 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num,
         node, out = strat_pool.get_data('T1w-template')
         wf.connect(node, out,
                    ants_apply_warp_t1_to_template, 'reference_image')
-        for guardrail in (guardrail_brain, guardrail_head, guardrail_mask):
-            wf.connect(node, out, guardrail, 'reference')
 
         node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
         wf.connect(node, out, ants_apply_warp_t1_to_template, 'transforms')
@@ -2629,16 +2642,13 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num,
                    apply_mask, 'in_file')
         wf.connect(fsl_apply_warp_t1_brain_to_template, 'out_file',
                    apply_mask, 'mask_file')
-        wf.connect(apply_mask, 'out_file', guardrail_brain, 'registered')
-        wf.connect(fsl_apply_warp_t1_to_template, 'out_file',
-                   guardrail_head, 'registered')
-        wf.connect(fsl_apply_warp_t1_brain_mask_to_template, 'out_file',
-                   guardrail_mask, 'registered')
 
         outputs = {
-            'space-template_desc-brain_T1w': (guardrail_brain, 'registered'),
-            'space-template_desc-head_T1w': (guardrail_head, 'registered'),
-            'space-template_desc-T1w_mask': (guardrail_mask, 'registered'),
+            'space-template_desc-brain_T1w': (apply_mask, 'out_file'),
+            'space-template_desc-head_T1w': (fsl_apply_warp_t1_to_template,
+                                             'out_file'),
+            'space-template_desc-T1w_mask': (
+                fsl_apply_warp_t1_brain_mask_to_template, 'out_file'),
             'from-T1w_to-template_mode-image_xfm': (merge_xfms, 'merged_file'),
             'from-template_to-T1w_mode-image_xfm': (merge_inv_xfms,
                                                     'merged_file')
@@ -2784,12 +2794,12 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     subwfname = f'func_to_anat_FLIRT_bbreg{bbreg_status}_{pipe_num}'
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
         # monkey data
-        func_to_anat = create_register_func_to_anat_use_T2(cfg, subwfname)
+        func_to_anat = create_register_func_to_anat_use_T2(subwfname)
 
         # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L177
         # fslmaths "$fMRIFolder"/"$NameOffMRI"_mc -Tmean "$fMRIFolder"/"$ScoutName"_gdc
         func_mc_mean = pe.Node(interface=afni_utils.TStat(),
-                            name=f'func_motion_corrected_mean_{pipe_num}')
+                               name=f'func_motion_corrected_mean_{pipe_num}')
 
         func_mc_mean.inputs.options = '-mean'
         func_mc_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -2815,19 +2825,19 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                                                     subwfname)
 
         func_to_anat.inputs.inputspec.dof = cfg.registration_workflows[
-        'functional_registration']['coregistration']['dof']
+            'functional_registration']['coregistration']['dof']
 
         func_to_anat.inputs.inputspec.interp = cfg.registration_workflows[
-        'functional_registration']['coregistration']['interpolation']
+            'functional_registration']['coregistration']['interpolation']
 
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
-            'coregistration']['reference'] == 'brain':
+                'coregistration']['reference'] == 'brain':
             node, out = strat_pool.get_data('desc-brain_T1w')
         elif cfg.registration_workflows['functional_registration'][
-            'coregistration']['reference'] == 'restore-brain':
+                'coregistration']['reference'] == 'restore-brain':
             node, out = strat_pool.get_data('desc-restore-brain_T1w')
         wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
@@ -3185,7 +3195,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
+                                       ):
     """
     {"name": "transform_timeseries_to_T1template_abcd",
      "config": ["registration_workflows", "functional_registration",
@@ -3503,9 +3514,6 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     wf.connect(node, out, anat_resample, 'in_file')
     wf.connect(node, out, anat_resample, 'reference')
 
-    guardrail_brain = registration_guardrail_node('guardrail-brain_bold')
-    guardrail_mask = registration_guardrail_node('guardrail-bold_mask')
-
     # ${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
     applywarp_anat_res = pe.Node(interface=fsl.ApplyWarp(),
                                  name=f'anat_func_res_{pipe_num}')
@@ -3531,7 +3539,6 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     wf.connect(node, out, applywarp_anat_mask_res, 'in_file')
     wf.connect(applywarp_anat_res, 'out_file',
                applywarp_anat_mask_res, 'ref_file')
-    wf.connect(applywarp_anat_res, 'out_file', guardrail_mask, 'reference')
 
     # ${FSLDIR}/bin/fslmaths ${WD}/${T1wImageFile}.${FinalfMRIResolution} -mas ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     T1_brain_res = pe.Node(interface=fsl.MultiImageMaths(),
@@ -3660,7 +3667,6 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
                applywarp_func_to_standard, 'field_file')
     wf.connect(applywarp_anat_res, 'out_file',
                applywarp_func_to_standard, 'ref_file')
-    wf.connect(applywarp_anat_res, 'out_file', guardrail_brain, 'reference')
 
     # applywarp --rel --interp=nn --in=${WD}/prevols/vol${vnum}_mask.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}_mask.nii.gz
     applywarp_func_mask_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
@@ -3734,12 +3740,10 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     wf.connect(applywarp_anat_mask_res, 'out_file', func_mask_final, 'in_file')
     wf.connect(find_min_mask, 'out_file', func_mask_final, 'operand_files')
-    wf.connect(extract_func_brain, 'out_file', guardrail_brain, 'registered')
-    wf.connect(func_mask_final, 'out_file', guardrail_mask, 'registered')
 
     outputs = {
-        'space-template_desc-brain_bold': (guardrail_brain, 'registered'),
-        'space-template_desc-bold_mask': (guardrail_mask, 'registered')
+        'space-template_desc-brain_bold': (extract_func_brain, 'out_file'),
+        'space-template_desc-bold_mask': (func_mask_final, 'out_file')
     }
 
     return (wf, outputs)
