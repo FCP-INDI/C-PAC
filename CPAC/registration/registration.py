@@ -69,10 +69,6 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         # time series chunks
         multi_input = True
 
-    # Guardrail: check QC metrics
-    guardrail = registration_guardrail_node(f'{wf_name}_guardrail')
-    wf.connect(inputNode, 'reference', guardrail, 'reference')
-
     if reg_tool == 'ants':
 
         if multi_input:
@@ -162,13 +158,11 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
             wf.connect(apply_warp, 'output_image', func_concat, 'in_files')
-            wf.connect(func_concat, 'out_file', guardrail, 'registered')
-            wf.connect(guardrail, 'registered', outputNode, 'output_image')
+            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
 
         else:
             wf.connect(inputNode, 'input_image', apply_warp, 'input_image')
-            wf.connect(apply_warp, 'output_image', guardrail, 'registered')
-            wf.connect(guardrail, 'registered', outputNode, 'output_image')
+            wf.connect(apply_warp, 'output_image', outputNode, 'output_image')
 
     elif reg_tool == 'fsl':
 
@@ -241,15 +235,11 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             func_concat.inputs.outputtype = 'NIFTI_GZ'
 
             wf.connect(apply_warp, 'out_file', func_concat, 'in_files')
-            wf.connect(func_concat, 'out_file', guardrail, 'registered')
+            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
 
         else:
             wf.connect(inputNode, 'input_image', apply_warp, 'in_file')
-            wf.connect(apply_warp, 'out_file', guardrail, 'registered')
-
-        # Pass output through guardrail before continuing
-        wf.connect(guardrail, 'registered', outputNode, 'output_image')
-        wf.connect(guardrail, 'failed_qc', outputNode, 'failed_qc')
+            wf.connect(apply_warp, 'out_file', outputNode, 'output_image')
 
     return wf
 
@@ -339,31 +329,32 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
-
-    guardrail = registration_guardrail_node(f'{name}_guardrail')
+    retry_reg = increment_seed(linear_reg.clone(f'retry_{linear_reg.name}'))
+    nodes = (linear_reg, retry_reg)
+    guardrails = []
+    for i, node in enumerate(nodes):
+        guardrails[i] = registration_guardrail_node(node.name, i)
+        linear_register.connect(inputspec, 'reference_brain',
+                                guardrails[i], 'reference')
+        linear_register.connect(node, 'out_file', guardrails[i], 'registered')
 
     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
                             name='inv_linear_reg0_xfm')
     inv_flirt_xfm.inputs.invert_xfm = True
 
-    linear_register.connect(inputspec, 'input_brain',
-                            linear_reg, 'in_file')
-    linear_register.connect(inputspec, 'reference_brain',
-                            linear_reg, 'reference')
-    linear_register.connect(inputspec, 'reference_brain',
-                            guardrail, 'reference')
-    linear_register.connect(inputspec, 'interp',
-                            linear_reg, 'interp')
-    linear_register.connect(linear_reg, 'out_file',
-                            guardrail, 'registered')
-    linear_register.connect(guardrail, 'registered',
-                            outputspec, 'output_brain')
-    linear_register.connect(linear_reg, 'out_matrix_file',
-                            inv_flirt_xfm, 'in_file')
+    linear_register = connect_retries(linear_register, nodes, [
+        (inputspec, 'input_brain', 'in_file'),
+        (inputspec, 'reference_brain', 'reference'),
+        (inputspec, 'interp', 'interp')])
+    # pylint: disable=no-value-for-parameter
+    registered = guardrail_selection(linear_register, *guardrails)
+    linear_register.connect(registered, 'out', outputspec, 'output_brain')
+    matrix = guardrail_selection(linear_register, *nodes, 'out_matrix_file',
+                                 guardrails[0])
+    linear_register.connect(matrix, 'out', inv_flirt_xfm, 'in_file')
     linear_register.connect(inv_flirt_xfm, 'out_file',
                             outputspec, 'invlinear_xfm')
-    linear_register.connect(linear_reg, 'out_matrix_file',
-                            outputspec, 'linear_xfm')
+    linear_register.connect(matrix, 'out', outputspec, 'linear_xfm')
 
     return linear_register
 

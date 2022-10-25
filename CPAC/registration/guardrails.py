@@ -159,11 +159,7 @@ def registration_guardrail(registered: str, reference: str,
                         metric=metric, value=value, threshold=threshold)
                     logger.error(str(bad_registration))
                     if retry_num:
-                        # if we've already retried, raise the error and
-                        # stop execution
-                        from nipype import config
-                        config.update_config({
-                            'execution': {'stop_on_first_crash': True}})
+                        # if we've already retried, raise the error
                         raise bad_registration
     return registered, failed_qc
 
