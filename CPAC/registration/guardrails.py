@@ -33,36 +33,6 @@ _SPEC_KEYS = {
     Registration: {'reference': 'reference', 'registered': 'out_file'}}
 
 
-def connect_retries(wf, nodes, connections):
-    """Function to generalize making the same connections to try and
-    retry nodes.
-
-    For each 3-tuple (``conn``) in ``connections``, will do
-
-    ..  code-block:: Python
-
-        wf.connect(conn[0], node, conn[1], conn[2])
-
-    for each node in nodes
-
-    Parameters
-    ----------
-    wf : Workflow
-
-    nodes : iterable of Nodes
-
-    connections : iterable of 3-tuples of (Node, str or tuple, str)
-
-    Returns
-    -------
-    Workflow
-    """
-    for node in nodes:
-        for conn in connections:
-            wf.connect(conn[0], node, conn[1], conn[2])
-    return wf
-
-
 def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
                         output_key: str = 'registered',
                         guardrail_node: 'Node' = None) -> Node:

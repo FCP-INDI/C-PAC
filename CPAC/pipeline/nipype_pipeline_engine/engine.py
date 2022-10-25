@@ -506,6 +506,24 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
+    def connect_retries(self, nodes, connections):
+        """Method to generalize making the same connections to try and
+        retry nodes.
+
+        For each 3-tuple (``conn``) in ``connections``, will do
+        ``wf.connect(conn[0], node, conn[1], conn[2])`` for each ``node``
+        in ``nodes``
+
+        Parameters
+        ----------
+        nodes : iterable of Nodes
+
+        connections : iterable of 3-tuples of (Node, str or tuple, str)
+        """
+        for node in nodes:
+            for conn in connections:
+                self.connect(conn[0], node, conn[1], conn[2])
+
     def _get_dot(
         self, prefix=None, hierarchy=None, colored=False, simple_form=True,
         level=0
