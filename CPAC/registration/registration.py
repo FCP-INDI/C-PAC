@@ -23,6 +23,7 @@ from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+from CPAC.pipeline.random_state.seed import increment_seed
 from CPAC.registration.guardrails import guardrail_selection, \
                                          registration_guardrail_node
 from CPAC.registration.utils import seperate_warps_list, \
@@ -1212,7 +1213,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
                                 imports=reg_imports),
         name='calc_ants_warp', mem_gb=2.8,
         mem_x=(2e-7, 'moving_brain', 'xyz'))
-    retry_calculate_ants_warp = pe.Node(
+    retry_calculate_ants_warp = increment_seed(pe.Node(
         interface=util.Function(input_names=[*warp_inputs, 'previous_failure'],
                                 output_names=warp_outputs,
                                 function=retry_hardcoded_reg,
@@ -1222,7 +1223,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
                                          'from CPAC.utils.docs import '
                                          'retry_docstring']),
         name='retry_calc_ants_warp', mem_gb=2.8,
-        mem_x=(2e-7, 'moving_brain', 'xyz'))
+        mem_x=(2e-7, 'moving_brain', 'xyz')))
     guardrails = tuple(registration_guardrail_node(
         f'{_try}{name}_guardrail', i) for i, _try in enumerate(('', 'retry_')))
 

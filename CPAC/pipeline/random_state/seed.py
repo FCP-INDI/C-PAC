@@ -32,6 +32,22 @@ MAX_SEED = np.iinfo(np.int32).max
 _seed = {'seed': None}
 
 
+def increment_seed(node: 'Node') -> 'Node':
+    """Increment the random seed for a given node
+
+    Parameters
+    ----------
+    node : Node
+
+    Returns
+    -------
+    node : Node
+    """
+    if isinstance(node.seed, int):
+        node.seed = seed_plus_1()
+    return node
+
+
 def random_random_seed():
     '''Returns a random postive integer up to 2147483647
 

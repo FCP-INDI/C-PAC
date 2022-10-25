@@ -117,7 +117,12 @@ def registration_guardrail(registered: str, reference: str,
                     bad_registration = BadRegistrationError(
                         metric=metric, value=value, threshold=threshold)
                     logger.error(str(bad_registration))
-                    if retry_num:  # if we've already retried, raise the error
+                    if retry_num:
+                        # if we've already retried, raise the error and
+                        # stop execution
+                        from nipype import config
+                        config.update_config({
+                            'execution': {'stop_on_first_crash': True}})
                         raise bad_registration
     return registered, failed_qc
 
@@ -247,12 +252,10 @@ def retry_registration_node(registered, registration_node):
     -------
     Node
     """
-    from CPAC.pipeline.random_state.seed import seed_plus_1
+    from CPAC.pipeline.random_state.seed import increment_seed
     if registered.endswith('-failed'):
-        retry_node = registration_node.clone(
-            name=f'{registration_node.name}-retry')
-        if isinstance(retry_node.seed, int):
-            retry_node.seed = seed_plus_1()
+        retry_node = increment_seed(registration_node.clone(
+            name=f'{registration_node.name}-retry'))
         return retry_node
     return registration_node
 
