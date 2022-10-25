@@ -1162,132 +1162,86 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
                                          'retry_docstring']),
         name='retry_calc_ants_warp', mem_gb=2.8,
         mem_x=(2e-7, 'moving_brain', 'xyz')))
-    guardrails = tuple(registration_guardrail_node(
-        f'{_try}{name}_guardrail', i) for i, _try in enumerate(('', 'retry_')))
-
+    nodes, guardrails = nodes_and_guardrails(calculate_ants_warp,
+                                             retry_calculate_ants_warp)
     calculate_ants_warp.interface.num_threads = num_threads
     retry_calculate_ants_warp.interface.num_threads = num_threads
+
     select_forward_initial = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
         output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_initial')
-
     select_forward_initial.inputs.selection = "Initial"
 
     select_forward_rigid = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
         output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_rigid')
-
     select_forward_rigid.inputs.selection = "Rigid"
 
     select_forward_affine = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
         output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_affine')
-
     select_forward_affine.inputs.selection = "Affine"
 
     select_forward_warp = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
         output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_warp')
-
     select_forward_warp.inputs.selection = "Warp"
 
     select_inverse_warp = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
         output_names=['selected_warp'],
         function=seperate_warps_list), name='select_inverse_warp')
-
     select_inverse_warp.inputs.selection = "Inverse"
 
-    calc_ants_warp_wf.connect(inputspec, 'moving_brain',
-                              calculate_ants_warp, 'moving_brain')
-    calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-                              calculate_ants_warp, 'reference_brain')
-    calc_ants_warp_wf.connect(inputspec, 'moving_brain',
-                              retry_calculate_ants_warp, 'moving_brain')
-    calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-                              retry_calculate_ants_warp, 'reference_brain')
+    calc_ants_warp_wf.connect_retries(nodes, [
+        (inputspec, 'moving_brain', 'moving_brain'),
+        (inputspec, 'reference_brain', 'reference_brain')])
 
     if reg_ants_skull == 1:
         calculate_ants_warp.inputs.reg_with_skull = 1
         retry_calculate_ants_warp.inputs.reg_with_skull = 1
-
-        calc_ants_warp_wf.connect(inputspec, 'moving_skull',
-                                  calculate_ants_warp, 'moving_skull')
-        calc_ants_warp_wf.connect(inputspec, 'reference_skull',
-                                  calculate_ants_warp, 'reference_skull')
-        calc_ants_warp_wf.connect(inputspec, 'moving_skull',
-                                  retry_calculate_ants_warp, 'moving_skull')
-        calc_ants_warp_wf.connect(inputspec, 'reference_skull',
-                                  retry_calculate_ants_warp, 'reference_skull')
-        for guardrail in guardrails:
-            calc_ants_warp_wf.connect(inputspec, 'reference_skull',
-                                      guardrail, 'reference')
+        calc_ants_warp_wf.connect_retries(nodes, [
+            (inputspec, 'moving_skull', 'moving_skull'),
+            (inputspec, 'reference_skull', 'reference_skull')])
+        calc_ants_warp_wf.connect_retries(guardrails, [
+            (inputspec, 'reference_skull', 'reference')])
     else:
-        calc_ants_warp_wf.connect(inputspec, 'moving_brain',
-                                  calculate_ants_warp, 'moving_skull')
-        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-                                  calculate_ants_warp, 'reference_skull')
-        calc_ants_warp_wf.connect(inputspec, 'moving_brain',
-                                  retry_calculate_ants_warp, 'moving_skull')
-        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-                                  retry_calculate_ants_warp, 'reference_skull')
-        for guardrail in guardrails:
-            calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-                                      guardrail, 'reference')
+        calc_ants_warp_wf.connect_retries(nodes, [
+            (inputspec, 'moving_brain', 'moving_skull'),
+            (inputspec, 'reference_brain', 'reference_skull')])
+        calc_ants_warp_wf.connect_retries(guardrails, [
+            (inputspec, 'reference_brain', 'reference')])
 
-    calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
-                              calculate_ants_warp, 'fixed_image_mask')
-    calc_ants_warp_wf.connect(inputspec, 'reference_mask',
-                              calculate_ants_warp, 'reference_mask')
-    calc_ants_warp_wf.connect(inputspec, 'moving_mask',
-                              calculate_ants_warp, 'moving_mask')
-    calc_ants_warp_wf.connect(inputspec, 'ants_para',
-                              calculate_ants_warp, 'ants_para')
-    calc_ants_warp_wf.connect(inputspec, 'interp',
-                              calculate_ants_warp, 'interp')
-    calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
-                              retry_calculate_ants_warp, 'fixed_image_mask')
-    calc_ants_warp_wf.connect(inputspec, 'reference_mask',
-                              retry_calculate_ants_warp, 'reference_mask')
-    calc_ants_warp_wf.connect(inputspec, 'moving_mask',
-                              retry_calculate_ants_warp, 'moving_mask')
-    calc_ants_warp_wf.connect(inputspec, 'ants_para',
-                              retry_calculate_ants_warp, 'ants_para')
-    calc_ants_warp_wf.connect(inputspec, 'interp',
-                              retry_calculate_ants_warp, 'interp')
+    calc_ants_warp_wf.connect_retries(nodes, [
+        (inputspec, 'fixed_image_mask', 'fixed_image_mask'),
+        (inputspec, 'reference_mask', 'reference_mask'),
+        (inputspec, 'moving_mask', 'moving_mask'),
+        (inputspec, 'ants_para', 'ants_para'),
+        (inputspec, 'interp', 'interp')])
     # inter-workflow connections
     calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
                               guardrails[0], 'registered')
     calc_ants_warp_wf.connect(retry_calculate_ants_warp, 'warped_image',
                               guardrails[1], 'registered')
+    # pylint: disable=no-value-for-parameter
     select = guardrail_selection(calc_ants_warp_wf, *guardrails)
-    warp_list_choices = pe.Node(util.Merge(2), run_without_submitting=True,
-                                name=f'{name}_warplist_choices')
-    choose_warp_list = pe.Node(util.Select(), run_without_submitting=True,
-                               name=f'choose_{name}')
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
-                              warp_list_choices, 'in1')
-    calc_ants_warp_wf.connect(retry_calculate_ants_warp, 'warp_list',
-                              warp_list_choices, 'in2')
-    calc_ants_warp_wf.connect(warp_list_choices, 'out',
-                              choose_warp_list, 'inlist')
-    calc_ants_warp_wf.connect(guardrails[0], 'failed_qc',
-                              choose_warp_list, 'index')
+    warp_list = guardrail_selection(calc_ants_warp_wf, *nodes, 'warp_list',
+                                    guardrails[0])
     calc_ants_warp_wf.connect(guardrails[0], 'failed_qc',
                               retry_calculate_ants_warp, 'previous_failure')
-    calc_ants_warp_wf.connect(choose_warp_list, 'out',
+    calc_ants_warp_wf.connect(warp_list, 'out',
                               select_forward_initial, 'warp_list')
-    calc_ants_warp_wf.connect(choose_warp_list, 'out',
+    calc_ants_warp_wf.connect(warp_list, 'out',
                               select_forward_rigid, 'warp_list')
-    calc_ants_warp_wf.connect(choose_warp_list, 'out',
+    calc_ants_warp_wf.connect(warp_list, 'out',
                               select_forward_affine, 'warp_list')
-    calc_ants_warp_wf.connect(choose_warp_list, 'out',
+    calc_ants_warp_wf.connect(warp_list, 'out',
                               select_forward_warp, 'warp_list')
-    calc_ants_warp_wf.connect(choose_warp_list, 'out',
+    calc_ants_warp_wf.connect(warp_list, 'out',
                               select_inverse_warp, 'warp_list')
     # connections to outputspec
     calc_ants_warp_wf.connect(select_forward_initial, 'selected_warp',

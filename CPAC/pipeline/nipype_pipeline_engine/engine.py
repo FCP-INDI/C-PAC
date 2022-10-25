@@ -511,7 +511,7 @@ class Workflow(pe.Workflow):
         retry nodes.
 
         For each 3-tuple (``conn``) in ``connections``, will do
-        ``wf.connect(conn[0], node, conn[1], conn[2])`` for each ``node``
+        ``wf.connect(conn[0], conn[1], node, conn[2])`` for each ``node``
         in ``nodes``
 
         Parameters
@@ -520,9 +520,23 @@ class Workflow(pe.Workflow):
 
         connections : iterable of 3-tuples of (Node, str or tuple, str)
         """
+        wrong_conn_type_msg = (r'connect_retries `connections` argument '
+                               'must be an iterable of (Node, str or '
+                               'tuple, str) tuples.')
+        if not isinstance(connections, (list, tuple)):
+            raise TypeError(f'{wrong_conn_type_msg}: Given {connections}')
         for node in nodes:
+            if not isinstance(node, Node):
+                raise TypeError('connect_retries requires an iterable '
+                                r'of nodes for the `nodes` parameter: '
+                                f'Given {node}')
             for conn in connections:
-                self.connect(conn[0], node, conn[1], conn[2])
+                if not all((isinstance(conn, (list, tuple)), len(conn) == 3,
+                            isinstance(conn[0], Node),
+                            isinstance(conn[1], (tuple, str)),
+                            isinstance(conn[2], str))):
+                    raise TypeError(f'{wrong_conn_type_msg}: Given {conn}')
+                self.connect(*conn[:2], node, conn[2])
 
     def _get_dot(
         self, prefix=None, hierarchy=None, colored=False, simple_form=True,

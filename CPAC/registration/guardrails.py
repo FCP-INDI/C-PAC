@@ -148,11 +148,12 @@ def nodes_and_guardrails(*nodes):
 
     guardrails : tuple of Nodes
     """
-    guardrails = []
-    for i, node in nodes:
+    guardrails = [None] * len(nodes)
+    for i, node in enumerate(nodes):
         guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
                                                     i)
     return tuple(nodes), tuple(guardrails)
+
 
 def registration_guardrail_node(name=None, retry_num=0):
     """Convenience method to get a new registration_guardrail Node
