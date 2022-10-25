@@ -1122,13 +1122,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc['run']:
         func_init_blocks = [
+            func_reorient,
             func_scaling,
             func_truncate
         ]
         func_preproc_blocks = [
             func_despike,
-            func_slice_time,
-            func_reorient
+            func_slice_time
         ]
 
         if not rpool.check_rpool('desc-mean_bold'):
@@ -1144,7 +1144,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         func_prep_blocks = [
             calc_motion_stats,
-            func_normalize
+            func_normalize,
+            [coregistration_prep_vol,
+             coregistration_prep_mean,
+             coregistration_prep_fmriprep]
         ]
 
         # Distortion/Susceptibility Correction
@@ -1192,10 +1195,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # BOLD to T1 coregistration
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
-            (not rpool.check_rpool('space-T1w_desc-mean_bold') or
+            (not rpool.check_rpool('space-T1w_sbref') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks

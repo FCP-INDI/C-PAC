@@ -619,7 +619,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                                      imports=split_imports),
                             name=f'split_{pipe_num}')
 
-            node, out = strat_pool.get_data('desc-preproc_bold')
+            node, out = strat_pool.get_data("desc-preproc_bold")
             wf.connect(node, out, split, 'func_file')
             wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
 
@@ -891,6 +891,47 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     return (wf, outputs)
 
 
+def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "func_reorient",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["bold"],
+     "outputs": ["desc-preproc_bold", 
+                 "desc-reorient_bold"]}
+    '''
+
+    func_deoblique = pe.Node(interface=afni_utils.Refit(),
+                             name=f'func_deoblique_{pipe_num}',
+                             mem_gb=0.68,
+                             mem_x=(4664065662093477 /
+                                    1208925819614629174706176,
+                                    'in_file'))
+    func_deoblique.inputs.deoblique = True
+
+    node, out = strat_pool.get_data('bold')
+    wf.connect(node, out, func_deoblique, 'in_file')
+
+    func_reorient = pe.Node(interface=afni_utils.Resample(),
+                            name=f'func_reorient_{pipe_num}',
+                            mem_gb=0,
+                            mem_x=(0.0115, 'in_file', 't'))
+
+    func_reorient.inputs.orientation = 'RPI'
+    func_reorient.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(func_deoblique, 'out_file', func_reorient, 'in_file')
+
+    outputs = {
+        'desc-preproc_bold': (func_reorient, 'out_file'),
+        'desc-reorient_bold': (func_reorient, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
 def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "func_scaling",
@@ -1034,47 +1075,6 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "func_reorient",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["desc-preproc_bold"],
-     "outputs": ["desc-preproc_bold", 
-                 "desc-reorient_bold"]}
-    '''
-
-    func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name=f'func_deoblique_{pipe_num}',
-                             mem_gb=0.68,
-                             mem_x=(4664065662093477 /
-                                    1208925819614629174706176,
-                                    'in_file'))
-    func_deoblique.inputs.deoblique = True
-
-    node, out = strat_pool.get_data('desc-preproc_bold')
-    wf.connect(node, out, func_deoblique, 'in_file')
-
-    func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'func_reorient_{pipe_num}',
-                            mem_gb=0,
-                            mem_x=(0.0115, 'in_file', 't'))
-
-    func_reorient.inputs.orientation = 'RPI'
-    func_reorient.inputs.outputtype = 'NIFTI_GZ'
-
-    wf.connect(func_deoblique, 'out_file', func_reorient, 'in_file')
-
-    outputs = {
-        'desc-preproc_bold': (func_reorient, 'out_file'),
-        'desc-reorient_bold': (func_reorient, 'out_file')
-    }
-
-    return (wf, outputs)
-
-
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "get_motion_ref",
@@ -1085,7 +1085,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                     "motion_correction", "motion_correction_reference"],
      "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
      "inputs": ["desc-preproc_bold",
-                "bold"],
+                "desc-reorient_bold"],
      "outputs": ["motion-basefile"]}
     '''
     option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
@@ -1141,7 +1141,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                                              function=estimate_reference_image),
                            name=f'func_get_fmriprep_ref_{pipe_num}')
 
-        node, out = strat_pool.get_data('bold')
+        node, out = strat_pool.get_data('desc-reorient_bold')
         wf.connect(node, out, func_get_RPI, 'in_file')
 
     outputs = {

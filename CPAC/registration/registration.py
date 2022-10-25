@@ -2756,7 +2756,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
                  "T1w")],
-     "outputs": ["space-T1w_desc-mean_bold",
+     "outputs": ["space-T1w_sbref",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
     '''
@@ -2833,7 +2833,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
     if strat_pool.check_rpool('T2w') and cfg.anatomical_preproc['run_t2']:
         outputs = {
-            'space-T1w_desc-mean_bold':
+            'space-T1w_sbref':
                 (func_to_anat, 'outputspec.anat_func_nobbreg'),
             'from-bold_to-T1w_mode-image_desc-linear_xfm':
                 (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg'),
@@ -2842,7 +2842,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         }
     else:
         outputs = {
-            'space-T1w_desc-mean_bold':
+            'space-T1w_sbref':
                 (func_to_anat, 'outputspec.anat_func_nobbreg'),
             'from-bold_to-T1w_mode-image_desc-linear_xfm':
                 (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
@@ -2915,7 +2915,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                        func_to_anat_bbreg, 'inputspec.fieldmapmask')
 
         outputs = {
-            'space-T1w_desc-mean_bold':
+            'space-T1w_sbref':
                 (func_to_anat_bbreg, 'outputspec.anat_func'),
             'from-bold_to-T1w_mode-image_desc-linear_xfm':
                 (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')

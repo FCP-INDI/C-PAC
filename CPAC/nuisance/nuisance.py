@@ -1822,7 +1822,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
-                 "desc-mean_bold",
+                 "sbref",
                  "from-bold_to-template_mode-image_xfm",
                  "from-template_to-bold_mode-image_xfm"),
                 "T1w-brain-template-funcreg"],
@@ -1867,7 +1867,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data("desc-mean_bold")
+    node, out = strat_pool.get_data("sbref")
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
     node, out = strat_pool.get_data('from-template_to-bold_mode-image_xfm')
@@ -1940,7 +1940,7 @@ def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
-                 "desc-mean_bold",
+                 "sbref",
                  "from-bold_to-EPItemplate_mode-image_xfm",
                  "from-EPItemplate_to-bold_mode-image_xfm"),
                 "EPI-template"],
@@ -1986,7 +1986,7 @@ def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data("desc-mean_bold")
+    node, out = strat_pool.get_data("sbref")
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
     node, out = strat_pool.get_data('from-EPItemplate_to-bold_mode-image_xfm')
