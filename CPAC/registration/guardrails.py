@@ -22,7 +22,7 @@ from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT
 from nipype.interfaces.utility import Function, Merge, Select
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
-# from CPAC.pipeline.nipype_pipeline_engine.utils import connect_from_spec
+from CPAC.pipeline.random_state.seed import increment_seed
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
 from CPAC.registration.exceptions import BadRegistrationError
 from CPAC.registration.utils import hardcoded_reg
@@ -225,6 +225,21 @@ def registration_guardrail_workflow(registration_node, retry=True):
         wf.connect(guardrail, 'registered', outputspec, outkey)
         # connect_from_spec(outputspec, registration_node, outkey)
     return wf
+
+
+def retry_clone(node: 'Node') -> 'Node':
+    """Function to clone a node, name the clone, and increment its
+    random seed
+
+    Parameters
+    ----------
+    node : Node
+
+    Returns
+    -------
+    Node
+    """
+    return increment_seed(node.clone(f'retry_{node.name}'))
 
 
 def retry_registration(wf, registration_node, registered):
