@@ -226,7 +226,7 @@ def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
                         reference_skull, ants_para, moving_mask=None,
                         reference_mask=None, fixed_image_mask=None,
                         interp=None, reg_with_skull=0, previous_failure=False):
-    if previous_failure:
+    if not previous_failure:
         return [], None
     return hardcoded_reg(moving_brain, reference_brain, moving_skull,
                          reference_skull, ants_para, moving_mask,

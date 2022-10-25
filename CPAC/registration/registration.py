@@ -1338,6 +1338,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
                               choose_warp_list, 'inlist')
     calc_ants_warp_wf.connect(guardrails[0], 'failed_qc',
                               choose_warp_list, 'index')
+    calc_ants_warp_wf.connect(guardrails[0], 'failed_qc',
+                              retry_calculate_ants_warp, 'previous_failure')
     calc_ants_warp_wf.connect(choose_warp_list, 'out',
                               select_forward_initial, 'warp_list')
     calc_ants_warp_wf.connect(choose_warp_list, 'out',
