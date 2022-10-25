@@ -134,6 +134,26 @@ def registration_guardrail(registered: str, reference: str,
     return registered, failed_qc
 
 
+def nodes_and_guardrails(*nodes):
+    """Returns a two tuples of Nodes: (try, retry) and their
+    respective guardrails
+
+    Parameters
+    ----------
+    nodes : any number of Nodes
+
+    Returns
+    -------
+    nodes : tuple of Nodes
+
+    guardrails : tuple of Nodes
+    """
+    guardrails = []
+    for i, node in nodes:
+        guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
+                                                    i)
+    return tuple(nodes), tuple(guardrails)
+
 def registration_guardrail_node(name=None, retry_num=0):
     """Convenience method to get a new registration_guardrail Node
 

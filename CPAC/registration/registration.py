@@ -16,8 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Registration functions"""
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
-# TODO: replace Tuple with tuple, Union with |, once Python >= 3.9, 3.10
-from sqlite3 import connect
 from typing import Optional, Tuple, Union
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
@@ -26,6 +24,7 @@ from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline.random_state.seed import increment_seed
 from CPAC.registration.guardrails import guardrail_selection, \
+                                         nodes_and_guardrails, \
                                          registration_guardrail_node, \
                                          retry_clone
 from CPAC.registration.utils import seperate_warps_list, \
@@ -330,10 +329,8 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
     retry_reg = retry_clone(linear_reg)
-    nodes = (linear_reg, retry_reg)
-    guardrails = []
+    nodes, guardrails = nodes_and_guardrails(linear_reg, retry_reg)
     for i, node in enumerate(nodes):
-        guardrails[i] = registration_guardrail_node(node.name, i)
         linear_register.connect(inputspec, 'reference_brain',
                                 guardrails[i], 'reference')
         linear_register.connect(node, 'out_file', guardrails[i], 'registered')
@@ -432,7 +429,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
     retry_reg = retry_clone(nonlinear_reg)
-    nodes = [nonlinear_reg, retry_reg]
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg, retry_reg)
     guardrails = []
     for i, node in enumerate(nodes):
         guardrails[i] = registration_guardrail_node(f'{node.name}_guardrail')
@@ -440,7 +437,6 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                                    guardrails[i], 'reference')
         nonlinear_register.connect(node, 'warped_file',
                                    guardrails[i], 'registered')
-
     nonlinear_register.connect_retries(nodes, [
         (inputspec, 'input_skull', 'in_file'),
         (inputspec, 'reference_skull', 'ref_file'),
@@ -542,99 +538,57 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name='fsl_fnirt_nonlinear_reg_nhp'):
 
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
-
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
     nonlinear_reg.inputs.field_file = True
+    retry_reg = retry_clone(nonlinear_reg)
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg, retry_reg)
+    fieldcoeff_file = guardrail_selection(nonlinear_register, *nodes,
+                                          'fieldcoeff_file', guardrails[0])
+    field_file = guardrail_selection(nonlinear_register, *nodes, 'field_file',
+                                     guardrails[0])
 
-    nonlinear_register.connect(inputspec, 'input_skull',
-                               nonlinear_reg, 'in_file')
-
-    nonlinear_register.connect(inputspec, 'reference_skull',
-                               nonlinear_reg, 'ref_file')
-
-    nonlinear_register.connect(inputspec, 'ref_mask',
-                               nonlinear_reg, 'refmask_file')
-
-    nonlinear_register.connect(inputspec, 'fnirt_config',
-                               nonlinear_reg, 'config_file')
-
-    nonlinear_register.connect(inputspec, 'linear_aff',
-                               nonlinear_reg, 'affine_file')
-
-    brain_warp = pe.Node(interface=fsl.ApplyWarp(),
-                         name='brain_warp')
+    brain_warp = pe.Node(interface=fsl.ApplyWarp(), name='brain_warp')
     brain_warp.inputs.interp = 'nn'
     brain_warp.inputs.relwarp = True
 
-    nonlinear_register.connect(inputspec, 'input_brain',
-                               brain_warp, 'in_file')
-
-    nonlinear_register.connect(nonlinear_reg, 'field_file',
-                               brain_warp, 'field_file')
-
-    nonlinear_register.connect(inputspec, 'reference_skull',
-                               brain_warp, 'ref_file')
-
-    head_warp = pe.Node(interface=fsl.ApplyWarp(),
-                        name='head_warp')
+    head_warp = pe.Node(interface=fsl.ApplyWarp(), name='head_warp')
     head_warp.inputs.interp = 'spline'
     head_warp.inputs.relwarp = True
 
-    nonlinear_register.connect(inputspec, 'input_brain',
-                               head_warp, 'in_file')
-
-    nonlinear_register.connect(nonlinear_reg, 'field_file',
-                               head_warp, 'field_file')
-
-    nonlinear_register.connect(inputspec, 'reference_skull',
-                               head_warp, 'ref_file')
-
-    mask_warp = pe.Node(interface=fsl.ApplyWarp(),
-                         name='mask_warp')
+    mask_warp = pe.Node(interface=fsl.ApplyWarp(), name='mask_warp')
     mask_warp.inputs.interp = 'nn'
     mask_warp.inputs.relwarp = True
 
-    nonlinear_register.connect(inputspec, 'input_brain',
-                               mask_warp, 'in_file')
-
-    nonlinear_register.connect(nonlinear_reg, 'field_file',
-                               mask_warp, 'field_file')
-
-    nonlinear_register.connect(inputspec, 'reference_skull',
-                               mask_warp, 'ref_file')
-
-    biasfield_warp = pe.Node(interface=fsl.ApplyWarp(),
-                         name='biasfield_warp')
+    biasfield_warp = pe.Node(interface=fsl.ApplyWarp(), name='biasfield_warp')
     biasfield_warp.inputs.interp = 'spline'
     biasfield_warp.inputs.relwarp = True
 
-    nonlinear_register.connect(inputspec, 'input_brain',
-                               biasfield_warp, 'in_file')
-
-    nonlinear_register.connect(nonlinear_reg, 'field_file',
-                               biasfield_warp, 'field_file')
-
-    nonlinear_register.connect(inputspec, 'reference_skull',
-                               biasfield_warp, 'ref_file')
-
-    nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
-                               outputspec, 'nonlinear_xfm')
-
-    nonlinear_register.connect(nonlinear_reg, 'field_file',
-                               outputspec, 'nonlinear_warp')
-
-    nonlinear_register.connect(brain_warp, 'out_file',
-                               outputspec, 'output_brain')
-
-    nonlinear_register.connect(head_warp, 'out_file',
-                               outputspec, 'output_head')
-
-    nonlinear_register.connect(mask_warp, 'out_file',
-                               outputspec, 'output_mask')
-
-    nonlinear_register.connect(biasfield_warp, 'out_file',
-                               outputspec, 'output_biasfield')
+    nonlinear_register.connect_retries(nodes, [
+        (inputspec, 'input_skull', 'in_file'),
+        (inputspec, 'reference_skull', 'ref_file'),
+        (inputspec, 'ref_mask', 'refmask_file'),
+        (inputspec, 'fnirt_config', 'config_file'),
+        (inputspec, 'linear_aff', 'affine_file')])
+    nonlinear_register.connect([
+        (inputspec, brain_warp, [('input_brain', 'in_file'),
+                                 ('reference_skull', 'ref_file')]),
+        (field_file, brain_warp, [('out', 'field_file')]),
+        (inputspec, head_warp, [('input_brain', 'in_file'),
+                                ('reference_skull', 'ref_file')]),
+        (field_file, head_warp, [('out', 'field_file')]),
+        (inputspec, mask_warp, [('input_brain', 'in_file'),
+                                ('reference_skull', 'ref_file')]),
+        (field_file, mask_warp, [('out', 'field_file')]),
+        (inputspec, biasfield_warp, [('input_brain', 'in_file'),
+                                     ('reference_skull', 'ref_file')]),
+        (field_file, biasfield_warp, [('out', 'field_file')]),
+        (fieldcoeff_file, outputspec, [('out', 'fieldcoeff_file')]),
+        (field_file, outputspec, [('out', 'nonlinear_warp')]),
+        (brain_warp, outputspec, [('out_file', 'output_brain')]),
+        (head_warp, outputspec, [('out_file', 'output_head')]),
+        (mask_warp, outputspec, [('out_file', 'output_mask')]),
+        (biasfield_warp, outputspec, [('out_file', 'output_biasfield')])])
 
     return nonlinear_register
 
@@ -802,16 +756,13 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t2.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_z = [30, 30]
     retry_linear_reg_func_to_t2 = retry_clone(linear_reg_func_to_t2)
-
-    guardrails = []
-    for i, node in enumerate(linear_reg_func_to_t2,
-                             retry_linear_reg_func_to_t2):
+    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t2,
+                                             retry_linear_reg_func_to_t2)
+    for i, node in enumerate(nodes):
         register_func_to_anat_use_T2.connect(inputspec, 'func',
                                              node, 'in_file')
         register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
                                              node, 'reference')
-        guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
-                                                    i)
         register_func_to_anat_use_T2.connect(node, 'out_file',
                                              guardrails[i], 'registered')
         register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
@@ -868,16 +819,13 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t1.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_z = [30, 30]
     retry_linear_reg_func_to_t1 = retry_clone(linear_reg_func_to_t1)
-
-    guardrails = []
-    for i, node in enumerate(linear_reg_func_to_t1,
-                             retry_linear_reg_func_to_t1):
+    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t1,
+                                             retry_linear_reg_func_to_t1)
+    for i, node in enumerate(nodes):
         register_func_to_anat_use_T2.connect(func_brain, 'out_file',
                                              node, 'in_file')
         register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
                                              node, 'reference')
-        guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
-                                                    i)
         register_func_to_anat_use_T2.connect(node, 'out_file',
                                              guardrails[i], 'registered')
         register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
@@ -995,16 +943,12 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat')
     bbreg_func_to_anat.inputs.dof = 6
-    guardrail_bbreg_func_to_anat = registration_guardrail_node(
-        f'{bbreg_func_to_anat.name}_guardrail')
-    nodes = [bbreg_func_to_anat]
-    guardrails = [guardrail_bbreg_func_to_anat]
+    nodes, guardrails = nodes_and_guardrails(bbreg_func_to_anat)
     if retry:
-        retry_bbreg_func_to_anat = retry_clone(bbreg_func_to_anat)
-        guardrail_retry_bbreg_func_to_anat = registration_guardrail_node(
-            f'{retry_bbreg_func_to_anat.name}_guardrail')
-        nodes += [retry_bbreg_func_to_anat]
-        guardrails += [guardrail_retry_bbreg_func_to_anat]
+        retry_nodes, retry_guardrails = nodes_and_guardrails(
+            retry_clone(bbreg_func_to_anat))
+        nodes += retry_nodes
+        guardrails += retry_guardrails
     register_bbregister_func_to_anat.connect_retries(nodes, [
         (inputspec, 'bbr_schedule', 'schedule'),
         (wm_bb_mask, ('out_file', bbreg_args), 'args'),
