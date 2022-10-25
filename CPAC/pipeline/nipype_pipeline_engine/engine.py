@@ -50,8 +50,9 @@ for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
 from copy import deepcopy
-from logging import getLogger
 from inspect import Parameter, Signature, signature
+from logging import getLogger
+from typing import Iterable, Tuple, Union
 from nibabel import load
 from nipype import logging
 from nipype.interfaces.utility import Function
@@ -506,7 +507,9 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
-    def connect_retries(self, nodes, connections):
+    def connect_retries(self, nodes: Iterable['Node'],
+                        connections: Iterable[Tuple['Node', Union[str, tuple],
+                                                    str]]) -> None:
         """Method to generalize making the same connections to try and
         retry nodes.
 

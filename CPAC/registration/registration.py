@@ -328,8 +328,8 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
-    retry_reg = retry_clone(linear_reg)
-    nodes, guardrails = nodes_and_guardrails(linear_reg, retry_reg)
+    nodes, guardrails = nodes_and_guardrails(linear_reg,
+                                             retry_clone(linear_reg))
     for i, node in enumerate(nodes):
         linear_register.connect(inputspec, 'reference_brain',
                                 guardrails[i], 'reference')
@@ -428,11 +428,9 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                             name='nonlinear_reg_1')
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-    retry_reg = retry_clone(nonlinear_reg)
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg, retry_reg)
-    guardrails = []
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg,
+                                             retry_clone(nonlinear_reg))
     for i, node in enumerate(nodes):
-        guardrails[i] = registration_guardrail_node(f'{node.name}_guardrail')
         nonlinear_register.connect(inputspec, 'reference_skull',
                                    guardrails[i], 'reference')
         nonlinear_register.connect(node, 'warped_file',
@@ -541,8 +539,8 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name='fsl_fnirt_nonlinear_reg_nhp'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
     nonlinear_reg.inputs.field_file = True
-    retry_reg = retry_clone(nonlinear_reg)
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg, retry_reg)
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg,
+                                             retry_clone(nonlinear_reg))
     fieldcoeff_file = guardrail_selection(nonlinear_register, *nodes,
                                           'fieldcoeff_file', guardrails[0])
     field_file = guardrail_selection(nonlinear_register, *nodes, 'field_file',
@@ -656,8 +654,6 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
         name='outputspec')
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_func_to_anat')
-    guardrail = registration_guardrail_node(f'{name}_guardrail')
-
     linear_reg.inputs.interp = config.registration_workflows[
         'functional_registration']['coregistration']['interpolation']
     linear_reg.inputs.cost = config.registration_workflows[
@@ -668,29 +664,31 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
             'coregistration']['arguments'] is not None:
         linear_reg.inputs.args = config.registration_workflows[
             'functional_registration']['coregistration']['arguments']
+    nodes, guardrails = nodes_and_guardrails(linear_reg,
+                                             retry_clone(linear_reg))
 
     if phase_diff_distcor:
-        register_func_to_anat.connect(
-            inputNode_pedir, ('pedir', convert_pedir),
-            linear_reg, 'pedir')
-        register_func_to_anat.connect(inputspec, 'fieldmap',
-                                      linear_reg, 'fieldmap')
-        register_func_to_anat.connect(inputspec, 'fieldmapmask',
-                                      linear_reg, 'fieldmapmask')
-        register_func_to_anat.connect(inputNode_echospacing, 'echospacing',
-                                      linear_reg, 'echospacing')
+        register_func_to_anat.connect_retries(nodes, [
+            (inputNode_pedir, ('pedir', convert_pedir), 'pedir'),
+            (inputspec, 'fieldmap', 'fieldmap'),
+            (inputspec, 'fieldmapmask', 'fieldmapmask'),
+            (inputNode_echospacing, 'echospacing', 'echospacing')])
 
-    register_func_to_anat.connect(inputspec, 'func', linear_reg, 'in_file')
-    register_func_to_anat.connect(inputspec, 'anat', linear_reg, 'reference')
-    register_func_to_anat.connect(inputspec, 'anat', guardrail, 'reference')
-    register_func_to_anat.connect(inputspec, 'dof', linear_reg, 'dof')
-    register_func_to_anat.connect(inputspec, 'interp', linear_reg, 'interp')
-    register_func_to_anat.connect(linear_reg, 'out_matrix_file',
-                                  outputspec, 'func_to_anat_linear_xfm_'
-                                              'nobbreg')
-    register_func_to_anat.connect(linear_reg, 'out_file',
-                                  guardrail, 'registered')
-    register_func_to_anat.connect(guardrail, 'registered',
+    register_func_to_anat.connect_retries(nodes, [
+        (inputspec, 'func', 'in_file'),
+        (inputspec, 'anat', 'reference'),
+        (inputspec, 'dof', 'dof'),
+        (inputspec, 'interp', 'interp')])
+    register_func_to_anat.connect_retries(guardrails, [
+        (inputspec, 'anat', 'reference')])
+    select_matrix = guardrail_selection(register_func_to_anat, *nodes,
+                                        'out_matrix_file', guardrails[0])
+    register_func_to_anat.connect(
+        select_matrix, 'out',
+        outputspec, 'func_to_anat_linear_xfm_nobbreg')
+    # pylint: disable=no-value-for-parameter
+    select_reg = guardrail_selection(register_func_to_anat, *guardrails)
+    register_func_to_anat.connect(select_reg, 'out',
                                   outputspec, 'anat_func_nobbreg')
 
     return register_func_to_anat
@@ -1330,8 +1328,10 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         }
 
     if opt == 'FSL':
-        if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-            cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
+        if cfg.registration_workflows['anatomical_registration'][
+                'registration']['FSL-FNIRT']['ref_resolution'] ==  \
+            cfg.registration_workflows['anatomical_registration'][
+                'resolution_for_anat']:
             fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
                 f'anat_mni_fnirt_register{symm}'
             )
@@ -1357,8 +1357,10 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         wf.connect(inputNode, 'fnirt_config',
                    fnirt_reg_anat_mni, 'inputspec.fnirt_config')
 
-        if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-            cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
+        if cfg.registration_workflows['anatomical_registration'][
+                'registration']['FSL-FNIRT']['ref_resolution'] ==  \
+            cfg.registration_workflows['anatomical_registration'][
+                'resolution_for_anat']:
             # NOTE: this is an UPDATE because of the opt block above
             added_outputs = {
                 f'space-{sym}{tmpl}template_desc-brain_{orig}': (
@@ -1385,7 +1387,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
             }
             outputs.update(added_outputs)
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
@@ -1456,7 +1458,7 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
 
     if orig == 'T1w':
         if cfg.registration_workflows['anatomical_registration'][
-            'registration']['ANTs']['use_lesion_mask']:
+                'registration']['ANTs']['use_lesion_mask']:
             # Create lesion preproc node to apply afni Refit and Resample
             lesion_preproc = create_lesion_preproc(
                 wf_name=f'lesion_preproc{symm}'
@@ -1866,8 +1868,10 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
-    if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-        cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
+    if cfg.registration_workflows['anatomical_registration']['registration'][
+            'FSL-FNIRT']['ref_resolution'] == \
+        cfg.registration_workflows['anatomical_registration'][
+            'resolution_for_anat']:
 
         node, out = strat_pool.get_data('T1w-brain-template')
         wf.connect(node, out, fsl, 'inputspec.reference_brain')
@@ -2551,13 +2555,15 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     get_func_volume.inputs.set(
         expr='a',
-        single_idx=cfg.registration_workflows['functional_registration']['coregistration'][
-            'func_input_prep']['Selected Functional Volume']['func_reg_input_volume'],
+        single_idx=cfg.registration_workflows['functional_registration'][
+            'coregistration'][
+            'func_input_prep']['Selected Functional Volume'][
+            'func_reg_input_volume'],
         outputtype='NIFTI_GZ'
     )
 
     if not cfg.registration_workflows['functional_registration'][
-        'coregistration']['func_input_prep']['reg_with_skull']:
+            'coregistration']['func_input_prep']['reg_with_skull']:
         node, out = strat_pool.get_data("desc-brain_bold")
     else:
         # TODO check which file is functional_skull_leaf
@@ -2568,9 +2574,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     coreg_input = (get_func_volume, 'out_file')
 
-    outputs = {
-        'desc-reginput_bold': coreg_input
-    }
+    outputs = {'desc-reginput_bold': coreg_input}
 
     return (wf, outputs)
 
@@ -2594,10 +2598,9 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
             'coregistration']['func_input_prep']['Mean Functional'][
             'n4_correct_func']:
         n4_correct_func = pe.Node(
-            interface=
-            ants.N4BiasFieldCorrection(dimension=3,
-                                       copy_header=True,
-                                       bspline_fitting_distance=200),
+            interface=ants.N4BiasFieldCorrection(dimension=3,
+                                                 copy_header=True,
+                                                 bspline_fitting_distance=200),
             shrink_factor=2,
             name=f'func_mean_n4_corrected_{pipe_num}')
         n4_correct_func.inputs.args = '-r True'
@@ -2607,9 +2610,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
         coreg_input = (n4_correct_func, 'output_image')
 
-    outputs = {
-        'desc-reginput_bold': coreg_input
-    }
+    outputs = {'desc-reginput_bold': coreg_input}
 
     return (wf, outputs)
 
@@ -2628,9 +2629,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
 
     coreg_input = strat_pool.get_data("desc-ref_bold")
 
-    outputs = {
-        'desc-reginput_bold': coreg_input
-    }
+    outputs = {'desc-reginput_bold': coreg_input}
 
     return (wf, outputs)
 

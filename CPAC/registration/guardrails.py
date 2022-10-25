@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
 import logging
-from typing import Tuple
+from typing import Tuple, Union
 from copy import deepcopy
 from nipype.interfaces.ants import Registration
 from nipype.interfaces.fsl import FLIRT

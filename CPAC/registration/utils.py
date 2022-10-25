@@ -446,7 +446,8 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
         f.write(' '.join(regcmd))
 
     try:
-        subprocess.check_output(regcmd)
+        # pylint: disable=unused-variable
+        retcode = subprocess.check_output(regcmd)  # noqa: F841
     except BadRegistrationError as bad_registration:
         raise bad_registration
     except Exception as e:
@@ -551,7 +552,8 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
         # to be converted to ITK format via c3d_affine_tool
         cmd = ['c3d_affine_tool', '-ref', anatomical_brain, '-src',
                moving_image, func_to_anat, '-fsl2ras', '-oitk', 'affine.txt']
-        retcode = subprocess.check_output(cmd)
+        # pylint: disable=unused-variable
+        retcode = subprocess.check_output(cmd)  # noqa: F841
         func_to_anat = change_itk_transform_type(os.path.join(os.getcwd(),
                                                               'affine.txt'))
 
@@ -597,7 +599,8 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
         else:
             cmd.append(os.path.abspath(func_to_anat))
 
-    retcode = subprocess.check_output(cmd)
+    # pylint: disable=unused-variable
+    retcode = subprocess.check_output(cmd)  # noqa: F841
 
     return out_image
 
@@ -618,16 +621,19 @@ def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
             # run_ants_apply_warp()
 
 
-def run_c3d(reference_file, source_file, transform_file):
-
+def run_c3d(reference_file, source_file, transform_file,
+            retry=False, previous_failure=False):
+    # pylint: disable=redefined-outer-name,reimported
     import os
     import subprocess
 
     itk_transform = os.path.join(os.getcwd(), 'affine.txt')
 
-    cmd = ['c3d_affine_tool', '-ref', reference_file, '-src',
-            source_file, transform_file, '-fsl2ras', '-oitk', itk_transform]
-    retcode = subprocess.check_output(cmd)
+    if (not retry) or previous_failure:
+        cmd = ['c3d_affine_tool', '-ref', reference_file, '-src',
+               source_file, transform_file, '-fsl2ras', '-oitk', itk_transform]
+        # pylint: disable=unused-variable
+        retcode = subprocess.check_output(cmd)  # noqa: F841
 
     return itk_transform
 
