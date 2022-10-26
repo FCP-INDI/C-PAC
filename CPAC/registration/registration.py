@@ -328,8 +328,7 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
-    nodes, guardrails = nodes_and_guardrails(linear_reg,
-                                             retry_clone(linear_reg))
+    nodes, guardrails = nodes_and_guardrails(linear_reg)
     for i, node in enumerate(nodes):
         linear_register.connect(inputspec, 'reference_brain',
                                 guardrails[i], 'reference')
@@ -428,8 +427,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                             name='nonlinear_reg_1')
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg,
-                                             retry_clone(nonlinear_reg))
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg)
     for i, node in enumerate(nodes):
         nonlinear_register.connect(inputspec, 'reference_skull',
                                    guardrails[i], 'reference')
@@ -539,8 +537,7 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name='fsl_fnirt_nonlinear_reg_nhp'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
     nonlinear_reg.inputs.field_file = True
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg,
-                                             retry_clone(nonlinear_reg))
+    nodes, guardrails = nodes_and_guardrails(nonlinear_reg)
     fieldcoeff_file = guardrail_selection(nonlinear_register, *nodes,
                                           'fieldcoeff_file', guardrails[0])
     field_file = guardrail_selection(nonlinear_register, *nodes, 'field_file',
@@ -664,8 +661,7 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
             'coregistration']['arguments'] is not None:
         linear_reg.inputs.args = config.registration_workflows[
             'functional_registration']['coregistration']['arguments']
-    nodes, guardrails = nodes_and_guardrails(linear_reg,
-                                             retry_clone(linear_reg))
+    nodes, guardrails = nodes_and_guardrails(linear_reg)
 
     if phase_diff_distcor:
         register_func_to_anat.connect_retries(nodes, [
@@ -753,9 +749,7 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t2.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_z = [30, 30]
-    retry_linear_reg_func_to_t2 = retry_clone(linear_reg_func_to_t2)
-    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t2,
-                                             retry_linear_reg_func_to_t2)
+    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t2)
     for i, node in enumerate(nodes):
         register_func_to_anat_use_T2.connect(inputspec, 'func',
                                              node, 'in_file')
@@ -766,8 +760,7 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
         register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
                                              guardrails[i], 'reference')
     linear_reg_func_to_t2_matrix = guardrail_selection(
-        register_func_to_anat_use_T2, linear_reg_func_to_t2,
-        retry_linear_reg_func_to_t2, 'out_matrix_file', guardrails[0])
+        register_func_to_anat_use_T2, *nodes, 'out_matrix_file', guardrails[0])
 
     # ${FSLDIR}/bin/convert_xfm -omat "$fMRIFolder"/T2w2Scout.mat -inverse "$fMRIFolder"/Scout2T2w.mat
     invt = pe.Node(interface=fsl.ConvertXFM(), name='convert_xfm')
@@ -816,9 +809,7 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t1.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_z = [30, 30]
-    retry_linear_reg_func_to_t1 = retry_clone(linear_reg_func_to_t1)
-    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t1,
-                                             retry_linear_reg_func_to_t1)
+    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t1)
     for i, node in enumerate(nodes):
         register_func_to_anat_use_T2.connect(func_brain, 'out_file',
                                              node, 'in_file')
@@ -832,8 +823,7 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     select_linear_reg_func_to_t1 = guardrail_selection(
         register_func_to_anat_use_T2, *guardrails)
     linear_reg_func_to_t1_matrix = guardrail_selection(
-        register_func_to_anat_use_T2, linear_reg_func_to_t1,
-        retry_linear_reg_func_to_t1, 'out_matrix_file', guardrails[0])
+        register_func_to_anat_use_T2, *nodes, 'out_matrix_file', guardrails[0])
 
     # #taking out warpfield as it is not being made without a fieldmap.
     # ${FSLDIR}/bin/convertwarp --relout --rel -r ${T1wFolder}/${T2wRestoreImage} --postmat=${fMRIFolder}/${ScoutName}_gdc2T1w_init.mat -o ${fMRIFolder}/${ScoutName}_gdc2T1w_init_warp
@@ -941,12 +931,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat')
     bbreg_func_to_anat.inputs.dof = 6
-    nodes, guardrails = nodes_and_guardrails(bbreg_func_to_anat)
-    if retry:
-        retry_nodes, retry_guardrails = nodes_and_guardrails(
-            retry_clone(bbreg_func_to_anat))
-        nodes += retry_nodes
-        guardrails += retry_guardrails
+    nodes, guardrails = nodes_and_guardrails(bbreg_func_to_anat,
+                                             add_clones=bool(retry))
     register_bbregister_func_to_anat.connect_retries(nodes, [
         (inputspec, 'bbr_schedule', 'schedule'),
         (wm_bb_mask, ('out_file', bbreg_args), 'args'),
@@ -1160,10 +1146,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
                                          'retry_docstring']),
         name='retry_calc_ants_warp', mem_gb=2.8,
         mem_x=(2e-7, 'moving_brain', 'xyz')))
-    nodes, guardrails = nodes_and_guardrails(calculate_ants_warp,
-                                             retry_calculate_ants_warp)
     calculate_ants_warp.interface.num_threads = num_threads
     retry_calculate_ants_warp.interface.num_threads = num_threads
+    nodes, guardrails = nodes_and_guardrails(calculate_ants_warp,
+                                             retry_calculate_ants_warp,
+                                             add_clones=False)
 
     select_forward_initial = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],

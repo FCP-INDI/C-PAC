@@ -663,6 +663,33 @@ class Workflow(pe.Workflow):
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
 
+    def nodes_and_guardrails(self, *nodes, registered, add_clones=True):
+        """Returns a two tuples of Nodes: (try, retry) and their
+        respective guardrails
+
+        Parameters
+        ----------
+        nodes : any number of Nodes
+
+        Returns
+        -------
+        nodes : tuple of Nodes
+
+        guardrails : tuple of Nodes
+        """
+        from CPAC.registration.guardrails import registration_guardrail_node, \
+                                                 retry_clone
+        nodes = list(nodes)
+        if add_clones is True:
+            retries = [retry_clone(node) for node in nodes]
+            nodes.extend(retries)
+        guardrails = [None] * len(nodes)
+        for i, node in enumerate(nodes):
+            guardrails[i] = registration_guardrail_node(
+                f'guardrail_{node.name}', i)
+            self.connect(node, registered, guardrails[i], 'registered')
+        return tuple(nodes), tuple(guardrails)
+
     def write_graph(
         self,
         dotfilename="graph.dot",

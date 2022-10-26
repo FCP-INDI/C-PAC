@@ -134,7 +134,7 @@ def registration_guardrail(registered: str, reference: str,
     return registered, failed_qc
 
 
-def nodes_and_guardrails(*nodes):
+def nodes_and_guardrails(*nodes, add_clones=True):
     """Returns a two tuples of Nodes: (try, retry) and their
     respective guardrails
 
@@ -148,6 +148,10 @@ def nodes_and_guardrails(*nodes):
 
     guardrails : tuple of Nodes
     """
+    nodes = list(nodes)
+    if add_clones is True:
+        retries = [retry_clone(node) for node in nodes]
+        nodes.extend(retries)
     guardrails = [None] * len(nodes)
     for i, node in enumerate(nodes):
         guardrails[i] = registration_guardrail_node(f'guardrail_{node.name}',
