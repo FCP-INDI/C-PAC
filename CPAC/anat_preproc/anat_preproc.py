@@ -32,7 +32,9 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
-from CPAC.registration.guardrails import registration_guardrail_workflow
+from CPAC.registration.guardrails import guardrail_selection, \
+                                         nodes_and_guardrails, \
+                                         retry_clone
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
@@ -59,8 +61,9 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
                           name='outputspec')
     if config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'robustfov':
         robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
-                            name='anat_acpc_1_robustfov')
-        robust_fov.inputs.brainsize = config.anatomical_preproc['acpc_alignment']['brain_size']
+                             name='anat_acpc_1_robustfov')
+        robust_fov.inputs.brainsize = config.anatomical_preproc[
+            'acpc_alignment']['brain_size']
         robust_fov.inputs.out_transform = 'fov_xfm.mat'
 
         fov, in_file = (robust_fov, 'in_file')
@@ -71,8 +74,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
         # robustfov doesn't work on some monkey data. prefer using flirt.
         # ${FSLDIR}/bin/flirt -in "${Input}" -applyxfm -ref "${Input}" -omat "$WD"/roi2full.mat -out "$WD"/robustroi.nii.gz
         # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
-        flirt_fov = pe.Node(interface=fsl.FLIRT(),
-                                name='anat_acpc_1_fov')
+        flirt_fov = pe.Node(interface=fsl.FLIRT(), name='anat_acpc_1_fov')
         flirt_fov.inputs.args = '-applyxfm'
 
         fov, in_file = (flirt_fov, 'in_file')
@@ -105,25 +107,35 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
     align.inputs.searchr_x = [30, 30]
     align.inputs.searchr_y = [30, 30]
     align.inputs.searchr_z = [30, 30]
+    align_nodes, align_guardrails = nodes_and_guardrails(align,
+                                                         retry_clone(align))
 
-    preproc.connect(fov, fov_outfile, align, 'in_file')
+    preproc.connect_retries(align_nodes, [(fov, fov_outfile, 'in_file')])
 
     # align head-to-head to get acpc.mat (for human)
     if acpc_target == 'whole-head':
-        preproc.connect(inputnode, 'template_head_for_acpc', align,
-                        'reference')
+        preproc.connect_retries(
+            align_nodes, [(inputnode, 'template_head_for_acpc', 'reference')])
+        preproc.connect_retries(
+            align_guardrails, [(inputnode, 'template_head_for_acpc',
+                                'reference')])
 
     # align brain-to-brain to get acpc.mat (for monkey)
     if acpc_target == 'brain':
-        preproc.connect(inputnode, 'template_brain_for_acpc', align,
-                        'reference')
+        preproc.connect_retries(
+            align_nodes, [(inputnode, 'template_brain_for_acpc', 'reference')])
+        preproc.connect_retries(
+            align_guardrails, [(inputnode, 'template_brain_for_acpc',
+                                'reference')])
 
     concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
                          name='anat_acpc_4_concatxfm')
     concat_xfm.inputs.concat_xfm = True
 
     preproc.connect(convert_fov_xfm, 'out_file', concat_xfm, 'in_file')
-    preproc.connect(align, 'out_matrix_file', concat_xfm, 'in_file2')
+    select_align = guardrail_selection(preproc, *align_nodes,
+                                       'out_matrix_file', align_guardrails[0])
+    preproc.connect(select_align, 'out', concat_xfm, 'in_file2')
 
     aff_to_rig_imports = ['import os', 'from numpy import *']
     aff_to_rig = pe.Node(util.Function(input_names=['in_xfm', 'out_name'],
