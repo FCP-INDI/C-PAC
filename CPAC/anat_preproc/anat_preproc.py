@@ -817,41 +817,49 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                   f'brain_{pipe_num}')
     native_brain_to_template_brain.inputs.dof = 6
     native_brain_to_template_brain.inputs.interp = 'sinc'
-    wf.connect(unet_masked_brain, 'out_file',
-               native_brain_to_template_brain, 'in_file')
-    guardrail_native_brain_to_template_brain = registration_guardrail_workflow(
-        native_brain_to_template_brain)
+    brain_nodes, brain_guardrails = wf.nodes_and_guardrails(
+        native_brain_to_template_brain, registered='out_file')
 
     node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, native_brain_to_template_brain, 'reference')
+    wf.connect_retries(brain_nodes, [
+        (unet_masked_brain, 'out_file', 'in_file'),
+        (node, out, 'reference')])
+    wf.connect_retries(brain_guardrails, [(node, out, 'reference')])
 
     # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
     native_head_to_template_head = pe.Node(interface=fsl.FLIRT(),
                                            name=f'native_head_to_template_'
                                                 f'head_{pipe_num}')
     native_head_to_template_head.inputs.apply_xfm = True
-    guardrail_native_head_to_template_head = registration_guardrail_workflow(
-        native_head_to_template_head)
+
+    head_nodes, head_guardrails = wf.nodes_and_guardrails(
+        native_head_to_template_head, registered='out_file')
+    select_head = guardrail_selection(wf, *head_guardrails)
 
     if strat_pool.check_rpool('desc-preproc_T1w') or \
         strat_pool.check_rpool('desc-reorient_T1w') or \
             strat_pool.check_rpool('T1w'):
-        node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
-        wf.connect(node, out, native_head_to_template_head, 'in_file')
-        
+        node, out = strat_pool.get_data(
+            ['desc-preproc_T1w', 'desc-reorient_T1w','T1w'])
+        wf.connect_retries(head_nodes, [(node, out, 'in_file')])
+
     elif strat_pool.check_rpool('desc-preproc_T2w') or \
         strat_pool.check_rpool('desc-reorient_T2w') or \
             strat_pool.check_rpool('T2w'):
         node, out = strat_pool.get_data([
             'desc-preproc_T2w', 'desc-reorient_T2w', 'T2w'])
-        wf.connect(node, out, native_head_to_template_head, 'in_file')
+        wf.connect_retries(head_nodes, [(node, out, 'in_file')])
 
-    wf.connect(guardrail_native_brain_to_template_brain,
-               'outputspec.out_matrix_file',
+    select_template_brain_matrix = guardrail_selection(wf, *brain_nodes,
+                                                       'out_matrix_file',
+                                                       brain_guardrails[0])
+
+    wf.connect(select_template_brain_matrix, 'out',
                native_head_to_template_head, 'in_matrix_file')
 
     node, out = strat_pool.get_data('T1w-template')
-    wf.connect(node, out, native_head_to_template_head, 'reference')
+    wf.connect_retries(head_nodes, [(node, out, 'reference')])
+    wf.connect_retries(head_guardrails, [(node, out, 'reference')])
 
     # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
     template_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
@@ -875,67 +883,67 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     ants_template_head_to_template.inputs.smoothing_sigmas = [[0.6, 0.2, 0.0]]
     ants_template_head_to_template.inputs.shrink_factors = [[4, 2, 1]]
     ants_template_head_to_template.inputs.convergence_threshold = [1.e-8]
-    guardrail_ants_template_head_to_template = registration_guardrail_workflow(
-        ants_template_head_to_template, retry=True)
 
-    wf.connect(guardrail_native_head_to_template_head, 'outputspec.out_file',
-               ants_template_head_to_template, 'fixed_image')
+    athtt_nodes, athtt_guardrails = wf.nodes_and_guardrails(
+        ants_template_head_to_template, registered='warped_image')
+    select_ants_template_head_to_template = guardrail_selection(
+        wf, *athtt_nodes, 'forward_transforms', athtt_guardrails[0])
 
     node, out = strat_pool.get_data('T1w-brain-template')
-    wf.connect(node, out, ants_template_head_to_template, 'moving_image')
+    wf.connect_retries(athtt_nodes, [
+        (select_head, 'out', 'fixed_image'),
+        (node, out, 'moving_image')])
+    wf.connect_retries(athtt_guardrails, [(select_head, 'out', 'reference')])
 
-    # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
+    node, out = strat_pool.get_data('T1w-brain-template')
+    wf.connect_retries(athtt_nodes, [(node, out, 'moving_image')])
+
+    # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
     template_head_transform_to_template = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f'template_head_transform_to_template_{pipe_num}')
     template_head_transform_to_template.inputs.dimension = 3
-    guardrail_template_head_transform_to_template = (
-        registration_guardrail_workflow(template_head_transform_to_template))
 
     wf.connect(template_brain_mask, 'out_file',
                template_head_transform_to_template, 'input_image')
-    wf.connect(guardrail_native_brain_to_template_brain, 'outputspec.out_file',
+    wf.connect(native_brain_to_template_brain, 'out_file',
                template_head_transform_to_template, 'reference_image')
-    wf.connect(guardrail_ants_template_head_to_template,
-               'outputspec.forward_transforms',
+    wf.connect(select_ants_template_head_to_template, 'out',
                template_head_transform_to_template, 'transforms')
 
-    # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat 
+    # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat
     invt = pe.Node(interface=fsl.ConvertXFM(), name='convert_xfm')
     invt.inputs.invert_xfm = True
-    wf.connect(guardrail_native_brain_to_template_brain,
-               'outputspec.out_matrix_file',
+    wf.connect(native_brain_to_template_brain, 'out_matrix_file',
                invt, 'in_file')
 
     # flirt -in brain_rot2atl_mask.nii.gz -ref brain.nii.gz -o brain_mask.nii.gz -applyxfm -init brain_rot2native.mat
     template_brain_to_native_brain = pe.Node(interface=fsl.FLIRT(),
-                                             name=f'template_brain_to_native_'
+                                             name='template_brain_to_native_'
                                                   f'brain_{pipe_num}')
     template_brain_to_native_brain.inputs.apply_xfm = True
-    guardrail_template_brain_to_native_brain = registration_guardrail_workflow(
-        template_brain_to_native_brain)
-    wf.connect(guardrail_template_head_transform_to_template,
-               'outputspec.output_image',
-               template_brain_to_native_brain, 'in_file')
-    wf.connect(unet_masked_brain, 'out_file', template_brain_to_native_brain,
-               'reference')
-    wf.connect(invt, 'out_file', template_brain_to_native_brain,
-               'in_matrix_file')
+    tbtnb_nodes, tbtnb_guardrails = wf.nodes_and_guardrails(
+        template_brain_to_native_brain, registered='out_file')
+    wf.connect_retries(tbtnb_nodes, [
+        (template_head_transform_to_template, 'output_image', 'in_file'),
+        (unet_masked_brain, 'out_file', 'reference'),
+        (invt, 'out_file', 'in_matrix_file')])
+    wf.connect_retries(tbtnb_guardrails, [
+        (unet_masked_brain, 'out_file', 'reference')])
+    select_template_brain_to_native_brain = guardrail_selection(
+        wf, *tbtnb_guardrails)
 
     # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
-    refined_mask = pe.Node(interface=fsl.Threshold(), name=f'refined_mask'
-                                                           f'_{pipe_num}')
+    refined_mask = pe.Node(interface=fsl.Threshold(),
+                           name=f'refined_mask_{pipe_num}')
     refined_mask.inputs.thresh = 0.5
     refined_mask.inputs.args = '-bin'
-    wf.connect(guardrail_template_brain_to_native_brain,
-               'outputspec.out_file',
+    wf.connect(select_template_brain_to_native_brain, 'out',
                refined_mask, 'in_file')
 
-    outputs = {
-        'space-T1w_desc-brain_mask': (refined_mask, 'out_file')
-    }
+    outputs = {'space-T1w_desc-brain_mask': (refined_mask, 'out_file')}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
