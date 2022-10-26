@@ -7,6 +7,7 @@ linux_openmp_64/3dCM
 linux_openmp_64/3dDegreeCentrality
 linux_openmp_64/3dDespike
 linux_openmp_64/3dDetrend
+linux_openmp_64/3ddot
 linux_openmp_64/3dUnifize
 linux_openmp_64/3dECM
 linux_openmp_64/3dedge3
