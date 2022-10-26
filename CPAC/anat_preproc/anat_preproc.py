@@ -32,9 +32,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
-from CPAC.registration.guardrails import guardrail_selection, \
-                                         nodes_and_guardrails, \
-                                         retry_clone
+from CPAC.registration.guardrails import guardrail_selection
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
@@ -69,7 +67,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
         fov, in_file = (robust_fov, 'in_file')
         fov, fov_mtx = (robust_fov, 'out_transform')
         fov, fov_outfile = (robust_fov, 'out_roi')
-    
+
     elif config.anatomical_preproc['acpc_alignment']['FOV_crop'] == 'flirt':
         # robustfov doesn't work on some monkey data. prefer using flirt.
         # ${FSLDIR}/bin/flirt -in "${Input}" -applyxfm -ref "${Input}" -omat "$WD"/roi2full.mat -out "$WD"/robustroi.nii.gz
@@ -107,9 +105,8 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
     align.inputs.searchr_x = [30, 30]
     align.inputs.searchr_y = [30, 30]
     align.inputs.searchr_z = [30, 30]
-    align_nodes, align_guardrails = nodes_and_guardrails(align,
-                                                         retry_clone(align))
-
+    align_nodes, align_guardrails = preproc.nodes_and_guardrails(
+        align, registered=fov_outfile)
     preproc.connect_retries(align_nodes, [(fov, fov_outfile, 'in_file')])
 
     # align head-to-head to get acpc.mat (for human)
@@ -188,7 +185,7 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
 
 
 def T2wToT1wReg(wf_name='T2w_to_T1w_reg'):
-   
+
     # Adapted from DCAN lab
     # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/T2wToT1wReg.sh
 
@@ -201,16 +198,17 @@ def T2wToT1wReg(wf_name='T2w_to_T1w_reg'):
                         name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['T2w_to_T1w']),
-                          name='outputspec')
+                         name='outputspec')
 
     # ${FSLDIR}/bin/epi_reg --epi="$T2wImageBrain" --t1="$T1wImage" --t1brain="$WD"/"$T1wImageBrainFile" --out="$WD"/T2w2T1w
-    T2w2T1w_reg = pe.Node(interface=fsl.EpiReg(),
-                                  name='T2w2T1w_reg')
+    T2w2T1w_reg = pe.Node(interface=fsl.EpiReg(), name='T2w2T1w_reg')
     T2w2T1w_reg.inputs.out_base = 'T2w2T1w'
-
-    preproc.connect(inputnode, 'T2w_brain', T2w2T1w_reg ,'epi')
-    preproc.connect(inputnode, 'T1w', T2w2T1w_reg ,'t1_head')
-    preproc.connect(inputnode, 'T1w_brain', T2w2T1w_reg ,'t1_brain')
+    reg_nodes, reg_guardrails = preproc.nodes_and_guardrails(
+        T2w2T1w_reg, registered='out_file')
+    preproc.connect_retries(reg_nodes, [(inputnode, 'T2w_brain', 'epi'),
+                                        (inputnode, 'T1w', 't1_head'),
+                                        (inputnode, 'T1w_brain', 't1_brain')])
+    preproc.connect_retries(reg_guardrails, [(inputnode, 'T1w', 'reference')])
 
     # ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$T2wImage" --ref="$T1wImage" --premat="$WD"/T2w2T1w.mat --out="$WD"/T2w2T1w
     T2w2T1w = pe.Node(interface=fsl.ApplyWarp(),
@@ -223,9 +221,8 @@ def T2wToT1wReg(wf_name='T2w_to_T1w_reg'):
     preproc.connect(T2w2T1w_reg, 'epi2str_mat', T2w2T1w, 'premat')
 
     # ${FSLDIR}/bin/fslmaths "$WD"/T2w2T1w -add 1 "$WD"/T2w2T1w -odt float
-    T2w2T1w_final = pe.Node(interface=fsl.ImageMaths(),
-                                  name='T2w2T1w_final')
-    T2w2T1w_final.inputs.op_string = "-add 1" 
+    T2w2T1w_final = pe.Node(interface=fsl.ImageMaths(), name='T2w2T1w_final')
+    T2w2T1w_final.inputs.op_string = "-add 1"
 
     preproc.connect(T2w2T1w, 'out_file', T2w2T1w_final, 'in_file')
     preproc.connect(T2w2T1w_final, 'out_file', outputnode, 'T2w_to_T1w')

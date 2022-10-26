@@ -24,9 +24,7 @@ from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline.random_state.seed import increment_seed
 from CPAC.registration.guardrails import guardrail_selection, \
-                                         nodes_and_guardrails, \
-                                         registration_guardrail_node, \
-                                         retry_clone
+                                         registration_guardrail_node
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -328,11 +326,10 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
-    nodes, guardrails = nodes_and_guardrails(linear_reg)
-    for i, node in enumerate(nodes):
-        linear_register.connect(inputspec, 'reference_brain',
-                                guardrails[i], 'reference')
-        linear_register.connect(node, 'out_file', guardrails[i], 'registered')
+    nodes, guardrails = linear_register.nodes_and_guardrails(
+        linear_reg, registered='out_file')
+    linear_register.connect_retries(
+        guardrails, [(inputspec, 'reference_brain', 'reference')])
 
     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
                             name='inv_linear_reg0_xfm')
@@ -427,12 +424,10 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                             name='nonlinear_reg_1')
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg)
-    for i, node in enumerate(nodes):
-        nonlinear_register.connect(inputspec, 'reference_skull',
-                                   guardrails[i], 'reference')
-        nonlinear_register.connect(node, 'warped_file',
-                                   guardrails[i], 'registered')
+    nodes, guardrails = nonlinear_register.nodes_and_guardrails(
+        nonlinear_reg, registered='warped_file')
+    nonlinear_register.connect_retries(
+        guardrails, [(inputspec, 'reference_skull', 'reference')])
     nonlinear_register.connect_retries(nodes, [
         (inputspec, 'input_skull', 'in_file'),
         (inputspec, 'reference_skull', 'ref_file'),
@@ -440,8 +435,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
         # FNIRT parameters are specified by FSL config file
         # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
         (inputspec, 'fnirt_config', 'config_file'),
-        (inputspec, 'linear_aff', 'affine_file')
-    ])
+        (inputspec, 'linear_aff', 'affine_file')])
 
     brain_warp = pe.Node(interface=fsl.ApplyWarp(), name='brain_warp')
     nonlinear_register.connect([
@@ -537,7 +531,10 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name='fsl_fnirt_nonlinear_reg_nhp'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
     nonlinear_reg.inputs.field_file = True
-    nodes, guardrails = nodes_and_guardrails(nonlinear_reg)
+    nodes, guardrails = nonlinear_register.nodes_and_guardrails(
+        nonlinear_reg, registered='warped_file')
+    nonlinear_register.connect_retries(
+        guardrails, [(inputspec, 'reference_skull', 'reference')])
     fieldcoeff_file = guardrail_selection(nonlinear_register, *nodes,
                                           'fieldcoeff_file', guardrails[0])
     field_file = guardrail_selection(nonlinear_register, *nodes, 'field_file',
@@ -661,7 +658,8 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
             'coregistration']['arguments'] is not None:
         linear_reg.inputs.args = config.registration_workflows[
             'functional_registration']['coregistration']['arguments']
-    nodes, guardrails = nodes_and_guardrails(linear_reg)
+    nodes, guardrails = register_func_to_anat.nodes_and_guardrails(
+        linear_reg, registered='out_file')
 
     if phase_diff_distcor:
         register_func_to_anat.connect_retries(nodes, [
@@ -749,16 +747,12 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t2.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t2.inputs.searchr_z = [30, 30]
-    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t2)
-    for i, node in enumerate(nodes):
-        register_func_to_anat_use_T2.connect(inputspec, 'func',
-                                             node, 'in_file')
-        register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
-                                             node, 'reference')
-        register_func_to_anat_use_T2.connect(node, 'out_file',
-                                             guardrails[i], 'registered')
-        register_func_to_anat_use_T2.connect(inputspec, 'T2_head',
-                                             guardrails[i], 'reference')
+    nodes, guardrails = register_func_to_anat_use_T2.nodes_and_guardrails(
+        linear_reg_func_to_t2, registered='out_file')
+    register_func_to_anat_use_T2.connect_retries(nodes, [
+        (inputspec, 'func', 'in_file'), (inputspec, 'T2_head', 'reference')])
+    register_func_to_anat_use_T2.connect_retries(guardrails, [
+        (inputspec, 'T2_head', 'reference')])
     linear_reg_func_to_t2_matrix = guardrail_selection(
         register_func_to_anat_use_T2, *nodes, 'out_matrix_file', guardrails[0])
 
@@ -809,16 +803,13 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     linear_reg_func_to_t1.inputs.searchr_x = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_y = [30, 30]
     linear_reg_func_to_t1.inputs.searchr_z = [30, 30]
-    nodes, guardrails = nodes_and_guardrails(linear_reg_func_to_t1)
-    for i, node in enumerate(nodes):
-        register_func_to_anat_use_T2.connect(func_brain, 'out_file',
-                                             node, 'in_file')
-        register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
-                                             node, 'reference')
-        register_func_to_anat_use_T2.connect(node, 'out_file',
-                                             guardrails[i], 'registered')
-        register_func_to_anat_use_T2.connect(inputspec, 'T1_brain',
-                                             guardrails[i], 'reference')
+    nodes, guardrails = register_func_to_anat_use_T2.nodes_and_guardrails(
+        linear_reg_func_to_t1, registered='out_file')
+    register_func_to_anat_use_T2.connect_retries(nodes, [
+        (func_brain, 'out_file', 'in_file'),
+        (inputspec, 'T1_brain', 'reference')])
+    register_func_to_anat_use_T2.connect_retries(guardrails, [
+        (inputspec, 'T1_brain', 'reference')])
     # pylint: disable=no-value-for-parameter
     select_linear_reg_func_to_t1 = guardrail_selection(
         register_func_to_anat_use_T2, *guardrails)
@@ -931,8 +922,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat')
     bbreg_func_to_anat.inputs.dof = 6
-    nodes, guardrails = nodes_and_guardrails(bbreg_func_to_anat,
-                                             add_clones=bool(retry))
+    nodes, guardrails = register_bbregister_func_to_anat.nodes_and_guardrails(
+        bbreg_func_to_anat, registered='out_file', add_clones=bool(retry))
     register_bbregister_func_to_anat.connect_retries(nodes, [
         (inputspec, 'bbr_schedule', 'schedule'),
         (wm_bb_mask, ('out_file', bbreg_args), 'args'),
@@ -945,11 +936,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
             (inputspec, 'fieldmap', 'fieldmap'),
             (inputspec, 'fieldmapmask', 'fieldmapmask'),
             (inputNode_echospacing, 'echospacing', 'echospacing')])
-    for i, node in enumerate(nodes):
-        register_bbregister_func_to_anat.connect(inputspec, 'anat',
-                                                 guardrails[i], 'reference')
-        register_bbregister_func_to_anat.connect(node, 'out_file',
-                                                 guardrails[i], 'registered')
+    register_bbregister_func_to_anat.connect_retries(guardrails, [
+        (inputspec, 'anat', 'reference')])
     if retry:
         # pylint: disable=no-value-for-parameter
         outfile = guardrail_selection(register_bbregister_func_to_anat,
@@ -1148,9 +1136,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
         mem_x=(2e-7, 'moving_brain', 'xyz')))
     calculate_ants_warp.interface.num_threads = num_threads
     retry_calculate_ants_warp.interface.num_threads = num_threads
-    nodes, guardrails = nodes_and_guardrails(calculate_ants_warp,
-                                             retry_calculate_ants_warp,
-                                             add_clones=False)
+    nodes, guardrails = calc_ants_warp_wf.nodes_and_guardrails(
+        calculate_ants_warp, retry_calculate_ants_warp,
+        registered='warped_image', add_clones=False)
 
     select_forward_initial = pe.Node(util.Function(
         input_names=['warp_list', 'selection'],
@@ -1208,10 +1196,6 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
         (inputspec, 'ants_para', 'ants_para'),
         (inputspec, 'interp', 'interp')])
     # inter-workflow connections
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
-                              guardrails[0], 'registered')
-    calc_ants_warp_wf.connect(retry_calculate_ants_warp, 'warped_image',
-                              guardrails[1], 'registered')
     # pylint: disable=no-value-for-parameter
     select = guardrail_selection(calc_ants_warp_wf, *guardrails)
     warp_list = guardrail_selection(calc_ants_warp_wf, *nodes, 'warp_list',
@@ -2747,7 +2731,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'bbr_wm_mask_args']
         if fallback:
             bbreg_guardrail = registration_guardrail_node(
-                f'bbreg{bbreg_status}_guardrail_{pipe_num}')
+                f'bbreg{bbreg_status}_guardrail_{pipe_num}', 1)
 
         node, out = strat_pool.get_data('desc-reginput_bold')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
