@@ -1,6 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-AFNI 20.0.04 stage"
+AFNI 22.3.03 (Lucius Verus) stage"
 USER root
 
 # install AFNI
@@ -20,8 +20,21 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     fi && \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
-    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
-    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
+    apt-get update && apt-get install -y libglw1-mesa-dev && \
+    AFNI_VERSION="22.3.03" && \
+    curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
+    mkdir /opt/afni && \
+    tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
+    rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
+    cd /opt/afni/src && \
+    sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile && \
+    make vastness && make cleanest && \
+    cd /opt/afni && \
+    # filter down to required packages
+    ls > full_ls && \
+    sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
+    comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
+    apt-get remove -y libglw1-mesa-dev && \
     ldconfig
 
 # set up AFNI
@@ -37,4 +50,4 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # set user
-# USER c-pac_user
+USER c-pac_user

@@ -95,7 +95,7 @@ jobs:
       matrix:
         Dockerfile:
         - AFNI.16.2.07.neurodocker-xenial
-        - AFNI.20.0.04-bionic
+        - AFNI.22.3.03-bionic
         - ANTs.2.2.0.neurodocker-bionic
         - c3d.1.0.0-xenial
         - connectome-workbench.1.3.2-1.neurodebian-bionic
