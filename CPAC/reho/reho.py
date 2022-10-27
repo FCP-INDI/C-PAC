@@ -118,8 +118,7 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-cleaned_bold", "desc-brain_bold",
-                 "desc-preproc_bold", "bold"],
+     "inputs": ["desc-preproc_bold",
                 "space-bold_desc-brain_mask"],
      "outputs": ["reho"]}
     '''
@@ -137,8 +136,7 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
     reho.inputs.inputspec.cluster_size = cluster_size
 
 
-    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-brain_bold",
-                                     "desc-preproc_bold", "bold"])
+    node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
     node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')

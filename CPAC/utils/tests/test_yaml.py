@@ -20,8 +20,8 @@ import os
 import tempfile
 import yaml
 
-from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
-from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.configuration import preconfig_yaml
+from CPAC.utils.configuration.yaml_template import create_yaml_from_template
 
 
 def test_yaml_template():
@@ -31,9 +31,10 @@ def test_yaml_template():
 
     # Create a new YAML configuration file based on the default pipeline
     # YAML file.
-    with open(DEFAULT_PIPELINE_FILE, 'r', encoding='utf-8') as f:
+    pipeline_file = preconfig_yaml('default')
+    with open(pipeline_file, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
-    new_config = create_yaml_from_template(config, DEFAULT_PIPELINE_FILE, True)
+    new_config = create_yaml_from_template(config, pipeline_file)
     with open(config_file, 'w', encoding='utf-8') as f:
         f.write(new_config)
 

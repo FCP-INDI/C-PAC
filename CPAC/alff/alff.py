@@ -246,8 +246,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-denoisedNofilt_bold", "desc-brain_bold", 
-                 "desc-preproc_bold", "bold"],
+     "inputs": ["desc-denoisedNofilt_bold",
                 "space-bold_desc-brain_mask"],
      "outputs": ["alff",
                  "falff"]}
@@ -262,8 +261,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
 
-    node, out = strat_pool.get_data(["desc-denoisedNofilt_bold", "desc-brain_bold",
-                                     "desc-preproc_bold", "bold"])
+    node, out = strat_pool.get_data("desc-denoisedNofilt_bold")
     wf.connect(node, out, alff, 'inputspec.rest_res')
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')

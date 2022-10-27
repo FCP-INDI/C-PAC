@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
+import sys
 import collections.abc
 import fnmatch
 import gzip
@@ -32,10 +33,14 @@ from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
-NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
-    CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r'))
-NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
-    CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
+with open(os.path.join(CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r',
+          encoding='utf-8') as _f:
+    NESTED_CONFIG_MAPPING = yaml.safe_load(_f)
+with open(os.path.join(CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r',
+          encoding='utf-8') as _f:
+    NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(_f)
+YAML_BOOLS = {True: ('on', 't', 'true', 'y', 'yes'),
+              False: ('f', 'false', 'n', 'no', 'off')}
 
 
 def get_last_prov_entry(prov):
@@ -1506,7 +1511,8 @@ def load_preconfig(pipeline_label):
             )
         )
 
-    print("Loading the '{0}' pre-configured pipeline.".format(pipeline_label))
+    print(f"Loading the '{pipeline_label}' pre-configured pipeline.",
+          file=sys.stderr)
 
     return pipeline_file
 
@@ -2411,18 +2417,18 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
     # `roi_paths_fully_specified` children
     if fully_specified:
         return d_update
-    if any(k.endswith('_roi_paths') for k in d_update.keys()):
-        fully_specified = d_update.pop('roi_paths_fully_specified', True)
-    else:
-        fully_specified = False
     d_new = {} if d_base is None else deepcopy(d_base)
-
     for k, v in d_update.items():
-        if isinstance(v, collections.abc.Mapping):
-            d_new[k] = update_nested_dict(
-                d_new.get(k, {}), v, fully_specified)
+        if k.endswith('_roi_paths'):
+            fully_specified = d_update.get('roi_paths_fully_specified', True)
         else:
-            d_new[k] = v
+            fully_specified = False
+        if k != 'roi_paths_fully_specified':
+            if isinstance(v, collections.abc.Mapping):
+                d_new[k] = update_nested_dict(d_new.get(k, {}), v,
+                                              fully_specified)
+            else:
+                d_new[k] = v
     return d_new
 
 
@@ -2625,19 +2631,19 @@ def update_values_from_list(d_old, last_exception=None):
                     if len(observed) == 1:  # pylint: disable=no-else-return
                         if isinstance(observed[0], int):
                             value = bool(observed[0])
-                        elif observed[0] in {'On', 'True'}:
+                        elif observed[0].lower() in YAML_BOOLS[True]:
                             value = True
-                        elif observed[0] in {'Off', 'False'}:
+                        elif observed[0].lower() in YAML_BOOLS[False]:
                             value = False
                         return update_values_from_list(set_nested_value(
                             d, e_path, [value] if list_expected else value), e)
                     else:
                         return update_values_from_list(set_nested_value(
                             d, e_path, [bool(value) for value in observed]), e)
-            elif observed in {'On', 'True'}:
+            elif observed.lower() in YAML_BOOLS[True]:
                 return update_values_from_list(
                     set_nested_value(d, e.path, True), e)
-            elif observed in {'Off', 'False'}:
+            elif observed.lower() in YAML_BOOLS[False]:
                 return update_values_from_list(
                     set_nested_value(d, e.path, False), e)
             else:

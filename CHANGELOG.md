@@ -34,8 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added crash messages from during and before graph building to logs
 - Added data-config-specific hash string to C-PAC-generated config files
 - Updated `rbc-options` preconfig to use `fmriprep-options` preprocessing
+- Changed minimized pipeline base from `default` to `blank`
 
 ### Fixed
+- Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
 - Replaces ``DwellTime`` with ``EffectiveEchoSpacing`` for FSL usage of the term
 - Fixed an issue that was causing some epi field maps to not be ingressed if the BIDS tags were not in the correct order.

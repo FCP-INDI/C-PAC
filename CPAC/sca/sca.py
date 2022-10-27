@@ -389,11 +389,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"]],
+     "inputs": ["space-template_desc-preproc_bold"],
      "outputs": ["desc-MeanSCA_timeseries",
                  "desc-MeanSCA_correlations",
                  "atlas_name"]}
@@ -430,11 +426,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     roi_timeseries_for_sca = get_roi_timeseries(
         f'roi_timeseries_for_sca_{pipe_num}')
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
     wf.connect(node, out,
                      resample_functional_roi_for_sca, 'in_func')
@@ -449,11 +441,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
     sca_roi = create_sca(f'sca_roi_{pipe_num}')
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out, sca_roi, 'inputspec.functional_file')
 
     wf.connect(roi_timeseries_for_sca, 'outputspec.roi_csv',
@@ -482,11 +470,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"],
+     "inputs": ["space-template_desc-preproc_bold"],
                 "space-template_desc-bold_mask"],
      "outputs": ["desc-DualReg_correlations",
                  "desc-DualReg_statmap",
@@ -523,11 +507,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # resample the input functional file and functional mask
     # to spatial map
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out,
                resample_spatial_map_to_native_space_for_dr, 'reference')
     wf.connect(node, out,
@@ -549,11 +529,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries',
                dr_temp_reg, 'inputspec.subject_timeseries')
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out, dr_temp_reg, 'inputspec.subject_rest')
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
@@ -580,11 +556,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
                 "space-template_desc-bold_mask"],
      "outputs": ["desc-MultReg_correlations",
                  "desc-MultReg_statmap",
@@ -622,11 +594,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     roi_timeseries_for_multreg = get_roi_timeseries(
         f'roi_timeseries_for_mult_reg_{pipe_num}')
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
     wf.connect(node, out, resample_functional_roi_for_multreg, 'in_func')
     wf.connect(roi_dataflow_for_multreg,
