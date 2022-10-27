@@ -1204,7 +1204,8 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["T1w"],
      "outputs": ["desc-preproc_T1w",
-                 "desc-reorient_T1w"]}
+                 "desc-reorient_T1w",
+                 "desc-head_T1w"]}
     '''
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
@@ -1224,7 +1225,8 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
     outputs = {'desc-preproc_T1w': (anat_reorient, 'out_file'),
-               'desc-reorient_T1w': (anat_reorient, 'out_file')}
+               'desc-reorient_T1w': (anat_reorient, 'out_file'),
+               'desc-head_T1w': (anat_reorient, 'out_file')}
 
     return (wf, outputs)
 
@@ -1892,12 +1894,15 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_T1w",
-                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"])],
+                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"],
+                 "desc-head_T1w")],
      "outputs": {
          "desc-preproc_T1w": {
              "SkullStripped": "True"},
          "desc-brain_T1w": {
-             "SkullStripped": "True"}}
+             "SkullStripped": "True"},
+         "desc-head_T1w": {
+             "SkullStripped": "False"}}}
     '''
 
     '''
@@ -1923,8 +1928,8 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
     anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, anat_skullstrip_orig_vol, 'in_file_a')
+    node_T1w, out_T1w = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node_T1w, out_T1w, anat_skullstrip_orig_vol, 'in_file_a')
 
     node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
                                      'space-T1w_desc-acpcbrain_mask'])
@@ -1932,7 +1937,8 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (anat_skullstrip_orig_vol, 'out_file'),
-        'desc-brain_T1w': (anat_skullstrip_orig_vol, 'out_file')
+        'desc-brain_T1w': (anat_skullstrip_orig_vol, 'out_file'),
+        'desc-head_T1w': (node_T1w, out_T1w)
     }
 
     return (wf, outputs)
@@ -1984,7 +1990,8 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["T2w"],
      "outputs": ["desc-preproc_T2w",
-                 "desc-reorient_T2w"]}
+                 "desc-reorient_T2w",
+                 "desc-head_T2w"]}
     '''
 
     T2_deoblique = pe.Node(interface=afni.Refit(),
@@ -2004,7 +2011,8 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(T2_deoblique, 'out_file', T2_reorient, 'in_file')
 
     outputs = {'desc-preproc_T2w': (T2_reorient, 'out_file'),
-               'desc-reorient_T2w': (T2_reorient, 'out_file')}
+               'desc-reorient_T2w': (T2_reorient, 'out_file'),
+               'desc-head_T2w': (T2_reorient, 'out_file')}
 
     return (wf, outputs)
 

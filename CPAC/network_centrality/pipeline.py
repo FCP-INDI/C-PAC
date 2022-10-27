@@ -79,7 +79,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
                 "template-specification-file"],
      "outputs": ["space-template_desc-weighted_degree-centrality",
                  "space-template_desc-binarized_degree-centrality",

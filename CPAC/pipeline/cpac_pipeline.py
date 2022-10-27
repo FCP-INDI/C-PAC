@@ -1255,9 +1255,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         _r_w_f_r['coregistration']['run'] and
         _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
-        'space-template_desc-cleaned_bold',
-        'space-template_desc-brain_bold',
-        'space-template_desc-motion_bold',
         'space-template_desc-preproc_bold',
         'space-template_bold'
     ]
@@ -1271,7 +1268,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                   warp_timeseries_to_T1template_dcan_nhp]
 
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
+            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-preproc_bold', 'bold'))]
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
         else:
             ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)
