@@ -26,6 +26,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
                        Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
+from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -38,7 +39,35 @@ resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
-forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
+
+
+def str_to_bool1_1(x):  # pylint: disable=invalid-name
+    '''Convert strings to Booleans for YAML1.1 syntax
+
+    Ref https://yaml.org/type/bool.html
+
+    Parameters
+    ----------
+    x : any
+
+    Returns
+    -------
+    bool
+    '''
+    if isinstance(x, str):
+        try:
+            x = float(x)
+            if x == 0:
+                return False
+        except ValueError:
+            pass
+        x = (True if str(x).lower() in YAML_BOOLS[True] else
+             False if str(x).lower() in YAML_BOOLS[False] else x)
+    return bool(x)
+
+
+bool1_1 = All(str_to_bool1_1, bool)
+forkable = All(Coerce(ListFromItem), [bool1_1], Length(max=2))
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -74,7 +103,7 @@ valid_options = {
     'Regressors': {
         'CompCor': {
             'degree': int,
-            'erode_mask_mm': bool,
+            'erode_mask_mm': bool1_1,
             'summary': {
                 'method': str,
                 'components': int,
@@ -85,18 +114,19 @@ valid_options = {
             'extraction_resolution': int
         },
         'segmentation': {
-            'erode_mask': bool,
+            'erode_mask': bool1_1,
             'extraction_resolution': Any(
                 int, float, 'Functional', All(str, Match(resolution_regex))
             ),
-            'include_delayed': bool,
-            'include_delayed_squared': bool,
-            'include_squared': bool,
+            'include_delayed': bool1_1,
+            'include_delayed_squared': bool1_1,
+            'include_squared': bool1_1,
             'summary': Any(
                 str, {'components': int, 'method': str}
             ),
         },
-    }
+    },
+    'target_space': ['Native', 'Template']
 }
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
@@ -106,18 +136,18 @@ mutex = {  # mutually exclusive booleans
         # the remaining keys: validators for FSL-BET
         'rem': {
             'frac': float,
-            'mesh_boolean': bool,
-            'outline': bool,
+            'mesh_boolean': bool1_1,
+            'outline': bool1_1,
             'radius': int,
-            'skull': bool,
-            'threshold': bool,
+            'skull': bool1_1,
+            'threshold': bool1_1,
             'vertical_gradient': Range(min=-1, max=1, min_included=False,
                                        max_included=False),
             'functional_mean_thr': {
-                'run': bool,
+                'run': bool1_1,
                 'threshold_value': Maybe(int),
             },
-            'functional_mean_bias_correction': bool,
+            'functional_mean_bias_correction': bool1_1,
         }
     }
 }
@@ -138,7 +168,7 @@ ANTs_parameter_transforms = {
     },
     'smoothing-sigmas': All(str, Match(resolution_regex)),
     'shrink-factors': All(str, Match(resolution_regex)),
-    'use-histogram-matching': bool,
+    'use-histogram-matching': bool1_1,
     'updateFieldVarianceInVoxelSpace': Number,
     'totalFieldVarianceInVoxelSpace': Number,
     'winsorize-image-intensities': {
@@ -164,13 +194,13 @@ ANTs_parameters = [Any(
             'SyN': ANTs_parameter_transforms,
         })],
     }, {
-        'verbose': Any(bool, In({0, 1})),
+        'verbose': Any(bool1_1, In({0, 1})),
     }, {
-        'float': Any(bool, In({0, 1})),
+        'float': Any(bool1_1, In({0, 1})),
     }, {
         'masks': {
-            'fixed_image_mask': bool,
-            'moving_image_mask': bool,
+            'fixed_image_mask': bool1_1,
+            'moving_image_mask': bool1_1,
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
@@ -214,21 +244,21 @@ latest_schema = Schema({
         'output_directory': {
             'path': str,
             'source_outputs_dir': Maybe(str),
-            'pull_source_once': bool,
-            'write_func_outputs': bool,
-            'write_debugging_outputs': bool,
+            'pull_source_once': bool1_1,
+            'write_func_outputs': bool1_1,
+            'write_debugging_outputs': bool1_1,
             'output_tree': str,
             'quality_control': {
-                'generate_quality_control_images': bool,
-                'generate_xcpqc_files': bool,
+                'generate_quality_control_images': bool1_1,
+                'generate_xcpqc_files': bool1_1,
             },
         },
         'working_directory': {
             'path': str,
-            'remove_working_dir': bool,
+            'remove_working_dir': bool1_1,
         },
         'log_directory': {
-            'run_logging': bool,
+            'run_logging': bool1_1,
             'path': str,
         },
         'crash_log_directory': {
@@ -237,7 +267,7 @@ latest_schema = Schema({
         'system_config': {
             'FSLDIR': Maybe(str),
             'on_grid': {
-                'run': bool,
+                'run': bool1_1,
                 'resource_manager': Maybe(str),
                 'SGE': {
                     'parallel_environment': Maybe(str),
@@ -245,7 +275,7 @@ latest_schema = Schema({
                 },
             },
             'maximum_memory_per_participant': Number,
-            'raise_insufficient': bool,
+            'raise_insufficient': bool1_1,
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_OMP_threads': int,
@@ -260,15 +290,15 @@ latest_schema = Schema({
         },
         'Amazon-AWS': {
             'aws_output_bucket_credentials': Maybe(str),
-            's3_encryption': bool,
+            's3_encryption': bool1_1,
         },
         'Debugging': {
-            'verbose': bool,
+            'verbose': bool1_1,
         },
     },
     'anatomical_preproc': {
-        'run': bool,
-        'run_t2': bool,
+        'run': bool1_1,
+        'run_t2': bool1_1,
         'non_local_means_filtering': {
             'run': forkable,
             'noise_model': Maybe(str),
@@ -292,33 +322,33 @@ latest_schema = Schema({
             # 'T2w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
                 'run': False,
-                'run_before_preproc': Maybe(bool),
+                'run_before_preproc': Maybe(bool1_1),
                 'brain_size': Maybe(int),
                 'FOV_crop': Maybe(In({'robustfov', 'flirt'})),
                 'acpc_target': Maybe(In(valid_options['acpc']['target'])),
-                'align_brain_mask': Maybe(bool),
+                'align_brain_mask': Maybe(bool1_1),
                 'T1w_ACPC_template': Maybe(str),
                 'T1w_brain_ACPC_template': Maybe(str),
                 'T2w_ACPC_template': Maybe(str),
                 'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
-                'run_before_preproc': bool,
+                'run_before_preproc': bool1_1,
                 'brain_size': int,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][1],
-                'align_brain_mask': Maybe(bool),
+                'align_brain_mask': Maybe(bool1_1),
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': Maybe(str),
                 'T2w_ACPC_template': Maybe(str),
                 'T2w_brain_ACPC_template': Maybe(str),
             }, {
                 'run': True,
-                'run_before_preproc': bool,
+                'run_before_preproc': bool1_1,
                 'brain_size': int,
                 'FOV_crop': In({'robustfov', 'flirt'}),
                 'acpc_target': valid_options['acpc']['target'][0],
-                'align_brain_mask': Maybe(bool),
+                'align_brain_mask': Maybe(bool1_1),
                 'T1w_ACPC_template': str,
                 'T1w_brain_ACPC_template': str,
                 'T2w_ACPC_template': Maybe(str),
@@ -329,30 +359,30 @@ latest_schema = Schema({
                 'be populated if \'run\' is not set to Off',
         ),
         'brain_extraction': {
-            'run': bool,
+            'run': bool1_1,
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
-                'mask_vol': bool,
+                'mask_vol': bool1_1,
                 'shrink_factor': Number,
-                'var_shrink_fac': bool,
+                'var_shrink_fac': bool1_1,
                 'shrink_factor_bot_lim': Number,
-                'avoid_vent': bool,
+                'avoid_vent': bool1_1,
                 'n_iterations': int,
-                'pushout': bool,
-                'touchup': bool,
+                'pushout': bool1_1,
+                'touchup': bool1_1,
                 'fill_hole': int,
                 'NN_smooth': int,
                 'smooth_final': int,
-                'avoid_eyes': bool,
-                'use_edge': bool,
+                'avoid_eyes': bool1_1,
+                'use_edge': bool1_1,
                 'exp_frac': Number,
-                'push_to_edge': bool,
-                'use_skull': bool,
+                'push_to_edge': bool1_1,
+                'use_skull': bool1_1,
                 'perc_int': Number,
                 'max_inter_iter': int,
                 'fac': Number,
                 'blur_fwhm': Number,
-                'monkey': bool,
+                'monkey': bool1_1,
             },
             'FSL-FNIRT': {
                 'interpolation': In({
@@ -361,17 +391,17 @@ latest_schema = Schema({
             },
             'FSL-BET': {
                 'frac': Number,
-                'mask_boolean': bool,
-                'mesh_boolean': bool,
-                'outline': bool,
-                'padding': bool,
+                'mask_boolean': bool1_1,
+                'mesh_boolean': bool1_1,
+                'outline': bool1_1,
+                'padding': bool1_1,
                 'radius': int,
-                'reduce_bias': bool,
-                'remove_eyes': bool,
-                'robust': bool,
-                'skull': bool,
-                'surfaces': bool,
-                'threshold': bool,
+                'reduce_bias': bool1_1,
+                'remove_eyes': bool1_1,
+                'robust': bool1_1,
+                'skull': bool1_1,
+                'surfaces': bool1_1,
+                'threshold': bool1_1,
                 'vertical_gradient': Range(min=-1, max=1)
             },
             'UNet': {
@@ -388,7 +418,7 @@ latest_schema = Schema({
         },
     },
     'segmentation': {
-        'run': bool,
+        'run': bool1_1,
         'tissue_segmentation': {
             'using': [In(
                 {'FSL-FAST', 'FreeSurfer', 'ANTs_Prior_Based',
@@ -404,7 +434,7 @@ latest_schema = Schema({
                     },
                 },
                 'use_priors': {
-                    'run': bool,
+                    'run': bool1_1,
                     'priors_path': Maybe(str),
                     'WM_path': Maybe(str),
                     'GM_path': Maybe(str),
@@ -438,16 +468,16 @@ latest_schema = Schema({
     },
     'registration_workflows': {
         'anatomical_registration': {
-            'run': bool,
+            'run': bool1_1,
             'resolution_for_anat': All(str, Match(resolution_regex)),
             'T1w_brain_template': Maybe(str),
             'T1w_template': Maybe(str),
             'T1w_brain_template_mask': Maybe(str),
-            'reg_with_skull': bool,
+            'reg_with_skull': bool1_1,
             'registration': {
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'ANTs': {
-                    'use_lesion_mask': bool,
+                    'use_lesion_mask': bool1_1,
                     'T1_registration': Maybe(ANTs_parameters),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
@@ -468,29 +498,28 @@ latest_schema = Schema({
                 },
             },
             'overwrite_transform': {
-                'run': bool,
+                'run': bool1_1,
                 'using': In({'FSL'}),
             },
         },
         'functional_registration': {
             'coregistration': {
-                'run': bool,
+                'run': bool1_1,
                 'reference': In({'brain', 'restore-brain'}),
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'using': str,
                 'input': str,
-                'interpolation': str,
                 'cost': str,
                 'dof': int,
                 'arguments': Maybe(str),
                 'func_input_prep': {
-                    'reg_with_skull': bool,
+                    'reg_with_skull': bool1_1,
                     'input': [In({
                         'Mean_Functional', 'Selected_Functional_Volume',
                         'fmriprep_reference'
                     })],
                     'Mean Functional': {
-                        'n4_correct_func': bool
+                        'n4_correct_func': bool1_1
                     },
                     'Selected Functional Volume': {
                         'func_reg_input_volume': int
@@ -505,7 +534,7 @@ latest_schema = Schema({
                 },
             },
             'EPI_registration': {
-                'run': bool,
+                'run': bool1_1,
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'EPI_template': Maybe(str),
                 'EPI_template_mask': Maybe(str),
@@ -522,8 +551,8 @@ latest_schema = Schema({
                 },
             },
             'func_registration_to_template': {
-                'run': bool,
-                'run_EPI': bool,
+                'run': bool1_1,
+                'run_EPI': bool1_1,
                 'output_resolution': {
                     'func_preproc_outputs': All(
                         str, Match(resolution_regex)),
@@ -562,12 +591,12 @@ latest_schema = Schema({
     },
     'surface_analysis': {
         'freesurfer': {
-            'run': bool,
+            'run': bool1_1,
             'reconall_args': Maybe(str),
             'freesurfer_dir': Maybe(str)
         },
         'post_freesurfer': {
-            'run': bool,
+            'run': bool1_1,
             'surf_atlas_dir': Maybe(str),
             'gray_ordinates_dir': Maybe(str),
             'gray_ordinates_res': Maybe(int),
@@ -580,7 +609,7 @@ latest_schema = Schema({
         },
     },
     'longitudinal_template_generation': {
-        'run': bool,
+        'run': bool1_1,
         'average_method': In({'median', 'mean', 'std'}),
         'dof': In({12, 9, 7, 6}),
         'interp': In({'trilinear', 'nearestneighbour', 'sinc', 'spline'}),
@@ -591,13 +620,13 @@ latest_schema = Schema({
         'convergence_threshold': Number,
     },
     'functional_preproc': {
-        'run': bool,
+        'run': bool1_1,
         'truncation': {
             'start_tr': int,
             'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
         'scaling': {
-            'run': bool,
+            'run': bool1_1,
             'scaling_factor': Number
         },
         'despiking': {
@@ -609,18 +638,19 @@ latest_schema = Schema({
             'tzero': Maybe(int),
         },
         'motion_estimates_and_correction': {
-            'run': bool,
+            'run': bool1_1,
             'motion_estimates': {
-                'calculate_motion_first': bool,
-                'calculate_motion_after': bool,
+                'calculate_motion_first': bool1_1,
+                'calculate_motion_after': bool1_1,
             },
             'motion_correction': {
                 'using': [In({'3dvolreg', 'mcflirt'})],
                 'AFNI-3dvolreg': {
-                    'functional_volreg_twopass': bool,
+                    'functional_volreg_twopass': bool1_1,
                 },
                 'motion_correction_reference': [In({
-                    'mean', 'median', 'selected_volume', 'fmriprep_reference'})],
+                    'mean', 'median', 'selected_volume',
+                    'fmriprep_reference'})],
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
@@ -724,7 +754,7 @@ latest_schema = Schema({
                 # no mutually-exclusive options on
                 [{
                     **mutex['FSL-BET']['rem'],
-                    'functional_mean_boolean': bool,
+                    'functional_mean_boolean': bool1_1,
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }]))
             ),
@@ -734,15 +764,15 @@ latest_schema = Schema({
                 'brain_probseg': Maybe(str),
             },
             'Anatomical_Refined': {
-                'anatomical_mask_dilation': Maybe(bool),
+                'anatomical_mask_dilation': Maybe(bool1_1),
             },
-            'apply_func_mask_in_native_space': bool,
+            'apply_func_mask_in_native_space': bool1_1,
         },
         'generate_func_mean': {
-            'run': bool,
+            'run': bool1_1,
         },
         'normalize_func': {
-            'run': bool,
+            'run': bool1_1,
         },
     },
     'nuisance_corrections': {
@@ -754,7 +784,7 @@ latest_schema = Schema({
             'run': forkable,
             'space': All(Coerce(ListFromItem),
                          [All(Lower, In({'native', 'template'}))]),
-            'create_regressors': bool,
+            'create_regressors': bool1_1,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
@@ -767,9 +797,9 @@ latest_schema = Schema({
                     'number_of_subsequent_trs_to_censor': Maybe(int),
                 },
                 'Motion': {
-                    'include_delayed': bool,
-                    'include_squared': bool,
-                    'include_delayed_squared': bool
+                    'include_delayed': bool1_1,
+                    'include_squared': bool1_1,
+                    'include_delayed_squared': bool1_1
                 },
                 'aCompCor': valid_options['Regressors']['CompCor'],
                 'tCompCor': valid_options['Regressors']['CompCor'],
@@ -795,25 +825,25 @@ latest_schema = Schema({
                 In({'After', 'Before'})),
             'regressor_masks': {
                 'erode_anatomical_brain_mask': {
-                    'run': bool,
+                    'run': bool1_1,
                     'brain_mask_erosion_prop': Maybe(Number),
                     'brain_mask_erosion_mm': Maybe(Number),
                     'brain_erosion_mm': Maybe(Number)
                 },
                 'erode_csf': {
-                    'run': bool,
+                    'run': bool1_1,
                     'csf_erosion_prop': Maybe(Number),
                     'csf_mask_erosion_mm': Maybe(Number),
                     'csf_erosion_mm': Maybe(Number),
                 },
                 'erode_wm': {
-                    'run': bool,
+                    'run': bool1_1,
                     'wm_erosion_prop': Maybe(Number),
                     'wm_mask_erosion_mm': Maybe(Number),
                     'wm_erosion_mm': Maybe(Number),
                 },
                 'erode_gm': {
-                    'run': bool,
+                    'run': bool1_1,
                     'gm_erosion_prop': Maybe(Number),
                     'gm_mask_erosion_mm': Maybe(Number),
                     'gm_erosion_mm': Maybe(Number),
@@ -822,12 +852,13 @@ latest_schema = Schema({
         },
     },
     'amplitude_low_frequency_fluctuation': {
-        'run': bool,
+        'run': bool1_1,
+        'target_space': [In(valid_options['target_space'])],
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
     'voxel_mirrored_homotopic_connectivity': {
-        'run': bool,
+        'run': bool1_1,
         'symmetric_registration': {
             'T1w_brain_template_symmetric': Maybe(str),
             'T1w_brain_template_symmetric_for_resample': Maybe(str),
@@ -838,27 +869,30 @@ latest_schema = Schema({
         },
     },
     'regional_homogeneity': {
-        'run': bool,
+        'run': bool1_1,
+        'target_space': [In(valid_options['target_space'])],
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
         'spatial_smoothing': {
+            'run': bool1_1,
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
             'fwhm': [int]
         },
         'z-scoring': {
+            'run': bool1_1,
             'output': [In({'z-scored', 'raw'})],
         },
     },
     'timeseries_extraction': {
-        'run': bool,
-        Optional('roi_paths_fully_specified'): bool,
+        'run': bool1_1,
+        Optional('roi_paths_fully_specified'): bool1_1,
         'tse_roi_paths': Optional(
             Maybe({
-                str: In({', '.join([
-                    option for option in options
-                ]) for options in list(chain.from_iterable([list(
+                str: In({', '.join(
+                    list(options)
+                ) for options in list(chain.from_iterable([list(
                     permutations(valid_options['timeseries']['roi_paths'],
                                  number_of)
                 ) for number_of in range(1, 6)]))}),
@@ -873,23 +907,23 @@ latest_schema = Schema({
         },
     },
     'seed_based_correlation_analysis': {
-        'run': bool,
-        Optional('roi_paths_fully_specified'): bool,
+        'run': bool1_1,
+        Optional('roi_paths_fully_specified'): bool1_1,
         'sca_roi_paths': Optional(
             Maybe({
-                str: In({', '.join([
-                    option for option in options
-                ]) for options in list(chain.from_iterable([list(
+                str: In({', '.join(list(
+                    options
+                )) for options in list(chain.from_iterable([list(
                     permutations(valid_options['sca']['roi_paths'], number_of)
                 ) for number_of in range(1, 4)]))})
             }),
             msg=permutation_message(
                 'sca_roi_paths', valid_options['sca']['roi_paths'])
         ),
-        'norm_timeseries_for_DR': bool,
+        'norm_timeseries_for_DR': bool1_1,
     },
     'network_centrality': {
-        'run': bool,
+        'run': bool1_1,
         'memory_allocation': Number,
         'template_specification_file': Maybe(str),
         'degree_centrality': {
@@ -921,14 +955,14 @@ latest_schema = Schema({
         },
     },
     'PyPEER': {
-        'run': bool,
+        'run': bool1_1,
         'eye_scan_names': Maybe(Any([str], [])),
         'data_scan_names': Maybe(Any([str], [])),
         'eye_mask_path': Maybe(str),
         'stimulus_path': Maybe(str),
         'minimal_nuisance_correction': {
-            'peer_gsr': bool,
-            'peer_scrub': bool,
+            'peer_gsr': bool1_1,
+            'peer_scrub': bool1_1,
             'scrub_thresh': float,
         },
     },

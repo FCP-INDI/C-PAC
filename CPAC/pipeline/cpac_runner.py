@@ -26,7 +26,7 @@ from CPAC.utils.ga import track_run
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.longitudinal_pipeline.longitudinal_workflow import \
     anat_longitudinal_wf
-from CPAC.utils.yaml_template import upgrade_pipeline_to_1_8
+from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8
 
 
 # Run condor jobs

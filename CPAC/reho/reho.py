@@ -147,3 +147,43 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+
+
+def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "ReHo_space_template",
+     "config": ["regional_homogeneity"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
+                 "space-template_desc-preproc_bold", "space-template_bold"],
+                "space-template_desc-bold_mask"],
+     "outputs": ["space-template_reho"]}
+    '''
+
+    cluster_size = cfg.regional_homogeneity['cluster_size']
+
+    # Check the cluster size is supported
+    if cluster_size not in [7, 19, 27]:
+        err_msg = 'Cluster size specified: %d, is not ' \
+                  'supported. Change to 7, 19, or 27 and try ' \
+                  'again' % cluster_size
+        raise Exception(err_msg)
+
+    reho = create_reho(f'reho_{pipe_num}')
+    reho.inputs.inputspec.cluster_size = cluster_size
+
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
+                                     "space-template_desc-preproc_bold", "space-template_bold"])
+    wf.connect(node, out, reho, 'inputspec.rest_res_filt')
+
+    node, out_file = strat_pool.get_data('space-template_desc-bold_mask')
+    wf.connect(node, out_file, reho, 'inputspec.rest_mask')
+
+    outputs = {
+        'space-template_reho': (reho, 'outputspec.raw_reho_map')
+    }
+
+    return (wf, outputs)

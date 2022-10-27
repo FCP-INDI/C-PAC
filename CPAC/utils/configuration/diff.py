@@ -37,14 +37,13 @@ def dct_diff(dct1, dct2):
     Example
     -------
     >>> import yaml
-    >>> from . import DEFAULT_PIPELINE_FILE, Preconfiguration
+    >>> from . import Preconfiguration, preconfig_yaml
     >>> def read_yaml_file(yaml_file):
     ...     return yaml.safe_load(open(yaml_file, 'r'))
-    >>> pipeline = read_yaml_file(DEFAULT_PIPELINE_FILE)
+    >>> pipeline = read_yaml_file(preconfig_yaml('default'))
     >>> dct_diff(pipeline, pipeline)
     {}
-    >>> pipeline2 = Preconfiguration('fmriprep-options')  # doctest: +NORMALIZE_WHITESPACE
-    Loading the 'fmriprep-options' pre-configured pipeline.
+    >>> pipeline2 = Preconfiguration('fmriprep-options')
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
     '''  # pylint: disable=line-too-long  # noqa: E501
@@ -82,10 +81,7 @@ def dct_diff(dct1, dct2):
             if key not in dct1:
                 diff[key] = dct2[key]
 
-        # only return non-empty diffs
-        return DiffDict({k: v for k, v in diff.items() if k in dct2})
-
-    return DiffDict()
+    return DiffDict(diff)
 
 
 def diff_dict(diff):
@@ -127,7 +123,7 @@ def diff_dict(diff):
 
 
 class DiffDict(dict):
-    '''Class to sematically store a dictionary of set differences from
+    '''Class to semantically store a dictionary of set differences from
     Configuration(S) - Configuration(T)
 
     Attributes
