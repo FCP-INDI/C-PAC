@@ -210,7 +210,11 @@ jobs:
       with:
         fetch-depth: 2
     - name: Prep source files
-      run: sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
+      run: |
+          sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
+          echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
+          echo '.github/workflows/build_stages.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
+          echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
     - name: Get changed files since fork point
       uses: tj-actions/changed-files@v17.2
       if: github.event.inputs.base_ref != ''
