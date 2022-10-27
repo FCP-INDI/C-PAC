@@ -466,9 +466,9 @@ def run_main():
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
                     '1.7-1.8-nesting-mappings')
 
-            warn('\nC-PAC changed its pipeline configuration format in '
-                 f'v1.8.0.\nSee {_url} for details.\n',
-                 category=DeprecationWarning)
+            logger.warning('\nC-PAC changed its pipeline configuration '
+                           'format in v1.8.0.\nSee %s for details.\n', _url,
+                           category=DeprecationWarning)
 
             updated_config = os.path.join(
                 output_dir,
@@ -607,10 +607,10 @@ def run_main():
             c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(output_dir, "working")
         else:
-            logger.warn('Cannot write working directory to S3 bucket. '
-                        'Either change the output directory to something '
-                        'local or turn off the --save_working_dir flag',
-                        category=UserWarning)
+            logger.warning('Cannot write working directory to S3 bucket. '
+                           'Either change the output directory to something '
+                           'local or turn off the --save_working_dir flag',
+                           category=UserWarning)
 
         if c['pipeline_setup']['output_directory']['quality_control'][
                 'generate_xcpqc_files']:

@@ -766,11 +766,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"]],
+     "inputs": ["space-template_desc-preproc_bold"],
      "outputs": ["desc-Mean_timeseries",
                  "desc-ndmg_correlations",
                  "atlas_name",
@@ -809,11 +805,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     #roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
     #    'roi_tse_outputs']
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out, resample_functional_roi, 'in_func')
 
     wf.connect(roi_dataflow, 'outputspec.out_file',
@@ -903,11 +895,7 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-motion_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"]],
+     "inputs": ["space-template_desc-preproc_bold"],
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
     '''
@@ -939,11 +927,7 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     #    'roi_tse_outputs']
 
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to mask
     wf.connect(node, out,
                      resample_functional_to_mask, 'in_func')
@@ -979,12 +963,8 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                  "space-template_desc-brain_bold",
-                  "space-template_desc-motion_bold",
-                  "space-template_desc-preproc_bold",
-                  "space-template_bold"],
-                 "space-template_desc-bold_mask"],
+     "inputs": ["space-template_desc-preproc_bold",
+                "space-template_desc-bold_mask"],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''
@@ -1014,11 +994,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
         f'spatial_map_timeseries_{pipe_num}')
     spatial_map_timeseries.inputs.inputspec.demean = True
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
 
     # resample the input functional file and functional mask
     # to spatial map

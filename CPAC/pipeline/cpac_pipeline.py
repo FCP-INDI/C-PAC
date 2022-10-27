@@ -1123,13 +1123,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc['run']:
         func_init_blocks = [
+            func_reorient,
             func_scaling,
             func_truncate
         ]
         func_preproc_blocks = [
             func_despike,
-            func_slice_time,
-            func_reorient
+            func_slice_time
         ]
 
         if not rpool.check_rpool('desc-mean_bold'):
@@ -1145,7 +1145,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         func_prep_blocks = [
             calc_motion_stats,
-            func_normalize
+            func_normalize,
+            [coregistration_prep_vol,
+             coregistration_prep_mean,
+             coregistration_prep_fmriprep]
         ]
 
         # Distortion/Susceptibility Correction
@@ -1193,10 +1196,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # BOLD to T1 coregistration
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
-            (not rpool.check_rpool('space-T1w_desc-mean_bold') or
+            (not rpool.check_rpool('space-T1w_sbref') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks
@@ -1254,9 +1256,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         _r_w_f_r['coregistration']['run'] and
         _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
-        'space-template_desc-cleaned_bold',
-        'space-template_desc-brain_bold',
-        'space-template_desc-motion_bold',
         'space-template_desc-preproc_bold',
         'space-template_bold'
     ]
@@ -1270,7 +1269,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                   warp_timeseries_to_T1template_dcan_nhp]
 
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
+            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-preproc_bold', 'bold'))]
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
         else:
             ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)

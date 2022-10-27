@@ -340,16 +340,16 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "Blip",
-     "inputs": [("desc-mean_bold",
+     "inputs": [("sbref",
                  "space-bold_desc-brain_mask"),
                 "epi-1",
                 "epi-1-scan-params",
                 "epi-2",
                 "epi-2-scan-params",
                 "pe-direction"],
-     "outputs": ["blip-warp",
-                 "desc-mean_bold",
-                 "space-bold_desc-brain_mask"]}
+     "outputs": ["sbref",
+                 "space-bold_desc-brain_mask",
+                 "blip-warp"]}
     '''
 
     match_epi_imports = ['import json']
@@ -407,7 +407,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
  
     wf.connect(func_edge_detect, 'out_file',  opp_pe_to_func, 'in_file')
 
-    node, out = strat_pool.get_data('desc-mean_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, opp_pe_to_func, 'reference')
 
     prep_qwarp_input_imports = ['import os', 'import subprocess']
@@ -422,7 +422,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(match_epi_fmaps_node, 'same_pe_epi',
                prep_qwarp_input, 'same_pe_epi')
 
-    node, out = strat_pool.get_data('desc-mean_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, prep_qwarp_input, 'func_mean')
 
     calculate_blip_warp_imports = ['import os', 'import subprocess']
@@ -459,7 +459,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     undistort_func_mean.inputs.dimension = 3
     undistort_func_mean.inputs.input_image_type = 0
 
-    node, out = strat_pool.get_data('desc-mean_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, undistort_func_mean, 'input_image')
     wf.connect(node, out, undistort_func_mean, 'reference_image')
     wf.connect(convert_afni_warp, 'ants_warp',
@@ -478,7 +478,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'blip-warp': (convert_afni_warp, 'ants_warp'),
         #'inv-blip-warp': None,  # TODO
-        'desc-mean_bold': (undistort_func_mean, 'output_image'),
+        'sbref': (undistort_func_mean, 'output_image'),
         'space-bold_desc-brain_mask': (remask, 'out_file')
     }
 
@@ -495,7 +495,8 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "Blip-FSL-TOPUP",
-     "inputs": [("desc-mean_bold", "space-bold_desc-brain_mask"),
+     "inputs": [("sbref", 
+                 "space-bold_desc-brain_mask"),
                 "pe-direction",
                 "epi-1",
                 "epi-1-pedir",
@@ -507,7 +508,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                 "epi-2-TE",
                 "epi-2-dwell",
                 "epi-2-total-readout"],
-     "outputs": ["desc-mean_bold",
+     "outputs": ["sbref",
                  "space-bold_desc-brain_mask",
                  "blip-warp"]}
     '''
@@ -696,17 +697,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(run_topup, 'out_jacs', vnum_base, 'jac_matrix_list')
     wf.connect(run_topup, 'out_warps', vnum_base, 'warp_field_list')
 
-    # create_scout = pe.Node(interface=afni_utils.Calc(),
-    #                        name="topupwf_create_scout")
-    # create_scout.inputs.set(
-    #     expr='a',
-    #     single_idx=0,
-    #     outputtype='NIFTI_GZ'
-    # )
-
-    mean_bold = strat_pool.node_data("desc-mean_bold")
-    # node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
-    # wf.connect(node, out, create_scout, 'in_file_a')
+    mean_bold = strat_pool.node_data("sbref")
 
     flirt = pe.Node(interface=fsl.FLIRT(), name="flirt")
     flirt.inputs.dof = 6
@@ -857,7 +848,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(mag_field_map, 'out_file', bet, 'in_file')
 
     outputs = {
-        'desc-mean_bold': (mul_jac, 'out_file'),
+        'sbref': (mul_jac, 'out_file'),
         'space-bold_desc-brain_mask': (bet, 'out_file'),
         'blip-warp': (convert_warp, 'out_file')
     }
