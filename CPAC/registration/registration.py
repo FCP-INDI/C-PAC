@@ -394,14 +394,24 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
        transformation (affine only) from the space of the reference
        file to the input file.
 
+    .. exec::
+       from CPAC.registration.registration import \
+            create_fsl_fnirt_nonlinear_reg
+       wf = create_fsl_fnirt_nonlinear_reg()
+       wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/nonlinear_register.dot'
+       )
+
     Workflow Graph:
 
-    .. image:: ../images/nonlinear_register.dot.png
-        :width: 500
+    .. image:: ../../images/generated/nonlinear_register.png
+       :width: 500
 
     Detailed Workflow Graph:
-    .. image:: ../images/nonlinear_register_detailed.dot.png
-        :width: 500
+
+    .. image:: ../../images/generated/nonlinear_register_detailed.png
+       :width: 500
     """
 
     nonlinear_register = pe.Workflow(name=name)
@@ -496,14 +506,24 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name='fsl_fnirt_nonlinear_reg_nhp'):
        transformation (affine only) from the space of the reference
        file to the input file.
 
+    .. exec::
+       from CPAC.registration.registration import \
+            create_fsl_fnirt_nonlinear_reg_nhp
+       wf = create_fsl_fnirt_nonlinear_reg_nhp()
+       wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/nonlinear_register_nhp.dot'
+       )
+
     Workflow Graph:
 
-    .. image:: ../images/nonlinear_register.dot.png
-        :width: 500
+    .. image:: ../../images/generated/nonlinear_register_nhp.png
+       :width: 500
 
     Detailed Workflow Graph:
-    .. image:: ../images/nonlinear_register_detailed.dot.png
-        :width: 500
+
+    .. image:: ../../images/generated/nonlinear_register_nhp_detailed.png
+       :width: 500
     """
 
     nonlinear_register = pe.Workflow(name=name)
@@ -1078,13 +1098,14 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp',
         )
 
     Workflow Graph:
-    .. image::
-        :width: 500
+
+    .. image:: ../../images/generated/calculate_ants_warp.png
+       :width: 500
 
     Detailed Workflow Graph:
 
-    .. image::
-        :width: 500
+    .. image:: ../../images/generated/calculate_ants_warp_detailed.png
+       :width: 500
     '''
     from CPAC.registration.guardrails import retry_hardcoded_reg
     calc_ants_warp_wf = pe.Workflow(name=name)
