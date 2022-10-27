@@ -78,9 +78,6 @@ anatomical_preproc:
   acpc_alignment:
     T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
-    # ACPC aligned template
-    T1w_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz
-
   brain_extraction:
     run: On
 
@@ -121,33 +118,6 @@ segmentation:
 registration_workflows:
   anatomical_registration:
     run: On
-    registration:
-      FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
-
-        # Reference mask for FSL registration.
-        ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -163,10 +133,6 @@ registration_workflows:
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
 
-        # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-        # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
-
     func_registration_to_template:
 
       # these options modify the application (to the functional data), not the calculation, of the
@@ -181,39 +147,12 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 2mm
 
-      target_template:
-        T1_template:
-
-          # Standard Skull Stripped Template. Used as a reference image for functional registration.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
-
-          # Standard Anatomical Brain Image with Skull.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
-
-          # Template to be used during registration.
-          # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
-
-      FNIRT_pipelines:
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
-
     EPI_registration:
       ANTs:
 
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters:
-
-      FSL-FNIRT:
-
-        # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
 functional_preproc:
   run: On
@@ -253,9 +192,6 @@ functional_preproc:
     run: [On]
 
   func_masking:
-    FSL_AFNI:
-      brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-      brain_probseg: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
