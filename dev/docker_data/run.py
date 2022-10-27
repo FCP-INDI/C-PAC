@@ -32,8 +32,7 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE, \
-                                     set_subject
+from CPAC.utils.configuration import Configuration, preconfig_yaml, set_subject
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.yaml_template import create_yaml_from_template, \
@@ -136,7 +135,7 @@ def run_main():
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
-                        default=DEFAULT_PIPELINE_FILE)
+                        default=preconfig_yaml('default'))
     parser.add_argument('--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
@@ -516,7 +515,6 @@ def run_main():
         else:
             c['pipeline_setup']['log_directory']['path'] = os.path.join(
                 DEFAULT_TMP_DIR, "log")
-        log_dir = c['pipeline_setup']['log_directory']['path']
 
         if args.mem_gb:
             c['pipeline_setup']['system_config'][
@@ -731,12 +729,10 @@ def run_main():
         pipeline_config_file = os.path.join(
             sublogdirs[0], f"cpac_pipeline_config_{data_hash}_{st}.yml")
         with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE, True))
+            _f.write(create_yaml_from_template(c))
         minimized_config = f'{pipeline_config_file[:-4]}_min.yml'
-        with open(minimized_config, 'w',
-                  encoding='utf-8') as _f:
-            _f.write(create_yaml_from_template(c, DEFAULT_PIPELINE_FILE,
-                                               False))
+        with open(minimized_config, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, import_from='blank'))
         for config_file in (data_config_file, pipeline_config_file,
                             minimized_config):
             os.chmod(config_file, 0o444)  # Make config files readonly
