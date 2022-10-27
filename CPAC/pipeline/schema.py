@@ -96,7 +96,8 @@ valid_options = {
                 str, {'components': int, 'method': str}
             ),
         },
-    }
+    },
+    'target_space': ['Native', 'Template']
 }
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
@@ -823,6 +824,7 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool,
+        'target_space': [In(valid_options['target_space'])],
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
@@ -839,15 +841,18 @@ latest_schema = Schema({
     },
     'regional_homogeneity': {
         'run': bool,
+        'target_space': [In(valid_options['target_space'])],
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
         'spatial_smoothing': {
+            'run': bool,
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
             'fwhm': [int]
         },
         'z-scoring': {
+            'run': bool,
             'output': [In({'z-scored', 'raw'})],
         },
     },

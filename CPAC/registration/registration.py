@@ -3651,10 +3651,63 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     return (wf, outputs)
 
+def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_denoisedNofilt_to_T1template",
+     "config": ["amplitude_low_frequency_fluctuation"],
+     "switch": ["run"],
+     "option_key": ["target_space"],
+     "option_val": "Template",
+     "inputs": [(["desc-denoisedNofilt_bold"],
+                 "from-bold_to-template_mode-image_xfm"),
+                "T1w-brain-template-funcreg"],
+     "outputs": ["space-template_desc-denoisedNofilt_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    connect, resource = strat_pool.get_data(["desc-denoisedNofilt_bold"],
+                                            report_fetched=True)
+    node, out = connect
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w-brain-template-funcreg")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
 
 def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                                                   pipe_num, opt=None):
-    """
+    '''
     Apply motion correction, coreg, anat-to-template transforms on
     slice-time corrected functional timeseries based on fMRIPrep
     pipeline
@@ -3713,7 +3766,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
      "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold",
                  "space-template_desc-bold_mask"]}
-    """  # noqa: 501
+    '''  # noqa: 501
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
                                                  'transform_file'],
