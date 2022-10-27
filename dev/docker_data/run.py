@@ -35,9 +35,9 @@ from CPAC.utils.bids_utils import create_cpac_data_config, \
 from CPAC.utils.configuration import Configuration, preconfig_yaml, set_subject
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
-from CPAC.utils.yaml_template import create_yaml_from_template, \
-                                     hash_data_config, \
-                                     upgrade_pipeline_to_1_8
+from CPAC.utils.configuration.yaml_template import create_yaml_from_template, \
+                                                   hash_data_config, \
+                                                   upgrade_pipeline_to_1_8
 from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
                              update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
