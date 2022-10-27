@@ -77,15 +77,15 @@ registration_workflows:
       FSL-FNIRT:
 
         # Reference mask for FSL registration.
-        ref_mask: $$$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: $$$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: $$$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -112,11 +112,11 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: $$$$FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: $$$$FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
     EPI_registration:
       ANTs:
@@ -129,7 +129,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $$$$FSLDIR/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
 functional_preproc:
   run: Off
