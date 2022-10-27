@@ -1,25 +1,12 @@
 from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
-from CPAC.utils.interfaces.function import Function
-import subprocess
 
 
 @docstring_parameter(m_options=valid_options['centrality']['method_options'],
                      t_options=valid_options['centrality'][
                         'threshold_options'],
                      w_options=valid_options['centrality']['weight_options'])
-
-def eig_centrality_binarized(memory,environ,in_file,mask,sparsity=None,thresh=None):
-    out_file = 'eigenvector_centrality_merged.nii.gz'
-    
-    cmd = ['3dECM', '-mask', mask, '-memory', memory, '-prefix', out_file, \
-        '-sparsity', sparsity, '-thresh', thresh, in_file, '-do_binary']
-
-    subprocess.check_output(cmd)
-    
-    return out_file
-
 def create_centrality_wf(wf_name, method_option, weight_options,
                          threshold_option, threshold, num_threads=1,
                          memory_gb=1.0):
@@ -81,29 +68,12 @@ def create_centrality_wf(wf_name, method_option, weight_options,
 
     # Eigenvector centrality
     elif method_option == 'eigenvector_centrality':
-        if 'Binarized' in weight_options:
-            eig_centrality_binarized_import = ['import subprocess']
-            afni_centrality_node = pe.Node(Function(input_names=['memory',
-                                              'environ',
-                                              'in_file',
-                                              'mask',
-                                              'sparsity',
-                                              'thresh'],
-                                 output_names=['out_file'],
-                                 function=eig_centrality_binarized),
-                                imports=eig_centrality_binarized_import,
-                   name=f'afni_centrality')
-            afni_centrality_node.inputs.environ = {'OMP_NUM_THREADS': str(num_threads)}
-            afni_centrality_node.inputs.memory = memory_gb
-            afni_centrality_node.inputs.out_file = \
-            'eigenvector_centrality_merged.nii.gz'
-        else:
-            afni_centrality_node = pe.Node(ECM(environ={
+        afni_centrality_node = pe.Node(ECM(environ={
             'OMP_NUM_THREADS': str(num_threads)
-                }), name='afni_centrality', mem_gb=memory_gb)
-            afni_centrality_node.inputs.out_file = \
+        }), name='afni_centrality', mem_gb=memory_gb)
+        afni_centrality_node.inputs.out_file = \
             'eigenvector_centrality_merged.nii.gz'
-            afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
+        afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
