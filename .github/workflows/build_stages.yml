@@ -78,7 +78,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile)
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2.9.0
+        uses: docker/build-push-action@v3.2.0
         with:
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
           push: true
@@ -171,7 +171,7 @@ jobs:
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2.9.0
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
@@ -269,7 +269,7 @@ jobs:
       run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.not_yet_exists == 1
     - name: Build and push base image
-      uses: docker/build-push-action@v2.9.0
+      uses: docker/build-push-action@v3.2.0
       with:
         context: .
         file: .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
