@@ -97,14 +97,15 @@ def sep_nifti_subbriks(nifti_file, out_names):
     nii_affine = nii_img.get_affine()
     nii_dims = nii_arr.shape
     
-    if 'eigenvector_centrality_Binarized' in out_names[0] or \
-        'eigenvector_centrality_Binarized' in out_names[1]:
+    if 'eigen' in out_names[0] and len(out_names) == 2: 
+        if 'eigenvector_centrality_Binarized' in out_names[0] or \
+            'eigenvector_centrality_Binarized' in out_names[1]:
         
-        warning = 'Current version of AFNI will only create '\
-                'eigenvector_centrality_Weighted not '\
-                'eigenvector_centrality_Binarized'
-        out_names = ('eigenvector_centrality_Weighted',)
-        warn(warning, category=Warning)
+            warning = 'Current version of AFNI will only create '\
+                    'eigenvector_centrality_Weighted not '\
+                    'eigenvector_centrality_Binarized'
+            out_names = ('eigenvector_centrality_Weighted',)
+            warn(warning, category=Warning)
 
     if nii_dims[-1] != len(out_names):
         if len(nii_dims) == 3 and len(out_names) == 1:
