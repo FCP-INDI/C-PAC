@@ -6,24 +6,20 @@
 # http://fcp-indi.github.io for more info.
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
-
 FROM: default
 
+pipeline_setup:
 
-pipeline_setup: 
   # Name for this pipeline configuration - useful for identification.
+  # This string will be sanitized and used in filepaths
   pipeline_name: cpac_preproc
+  system_config:
 
-  working_directory: 
-    # Deletes the contents of the Working Directory after running.
-    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
-    remove_working_dir: Off
-
-  system_config: 
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
-    on_grid: 
-      SGE: 
+    on_grid:
+      SGE:
+
         # SGE Parallel Environment to use when running CPAC.
         # Only applies when you are running on a grid or compute cluster using SGE.
         parallel_environment: cpac
@@ -41,60 +37,43 @@ pipeline_setup:
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
     FSLDIR: FSLDIR
 
-  Amazon-AWS: 
+  working_directory:
+
+    # Deletes the contents of the Working Directory after running.
+    # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+    remove_working_dir: Off
+
+  Amazon-AWS:
+
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: On
 
-anatomical_preproc: 
-  # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering:
-    run: Off
+segmentation:
+  tissue_segmentation:
+    Template_Based:
 
-  # N4 bias field correction via ANTs
-  n4_bias_field_correction:
-    run: Off
-
-segmentation: 
-  tissue_segmentation: 
-    # option parameters
-    FSL-FAST: 
-      use_priors: 
-        # Full path to a directory containing binarized prior probability maps.
-        # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-        # It is not necessary to change this path unless you intend to use non-standard priors.
-        priors_path: $FSLDIR/data/standard/tissuepriors/2mm
-
-    Template_Based: 
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
       # Options: ['T1_Template', 'EPI_Template']
       template_for_segmentation: []
 
-      # These masks are included as part of the 'Image Resource Files' package available
-      # on the Install page of the User Guide.
+registration_workflows:
+  functional_registration:
+    EPI_registration:
+      ANTs:
 
-      # Full path to a binarized White Matter mask.
-      WHITE: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_white_bin.nii.gz
-
-      # Full path to a binarized Gray Matter mask.
-      GRAY: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_gray_bin.nii.gz
-
-      # Full path to a binarized CSF mask.
-      CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
-
-registration_workflows: 
-  functional_registration: 
-    EPI_registration: 
-      ANTs: 
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
-        parameters: 
-nuisance_corrections: 
-  2-nuisance_regression: 
+        parameters:
+
+nuisance_corrections:
+  2-nuisance_regression:
+
     # Select which nuisance signal corrections to apply
-    Regressors: 
-      - Bandpass:
+    Regressors:
+      - Name: Regressor-1
+        Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
@@ -107,7 +86,6 @@ nuisance_corrections:
           include_delayed: On
           include_delayed_squared: On
           include_squared: On
-        Name: Regressor-1
         PolyOrt:
           degree: 2
         aCompCor:
@@ -118,7 +96,8 @@ nuisance_corrections:
           tissues:
           - WhiteMatter
           - CerebrospinalFluid
-      - Bandpass:
+      - Name: Regressor-2
+        Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
         CerebrospinalFluid:
@@ -129,7 +108,6 @@ nuisance_corrections:
           include_delayed: On
           include_delayed_squared: On
           include_squared: On
-        Name: Regressor-2
         PolyOrt:
           degree: 2
         aCompCor:
@@ -141,62 +119,28 @@ nuisance_corrections:
           - WhiteMatter
           - CerebrospinalFluid
 
-    # Standard Lateral Ventricles Binary Mask
-    # used in CSF mask refinement for CSF signal-related regressions
-    lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-
-timeseries_extraction: 
+timeseries_extraction:
   run: Off
 
-seed_based_correlation_analysis: 
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: Off
+amplitude_low_frequency_fluctuation:
 
-amplitude_low_frequency_fluctuation: 
   # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
-regional_homogeneity: 
+regional_homogeneity:
+
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
-voxel_mirrored_homotopic_connectivity: 
+voxel_mirrored_homotopic_connectivity:
+
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
 
-  symmetric_registration: 
-    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+network_centrality:
 
-    # A reference symmetric brain template for resampling
-    T1w_brain_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_symmetric.nii.gz
-
-    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    T1w_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
-
-    # A reference symmetric skull template for resampling
-    T1w_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_symmetric.nii.gz
-
-    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
-
-    # A reference symmetric brain mask template for resampling
-    dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
-
-network_centrality: 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off
-
-# PACKAGE INTEGRATIONS
-# --------------------
-PyPEER: 
-  # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
