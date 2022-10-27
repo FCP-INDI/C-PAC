@@ -735,7 +735,7 @@ def run_main():
             _f.write(create_yaml_from_template(c, import_from='blank'))
         for config_file in (data_config_file, pipeline_config_file,
                             minimized_config):
-            os.chmod(config_file, 0x444)  # Make config files readonly
+            os.chmod(config_file, 0o444)  # Make config files readonly
 
         if len(sublogdirs) > 1:
             # If more than one run is included in the given data config

@@ -102,6 +102,7 @@ from CPAC.registration.registration import (
     warp_bold_mean_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template,
+    warp_denoiseNofilt_to_T1template,
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
@@ -183,8 +184,8 @@ from CPAC.sca.sca import (
     multiple_regression
 )
 
-from CPAC.alff.alff import alff_falff
-from CPAC.reho.reho import reho
+from CPAC.alff.alff import alff_falff, alff_falff_space_template
+from CPAC.reho.reho import reho, reho_space_template
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -1282,6 +1283,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
+        
+    target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
+    if 'Template' in target_space_alff and not rpool.check_rpool('space-template_desc-denoisedNofilt_bold'):
+        pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
 
@@ -1324,6 +1329,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases
+    target_space_reho = cfg.regional_homogeneity['target_space']
 
     if not rpool.check_rpool('desc-Mean_timeseries') and \
                     'Avg' in tse_atlases:
@@ -1349,11 +1355,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'MultReg' in sca_atlases:
         pipeline_blocks += [multiple_regression]
 
-    if not rpool.check_rpool('alff'):
-        pipeline_blocks += [alff_falff]
+    if 'Native' in target_space_alff:
+        if not rpool.check_rpool('alff'):
+            pipeline_blocks += [alff_falff]
 
-    if not rpool.check_rpool('reho'):
-        pipeline_blocks += [reho]
+    if 'Template' in target_space_alff:
+        if not rpool.check_rpool('space-template_alff'):
+            pipeline_blocks += [alff_falff_space_template]
+
+    if 'Native' in target_space_reho:
+        if not rpool.check_rpool('reho'):
+            pipeline_blocks += [reho]
+            
+    if 'Template' in target_space_reho:
+        if not rpool.check_rpool('space-template_reho'):
+            pipeline_blocks += [reho_space_template]
 
     if not rpool.check_rpool('vmhc'):
         pipeline_blocks += [smooth_func_vmhc,
