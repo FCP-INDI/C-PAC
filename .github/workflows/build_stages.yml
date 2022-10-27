@@ -183,7 +183,6 @@ jobs:
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
 
   build-base:
-    concurrency: build-base
     needs: stages
     runs-on: ubuntu-latest
     env:
