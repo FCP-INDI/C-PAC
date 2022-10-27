@@ -11,7 +11,7 @@ pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
-  pipeline_name: cpac-default-bet-pipeline
+  pipeline_name: cpac-default-deprecated-pipeline
 
   output_directory:
 
@@ -322,7 +322,7 @@ anatomical_preproc:
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
     # this is a fork option
-    using: ['BET']
+    using: ['3dSkullStrip']
 
     # option parameters
     AFNI-3dSkullStrip:
