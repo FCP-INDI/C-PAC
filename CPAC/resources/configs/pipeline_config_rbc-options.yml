@@ -35,15 +35,15 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: $$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: $$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: $$$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
   functional_registration:
     func_registration_to_template:
@@ -69,18 +69,18 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: $$$FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: $$$FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: $$$FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_brain_template_mask_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
 
           # a standard template for resampling if using float resolution
-          T1w_template_for_resample: $$$FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_template_for_resample: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
 
 functional_preproc:
   distortion_correction:

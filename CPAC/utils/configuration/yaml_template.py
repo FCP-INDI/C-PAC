@@ -164,7 +164,8 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 # SSOT FSLDIR
                 if (isinstance(value, str) and fsldir in value and
                         key != 'FSLDIR'):
-                    value = value.replace(fsldir, '$FSLDIR')
+                    value = re.sub(r'\$*FSLDIR', '$FSLDIR',
+                                   value.replace(fsldir, '$FSLDIR'))
                 if isinstance(value, dict):
                     _dump += [indented_key, self.dump(new_dict, keys)]
                 elif isinstance(value, list):

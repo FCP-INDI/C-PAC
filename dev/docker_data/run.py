@@ -247,10 +247,6 @@ def run_main():
     parser.add_argument('--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
-    parser.add_argument('--disable_file_logging', action='store_true',
-                        help='Disable file logging, this is useful for '
-                             'clusters that have disabled file locking.',
-                        default=False)
 
     parser.add_argument('--participant_label',
                         help='The label of the participant that should be '
@@ -594,8 +590,6 @@ def run_main():
         if args.runtime_buffer is not None:
             c['pipeline_setup']['system_config']['observed_usage'][
                 'buffer'] = args.runtime_buffer
-
-        c['disable_log'] = args.disable_file_logging
 
         if args.save_working_dir is not False:
             c['pipeline_setup']['working_directory'][
