@@ -46,14 +46,14 @@ jobs:
         with:
           fetch-depth: 2
       - name: Get changed files since fork point
-        uses: tj-actions/changed-files@v17.2
+        uses: tj-actions/changed-files@v34.0.0
         if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
           use_fork_point: "true"
           files: .github/Dockerfiles/*
       - name: Get changed files since last commit
-        uses: tj-actions/changed-files@v17.2
+        uses: tj-actions/changed-files@v34.0.0
         if: github.event.inputs.base_ref == ''
         id: changed-files
         with:
@@ -119,7 +119,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: Get changed files since fork point
-        uses: tj-actions/changed-files@v17.2
+        uses: tj-actions/changed-files@v34.0.0
         if: github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
@@ -128,7 +128,7 @@ jobs:
             dev/docker_data/required_afni_pkgs.txt
             .github/Dockerfiles/*
       - name: Get changed files since last commit
-        uses: tj-actions/changed-files@v17.2
+        uses: tj-actions/changed-files@v34.0.0
         if: github.event.inputs.base_ref == ''
         id: changed-files
         with:
@@ -216,7 +216,7 @@ jobs:
           echo '.github/workflows/build_stages.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
           echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
     - name: Get changed files since fork point
-      uses: tj-actions/changed-files@v17.2
+      uses: tj-actions/changed-files@v34.0.0
       if: github.event.inputs.base_ref != ''
       id: changed-files-base
       with:
@@ -224,7 +224,7 @@ jobs:
         files_from_source_file: |
           .github/stage_requirements/${{ matrix.variant }}.txt
     - name: Get changed files since last commit
-      uses: tj-actions/changed-files@v17.2
+      uses: tj-actions/changed-files@v34.0.0
       if: github.event.inputs.base_ref == ''
       id: changed-files
       with:
