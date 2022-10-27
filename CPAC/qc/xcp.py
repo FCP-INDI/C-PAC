@@ -384,7 +384,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('subject', 'scan', 'bold', 'desc-preproc_bold',
-                 'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
+                 'space-T1w_sbref', 'space-T1w_desc-brain_mask',
                  'max-displacement', 'space-template_desc-preproc_bold',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
@@ -428,7 +428,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     nodes = {key: strat_pool.node_data(key) for key in [
         'bold', 'desc-preproc_bold', 'max-displacement',
         'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
-        'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold',
+        'space-T1w_sbref', 'space-template_desc-preproc_bold',
         'subject', *motion_params]}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
@@ -445,8 +445,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (nodes['subject'].node, bids_info, [
             (nodes['subject'].out, 'subject')]),
         (nodes['scan'].node, bids_info, [(nodes['scan'].out, 'scan')]),
-        (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
-            (nodes['space-T1w_desc-mean_bold'].out, 'in_file')]),
+        (nodes['space-T1w_sbref'].node, bold_to_T1w_mask, [
+            (nodes['space-T1w_sbref'].out, 'in_file')]),
         (nodes['space-T1w_desc-brain_mask'].node, qc_file, [
             (nodes['space-T1w_desc-brain_mask'].out, 't1w_mask')]),
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),

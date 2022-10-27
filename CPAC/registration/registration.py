@@ -3708,7 +3708,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
                  "T1w",
-                 "desc-brain_T1w",
+                 "desc-preproc_T1w",
                  "T1w-brain-template-funcreg")],
      "outputs": ["space-template_desc-preproc_bold",
                  "space-template_desc-brain_bold",
@@ -3730,7 +3730,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     elif cfg.registration_workflows['functional_registration'][
             'coregistration']['boundary_based_registration'][
             'reference'] == 'brain':
-        node, out = strat_pool.get_data('desc-brain_T1w')
+        node, out = strat_pool.get_data('desc-preproc_T1w')
         wf.connect(node, out, bbr2itk, 'reference_file')
 
     node, out = strat_pool.get_data('sbref')
