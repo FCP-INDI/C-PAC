@@ -1114,20 +1114,26 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     convert_head_to_template.inputs.searchr_x = [-90, 90]
     convert_head_to_template.inputs.searchr_y = [-90, 90]
     convert_head_to_template.inputs.searchr_z = [-90, 90]
-
-    wf.connect(reorient_fs_T1, 'out_file',
-        convert_head_to_template, 'in_file')
+    (head_to_template_nodes,
+     head_to_template_guardrails) = wf.nodes_and_guardrails(
+        convert_head_to_template, registered='out_file')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
-    wf.connect(node, out, convert_head_to_template, 'reference')
+    wf.connect_retries(head_to_template_nodes, [
+        (reorient_fs_T1, 'out_file', 'in_file'),
+        (node, out, 'reference')])
+    wf.connect_retries(head_to_template_guardrails, [(node, out, 'reference')])
+    head_to_template = guardrail_selection(wf, *head_to_template_guardrails)
+    head_to_template_matrix = guardrail_selection(
+        wf, *head_to_template_nodes, 'out_matrix_file',
+        head_to_template_guardrails[0])
 
     # convert_xfm -omat tmp_standard2head_fs.mat -inverse tmp_head_fs2standard.mat
     convert_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
-                              name=f'convert_xfm_{node_id}')
+                          name=f'convert_xfm_{node_id}')
     convert_xfm.inputs.invert_xfm = True
 
-    wf.connect(convert_head_to_template, 'out_matrix_file',
-        convert_xfm, 'in_file')
+    wf.connect(head_to_template_matrix, 'out', convert_xfm, 'in_file')
 
     # bet tmp_head_fs2standard.nii.gz tmp.nii.gz -f ${bet_thr_tight} -m
     skullstrip = pe.Node(interface=fsl.BET(),
@@ -1140,14 +1146,13 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     elif opt == 'FreeSurfer-BET-Loose':
         skullstrip.inputs.frac=0.1
 
-    wf.connect(convert_head_to_template, 'out_file', skullstrip, 'in_file')
+    wf.connect(head_to_template, 'out', skullstrip, 'in_file')
 
     # fslmaths tmp_mask.nii.gz -mas ${CCSDIR}/templates/MNI152_T1_1mm_first_brain_mask.nii.gz tmp_mask.nii.gz
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
                          name=f'apply_mask_{node_id}')
 
-    wf.connect(skullstrip, 'out_file',
-        apply_mask, 'in_file')
+    wf.connect(skullstrip, 'out_file', apply_mask, 'in_file')
 
     node, out = strat_pool.get_data('T1w-brain-template-mask-ccs')
     wf.connect(node, out, apply_mask, 'mask_file')
@@ -1160,15 +1165,18 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     convert_template_mask_to_native.inputs.apply_xfm = True
     convert_template_mask_to_native.inputs.padding_size = 0
     convert_template_mask_to_native.inputs.interp = 'nearestneighbour'
+    (templatemask_to_native_nodes,
+     templatemask_to_native_guardrails) = wf.nodes_and_guardrails(
+        convert_template_mask_to_native, registered='out_file')
 
-    wf.connect(apply_mask, 'out_file',
-        convert_template_mask_to_native, 'in_file')
-
-    wf.connect(convert_xfm, 'out_file',
-        convert_template_mask_to_native, 'in_matrix_file')
-
-    wf.connect(reorient_fs_T1, 'out_file',
-        convert_template_mask_to_native, 'reference')
+    wf.connect_retries(templatemask_to_native_nodes, [
+        (apply_mask, 'out_file', 'in_file'),
+        (convert_xfm, 'out_file', 'in_matrix_file'),
+        (reorient_fs_T1, 'out_file', 'reference')])
+    wf.connect_retries(templatemask_to_native_guardrails, [
+        (reorient_fs_T1, 'out_file', 'reference')])
+    template_mask_to_native = guardrail_selection(
+        wf, *templatemask_to_native_guardrails)
 
     # fslmaths brain_fs_mask.nii.gz -add brain_fsl_mask_tight.nii.gz -bin brain_mask_tight.nii.gz
     # BinaryMaths doesn't use -bin!
@@ -1180,18 +1188,14 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     elif opt == 'FreeSurfer-BET-Loose':
         combine_mask.inputs.operation = 'mul'
 
-    wf.connect(binarize_fs_brain, 'out_file',
-        combine_mask, 'in_file')
-
-    wf.connect(convert_template_mask_to_native, 'out_file',
-        combine_mask, 'operand_file')
+    wf.connect(binarize_fs_brain, 'out_file', combine_mask, 'in_file')
+    wf.connect(template_mask_to_native, 'out', combine_mask, 'operand_file')
 
     binarize_combined_mask = pe.Node(interface=fsl.maths.MathsCommand(),
                                      name=f'binarize_combined_mask_{node_id}')
     binarize_combined_mask.inputs.args = '-bin'
 
-    wf.connect(combine_mask, 'out_file',
-               binarize_combined_mask, 'in_file')
+    wf.connect(combine_mask, 'out_file', binarize_combined_mask, 'in_file')
 
     # CCS brain mask is in FS space, transfer it back to native T1 space
     fs_fsl_brain_mask_to_native = pe.Node(
@@ -1200,8 +1204,8 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     fs_fsl_brain_mask_to_native.inputs.reg_header = True
     fs_fsl_brain_mask_to_native.inputs.interp = 'nearest'
 
-    wf.connect(binarize_combined_mask, 'out_file', 
-        fs_fsl_brain_mask_to_native, 'source_file')
+    wf.connect(binarize_combined_mask, 'out_file',
+               fs_fsl_brain_mask_to_native, 'source_file')
 
     node, out = strat_pool.get_data('raw-average')
     wf.connect(node, out, fs_fsl_brain_mask_to_native, 'target_file')
@@ -1218,7 +1222,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
             'space-T1w_desc-loose_brain_mask': (fs_fsl_brain_mask_to_native,
                                                 'transformed_file')}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def mask_T2(wf_name='mask_T2'):
