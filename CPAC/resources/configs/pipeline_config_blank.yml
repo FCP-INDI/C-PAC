@@ -1192,6 +1192,8 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+    space: 'native'
+
 nuisance_corrections:
   2-nuisance_regression:
 

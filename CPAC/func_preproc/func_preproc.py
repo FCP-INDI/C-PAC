@@ -1003,8 +1003,8 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "func_despike",
      "config": ["functional_preproc", "despiking"],
      "switch": ["run"],
-     "option_key": "space",
-     "option_val": "native",
+     "option_key": ["space"],
+     "option_val": ["native"],
      "inputs": ["desc-preproc_bold"],
      "outputs": {
          "desc-preproc_bold": {
@@ -1035,8 +1035,8 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "func_despike_template",
      "config": ["functional_preproc", "despiking"],
      "switch": ["run"],
-     "option_key": "space",
-     "option_val": "template",
+     "option_key": ["space"],
+     "option_val": ["template"],
      "inputs": ["space-template_desc-preproc_bold"],
      "outputs": {
          "space-template_desc-preproc_bold": {
