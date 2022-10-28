@@ -17,23 +17,21 @@ from pkg_resources import resource_filename as pkgr_fn
 from packaging.version import parse as parseversion, Version
 
 # nipype
+# pylint: disable=wrong-import-order
 import CPAC.pipeline.nipype_pipeline_engine as pe
 from nipype.interfaces import utility as niu
 from nipype.interfaces.fsl.maths import ApplyMask
-from nipype.interfaces.ants import N4BiasFieldCorrection, Atropos, MultiplyImages
-
-from ..utils.misc import get_template_specs
+from nipype.interfaces.ants import (N4BiasFieldCorrection, Atropos,
+                                    MultiplyImages)
+from CPAC.registration.guardrails import guardrail_selection, retry_clone
 # niworkflows
-from ..utils.interfaces.ants import (
-    ImageMath,
-    ResampleImageBySpacing,
-    AI,
-    ThresholdImage,
-)
+from CPAC.utils.interfaces.ants import (ImageMath,
+                                        ResampleImageBySpacing,
+                                        AI,
+                                        ThresholdImage)
 from CPAC.utils.interfaces.fixes import (
     FixHeaderRegistration as Registration,
-    FixHeaderApplyTransforms as ApplyTransforms,
-)
+    FixHeaderApplyTransforms as ApplyTransforms)
 from CPAC.utils.interfaces.utils import CopyXForm
 
 
@@ -114,8 +112,9 @@ def init_brain_extraction_wf(tpl_target_path,
             Estimated peak memory consumption of the most hungry nodes
             in the workflow
         bids_suffix : str
-            Sequence type of the first input image. For a list of acceptable values
-            see https://bids-specification.readthedocs.io/en/latest/\
+            Sequence type of the first input image. For a list of
+            acceptable values see
+            https://bids-specification.readthedocs.io/en/latest/\
 04-modality-specific-files/01-magnetic-resonance-imaging-data.html#anatomy-imaging-data
         atropos_refine : bool
             Enables or disables the whole ATROPOS sub-workflow
@@ -146,12 +145,14 @@ def init_brain_extraction_wf(tpl_target_path,
             computation to a specific region.
     **Outputs**
         out_file
-            Skull-stripped and :abbr:`INU (intensity non-uniformity)`-corrected ``in_files``
+            Skull-stripped and :abbr:`INU (intensity non-uniformity)
+            `-corrected ``in_files``
         out_mask
             Calculated brain mask
         bias_corrected
-            The ``in_files`` input images, after :abbr:`INU (intensity non-uniformity)`
-            correction, before skull-stripping.
+            The ``in_files`` input images, after
+            :abbr:`INU (intensity non-uniformity)` correction, before
+            skull-stripping.
         bias_image
             The :abbr:`INU (intensity non-uniformity)` field estimated for each
             input in ``in_files``
@@ -187,7 +188,8 @@ def init_brain_extraction_wf(tpl_target_path,
         mem_gb=1.3, mem_x=(3811976743057169 / 302231454903657293676544,
                            'hdr_file'))
 
-    trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity', op2='0.01 0.999 256'),
+    trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity',
+                                 op2='0.01 0.999 256'),
                        name='truncate_images', iterfield=['op1'])
     inu_n4 = pe.MapNode(
         N4BiasFieldCorrection(
@@ -226,6 +228,7 @@ def init_brain_extraction_wf(tpl_target_path,
     _ants_version = Registration().version
     if _ants_version and parseversion(_ants_version) >= Version('2.3.0'):
         init_aff.inputs.search_grid = (40, (0, 40, 40))
+    init_aff_nodes = (init_aff, retry_clone(init_aff))
 
     # Set up spatial normalization
     settings_file = 'antsBrainExtraction_%s.json' if use_laplacian \
@@ -241,10 +244,12 @@ def init_brain_extraction_wf(tpl_target_path,
     if _ants_version and parseversion(_ants_version) >= Version('2.2.0'):
         fixed_mask_trait += 's'
 
+    norm_nodes, norm_guardrails = wf.nodes_and_guardrails(
+        norm, registered='warped_image')
+
     map_brainmask = pe.Node(
         ApplyTransforms(interpolation='Gaussian', float=True),
-        name='map_brainmask'
-    )
+        name='map_brainmask')
     map_brainmask.inputs.input_image = str(tpl_mask_path)
 
     thr_brainmask = pe.Node(ThresholdImage(
@@ -267,24 +272,34 @@ def init_brain_extraction_wf(tpl_target_path,
         n_procs=omp_nthreads, name='inu_n4_final', iterfield=['input_image'])
 
     # Apply mask
-    apply_mask = pe.MapNode(ApplyMask(), iterfield=['in_file'], name='apply_mask')
+    apply_mask = pe.MapNode(ApplyMask(), iterfield=['in_file'],
+                            name='apply_mask')
 
+    wf.connect_retries(init_aff_nodes, [
+        (inputnode, 'in_mask', 'fixed_image_mask'),
+        (res_tmpl, 'output_image', 'fixed_image'),
+        (res_target, 'output_image', 'moving_image')])
+    for i, node in enumerate(norm_nodes):
+        wf.connect(init_aff_nodes[i], node, [
+            ('output_transform', 'initial_moving_transform')])
+    wf.connect_retries(norm_nodes, [
+        (inputnode, norm, 'in_mask', fixed_mask_trait)])
+    norm_rtransforms = guardrail_selection(wf, *norm_nodes,
+                                           'reverse_transforms',
+                                           norm_guardrails[0])
+    norm_rinvert_flags = guardrail_selection(wf, *norm_nodes,
+                                             'reverse_invert_flags',
+                                             norm_guardrails[0])
     wf.connect([
         (inputnode, trunc, [('in_files', 'op1')]),
         (inputnode, copy_xform, [(('in_files', _pop), 'hdr_file')]),
         (inputnode, inu_n4_final, [('in_files', 'input_image')]),
-        (inputnode, init_aff, [('in_mask', 'fixed_image_mask')]),
-        (inputnode, norm, [('in_mask', fixed_mask_trait)]),
         (inputnode, map_brainmask, [(('in_files', _pop), 'reference_image')]),
         (trunc, inu_n4, [('output_image', 'input_image')]),
-        (inu_n4, res_target, [
-            (('output_image', _pop), 'input_image')]),
-        (res_tmpl, init_aff, [('output_image', 'fixed_image')]),
-        (res_target, init_aff, [('output_image', 'moving_image')]),
-        (init_aff, norm, [('output_transform', 'initial_moving_transform')]),
-        (norm, map_brainmask, [
-            ('reverse_transforms', 'transforms'),
-            ('reverse_invert_flags', 'invert_transform_flags')]),
+        (inu_n4, res_target, [(('output_image', _pop), 'input_image')]),
+        (norm_rtransforms, map_brainmask, [('out', 'transforms')]),
+        (norm_rinvert_flags, map_brainmask, [
+            ('out', 'invert_transform_flags')]),
         (map_brainmask, thr_brainmask, [('output_image', 'input_image')]),
         (thr_brainmask, dil_brainmask, [('output_image', 'op1')]),
         (dil_brainmask, get_brainmask, [('output_image', 'op1')]),
@@ -294,12 +309,10 @@ def init_brain_extraction_wf(tpl_target_path,
         (apply_mask, copy_xform, [('out_file', 'out_file')]),
         (inu_n4_final, copy_xform, [('output_image', 'bias_corrected'),
                                     ('bias_image', 'bias_image')]),
-        (copy_xform, outputnode, [
-            ('out_file', 'out_file'),
-            ('out_mask', 'out_mask'),
-            ('bias_corrected', 'bias_corrected'),
-            ('bias_image', 'bias_image')]),
-    ])
+        (copy_xform, outputnode, [('out_file', 'out_file'),
+                                  ('out_mask', 'out_mask'),
+                                  ('bias_corrected', 'bias_corrected'),
+                                  ('bias_image', 'bias_image')])])
 
     if use_laplacian:
         lap_tmpl = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
@@ -311,29 +324,28 @@ def init_brain_extraction_wf(tpl_target_path,
         mrg_tmpl.inputs.in1 = tpl_target_path
         mrg_target = pe.Node(niu.Merge(2), name='mrg_target')
         wf.connect([
-            (inu_n4, lap_target, [
-                (('output_image', _pop), 'op1')]),
+            (inu_n4, lap_target, [(('output_image', _pop), 'op1')]),
             (lap_tmpl, mrg_tmpl, [('output_image', 'in2')]),
             (inu_n4, mrg_target, [('output_image', 'in1')]),
-            (lap_target, mrg_target, [('output_image', 'in2')]),
-            (mrg_tmpl, norm, [('out', 'fixed_image')]),
-            (mrg_target, norm, [('out', 'moving_image')]),
-        ])
+            (lap_target, mrg_target, [('output_image', 'in2')])])
+        wf.connect_retries(norm_nodes, [(mrg_tmpl, 'out', 'fixed_image'),
+                                        (mrg_target, 'out', 'moving_image')])
+        wf.connect_retries(norm_guardrails, [(mrg_tmpl, 'out', 'reference')])
     else:
-        norm.inputs.fixed_image = tpl_target_path
-        wf.connect([
-            (inu_n4, norm, [
-                (('output_image', _pop), 'moving_image')]),
-        ])
+        for i, node in enumerate(norm_nodes):
+            node.inputs.fixed_image = tpl_target_path
+            norm_guardrails[i].inputs.reference = tpl_target_path
+        wf.connect_retries(norm_nodes, [
+            (inu_n4, ('output_image', _pop), 'moving_image')])
 
     if atropos_refine:
-        atropos_model = atropos_model or list(ATROPOS_MODELS[bids_suffix].values())
+        atropos_model = atropos_model or list(
+            ATROPOS_MODELS[bids_suffix].values())
         atropos_wf = init_atropos_wf(
             use_random_seed=atropos_use_random_seed,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb,
-            in_segmentation_model=atropos_model,
-        )
+            in_segmentation_model=atropos_model)
         sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1),
                          name='sel_wm',
                          run_without_submitting=True,
@@ -343,24 +355,19 @@ def init_brain_extraction_wf(tpl_target_path,
 
         wf.disconnect([
             (get_brainmask, apply_mask, [('output_image', 'mask_file')]),
-            (copy_xform, outputnode, [('out_mask', 'out_mask')]),
-        ])
+            (copy_xform, outputnode, [('out_mask', 'out_mask')])])
         wf.connect([
-            (inu_n4, atropos_wf, [
-                ('output_image', 'inputnode.in_files')]),
+            (inu_n4, atropos_wf, [('output_image', 'inputnode.in_files')]),
             (thr_brainmask, atropos_wf, [
                 ('output_image', 'inputnode.in_mask')]),
             (get_brainmask, atropos_wf, [
                 ('output_image', 'inputnode.in_mask_dilated')]),
             (atropos_wf, sel_wm, [('outputnode.out_tpms', 'inlist')]),
             (sel_wm, inu_n4_final, [('out', 'weight_image')]),
-            (atropos_wf, apply_mask, [
-                ('outputnode.out_mask', 'mask_file')]),
-            (atropos_wf, outputnode, [
-                ('outputnode.out_mask', 'out_mask'),
-                ('outputnode.out_segm', 'out_segm'),
-                ('outputnode.out_tpms', 'out_tpms')]),
-        ])
+            (atropos_wf, apply_mask, [('outputnode.out_mask', 'mask_file')]),
+            (atropos_wf, outputnode, [('outputnode.out_mask', 'out_mask'),
+                                      ('outputnode.out_segm', 'out_segm'),
+                                      ('outputnode.out_tpms', 'out_tpms')])])
     return wf
 
 
