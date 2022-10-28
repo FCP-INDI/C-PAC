@@ -349,7 +349,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
                 "pe-direction"],
      "outputs": ["sbref",
                  "space-bold_desc-brain_mask",
-                 "blip-warp"]}
+                 "ants-blip-warp"]}
     '''
 
     match_epi_imports = ['import json']
@@ -476,7 +476,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(undistort_func_mean, 'output_image', remask, 'in_file')
 
     outputs = {
-        'blip-warp': (convert_afni_warp, 'ants_warp'),
+        'ants-blip-warp': (convert_afni_warp, 'ants_warp'),
         #'inv-blip-warp': None,  # TODO
         'sbref': (undistort_func_mean, 'output_image'),
         'space-bold_desc-brain_mask': (remask, 'out_file')
@@ -510,7 +510,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
                 "epi-2-total-readout"],
      "outputs": ["sbref",
                  "space-bold_desc-brain_mask",
-                 "blip-warp"]}
+                 "fsl-blip-warp"]}
     '''
 
     # TODO: re-integrate gradient distortion coefficient usage at a later date
@@ -850,7 +850,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'sbref': (mul_jac, 'out_file'),
         'space-bold_desc-brain_mask': (bet, 'out_file'),
-        'blip-warp': (convert_warp, 'out_file')
+        'fsl-blip-warp': (convert_warp, 'out_file')
     }
 
     return (wf, outputs)

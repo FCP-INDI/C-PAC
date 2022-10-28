@@ -1794,7 +1794,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     return (wf, outputs)
 
 
-def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
+def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False,
+                                     blip=False):
 
     wf = pe.Workflow(name=wf_name)
 
@@ -1804,7 +1805,8 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
                                        'coreg_xfm',
                                        'T1w-brain-template_funcreg',
                                        'T1w_to_template_xfm',
-                                       'template_to_T1w_xfm']),
+                                       'template_to_T1w_xfm',
+                                       'blip_warp']),
         name='inputspec')
 
     sym = ''
@@ -1856,11 +1858,18 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
             cfg.registration_workflows['anatomical_registration'][
                 'registration']['ANTs']['interpolation']
 
-        collect_all_transforms = pe.Node(util.Merge(2),
-                                         name=f'collect_all_transforms')
+        if not blip:
+            collect_all_transforms = pe.Node(util.Merge(2),
+                                             name='collect_all_transforms')
+        else:
+            collect_all_transforms = pe.Node(util.Merge(3),
+                                             name='collect_all_transforms')
+
+            wf.connect(inputNode, 'blip_warp',
+                       collect_all_transforms, 'in3')
 
         wf.connect(inputNode, 'T1w_to_template_xfm',
-                   collect_all_transforms, 'in1')
+                  collect_all_transforms, 'in1')
 
         wf.connect(change_transform, 'updated_affine_file',
                    collect_all_transforms, 'in2')
@@ -1916,10 +1925,18 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
         wf.connect(inputNode, 'T1w-brain-template_funcreg',
                    write_composite_xfm, 'reference')
 
-        wf.connect(inputNode, 'coreg_xfm', write_composite_xfm, 'premat')
-
-        wf.connect(inputNode, 'T1w_to_template_xfm',
-                   write_composite_xfm, 'warp1')
+        if blip:
+            wf.connect(inputNode, 'coreg_xfm', 
+                       write_composite_xfm, 'postmat')
+            wf.connect(inputNode, 'blip_warp', 
+                       write_composite_xfm, 'warp1')
+            wf.connect(inputNode, 'T1w_to_template_xfm', 
+                       write_composite_xfm, 'warp2')
+        else:
+            wf.connect(inputNode, 'coreg_xfm', 
+                       write_composite_xfm, 'premat')
+            wf.connect(inputNode, 'T1w_to_template_xfm',
+                       write_composite_xfm, 'warp1')
 
         outputs = {
             f'from-bold_to-{sym}template_mode-image_xfm':
@@ -2935,7 +2952,9 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
      "inputs": [("sbref",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "ants-blip-warp",
+                 "fsl-blip-warp"),
                 ("from-T1w_to-template_mode-image_xfm",
                  "from-template_to-T1w_mode-image_xfm",
                  "desc-brain_T1w"),
@@ -2973,6 +2992,21 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     if strat_pool.check_rpool('from-template_to-T1w_mode-image_xfm'):
         node, out = strat_pool.get_data('from-template_to-T1w_mode-image_xfm')
         wf.connect(node, out, xfm, 'inputspec.template_to_T1w_xfm')
+
+    if strat_pool.check_rpool('ants-blip-warp'):
+        if reg_tool == 'ants':
+            node, out = strat_pool.get_data('ants-blip-warp')
+            wf.connect(node, out, xfm, 'inputspec.blip_warp')
+        elif reg_tool == 'fsl':
+            # apply the ants blip warp separately
+            pass
+    elif strat_pool.check_rpool('fsl-blip-warp'):
+        if reg_tool == 'fsl':
+            node, out = strat_pool.get_data('fsl-blip-warp')
+            wf.connect(node, out, xfm, 'inputspec.blip_warp')
+        elif reg_tool == 'ants':
+            # apply the fsl blip warp separately
+            pass
 
     return (wf, outputs)
 
@@ -3031,6 +3065,77 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
         wf.connect(node, out, xfm, 'inputspec.template_to_T1w_xfm')
 
     return (wf, outputs)
+
+
+def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, 
+                                        opt=None):
+    '''
+    Node Block:
+    {"name": "apply_blip_to_timeseries_separately",
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                 "func_registration_to_template", "run"],
+                ["functional_preproc", "distortion_correction", "run"]],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("sbref",
+                 "desc-preproc_bold",
+                 "from-bold_to-template_mode-image_xfm",
+                 "ants-blip-warp",
+                 "fsl-blip-warp")],
+     "outputs": ["desc-preproc_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    if strat_pool.check_rpool("ants-blip-warp"):
+        if reg_tool == 'fsl':
+            blip_node, blip_out = strat_pool.get_data("ants-blip-warp")
+        else:
+            outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
+            return (wf, outputs)
+    elif strat_pool.check_rpool("fsl-blip-warp"):
+        if reg_tool == 'ants':
+            blip_node, blip_out = strat_pool.get_data("fsl-blip-warp")
+        else:
+            outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
+            return (wf, outputs)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_ts_to_blip_sep_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    connect = strat_pool.get_data("desc-preproc_bold")
+    node, out = connect
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("sbref")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    wf.connect(blip_node, blip_out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'desc-preproc_bold': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
 
 
 def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3102,7 +3207,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-T1w_to-template_mode-image_xfm",
                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
                 "from-bold_to-template_mode-image_xfm",
-                "blip-warp",
+                "fsl-blip-warp",
                 "desc-preproc_T1w",
                 "space-template_res-bold_desc-brain_T1w",
                 "space-template_desc-bold_mask",
@@ -3126,11 +3231,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, convert_func_to_anat_linear_warp, 'reference')
     
-    if strat_pool.check_rpool('blip-warp'):
+    if strat_pool.check_rpool('fsl-blip-warp'):
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'postmat')
 
-        node, out = strat_pool.get_data('blip-warp')
+        node, out = strat_pool.get_data('fsl-blip-warp')
         wf.connect(node, out, convert_func_to_anat_linear_warp, 'warp1')
     else:
         node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
