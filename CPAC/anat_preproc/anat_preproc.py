@@ -96,11 +96,9 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
                               name='anat_acpc_2_fov_convertxfm')
     convert_fov_xfm.inputs.invert_xfm = True
 
-    preproc.connect(fov, fov_mtx,
-                    convert_fov_xfm, 'in_file')
+    preproc.connect(fov, fov_mtx, convert_fov_xfm, 'in_file')
 
-    align = pe.Node(interface=fsl.FLIRT(),
-                    name='anat_acpc_3_flirt')
+    align = pe.Node(interface=fsl.FLIRT(), name='anat_acpc_3_flirt')
     align.inputs.interp = 'spline'
     align.inputs.searchr_x = [30, 30]
     align.inputs.searchr_y = [30, 30]

@@ -20,21 +20,19 @@ import os
 import subprocess
 
 import nibabel as nb
-
+# pylint: disable=ungrouped-imports,wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from nipype.interfaces import afni, fsl
-import nipype.interfaces.utility as util
-import nipype.interfaces.ants as ants
-import nipype.interfaces.afni.preprocess as preprocess
-import nipype.interfaces.afni.utils as afni_utils
+from nipype.interfaces import afni, ants, fsl, utility as util
+from nipype.interfaces.afni import preprocess, utils as afni_utils
 
-from CPAC.pipeline.engine import wrap_block
+# from CPAC.pipeline.engine import wrap_block
+from CPAC.registration.guardrails import guardrail_selection
 
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.datasource import match_epi_fmaps
 
-from CPAC.func_preproc.func_preproc import bold_mask_afni, bold_masking
+# from CPAC.func_preproc.func_preproc import bold_mask_afni, bold_masking
 
 from CPAC.distortion_correction.utils import run_convertwarp, \
                                              phase_encode, \
@@ -398,17 +396,22 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_edge_detect.inputs.expr = 'a*b'
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
- 
-    wf.connect(match_epi_fmaps_node, 'opposite_pe_epi', func_edge_detect, 'in_file_a')
+
+    wf.connect(match_epi_fmaps_node, 'opposite_pe_epi',
+               func_edge_detect, 'in_file_a')
     wf.connect(func_get_brain_mask, 'out_file', func_edge_detect, 'in_file_b')
 
-    opp_pe_to_func = pe.Node(interface=fsl.FLIRT(), name='opp_pe_to_func')
-    opp_pe_to_func.inputs.cost = 'corratio'
- 
-    wf.connect(func_edge_detect, 'out_file',  opp_pe_to_func, 'in_file')
+    _opp_pe_to_func = pe.Node(interface=fsl.FLIRT(), name='opp_pe_to_func')
+    _opp_pe_to_func.inputs.cost = 'corratio'
+    optf_nodes, optf_guardrails = wf.nodes_and_guardrails(
+        _opp_pe_to_func, registered='out_file')
 
     node, out = strat_pool.get_data('desc-mean_bold')
-    wf.connect(node, out, opp_pe_to_func, 'reference')
+    wf.connect_retries(optf_nodes, [(func_edge_detect, 'out_file', 'in_file'),
+                                    (node, out, 'reference')])
+    wf.connect_retries(optf_guardrails, [
+        (node, out, 'reference')])
+    opp_pe_to_func = guardrail_selection(wf, *optf_guardrails)
 
     prep_qwarp_input_imports = ['import os', 'import subprocess']
     prep_qwarp_input = \
@@ -433,7 +436,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
         imports=calculate_blip_warp_imports),
                              name='calc_blip_warp')
 
-    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'opp_pe')
+    wf.connect(opp_pe_to_func, 'out', calc_blip_warp, 'opp_pe')
     wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'same_pe')
 
     convert_afni_warp_imports = ['import os', 'import nibabel as nb']

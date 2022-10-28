@@ -280,10 +280,10 @@ def init_brain_extraction_wf(tpl_target_path,
         (res_tmpl, 'output_image', 'fixed_image'),
         (res_target, 'output_image', 'moving_image')])
     for i, node in enumerate(norm_nodes):
-        wf.connect(init_aff_nodes[i], node, [
-            ('output_transform', 'initial_moving_transform')])
+        wf.connect(init_aff_nodes[i], 'output_transform',
+                   node, 'initial_moving_transform')
     wf.connect_retries(norm_nodes, [
-        (inputnode, norm, 'in_mask', fixed_mask_trait)])
+        (inputnode, 'in_mask', fixed_mask_trait)])
     norm_rtransforms = guardrail_selection(wf, *norm_nodes,
                                            'reverse_transforms',
                                            norm_guardrails[0])
