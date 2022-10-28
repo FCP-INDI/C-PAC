@@ -1,5 +1,5 @@
 # using neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free
+FROM neurodebian:bionic-non-free as MSM
 
 ARG DEBIAN_FRONTEND=noninteractive
 

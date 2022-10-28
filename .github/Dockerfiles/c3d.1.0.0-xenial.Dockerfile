@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as c3d
 USER root
 
 # Installing and setting up c3d
