@@ -2062,7 +2062,6 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-bold_desc-brain_mask",
                 "desc-ROIbrain_bold"]}
     '''
-
     # Run 3dAutomask to generate func initial mask
     func_tmp_brain_mask = pe.Node(interface=preprocess.Automask(),
                                   name=f'func_tmp_brain_mask_AFNI_{pipe_num}')
@@ -2080,7 +2079,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     func_roi.inputs.t_min = 7
     func_roi.inputs.t_size = 1
 
-    node, out = strat_pool.get_data(["desc-motion_bold", 
+    node, out = strat_pool.get_data(["desc-motion_bold",
                                      "desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, func_roi, 'in_file')
@@ -2102,49 +2101,56 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_func_to_anat.inputs.cost = 'corratio'
     reg_func_to_anat.inputs.dof = 6
 
-    wf.connect(func_tmp_brain, 'out_file',
-               reg_func_to_anat, 'in_file')
+    func_to_anat_nodes, func_to_anat_guardrails = wf.nodes_and_guardrails(
+        reg_func_to_anat, registered='out_file')
 
     node, out = strat_pool.get_data("desc-brain_T1w")
-    wf.connect(node, out, reg_func_to_anat, 'reference')
+    wf.connect_retries(func_to_anat_nodes, [
+        (func_tmp_brain, 'out_file', 'in_file'),
+        (node, out, 'reference')])
+    wf.connect_retries(func_to_anat_guardrails, [(node, out, 'reference')])
+    func_to_anat_matrix = guardrail_selection(wf, *func_to_anat_nodes,
+                                              'out_matrix_file',
+                                              func_to_anat_guardrails[0])
 
     # Inverse func2anat matrix
     inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
                                       name=f'inv_func2anat_affine_{pipe_num}')
     inv_func_to_anat_affine.inputs.invert_xfm = True
 
-    wf.connect(reg_func_to_anat, 'out_matrix_file',
-               inv_func_to_anat_affine, 'in_file')
+    wf.connect(func_to_anat_matrix, 'out', inv_func_to_anat_affine, 'in_file')
 
     # Transform anat brain to func space
     reg_anat_brain_to_func = pe.Node(interface=fsl.FLIRT(),
                                      name=f'reg_anat_brain_to_func_{pipe_num}')
     reg_anat_brain_to_func.inputs.apply_xfm = True
     reg_anat_brain_to_func.inputs.interp = 'trilinear'
+    (anat_brain_to_func_nodes,
+     anat_brain_to_func_guardrails) = wf.nodes_and_guardrails(
+        reg_anat_brain_to_func, registered='out_file')
 
     node, out = strat_pool.get_data("desc-brain_T1w")
-    wf.connect(node, out, reg_anat_brain_to_func, 'in_file')
-
-    wf.connect(func_roi, 'roi_file',
-               reg_anat_brain_to_func, 'reference')
-
-    wf.connect(inv_func_to_anat_affine, 'out_file',
-               reg_anat_brain_to_func, 'in_matrix_file')
+    wf.connect_retries(anat_brain_to_func_nodes, [
+        (node, out, 'in_file'),
+        (func_roi, 'roi_file', 'reference'),
+        (inv_func_to_anat_affine, 'out_file', 'in_matrix_file')])
+    wf.connect_retries(anat_brain_to_func_guardrails, [
+        (func_roi, 'roi_file', 'reference')])
+    anat_brain_to_func = guardrail_selection(wf,
+                                             *anat_brain_to_func_guardrails)
 
     # Binarize and dilate anat brain in func space
     bin_anat_brain_in_func = pe.Node(interface=fsl.ImageMaths(),
                                      name=f'bin_anat_brain_in_func_{pipe_num}')
     bin_anat_brain_in_func.inputs.op_string = '-bin -dilM'
 
-    wf.connect(reg_anat_brain_to_func, 'out_file', 
-               bin_anat_brain_in_func, 'in_file')
+    wf.connect(anat_brain_to_func, 'out', bin_anat_brain_in_func, 'in_file')
 
     # Binarize detectable func signals
-    bin_func = pe.Node(interface=fsl.ImageMaths(),
-                                     name=f'bin_func_{pipe_num}')
+    bin_func = pe.Node(interface=fsl.ImageMaths(), name=f'bin_func_{pipe_num}')
     bin_func.inputs.op_string = '-Tstd -bin'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", 
+    node, out = strat_pool.get_data(["desc-motion_bold",
                                      "desc-preproc_bold",
                                      "bold"])
     wf.connect(node, out, bin_func, 'in_file')
@@ -2164,22 +2170,16 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     intersect_mask.inputs.op_string = '-mul %s -mul %s'
     intersect_mask.inputs.output_datatype = 'char'
 
-    wf.connect(bin_func, 'out_file', 
-               intersect_mask, 'in_file')
-
-    wf.connect(merge_func_mask, 'out', 
-               intersect_mask, 'operand_files')
+    wf.connect(bin_func, 'out_file', intersect_mask, 'in_file')
+    wf.connect(merge_func_mask, 'out', intersect_mask, 'operand_files')
 
     # this is the func input for coreg in ccs
     # TODO evaluate if it's necessary to use this brain
     example_func_brain = pe.Node(interface=fsl.maths.ApplyMask(),
                                  name=f'get_example_func_brain_{pipe_num}')
 
-    wf.connect(func_roi, 'roi_file',
-               example_func_brain, 'in_file')
-
-    wf.connect(intersect_mask, 'out_file',
-               example_func_brain, 'mask_file')
+    wf.connect(func_roi, 'roi_file', example_func_brain, 'in_file')
+    wf.connect(intersect_mask, 'out_file', example_func_brain, 'mask_file')
 
     outputs = {
         'space-bold_desc-brain_mask': (intersect_mask, 'out_file'),
