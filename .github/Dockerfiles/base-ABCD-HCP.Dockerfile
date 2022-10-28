@@ -11,6 +11,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Software dependencies version-matched to `ABCD-HCP BIDS fMRI Pipeline <https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile>`_"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # allow users to update / create themselves

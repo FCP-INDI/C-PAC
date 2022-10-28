@@ -6,6 +6,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard and lite images"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench & FSL

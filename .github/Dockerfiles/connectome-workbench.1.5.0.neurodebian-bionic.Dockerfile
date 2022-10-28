@@ -14,6 +14,7 @@ USER c-pac_user
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 connectome-workbench 1.5.0 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=base /lib64/ld-linux-x86-64.so.2 /lib64/
 COPY --from=base /usr/bin/wb_* /usr/bin/
 COPY --from=base /lib/x86_64-linux-gnu/ld-* /lib/x86_64-linux-gnu/

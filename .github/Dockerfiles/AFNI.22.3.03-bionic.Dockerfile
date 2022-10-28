@@ -1,6 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-AFNI 22.3.03 (Lucius Verus) stage"
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as AFNI
 USER root
 
 # install AFNI
@@ -49,5 +47,12 @@ RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# set user
-USER c-pac_user
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+AFNI 22.3.03 (Lucius Verus) stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib64/ld* /lib64/
+COPY --from=AFNI /opt/afni/ /opt/afni/
+COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
