@@ -1253,25 +1253,36 @@ def mask_T2(wf_name='mask_T2'):
     # t1w2t2w_rigid = 'flirt -dof 6 -cost mutualinfo -in {t1w} -ref {t2w} ' \
     #                     '-omat {t1w2t2w}'.format(**kwargs)
 
-    t1w2t2w_rigid = pe.Node(interface=fsl.FLIRT(),
-                            name='t1w2t2w_rigid')
-
+    t1w2t2w_rigid = pe.Node(interface=fsl.FLIRT(), name='t1w2t2w_rigid')
     t1w2t2w_rigid.inputs.dof = 6
     t1w2t2w_rigid.inputs.cost = 'mutualinfo'
-    preproc.connect(inputnode, 'T1w', t1w2t2w_rigid, 'in_file')
-    preproc.connect(inputnode, 'T2w', t1w2t2w_rigid, 'reference')
+    rigid_nodes, rigid_guardrails = preproc.nodes_and_guardrails(
+        t1w2t2w_rigid, registered='out_file')
+    preproc.connect_retries(rigid_nodes, [
+        (inputnode, 'T1w', 'in_file'),
+        (inputnode, 'T2w', 'reference')])
+    preproc.connect_retries(rigid_guardrails, [
+        (inputnode, 'T2w', 'reference')])
+    rigid_matrix = guardrail_selection(preproc, *rigid_nodes,
+                                       'out_matrix_file', rigid_guardrails[0])
 
     # t1w2t2w_mask = 'flirt -in {t1w_mask_edit} -interp nearestneighbour -ref {' \
     #                 't2w} -o {t2w_brain_mask} -applyxfm -init {' \
     #                 't1w2t2w}'.format(**kwargs)
-    t1w2t2w_mask = pe.Node(interface=fsl.FLIRT(),
-                                    name='t1w2t2w_mask')
+    t1w2t2w_mask = pe.Node(interface=fsl.FLIRT(), name='t1w2t2w_mask')
     t1w2t2w_mask.inputs.apply_xfm = True
     t1w2t2w_mask.inputs.interp = 'nearestneighbour'
+    mask_nodes, mask_guardrails = preproc.nodes_and_guardrails(
+        t1w2t2w_mask, registered='out_file')
 
-    preproc.connect(inputnode, 'T1w_mask', t1w2t2w_mask, 'in_file')
-    preproc.connect(inputnode, 'T2w', t1w2t2w_mask, 'reference')
-    preproc.connect(t1w2t2w_rigid, 'out_matrix_file', t1w2t2w_mask, 'in_matrix_file')
+    preproc.connect_retries(mask_nodes, [
+        (inputnode, 'T1w_mask', 'in_file'),
+        (inputnode, 'T2w', 'reference'),
+        (rigid_matrix, 'out', 'in_matrix_file')])
+    preproc.connect_retries(mask_guardrails, [
+        (inputnode, 'T2w', 'reference')])
+    # pylint: disable=no-value-for-parameter
+    select_mask = guardrail_selection(preproc, *mask_guardrails)
 
     # mask_t2w = 'fslmaths {t2w} -mas {t2w_brain_mask} ' \
     #         '{t2w_brain}'.format(**kwargs)
@@ -1280,11 +1291,10 @@ def mask_T2(wf_name='mask_T2'):
     mask_t2w.inputs.op_string = "-mas %s "
 
     preproc.connect(inputnode, 'T2w', mask_t2w, 'in_file')
-    preproc.connect(t1w2t2w_mask, 'out_file', mask_t2w, 'operand_files')
-
+    preproc.connect(select_mask, 'out', mask_t2w, 'operand_files')
     preproc.connect(mask_t1w, 'out_file', outputnode, 'T1w_brain')
     preproc.connect(mask_t2w, 'out_file', outputnode, 'T2w_brain')
-    preproc.connect(t1w2t2w_mask, 'out_file', outputnode, 'T2w_mask')
+    preproc.connect(select_mask, 'out', outputnode, 'T2w_mask')
 
     return preproc
 
