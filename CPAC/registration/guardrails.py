@@ -16,21 +16,15 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Guardrails to protect against bad registrations"""
 import logging
-from typing import Tuple, Union
-from copy import deepcopy
-from nipype.interfaces.ants import Registration
-from nipype.interfaces.fsl import FLIRT
+from typing import Tuple
 from nipype.interfaces.utility import Function, Merge, Select
+# pylint: disable=unused-import
 from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 from CPAC.pipeline.random_state.seed import increment_seed
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
 from CPAC.registration.exceptions import BadRegistrationError
 from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.docs import retry_docstring
-
-_SPEC_KEYS = {
-    FLIRT: {'reference': 'reference', 'registered': 'out_file'},
-    Registration: {'reference': 'reference', 'registered': 'out_file'}}
 
 
 def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
@@ -164,39 +158,6 @@ def registration_guardrail_node(name=None, retry_num=0):
     return node
 
 
-def registration_guardrail_workflow(registration_node, retry=True):
-    """A workflow to handle hitting a registration guardrail
-
-    Parameters
-    ----------
-    name : str
-
-    registration_node : Node
-
-    retry : bool, optional
-
-    Returns
-    -------
-    Workflow
-    """
-    name = f'{registration_node.name}_guardrail'
-    wf = Workflow(name=f'{name}_wf')
-    outputspec = deepcopy(registration_node.outputs)
-    guardrail = registration_guardrail_node(name)
-    outkey = spec_key(registration_node, 'registered')
-    wf.connect([
-        (registration_node, guardrail, [
-            (spec_key(registration_node, 'reference'), 'reference')]),
-        (registration_node, guardrail, [(outkey, 'registered')])])
-    if retry:
-        wf = retry_registration(wf, registration_node,
-                                guardrail.outputs.registered)[0]
-    else:
-        wf.connect(guardrail, 'registered', outputspec, outkey)
-        # connect_from_spec(outputspec, registration_node, outkey)
-    return wf
-
-
 def retry_clone(node: 'Node') -> 'Node':
     """Function to clone a node, name the clone, and increment its
     random seed
@@ -212,42 +173,7 @@ def retry_clone(node: 'Node') -> 'Node':
     return increment_seed(node.clone(f'retry_{node.name}'))
 
 
-def retry_registration(wf, registration_node, registered):
-    """Function conditionally retry registration if previous attempt failed
-
-    Parameters
-    ----------
-    wf : Workflow
-
-    registration_node : Node
-
-    registered : str
-
-    Returns
-    -------
-    Workflow
-
-    Node
-    """
-    name = f'retry_{registration_node.name}'
-    retry_node = Node(Function(function=retry_registration_node,
-                               inputs=['registered', 'registration_node'],
-                               outputs=['registered']), name=name)
-    retry_node.inputs.registration_node = registration_node
-    inputspec = registration_node.inputs
-    outputspec = registration_node.outputs
-    outkey = spec_key(registration_node, 'registered')
-    guardrail = registration_guardrail_node(f'{name}_guardrail')
-    # connect_from_spec(inputspec, retry_node)
-    wf.connect([
-        (inputspec, guardrail, [
-            (spec_key(retry_node, 'reference'), 'reference')]),
-        (retry_node, guardrail, [(outkey, 'registered')]),
-        (guardrail, outputspec, [('registered', outkey)])])
-    # connect_from_spec(retry_node, outputspec, registered)
-    return wf, retry_node
-
-
+# pylint: disable=missing-function-docstring,too-many-arguments
 @retry_docstring(hardcoded_reg)
 def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
                         reference_skull, ants_para, moving_mask=None,
@@ -259,42 +185,3 @@ def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
                          reference_skull, ants_para, moving_mask,
                          reference_mask, fixed_image_mask, interp,
                          reg_with_skull)
-
-
-def retry_registration_node(registered, registration_node):
-    """Retry registration if previous attempt failed
-
-    Parameters
-    ----------
-    registered : str
-
-    registration_node : Node
-
-    Returns
-    -------
-    Node
-    """
-    from CPAC.pipeline.random_state.seed import increment_seed
-    if registered.endswith('-failed'):
-        retry_node = increment_seed(registration_node.clone(
-            name=f'{registration_node.name}-retry'))
-        return retry_node
-    return registration_node
-
-
-def spec_key(interface, guardrail_key):
-    """Function to get the canonical key to connect to a guardrail
-
-    Parameters
-    ----------
-    interface : Interface or Node
-
-    guardrail_key : str
-
-    Returns
-    -------
-    str
-    """
-    if isinstance(interface, Node):
-        interface = interface.interface
-    return _SPEC_KEYS.get(interface, {}).get(guardrail_key, guardrail_key)
