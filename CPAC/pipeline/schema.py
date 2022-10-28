@@ -25,6 +25,7 @@ from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, Equal, \
 from CPAC import docs_prefix
 from CPAC.pipeline.random_state.seed import MAX_SEED
 from CPAC.utils.datatypes import ListFromItem
+from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
@@ -37,6 +38,30 @@ resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
+
+
+def str_to_bool1_1(x):  # pylint: disable=invalid-name
+    '''Convert strings to Booleans for YAML1.1 syntax
+    Ref https://yaml.org/type/bool.html
+    Parameters
+    ----------
+    x : any
+    Returns
+    -------
+    bool
+    '''
+    if isinstance(x, str):
+        try:
+            x = float(x)
+            if x == 0:
+                return False
+        except ValueError:
+            pass
+        x = (True if str(x).lower() in YAML_BOOLS[True] else
+             False if str(x).lower() in YAML_BOOLS[False] else x)
+    return bool(x)
+
+
 forkable = All(Coerce(ListFromItem), [bool], Length(max=2))
 valid_options = {
     'acpc': {
@@ -244,6 +269,7 @@ latest_schema = Schema({
             'path': Maybe(str),
         },
         'system_config': {
+            'fail_fast': bool,
             'FSLDIR': Maybe(str),
             'on_grid': {
                 'run': bool,

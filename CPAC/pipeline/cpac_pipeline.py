@@ -278,9 +278,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         },
         'execution': {
             'crashfile_format': 'txt',
-            'resource_monitor_frequency': 0.2
-        }
-    })
+            'resource_monitor_frequency': 0.2,
+            'stop_on_first_crash': c['pipeline_setup', 'system_config',
+                                     'fail_fast']}})
 
     config.enable_resource_monitor()
     logging.update_logging(config)

@@ -28,6 +28,7 @@ import yaml
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
+from CPAC.pipeline.schema import str_to_bool1_1
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
@@ -252,6 +253,8 @@ def run_main():
                         help='Disable file logging, this is useful for '
                              'clusters that have disabled file locking.',
                         default=False)
+    parser.add_argument('--fail_fast', type=str.title,
+                        help='# Stop worklow execution on first crash?')
 
     parser.add_argument('--participant_label',
                         help='The label of the participant that should be '
@@ -612,6 +615,9 @@ def run_main():
                         'Either change the output directory to something '
                         'local or turn off the --save_working_dir flag',
                         category=UserWarning)
+        if args.fail_fast is not None:
+            c['pipeline_setup', 'system_config',
+              'fail_fast'] = str_to_bool1_1(args.fail_fast)
 
         if c['pipeline_setup']['output_directory']['quality_control'][
                 'generate_xcpqc_files']:

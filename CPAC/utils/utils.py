@@ -36,6 +36,8 @@ NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
     CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r'))
 NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
     CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
+YAML_BOOLS = {True: ('on', 't', 'true', 'y', 'yes'),
+              False: ('f', 'false', 'n', 'no', 'off')}
 
 
 def get_last_prov_entry(prov):

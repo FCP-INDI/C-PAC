@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to use TotalReadoutTime of epi field maps in the calculation of FSL topup distortion correction.
 - Added ability to set minimum quality measure thresholds to all registration steps
 - Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
+- Added ``fail_fast`` configuration setting and CLI flag
 
 ### Changed
 - Added a level of depth to `working` directories to match `log` and `output` directory structure

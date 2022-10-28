@@ -98,6 +98,8 @@ pipeline_setup:
     path: /outputs/crash
 
   system_config:
+    # Stop worklow execution on first crash?
+    fail_fast: Off
 
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.

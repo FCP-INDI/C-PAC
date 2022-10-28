@@ -11,7 +11,7 @@ pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: cpac-blank-template
-  
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
@@ -80,6 +80,7 @@ pipeline_setup:
     path: /output/crash
 
   system_config:
+    fail_fast: Off
 
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
