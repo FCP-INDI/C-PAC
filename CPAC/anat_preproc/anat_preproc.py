@@ -1506,11 +1506,12 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
-        'space-T1w_desc-brain_mask': (acpc_align, 'outputspec.acpc_brain_mask'),
-        'space-T1w_desc-prebrain_mask': (strat_pool.get_data('space-T1w_desc-brain_mask'))
-    }
+        'space-T1w_desc-brain_mask': (acpc_align,
+                                      'outputspec.acpc_brain_mask'),
+        'space-T1w_desc-prebrain_mask': (
+            strat_pool.get_data('space-T1w_desc-brain_mask'))}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1543,11 +1544,9 @@ def registration_T2w_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data(['desc-acpcbrain_T2w'])
     wf.connect(node, out, T2_to_T1_reg, 'inputspec.T2w_brain')
 
-    outputs = {
-        'desc-preproc_T2w': (T2_to_T1_reg, 'outputspec.T2w_to_T1w')
-    }
+    outputs = {'desc-preproc_T2w': (T2_to_T1_reg, 'outputspec.T2w_to_T1w')}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2799,13 +2798,13 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
-                                                       'template-ref-mask-res-2',
-                                                       'template_skull_for_anat',
-                                                       'template_skull_for_anat_2mm',
-                                                       'template_brain_mask_for_anat']), 
-                        name='inputspec')
-    
+    inputnode = pe.Node(util.IdentityInterface(
+        fields=['anat_data',
+                'template-ref-mask-res-2',
+                'template_skull_for_anat',
+                'template_skull_for_anat_2mm',
+                'template_brain_mask_for_anat']), name='inputspec')
+
     outputnode = pe.Node(util.IdentityInterface(fields=['anat_brain',
                                                         'anat_brain_mask']),
                          name='outputspec')
@@ -2818,12 +2817,17 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     linear_reg.inputs.dof = 12
     linear_reg.inputs.interp = 'spline'
     linear_reg.inputs.no_search = True
+    lreg_nodes, lreg_guardrails = preproc.nodes_and_guardrails(
+        linear_reg, registered='out_file')
 
-    preproc.connect(inputnode, 'anat_data',
-                    linear_reg, 'in_file')
-
-    preproc.connect(inputnode, 'template_skull_for_anat_2mm',
-                    linear_reg, 'reference')
+    preproc.connect_retries(lreg_nodes, [
+        (inputnode, 'anat_data', 'in_file'),
+        (inputnode, 'template_skull_for_anat_2mm', 'reference')])
+    preproc.connect_retries(lreg_guardrails, [
+        (inputnode, 'template_skull_for_anat_2mm', 'reference')])
+    linear_reg_matrix = guardrail_selection(preproc, *lreg_nodes,
+                                            'out_matrix_file',
+                                            lreg_guardrails[0])
 
     # non-linear registration to 2mm reference
     # fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" \
@@ -2831,9 +2835,7 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     # --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz \
     # --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz \
     # --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
-    non_linear_reg = pe.Node(interface=fsl.FNIRT(),
-                         name='non_linear_reg')
-
+    non_linear_reg = pe.Node(interface=fsl.FNIRT(), name='non_linear_reg')
     non_linear_reg.inputs.field_file = True # --fout
     non_linear_reg.inputs.jacobian_file = True # --jout
     non_linear_reg.inputs.modulatedref_file = True # --refout
@@ -2843,36 +2845,30 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
     non_linear_reg.inputs.fieldcoeff_file = True # --cout
     non_linear_reg.inputs.config_file = config.registration_workflows[
         'anatomical_registration']['registration']['FSL-FNIRT']['fnirt_config']
+    nlreg_nodes, nlreg_guardrails = preproc.nodes_and_guardrails(
+        non_linear_reg, registered='warped_file')
 
-    preproc.connect(inputnode, 'anat_data',
-                    non_linear_reg, 'in_file')
-
-    preproc.connect(inputnode, 'template_skull_for_anat_2mm',
-                    non_linear_reg, 'ref_file')
-
-    preproc.connect(linear_reg, 'out_matrix_file',
-                    non_linear_reg, 'affine_file')
-
-    preproc.connect(inputnode, 'template-ref-mask-res-2',
-                    non_linear_reg, 'refmask_file')
+    preproc.connect_retries(nlreg_nodes, [
+        (inputnode, 'anat_data', 'in_file'),
+        (inputnode, 'template_skull_for_anat_2mm', 'ref_file'),
+        (linear_reg_matrix, 'out', 'affine_file'),
+        (inputnode, 'template-ref-mask-res-2', 'refmask_file')])
+    preproc.connect_retries(nlreg_guardrails, [
+        (inputnode, 'template_skull_for_anat_2mm', 'reference')])
+    field_file = guardrail_selection(preproc, *nlreg_nodes, 'field_file',
+                                     nlreg_guardrails[0])
 
     # Overwrite the image output from FNIRT with a spline interpolated highres version
     # creating spline interpolated hires version
     # applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
-    apply_warp = pe.Node(interface=fsl.ApplyWarp(),
-                        name='apply_warp')
-
+    apply_warp = pe.Node(interface=fsl.ApplyWarp(), name='apply_warp')
     apply_warp.inputs.interp = 'spline'
     apply_warp.inputs.relwarp = True
 
-    preproc.connect(inputnode, 'anat_data',
-                    apply_warp, 'in_file')
-
+    preproc.connect(inputnode, 'anat_data', apply_warp, 'in_file')
     preproc.connect(inputnode, 'template_skull_for_anat',
                     apply_warp, 'ref_file')
-
-    preproc.connect(non_linear_reg, 'field_file',
-                    apply_warp, 'field_file')
+    preproc.connect(field_file, 'out',  apply_warp, 'field_file')
 
     # Invert warp and transform dilated brain mask back into native space, and use it to mask input image
     # Input and reference spaces are the same, using 2mm reference to save time
@@ -2882,44 +2878,30 @@ def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extract
 
     preproc.connect(inputnode, 'template_skull_for_anat_2mm',
                     inverse_warp, 'reference')
-
-    preproc.connect(non_linear_reg, 'field_file',
-                    inverse_warp, 'warp')
+    preproc.connect(field_file, inverse_warp, 'warp')
 
     # Apply inverse warp
     # applywarp --rel --interp=nn --in="$ReferenceMask" --ref="$Input" -w "$WD"/standard2str.nii.gz -o "$OutputBrainMask"
-    apply_inv_warp = pe.Node(interface=fsl.ApplyWarp(),
-                        name='apply_inv_warp')
+    apply_inv_warp = pe.Node(interface=fsl.ApplyWarp(), name='apply_inv_warp')
     apply_inv_warp.inputs.interp = 'nn'
     apply_inv_warp.inputs.relwarp = True
 
     preproc.connect(inputnode, 'template_brain_mask_for_anat',
                     apply_inv_warp, 'in_file')
+    preproc.connect(inputnode, 'anat_data', apply_inv_warp, 'ref_file')
+    preproc.connect(inverse_warp, 'inverse_warp', apply_inv_warp, 'field_file')
+    preproc.connect(apply_inv_warp, 'out_file', outputnode, 'anat_brain_mask')
 
-    preproc.connect(inputnode, 'anat_data',
-                    apply_inv_warp, 'ref_file')
-
-    preproc.connect(inverse_warp, 'inverse_warp',
-                    apply_inv_warp, 'field_file')
-
-    preproc.connect(apply_inv_warp, 'out_file',
-                    outputnode, 'anat_brain_mask')
-    
     # Apply mask to create brain
     # fslmaths "$Input" -mas "$OutputBrainMask" "$OutputBrainExtractedImage"
     apply_mask = pe.Node(interface=fsl.MultiImageMaths(),
                             name='apply_mask')
     apply_mask.inputs.op_string = '-mas %s'
 
-    preproc.connect(inputnode, 'anat_data', 
-                    apply_mask, 'in_file')
+    preproc.connect(inputnode, 'anat_data', apply_mask, 'in_file')
+    preproc.connect(apply_inv_warp, 'out_file', apply_mask, 'operand_files')
+    preproc.connect(apply_mask, 'out_file', outputnode, 'anat_brain')
 
-    preproc.connect(apply_inv_warp, 'out_file',
-                    apply_mask, 'operand_files')
-
-    preproc.connect(apply_mask, 'out_file',
-                    outputnode, 'anat_brain')
-    
     return preproc
 
 
