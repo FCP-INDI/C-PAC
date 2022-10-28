@@ -15,7 +15,7 @@ pipeline_setup:
 
   system_config:
 
-    fail_fast: Off
+    fail_fast: On
 
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.
