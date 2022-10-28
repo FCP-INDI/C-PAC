@@ -46,6 +46,8 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, check_prov_for_regtool
 
+from CPAC.resources.templates.lookup_table import lookup_identifier
+
 logger = logging.getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
@@ -945,6 +947,7 @@ class ResourcePool:
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
+                                                          'template_id',
                                                           'atlas_id',
                                                           'fwhm'],
                                              output_names=['out_filename'],
@@ -959,6 +962,9 @@ class ResourcePool:
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
                     
+                if 'Template' in json_info:
+                    id_string.inputs.template_id = json_info['Template']
+
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1770,6 +1776,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('func_resolution', tag)
 
         if desc:
+            tag = lookup_identifier(val)
+            if tag:
+                desc = f"{tag} - {desc}"
             json_info['Description'] = f"{desc} - {val}"     
 
         if resolution:
