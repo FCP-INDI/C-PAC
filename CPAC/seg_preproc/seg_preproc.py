@@ -3,6 +3,7 @@ from nipype.interfaces import ants, freesurfer, fsl, utility as util
 
 from CPAC.anat_preproc.utils import freesurfer_hemispheres, mri_convert
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.registration.guardrails import guardrail_selection
 from CPAC.registration.registration import apply_transform
 from CPAC.registration.utils import (
     check_transforms,
@@ -300,16 +301,19 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
         tissueprior_mni_to_t1.inputs.apply_xfm = True
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
-        # mni to t1
-        preproc.connect(inputNode, 'tissue_mask_template',
-                        tissueprior_mni_to_t1, 'in_file')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1,
-                        'reference')
-        preproc.connect(inputNode, 'standard2highres_mat',
-                        tissueprior_mni_to_t1, 'in_matrix_file')
+        mni_to_t1_nodes, mni_to_t1_guardrails = preproc.nodes_and_guardrails(
+            tissueprior_mni_to_t1, registered='out_file')
 
-        preproc.connect(tissueprior_mni_to_t1, 'out_file',
-                        outputNode, 'segment_mask_temp2t1')
+        # mni to t1
+        preproc.connect_retries(mni_to_t1_nodes, [
+            (inputNode, 'tissue_mask_template', 'in_file'),
+            (inputNode, 'brain', 'reference'),
+            (inputNode, 'standard2highres_mat', 'in_matrix_file')])
+        preproc.connect_retries(mni_to_t1_guardrails, [
+            (inputNode, 'brain', 'reference')])
+        # pylint: disable=no-value-for-parameter
+        mni_to_t1 = guardrail_selection(preproc, *mni_to_t1_guardrails)
+        preproc.connect(mni_to_t1, 'out', outputNode, 'segment_mask_temp2t1')
 
     return preproc
 

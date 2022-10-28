@@ -6,6 +6,7 @@ from CPAC.connectome.connectivity_matrix import create_connectome_afni, \
                                                 create_connectome_nilearn, \
                                                 get_connectome_method
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.registration.guardrails import guardrail_selection
 from CPAC.utils.datasource import create_roi_mask_dataflow, \
                                   create_spatial_map_dataflow, \
                                   resample_func_roi
@@ -1001,6 +1002,9 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
         in_matrix_file=cfg.registration_workflows['functional_registration'][
             'func_registration_to_template']['FNIRT_pipelines'][
             'identity_matrix'])
+    (spatial_to_native_nodes,
+     spatial_to_native_guardrails) = wf.nodes_and_guardrails(
+        resample_spatial_map_to_native_space, registered='out_file')
 
     spatial_map_dataflow = create_spatial_map_dataflow(
         cfg.timeseries_extraction['tse_atlases']['SpatialReg'],
@@ -1022,14 +1026,18 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # resample the input functional file and functional mask
     # to spatial map
-    wf.connect(node, out, resample_spatial_map_to_native_space, 'reference')
-    wf.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-               resample_spatial_map_to_native_space, 'in_file')
+    wf.connect_retries(spatial_to_native_nodes, [
+        (node, out, 'reference'),
+        (spatial_map_dataflow, 'select_spatial_map.out_file', 'in_file')])
+    wf.connect_retries(spatial_to_native_guardrails, [
+        (node, out, 'reference')])
+    # pylint: disable=no-value-for-parameter
+    spatial_to_native = guardrail_selection(wf, *spatial_to_native_guardrails)
 
     wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_rest')
 
     # connect it to the spatial_map_timeseries
-    wf.connect(resample_spatial_map_to_native_space, 'out_file',
+    wf.connect(spatial_to_native, 'out',
                spatial_map_timeseries, 'inputspec.spatial_map')
 
     node, out = strat_pool.get_data('space-template_desc-bold_mask')
