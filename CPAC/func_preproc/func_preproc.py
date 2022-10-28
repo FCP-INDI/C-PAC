@@ -1,6 +1,8 @@
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype import logging
 from nipype.interfaces import afni, ants, fsl, utility as util
+
+from CPAC.registration.guardrails import guardrail_selection
 logger = logging.getLogger('nipype.workflow')
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.afni import preprocess
@@ -104,20 +106,23 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
                                       name='func_to_anat_linear_reg')
     linear_reg_func_to_anat.inputs.cost = 'mutualinfo'
     linear_reg_func_to_anat.inputs.dof = 6
-
-    wf.connect(func_tmp_brain, 'out_file',
-               linear_reg_func_to_anat, 'in_file')
-
-    wf.connect(input_node, 'anat_brain',
-               linear_reg_func_to_anat, 'reference')
+    linear_reg_nodes, linear_reg_guardrails = wf.nodes_and_guardrails(
+        linear_reg_func_to_anat, registered='out_file')
+    wf.connect_retries(linear_reg_nodes, [
+        (func_tmp_brain, 'out_file', 'in_file'),
+        (input_node, 'anat_brain', 'reference')])
+    wf.connect_retries(linear_reg_guardrails, [
+        (input_node, 'anat_brain', 'reference')])
+    linear_reg_matrix = guardrail_selection(wf, *linear_reg_nodes,
+                                            'out_matrix_file',
+                                            linear_reg_guardrails[0])
 
     # 3.2 Inverse func to anat affine
     inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
                                       name='inv_func2anat_affine')
     inv_func_to_anat_affine.inputs.invert_xfm = True
 
-    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
-               inv_func_to_anat_affine, 'in_file')
+    wf.connect(linear_reg_matrix, 'out', inv_func_to_anat_affine, 'in_file')
 
     # 4. anat mask to func space
     # Transform anatomical mask to functional space to get BOLD mask
@@ -127,32 +132,29 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
     reg_anat_mask_to_func.inputs.cost = 'mutualinfo'
     reg_anat_mask_to_func.inputs.dof = 6
     reg_anat_mask_to_func.inputs.interp = 'nearestneighbour'
-
-    wf.connect(input_node, 'anatomical_brain_mask',
-               reg_anat_mask_to_func, 'in_file')
-
-    wf.connect(func_tmp_brain, 'out_file',
-               reg_anat_mask_to_func, 'reference')
-
-    wf.connect(inv_func_to_anat_affine, 'out_file',
-               reg_anat_mask_to_func, 'in_matrix_file')
+    ramtf_nodes, ramtf_guardrails = wf.nodes_and_guardrails(
+        reg_anat_mask_to_func, registered='out_file')
+    wf.connect_retries(ramtf_nodes, [
+        (input_node, 'anatomical_brain_mask', 'in_file'),
+        (func_tmp_brain, 'out_file', 'reference'),
+        (inv_func_to_anat_affine, 'out_file', 'in_matrix_file')])
+    wf.connect_retries(ramtf_guardrails, [
+        (func_tmp_brain, 'out_file', 'reference')])
+    # pylint: disable=no-value-for-parameter
+    anat_mask_to_func = guardrail_selection(wf, *ramtf_guardrails)
 
     # 5. get final func mask: refine func tmp mask with anat_mask_in_func mask
     func_mask = pe.Node(interface=fsl.MultiImageMaths(), name='func_mask')
     func_mask.inputs.op_string = "-mul %s"
 
-    wf.connect(reg_anat_mask_to_func, 'out_file',
-               func_mask, 'operand_files')
+    wf.connect(anat_mask_to_func, 'out', func_mask, 'operand_files')
 
-    if init_bold_mask == True:
-        wf.connect(func_tmp_brain_mask_dil, 'out_file',
-                   func_mask, 'in_file')
+    if init_bold_mask is True:
+        wf.connect(func_tmp_brain_mask_dil, 'out_file', func_mask, 'in_file')
     else:
-        wf.connect(input_node, 'init_func_brain_mask',
-                   func_mask, 'in_file')
+        wf.connect(input_node, 'init_func_brain_mask', func_mask, 'in_file')
 
-    wf.connect(func_mask, 'out_file',
-               output_node, 'func_brain_mask')
+    wf.connect(func_mask, 'out_file', output_node, 'func_brain_mask')
 
     return wf
 
