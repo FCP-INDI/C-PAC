@@ -210,8 +210,8 @@ def set_up_random_state(seed):
     >>> set_up_random_state(0)
     Traceback (most recent call last):
     ValueError: Valid random seeds are positive integers up to 2147483647, "random", or None, not 0
-    >>> set_up_random_state(None)
-
+    >>> 1 <= set_up_random_state(None) <= MAX_SEED
+    True
     '''  # noqa: E501  # pylint: disable=line-too-long
     if seed is not None:
         if seed == 'random':
@@ -220,10 +220,12 @@ def set_up_random_state(seed):
             try:
                 seed = int(seed)
                 assert 0 < seed <= MAX_SEED
-            except(ValueError, TypeError, AssertionError):
-                raise ValueError('Valid random seeds are positive integers up to '
-                                 f'2147483647, "random", or None, not {seed}')
-    
+            except (ValueError, TypeError, AssertionError) as error:
+                raise ValueError(
+                    'Valid random seeds are positive integers up '
+                    f'to {MAX_SEED}, "random", or None, not {seed}'
+                ) from error
+
     _seed['seed'] = seed
     return random_seed()
 

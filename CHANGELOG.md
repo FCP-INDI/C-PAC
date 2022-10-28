@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added crash messages from during and before graph building to logs
 - Added data-config-specific hash string to C-PAC-generated config files
 - Updated `rbc-options` preconfig to use `fmriprep-options` preprocessing
+- Changed `random.log` to `random.tsv` and updated logic to log random seed when not specified
 
 ### Fixed
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
