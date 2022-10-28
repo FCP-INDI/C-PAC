@@ -1914,20 +1914,25 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
     linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
 
-    wf.connect(func_single_volume, 'out_file',
-               linear_reg_func_to_anat, 'in_file')
+    func_to_anat_nodes, func_to_anat_guardrails = wf.nodes_and_guardrails(
+        linear_reg_func_to_anat, registered='out_file')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
                                      "T1w"])
-    wf.connect(node, out, linear_reg_func_to_anat, 'reference')
+    wf.connect_retries(func_to_anat_nodes, [
+        (func_single_volume, 'out_file', 'in_file'),
+        (node, out, 'reference')])
+    wf.connect_retries(func_to_anat_guardrails, [(node, out, 'reference')])
+    func_to_anat_matrix = guardrail_selection(wf, *func_to_anat_nodes,
+                                              'out_matrix_file',
+                                              func_to_anat_guardrails[0])
 
     # 2. Inverse func to anat affine, to get anat-to-func transform
     inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
                                       name='inv_func2anat_affine')
     inv_func_to_anat_affine.inputs.invert_xfm = True
 
-    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
-               inv_func_to_anat_affine, 'in_file')
+    wf.connect(func_to_anat_matrix, 'out', inv_func_to_anat_affine, 'in_file')
 
     # 3. get BOLD mask
     # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space
@@ -1939,16 +1944,14 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("desc-brain_T1w")
     wf.connect(node, out, reg_anat_brain_to_func, 'in_file')
 
-    node, out = strat_pool.get_data(["desc-preproc_bold",
-                                     "bold"])
+    node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
     wf.connect(node, out, reg_anat_brain_to_func, 'ref_file')
 
     wf.connect(inv_func_to_anat_affine, 'out_file',
                reg_anat_brain_to_func, 'premat')
 
     # 3.2 Binarize transfered image
-    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                            name='func_mask_bin')
+    func_mask_bin = pe.Node(interface=fsl.ImageMaths(), name='func_mask_bin')
     func_mask_bin.inputs.op_string = '-abs -bin'
 
     wf.connect(reg_anat_brain_to_func, 'out_file',
