@@ -31,7 +31,25 @@ def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
                         output_key: str = 'registered',
                         guardrail_node: 'Node' = None) -> Node:
     """Generate requisite Nodes for choosing a path through the graph
-    with retries
+    with retries.
+
+    Takes two nodes to choose an output from. These nodes are assumed
+    to be guardrail nodes if `output_key` and `guardrail_node` are not
+    specified.
+
+    A ``nipype.interfaces.utility.Merge`` is generated, connecting
+    ``output_key`` from ``node1`` and ``node2`` in that order.
+
+    A ``nipype.interfaces.utility.Select`` node is generated taking the
+    output from the generated ``Merge`` and using the ``failed_qc``
+    output of ``guardrail_node`` (``node1`` if ``guardrail_node`` is
+    unspecified).
+
+    All relevant connections are made in the given Workflow.
+
+    The ``Select`` node is returned; its output is keyed ``out`` and
+    contains the value of the given ``output_key`` (``registered`` if
+    unspecified).
 
     Parameters
     ----------
@@ -102,6 +120,9 @@ def registration_guardrail(registered: str, reference: str,
     failed_qc : int
         metrics met specified thresholds?, used as index for selecting
         outputs
+        .. seealso::
+
+           :py:mod:`guardrail_selection`
     """
     logger = logging.getLogger('nipype.workflow')
     qc_metrics = qc_masks(registered, reference)
