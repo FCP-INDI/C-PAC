@@ -158,9 +158,11 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
 
     return wf
 
+
 def anat_based_mask(wf_name='bold_mask'):
-# reference DCAN lab BOLD mask
-# https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+    # pylint: disable=line-too-long
+    # reference DCAN lab BOLD mask
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(util.IdentityInterface(fields=['func',
@@ -169,11 +171,11 @@ def anat_based_mask(wf_name='bold_mask'):
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
-                         name='outputspec')
+                          name='outputspec')
 
-    # 0. Take single volume of func 
+    # 0. Take single volume of func
     func_single_volume = pe.Node(interface=afni.Calc(),
-                            name='func_single_volume')
+                                 name='func_single_volume')
 
     func_single_volume.inputs.set(
         expr='a',
@@ -181,59 +183,54 @@ def anat_based_mask(wf_name='bold_mask'):
         outputtype='NIFTI_GZ'
     )
 
-    wf.connect(input_node, 'func',
-                func_single_volume, 'in_file_a')
+    wf.connect(input_node, 'func', func_single_volume, 'in_file_a')
 
     # 1. Register func head to anat head to get func2anat matrix
     linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
-                        name='func_to_anat_linear_reg')
+                                      name='func_to_anat_linear_reg')
     linear_reg_func_to_anat.inputs.dof = 6
     linear_reg_func_to_anat.inputs.interp = 'spline'
     linear_reg_func_to_anat.inputs.searchr_x = [30, 30]
     linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
     linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
+    func_to_anat_nodes, func_to_anat_guardrails = wf.nodes_and_guardrails(
+        linear_reg_func_to_anat, registered='out_file')
+    wf.connect_retries(func_to_anat_nodes, [
+        (func_single_volume, 'out_file',  'in_file'),
+        (input_node, 'anat_head', 'reference')])
+    wf.connect_retries(func_to_anat_guardrails, [
+        (input_node, 'anat_head', 'reference')])
+    func_to_anat_matrix = guardrail_selection(wf, *func_to_anat_nodes,
+                                              'out_matrix_file',
+                                              func_to_anat_guardrails[0])
 
-    wf.connect(func_single_volume, 'out_file', 
-                linear_reg_func_to_anat, 'in_file')
-
-    wf.connect(input_node, 'anat_head', 
-                linear_reg_func_to_anat, 'reference')
-
-    # 2. Inverse func to anat affine, to get anat-to-func transform 
+    # 2. Inverse func to anat affine, to get anat-to-func transform
     inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
-                            name='inv_func2anat_affine')
+                                      name='inv_func2anat_affine')
     inv_func_to_anat_affine.inputs.invert_xfm = True
 
-    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
-                inv_func_to_anat_affine, 'in_file')
+    wf.connect(func_to_anat_matrix, 'out', inv_func_to_anat_affine, 'in_file')
 
     # 3. get BOLD mask
-    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space 
+    # 3.1 Apply anat-to-func transform to transfer anatomical brain to
+    # functional space
     reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
-                            name='reg_anat_brain_to_func')
+                                     name='reg_anat_brain_to_func')
     reg_anat_brain_to_func.inputs.interp = 'nn'
     reg_anat_brain_to_func.inputs.relwarp = True
 
-    wf.connect(input_node, 'anat_brain', 
-                reg_anat_brain_to_func, 'in_file')
+    wf.connect(input_node, 'anat_brain', reg_anat_brain_to_func, 'in_file')
+    wf.connect(input_node, 'func', reg_anat_brain_to_func, 'ref_file')
+    wf.connect(inv_func_to_anat_affine, 'out_file',
+               reg_anat_brain_to_func, 'premat')
 
-    wf.connect(input_node, 'func', 
-                reg_anat_brain_to_func, 'ref_file')
-
-    wf.connect(inv_func_to_anat_affine, 'out_file', 
-                reg_anat_brain_to_func, 'premat')
-
-    # 3.2 Binarize transfered image and fill holes to get BOLD mask. 
+    # 3.2 Binarize transfered image and fill holes to get BOLD mask.
     # Binarize
-    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                                name='func_mask')
+    func_mask_bin = pe.Node(interface=fsl.ImageMaths(), name='func_mask')
     func_mask_bin.inputs.op_string = '-bin'
 
-    wf.connect(reg_anat_brain_to_func, 'out_file', 
-                func_mask_bin, 'in_file')
-
-    wf.connect(func_mask_bin, 'out_file', 
-                output_node, 'func_brain_mask')
+    wf.connect(reg_anat_brain_to_func, 'out_file', func_mask_bin, 'in_file')
+    wf.connect(func_mask_bin, 'out_file', output_node, 'func_brain_mask')
 
     return wf
 
