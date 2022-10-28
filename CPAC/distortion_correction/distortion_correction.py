@@ -715,21 +715,27 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     flirt.inputs.dof = 6
     flirt.inputs.interp = 'spline'
     flirt.inputs.out_matrix_file = 'SBRef2PhaseTwo_gdc.mat'
+    flirt_nodes, flirt_guardrails = wf.nodes_and_guardrails(
+        flirt, registered='out_file')
 
-    wf.connect(mean_bold.node, mean_bold.out, flirt, 'in_file')
-    wf.connect(choose_phase, 'out_phase_image', flirt, 'reference')
+    wf.connect_retries(flirt_nodes, [
+        (mean_bold.node, mean_bold.out, 'in_file'),
+        (choose_phase, 'out_phase_image', 'reference')])
+    wf.connect_retries(flirt_guardrails, [
+        (choose_phase, 'out_phase_image', 'reference')])
+    flirt_matrix = guardrail_selection(wf, *flirt_nodes, 'out_matrix_file',
+                                       flirt_guardrails[0])
 
     # fsl_convert_xfm
     convert_xfm = pe.Node(interface=fsl.ConvertXFM(), name="convert_xfm")
     convert_xfm.inputs.concat_xfm = True
     convert_xfm.inputs.out_file = 'SBRef2WarpField.mat'
 
-    wf.connect(flirt, 'out_matrix_file', convert_xfm, 'in_file')
+    wf.connect(flirt_matrix, 'out', convert_xfm, 'in_file')
     wf.connect(vnum_base, 'out_motion_mat', convert_xfm, 'in_file2')
 
     # fsl_convert_warp
-    convert_warp = pe.Node(interface=fsl.ConvertWarp(),
-                           name="convert_warp")
+    convert_warp = pe.Node(interface=fsl.ConvertWarp(), name="convert_warp")
     convert_warp.inputs.relwarp = True
     convert_warp.inputs.out_relwarp = True
     convert_warp.inputs.out_file = 'WarpField.nii.gz'
