@@ -630,7 +630,8 @@ latest_schema = Schema({
             'scaling_factor': Number
         },
         'despiking': {
-            'run': forkable
+            'run': forkable,
+            'space': In({'native', 'template'})
         },
         'slice_timing_correction': {
             'run': forkable,
