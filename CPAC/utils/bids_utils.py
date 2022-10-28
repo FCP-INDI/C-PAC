@@ -645,7 +645,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                task_key,
                                p))
 
-            if "phasediff" in f_dict["scantype"]:
+            if "phasediff" in f_dict["scantype"] or "phase1" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                 if "diffphase" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
