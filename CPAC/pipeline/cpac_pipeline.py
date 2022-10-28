@@ -126,6 +126,7 @@ from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_truncate,
     func_despike,
+    func_despike_template,
     func_slice_time,
     func_reorient,
     bold_mask_afni,
@@ -1282,7 +1283,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
-        
+
+    pipeline_blocks += [func_despike_template]
+
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
     if 'Template' in target_space_alff and not rpool.check_rpool('space-template_desc-denoisedNofilt_bold'):
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]

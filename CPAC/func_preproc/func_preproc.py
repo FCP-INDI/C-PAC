@@ -1003,8 +1003,8 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "func_despike",
      "config": ["functional_preproc", "despiking"],
      "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
+     "option_key": "space",
+     "option_val": "native",
      "inputs": ["desc-preproc_bold"],
      "outputs": {
          "desc-preproc_bold": {
@@ -1025,6 +1025,37 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_bold': (despike, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "func_despike_template",
+     "config": ["functional_preproc", "despiking"],
+     "switch": ["run"],
+     "option_key": "space",
+     "option_val": "template",
+     "inputs": ["space-template_desc-preproc_bold"],
+     "outputs": {
+         "space-template_desc-preproc_bold": {
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike."
+    }}}
+    '''
+
+    despike = pe.Node(interface=preprocess.Despike(),
+                      name=f'func_despiked_template_{pipe_num}',
+                      mem_gb=0.66,
+                      mem_x=(8251808479088459 / 1208925819614629174706176,
+                             'in_file'))
+    despike.inputs.outputtype = 'NIFTI_GZ'
+
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
+    wf.connect(node, out, despike, 'in_file')
+
+    outputs = {
+        'space-template_desc-preproc_bold': (despike, 'out_file')
     }
 
     return (wf, outputs)

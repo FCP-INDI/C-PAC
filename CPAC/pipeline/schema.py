@@ -631,6 +631,7 @@ latest_schema = Schema({
         },
         'despiking': {
             'run': forkable
+            'space': In({'native', 'template'})
         },
         'slice_timing_correction': {
             'run': forkable,
