@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as ANTs
 USER root
 
 # install ANTs from Neurodocker
