@@ -534,7 +534,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                               raise_error=raise_error)
 
     subdict = {}
-
     for p in paths_list:
         if bids_dir in p:
             str_list = p.split(bids_dir)
@@ -702,8 +701,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'magnitude',
-                'magnitude1', 'magnitude2']
+    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'phase1',
+                'magnitude', 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/

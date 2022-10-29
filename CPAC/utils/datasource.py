@@ -505,7 +505,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_TE_list.append(f"{key}-TE")
 
-            if re.search('diff.*(phase|mag)', key):
+            if 'phase' in key or 'mag' in key:
                 diff = True
 
             if re.match('epi_[AP]{2}', orig_key):
