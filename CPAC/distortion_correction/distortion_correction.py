@@ -849,8 +849,8 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'sbref': (mul_jac, 'out_file'),
-        'space-bold_desc-brain_mask': (bet, 'mask_file'),
         'fsl-blip-warp': (convert_warp, 'out_file')
+        #'space-bold_desc-brain_mask': (mask_sbref, 'out_file')
     }
 
     return (wf, outputs)
