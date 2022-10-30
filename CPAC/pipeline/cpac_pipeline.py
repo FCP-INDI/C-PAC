@@ -1155,8 +1155,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
-            distcor_blocks.append(distcor_phasediff_fsl_fugue)
+        if rpool.check_rpool('diffphase') or rpool.check_rpool('phase1'):
+            if rpool.check_rpool('magnitude') or rpool.check_rpool('magnitude1'):
+                distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi-1'):
             distcor_blocks.append(distcor_blip_afni_qwarp) 

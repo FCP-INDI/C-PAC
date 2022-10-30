@@ -2762,7 +2762,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "despiked-fieldmap",
                  "fieldmap-mask",
                  "effectiveEchoSpacing",
-                 "diffphase-pedir"),
+                 "pe-direction"),
                 ("desc-preproc_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2838,7 +2838,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('effectiveEchoSpacing')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diffphase-pedir')
+        node, out = strat_pool.get_data('pe-direction')
         wf.connect(node, out, func_to_anat, 'pedir_input.pedir')
 
         node, out = strat_pool.get_data("despiked-fieldmap")
@@ -2920,7 +2920,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 
-            node, out = strat_pool.get_data('diffphase-pedir')
+            node, out = strat_pool.get_data('pe-direction')
             wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
 
             node, out = strat_pool.get_data("despiked-fieldmap")

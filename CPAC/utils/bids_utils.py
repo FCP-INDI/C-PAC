@@ -644,17 +644,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                task_key,
                                p))
 
-            if "phasediff" in f_dict["scantype"] or "phase1" in f_dict["scantype"]:
+            if "phase" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffphase" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffphase"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
-            if "magnitude1" in f_dict["scantype"] or f_dict["scantype"] == "magnitude":
+            if "magnitude" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffmag" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffmag"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
             if "epi" in f_dict["scantype"]:
                 pe_dir = f_dict["dir"]
@@ -702,7 +702,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     config_dict = {}
 
     suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'phase1',
-                'magnitude', 'magnitude1', 'magnitude2']
+                'phase2', 'magnitude', 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
