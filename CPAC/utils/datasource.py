@@ -565,7 +565,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                 function=gather_echo_times),
                 name='fugue_gather_echo_times')
 
-            for idx, fmap_file in enumerate(fmap_TE_list):
+            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
                 try:
                     node, out_file = rpool.get(fmap_file)[
                             f"['{fmap_file}:fmap_TE_ingress']"]['data']
