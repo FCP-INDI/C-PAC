@@ -58,13 +58,13 @@ packages:
  - fsl-add_module 0.3.2
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
- - fsl-avwutils 2111.2
+ - fsl-avwutils 2209.0
  - fsl-base 2209.3
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
  - fsl-bet2 2111.0
- - fsl-bianca 2209.1
+ - fsl-bianca 2209.2
  - fsl-biancadata 2006.0
  - fsl-bint 2111.0
  - fsl-cluster 2201.0
