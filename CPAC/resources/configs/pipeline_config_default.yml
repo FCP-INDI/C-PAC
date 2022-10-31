@@ -586,6 +586,17 @@ segmentation:
 
 
 registration_workflows:
+  # Runtime quality checks
+  guardrails:
+    # Minimum QC values to allow a run to complete post-registration
+    # Set any metric empty (like "Dice:") or to None to disable that guardrail
+    # Default thresholds adopted from XCP-Engine
+    # (https://github.com/PennLINC/xcpEngine/blob/397ab6cf/designs/cbf_all.dsn#L66)
+    thresholds:
+      Dice: 0.8
+      Jaccard: 0.9
+      CrossCorr: 0.7
+      Coverage: 0.8
 
   anatomical_registration:
 
@@ -784,7 +795,8 @@ registration_workflows:
 
       boundary_based_registration:
         # this is a fork point
-        #   run: [On, Off] - this will run both and fork the pipeline
+        #   run: [On, Off, fallback] - this will run both and fork the pipeline
+        #   if 'fallback' is one of the selected options, BBR will run and, if its output fails quality_thresholds, the pipeline will fallback to BBR's input image
         run: [On]
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.

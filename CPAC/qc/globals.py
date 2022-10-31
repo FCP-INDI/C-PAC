@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2022  C-PAC Developers
+# Copyright (C) 2022  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,9 +14,29 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Quality control utilities for C-PAC"""
-from CPAC.qc.globals import registration_guardrail_thresholds, \
-                            update_thresholds
-from CPAC.qc.qcmetrics import qc_masks
-__all__ = ['qc_masks', 'registration_guardrail_thresholds',
-           'update_thresholds']
+"""Global QC values"""
+_REGISTRATION_GUARDRAIL_THRESHOLDS = {'thresholds': {}}
+
+
+def registration_guardrail_thresholds() -> dict:
+    """Get registration guardrail thresholds
+
+    Returns
+    -------
+    dict
+    """
+    return _REGISTRATION_GUARDRAIL_THRESHOLDS['thresholds']
+
+
+def update_thresholds(thresholds) -> None:
+    """Set a registration guardrail threshold
+
+    Parameters
+    ----------
+    thresholds : dict of {str: float or int}
+
+    Returns
+    -------
+    None
+    """
+    _REGISTRATION_GUARDRAIL_THRESHOLDS['thresholds'].update(thresholds)

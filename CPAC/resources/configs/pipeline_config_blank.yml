@@ -522,6 +522,12 @@ segmentation:
       WM_label: [2, 41]
 
 registration_workflows:
+  gaurdrails:
+    thresholds:
+      Dice:
+      Jaccard:
+      CrossCorr:
+      Coverage:
   anatomical_registration:
     run: Off
     registration:

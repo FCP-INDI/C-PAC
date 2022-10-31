@@ -19,12 +19,12 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 # pylint: disable=too-many-lines
 import re
 from itertools import chain, permutations
-import numpy as np
 from pathvalidate import sanitize_filename
-from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
+from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, Equal, \
                        ExactSequence, ExclusiveInvalid, In, Length, Lower, \
                        Match, Maybe, Optional, Range, Required, Schema
 from CPAC import docs_prefix
+from CPAC.pipeline.random_state.seed import MAX_SEED
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
 
@@ -467,6 +467,10 @@ latest_schema = Schema({
         },
     },
     'registration_workflows': {
+        'guardrails': {
+            'thresholds':  {metric: Maybe(float) for metric in
+                            ('Dice', 'Jaccard', 'CrossCorr', 'Coverage')},
+        }},
         'anatomical_registration': {
             'run': bool1_1,
             'resolution_for_anat': All(str, Match(resolution_regex)),
@@ -526,9 +530,12 @@ latest_schema = Schema({
                     },
                 },
                 'boundary_based_registration': {
-                    'run': forkable,
+                    'run': All(Coerce(ListFromItem),
+                               [Any(bool1_1, All(Lower, Equal('fallback')))],
+                               Length(max=3)),
                     'bbr_schedule': str,
-                    'bbr_wm_map': In({'probability_map', 'partial_volume_map'}),
+                    'bbr_wm_map': In({'probability_map',
+                                      'partial_volume_map'}),
                     'bbr_wm_mask_args': str,
                     'reference': In({'whole-head', 'brain'})
                 },

@@ -46,6 +46,9 @@ registration_workflows:
     T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
   functional_registration:
+    coregistration:
+      boundary_based_registration:
+        run: [fallback]
     func_registration_to_template:
       output_resolution:
 

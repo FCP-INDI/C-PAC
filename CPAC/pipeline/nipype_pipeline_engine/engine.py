@@ -1,43 +1,57 @@
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Supports just-in-time dynamic memory allocation
+#     * Skips doctests that require files that we haven't copied over
+#     * Applies a random seed
+#     * Supports overriding memory estimates via a log file and a buffer
+#     * Adds quotation marks around strings in dotfiles
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2022 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 '''Module to import Nipype Pipeline engine and override some Classes.
 See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
-for Nipype's documentation.
-
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
-
-CHANGES:
-    * Supports just-in-time dynamic memory allocation
-    * Skips doctests that require files that we haven't copied over
-    * Applies a random seed
-    * Supports overriding memory estimates via a log file and a buffer
-
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright (c) 2009-2016, Nipype developers
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-    Prior to release 0.12, Nipype was licensed under a BSD license.
-
-Modifications Copyright (C) 2022  C-PAC Developers
-
-This file is part of C-PAC.'''  # noqa: E501
+for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
-from logging import getLogger
 from inspect import Parameter, Signature, signature
+from logging import getLogger
+from typing import Iterable, Tuple, Union
 from nibabel import load
 from nipype import logging
 from nipype.interfaces.utility import Function
@@ -53,6 +67,7 @@ DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
 
 random_state_logger = getLogger('random')
+logger = getLogger("nipype.workflow")
 
 
 def _check_mem_x_path(mem_x_path):
@@ -399,10 +414,9 @@ class Node(pe.Node):
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
-                random_state_logger.info('%s',
-                                         '%s  # (Atropos constant)' %
-                                         self.name if 'atropos' in
-                                         self.name else self.name)
+                random_state_logger.info('%s\t%s', '# (Atropos constant)' if
+                                         'atropos' in self.name else
+                                         str(self.seed), self.name)
         return super().run(updatehash)
 
 
@@ -483,6 +497,40 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
+    def connect_retries(self, nodes: Iterable['Node'],
+                        connections: Iterable[Tuple['Node', Union[str, tuple],
+                                                    str]]) -> None:
+        """Method to generalize making the same connections to try and
+        retry nodes.
+
+        For each 3-tuple (``conn``) in ``connections``, will do
+        ``wf.connect(conn[0], conn[1], node, conn[2])`` for each ``node``
+        in ``nodes``
+
+        Parameters
+        ----------
+        nodes : iterable of Nodes
+
+        connections : iterable of 3-tuples of (Node, str or tuple, str)
+        """
+        wrong_conn_type_msg = (r'connect_retries `connections` argument '
+                               'must be an iterable of (Node, str or '
+                               'tuple, str) tuples.')
+        if not isinstance(connections, (list, tuple)):
+            raise TypeError(f'{wrong_conn_type_msg}: Given {connections}')
+        for node in nodes:
+            if not isinstance(node, Node):
+                raise TypeError('connect_retries requires an iterable '
+                                r'of nodes for the `nodes` parameter: '
+                                f'Given {node}')
+            for conn in connections:
+                if not all((isinstance(conn, (list, tuple)), len(conn) == 3,
+                            isinstance(conn[0], Node),
+                            isinstance(conn[1], (tuple, str)),
+                            isinstance(conn[2], str))):
+                    raise TypeError(f'{wrong_conn_type_msg}: Given {conn}')
+                self.connect(*conn[:2], node, conn[2])
+
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
         if hasattr(self, '_local_func_scans'):
@@ -491,6 +539,32 @@ class Workflow(pe.Workflow):
         else:
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
+
+    def nodes_and_guardrails(self, *nodes, registered, add_clones=True):
+        """Returns a two tuples of Nodes: (try, retry) and their
+        respective guardrails
+
+        Parameters
+        ----------
+        nodes : any number of Nodes
+
+        Returns
+        -------
+        nodes : tuple of Nodes
+
+        guardrails : tuple of Nodes
+        """
+        from CPAC.registration.guardrails import registration_guardrail_node, \
+                                                 retry_clone
+        nodes = list(nodes)
+        if add_clones is True:
+            nodes.extend([retry_clone(node) for node in nodes])
+        guardrails = [None] * len(nodes)
+        for i, node in enumerate(nodes):
+            guardrails[i] = registration_guardrail_node(
+                f'guardrail_{node.name}', i)
+            self.connect(node, registered, guardrails[i], 'registered')
+        return tuple(nodes), tuple(guardrails)
 
 
 def get_data_size(filepath, mode='xyzt'):
