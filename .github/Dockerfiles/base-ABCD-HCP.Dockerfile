@@ -1,5 +1,5 @@
 # Choose versions
-FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
+FROM ghcr.io/fcp-indi/c-pac/afni:21.2.06-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.2.0.neurodocker-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-1.neurodebian-bionic as connectome-workbench
@@ -11,6 +11,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Software dependencies version-matched to `ABCD-HCP BIDS fMRI Pipeline <https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile>`_"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # allow users to update / create themselves
@@ -22,8 +23,9 @@ ENV C3DPATH=/opt/c3d/
 ENV PATH=$C3DPATH/bin:$PATH
 
 # install AFNI
+# AFNI isn't used in used in ABCD-HCP, so we're just matching the version in the standard C-PAC image
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/ 
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /opt/afni/ /opt/afni/
 COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/

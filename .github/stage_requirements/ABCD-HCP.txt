@@ -1,9 +1,8 @@
 base-ABCD-HCP.Dockerfile
-AFNI.update.afni.binaries-bionic.Dockerfile
+AFNI.21.2.06-bionic.Dockerfile
 ANTs.2.2.0.neurodocker-bionic.Dockerfile
 c3d.1.0.0-bionic.Dockerfile
 connectome-workbench.1.3.2-1.neurodebian-bionic.Dockerfile
-FreeSurfer.6.0.0-min.neurodocker-bionic.Dockerfile
 FSL.5.0.10-bionic.Dockerfile
 ICA-AROMA.0.4.3-beta-bionic.Dockerfile
 msm.2.0-bionic.Dockerfile
