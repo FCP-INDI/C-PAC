@@ -13,13 +13,14 @@ desc-mean_bold	bold	functional	func	NIfTI
 desc-motion_bold	bold	functional	func	NIfTI			Yes	Yes	
 desc-preproc_bold	bold	functional	func	NIfTI			Yes		
 desc-sm_bold	bold	functional	func	NIfTI			Yes	Yes	
+sbref	bold	functional	func	NIfTI
 space-EPItemplate_bold	bold	EPI template	func	NIfTI			Yes		
 space-EPItemplate_desc-brain_bold	bold	EPI template	func	NIfTI			Yes		
 space-EPItemplate_desc-cleaned_bold	bold	EPI template	func	NIfTI			Yes		
 space-EPItemplate_desc-mean_bold	bold	EPI template	func	NIfTI					
 space-EPItemplate_desc-preproc_bold	bold	EPI template	func	NIfTI			Yes		
 space-symtemplate_desc-sm_bold	bold	symmetric template	func	NIfTI			Yes	Yes	
-space-T1w_desc-mean_bold	bold	T1w	func	NIfTI					
+space-T1w_sbref	bold	T1w	func	NIfTI					
 space-template_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-brain_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes		
@@ -27,6 +28,7 @@ space-template_desc-head_bold	bold	template	func	NIfTI			Yes
 space-template_desc-mean_bold	bold	template	func	NIfTI					
 space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes		
 space-template_desc-scout_bold	bold	template	func	NIfTI					
+space-template_sbref	bold	template	func	NIfTI
 desc-DualReg_correlations	correlation	template	func	NIfTI					
 desc-MeanSCA_correlations	correlation	template	func	NIfTI					
 desc-MultReg_correlations	correlation	template	func	NIfTI					
@@ -167,6 +169,7 @@ desc-reorient_T1w	T1w	T1w	anat	NIfTI
 desc-restore_T1w	T1w	T1w	anat	NIfTI					
 desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
+space-template_desc-preproc_T1w	T1w	template	anat	NIfTI
 space-template_desc-head_T1w	T1w	template	anat	NIfTI					
 space-template_desc-T1w_mask	mask	template	anat	NIfTI					
 desc-Mean_timeseries	timeseries		func	1D					
@@ -218,3 +221,5 @@ space-template_label-GM_mask	mask	template	anat	NIfTI
 space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
+mdmr    group   functional  group_analysis  NIfTI                   
+desc-zstd-mdmr  group   functional  group_analysis  NIfTI       Yes         

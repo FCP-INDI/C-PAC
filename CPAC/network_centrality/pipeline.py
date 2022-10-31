@@ -79,10 +79,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-brain_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
                 "template-specification-file"],
      "outputs": ["space-template_desc-weighted_degree-centrality",
                  "space-template_desc-binarized_degree-centrality",
@@ -106,10 +103,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
         apply_xfm=True
     )
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out, resample_functional_to_template, 'in_file')
 
     node, out = strat_pool.get_data("template-specification-file")

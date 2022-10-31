@@ -534,7 +534,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                               raise_error=raise_error)
 
     subdict = {}
-
     for p in paths_list:
         if bids_dir in p:
             str_list = p.split(bids_dir)
@@ -645,17 +644,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                task_key,
                                p))
 
-            if "phasediff" in f_dict["scantype"]:
+            if "phase" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffphase" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffphase"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
-            if "magnitude1" in f_dict["scantype"] or f_dict["scantype"] == "magnitude":
+            if "magnitude" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffmag" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffmag"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
             if "epi" in f_dict["scantype"]:
                 pe_dir = f_dict["dir"]
@@ -702,8 +701,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'T2w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
-                'magnitude1', 'magnitude2']
+    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'phase1',
+                'phase2', 'magnitude', 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -724,6 +723,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
+                    if suf == 'epi' and 'acq-fMRI' not in s3_obj.key:
+                        continue
                     if str(s3_obj.key).endswith("json"):
                         try:
                             config_dict[s3_obj.key.replace(prefix, "")
@@ -743,6 +744,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
             if files:
                 for f in files:
                     for suf in suffixes:
+                        if suf == 'epi' and 'acq-fMRI' not in f:
+                            continue
                         if 'nii' in f and suf in f:
                             file_paths += [os.path.join(root, f)
                                            .replace(bids_dir, '').lstrip('/')]

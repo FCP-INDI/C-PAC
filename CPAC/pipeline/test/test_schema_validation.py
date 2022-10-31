@@ -1,8 +1,7 @@
 '''Tests for schema.py'''
 import pytest
-
-from CPAC.utils.configuration import Configuration
 from voluptuous.error import Invalid
+from CPAC.utils.configuration import Configuration
 
 
 @pytest.mark.parametrize('run_value', [
@@ -26,3 +25,9 @@ def test_motion_estimates_and_correction(run_value):
         assert "func#motion_estimate_filter_valid_options" in str(e.value)
     else:
         Configuration(d)
+
+
+def test_pipeline_name():
+    '''Test that pipeline_name sucessfully sanitizes'''
+    c = Configuration({'pipeline_setup': {'pipeline_name': ':va:lid    name'}})
+    assert c['pipeline_setup', 'pipeline_name'] == 'valid_name'

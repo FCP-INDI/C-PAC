@@ -1,4 +1,4 @@
-"""The C-PAC pipeline and its underlying infrastructure
+"""C-PAC Configuration module
 
 Copyright (C) 2022  C-PAC Developers
 
@@ -16,17 +16,9 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
-import os
-import pkg_resources as p
+from .configuration import check_pname, Configuration, Preconfiguration, \
+                           preconfig_yaml, set_subject
+from . import configuration, diff
 
-ALL_PIPELINE_CONFIGS = os.listdir(
-    p.resource_filename("CPAC", os.path.join("resources", "configs")))
-ALL_PIPELINE_CONFIGS = [x.split('_')[2].replace('.yml', '') for
-                        x in ALL_PIPELINE_CONFIGS if 'pipeline_config' in x]
-ALL_PIPELINE_CONFIGS.sort()
-AVAILABLE_PIPELINE_CONFIGS = [preconfig for preconfig in ALL_PIPELINE_CONFIGS
-                              if preconfig != 'benchmark-ANTS' and
-                              not preconfig.startswith('regtest-')]
-
-
-__all__ = ['ALL_PIPELINE_CONFIGS', 'AVAILABLE_PIPELINE_CONFIGS']
+__all__ = ['check_pname', 'Configuration', 'configuration', 'diff',
+           'Preconfiguration', 'preconfig_yaml', 'set_subject']

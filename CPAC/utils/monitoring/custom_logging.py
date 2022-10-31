@@ -1,9 +1,44 @@
-'''Funtions for logging.'''
+"""Funtions for logging.
+
+Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import logging
 import os
-
+from sys import exc_info as sys_exc_info
+from traceback import print_exception
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
+
+
+def failed_to_start(log_dir, exception):
+    """Launch a failed-to-start logger for a run that failed to start.
+    Must be called from within an ``except`` block.
+
+    Parameters
+    ----------
+    log_dir : str
+        path to logging directory
+
+    exception : Exception
+    """
+    logger = set_up_logger('failedToStart', 'failedToStart.log', 'error',
+                           log_dir, True)
+    logger.exception('C-PAC failed to start')
+    logger.exception(exception)
 
 
 def getLogger(name):  # pylint: disable=invalid-name
@@ -25,15 +60,15 @@ def getLogger(name):  # pylint: disable=invalid-name
 
 # pylint: disable=too-few-public-methods
 class MockHandler:
-    '''Handler for MockLogger.'''
-    def __init__(self, baseFilename):
-        self.baseFilename = baseFilename  # pylint: disable=invalid-name
+    """Handler for MockLogger."""
+    def __init__(self, filename):
+        self.baseFilename = filename  # pylint: disable=invalid-name
 
 
 # pylint: disable=too-few-public-methods
 class MockLogger:
-    '''Mock logging.Logger to provide the same API without keeping the
-    logger in memory.'''
+    """Mock logging.Logger to provide the same API without keeping the
+    logger in memory."""
     def __init__(self, name, filename, level, log_dir):
         self.name = name
         self.level = level
@@ -43,26 +78,37 @@ class MockLogger:
             # set up log methods for all built-in levels
             setattr(self, loglevel, self._factory_log(loglevel))
 
+    def exception(self, msg, *args, exc_info=True, **kwargs):
+        # pylint: disable=missing-function-docstring,no-member
+        return self.error(msg, *args, exc_info=exc_info, **kwargs)
+
+    exception.__doc__ = logging.exception.__doc__
+
     def _factory_log(self, level):
         r"""Generate a log method like `self.log(message)` for a given
         built-in level."""
         @docstring_parameter(level=level)
-        def _log(message):
-            """Log a message if logging level >= {level}. See `Logging Levels <https://docs.python.org/3/library/logging.html#levels>`_ for a list of levels."""
+        def _log(message, exc_info=False):
             if self.level == 0 or self.level >= getattr(logging, level.upper(),
                                                         logging.NOTSET):
-                with open(self.handlers[0].baseFilename, 'a') as log_file:
-                    print(message, file=log_file)
+                with open(self.handlers[0].baseFilename, 'a',
+                          encoding='utf-8') as log_file:
+                    if exc_info and isinstance(message, Exception):
+                        value, traceback = sys_exc_info()[1:]
+                        print_exception(message, value=value, tb=traceback,
+                                        file=log_file)
+                    else:
+                        print(message, file=log_file)
         return _log
 
     def delete(self):
-        '''Delete the mock logger from memory.'''
+        """Delete the mock logger from memory."""
         del MOCK_LOGGERS[self.name]
 
 
 def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
                   overwrite_existing=False):
-    r'''Function to initialize a logger
+    r"""Function to initialize a logger
 
     Parameters
     ----------
@@ -109,7 +155,7 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
     >>> lg.delete()
     >>> 'third_test' in MOCK_LOGGERS
     False
-    '''
+    """
     if filename is None:
         filename = f'{name}.log'
     try:

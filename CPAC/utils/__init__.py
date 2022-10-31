@@ -4,13 +4,8 @@ from . import extract_parameters
 from . import build_data_config
 from .interfaces import function, masktool
 from .extract_data import run
-from .datasource import create_anat_datasource
-from .datasource import create_func_datasource
-from .datasource import create_fmap_datasource
-from .datasource import create_roi_mask_dataflow
-from .datasource import create_grp_analysis_dataflow
-from .datasource import create_spatial_map_dataflow
-from .configuration import Configuration
+from .datatypes import ListFromItem
+from .configuration import check_pname, Configuration, set_subject
 from .strategy import Strategy
 from .outputs import Outputs
 
@@ -42,6 +37,5 @@ from .utils import (
     repickle,
 )
 
-__all__ = [
-    'function'
-]
+__all__ = ['check_pname', 'Configuration', 'function', 'ListFromItem',
+           'set_subject']

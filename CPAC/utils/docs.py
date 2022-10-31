@@ -18,6 +18,8 @@ def docstring_parameter(*args, **kwargs):
     Does this test do anything? Yes it does.
     """
     def dec(obj):
+        if obj.__doc__ is None:
+            obj.__doc__ = ''
         obj.__doc__ = obj.__doc__.format(*args, **kwargs)
         return obj
     return dec

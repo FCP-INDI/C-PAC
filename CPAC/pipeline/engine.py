@@ -1,19 +1,19 @@
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2021-2022  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
 import logging
 import os
@@ -31,7 +31,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils import Outputs
+from CPAC.utils.outputs import Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -90,8 +90,10 @@ class ResourcePool:
 
             self.run_smoothing = 'smoothed' in cfg.post_processing[
                 'spatial_smoothing']['output']
+            self.smoothing_bool = cfg.post_processing['spatial_smoothing']['run']
             self.run_zscoring = 'z-scored' in cfg.post_processing[
                 'z-scoring']['output']
+            self.zscoring_bool = cfg.post_processing['z-scoring']['run']
             self.fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
             self.smooth_opts = cfg.post_processing['spatial_smoothing'][
                 'smoothing_method']
@@ -699,7 +701,7 @@ class ResourcePool:
                     mask_idx = self.generate_prov_string(mask_prov)[1]
                     break
 
-        if self.run_smoothing:
+        if self.smoothing_bool:
             if label in Outputs.to_smooth:
                 for smooth_opt in self.smooth_opts:
 
@@ -738,7 +740,7 @@ class ResourcePool:
                                   pipe_idx, f'spatial_smoothing_{smooth_opt}',
                                   fork=True)
 
-        if self.run_zscoring:            
+        if self.zscoring_bool:            
             for label_con_tpl in post_labels:
                 label = label_con_tpl[0]
                 connection = (label_con_tpl[1], label_con_tpl[2])
@@ -855,7 +857,7 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'cpac_{pipe_name}', unique_id)
+                container = os.path.join(f'pipeline_{pipe_name}', unique_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -872,8 +874,6 @@ class ResourcePool:
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-        #print(Outputs.any)
-        #print(self.rpool.keys())
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
@@ -1588,9 +1588,9 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             print(f"\nOutput directory {out_dir} does not exist yet, "
                   f"initializing.")
             return rpool
-            
-        cpac_dir = os.path.join(out_dir,
-                                f'cpac_{cfg.pipeline_setup["pipeline_name"]}',
+
+        cpac_dir = os.path.join(out_dir, 'pipeline_'
+                                f'{cfg.pipeline_setup["pipeline_name"]}',
                                 unique_id)
     else:
         if os.path.isdir(out_dir):
@@ -1958,9 +1958,6 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                 ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
 
-    # grab already-processed data from the output directory
-    rpool = ingress_output_dir(cfg, rpool, unique_id, creds_path)
-
     # grab any file paths from the pipeline config YAML
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
@@ -1970,7 +1967,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 def run_node_blocks(blocks, data_paths, cfg=None):
     import os
     from CPAC.pipeline import nipype_pipeline_engine as pe
-    from CPAC.utils.strategy import NodeBlock
+    from CPAC.pipeline.engine import NodeBlock
 
     if not cfg:
         cfg = {

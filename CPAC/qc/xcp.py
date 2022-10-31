@@ -1,56 +1,59 @@
-"""`Generate eXtensible Connectivity Pipeline-style quality control files <https://fcp-indi.github.io/docs/user/xcpqc>`_
+"""
+.. seealso::
+
+      `User Guide: Generate eXtensible Connectivity Pipeline-style quality control files <https://fcp-indi.github.io/docs/user/xcpqc>`_
 
 Columns
 -------
 sub : str
-    subject label :cite:`cite-BIDS21`
+    subject label :footcite:`BIDS21`
 ses : str
-    session label :cite:`cite-BIDS21`
+    session label :footcite:`BIDS21`
 task : str
-    task label :cite:`cite-BIDS21`
+    task label :footcite:`BIDS21`
 run : int
-    run index :cite:`cite-BIDS21`
+    run index :footcite:`BIDS21`
 desc : str
-    description :cite:`cite-BIDS21`
+    description :footcite:`BIDS21`
 regressors : str
     'Name' of regressors in the current fork
 space : str
-    space label :cite:`cite-BIDS21`
+    space label :footcite:`BIDS21`
 meanFD : float
-    mean Jenkinson framewise displacement :cite:`cite-Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J` after preprocessing
+    mean Jenkinson framewise displacement :footcite:`xcp_22,Jenk02` :func:`CPAC.generate_motion_statistics.calculate_FD_J` after preprocessing
 relMeansRMSMotion : float
-    "mean value of RMS motion" :cite:`cite-Ciri19`
+    "mean value of RMS motion" :footcite:`xcp_22,Ciri19`
 relMaxRMSMotion : float
-    "maximum vaue of RMS motion" :cite:`cite-Ciri19`
+    "maximum vaue of RMS motion" :footcite:`xcp_22,Ciri19`
 meanDVInit : float
-    "mean DVARS" :cite:`cite-Ciri19`
+    "mean DVARS" :footcite:`xcp_22,Ciri19`
 meanDVFinal : float
-    "mean DVARS" :cite:`cite-Ciri19`
+    "mean DVARS" :footcite:`xcp_22,Ciri19`
 nVolCensored : int
-    "total number of volume(s) censored :cite:`cite-Ciri19`
+    "total number of volume(s) censored :footcite:`Ciri19`
 nVolsRemoved : int
     number of volumes in derivative minus number of volumes in original
     functional scan
 motionDVCorrInit : float
-    "correlation of RMS and DVARS before regresion" :cite:`cite-Ciri19`
+    "correlation of RMS and DVARS before regresion" :footcite:`Ciri19`
 motionDVCorrFinal : float
-    "correlation of RMS and DVARS after regresion" :cite:`cite-Ciri19`
+    "correlation of RMS and DVARS after regresion" :footcite:`Ciri19`
 coregDice : float
-    "Coregsitration of Functional and T1w:[…] Dice index" :cite:`cite-Ciri19`
+    "Coregsitration of Functional and T1w:[…] Dice index" :footcite:`xcp_22,Ciri19`
 coregJaccard : float
-    "Coregsitration of Functional and T1w:[…] Jaccard index" :cite:`cite-Ciri19`
+    "Coregsitration of Functional and T1w:[…] Jaccard index" :footcite:`xcp_22,Ciri19`
 coregCrossCorr : float
-    "Coregsitration of Functional and T1w:[…] cross correlation" :cite:`cite-Ciri19`
+    "Coregsitration of Functional and T1w:[…] cross correlation" :footcite:`xcp_22,Ciri19`
 coregCoverag : float
-    "Coregsitration of Functional and T1w:[…] Coverage index" :cite:`cite-Ciri19`
+    "Coregsitration of Functional and T1w:[…] Coverage index" :footcite:`xcp_22,Ciri19`
 normDice : float
-    "Normalization of T1w/Functional to Template:[…] Dice index" :cite:`cite-Ciri19`
+    "Normalization of T1w/Functional to Template:[…] Dice index" :footcite:`xcp_22,Ciri19`
 normJaccard : float
-    "Normalization of T1w/Functional to Template:[…] Jaccard index" :cite:`cite-Ciri19`
+    "Normalization of T1w/Functional to Template:[…] Jaccard index" :footcite:`xcp_22,Ciri19`
 normCrossCorr : float
-    "Normalization of T1w/Functional to Template:[…] cross correlation" :cite:`cite-Ciri19`
+    "Normalization of T1w/Functional to Template:[…] cross correlation" :footcite:`xcp_22,Ciri19`
 normCoverage : float
-    "Normalization of T1w/Functional to Template:[…] Coverage index" :cite:`cite-Ciri19`
+    "Normalization of T1w/Functional to Template:[…] Coverage index" :footcite:`xcp_22,Ciri19`
 """  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
@@ -381,7 +384,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
      'option_key': 'None',
      'option_val': 'None',
      'inputs': [('subject', 'scan', 'bold', 'desc-preproc_bold',
-                 'space-T1w_desc-mean_bold', 'space-T1w_desc-brain_mask',
+                 'space-T1w_sbref', 'space-T1w_desc-brain_mask',
                  'max-displacement', 'space-template_desc-preproc_bold',
                  'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
                  'EPI-template-mask'], ['space-template_desc-bold_mask',
@@ -425,7 +428,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     nodes = {key: strat_pool.node_data(key) for key in [
         'bold', 'desc-preproc_bold', 'max-displacement',
         'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
-        'space-T1w_desc-mean_bold', 'space-template_desc-preproc_bold',
+        'space-T1w_sbref', 'space-template_desc-preproc_bold',
         'subject', *motion_params]}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
@@ -442,8 +445,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         (nodes['subject'].node, bids_info, [
             (nodes['subject'].out, 'subject')]),
         (nodes['scan'].node, bids_info, [(nodes['scan'].out, 'scan')]),
-        (nodes['space-T1w_desc-mean_bold'].node, bold_to_T1w_mask, [
-            (nodes['space-T1w_desc-mean_bold'].out, 'in_file')]),
+        (nodes['space-T1w_sbref'].node, bold_to_T1w_mask, [
+            (nodes['space-T1w_sbref'].out, 'in_file')]),
         (nodes['space-T1w_desc-brain_mask'].node, qc_file, [
             (nodes['space-T1w_desc-brain_mask'].out, 't1w_mask')]),
         (bold_to_T1w_mask, qc_file, [('out_file', 'bold2t1w_mask')]),

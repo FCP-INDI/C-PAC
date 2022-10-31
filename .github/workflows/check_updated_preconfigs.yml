@@ -1,4 +1,4 @@
-name: Check updated version
+name: Check updated preconfigs
 
 on:
   pull_request_target:
@@ -6,14 +6,18 @@ on:
   push:
 
 jobs:
-  check-updated-version:
-    name: Check if version updated
+  check-updated-preconfigs:
+    name: Check if preconfigs need updated
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - uses: actions/setup-python@v4 
+        with:
+          python-version: '3.9'
+          cache: 'pip'
       - name: Check if version updated
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
@@ -37,6 +41,14 @@ jobs:
             [skip ci]"
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
+          export PYTHONPATH=$PWD
+          pip install nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
+          python ./CPAC/utils/configuration/yaml_template.py
+          if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
+          then
+            git add CPAC/resources/configs
+            git commit -m ":bulb: Update comments based on default preconfig"
+          fi
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
           then
@@ -44,19 +56,18 @@ jobs:
             VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
             cd ..
             echo "v${VERSION}" > version
-            sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
             find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-            git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+            git add version CPAC/resources/configs
             if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
             then
-              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)" || true
               git push origin HEAD:${GITHUB_BRANCH} || true
             fi
             cd ..
           fi
 
   trigger-next-workflow:
-    needs: check-updated-version
+    needs: check-updated-preconfigs
     runs-on: ubuntu-latest
     steps:
       - name: Set up check

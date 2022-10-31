@@ -1,11 +1,27 @@
+# Copyright (C) 2012-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import csv
 import json
-import nipype.interfaces.utility as util
+import re
+from typing import Optional, Tuple
 from nipype import logging
-# pylint: disable=ungrouped-imports, wrong-import-order
+from nipype.interfaces import utility as util
+from nipype.interfaces.fsl import MultiImageMaths
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.afni as afni
-
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
@@ -327,25 +343,49 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
 
 
 def get_fmap_phasediff_metadata(data_config_scan_params):
-    if not isinstance(data_config_scan_params, dict) and \
-                    ".json" in data_config_scan_params:
-        with open(data_config_scan_params, 'r') as f:
-            data_config_scan_params = json.load(f)
+    if (not isinstance(data_config_scan_params, dict) and
+            ".json" in data_config_scan_params):
+        with open(data_config_scan_params, 'r', encoding='utf-8') as _f:
+            data_config_scan_params = json.load(_f)
 
-    echo_time = data_config_scan_params.get("EchoTime")
+    echo_time = None
+    echo_time_one = None
+    echo_time_two = None
+    if "EchoTime" in data_config_scan_params:
+        echo_time = data_config_scan_params.get("EchoTime")
+    elif "EchoTime1" in data_config_scan_params and "EchoTime2" \
+            in data_config_scan_params:
+        echo_time_one = data_config_scan_params.get("EchoTime1")
+        echo_time_two = data_config_scan_params.get("EchoTime2")
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
+    total_readout = data_config_scan_params.get("TotalReadoutTime")
 
-    return (echo_time, dwell_time, pe_direction)
+    return (dwell_time, pe_direction, total_readout, echo_time, 
+            echo_time_one, echo_time_two)
 
 
-def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
-                                echo_time_three=None):
-    echo_times = [echo_time_one, echo_time_two]
-    if echo_time_three:
-        # get only the two different ones
-        echo_times = list(dict.fromkeys([echo_time_one, echo_time_two,
-                                         echo_time_three]))
+def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
+                                 echo_times: list) -> Tuple[float, float]:
+    """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
+
+    Parameters
+    ----------
+    effective_echo_spacing : float
+        EffectiveEchoSpacing from sidecar JSON
+
+    echo_times : list
+
+    Returns
+    -------
+    deltaTE : float
+
+    ees_asym_ratio : float
+    """
+    if not isinstance(effective_echo_spacing, float):
+        raise LookupError('C-PAC could not find `EffectiveEchoSpacing` in '
+                          'either fmap or func sidecar JSON, but that field '
+                          'is required for PhaseDiff distortion correction.')
 
     # convert into milliseconds if necessary
     # these values will/should never be more than 10ms
@@ -354,9 +394,19 @@ def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
         echo_times[1] = echo_times[1] * 1000
 
     deltaTE = abs(echo_times[0] - echo_times[1])
-    dwell_asym_ratio = (dwell_time / deltaTE)
+    ees_asym_ratio = (effective_echo_spacing / deltaTE)
+    return deltaTE, ees_asym_ratio
 
-    return (deltaTE, dwell_asym_ratio)
+
+def gather_echo_times(echotime_1, echotime_2, echotime_3=None, echotime_4=None):
+    echotime_list = [echotime_1, echotime_2, echotime_3, echotime_4]
+    echotime_list = list(filter(lambda item: item is not None, echotime_list))
+    echotime_list = list(set(echotime_list))
+    if len(echotime_list) != 2:
+        raise Exception("\n[!] Something went wrong with the field map echo "
+                        "times - there should be two distinct values.\n\n"
+                        f"Echo Times:\n{echotime_list}\n")
+    return echotime_list
 
 
 def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
@@ -405,24 +455,24 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
 
 
 def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
-                          input_creds_path, unique_id=None):
+                          input_creds_path, unique_id=None, num_strat=None):
+    name_suffix = ''
+    for suffix_part in (unique_id, num_strat):
+        if suffix_part is not None:
+            name_suffix += f'_{suffix_part}'
     # Grab field maps
     diff = False
     blip = False
     fmap_rp_list = []
     fmap_TE_list = []
-
     if "fmap" in sub_dict:
         second = False
         for key in sub_dict["fmap"]:
-            gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                 f"fmap_gather_{key}_"
-                                                 f"{subject_id}")
+            gather_fmap = create_fmap_datasource(
+                sub_dict["fmap"], f"fmap_gather_{key}_{subject_id}")
             gather_fmap.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=cfg.pipeline_setup['working_directory']['path']
-            )
+                subject=subject_id, creds_path=input_creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path'])
             gather_fmap.inputs.inputnode.scan = key
 
             orig_key = key
@@ -443,95 +493,115 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             get_fmap_metadata_imports = ['import json']
             get_fmap_metadata = pe.Node(Function(
                 input_names=['data_config_scan_params'],
-                output_names=['echo_time',
-                              'dwell_time',
-                              'pe_direction'],
+                output_names=['dwell_time',
+                              'pe_direction',
+                              'total_readout',
+                              'echo_time',
+                              'echo_time_one',
+                              'echo_time_two'],
                 function=get_fmap_phasediff_metadata,
                 imports=get_fmap_metadata_imports),
-                name=f'{key}_get_metadata')
+                name=f'{key}_get_metadata{name_suffix}')
 
             wf.connect(gather_fmap, 'outputspec.scan_params',
                        get_fmap_metadata, 'data_config_scan_params')
 
-            rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
-                           {}, "", "fmap_TE_ingress")
+            if "phase" in key:
+                # leave it open to all three options, in case there is a
+                # phasediff image with either a single EchoTime field (which
+                # usually matches one of the magnitude EchoTimes), OR
+                # a phasediff with an EchoTime1 and EchoTime2
+
+                # at least one of these rpool keys will have a None value,
+                # which will be sorted out in gather_echo_times below
+                rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
+                               {}, "", "fmap_TE_ingress")
+                fmap_TE_list.append(f"{key}-TE")
+
+                rpool.set_data(f'{key}-TE1', 
+                               get_fmap_metadata, 'echo_time_one',
+                               {}, "", "fmap_TE1_ingress")
+                fmap_TE_list.append(f"{key}-TE1")
+
+                rpool.set_data(f'{key}-TE2', 
+                               get_fmap_metadata, 'echo_time_two',
+                               {}, "", "fmap_TE2_ingress")
+                fmap_TE_list.append(f"{key}-TE2")
+
+            elif "magnitude" in key:
+                rpool.set_data(f'{key}-TE', get_fmap_metadata, 'echo_time',
+                               {}, "", "fmap_TE_ingress")
+                fmap_TE_list.append(f"{key}-TE")
+
             rpool.set_data(f'{key}-dwell', get_fmap_metadata,
                            'dwell_time', {}, "", "fmap_dwell_ingress")
             rpool.set_data(f'{key}-pedir', get_fmap_metadata,
                            'pe_direction', {}, "", "fmap_pedir_ingress")
+            rpool.set_data(f'{key}-total-readout', get_fmap_metadata,
+                           'total_readout', {}, "", "fmap_readout_ingress")
 
-            fmap_TE_list.append(f"{key}-TE")
-
-            keywords = ['diffphase', 'diffmag']
-            if key in keywords:
+            if 'phase' in key or 'mag' in key:
                 diff = True
 
-            if orig_key == "epi_AP" or orig_key == "epi_PA":
+            if re.match('epi_[AP]{2}', orig_key):
                 blip = True
 
         if diff:
             calc_delta_ratio = pe.Node(Function(
-                input_names=['dwell_time',
-                             'echo_time_one',
-                             'echo_time_two',
-                             'echo_time_three'],
+                input_names=['effective_echo_spacing',
+                             'echo_times'],
                 output_names=['deltaTE',
-                              'dwell_asym_ratio'],
-                function=calc_deltaTE_and_asym_ratio),
-                name='diff_distcor_calc_delta')
-                
-            node, out_file = rpool.get('diffphase-dwell')[
-                "['diffphase-dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
-            wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
+                              'ees_asym_ratio'],
+                function=calc_delta_te_and_asym_ratio,
+                imports=['from typing import Optional, Tuple']),
+                name=f'diff_distcor_calc_delta{name_suffix}')
 
-            node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
-            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
+            gather_echoes = pe.Node(Function(
+                input_names=['echotime_1',
+                             'echotime_2',
+                             'echotime_3',
+                             'echotime_4'],
+                output_names=['echotime_list'],
+                function=gather_echo_times),
+                name='fugue_gather_echo_times')
 
-            node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
-                f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
-            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
+            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
+                try:
+                    node, out_file = rpool.get(fmap_file)[
+                            f"['{fmap_file}:fmap_TE_ingress']"]['data']
+                    wf.connect(node, out_file, gather_echoes, 
+                               f'echotime_{idx}')
+                except KeyError:
+                    pass
 
-            if len(fmap_TE_list) > 2:
-                node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
-                    f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
-                wf.connect(node, out_file,
-                           calc_delta_ratio, 'echo_time_three')
-
-            rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
-                           "deltaTE_ingress")
-            rpool.set_data('dwell-asym-ratio',
-                           calc_delta_ratio, 'dwell_asym_ratio', {}, "",
-                           "dwell_asym_ratio_ingress")
+            wf.connect(gather_echoes, 'echotime_list', 
+                       calc_delta_ratio, 'echo_times')
 
     # Add in nodes to get parameters from configuration file
     # a node which checks if scan_parameters are present for each scan
-    scan_params_imports = ['from CPAC.utils.utils import check, '
-                           'try_fetch_parameter']
-    scan_params = \
-        pe.Node(Function(
-            input_names=['data_config_scan_params',
-                         'subject_id',
-                         'scan',
-                         'pipeconfig_tr',
-                         'pipeconfig_tpattern',
-                         'pipeconfig_start_indx',
-                         'pipeconfig_stop_indx'],
-            output_names=['tr',
-                          'tpattern',
-                          'ref_slice',
-                          'start_indx',
-                          'stop_indx',
-                          'pe_direction'],
-            function=get_scan_params,
-            imports=scan_params_imports
-        ), name=f"bold_scan_params_{subject_id}_{unique_id}")
+    scan_params = pe.Node(Function(
+        input_names=['data_config_scan_params',
+                     'subject_id',
+                     'scan',
+                     'pipeconfig_tr',
+                     'pipeconfig_tpattern',
+                     'pipeconfig_start_indx',
+                     'pipeconfig_stop_indx'],
+        output_names=['tr',
+                      'tpattern',
+                      'ref_slice',
+                      'start_indx',
+                      'stop_indx',
+                      'pe_direction',
+                      'effective_echo_spacing'],
+        function=get_scan_params,
+        imports=['from CPAC.utils.utils import check, try_fetch_parameter']
+    ), name=f"bold_scan_params_{subject_id}{name_suffix}")
     scan_params.inputs.subject_id = subject_id
     scan_params.inputs.set(
         pipeconfig_start_indx=cfg.functional_preproc['truncation'][
             'start_tr'],
-        pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr']
-    )
+        pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr'])
 
     # wire in the scan parameter workflow
     node, out = rpool.get('scan-params')[
@@ -551,7 +621,21 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     rpool.set_data('pe-direction', scan_params, 'pe_direction', {}, "",
                    "func_metadata_ingress")
 
-    return (wf, rpool, diff, blip, fmap_rp_list)
+    if diff:
+        # Connect EffectiveEchoSpacing from functional metadata
+        rpool.set_data('effectiveEchoSpacing', scan_params,
+                       'effective_echo_spacing', {}, '',
+                       'func_metadata_ingress')
+        node, out_file = rpool.get('effectiveEchoSpacing')[
+            "['effectiveEchoSpacing:func_metadata_ingress']"]['data']
+        wf.connect(node, out_file, calc_delta_ratio, 'effective_echo_spacing')
+        rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, '',
+                       'deltaTE_ingress')
+        rpool.set_data('ees-asym-ratio', calc_delta_ratio,
+                       'ees_asym_ratio', {}, '',
+                       'ees_asym_ratio_ingress')
+
+    return wf, rpool, diff, blip, fmap_rp_list
 
 
 def create_general_datasource(wf_name):
@@ -836,7 +920,7 @@ def res_string_to_tuple(resolution):
 
 
 def resolve_resolution(resolution, template, template_name, tag=None):
-    import nipype.interfaces.afni as afni
+    from nipype.interfaces import afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.datasource import check_for_s3
 

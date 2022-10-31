@@ -1,9 +1,10 @@
 import os
+from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from CPAC.utils import Configuration, Strategy
-from CPAC.utils.interfaces.function import Function
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.datasource import resolve_resolution
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.strategy import Strategy
 
 def file_node(path, file_node_num=0):
     input_node = pe.Node(
