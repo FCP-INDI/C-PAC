@@ -23,8 +23,8 @@ from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
-from CPAC.registration.guardrails import guardrail_selection, \
-                                         registration_guardrail_node
+# from CPAC.registration.guardrails import guardrail_selection, \
+#                                          registration_guardrail_node
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -958,28 +958,31 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat')
     bbreg_func_to_anat.inputs.dof = 6
-    nodes, guardrails = register_bbregister_func_to_anat.nodes_and_guardrails(
-        bbreg_func_to_anat, registered='out_file', add_clones=bool(retry))
-    register_bbregister_func_to_anat.connect_retries(nodes, [
-        (inputspec, 'bbr_schedule', 'schedule'),
-        (wm_bb_mask, ('out_file', bbreg_args), 'args'),
-        (inputspec, 'func', 'in_file'),
-        (inputspec, 'anat', 'reference'),
-        (inputspec, 'linear_reg_matrix', 'in_matrix_file')])
+    bbreg_func_to_anat = register_bbregister_func_to_anat.guardrailed_node(
+        bbreg_func_to_anat, 'reference', 'out_file')
+
+    register_bbregister_func_to_anat.connect([
+        (inputspec, bbreg_func_to_anat, [
+            ('bbr_schedule', 'schedule'),
+            ('func', 'in_file'),
+            ('anat', 'reference'),
+            ('linear_reg_matrix', 'in_matrix_file')]),
+        (wm_bb_mask, bbreg_func_to_anat, ('out_file', bbreg_args), 'args')])
     if phase_diff_distcor:
-        register_bbregister_func_to_anat.connect_retries(nodes, [
-            (inputNode_pedir, ('pedir', convert_pedir), 'pedir'),
-            (inputspec, 'fieldmap', 'fieldmap'),
-            (inputspec, 'fieldmapmask', 'fieldmapmask'),
-            (inputNode_echospacing, 'echospacing', 'echospacing')])
-    register_bbregister_func_to_anat.connect_retries(guardrails, [
-        (inputspec, 'anat', 'reference')])
+        register_bbregister_func_to_anat.connect([
+            (inputNode_pedir, bbreg_func_to_anat, [
+                ('pedir', convert_pedir), 'pedir']),
+            (inputspec, bbreg_func_to_anat, [
+                ('fieldmap', 'fieldmap'),
+                ('fieldmapmask', 'fieldmapmask')]),
+            (inputNode_echospacing, bbreg_func_to_anat, [
+                ('echospacing', 'echospacing')])])
     if retry:
         # pylint: disable=no-value-for-parameter
-        outfile = guardrail_selection(register_bbregister_func_to_anat,
-                                      *guardrails)
-        matrix = guardrail_selection(register_bbregister_func_to_anat, *nodes,
-                                     'out_matrix_file', guardrails[0])
+        outfile = register_bbregister_func_to_anat.guardrail_selection(
+            bbreg_func_to_anat, 'out_file')
+        matrix = register_bbregister_func_to_anat.guardrail_selection(
+            bbreg_func_to_anat, 'out_matrix_file')
         register_bbregister_func_to_anat.connect(
             matrix, 'out', outputspec, 'func_to_anat_linear_xfm')
         register_bbregister_func_to_anat.connect(outfile, 'out',
@@ -988,8 +991,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         register_bbregister_func_to_anat.connect(
             bbreg_func_to_anat, 'out_matrix_file',
             outputspec, 'func_to_anat_linear_xfm')
-        register_bbregister_func_to_anat.connect(guardrails[0], 'registered',
-                                                 outputspec, 'anat_func')
+        register_bbregister_func_to_anat.connect(
+            bbreg_func_to_anat, 'out_file', outputspec, 'anat_func')
     return register_bbregister_func_to_anat
 
 

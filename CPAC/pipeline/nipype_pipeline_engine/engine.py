@@ -54,13 +54,18 @@ from logging import getLogger
 from typing import Iterable, Tuple, Union
 from nibabel import load
 from nipype import logging
-from nipype.interfaces.utility import Function
+from nipype.interfaces.base.support import Bunch, InterfaceResult
+from nipype.interfaces.utility import Function, Merge, Select
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
 from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+from CPAC.pipeline.random_state.seed import increment_seed, random_seed, \
+                                            random_seed_flags
+from CPAC.registration.guardrails import BestOf, registration_guardrail, \
+                                         skip_if_first_try_succeeds
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -147,8 +152,6 @@ class Node(pe.Node):
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
-        # pylint: disable=import-outside-toplevel
-        from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
@@ -345,8 +348,6 @@ class Node(pe.Node):
 
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
-        # pylint: disable=import-outside-toplevel
-        from CPAC.pipeline.random_state import random_seed_flags
         if isinstance(self.interface, Function):
             for rsf, flags in random_seed_flags()['functions'].items():
                 if self.interface.inputs.function_str == getsource(rsf):
@@ -411,6 +412,11 @@ class Node(pe.Node):
 
     def run(self, updatehash=False):
         self.__doc__ = getattr(super(), '__doc__', '')
+        if hasattr(self.interface, 'inputs'
+                   ) and hasattr(self.interface.inputs, 'previous_failure'):
+            if self.interface.inputs.previous_failure is False:
+                return InterfaceResult(self.interface, Bunch(),
+                                       self.inputs, self.outputs, None)
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
@@ -418,6 +424,55 @@ class Node(pe.Node):
                                          'atropos' in self.name else
                                          str(self.seed), self.name)
         return super().run(updatehash)
+
+
+class GuardrailedNode:
+    '''A Node with QC guardrails.'''
+    def __init__(self, wf, node, reference, registered):
+        '''A Node with guardrails
+
+        Parameters
+        ----------
+        wf : Workflow
+            The parent workflow in which this node is guardrailed
+
+        node : Node
+            Node to guardrail
+
+        reference : str
+            key for reference image
+
+        registered : str
+            key for registered image
+        '''
+        self.guardrails = [registration_guardrail_node(
+            f'{node.name}_guardrail')]
+        self.node = node
+        self.reference = reference
+        self.registered = registered
+        self.retries = []
+        self.wf = wf
+        self.wf.connect(self.node, registered,
+                        self.guardrails[0], 'registered')
+        if self.wf.num_tries > 1:
+            if self.wf.retry_on_first_failure:
+                self.guardrails.append(registration_guardrail_node(
+                    f'{node.name}_guardrail'))
+                self.retries.append(retry_clone(self.node))
+            else:
+                for i in range(self.wf.num_tries - 1):
+                    self.retries.append(retry_clone(self.node, i + 2))
+                    self.retries[0].interface = skip_if_first_try_succeeds(
+                        self.retries[0].interface)
+                    self.wf.connect(self.node, 'failed_qc',
+                                    self.retries[0], 'previous_failure')
+            for i, retry in enumerate(self.retries):
+                self.wf.connect(retry, registered,
+                                self.guardrails[i + 1], 'registered')
+
+    def guardrail_selection(self, node, output_key):
+        """Convenience method to :py:method:`Workflow.guardrail_selection`"""
+        return self.wf.guardrail_selection(node, output_key)
 
 
 class MapNode(Node, pe.MapNode):
@@ -441,7 +496,8 @@ class MapNode(Node, pe.MapNode):
 class Workflow(pe.Workflow):
     """Controls the setup and execution of a pipeline of processes."""
 
-    def __init__(self, name, base_dir=None, debug=False):
+    def __init__(self, name, base_dir=None, debug=False, guardrail_config=None
+                 ):
         """Create a workflow object.
         Parameters
         ----------
@@ -451,6 +507,7 @@ class Workflow(pe.Workflow):
             path to workflow storage
         debug : boolean, optional
             enable verbose debug-level logging
+        guardrail_config : dict, optional
         """
         import networkx as nx
 
@@ -458,7 +515,8 @@ class Workflow(pe.Workflow):
         self._debug = debug
         self.verbose_logger = getLogger('engine') if debug else None
         self._graph = nx.DiGraph()
-
+        self._guardrail_config = {
+        } if guardrail_config is None else guardrail_config
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
@@ -497,9 +555,37 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
-    def connect_retries(self, nodes: Iterable['Node'],
-                        connections: Iterable[Tuple['Node', Union[str, tuple],
-                                                    str]]) -> None:
+    def connect(self, *args, **kwargs):
+        """Connects all the retry nodes and guardrails of guardrailed nodes,
+        then connects the other nodes as usual
+
+        .. seealso:: pe.Node.connect
+        """
+        if len(args) == 1:
+            connection_list = args.pop(0)
+        elif len(args) == 4:
+            connection_list = [(args.pop(0), args.pop(2), [
+                (args.pop(1), args.pop(3))])]
+        new_connection_list = []
+        for srcnode, destnode, connects in connection_list:
+            if isinstance(srcnode, GuardrailedNode):
+                for _from, _to in connects:
+                    selected = srcnode.guardrail_selection(srcnode, _from)
+                    self.connect(selected, 'out', destnode, _to)
+            if isinstance(destnode, GuardrailedNode):
+                for _from, _to in connects:
+                    guardnodes = [destnode.node, *destnode.retries]
+                    self.connect_many(guardnodes, [(srcnode, _from, _to)])
+                    if _from == destnode.reference:
+                        self.connect_many(guardnodes, [
+                            (srcnode, _from, 'reference')])
+            else:
+                new_connection_list.extend([srcnode, destnode, connects])
+        super().connect(new_connection_list, *args, **kwargs)
+
+    def connect_many(self, nodes: Iterable['Node'],
+                     connections: Iterable[Tuple['Node', Union[str, tuple],
+                                                 str]]) -> None:
         """Method to generalize making the same connections to try and
         retry nodes.
 
@@ -513,14 +599,14 @@ class Workflow(pe.Workflow):
 
         connections : iterable of 3-tuples of (Node, str or tuple, str)
         """
-        wrong_conn_type_msg = (r'connect_retries `connections` argument '
+        wrong_conn_type_msg = (r'connect_many `connections` argument '
                                'must be an iterable of (Node, str or '
                                'tuple, str) tuples.')
         if not isinstance(connections, (list, tuple)):
             raise TypeError(f'{wrong_conn_type_msg}: Given {connections}')
         for node in nodes:
             if not isinstance(node, Node):
-                raise TypeError('connect_retries requires an iterable '
+                raise TypeError('connect_many requires an iterable '
                                 r'of nodes for the `nodes` parameter: '
                                 f'Given {node}')
             for conn in connections:
@@ -531,6 +617,78 @@ class Workflow(pe.Workflow):
                     raise TypeError(f'{wrong_conn_type_msg}: Given {conn}')
                 self.connect(*conn[:2], node, conn[2])
 
+    @property
+    def guardrail(self):
+        """Are guardrails on?
+
+        Returns
+        -------
+        boolean
+        """
+        return any(self._guardrail_config['thresholds'].values())
+
+    def guardrailed_node(self, node, reference, registered):
+        """Method to return a GuardrailedNode in the given Workflow.
+
+        .. seealso:: GuardrailedNode
+        """
+        return GuardrailedNode(self, node, reference, registered)
+
+    def guardrail_selection(self, node: 'GuardrailedNode', output_key: str
+                            ) -> Node:
+        """Generate requisite Nodes for choosing a path through the graph
+        with retries.
+
+        Takes two nodes to choose an output from. These nodes are assumed
+        to be guardrail nodes if `output_key` and `guardrail_node` are not
+        specified.
+
+        A ``nipype.interfaces.utility.Merge`` is generated, connecting
+        ``output_key`` from ``node1`` and ``node2`` in that order.
+
+        A ``nipype.interfaces.utility.Select`` node is generated taking the
+        output from the generated ``Merge`` and using the ``failed_qc``
+        output of ``guardrail_node`` (``node1`` if ``guardrail_node`` is
+        unspecified).
+
+        All relevant connections are made in the given Workflow.
+
+        The ``Select`` node is returned; its output is keyed ``out`` and
+        contains the value of the given ``output_key`` (``registered`` if
+        unspecified).
+
+        Parameters
+        ----------
+        node : GuardrailedNode
+
+        output_key : key to select from Node
+
+        Returns
+        -------
+        select : Node
+        """
+        name = node.node.name
+        if output_key != 'registered':
+            name = f'{name}_{output_key}'
+        choices = Node(Merge(self.num_tries), run_without_submitting=True,
+                       name=f'{name}_choices')
+        select = Node(Select(), run_without_submitting=True,
+                      name=f'choose_{name}')
+        self.connect([(node.node, choices, [(output_key, 'in1')]),
+                      (choices, select, [('out', 'inlist')])])
+        if self._guardrail_config['best_of'] > 1:
+            best_of = Node(BestOf(len(self.num_tries)))
+            self.connect([(node.guardrail, best_of, [('error', 'error1')]),
+                          (best_of, 'index', [(select, 'index')])])
+            for i, retry in enumerate(node.retries):
+                self.connect([(retry, choices, [(output_key, f'in{i+2}')]),
+                              (retry.guardrail, best_of, [('error',
+                                                           f'error{i+2}')])])
+        elif self.retry_on_first_failure:
+            self.connect([(node.retries[0], choices, [(output_key, 'in2')]),
+                          (node.guardrail, select, [('failed_qc', 'index')])])
+        return select
+
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
         if hasattr(self, '_local_func_scans'):
@@ -540,31 +698,29 @@ class Workflow(pe.Workflow):
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
 
-    def nodes_and_guardrails(self, *nodes, registered, add_clones=True):
-        """Returns a two tuples of Nodes: (try, retry) and their
-        respective guardrails
-
-        Parameters
-        ----------
-        nodes : any number of Nodes
+    @property
+    def num_tries(self):
+        """How many maximum tries?
 
         Returns
         -------
-        nodes : tuple of Nodes
-
-        guardrails : tuple of Nodes
+        int
         """
-        from CPAC.registration.guardrails import registration_guardrail_node, \
-                                                 retry_clone
-        nodes = list(nodes)
-        if add_clones is True:
-            nodes.extend([retry_clone(node) for node in nodes])
-        guardrails = [None] * len(nodes)
-        for i, node in enumerate(nodes):
-            guardrails[i] = registration_guardrail_node(
-                f'guardrail_{node.name}', i)
-            self.connect(node, registered, guardrails[i], 'registered')
-        return tuple(nodes), tuple(guardrails)
+        if self.guardrail is False:
+            return 1
+        return 2 if (self.retry_on_first_failure
+                     ) else self._guardrail_config['best_of']
+
+    @property
+    def retry_on_first_failure(self):
+        """Retry iff first attempt fails?
+
+        Returns
+        -------
+        bool
+        """
+        return (self._guardrail_config['best_of'] == 1 and
+                self._guardrail_config['retry_on_first_failure'] is True)
 
 
 def get_data_size(filepath, mode='xyzt'):
@@ -601,3 +757,54 @@ def get_data_size(filepath, mode='xyzt'):
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
+
+
+def registration_guardrail_node(name=None, retry_num=0):
+    """Convenience method to get a new registration_guardrail Node
+
+    Parameters
+    ----------
+    name : str, optional
+
+    retry_num : int, optional
+        how many previous tries?
+
+    Returns
+    -------
+    Node
+    """
+    if name is None:
+        name = 'registration_guardrail'
+    node = Node(Function(input_names=['registered', 'reference', 'retry_num'],
+                         output_names=['registered', 'failed_qc', 'error'],
+                         imports=['import logging',
+                                  'from typing import Tuple',
+                                  'from CPAC.qc import qc_masks, '
+                                  'registration_guardrail_thresholds',
+                                  'from CPAC.registration.guardrails '
+                                  'import BadRegistrationError'],
+                         function=registration_guardrail), name=name)
+    if retry_num:
+        node.inputs.retry_num = retry_num
+    return node
+
+
+def retry_clone(node: 'Node', index: int = 1) -> 'Node':
+    """Function to clone a node, name the clone, and increment its
+    random seed
+
+    Parameters
+    ----------
+    node : Node
+
+    index : int
+        if multiple tries regardless of initial success, nth try
+        (starting with 2)
+
+    Returns
+    -------
+    Node
+    """
+    if index > 1:
+        return increment_seed(node.clone(f'{node.name}_try{index}'))
+    return increment_seed(node.clone(f'retry_{node.name}'))

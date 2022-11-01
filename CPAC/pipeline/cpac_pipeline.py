@@ -767,8 +767,11 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
     if name:
         name = f'_{name}'
 
-    workflow_name = f'cpac{name}_{sub_data_dct["subject_id"]}_{sub_data_dct["unique_id"]}'
-    wf = pe.Workflow(name=workflow_name)
+    workflow_name = (f'cpac{name}_{sub_data_dct["subject_id"]}_'
+                     f'{sub_data_dct["unique_id"]}')
+    wf = pe.Workflow(name=workflow_name,
+                     guardrail_config=cfg['registration_workflows',
+                                          'guardrails'])
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',

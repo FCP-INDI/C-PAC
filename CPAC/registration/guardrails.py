@@ -17,74 +17,61 @@
 """Guardrails to protect against bad registrations"""
 import logging
 from typing import Tuple
-from nipype.interfaces.utility import Function, Merge, Select
-# pylint: disable=unused-import
-from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
-from CPAC.pipeline.random_state.seed import increment_seed
+from nipype.interfaces.base import TraitedSpec, traits
+from nipype.interfaces.io import add_traits, IOBase
+from nipype.interfaces.utility.base import MergeInputSpec
 from CPAC.qc import qc_masks, registration_guardrail_thresholds
 from CPAC.registration.exceptions import BadRegistrationError
 from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.docs import retry_docstring
 
 
-# noqa: F401
-def guardrail_selection(wf: 'Workflow', node1: 'Node', node2: 'Node',
-                        output_key: str = 'registered',
-                        guardrail_node: 'Node' = None) -> Node:
-    """Generate requisite Nodes for choosing a path through the graph
-    with retries.
+class BestOfOutputSpec(TraitedSpec):
+    """Outputspec for :py:class:`BestOf`"""
+    index = traits.Int(desc="0-indexed index of minimum error")
 
-    Takes two nodes to choose an output from. These nodes are assumed
-    to be guardrail nodes if `output_key` and `guardrail_node` are not
-    specified.
 
-    A ``nipype.interfaces.utility.Merge`` is generated, connecting
-    ``output_key`` from ``node1`` and ``node2`` in that order.
+class BestOf(IOBase):
+    """Returns the index of the smallest 'error'. Inputs are 1-indexed
+    and output is 0-indexed to mirror Merge and Select.
 
-    A ``nipype.interfaces.utility.Select`` node is generated taking the
-    output from the generated ``Merge`` and using the ``failed_qc``
-    output of ``guardrail_node`` (``node1`` if ``guardrail_node`` is
-    unspecified).
+    .. seealso::
 
-    All relevant connections are made in the given Workflow.
+       nipype.interfaces.utility.base.Merge
 
-    The ``Select`` node is returned; its output is keyed ``out`` and
-    contains the value of the given ``output_key`` (``registered`` if
-    unspecified).
+       nipype.interfaces.utility.base.Select
 
-    Parameters
-    ----------
-    wf : Workflow
-
-    node1, node2 : Node
-        first try, retry
-
-    output_key : str
-        field to choose
-
-    guardrail_node : Node
-        guardrail to collect 'failed_qc' from if not node1
-
-    Returns
+    Example
     -------
-    select : Node
+    >>> best_of = BestOf(3)
+    >>> best_of.inputs.error1 = 0.5
+    >>> best_of.inputs.error2 = 0.1
+    >>> best_of.inputs.error3 = 0.2
+    >>> res = best_of.run()
+    >>> res.outputs.index
+    1
     """
-    # pylint: disable=redefined-outer-name,reimported,unused-import
-    from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
-    if guardrail_node is None:
-        guardrail_node = node1
-    name = node1.name
-    if output_key != 'registered':
-        name = f'{name}_{output_key}'
-    choices = Node(Merge(2), run_without_submitting=True,
-                   name=f'{name}_choices')
-    select = Node(Select(), run_without_submitting=True,
-                  name=f'choose_{name}')
-    wf.connect([(node1, choices, [(output_key, 'in1')]),
-                (node2, choices, [(output_key, 'in2')]),
-                (choices, select, [('out', 'inlist')]),
-                (guardrail_node, select, [('failed_qc', 'index')])])
-    return select
+    input_spec = MergeInputSpec
+    output_spec = BestOfOutputSpec
+
+    def __init__(self, numinputs=0, **inputs):
+        super().__init__(**inputs)
+        self._numinputs = numinputs
+        if numinputs >= 1:
+            input_names = [f"error{(i + 1)}" for i in range(numinputs)]
+        else:
+            input_names = []
+        add_traits(self.inputs, input_names)
+
+    def _getval(self, idx):
+        return getattr(self.inputs, f"error{idx + 1}", 1)
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        if self._numinputs >= 1:
+            values = [self._getval(idx) for idx in range(self._numinputs)]
+            outputs["index"] = values.index(min(values))
+        return outputs
 
 
 def registration_guardrail(registered: str, reference: str,
@@ -119,14 +106,15 @@ def registration_guardrail(registered: str, reference: str,
 
     failed_qc : int
         metrics met specified thresholds?, used as index for selecting
-        outputs
-        .. seealso::
+        outputs with ``retry_on_first_failure``
 
-           :py:mod:`guardrail_selection`
+    error : float:
+        sum of distance from thresholded QC metrics (min=0, max=count(metrics))
     """
     logger = logging.getLogger('nipype.workflow')
     qc_metrics = qc_masks(registered, reference)
     failed_qc = 0
+    error = 0
     for metric, threshold in registration_guardrail_thresholds().items():
         if threshold is not None:
             value = qc_metrics.get(metric)
@@ -146,52 +134,8 @@ def registration_guardrail(registered: str, reference: str,
                     if retry_num:
                         # if we've already retried, raise the error
                         raise bad_registration
-    return registered, failed_qc
-
-
-def registration_guardrail_node(name=None, retry_num=0):
-    """Convenience method to get a new registration_guardrail Node
-
-    Parameters
-    ----------
-    name : str, optional
-
-    retry_num : int, optional
-        how many previous tries?
-
-    Returns
-    -------
-    Node
-    """
-    if name is None:
-        name = 'registration_guardrail'
-    node = Node(Function(input_names=['registered', 'reference', 'retry_num'],
-                         output_names=['registered', 'failed_qc'],
-                         imports=['import logging',
-                                  'from typing import Tuple',
-                                  'from CPAC.qc import qc_masks, '
-                                  'registration_guardrail_thresholds',
-                                  'from CPAC.registration.guardrails '
-                                  'import BadRegistrationError'],
-                         function=registration_guardrail), name=name)
-    if retry_num:
-        node.inputs.retry_num = retry_num
-    return node
-
-
-def retry_clone(node: 'Node') -> 'Node':
-    """Function to clone a node, name the clone, and increment its
-    random seed
-
-    Parameters
-    ----------
-    node : Node
-
-    Returns
-    -------
-    Node
-    """
-    return increment_seed(node.clone(f'retry_{node.name}'))
+            error += (1 - value)
+    return registered, failed_qc, error
 
 
 # pylint: disable=missing-function-docstring,too-many-arguments
@@ -206,3 +150,10 @@ def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
                          reference_skull, ants_para, moving_mask,
                          reference_mask, fixed_image_mask, interp,
                          reg_with_skull)
+
+
+def skip_if_first_try_succeeds(interface):
+    """Set an interface up to skip if a previous attempt succeeded"""
+    if hasattr(interface, 'input_spec'):
+        interface.inputs.add_trait('previous_failure', traits.Bool())
+    return interface

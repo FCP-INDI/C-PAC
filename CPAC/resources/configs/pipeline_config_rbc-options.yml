@@ -31,6 +31,13 @@ pipeline_setup:
     random_seed: 77742777
 
 registration_workflows:
+  guardrails:
+    thresholds:
+      Dice: 0.8
+      Jaccard: 0.9
+      CrossCorr: 0.7
+      Coverage: 0.8
+    retry_on_first_failure: On
   anatomical_registration:
 
     # Template to be used during registration.

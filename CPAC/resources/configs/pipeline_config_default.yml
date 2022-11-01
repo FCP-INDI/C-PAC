@@ -597,6 +597,12 @@ registration_workflows:
       Jaccard: 0.9
       CrossCorr: 0.7
       Coverage: 0.8
+    # If this option is turned on and best_of is set to 1, any registration step that falls below the specified thresholds will retry with an incremented seed
+    retry_on_first_failure: Off
+    # If this number is > 1, C-PAC will run that many iterations of each registration calculation and choose the registration with the smallest difference from 1 across all specified thresholds
+    # If this number ≠ 1, the retry_on_first_failure option will have no effect
+    # Must be at least 1
+    best_of: 1
 
   anatomical_registration:
 

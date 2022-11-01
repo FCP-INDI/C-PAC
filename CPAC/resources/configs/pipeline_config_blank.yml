@@ -522,12 +522,14 @@ segmentation:
       WM_label: [2, 41]
 
 registration_workflows:
-  gaurdrails:
+  guardrails:
     thresholds:
       Dice:
       Jaccard:
       CrossCorr:
       Coverage:
+    retry_on_first_failure: Off
+    best_of: 1
   anatomical_registration:
     run: Off
     registration:

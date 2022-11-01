@@ -282,7 +282,7 @@ latest_schema = Schema({
             'num_participants_at_once': int,
             'random_seed': Maybe(Any(
                 'random',
-                All(int, Range(min=1, max=np.iinfo(np.int32).max)))),
+                All(int, Range(min=1, max=MAX_SEED)))),
             'observed_usage': {
                 'callback_log': Maybe(str),
                 'buffer': Number,
@@ -468,9 +468,10 @@ latest_schema = Schema({
     },
     'registration_workflows': {
         'guardrails': {
-            'thresholds':  {metric: Maybe(float) for metric in
-                            ('Dice', 'Jaccard', 'CrossCorr', 'Coverage')},
-        }},
+            'thresholds': {metric: Maybe(float) for metric in
+                           ('Dice', 'Jaccard', 'CrossCorr', 'Coverage')},
+            'retry_on_first_failure': bool1_1,
+            'best_of': All(int, Range(min=1))},
         'anatomical_registration': {
             'run': bool1_1,
             'resolution_for_anat': All(str, Match(resolution_regex)),
