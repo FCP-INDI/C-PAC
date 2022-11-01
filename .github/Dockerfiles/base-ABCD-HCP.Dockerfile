@@ -1,5 +1,5 @@
 # Choose versions
-FROM ghcr.io/fcp-indi/c-pac/afni:21.2.06-bionic as AFNI
+FROM ghcr.io/fcp-indi/c-pac/afni:21.1.00-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.2.0.neurodocker-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-1.neurodebian-bionic as connectome-workbench

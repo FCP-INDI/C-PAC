@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/afni:21.2.06-bionic as AFNI
+FROM ghcr.io/fcp-indi/c-pac/afni:21.1.00-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM

@@ -19,7 +19,7 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
     export LD_LIBRARY_PATH && \
     apt-get update && apt-get install -y libglw1-mesa-dev && \
-    AFNI_VERSION="21.2.06" && \
+    AFNI_VERSION="21.1.00" && \
     curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
     mkdir /opt/afni && \
     tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
@@ -49,7 +49,7 @@ RUN apt-get clean && \
 
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-AFNI 21.2.06 (Nerva) stage"
+AFNI 21.1.00 (Domitian) stage"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
