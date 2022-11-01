@@ -154,6 +154,12 @@ pipeline_setup:
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: On
     path: /outputs/logs
+    graphviz:
+      entire_workflow:
+        generate: Off
+        graph2use: []
+        format: []
+        simple_form: On
 
   crash_log_directory:
 
