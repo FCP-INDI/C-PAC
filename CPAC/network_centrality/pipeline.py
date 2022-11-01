@@ -141,8 +141,8 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                 elif 'eigen' in option.lower():
                     if 'weight' in weight.lower():
                         outputs['space-template_desc-weighted_eigen-centrality'] = (merge_node, 'eigen_weighted')
-                    #elif 'binarize' in weight.lower():
-                        #outputs['space-template_desc-binarized_eigen-centrality'] = (merge_node, 'eigen_binarized')
+                    elif 'binarize' in weight.lower():
+                        outputs['space-template_desc-binarized_eigen-centrality'] = (merge_node, 'eigen_binarized')
                 elif 'lfcd' in option.lower() or 'local_functional' in option.lower():
                     if 'weight' in weight.lower():
                         outputs['space-template_desc-weighted_lfcd'] = (merge_node, 'lfcd_weighted')
