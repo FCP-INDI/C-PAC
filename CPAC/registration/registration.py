@@ -22,7 +22,6 @@ from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
-from CPAC.qc.globals import registration_guardrails
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -922,7 +921,6 @@ def create_bbregister_func_to_anat(phase_diff_distcor, name, bbreg_status,
             Functional data in anatomical space
     """
     suffix = f'{bbreg_status.title()}_{pipe_num}'
-    retry = bbreg_status == 'On'
     register_bbregister_func_to_anat = pe.Workflow(name=f'{name}_{suffix}')
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
                                                        'anat',
@@ -961,7 +959,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor, name, bbreg_status,
                                  name=f'bbreg_func_to_anat_{suffix}')
     bbreg_func_to_anat.inputs.dof = 6
     bbreg_func_to_anat = register_bbregister_func_to_anat.guardrailed_node(
-        bbreg_func_to_anat, 'reference', 'out_file', pipe_num)
+        bbreg_func_to_anat, 'reference', 'out_file', pipe_num,
+        retry=bbreg_status == 'On')
     register_bbregister_func_to_anat.connect([
         (inputspec, bbreg_func_to_anat, [
             ('bbr_schedule', 'schedule'),
@@ -979,21 +978,14 @@ def create_bbregister_func_to_anat(phase_diff_distcor, name, bbreg_status,
                 ('fieldmapmask', 'fieldmapmask')]),
             (inputNode_echospacing, bbreg_func_to_anat, [
                 ('echospacing', 'echospacing')])])
-    if retry and registration_guardrails.retry_on_first_failure:
-        outfile = register_bbregister_func_to_anat.guardrail_selection(
-            bbreg_func_to_anat, 'out_file')
-        matrix = register_bbregister_func_to_anat.guardrail_selection(
-            bbreg_func_to_anat, 'out_matrix_file')
-        register_bbregister_func_to_anat.connect(
-            matrix, 'out', outputspec, 'func_to_anat_linear_xfm')
-        register_bbregister_func_to_anat.connect(outfile, 'out',
-                                                 outputspec, 'anat_func')
-    else:
-        register_bbregister_func_to_anat.connect(
-            bbreg_func_to_anat, 'out_matrix_file',
-            outputspec, 'func_to_anat_linear_xfm')
-        register_bbregister_func_to_anat.connect(
-            bbreg_func_to_anat, 'out_file', outputspec, 'anat_func')
+    outfile = register_bbregister_func_to_anat.guardrail_selection(
+        bbreg_func_to_anat, 'out_file')
+    matrix = register_bbregister_func_to_anat.guardrail_selection(
+        bbreg_func_to_anat, 'out_matrix_file')
+    register_bbregister_func_to_anat.connect(
+        matrix, 'out', outputspec, 'func_to_anat_linear_xfm')
+    register_bbregister_func_to_anat.connect(outfile, 'out',
+                                                outputspec, 'anat_func')
     return register_bbregister_func_to_anat
 
 
@@ -1827,7 +1819,7 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False,
             name='change_transform_type')
 
         wf.connect(fsl_reg_2_itk, 'itk_transform',
-                         change_transform, 'input_affine_file')
+                   change_transform, 'input_affine_file')
 
         # combine ALL xfm's into one - makes it easier downstream
         write_composite_xfm = pe.Node(
@@ -2862,10 +2854,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
                 'bbr_wm_mask_args']
-        if fallback:
-            bbreg_guardrail = pe.registration_guardrail_node(
-                f'bbreg{bbreg_status}_guardrail_{pipe_num}',
-                raise_on_failure=False)
 
         node, out = strat_pool.get_data('sbref')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
@@ -2875,16 +2863,12 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'reference'] == 'whole-head':
             node, out = strat_pool.get_data('desc-head_T1w')
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
-            if fallback:
-                wf.connect(node, out, bbreg_guardrail, 'reference')
 
         elif cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
                 'reference'] == 'brain':
             node, out = strat_pool.get_data('desc-preproc_T1w')
             wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat')
-            if fallback:
-                wf.connect(node, out, bbreg_guardrail, 'reference')
 
         wf.connect(func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg',
                    func_to_anat_bbreg, 'inputspec.linear_reg_matrix')

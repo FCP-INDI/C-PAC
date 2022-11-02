@@ -469,8 +469,7 @@ class Workflow(pe.Workflow):
         ``node = wf.guardrailed_node(node, reference, registered, pipe_num)``
         to automatically build guardrails
         """
-        def __init__(self, wf, node, reference, registered, pipe_num,
-                     retry=True):
+        def __init__(self, wf, node, reference, registered, pipe_num, retry):
             '''A Node with guardrails
 
             Parameters
@@ -493,39 +492,34 @@ class Workflow(pe.Workflow):
             retry : bool
                 retry if run is so configured
             '''
-            self.guardrails = [registration_guardrail_node(
-                f'{node.name}_guardrail_{pipe_num}')]
             self.node = node
+            self.node.guardrail = registration_guardrail_node(
+                f'{node.name}_guardrail_{pipe_num}')
             self.reference = reference
             self.registered = registered
-            self.retries = []
+            self.tries = [node]
             self.wf = wf
-            self.wf.connect(self.node, registered,
-                            self.guardrails[0], 'registered')
             if retry and self.wf.num_tries > 1:
                 if registration_guardrails.retry_on_first_failure:
-                    self.guardrails.append(registration_guardrail_node(
-                        f'{node.name}_guardrail'))
-                    self.retries.append(retry_clone(self.node))
-                    self.retries[0].interface.inputs.add_trait(
+                    self.tries.append(retry_clone(self.node))
+                    self.tries[1].interface.inputs.add_trait(
                         'previous_failure', traits.Bool())
-                    self.guardrails.append(registration_guardrail_node(
-                        f'{self.retries[0].name}_guardrail',
-                        raise_on_failure=True))
-                    self.wf.connect(self.guardrails[0], 'failed_qc',
-                                    self.retries[0], 'previous_failure')
+                    self.tries[1].guardrail = registration_guardrail_node(
+                        f'{self.tries[1].name}_guardrail',
+                        raise_on_failure=True)
+                    self.wf.connect(self.tries[0].guardrail, 'failed_qc',
+                                    self.tries[1], 'previous_failure')
                 else:
                     num_retries = self.wf.num_tries - 1
                     for i in range(num_retries):
-                        self.retries.append(retry_clone(self.node, i + 2))
-                        self.guardrails.append(registration_guardrail_node(
-                            f'{self.retries[-1].name}_guardrail',
-                            raise_on_failure=(i + 1 == num_retries)))
-                for i, _retry in enumerate(self.retries):
-                    self.wf.connect(_retry, registered,
-                                    self.guardrails[i + 1], 'registered')
-            for guardrail in self.guardrails:
-                guardrail.inputs.reference = self.reference
+                        self.tries.append(retry_clone(self.node, i + 2))
+                        self.tries[i + 1].guardrail = (
+                            registration_guardrail_node(
+                                f'{self.tries[i + 1].name}_guardrail',
+                                raise_on_failure=(i + 1 == num_retries)))
+            for i, _try in enumerate(self.tries):
+                self.wf.connect(_try, registered, _try.guardrail, 'registered')
+                _try.guardrail.inputs.reference = self.reference
 
         def __getattr__(self, __name):
             """Get attributes from the node that is guardrailed if that
@@ -684,7 +678,8 @@ class Workflow(pe.Workflow):
         """
         return any(registration_guardrails.thresholds.values())
 
-    def guardrailed_node(self, node, reference, registered, pipe_num):
+    def guardrailed_node(self, node, reference, registered, pipe_num,
+                         retry=True):
         """Method to return a GuardrailedNode in the given Workflow.
 
         .. seealso:: Workflow.GuardrailedNode
@@ -702,9 +697,12 @@ class Workflow(pe.Workflow):
 
         pipe_num : int
             int
+
+        retry : bool
+            retry if run is so configured
         """
         return self.GuardrailedNode(self, node, reference, registered,
-                                    pipe_num)
+                                    pipe_num, retry)
 
     def guardrail_selection(self, node: 'Workflow.GuardrailedNode',
                             output_key: str) -> Node:
