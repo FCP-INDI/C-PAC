@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2022  C-PAC Developers
+# Copyright (C) 2022  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,4 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Quality control utilities for C-PAC"""
-from CPAC.qc.qcmetrics import qc_masks
-__all__ = ['qc_masks']
+"""Global registration guardrail values"""

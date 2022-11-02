@@ -1,5 +1,20 @@
-'''Functions to set, check, and log random seed'''
-import os
+# Copyright (C) 2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Functions to set, check, and log random seed"""
 import random
 from logging import getLogger
 
@@ -9,11 +24,52 @@ from nipype.interfaces.ants.segmentation import Atropos
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
-
+from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.ants import AI
-from CPAC.utils.monitoring.custom_logging import set_up_logger
 
+MAX_SEED = np.iinfo(np.int32).max
 _seed = {'seed': None}
+
+
+@docstring_parameter(1, MAX_SEED)
+class Seed(int):
+    """An integer bounded at [{}, {}] for use in setting up random state."""
+    def __new__(cls, *args, **kwargs):
+        _value = super().__new__(cls, *args, **kwargs
+                                 ) if args else random_seed()
+        while _value > MAX_SEED:
+            _value = _value - MAX_SEED
+        while _value < 1:
+            _value = _value + MAX_SEED
+        return _value
+
+    @docstring_parameter(1, MAX_SEED)
+    def __add__(self, other):
+        """Loop back around to {} after {}"""
+        return Seed(super().__add__(other))
+
+    @docstring_parameter(MAX_SEED, 0)
+    def __sub__(self, other):
+        """Loop back around to {} at {}"""
+        return Seed(super().__sub__(other))
+
+
+def increment_seed(node, by=1):
+    """Increment the random seed for a given node
+
+    Parameters
+    ----------
+    node : Node
+
+    by : int
+        how much to increment by
+
+    Returns
+    -------
+    node : Node
+    """
+    node.seed += by
+    return node
 
 
 def random_random_seed():
@@ -29,10 +85,10 @@ def random_random_seed():
 
     Examples
     --------
-    >>> 0 < random_random_seed() <= np.iinfo(np.int32).max
+    >>> 0 < random_random_seed() <= MAX_SEED
     True
     '''
-    return random.randint(1, np.iinfo(np.int32).max)
+    return Seed(random.randint(1, MAX_SEED))
 
 
 def random_seed():
@@ -46,7 +102,7 @@ def random_seed():
     -------
     seed : int or None
     '''
-    if _seed['seed'] == 'random':
+    if _seed['seed'] in ['random', None]:
         _seed['seed'] = random_random_seed()
     return _seed['seed']
 
@@ -160,20 +216,22 @@ def set_up_random_state(seed):
     >>> set_up_random_state(0)
     Traceback (most recent call last):
     ValueError: Valid random seeds are positive integers up to 2147483647, "random", or None, not 0
-    >>> set_up_random_state(None)
-
+    >>> 1 <= set_up_random_state(None) <= MAX_SEED
+    True
     '''  # noqa: E501  # pylint: disable=line-too-long
     if seed is not None:
         if seed == 'random':
             seed = random_random_seed()
         else:
             try:
-                seed = int(seed)
-                assert 0 < seed <= np.iinfo(np.int32).max
-            except(ValueError, TypeError, AssertionError):
-                raise ValueError('Valid random seeds are positive integers up to '
-                                    f'2147483647, "random", or None, not {seed}')
-    
+                seed = Seed(seed)
+                assert 0 < seed <= MAX_SEED
+            except (ValueError, TypeError, AssertionError) as error:
+                raise ValueError(
+                    'Valid random seeds are positive integers up '
+                    f'to {MAX_SEED}, "random", or None, not {seed}'
+                ) from error
+
     _seed['seed'] = seed
     return random_seed()
 
@@ -185,5 +243,7 @@ def set_up_random_state_logger(log_dir):
     ----------
     log_dir : str
     '''
-    set_up_logger('random', level='info', log_dir=log_dir)
-    getLogger('random').info('seed: %s', random_seed())
+    from CPAC.utils.monitoring.custom_logging import set_up_logger
+    set_up_logger('random', filename='random.tsv', level='info',
+                  log_dir=log_dir)
+    getLogger('random').info('seed\tnode')

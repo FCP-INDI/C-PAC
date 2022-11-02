@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2022  C-PAC Developers
+# Copyright (C) 2022  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,29 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Quality control utilities for C-PAC"""
-from CPAC.qc.qcmetrics import qc_masks
-__all__ = ['qc_masks']
+"""Global registration guardrail values"""
+from traits.trait_base import Undefined
+_REGISTRATION_GUARDRAILS = {}
+
+
+def __getattr__(name):
+    """Get global values"""
+    if name == 'retry_on_first_failure':
+        return (_REGISTRATION_GUARDRAILS.get('best_of') == 1 and
+                _REGISTRATION_GUARDRAILS.get(name) is True)
+    return _REGISTRATION_GUARDRAILS.get(name, Undefined)
+
+
+def update(_dict) -> None:
+    """Set registration guardrails
+
+    Parameters
+    ----------
+    _dict : dict
+        keys and values to update
+
+    Returns
+    -------
+    None
+    """
+    _REGISTRATION_GUARDRAILS.update(_dict)

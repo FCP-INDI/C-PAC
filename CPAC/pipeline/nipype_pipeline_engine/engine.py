@@ -1,58 +1,80 @@
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Supports just-in-time dynamic memory allocation
+#     * Skips doctests that require files that we haven't copied over
+#     * Applies a random seed
+#     * Supports overriding memory estimates via a log file and a buffer
+#     * Adds quotation marks around strings in dotfiles
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2022 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 '''Module to import Nipype Pipeline engine and override some Classes.
 See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
-for Nipype's documentation.
-
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
-
-CHANGES:
-    * Supports just-in-time dynamic memory allocation
-    * Skips doctests that require files that we haven't copied over
-    * Applies a random seed
-    * Supports overriding memory estimates via a log file and a buffer
-
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright (c) 2009-2016, Nipype developers
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-    Prior to release 0.12, Nipype was licensed under a BSD license.
-
-Modifications Copyright (C) 2022  C-PAC Developers
-
-This file is part of C-PAC.'''  # noqa: E501
+for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
-from logging import getLogger
+from copy import deepcopy
 from inspect import Parameter, Signature, signature
+from logging import getLogger
+from typing import Iterable, Tuple, Union
 from nibabel import load
 from nipype import logging
-from nipype.interfaces.utility import Function
+from nipype.interfaces.base import traits
+from nipype.interfaces.base.support import Bunch, InterfaceResult
+from nipype.interfaces.utility import Function, Merge, Select
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
 from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+from CPAC.pipeline.random_state.seed import increment_seed, random_seed, \
+                                            random_seed_flags, Seed
+from CPAC.qc.globals import registration_guardrails
+from CPAC.registration.guardrails import BestOf, registration_guardrail
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
 
 random_state_logger = getLogger('random')
+logger = getLogger("nipype.workflow")
 
 
 def _check_mem_x_path(mem_x_path):
@@ -132,8 +154,6 @@ class Node(pe.Node):
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
-        # pylint: disable=import-outside-toplevel
-        from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = logging.getLogger("nipype.workflow")
         self.seed = random_seed()
@@ -330,8 +350,6 @@ class Node(pe.Node):
 
     def _apply_random_seed(self):
         '''Apply flags for the first matched interface'''
-        # pylint: disable=import-outside-toplevel
-        from CPAC.pipeline.random_state import random_seed_flags
         if isinstance(self.interface, Function):
             for rsf, flags in random_seed_flags()['functions'].items():
                 if self.interface.inputs.function_str == getsource(rsf):
@@ -396,14 +414,31 @@ class Node(pe.Node):
 
     def run(self, updatehash=False):
         self.__doc__ = getattr(super(), '__doc__', '')
+        if hasattr(self.interface, 'inputs'
+                   ) and hasattr(self.interface.inputs, 'previous_failure'):
+            if self.interface.inputs.previous_failure is False:
+                return InterfaceResult(self.interface, Bunch(),
+                                       self.inputs, self.outputs, None)
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
-                random_state_logger.info('%s',
-                                         '%s  # (Atropos constant)' %
-                                         self.name if 'atropos' in
-                                         self.name else self.name)
+                random_state_logger.info('%s\t%s', '# (Atropos constant)' if
+                                         'atropos' in self.name else
+                                         str(self.seed), self.name)
         return super().run(updatehash)
+
+    @property
+    def seed(self):
+        """Random seed for this Node"""
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        """Cast seed to Seed type to ensure limits"""
+        try:
+            self._seed = Seed(value)
+        except TypeError:
+            self._seed = Undefined
 
 
 class MapNode(Node, pe.MapNode):
@@ -427,6 +462,93 @@ class MapNode(Node, pe.MapNode):
 class Workflow(pe.Workflow):
     """Controls the setup and execution of a pipeline of processes."""
 
+    class GuardrailedNode:
+        """A Node with QC guardrails.
+
+        Set a node to a Workflow.GuardrailedNode like
+        ``node = wf.guardrailed_node(node, reference, registered, pipe_num)``
+        to automatically build guardrails
+        """
+        def __init__(self, wf, node, reference, registered, pipe_num, retry):
+            '''A Node with guardrails
+
+            Parameters
+            ----------
+            wf : Workflow
+                The parent workflow in which this node is guardrailed
+
+            node : Node
+                Node to guardrail
+
+            reference : str
+                key for reference image
+
+            registered : str
+                key for registered image
+
+            pipe_num : int
+                int
+
+            retry : bool
+                retry if run is so configured
+            '''
+            self.node = node
+            self.node.guardrail = registration_guardrail_node(
+                f'{node.name}_guardrail_{pipe_num}')
+            self.reference = reference
+            self.registered = registered
+            self.tries = [node]
+            self.wf = wf
+            if retry and self.wf.num_tries > 1:
+                if registration_guardrails.retry_on_first_failure:
+                    self.tries.append(retry_clone(self.node))
+                    self.tries[1].interface.inputs.add_trait(
+                        'previous_failure', traits.Bool())
+                    self.tries[1].guardrail = registration_guardrail_node(
+                        f'{self.tries[1].name}_guardrail',
+                        raise_on_failure=True)
+                    self.wf.connect(self.tries[0].guardrail, 'failed_qc',
+                                    self.tries[1], 'previous_failure')
+                else:
+                    num_retries = self.wf.num_tries - 1
+                    for i in range(num_retries):
+                        self.tries.append(retry_clone(self.node, i + 2))
+                        self.tries[i + 1].guardrail = (
+                            registration_guardrail_node(
+                                f'{self.tries[i + 1].name}_guardrail',
+                                raise_on_failure=(i + 1 == num_retries)))
+            for i, _try in enumerate(self.tries):
+                self.wf.connect(_try, registered, _try.guardrail, 'registered')
+                _try.guardrail.inputs.reference = self.reference
+
+        def __getattr__(self, __name):
+            """Get attributes from the node that is guardrailed if that
+            attribute isn't an attribute of the guardrail"""
+            if __name in ('_reference', '_registered'):
+                return object.__getattribute__(self, __name[1:])
+            if __name not in self.__dict__:
+                return getattr(self.node, __name)
+            return object.__getattribute__(self, __name)
+
+        def __setattr__(self, __name, __value):
+            """Set an attribute in a node and all retries"""
+            if __name in ('reference', 'registered'):
+                super().__setattr__(f'_{__name}', __value)
+                for guardrail in self.guardrails:
+                    setattr(guardrail.inputs, __name, __value)
+            if __name not in self.__dict__:
+                super().__setattr__(__name, __value)
+            else:
+                setattr(self.node, __name, __value)
+                for node in self.retries:
+                    setattr(node, __name, __value)
+
+        def guardrail_selection(self, node, output_key):
+            """Convenience method to
+            :py:method:`Workflow.guardrail_selection`
+            """
+            return self.wf.guardrail_selection(node, output_key)
+
     def __init__(self, name, base_dir=None, debug=False):
         """Create a workflow object.
         Parameters
@@ -444,7 +566,6 @@ class Workflow(pe.Workflow):
         self._debug = debug
         self.verbose_logger = getLogger('engine') if debug else None
         self._graph = nx.DiGraph()
-
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
@@ -483,6 +604,162 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
+    def connect(self, *args, **kwargs):
+        """Connects all the retry nodes and guardrails of guardrailed nodes,
+        then connects the other nodes as usual
+
+        .. seealso:: pe.Node.connect
+        """
+        if len(args) == 1:
+            connection_list = args[0]
+        elif len(args) == 4:
+            connection_list = [(args[0], args[2], [(args[1], args[3])])]
+        else:
+            raise TypeError("connect() takes either 4 arguments, or 1 list of"
+                            f" connection tuples ({len(args)} args given)")
+        new_connection_list = []
+        for srcnode, destnode, connects in connection_list:
+            if isinstance(srcnode, Workflow.GuardrailedNode):
+                for _from, _to in connects:
+                    selected = srcnode.guardrail_selection(srcnode, _from)
+                    self.connect(selected, 'out', destnode, _to)
+            elif isinstance(destnode, Workflow.GuardrailedNode):
+                for _from, _to in connects:
+                    guardnodes = [destnode.node, *destnode.retries]
+                    self.connect_many(guardnodes, [(srcnode, _from, _to)])
+                    if _from == destnode.reference:
+                        self.connect_many(guardnodes, [
+                            (srcnode, _from, 'reference')])
+            else:
+                new_connection_list.extend([(srcnode, destnode, connects)])
+        super().connect(new_connection_list, **kwargs)
+
+    def connect_many(self, nodes: Iterable['Node'],
+                     connections: Iterable[Tuple['Node', Union[str, tuple],
+                                                 str]]) -> None:
+        """Method to generalize making the same connections to try and
+        retry nodes.
+
+        For each 3-tuple (``conn``) in ``connections``, will do
+        ``wf.connect(conn[0], conn[1], node, conn[2])`` for each ``node``
+        in ``nodes``
+
+        Parameters
+        ----------
+        nodes : iterable of Nodes
+
+        connections : iterable of 3-tuples of (Node, str or tuple, str)
+        """
+        wrong_conn_type_msg = (r'connect_many `connections` argument '
+                               'must be an iterable of (Node, str or '
+                               'tuple, str) tuples.')
+        if not isinstance(connections, (list, tuple)):
+            raise TypeError(f'{wrong_conn_type_msg}: Given {connections}')
+        for node in nodes:
+            if not isinstance(node, Node):
+                raise TypeError('connect_many requires an iterable '
+                                r'of nodes for the `nodes` parameter: '
+                                f'Given {node}')
+            for conn in connections:
+                if not all((isinstance(conn, (list, tuple)), len(conn) == 3,
+                            isinstance(conn[0], Node),
+                            isinstance(conn[1], (tuple, str)),
+                            isinstance(conn[2], str))):
+                    raise TypeError(f'{wrong_conn_type_msg}: Given {conn}')
+                self.connect(*conn[:2], node, conn[2])
+
+    @property
+    def guardrail(self):
+        """Are guardrails on?
+
+        Returns
+        -------
+        boolean
+        """
+        return any(registration_guardrails.thresholds.values())
+
+    def guardrailed_node(self, node, reference, registered, pipe_num,
+                         retry=True):
+        """Method to return a GuardrailedNode in the given Workflow.
+
+        .. seealso:: Workflow.GuardrailedNode
+
+        Parameters
+        ----------
+        node : Node
+            Node to guardrail
+
+        reference : str
+            key for reference image
+
+        registered : str
+            key for registered image
+
+        pipe_num : int
+            int
+
+        retry : bool
+            retry if run is so configured
+        """
+        return self.GuardrailedNode(self, node, reference, registered,
+                                    pipe_num, retry)
+
+    def guardrail_selection(self, node: 'Workflow.GuardrailedNode',
+                            output_key: str) -> Node:
+        """Generate requisite Nodes for choosing a path through the graph
+        with retries.
+
+        Takes two nodes to choose an output from. These nodes are assumed
+        to be guardrail nodes if `output_key` and `guardrail_node` are not
+        specified.
+
+        A ``nipype.interfaces.utility.Merge`` is generated, connecting
+        ``output_key`` from ``node1`` and ``node2`` in that order.
+
+        A ``nipype.interfaces.utility.Select`` node is generated taking the
+        output from the generated ``Merge`` and using the ``failed_qc``
+        output of ``guardrail_node`` (``node1`` if ``guardrail_node`` is
+        unspecified).
+
+        All relevant connections are made in the given Workflow.
+
+        The ``Select`` node is returned; its output is keyed ``out`` and
+        contains the value of the given ``output_key`` (``registered`` if
+        unspecified).
+
+        Parameters
+        ----------
+        node : Workflow.GuardrailedNode
+
+        output_key : key to select from Node
+
+        Returns
+        -------
+        select : Node
+        """
+        name = node.node.name
+        if output_key != 'registered':
+            name = f'{name}_{output_key}'
+        choices = Node(Merge(self.num_tries), run_without_submitting=True,
+                       name=f'{name}_choices')
+        select = Node(Select(), run_without_submitting=True,
+                      name=f'choose_{name}')
+        self.connect([(node.node, choices, [(output_key, 'in1')]),
+                      (choices, select, [('out', 'inlist')])])
+        if registration_guardrails.best_of > 1:
+            best_of = Node(BestOf(len(self.num_tries)))
+            self.connect([(node.guardrails[0], best_of, [('error', 'error1')]),
+                          (best_of, 'index', [(select, 'index')])])
+            for i, retry in enumerate(node.retries):
+                self.connect([(retry, choices, [(output_key, f'in{i+2}')]),
+                              (retry.guardrails[i], best_of, [('error',
+                                                           f'error{i+2}')])])
+        elif registration_guardrails.retry_on_first_failure:
+            self.connect([(node.retries[0], choices, [(output_key, 'in2')]),
+                          (node.guardrails[0], select, [
+                              ('failed_qc', 'index')])])
+        return select
+
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
         if hasattr(self, '_local_func_scans'):
@@ -491,6 +768,19 @@ class Workflow(pe.Workflow):
         else:
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
+
+    @property
+    def num_tries(self):
+        """How many maximum tries?
+
+        Returns
+        -------
+        int
+        """
+        if self.guardrail is False:
+            return 1
+        return 2 if (registration_guardrails.retry_on_first_failure
+                     ) else registration_guardrails.best_of
 
 
 def get_data_size(filepath, mode='xyzt'):
@@ -527,3 +817,52 @@ def get_data_size(filepath, mode='xyzt'):
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
+
+
+def registration_guardrail_node(name=None, raise_on_failure=False):
+    """Convenience method to get a new registration_guardrail Node
+
+    Parameters
+    ----------
+    name : str, optional
+
+    Returns
+    -------
+    Node
+    """
+    if name is None:
+        name = 'registration_guardrail'
+    node = Node(Function(input_names=['registered', 'reference',
+                                      'raise_on_failure'],
+                         output_names=['registered', 'failed_qc', 'error'],
+                         imports=['import logging',
+                                  'from typing import Tuple',
+                                  'from CPAC.qc import qc_masks',
+                                  'from CPAC.qc.globals import '
+                                  'registration_guardrails',
+                                  'from CPAC.registration.guardrails '
+                                  'import BadRegistrationError'],
+                         function=registration_guardrail), name=name)
+    node.inputs.raise_on_failure = raise_on_failure
+    return node
+
+
+def retry_clone(node: 'Node', index: int = 1) -> 'Node':
+    """Function to clone a node, name the clone, and increment its
+    random seed
+
+    Parameters
+    ----------
+    node : Node
+
+    index : int
+        if multiple tries regardless of initial success, nth try
+        (starting with 2)
+
+    Returns
+    -------
+    Node
+    """
+    if index > 1:
+        return increment_seed(node.clone(f'{node.name}_try{index}'), index)
+    return increment_seed(node.clone(f'retry_{node.name}'))

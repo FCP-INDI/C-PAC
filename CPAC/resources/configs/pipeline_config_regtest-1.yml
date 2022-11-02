@@ -109,7 +109,8 @@ registration_workflows:
       boundary_based_registration:
 
         # this is a fork point
-        #   run: [On, Off] - this will run both and fork the pipeline
+        #   run: [On, Off, fallback] - this will run both and fork the pipeline
+        #   if 'fallback' is one of the selected options, BBR will run and, if its output fails quality_thresholds, the pipeline will fallback to BBR's input image
         run: [On]
 
     func_registration_to_template:
