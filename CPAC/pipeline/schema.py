@@ -532,7 +532,7 @@ latest_schema = Schema({
                 },
                 'boundary_based_registration': {
                     'run': All(Coerce(ListFromItem),
-                               [Any(bool1_1, All(Lower, Equal('fallback')))],
+                               [Any(All(Lower, Equal('fallback')), bool1_1)],
                                Length(max=3)),
                     'bbr_schedule': str,
                     'bbr_wm_map': In({'probability_map',

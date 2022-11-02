@@ -32,6 +32,7 @@ import yaml
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
+from CPAC.qc.globals import registration_guardrails
 from nipype import config, logging
 
 from indi_aws import aws_utils, fetch_creds
@@ -199,7 +200,7 @@ from CPAC.network_centrality.pipeline import (
     network_centrality
 )
 
-from CPAC.pipeline.random_state import set_up_random_state_logger
+from CPAC.pipeline.random_state.seed import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
@@ -769,9 +770,8 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
 
     workflow_name = (f'cpac{name}_{sub_data_dct["subject_id"]}_'
                      f'{sub_data_dct["unique_id"]}')
-    wf = pe.Workflow(name=workflow_name,
-                     guardrail_config=cfg['registration_workflows',
-                                          'guardrails'])
+    wf = pe.Workflow(name=workflow_name)
+    registration_guardrails.update(cfg['registration_workflows', 'guardrails'])
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',

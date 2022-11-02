@@ -20,11 +20,9 @@ from typing import Optional, Tuple, Union
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
-
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
-# from CPAC.registration.guardrails import guardrail_selection, \
-#                                          registration_guardrail_node
+from CPAC.qc.globals import registration_guardrails
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
                                     generate_inverse_transform_flags, \
@@ -876,22 +874,25 @@ def create_register_func_to_anat_use_T2(name='register_func_to_anat_use_T2'):
     return register_func_to_anat_use_T2
 
 
-def create_bbregister_func_to_anat(phase_diff_distcor=False,
-                                   name='bbregister_func_to_anat',
-                                   retry=False):
+def create_bbregister_func_to_anat(phase_diff_distcor, name, bbreg_status,
+                                   pipe_num=0):
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
     relies on some of its outputs.
     Parameters
     ----------
-    fieldmap_distortion : bool, optional
+    fieldmap_distortion : bool
         If field map-based distortion correction is being run, FLIRT should
         take in the appropriate field map-related inputs.
-    name : string, optional
+
+    name : string
         Name of the workflow.
-    retry : bool
-        Try twice?
+
+    bbreg_status : string
+        'On' or 'fallback'
+
+    pipe_num : int
 
     Returns
     -------
@@ -920,8 +921,9 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         outputspec.anat_func : string (nifti file)
             Functional data in anatomical space
     """
-    register_bbregister_func_to_anat = pe.Workflow(name=name)
-
+    suffix = f'{bbreg_status.title()}_{pipe_num}'
+    retry = bbreg_status == 'On'
+    register_bbregister_func_to_anat = pe.Workflow(name=f'{name}_{suffix}')
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
                                                        'anat',
                                                        'linear_reg_matrix',
@@ -956,18 +958,18 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         return '-cost bbr -wmseg ' + bbreg_target
 
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
-                                 name='bbreg_func_to_anat')
+                                 name=f'bbreg_func_to_anat_{suffix}')
     bbreg_func_to_anat.inputs.dof = 6
     bbreg_func_to_anat = register_bbregister_func_to_anat.guardrailed_node(
-        bbreg_func_to_anat, 'reference', 'out_file')
-
+        bbreg_func_to_anat, 'reference', 'out_file', pipe_num)
     register_bbregister_func_to_anat.connect([
         (inputspec, bbreg_func_to_anat, [
             ('bbr_schedule', 'schedule'),
             ('func', 'in_file'),
             ('anat', 'reference'),
-            ('linear_reg_matrix', 'in_matrix_file')]),
-        (wm_bb_mask, bbreg_func_to_anat, ('out_file', bbreg_args), 'args')])
+            ('linear_reg_matrix', 'in_matrix_file')])])
+    register_bbregister_func_to_anat.connect(
+        wm_bb_mask, ('out_file', bbreg_args), bbreg_func_to_anat, 'args')
     if phase_diff_distcor:
         register_bbregister_func_to_anat.connect([
             (inputNode_pedir, bbreg_func_to_anat, [
@@ -977,8 +979,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                 ('fieldmapmask', 'fieldmapmask')]),
             (inputNode_echospacing, bbreg_func_to_anat, [
                 ('echospacing', 'echospacing')])])
-    if retry:
-        # pylint: disable=no-value-for-parameter
+    if retry and registration_guardrails.retry_on_first_failure:
         outfile = register_bbregister_func_to_anat.guardrail_selection(
             bbreg_func_to_anat, 'out_file')
         matrix = register_bbregister_func_to_anat.guardrail_selection(
@@ -2849,12 +2850,10 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             'from-bold_to-T1w_mode-image_desc-linear_xfm':
                 (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
         }
-
     if opt in [True, 'fallback']:
         fallback = opt == 'fallback'
         func_to_anat_bbreg = create_bbregister_func_to_anat(
-            diff_complete, f'func_to_anat_bbreg{bbreg_status}_{pipe_num}',
-            opt is True)
+            diff_complete, 'func_to_anat_bbreg', bbreg_status, pipe_num)
         func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
             cfg.registration_workflows['functional_registration'][
                 'coregistration']['boundary_based_registration'][
@@ -2864,8 +2863,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'bbr_wm_mask_args']
         if fallback:
-            bbreg_guardrail = registration_guardrail_node(
-                f'bbreg{bbreg_status}_guardrail_{pipe_num}', 1)
+            bbreg_guardrail = pe.registration_guardrail_node(
+                f'bbreg{bbreg_status}_guardrail_{pipe_num}',
+                raise_on_failure=False)
 
         node, out = strat_pool.get_data('sbref')
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')

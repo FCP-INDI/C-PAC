@@ -49,11 +49,13 @@ See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine
 for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
+from copy import deepcopy
 from inspect import Parameter, Signature, signature
 from logging import getLogger
 from typing import Iterable, Tuple, Union
 from nibabel import load
 from nipype import logging
+from nipype.interfaces.base import traits
 from nipype.interfaces.base.support import Bunch, InterfaceResult
 from nipype.interfaces.utility import Function, Merge, Select
 from nipype.pipeline import engine as pe
@@ -63,9 +65,9 @@ from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
 from CPAC.pipeline.random_state.seed import increment_seed, random_seed, \
-                                            random_seed_flags
-from CPAC.registration.guardrails import BestOf, registration_guardrail, \
-                                         skip_if_first_try_succeeds
+                                            random_seed_flags, Seed
+from CPAC.qc.globals import registration_guardrails
+from CPAC.registration.guardrails import BestOf, registration_guardrail
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -425,54 +427,18 @@ class Node(pe.Node):
                                          str(self.seed), self.name)
         return super().run(updatehash)
 
+    @property
+    def seed(self):
+        """Random seed for this Node"""
+        return self._seed
 
-class GuardrailedNode:
-    '''A Node with QC guardrails.'''
-    def __init__(self, wf, node, reference, registered):
-        '''A Node with guardrails
-
-        Parameters
-        ----------
-        wf : Workflow
-            The parent workflow in which this node is guardrailed
-
-        node : Node
-            Node to guardrail
-
-        reference : str
-            key for reference image
-
-        registered : str
-            key for registered image
-        '''
-        self.guardrails = [registration_guardrail_node(
-            f'{node.name}_guardrail')]
-        self.node = node
-        self.reference = reference
-        self.registered = registered
-        self.retries = []
-        self.wf = wf
-        self.wf.connect(self.node, registered,
-                        self.guardrails[0], 'registered')
-        if self.wf.num_tries > 1:
-            if self.wf.retry_on_first_failure:
-                self.guardrails.append(registration_guardrail_node(
-                    f'{node.name}_guardrail'))
-                self.retries.append(retry_clone(self.node))
-            else:
-                for i in range(self.wf.num_tries - 1):
-                    self.retries.append(retry_clone(self.node, i + 2))
-                    self.retries[0].interface = skip_if_first_try_succeeds(
-                        self.retries[0].interface)
-                    self.wf.connect(self.node, 'failed_qc',
-                                    self.retries[0], 'previous_failure')
-            for i, retry in enumerate(self.retries):
-                self.wf.connect(retry, registered,
-                                self.guardrails[i + 1], 'registered')
-
-    def guardrail_selection(self, node, output_key):
-        """Convenience method to :py:method:`Workflow.guardrail_selection`"""
-        return self.wf.guardrail_selection(node, output_key)
+    @seed.setter
+    def seed(self, value):
+        """Cast seed to Seed type to ensure limits"""
+        try:
+            self._seed = Seed(value)
+        except TypeError:
+            self._seed = Undefined
 
 
 class MapNode(Node, pe.MapNode):
@@ -496,8 +462,100 @@ class MapNode(Node, pe.MapNode):
 class Workflow(pe.Workflow):
     """Controls the setup and execution of a pipeline of processes."""
 
-    def __init__(self, name, base_dir=None, debug=False, guardrail_config=None
-                 ):
+    class GuardrailedNode:
+        """A Node with QC guardrails.
+
+        Set a node to a Workflow.GuardrailedNode like
+        ``node = wf.guardrailed_node(node, reference, registered, pipe_num)``
+        to automatically build guardrails
+        """
+        def __init__(self, wf, node, reference, registered, pipe_num,
+                     retry=True):
+            '''A Node with guardrails
+
+            Parameters
+            ----------
+            wf : Workflow
+                The parent workflow in which this node is guardrailed
+
+            node : Node
+                Node to guardrail
+
+            reference : str
+                key for reference image
+
+            registered : str
+                key for registered image
+
+            pipe_num : int
+                int
+
+            retry : bool
+                retry if run is so configured
+            '''
+            self.guardrails = [registration_guardrail_node(
+                f'{node.name}_guardrail_{pipe_num}')]
+            self.node = node
+            self.reference = reference
+            self.registered = registered
+            self.retries = []
+            self.wf = wf
+            self.wf.connect(self.node, registered,
+                            self.guardrails[0], 'registered')
+            if retry and self.wf.num_tries > 1:
+                if registration_guardrails.retry_on_first_failure:
+                    self.guardrails.append(registration_guardrail_node(
+                        f'{node.name}_guardrail'))
+                    self.retries.append(retry_clone(self.node))
+                    self.retries[0].interface.inputs.add_trait(
+                        'previous_failure', traits.Bool())
+                    self.guardrails.append(registration_guardrail_node(
+                        f'{self.retries[0].name}_guardrail',
+                        raise_on_failure=True))
+                    self.wf.connect(self.guardrails[0], 'failed_qc',
+                                    self.retries[0], 'previous_failure')
+                else:
+                    num_retries = self.wf.num_tries - 1
+                    for i in range(num_retries):
+                        self.retries.append(retry_clone(self.node, i + 2))
+                        self.guardrails.append(registration_guardrail_node(
+                            f'{self.retries[-1].name}_guardrail',
+                            raise_on_failure=(i + 1 == num_retries)))
+                for i, _retry in enumerate(self.retries):
+                    self.wf.connect(_retry, registered,
+                                    self.guardrails[i + 1], 'registered')
+            for guardrail in self.guardrails:
+                guardrail.inputs.reference = self.reference
+
+        def __getattr__(self, __name):
+            """Get attributes from the node that is guardrailed if that
+            attribute isn't an attribute of the guardrail"""
+            if __name in ('_reference', '_registered'):
+                return object.__getattribute__(self, __name[1:])
+            if __name not in self.__dict__:
+                return getattr(self.node, __name)
+            return object.__getattribute__(self, __name)
+
+        def __setattr__(self, __name, __value):
+            """Set an attribute in a node and all retries"""
+            if __name in ('reference', 'registered'):
+                super().__setattr__(f'_{__name}', __value)
+                for guardrail in self.guardrails:
+                    setattr(guardrail.inputs, __name, __value)
+            if __name not in self.__dict__:
+                super().__setattr__(__name, __value)
+            else:
+                setattr(self.node, __name, __value)
+                for node in self.retries:
+                    setattr(node, __name, __value)
+
+        def guardrail_selection(self, node, output_key):
+            """Convenience method to
+            :py:method:`Workflow.guardrail_selection`
+            """
+            return self.wf.guardrail_selection(node, output_key)
+
+    def __init__(self, name, base_dir=None, debug=False):
         """Create a workflow object.
         Parameters
         ----------
@@ -507,7 +565,6 @@ class Workflow(pe.Workflow):
             path to workflow storage
         debug : boolean, optional
             enable verbose debug-level logging
-        guardrail_config : dict, optional
         """
         import networkx as nx
 
@@ -515,8 +572,6 @@ class Workflow(pe.Workflow):
         self._debug = debug
         self.verbose_logger = getLogger('engine') if debug else None
         self._graph = nx.DiGraph()
-        self._guardrail_config = {
-        } if guardrail_config is None else guardrail_config
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
@@ -562,17 +617,19 @@ class Workflow(pe.Workflow):
         .. seealso:: pe.Node.connect
         """
         if len(args) == 1:
-            connection_list = args.pop(0)
+            connection_list = args[0]
         elif len(args) == 4:
-            connection_list = [(args.pop(0), args.pop(2), [
-                (args.pop(1), args.pop(3))])]
+            connection_list = [(args[0], args[2], [(args[1], args[3])])]
+        else:
+            raise TypeError("connect() takes either 4 arguments, or 1 list of"
+                            f" connection tuples ({len(args)} args given)")
         new_connection_list = []
         for srcnode, destnode, connects in connection_list:
-            if isinstance(srcnode, GuardrailedNode):
+            if isinstance(srcnode, Workflow.GuardrailedNode):
                 for _from, _to in connects:
                     selected = srcnode.guardrail_selection(srcnode, _from)
                     self.connect(selected, 'out', destnode, _to)
-            if isinstance(destnode, GuardrailedNode):
+            elif isinstance(destnode, Workflow.GuardrailedNode):
                 for _from, _to in connects:
                     guardnodes = [destnode.node, *destnode.retries]
                     self.connect_many(guardnodes, [(srcnode, _from, _to)])
@@ -580,8 +637,8 @@ class Workflow(pe.Workflow):
                         self.connect_many(guardnodes, [
                             (srcnode, _from, 'reference')])
             else:
-                new_connection_list.extend([srcnode, destnode, connects])
-        super().connect(new_connection_list, *args, **kwargs)
+                new_connection_list.extend([(srcnode, destnode, connects)])
+        super().connect(new_connection_list, **kwargs)
 
     def connect_many(self, nodes: Iterable['Node'],
                      connections: Iterable[Tuple['Node', Union[str, tuple],
@@ -625,17 +682,32 @@ class Workflow(pe.Workflow):
         -------
         boolean
         """
-        return any(self._guardrail_config['thresholds'].values())
+        return any(registration_guardrails.thresholds.values())
 
-    def guardrailed_node(self, node, reference, registered):
+    def guardrailed_node(self, node, reference, registered, pipe_num):
         """Method to return a GuardrailedNode in the given Workflow.
 
-        .. seealso:: GuardrailedNode
-        """
-        return GuardrailedNode(self, node, reference, registered)
+        .. seealso:: Workflow.GuardrailedNode
 
-    def guardrail_selection(self, node: 'GuardrailedNode', output_key: str
-                            ) -> Node:
+        Parameters
+        ----------
+        node : Node
+            Node to guardrail
+
+        reference : str
+            key for reference image
+
+        registered : str
+            key for registered image
+
+        pipe_num : int
+            int
+        """
+        return self.GuardrailedNode(self, node, reference, registered,
+                                    pipe_num)
+
+    def guardrail_selection(self, node: 'Workflow.GuardrailedNode',
+                            output_key: str) -> Node:
         """Generate requisite Nodes for choosing a path through the graph
         with retries.
 
@@ -659,7 +731,7 @@ class Workflow(pe.Workflow):
 
         Parameters
         ----------
-        node : GuardrailedNode
+        node : Workflow.GuardrailedNode
 
         output_key : key to select from Node
 
@@ -676,17 +748,18 @@ class Workflow(pe.Workflow):
                       name=f'choose_{name}')
         self.connect([(node.node, choices, [(output_key, 'in1')]),
                       (choices, select, [('out', 'inlist')])])
-        if self._guardrail_config['best_of'] > 1:
+        if registration_guardrails.best_of > 1:
             best_of = Node(BestOf(len(self.num_tries)))
-            self.connect([(node.guardrail, best_of, [('error', 'error1')]),
+            self.connect([(node.guardrails[0], best_of, [('error', 'error1')]),
                           (best_of, 'index', [(select, 'index')])])
             for i, retry in enumerate(node.retries):
                 self.connect([(retry, choices, [(output_key, f'in{i+2}')]),
-                              (retry.guardrail, best_of, [('error',
+                              (retry.guardrails[i], best_of, [('error',
                                                            f'error{i+2}')])])
-        elif self.retry_on_first_failure:
+        elif registration_guardrails.retry_on_first_failure:
             self.connect([(node.retries[0], choices, [(output_key, 'in2')]),
-                          (node.guardrail, select, [('failed_qc', 'index')])])
+                          (node.guardrails[0], select, [
+                              ('failed_qc', 'index')])])
         return select
 
     def _handle_just_in_time_exception(self, node):
@@ -708,19 +781,8 @@ class Workflow(pe.Workflow):
         """
         if self.guardrail is False:
             return 1
-        return 2 if (self.retry_on_first_failure
-                     ) else self._guardrail_config['best_of']
-
-    @property
-    def retry_on_first_failure(self):
-        """Retry iff first attempt fails?
-
-        Returns
-        -------
-        bool
-        """
-        return (self._guardrail_config['best_of'] == 1 and
-                self._guardrail_config['retry_on_first_failure'] is True)
+        return 2 if (registration_guardrails.retry_on_first_failure
+                     ) else registration_guardrails.best_of
 
 
 def get_data_size(filepath, mode='xyzt'):
@@ -759,15 +821,12 @@ def get_data_size(filepath, mode='xyzt'):
     return prod(data_shape).item()
 
 
-def registration_guardrail_node(name=None, retry_num=0):
+def registration_guardrail_node(name=None, raise_on_failure=False):
     """Convenience method to get a new registration_guardrail Node
 
     Parameters
     ----------
     name : str, optional
-
-    retry_num : int, optional
-        how many previous tries?
 
     Returns
     -------
@@ -775,17 +834,18 @@ def registration_guardrail_node(name=None, retry_num=0):
     """
     if name is None:
         name = 'registration_guardrail'
-    node = Node(Function(input_names=['registered', 'reference', 'retry_num'],
+    node = Node(Function(input_names=['registered', 'reference',
+                                      'raise_on_failure'],
                          output_names=['registered', 'failed_qc', 'error'],
                          imports=['import logging',
                                   'from typing import Tuple',
-                                  'from CPAC.qc import qc_masks, '
-                                  'registration_guardrail_thresholds',
+                                  'from CPAC.qc import qc_masks',
+                                  'from CPAC.qc.globals import '
+                                  'registration_guardrails',
                                   'from CPAC.registration.guardrails '
                                   'import BadRegistrationError'],
                          function=registration_guardrail), name=name)
-    if retry_num:
-        node.inputs.retry_num = retry_num
+    node.inputs.raise_on_failure = raise_on_failure
     return node
 
 
@@ -806,5 +866,5 @@ def retry_clone(node: 'Node', index: int = 1) -> 'Node':
     Node
     """
     if index > 1:
-        return increment_seed(node.clone(f'{node.name}_try{index}'))
+        return increment_seed(node.clone(f'{node.name}_try{index}'), index)
     return increment_seed(node.clone(f'retry_{node.name}'))

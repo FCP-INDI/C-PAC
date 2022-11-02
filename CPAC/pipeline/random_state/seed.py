@@ -24,27 +24,51 @@ from nipype.interfaces.ants.segmentation import Atropos
 from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
-
+from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.ants import AI
-from CPAC.utils.monitoring.custom_logging import set_up_logger
 
 MAX_SEED = np.iinfo(np.int32).max
 _seed = {'seed': None}
 
 
-def increment_seed(node):
+@docstring_parameter(1, MAX_SEED)
+class Seed(int):
+    """An integer bounded at [{}, {}] for use in setting up random state."""
+    def __new__(cls, *args, **kwargs):
+        _value = super().__new__(cls, *args, **kwargs
+                                 ) if args else random_seed()
+        while _value > MAX_SEED:
+            _value = _value - MAX_SEED
+        while _value < 1:
+            _value = _value + MAX_SEED
+        return _value
+
+    @docstring_parameter(1, MAX_SEED)
+    def __add__(self, other):
+        """Loop back around to {} after {}"""
+        return Seed(super().__add__(other))
+
+    @docstring_parameter(MAX_SEED, 0)
+    def __sub__(self, other):
+        """Loop back around to {} at {}"""
+        return Seed(super().__sub__(other))
+
+
+def increment_seed(node, by=1):
     """Increment the random seed for a given node
 
     Parameters
     ----------
     node : Node
 
+    by : int
+        how much to increment by
+
     Returns
     -------
     node : Node
     """
-    if isinstance(node.seed, int):
-        node.seed = seed_plus_1()
+    node.seed += by
     return node
 
 
@@ -64,7 +88,7 @@ def random_random_seed():
     >>> 0 < random_random_seed() <= MAX_SEED
     True
     '''
-    return random.randint(1, MAX_SEED)
+    return Seed(random.randint(1, MAX_SEED))
 
 
 def random_seed():
@@ -169,24 +193,6 @@ def _reusable_flags():
     }
 
 
-def seed_plus_1(seed=None):
-    '''Increment seed, looping back to 1 at MAX_SEED
-
-    Parameters
-    ----------
-    seed : int, optional
-        Uses configured seed if not specified
-
-    Returns
-    -------
-    int
-    '''
-    seed = random_seed() if seed is None else int(seed)
-    if seed < MAX_SEED:  # increment random seed
-        return seed + 1
-    return 1  # loop back to 1
-
-
 def set_up_random_state(seed):
     '''Set global random seed
 
@@ -218,7 +224,7 @@ def set_up_random_state(seed):
             seed = random_random_seed()
         else:
             try:
-                seed = int(seed)
+                seed = Seed(seed)
                 assert 0 < seed <= MAX_SEED
             except (ValueError, TypeError, AssertionError) as error:
                 raise ValueError(
@@ -237,6 +243,7 @@ def set_up_random_state_logger(log_dir):
     ----------
     log_dir : str
     '''
+    from CPAC.utils.monitoring.custom_logging import set_up_logger
     set_up_logger('random', filename='random.tsv', level='info',
                   log_dir=log_dir)
     getLogger('random').info('seed\tnode')

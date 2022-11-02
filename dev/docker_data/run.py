@@ -27,7 +27,7 @@ from nipype import logging
 import yaml
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
-from CPAC.pipeline.random_state import set_up_random_state
+from CPAC.pipeline.random_state.seed import set_up_random_state
 from CPAC.utils.bids_utils import create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \

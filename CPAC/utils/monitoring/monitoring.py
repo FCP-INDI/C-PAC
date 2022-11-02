@@ -8,14 +8,15 @@ import threading
 
 from traits.trait_base import Undefined
 
-from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nipype_pipeline_engine import Workflow
 from .custom_logging import getLogger
 
 
 # Log initial information from all the nodes
 def recurse_nodes(workflow, prefix=''):
+    # pylint: disable=protected-access
     for node in nx.topological_sort(workflow._graph):
-        if isinstance(node, pe.Workflow):
+        if isinstance(node, Workflow):
             for subnode in recurse_nodes(node, prefix + workflow.name + '.'):
                 yield subnode
         else:

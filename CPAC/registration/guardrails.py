@@ -20,7 +20,8 @@ from typing import Tuple
 from nipype.interfaces.base import TraitedSpec, traits
 from nipype.interfaces.io import add_traits, IOBase
 from nipype.interfaces.utility.base import MergeInputSpec
-from CPAC.qc import qc_masks, registration_guardrail_thresholds
+from CPAC.qc import qc_masks
+from CPAC.qc.globals import registration_guardrails
 from CPAC.registration.exceptions import BadRegistrationError
 from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.docs import retry_docstring
@@ -75,7 +76,7 @@ class BestOf(IOBase):
 
 
 def registration_guardrail(registered: str, reference: str,
-                           retry: bool = False, retry_num: int = 0
+                           retry: bool = False, raise_on_failure: bool = False
                            ) -> Tuple[str, int]:
     """Check QC metrics post-registration and throw an exception if
     metrics are below given thresholds.
@@ -93,11 +94,8 @@ def registration_guardrail(registered: str, reference: str,
     registered, reference : str
         path to mask
 
-    retry : bool, optional
-        can retry?
-
-    retry_num : int, optional
-        how many previous tries?
+    raise_on_failure : bool
+        raise exception if guardrail catches failed QC?
 
     Returns
     -------
@@ -115,7 +113,7 @@ def registration_guardrail(registered: str, reference: str,
     qc_metrics = qc_masks(registered, reference)
     failed_qc = 0
     error = 0
-    for metric, threshold in registration_guardrail_thresholds().items():
+    for metric, threshold in registration_guardrails.thresholds.items():
         if threshold is not None:
             value = qc_metrics.get(metric)
             if isinstance(value, list):
@@ -131,8 +129,7 @@ def registration_guardrail(registered: str, reference: str,
                     bad_registration = BadRegistrationError(
                         metric=metric, value=value, threshold=threshold)
                     logger.error(str(bad_registration))
-                    if retry_num:
-                        # if we've already retried, raise the error
+                    if raise_on_failure:
                         raise bad_registration
             error += (1 - value)
     return registered, failed_qc, error
@@ -150,10 +147,3 @@ def retry_hardcoded_reg(moving_brain, reference_brain, moving_skull,
                          reference_skull, ants_para, moving_mask,
                          reference_mask, fixed_image_mask, interp,
                          reg_with_skull)
-
-
-def skip_if_first_try_succeeds(interface):
-    """Set an interface up to skip if a previous attempt succeeded"""
-    if hasattr(interface, 'input_spec'):
-        interface.inputs.add_trait('previous_failure', traits.Bool())
-    return interface
