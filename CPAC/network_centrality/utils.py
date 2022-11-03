@@ -88,7 +88,6 @@ def sep_nifti_subbriks(nifti_file, out_names):
     '''
     import os
     import nibabel as nib
-    from warnings import warn
 
     output_niftis = []
 
