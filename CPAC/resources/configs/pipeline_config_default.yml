@@ -85,7 +85,8 @@ pipeline_setup:
     path: /outputs/crash
 
   system_config:
-
+    # Stop worklow execution on first crash?
+    fail_fast: Off
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.
     # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.

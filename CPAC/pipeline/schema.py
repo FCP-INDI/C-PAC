@@ -265,6 +265,7 @@ latest_schema = Schema({
             'path': Maybe(str),
         },
         'system_config': {
+            'fail_fast': bool1_1,
             'FSLDIR': Maybe(str),
             'on_grid': {
                 'run': bool1_1,
