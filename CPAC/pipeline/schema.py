@@ -873,8 +873,10 @@ latest_schema = Schema({
         'run': bool1_1,
         'symmetric_registration': {
             'T1w_brain_template_symmetric': Maybe(str),
+            'T1w_brain_template_symmetric_funcreg': Maybe(str),
             'T1w_brain_template_symmetric_for_resample': Maybe(str),
             'T1w_template_symmetric': Maybe(str),
+            'T1w_template_symmetric_funcreg': Maybe(str),
             'T1w_template_symmetric_for_resample': Maybe(str),
             'dilated_symmetric_brain_mask': Maybe(str),
             'dilated_symmetric_brain_mask_for_resample': Maybe(str),

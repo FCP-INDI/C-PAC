@@ -79,14 +79,21 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
+     "inputs": [("space-template_desc-preproc_bold",
+                 "T1w-brain-template-funcreg"),
                 "template-specification-file"],
-     "outputs": ["space-template_desc-weighted_degree-centrality",
-                 "space-template_desc-binarized_degree-centrality",
-                 "space-template_desc-weighted_eigen-centrality",
-                 "space-template_desc-binarized_eigen-centrality",
-                 "space-template_desc-weighted_lfcd",
-                 "space-template_desc-binarized_lfcd"]}
+     "outputs": {"space-template_desc-weighted_degree-centrality": {
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-binarized_degree-centrality": {
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-weighted_eigen-centrality": {
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-binarized_eigen-centrality": {
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-weighted_lfcd": {
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-binarized_lfcd": {
+                     "Template": "T1w-brain-template-funcreg"}}}
     '''
 
     # Resample the functional mni to the centrality mask resolution

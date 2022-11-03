@@ -1,0 +1,13 @@
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_T1w_reference.nii.gz	MNI152NLin2009cAsym
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-brain_T1w.nii.gz	MNI152NLin2009cAsym
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-brain_mask.nii.gz	MNI152NLin2009cAsym
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-fMRIPrep_boldref.nii.gz	MNI152NLin2009cAsym
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_label-brain_probseg.nii.gz	MNI152NLin2009cAsym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*.nii.gz	MNI152NLin6ASym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain.nii.gz	MNI152NLin6ASym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask.nii.gz	MNI152NLin6ASym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_dil.nii.gz	MNI152NLin6ASym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_symmetric.nii.gz	MNI152NLin6Sym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_symmetric.nii.gz	MNI152NLin6Sym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric.nii.gz	MNI152NLin6Sym
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric_dil.nii.gz	MNI152NLin6Sym

@@ -46,6 +46,8 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
     get_last_prov_entry, check_prov_for_regtool
 
+from CPAC.resources.templates.lookup_table import lookup_identifier
+
 logger = logging.getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
@@ -173,6 +175,9 @@ class ResourcePool:
 
     def get_json_info(self, resource, pipe_idx, key):
         #TODO: key checks
+        if not pipe_idx:
+           for pipe_idx, val in self.rpool[resource].items():
+                return val['json'][key]
         return self.rpool[resource][pipe_idx][key]
 
     def get_resource_from_prov(self, prov):
@@ -668,7 +673,8 @@ class ResourcePool:
                 wf.connect(node, out, xfm, 'inputspec.transform')
 
                 label = f'space-template_{label}'
-
+                json_info['Template'] = self.get_json_info('T1w-brain-template-deriv',
+                                                           None, 'Description')
                 new_prov = json_info['CpacProvenance'] + xfm_prov
                 json_info['CpacProvenance'] = new_prov
                 new_pipe_idx = self.generate_prov_string(new_prov)
@@ -945,6 +951,7 @@ class ResourcePool:
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
+                                                          'template_desc',
                                                           'atlas_id',
                                                           'fwhm'],
                                              output_names=['out_filename'],
@@ -958,7 +965,10 @@ class ResourcePool:
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
-                    
+
+                if 'Template' in json_info:
+                    id_string.inputs.template_desc = json_info['Template']
+
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1313,7 +1323,7 @@ class NodeBlock:
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
                             new_json_info = copy.deepcopy(strat_pool.get('json'))
-                            
+
                             # transfer over data-specific json info
                             #   for example, if the input data json is _bold and the output is also _bold
                             data_type = label.split('_')[-1]
@@ -1749,11 +1759,10 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
         if not val:
             continue
-            
+
         if resolution:
             res_keys = [x.lstrip() for x in resolution.split(',')]
             tag = res_keys[-1]
-    
         json_info = {} 
 
         if '$FSLDIR' in val:
@@ -1767,11 +1776,15 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         if '${resolution_for_anat}' in val:
             val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])               
         if '${func_resolution}' in val:
-            val = val.replace('func_resolution', tag)
-
+            val = val.replace('${func_resolution}', cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'output_resolution'][tag])
+            
         if desc:
+            template_name = lookup_identifier(val)
+            if template_name:
+                desc = f"{template_name} - {desc}"
             json_info['Description'] = f"{desc} - {val}"     
-
         if resolution:
             resolution = cfg.get_nested(cfg, res_keys)
             json_info['Resolution'] = resolution
@@ -1812,7 +1825,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
                                "", f"{key}_config_ingress")
-            
+    
     # templates, resampling from config
     '''
     template_keys = [
