@@ -820,7 +820,7 @@ class ResourcePool:
             excl += Outputs.template_raw
 
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
-            substring_excl.append(['desc-reginput', 'bold'])
+            substring_excl.append(['bold'])
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
@@ -858,10 +858,16 @@ class ResourcePool:
 
             for pipe_idx in self.rpool[resource]:
                 unique_id = self.get_name()
+                part_id = unique_id.split('_')[0]
+                ses_id = unique_id.split('_')[1]
+
+                if 'ses-' not in ses_id:
+                    ses_id = f"ses-{ses_id}"
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'pipeline_{pipe_name}', unique_id)
+                container = os.path.join(f'pipeline_{pipe_name}', 
+                                         part_id, ses_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)

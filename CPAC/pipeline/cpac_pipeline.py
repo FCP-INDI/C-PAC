@@ -98,6 +98,8 @@ from CPAC.registration.registration import (
     coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
+    warp_wholeheadT1_to_template,
+    warp_T1mask_to_template,
     apply_blip_to_timeseries_separately,
     warp_timeseries_to_T1template,
     warp_bold_mean_to_T1template,
@@ -1000,6 +1002,8 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
+            warp_wholeheadT1_to_template,
+            warp_T1mask_to_template
         ]
 
 

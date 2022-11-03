@@ -98,6 +98,7 @@ label-WM_mask	mask	T1w	anat	NIfTI
 space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI					
 space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI					
 space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
+space-template_desc-brain_mask	mask	template	anat	NIfTI
 space-template_desc-bold_mask	mask	template	func	NIfTI					
 space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
 dvars	motion		func	text					
@@ -164,6 +165,7 @@ hemi-R_desc-surfaceMesh_white	surface-derived		anat						Yes
 wmparc	surface-derived		anat						Yes
 space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
 desc-brain_T1w	T1w	T1w	anat	NIfTI					
+desc-head_T1w	T1w	T1w	anat	NIfTI
 desc-preproc_T1w	T1w	T1w	anat	NIfTI					
 desc-reorient_T1w	T1w	T1w	anat	NIfTI					
 desc-restore_T1w	T1w	T1w	anat	NIfTI					

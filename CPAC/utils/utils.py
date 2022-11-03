@@ -186,13 +186,17 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
             atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
-    if 'sub-' not in unique_id:
-        unique_id = f'sub-{unique_id}'
+    part_id = unique_id.split('_')[0]
+    ses_id = unique_id.split('_')[1]
+    if 'sub-' not in part_id:
+        part_id = f'sub-{part_id}'
+    if 'ses-' not in ses_id:
+        ses_id = f'ses-{ses_id}'
 
     if scan_id:
-        out_filename = f'{unique_id}_task-{scan_id}_{resource}'
+        out_filename = f'{part_id}_{ses_id}_task-{scan_id}_{resource}'
     else:
-        out_filename = f'{unique_id}_{resource}'
+        out_filename = f'{part_id}_{ses_id}_{resource}'
 
     if template_desc:
         template_tag = template_desc.split(' -')[0]
