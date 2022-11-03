@@ -172,7 +172,7 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None, template_id=None, 
+def create_id_string(unique_id, resource, scan_id=None, template_desc=None, 
                      atlas_id=None, fwhm=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
@@ -194,11 +194,13 @@ def create_id_string(unique_id, resource, scan_id=None, template_id=None,
     else:
         out_filename = f'{unique_id}_{resource}'
 
-    if template_id:
-        template_tag = template_id.split(' -')[0]
-        if 'space-template' in out_filename:
-            out_filename = out_filename.replace('space-template',
-                                                f'space-{template_tag}')
+    if template_desc:
+        template_tag = template_desc.split(' -')[0]
+        for prefix in ['space-', 'from-', 'to-']:
+            for bidstag in out_filename.split('_'):
+                if prefix in bidstag and 'template' in bidstag:
+                    out_filename = out_filename.replace(bidstag,
+                                                        f'{prefix}{template_tag}')
 
     if fwhm:
         for tag in resource.split('_'):
