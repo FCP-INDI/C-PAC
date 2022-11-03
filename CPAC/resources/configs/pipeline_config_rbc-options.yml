@@ -23,6 +23,9 @@ pipeline_setup:
 
   system_config:
 
+    # Stop worklow execution on first crash?
+    fail_fast: On
+
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.
     # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
@@ -110,6 +113,7 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
+    space: template
 
 nuisance_corrections:
   2-nuisance_regression:

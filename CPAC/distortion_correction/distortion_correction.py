@@ -118,7 +118,11 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "PhaseDiff",
      "inputs": ["diffphase",
-                "diffmag",
+                "phase1",
+                "phase2",
+                "magnitude",
+                "magnitude1",
+                "magnitude2",
                 "deltaTE",
                 "effectiveEchoSpacing",
                 "ees-asym-ratio"],
@@ -144,7 +148,11 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.inputs.outputtype = 'NIFTI_GZ'
         wf.connect(skullstrip_args, 'expr', afni, 'args')
 
-        node, out = strat_pool.get_data('diffmag')
+        if strat_pool.check_rpool('magnitude'):
+            node, out = strat_pool.get_data('magnitude')
+        elif strat_pool.check_rpool('magnitude1'):
+            node, out = strat_pool.get_data('magnitude1')
+
         wf.connect(node, out, afni, 'in_file')
 
         brain_node, brain_out = (afni, 'out_file')
@@ -158,7 +166,10 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         bet.inputs.frac = cfg.functional_preproc['distortion_correction'][
             'PhaseDiff']['fmap_skullstrip_BET_frac']
 
-        node, out = strat_pool.get_data('diffmag')
+        if strat_pool.check_rpool('magnitude'):
+            node, out = strat_pool.get_data('magnitude')
+        elif strat_pool.check_rpool('magnitude1'):
+            node, out = strat_pool.get_data('magnitude1')
         wf.connect(node, out, bet, 'in_file')
 
         brain_node, brain_out = (bet, 'out_file')
@@ -172,9 +183,23 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('deltaTE')
     wf.connect(node, out, prepare, 'delta_TE')
 
-    node, out = strat_pool.get_data('diffphase')
-    wf.connect(node, out, prepare, 'in_phase')
+    if strat_pool.check_rpool('phase1') and strat_pool.check_rpool('phase2'):
+        fslmaths_sub = pe.Node(interface=fsl.BinaryMaths(), 
+                               name='fugue_phase_subtraction')
+        fslmaths_sub.inputs.operation = 'sub'
 
+        node, out = strat_pool.get_data('phase1')
+        wf.connect(node, out, fslmaths_sub, 'in_file')
+    
+        node, out = strat_pool.get_data('phase2')
+        wf.connect(node, out, fslmaths_sub, 'operand_file')
+
+        node, out = (fslmaths_sub, 'out_file')
+
+    elif strat_pool.check_rpool('diffphase'):
+        node, out = strat_pool.get_data('diffphase')
+    
+    wf.connect(node, out, prepare, 'in_phase')
     wf.connect(brain_node, brain_out, prepare, 'in_magnitude')
 
     # erode the masked magnitude image
@@ -219,7 +244,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     # option in the GUI.
 
     # fugue
-    fugue1 = pe.Node(interface=fsl.FUGUE(), name='fugue1')
+    fugue1 = pe.Node(interface=fsl.FUGUE(), name='fsl_fugue')
     fugue1.inputs.save_fmap = True
     fugue1.outputs.fmap_out_file = 'fmap_rads'
 
@@ -849,8 +874,8 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'sbref': (mul_jac, 'out_file'),
-        'space-bold_desc-brain_mask': (bet, 'mask_file'),
         'fsl-blip-warp': (convert_warp, 'out_file')
+        #'space-bold_desc-brain_mask': (mask_sbref, 'out_file')
     }
 
     return (wf, outputs)

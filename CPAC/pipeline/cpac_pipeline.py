@@ -127,6 +127,7 @@ from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_truncate,
     func_despike,
+    func_despike_template,
     func_slice_time,
     func_reorient,
     bold_mask_afni,
@@ -280,9 +281,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         },
         'execution': {
             'crashfile_format': 'txt',
-            'resource_monitor_frequency': 0.2
-        }
-    })
+            'resource_monitor_frequency': 0.2,
+            'stop_on_first_crash': c['pipeline_setup', 'system_config',
+                                     'fail_fast']}})
 
     config.enable_resource_monitor()
     logging.update_logging(config)
@@ -441,6 +442,23 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     except Exception as exception:
         logger.exception('Building workflow failed')
         raise exception
+
+    wf_graph = c['pipeline_setup', 'log_directory', 'graphviz',
+                 'entire_workflow']
+    if wf_graph.get('generate'):
+        for graph2use in wf_graph.get('graph2use'):
+            dotfilename = os.path.join(log_dir, f'{p_name}_{graph2use}.dot')
+            for graph_format in wf_graph.get('format'):
+                try:
+                    workflow.write_graph(dotfilename=dotfilename,
+                                         graph2use=graph2use,
+                                         format=graph_format,
+                                         simple_form=wf_graph.get(
+                                             'simple_form', True))
+                except Exception as exception:
+                    raise RuntimeError(f'Failed to visualize {p_name} ('
+                                       f'{graph2use}, {graph_format})'
+                                       ) from exception
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -1154,8 +1172,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
-            distcor_blocks.append(distcor_phasediff_fsl_fugue)
+        if rpool.check_rpool('diffphase') or rpool.check_rpool('phase1'):
+            if rpool.check_rpool('magnitude') or rpool.check_rpool('magnitude1'):
+                distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi-1'):
             distcor_blocks.append(distcor_blip_afni_qwarp) 
@@ -1284,7 +1303,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
-        
+
+    pipeline_blocks += [func_despike_template]
+
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
     if 'Template' in target_space_alff and not rpool.check_rpool('space-template_desc-denoisedNofilt_bold'):
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]

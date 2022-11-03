@@ -2762,7 +2762,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "despiked-fieldmap",
                  "fieldmap-mask",
                  "effectiveEchoSpacing",
-                 "diffphase-pedir"),
+                 "pe-direction"),
                 ("desc-preproc_T1w",
                  "desc-restore-brain_T1w",
                  "desc-preproc_T2w",
@@ -2838,7 +2838,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('effectiveEchoSpacing')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diffphase-pedir')
+        node, out = strat_pool.get_data('pe-direction')
         wf.connect(node, out, func_to_anat, 'pedir_input.pedir')
 
         node, out = strat_pool.get_data("despiked-fieldmap")
@@ -2920,7 +2920,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             wf.connect(node, out,
                        func_to_anat_bbreg, 'echospacing_input.echospacing')
 
-            node, out = strat_pool.get_data('diffphase-pedir')
+            node, out = strat_pool.get_data('pe-direction')
             wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
 
             node, out = strat_pool.get_data("despiked-fieldmap")
@@ -3090,18 +3090,19 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
         'from-bold_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
+    outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
     if strat_pool.check_rpool("ants-blip-warp"):
         if reg_tool == 'fsl':
             blip_node, blip_out = strat_pool.get_data("ants-blip-warp")
         else:
-            outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
             return (wf, outputs)
     elif strat_pool.check_rpool("fsl-blip-warp"):
         if reg_tool == 'ants':
             blip_node, blip_out = strat_pool.get_data("fsl-blip-warp")
         else:
-            outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
             return (wf, outputs)
+    else:
+        return (wf, outputs)
 
     num_cpus = cfg.pipeline_setup['system_config'][
         'max_cores_per_participant']

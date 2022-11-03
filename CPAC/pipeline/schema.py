@@ -260,11 +260,22 @@ latest_schema = Schema({
         'log_directory': {
             'run_logging': bool1_1,
             'path': str,
+            'graphviz': {
+                'entire_workflow': {
+                    'generate': bool,
+                    'graph2use': Maybe(All(Coerce(ListFromItem),
+                                           [All(Lower,
+                                            In(('orig', 'hierarchical', 'flat',
+                                                'exec', 'colored')))])),
+                    'format': Maybe(All(Coerce(ListFromItem),
+                                        [All(Lower, In(('png', 'svg')))])),
+                    'simple_form': Maybe(bool)}}
         },
         'crash_log_directory': {
             'path': Maybe(str),
         },
         'system_config': {
+            'fail_fast': bool1_1,
             'FSLDIR': Maybe(str),
             'on_grid': {
                 'run': bool1_1,
@@ -630,7 +641,8 @@ latest_schema = Schema({
             'scaling_factor': Number
         },
         'despiking': {
-            'run': forkable
+            'run': forkable,
+            'space': In({'native', 'template'})
         },
         'slice_timing_correction': {
             'run': forkable,
