@@ -121,7 +121,7 @@ def random_seed_flags():
                       [f'--use-random-seed{one}', f'-r{one}']]),
             # FreeSurfer
             ReconAll: ['-norandomness', f'-rng-seed {seed}'],
-            ApplyVolTransform: _reusable_flags()['FSL'],
+            ApplyVolTransform: [f'--seed {seed}'],
             # FSL
             ImageMaths: _reusable_flags()['FSL'],
             MathsCommand: _reusable_flags()['FSL']

@@ -57,6 +57,9 @@ pipeline_setup:
 
   system_config:
 
+    # Stop worklow execution on first crash?
+    fail_fast: Off
+
     # Random seed used to fix the state of execution.
     # If unset, each process uses its own default.
     # If set, a `random.log` file will be generated logging the random seed and each node to which that seed was applied.
@@ -154,6 +157,24 @@ pipeline_setup:
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: On
     path: /outputs/logs
+
+    # Configuration options for logging visualizations of the workflow graph
+    graphviz:
+
+      # Configuration for a graphviz visualization of the entire workflow. See https://fcp-indi.github.io/docs/developer/nodes#CPAC.pipeline.nipype_pipeline_engine.Workflow.write_graph for details about the various options
+      entire_workflow:
+
+        # Whether to generate the graph visualization
+        generate: Off
+
+        # Options: [orig, hierarchical, flat, exec, colored]
+        graph2use: []
+
+        # Options: [svg, png]
+        format: []
+
+        # The node name will be displayed in the form `nodename (package)` when On or `nodename.Class.package` when Off
+        simple_form: On
 
   crash_log_directory:
 
@@ -1436,7 +1457,7 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: [Binarized, Weighted]
+    weight_options: []
 
     # Select the type of threshold used when creating the degree centrality adjacency matrix.
     # options:
@@ -1455,7 +1476,7 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: [Weighted]
+    weight_options: []
 
     # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
     # options:
@@ -1474,7 +1495,7 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: [Binarized, Weighted]
+    weight_options: []
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:

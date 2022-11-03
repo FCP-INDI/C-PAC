@@ -281,9 +281,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         },
         'execution': {
             'crashfile_format': 'txt',
-            'resource_monitor_frequency': 0.2
-        }
-    })
+            'resource_monitor_frequency': 0.2,
+            'stop_on_first_crash': c['pipeline_setup', 'system_config',
+                                     'fail_fast']}})
 
     config.enable_resource_monitor()
     logging.update_logging(config)
@@ -442,6 +442,23 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     except Exception as exception:
         logger.exception('Building workflow failed')
         raise exception
+
+    wf_graph = c['pipeline_setup', 'log_directory', 'graphviz',
+                 'entire_workflow']
+    if wf_graph.get('generate'):
+        for graph2use in wf_graph.get('graph2use'):
+            dotfilename = os.path.join(log_dir, f'{p_name}_{graph2use}.dot')
+            for graph_format in wf_graph.get('format'):
+                try:
+                    workflow.write_graph(dotfilename=dotfilename,
+                                         graph2use=graph2use,
+                                         format=graph_format,
+                                         simple_form=wf_graph.get(
+                                             'simple_form', True))
+                except Exception as exception:
+                    raise RuntimeError(f'Failed to visualize {p_name} ('
+                                       f'{graph2use}, {graph_format})'
+                                       ) from exception
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
