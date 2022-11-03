@@ -224,11 +224,45 @@ timeseries_extraction:
     /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
     /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
 
+amplitude_low_frequency_fluctuation:
+
+  # ALFF & f/ALFF
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
+  run: On
+
 regional_homogeneity:
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: On
+
+network_centrality:
+
+  # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
+  run: On
+  degree_centrality:
+
+    # Enable/Disable degree centrality by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: [Binarized]
+
+  eigenvector_centrality:
+
+    # Enable/Disable eigenvector centrality by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: []
+
+  local_functional_connectivity_density:
+
+    # Enable/Disable lFCD by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: [Binarized, Weighted]
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
