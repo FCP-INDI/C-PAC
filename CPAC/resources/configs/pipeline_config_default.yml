@@ -79,6 +79,19 @@ pipeline_setup:
 
     path: /outputs/logs
 
+    # Configuration options for logging visualizations of the workflow graph
+    graphviz:
+      # Configuration for a graphviz visualization of the entire workflow. See https://fcp-indi.github.io/docs/developer/nodes#CPAC.pipeline.nipype_pipeline_engine.Workflow.write_graph for details about the various options
+      entire_workflow:
+        # Whether to generate the graph visualization
+        generate: Off
+        # Options: [orig, hierarchical, flat, exec, colored]
+        graph2use: []
+        # Options: [svg, png]
+        format: []
+        # The node name will be displayed in the form `nodename (package)` when On or `nodename.Class.package` when Off
+        simple_form: On
+
   crash_log_directory:
 
     # Directory where CPAC should write crash logs.

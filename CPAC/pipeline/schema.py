@@ -260,6 +260,16 @@ latest_schema = Schema({
         'log_directory': {
             'run_logging': bool1_1,
             'path': str,
+            'graphviz': {
+                'entire_workflow': {
+                    'generate': bool,
+                    'graph2use': Maybe(All(Coerce(ListFromItem),
+                                           [All(Lower,
+                                            In(('orig', 'hierarchical', 'flat',
+                                                'exec', 'colored')))])),
+                    'format': Maybe(All(Coerce(ListFromItem),
+                                        [All(Lower, In(('png', 'svg')))])),
+                    'simple_form': Maybe(bool)}}
         },
         'crash_log_directory': {
             'path': Maybe(str),
