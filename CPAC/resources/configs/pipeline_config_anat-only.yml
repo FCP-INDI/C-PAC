@@ -183,6 +183,15 @@ network_centrality:
 
   # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
   template_specification_file: s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
+
+  degree_centrality:
+
+    # Enable/Disable degree centrality by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: [Binarized, Weighted]
+
   eigenvector_centrality:
 
     # Enable/Disable eigenvector centrality by selecting the connectivity weights
@@ -192,6 +201,12 @@ network_centrality:
     weight_options: [Binarized, Weighted]
 
   local_functional_connectivity_density:
+
+    # Enable/Disable lFCD by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: [Binarized, Weighted]
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:

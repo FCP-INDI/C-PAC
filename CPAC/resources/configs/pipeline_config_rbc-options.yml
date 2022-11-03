@@ -253,6 +253,14 @@ network_centrality:
     #   weight_options: []
     weight_options: []
 
+  local_functional_connectivity_density:
+
+    # Enable/Disable lFCD by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: [Binarized, Weighted]
+
 # OUTPUTS AND DERIVATIVES
 # -----------------------
 post_processing:
