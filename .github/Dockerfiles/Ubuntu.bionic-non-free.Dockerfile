@@ -14,6 +14,7 @@ RUN apt-get update && \
 FROM neurodebian:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Bionic base image"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV TZ=America/New_York

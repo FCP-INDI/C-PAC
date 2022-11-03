@@ -24,6 +24,7 @@ RUN apt-get update && \
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 AFNI 16.2.07 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 COPY --from=AFNI /opt/afni-latest/ /usr/lib/afni/bin/

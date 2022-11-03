@@ -1384,7 +1384,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
                    write_invlin_composite_xfm, 'premat')
 
         outputs = {
-            f'space-{sym}template_desc-brain_{orig}': (
+            f'space-{sym}template_desc-preproc_{orig}': (
                 flirt_reg_anat_mni, 'outputspec.output_brain'),
             f'from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm': (
                 write_lin_composite_xfm, 'out_file'),
@@ -1433,7 +1433,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
             cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
             # NOTE: this is an UPDATE because of the opt block above
             added_outputs = {
-                f'space-{sym}template_desc-brain_{orig}': (
+                f'space-{sym}template_desc-preproc_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_brain'),
                 f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
                     fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm')
@@ -1442,7 +1442,7 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         else:
             # NOTE: this is an UPDATE because of the opt block above
             added_outputs = {
-                f'space-{sym}template_desc-brain_{orig}': (
+                f'space-{sym}template_desc-preproc_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_brain'),
                 f'space-{sym}template_desc-head_{orig}': (
                     fnirt_reg_anat_mni, 'outputspec.output_head'),
@@ -1962,7 +1962,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "FNIRT-T1w-template",
                 "FNIRT-T1w-brain-template",
                 "template-ref-mask"],
-     "outputs": ["space-template_desc-brain_T1w",
+     "outputs": ["space-template_desc-preproc_T1w",
                  "space-template_desc-head_T1w",
                  "space-template_desc-T1w_mask",
                  "space-template_desc-T1wT2w_biasfield",
@@ -2044,7 +2044,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                 "T1w-template-symmetric",
                 "T1w-brain-template-symmetric",
                 "dilated-symmetric-brain-mask"],
-     "outputs": ["space-symtemplate_desc-brain_T1w",
+     "outputs": ["space-symtemplate_desc-preproc_T1w",
                  "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-symtemplate_mode-image_xfm",
