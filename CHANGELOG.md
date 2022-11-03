@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed minimized pipeline base from `default` to `blank`
 - Removed deprecated `--disable_file_logging` CLI flag
 - Improved flexibility of some pipeline options regarding the application of distortion correction transforms
-- Reverted AFNI version from AFNI_22.3.03 to AFNI_21.1.00
+- Pinned AFNI to AFNI_21.1.00
 
 ### Fixed
 - Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
