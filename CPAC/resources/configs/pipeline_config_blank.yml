@@ -1191,8 +1191,7 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
-
-    space: 'native'
+    space: native
 
 nuisance_corrections:
   2-nuisance_regression:
