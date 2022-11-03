@@ -337,6 +337,7 @@ network_centrality:
     # disable this type of centrality with:
     #   weight_options: []
     weight_options: [Binarized, Weighted]
+
   eigenvector_centrality:
 
     # Enable/Disable eigenvector centrality by selecting the connectivity weights
