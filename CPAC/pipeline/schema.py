@@ -23,7 +23,7 @@ import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
                        ExactSequence, ExclusiveInvalid, In, Length, Lower, \
-                       Match, Maybe, Optional, Range, Required, Schema
+                       Match, Maybe, Optional, Range, Required, Schema, Title
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
@@ -204,6 +204,8 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
+target_space = All(Coerce(ListFromItem),
+                   [All(Title, In(valid_options['target_space']))])
 
 
 def permutation_message(key, options):
@@ -865,7 +867,7 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool1_1,
-        'target_space': [In(valid_options['target_space'])],
+        'target_space': target_space,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
@@ -884,7 +886,7 @@ latest_schema = Schema({
     },
     'regional_homogeneity': {
         'run': bool1_1,
-        'target_space': [In(valid_options['target_space'])],
+        'target_space': target_space,
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
