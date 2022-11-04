@@ -179,6 +179,12 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
 
     This is used in the file renaming performed during the Datasink
     connections.
+
+    Example
+    -------
+    >>> create_id_string('sub-1_ses-1', 'desc-Mean-1_timeseries',
+    ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
+    'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
     """
 
     if atlas_id:
@@ -225,9 +231,11 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
             if key not in entities:
                 entities[key] = []
             entities[key].append(value)
-    return '_'.join([
-        f'{key}-{" ".join(value).replace("-", " ").title().replace(" ", "")}'
-        for key, value in entities.items()] + suffixes)
+    for key, value in entities.items():
+        entities[key] = value[0] + " ".join(value[1:]).replace("-", " ").title(
+        ).replace(" ", "")
+    return '_'.join([f'{key}-{value}' for key, value in entities.items()
+                     ] + suffixes)
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):
