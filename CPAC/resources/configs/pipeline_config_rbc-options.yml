@@ -242,6 +242,7 @@ network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: On
+  template_specification_file:  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
   degree_centrality:
 
     # Enable/Disable degree centrality by selecting the connectivity weights
