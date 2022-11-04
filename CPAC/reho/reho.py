@@ -122,7 +122,6 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-bold_desc-brain_mask"],
      "outputs": ["reho"]}
     '''
-
     cluster_size = cfg.regional_homogeneity['cluster_size']
 
     # Check the cluster size is supported
@@ -134,7 +133,6 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
 
     reho = create_reho(f'reho_{pipe_num}')
     reho.inputs.inputspec.cluster_size = cluster_size
-
 
     node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
@@ -156,12 +154,12 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-brain_bold",
                  "space-template_desc-preproc_bold", "space-template_bold"],
-                "space-template_desc-bold_mask"],
+                "space-template_res-derivative_desc-bold_mask"],
      "outputs": ["space-template_reho"]}
     '''
-
     cluster_size = cfg.regional_homogeneity['cluster_size']
 
     # Check the cluster size is supported
@@ -174,12 +172,14 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     reho = create_reho(f'reho_{pipe_num}')
     reho.inputs.inputspec.cluster_size = cluster_size
 
-
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
-                                     "space-template_desc-preproc_bold", "space-template_bold"])
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-brain_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_bold"])
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
-    node, out_file = strat_pool.get_data('space-template_desc-bold_mask')
+    node, out_file = strat_pool.get_data(
+        'space-template_res-derivative_desc-bold_mask')
     wf.connect(node, out_file, reho, 'inputspec.rest_mask')
 
     outputs = {
