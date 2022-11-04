@@ -1,8 +1,6 @@
 name: Check updated preconfigs
 
 on:
-  pull_request_target:
-    types: [edited, opened, reopened, ready_for_review, synchronize]
   push:
 
 jobs:
