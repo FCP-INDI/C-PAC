@@ -182,7 +182,7 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     """
 
     if atlas_id:
-        if '_' in atlas_id:
+        if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
