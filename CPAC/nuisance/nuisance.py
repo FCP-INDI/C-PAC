@@ -2555,8 +2555,6 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
         outputs = {desc_key: (nuis, 'outputspec.residual_file_path') for
                    desc_key in desc_keys}
 
-    print(desc_keys)
-
     return (wf, outputs)
 
 
@@ -2620,7 +2618,6 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "regressors": {
         "Description": "Regressors that were applied in template space"}}}
     '''
-    print(2623)
     return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'template')
 
 
