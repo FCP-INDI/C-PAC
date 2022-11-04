@@ -233,7 +233,9 @@ amplitude_low_frequency_fluctuation:
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: On
-  target_space: template
+
+  # space: Template or Native
+  target_space: [Template]
 
   # space: Template or Native
   target_space: [Template]
@@ -243,7 +245,9 @@ regional_homogeneity:
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: On
-  target_space: template
+
+  # space: Template or Native
+  target_space: [Template]
 
   # space: Template or Native
   target_space: [Template]
