@@ -936,19 +936,22 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
 
                 if num_variant:
-                    for key in out_dct['filename'].split('_'):
-                        if 'desc-' in key:
+                    if 'regressors' in json_info.get('CpacVariant', {}):
+                        if json_info['CpacVariant']['regressors']:
+                            num_variant = json_info['CpacVariant'][
+                                'regressors'][0].replace(
+                                    'nuisance_regressors_generation_', '')
+                    for key in out_dct['filename'].split('_')[::-1]:
+                        if key.startswith('desc-'):  # final `desc` entity
                             out_dct['filename'] = out_dct[
                                 'filename'].replace(key,
                                                     f'{key}-{num_variant}')
                             resource_idx = resource.replace(key, f'{key}-'
                                                             f'{num_variant}')
                             break
-                        else:
-                            suff = resource.split('_')[-1]
-                            newdesc_suff = f'desc-{num_variant}_{suff}'
-                            resource_idx = resource.replace(suff,
-                                                            newdesc_suff)
+                        suff = resource.split('_')[-1]
+                        newdesc_suff = f'desc-{num_variant}_{suff}'
+                        resource_idx = resource.replace(suff, newdesc_suff)
                 else:
                     resource_idx = resource
                 expected_outputs += (out_dct['subdir'],
