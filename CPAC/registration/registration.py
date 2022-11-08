@@ -2420,7 +2420,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "ANTS",
-     "inputs": [("sbref",
+     "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
@@ -2450,13 +2450,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['ANTs'][
         'interpolation']
 
-    node, out = strat_pool.get_data('sbref')
+    node, out = strat_pool.get_data('desc-preproc_bold')
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI-template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data('sbref')
+    node, out = strat_pool.get_data('desc-preproc_bold')
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI-template')
