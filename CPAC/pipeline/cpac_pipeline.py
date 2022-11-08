@@ -100,6 +100,7 @@ from CPAC.registration.registration import (
     create_func_to_T1template_symmetric_xfm,
     warp_wholeheadT1_to_template,
     warp_T1mask_to_template,
+    apply_phasediff_to_timeseries_separately,
     apply_blip_to_timeseries_separately,
     warp_timeseries_to_T1template,
     warp_bold_mean_to_T1template,
@@ -1289,7 +1290,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     if apply_func_warp['T1']:
 
-        ts_to_T1template_block = [apply_blip_to_timeseries_separately,
+        ts_to_T1template_block = [apply_phasediff_to_timeseries_separately,
+                                  apply_blip_to_timeseries_separately,
                                   warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
 

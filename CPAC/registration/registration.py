@@ -3128,6 +3128,97 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
     return (wf, outputs)
 
 
+def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, 
+                                             opt=None):
+    '''
+    Node Block:
+    {"name": "apply_phasediff_to_timeseries_separately",
+     "config": "None",
+     "switch": [["registration_workflows", "functional_registration",
+                 "func_registration_to_template", "run"],
+                ["functional_preproc", "distortion_correction", "run"]],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("sbref",
+                 "desc-preproc_bold",
+                 "from-bold_to-T1w_desc-linear_mode-image_xfm"),
+                "despiked-fieldmap",
+                "pe-direction",
+                "effectiveEchoSpacing"],
+     "outputs": ["desc-preproc_bold"]}
+    '''
+
+    outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
+    if not strat_pool.check_rpool("despiked-fieldmap"):
+        return (wf, outputs)
+
+    invert_coreg_xfm = pe.Node(interface=fsl.ConvertXFM(),
+        name=f'invert_coreg_xfm_{pipe_num}')
+    invert_coreg_xfm.inputs.invert_xfm = True
+
+    node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
+    wf.connect(node, out, invert_coreg_xfm, 'in_file')
+
+    warp_fmap = pe.Node(interface=fsl.ApplyWarp(),
+        name=f'warp_fmap_{pipe_num}')
+
+    node, out = strat_pool.get_data('despiked-fieldmap')
+    wf.connect(node, out, warp_fmap, 'in_file')
+
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, warp_fmap, 'ref_file')
+
+    wf.connect(invert_coreg_xfm, 'out_file', warp_fmap, 'premat')
+
+    mask_fmap = pe.Node(interface=fsl.ConvertXFM(), name=f'mask_fmap_{pipe_num}')
+    mask_fmap.inputs.args = '-abs -bin'
+
+    wf.connect(warp_fmap, 'out_file', mask_fmap, 'in_file')
+
+    fugue_saveshift = pe.Node(interface=fsl.preprocess.FUGUE(),
+                              name=f'fugue_saveshift_{pipe_num}')
+    fugue_saveshift.inputs.save_shift = True
+
+    wf.connect(warp_fmap, 'out_file', fugue_saveshift, 'fmap_in_file')
+    wf.connect(mask_fmap, 'out_file', fugue_saveshift, 'mask_file')
+
+    # FSL calls effective echo spacing = dwell time (not accurate)
+    node, out = strat_pool.get_data('effectiveEchoSpacing')
+    wf.connect(node, out, fugue_saveshift, 'dwell_time')
+
+    node, out = strat_pool.get_data('pe-direction')
+    wf.connect(node, out, fugue_saveshift, 'unwarp_direction')
+
+    shift_warp = pe.Node(interface=fsl.ConvertWarp(), 
+                         name=f'shift_warp_{pipe_num}')
+    shift_warp.inputs.out_relwarp = True
+
+    wf.connect(fugue_saveshift, 'shift_out_file', shift_warp, 'shift_in_file')
+
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, fugue_saveshift, 'reference')
+
+    node, out = strat_pool.get_data('pe-direction')
+    wf.connect(node, out, fugue_saveshift, 'shift_direction')
+
+    warp_bold = pe.Node(interface=fsl.ApplyWarp(),
+                        name=f'warp_bold_phasediff_{pipe_num}')
+    warp_bold.inputs.relwarp = True
+    warp_bold.inputs.interp = 'spline'
+
+    node, out = strat_pool.get_data('desc-preproc_bold')
+    wf.connect(node, out, warp_bold, 'in_file')
+
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, warp_bold, 'ref_file')
+
+    outputs = {
+        'desc-preproc_bold': (warp_bold, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
 def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, 
                                         opt=None):
     '''
