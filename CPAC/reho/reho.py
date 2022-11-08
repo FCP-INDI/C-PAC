@@ -154,10 +154,7 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_res-derivative_desc-cleaned_bold",
-                 "space-template_res-derivative_desc-brain_bold",
-                 "space-template_res-derivative_desc-preproc_bold",
-                 "space-template_res-derivative_bold"],
+     "inputs": ["space-template_res-derivative_desc-preproc_bold",
                 "space-template_res-derivative_desc-bold_mask"],
      "outputs": ["space-template_reho"]}
     '''
