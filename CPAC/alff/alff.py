@@ -274,6 +274,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "alff_falff_space_template",
@@ -286,7 +287,6 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_alff",
                  "space-template_falff"]}
     '''
-
     alff = create_alff(f'alff_falff_{pipe_num}')
 
     alff.inputs.hp_input.hp = \
@@ -296,7 +296,8 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
 
-    node, out = strat_pool.get_data(["space-template_desc-denoisedNofilt_bold"])
+    node, out = strat_pool.get_data([
+        "space-template_desc-denoisedNofilt_bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
