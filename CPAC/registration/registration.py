@@ -4138,13 +4138,16 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "from-bold_to-template_mode-image_xfm",
                  "T1w",
                  "desc-preproc_T1w",
-                 "T1w-brain-template-funcreg")],
+                 "T1w-brain-template-funcreg",
+                 "T1w-brain-template-deriv")],
      "outputs": {"space-template_desc-preproc_bold": {
                      "Template": "T1w-brain-template-funcreg"},
                  "space-template_desc-brain_bold": {
                      "Template": "T1w-brain-template-funcreg"},
                  "space-template_desc-bold_mask": {
-                     "Template": "T1w-brain-template-funcreg"}}}
+                     "Template": "T1w-brain-template-funcreg"},
+                 "space-template_res-derivative_desc-bold_mask": {
+                     "Template": "T1w-brain-template-deriv"}}}
     '''  # noqa: 501
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
@@ -4273,6 +4276,29 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     wf.connect(collectxfm_mask, 'out',
         applyxfm_func_mask_to_standard, 'transforms')
 
+    applyxfm_deriv_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
+                                             name=f'applyxfm_deriv_mask_to_standard_{pipe_num}')
+
+    applyxfm_deriv_mask_to_standard.inputs.interpolation = 'MultiLabel'
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, applyxfm_deriv_mask_to_standard, 'input_image')
+
+    node, out = strat_pool.get_data('T1w-brain-template-deriv')
+    wf.connect(node, out, applyxfm_deriv_mask_to_standard, 'reference_image')
+
+    collectxfm_deriv_mask = pe.Node(util.Merge(2),
+                                    name=f'collectxfm_deriv_mask_to_standard_{pipe_num}')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, collectxfm_deriv_mask, 'in1')
+
+    wf.connect(bbr2itk, 'itk_transform',
+        collectxfm_deriv_mask, 'in2')
+
+    wf.connect(collectxfm_deriv_mask, 'out',
+        applyxfm_deriv_mask_to_standard, 'transforms')
+
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
                          name=f'get_func_brain_to_standard_{pipe_num}')
 
@@ -4288,6 +4314,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         'space-template_desc-brain_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
             'output_image'),
+        'space-template_res-derivative_desc-bold_mask': 
+            (applyxfm_deriv_mask_to_standard, 'output_image')
     }
 
     return (wf, outputs)
@@ -4296,7 +4324,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
-    {"name": "transform_bold_mean_to_T1template",
+    {"name": "transform_sbref_to_T1template",
      "config": "None",
      "switch": ["registration_workflows", "functional_registration",
                 "func_registration_to_template", "run"],

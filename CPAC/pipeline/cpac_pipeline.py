@@ -1312,8 +1312,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     pipeline_blocks += [func_despike_template]
 
+    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
-    if 'Template' in target_space_alff and not rpool.check_rpool('space-template_desc-denoisedNofilt_bold'):
+    if 'Template' in target_space_alff and 'Native' in target_space_nuis:
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
