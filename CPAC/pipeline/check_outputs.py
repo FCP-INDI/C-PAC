@@ -64,8 +64,8 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
         for subdir, filenames in expected_outputs.items():
             observed_outputs = list(output_dir.glob(f'{container}/{subdir}'))
             for filename in filenames:
-                if not (observed_outputs and observed_outputs[0].glob(
-                        f'*{filename}*')):
+                if not (observed_outputs and list(observed_outputs[0].glob(
+                        f'*{filename}*'))):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
             missing_log = set_up_logger(f'missingOutputs_{unique_id}',
