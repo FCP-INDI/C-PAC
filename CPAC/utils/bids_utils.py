@@ -808,17 +808,21 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
     -------
     str
 
-    Example
-    -------
+    Examples
+    --------
     >>> combine_multiple_entity_instances(
     ...     'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_'
     ...     'desc-Nilearn_desc-36-param_suffix.ext')
     'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_desc-Nilearn36Param_suffix.ext'
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_'
+    ...     'run-1_framewise-displacement-power.1D')
+    'sub-1_ses-HBN_site-RU_task-rest_run-1_framewiseDisplacementPower.1D'
     """
-    entity_list = bids_str.split('_')
+    _entity_list = bids_str.split('_')
+    entity_list = _entity_list[:-1]
+    suffixes = [camelCase(_entity_list[-1])]
     entities = {}
-    # should just be one suffix, but don't want to lose information
-    suffixes = [entity for entity in entity_list if '-' not in entity]
     for entity in entity_list:
         if '-' in entity:
             key, value = entity.split('-', maxsplit=1)
