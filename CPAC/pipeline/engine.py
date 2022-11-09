@@ -685,6 +685,9 @@ class ResourcePool:
     def post_process(self, wf, label, connection, json_info, pipe_idx, pipe_x,
                      outs):
 
+        if label in Outputs.motion:
+            label = f'desc-{label}_motion'
+
         input_type = 'func_derivative'
 
         post_labels = [(label, connection[0], connection[1])]
