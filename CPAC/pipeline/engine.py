@@ -1787,12 +1787,12 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('${func_resolution}', cfg.registration_workflows[
                 'functional_registration']['func_registration_to_template'][
                 'output_resolution'][tag])
-            
+
         if desc:
-            template_name = lookup_identifier(val)
+            template_name, _template_desc = lookup_identifier(val)
             if template_name:
                 desc = f"{template_name} - {desc}"
-            json_info['Description'] = f"{desc} - {val}"     
+            json_info['Description'] = f"{desc} - {val}"
         if resolution:
             resolution = cfg.get_nested(cfg, res_keys)
             json_info['Resolution'] = resolution

@@ -188,7 +188,7 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     """
     from CPAC.utils.bids_utils import combine_multiple_entity_instances
     if atlas_id:
-        if '_' in atlas_id:
+        if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
