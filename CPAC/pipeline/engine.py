@@ -19,7 +19,6 @@ import logging
 import os
 import warnings
 import copy
-import yaml
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -31,7 +30,6 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.outputs import Outputs
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -43,8 +41,9 @@ from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring.custom_logging import getLogger
-from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
-    get_last_prov_entry, check_prov_for_regtool
+from CPAC.utils.outputs import Outputs
+from CPAC.utils.utils import check_prov_for_regtool, \
+    create_id_string, get_last_prov_entry, read_json, write_output_json
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 

@@ -770,6 +770,67 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     return file_paths, config_dict
 
 
+def camelCase(string: str) -> str:  # pylint: disable=invalid-name
+    """Convert a hyphenated string to camelCase
+
+    Paremeters
+    ----------
+    string : str
+        string to convert to camelCase
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> camelCase('PearsonNilearn-aCompCor')
+    'PearsonNilearnACompCor'
+    >>> camelCase('mean-Pearson-Nilearn-aCompCor')
+    'meanPearsonNilearnACompCor'
+    """
+    pieces = string.split('-')
+    for i in range(1, len(pieces)):  # don't change case of first piece
+        if pieces[i]:  # don't do anything to falsy pieces
+            pieces[i] = f'{pieces[i][0].upper()}{pieces[i][1:]}'
+    return ''.join(pieces)
+
+
+def combine_multiple_entity_instances(bids_str: str) -> str:
+    """Combines mutliple instances of a key in a BIDS string to a single
+    instance by camelCasing and concatenating the values
+
+    Parameters
+    ----------
+    bids_str : str
+
+    Returns
+    -------
+    str
+
+    Example
+    -------
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_'
+    ...     'desc-Nilearn_desc-36-param_suffix.ext')
+    'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_desc-Nilearn36Param_suffix.ext'
+    """
+    entity_list = bids_str.split('_')
+    entities = {}
+    # should just be one suffix, but don't want to lose information
+    suffixes = [entity for entity in entity_list if '-' not in entity]
+    for entity in entity_list:
+        if '-' in entity:
+            key, value = entity.split('-', maxsplit=1)
+            if key not in entities:
+                entities[key] = []
+            entities[key].append(value)
+    for key, value in entities.items():
+        entities[key] = camelCase('-'.join(value))
+    return '_'.join([f'{key}-{value}' for key, value in entities.items()
+                     ] + suffixes)
+
+
 def load_yaml_config(config_filename, aws_input_creds):
 
     if config_filename.lower().startswith('data:'):
