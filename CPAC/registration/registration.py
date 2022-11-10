@@ -2706,10 +2706,10 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_vol",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "Selected_Functional_Volume",
      "inputs": [("desc-brain_bold",
                  ["desc-motion_bold", "bold"],
@@ -2749,10 +2749,10 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_mean",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "Mean_Functional",
      "inputs": ["desc-mean_bold"],
      "outputs": ["sbref"]}
@@ -2788,10 +2788,10 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_fmriprep",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "fmriprep_reference",
      "inputs": ["desc-ref_bold"],
      "outputs": ["sbref"]}
