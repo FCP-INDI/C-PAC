@@ -2378,7 +2378,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('T1w-brain-template-symmetric')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-head_T1w","desc-preproc_T1w",
+    node, out = strat_pool.get_data(["desc-head_T1w", "desc-preproc_T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
