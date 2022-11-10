@@ -76,4 +76,4 @@ class Outputs():
                         (reference['To z-std'] == 'Yes')]['Resource'])
 
     # motion parameters to rename until FCP-INDI/CPAC#1624 is merged
-    motion = list(reference[reference['Type'] == 'mition']['Resource'])
+    motion = list(reference[reference['Type'] == 'motion']['Resource'])
