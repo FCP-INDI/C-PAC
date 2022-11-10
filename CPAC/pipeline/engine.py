@@ -1015,11 +1015,6 @@ class ResourcePool:
                     unique_id, resource,
                     template_desc=json_info.get('Template'),
                     atlas_id=atlas_id))
-                print(resource)
-                print(create_id_string(
-                    unique_id, resource,
-                    template_desc=json_info.get('Template'),
-                    atlas_id=atlas_id))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
