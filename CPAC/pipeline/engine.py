@@ -30,6 +30,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
+from CPAC.utils.bids_utils import insert_reg_entity
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -935,23 +936,28 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
 
                 if num_variant:
-                    variant_str = json_info['CpacVariant'][
-                        'regressors'
-                    ][0].replace('nuisance_regressors_generation_', '') if (
+                    if (
                         'regressors' in json_info.get('CpacVariant', {}) and
                         json_info['CpacVariant']['regressors']
-                    ) else num_variant
-                    for key in out_dct['filename'].split('_')[::-1]:
-                        if key.startswith('desc-'):  # final `desc` entity
-                            out_dct['filename'] = out_dct[
-                                'filename'].replace(key,
-                                                    f'{key}-{variant_str}')
-                            resource_idx = resource.replace(key, f'{key}-'
-                                                            f'{variant_str}')
-                            break
-                        suff = resource.split('_')[-1]
-                        newdesc_suff = f'desc-{variant_str}_{suff}'
-                        resource_idx = resource.replace(suff, newdesc_suff)
+                    ):
+                        reg_value = json_info['CpacVariant'][
+                            'regressors'
+                        ][0].replace('nuisance_regressors_generation_', '')
+                        out_dct['filename'] = insert_reg_entity(
+                            out_dct['filename'], reg_value)
+                        resource_idx = insert_reg_entity(resource, reg_value)
+                    else:
+                        for key in out_dct['filename'].split('_')[::-1]:
+                            if key.startswith('desc-'):  # final `desc` entity
+                                out_dct['filename'] = out_dct[
+                                    'filename'].replace(key,
+                                                        f'{key}-{num_variant}')
+                                resource_idx = resource.replace(
+                                    key, f'{key}-{num_variant}')
+                                break
+                            suff = resource.split('_')[-1]
+                            newdesc_suff = f'desc-{num_variant}_{suff}'
+                            resource_idx = resource.replace(suff, newdesc_suff)
                 else:
                     resource_idx = resource
                 expected_outputs += (out_dct['subdir'],
