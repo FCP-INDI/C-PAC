@@ -960,7 +960,6 @@ class ResourcePool:
                             resource_idx = resource.replace(suff, newdesc_suff)
                 else:
                     resource_idx = resource
-
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
@@ -1020,7 +1019,7 @@ class ResourcePool:
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    unique_id, resource,
+                    unique_id, resource_idx,
                     template_desc=json_info.get('Template'),
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
 
