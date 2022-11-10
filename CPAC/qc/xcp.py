@@ -392,7 +392,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                  ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
                  'movement-parameters', 'dvars',
                  'framewise-displacement-jenkinson')],
-     'outputs': ['space-template_desc-xcp_quality']}
+     'outputs': {'space-template_desc-xcp_quality': {
+                     'Template': 'T1w-brain-template-mask'}}}
     """
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
