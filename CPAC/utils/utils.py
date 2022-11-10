@@ -190,7 +190,8 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     from CPAC.utils.outputs import Outputs
 
     if resource in Outputs.motion:
-        resource = f'desc-{resource}_motion'
+        resource = (
+            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
 
     if atlas_id:
         if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
