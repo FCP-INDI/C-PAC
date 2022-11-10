@@ -2323,7 +2323,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "inputs": [(["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
                  ["space-T1w_desc-brain_mask",
                   "space-longitudinal_desc-brain_mask"],
-                 ["desc-preproc_T1w",
+                 ["desc-head_T1w","desc-preproc_T1w",
                   "space-longitudinal_desc-reorient_T1w"]),
                 "T1w-template-symmetric",
                 "T1w-brain-template-symmetric",
@@ -2378,7 +2378,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('T1w-brain-template-symmetric')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w",
+    node, out = strat_pool.get_data(["desc-head_T1w","desc-preproc_T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
@@ -2421,7 +2421,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "ANTS",
-     "inputs": [("desc-preproc_bold",
+     "inputs": [("sbref",
                  "space-bold_desc-brain_mask"),
                 "EPI-template",
                 "EPI-template-mask"],
@@ -2451,13 +2451,13 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         'functional_registration']['EPI_registration']['ANTs'][
         'interpolation']
 
-    node, out = strat_pool.get_data('desc-preproc_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, ants, 'inputspec.input_brain')
 
     node, out = strat_pool.get_data('EPI-template')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data('desc-preproc_bold')
+    node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, ants, 'inputspec.input_head')
 
     node, out = strat_pool.get_data('EPI-template')
