@@ -3210,7 +3210,8 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-head_T1w",
                  "from-T1w_to-template_mode-image_xfm"),
                 "T1w-template"],
-     "outputs": ["space-template_desc-head_T1w"]}
+     "outputs": {"space-template_desc-head_T1w": {
+                     "Template": "T1w-template"}}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -3265,7 +3266,8 @@ def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-T1w_desc-brain_mask",
                  "from-T1w_to-template_mode-image_xfm"),
                 "T1w-template"],
-     "outputs": ["space-template_desc-brain_mask"]}
+     "outputs": {"space-template_desc-brain_mask": {
+                     "Template": "T1w-template"}}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
