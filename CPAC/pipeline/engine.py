@@ -957,12 +957,14 @@ class ResourcePool:
                                                           'scan_id',
                                                           'template_desc',
                                                           'atlas_id',
-                                                          'fwhm'],
+                                                          'fwhm',
+                                                          'subdir'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
+                id_string.inputs.subdir = out_dct['subdir']
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -1011,7 +1013,7 @@ class ResourcePool:
                 expected_outputs += (out_dct['subdir'], create_id_string(
                     unique_id, resource,
                     template_desc=json_info.get('Template'),
-                    atlas_id=atlas_id))
+                    atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
