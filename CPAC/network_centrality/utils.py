@@ -116,10 +116,11 @@ def sep_nifti_subbriks(nifti_file, out_names):
     list
         each of the specified outputs as its own file
     '''
-    # pylint: disable=redefined-outer-name,reimported
+    # pylint: disable=redefined-outer-name,reimported,unused-import
     import os
     import nibabel as nib
     from CPAC.pipeline.schema import valid_options
+    from CPAC.utils.docs import docstring_parameter  # noqa: F401
 
     output_niftis = []
     weight_options = valid_options['centrality']['weight_options']
