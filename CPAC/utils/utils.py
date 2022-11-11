@@ -752,7 +752,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     last_tr = ''
     unit = 's'
     pe_direction = ''
-    effective_echo_spacing = ''
+    effective_echo_spacing = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -785,10 +785,13 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             if "PhaseEncodingDirection" in params_dct.keys():
                 pe_direction = str(check(params_dct, subject_id, scan,
                                          "PhaseEncodingDirection", False))
-            if "EffectiveEchoSpacing" in params_dct.keys():
+            try:
+                "EffectiveEchoSpacing" in params_dct.keys()
                 effective_echo_spacing = float(
-                    check(params_dct, subject_id, scan,
-                          "EffectiveEchoSpacing", False))
+                        check(params_dct, subject_id, scan,
+                            "EffectiveEchoSpacing", False))
+            except TypeError:
+                pass
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
@@ -831,10 +834,12 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
             pe_direction = check(params_dct, subject_id, scan,
                                  'PhaseEncodingDirection', False)
-
-            effective_echo_spacing = float(
+            try:
+                effective_echo_spacing = float(
                 try_fetch_parameter(params_dct, subject_id, scan,
                                     ["EffectiveEchoSpacing"]))
+            except TypeError:
+                pass
 
         else:
             err = "\n\n[!] Could not read the format of the scan parameters " \
