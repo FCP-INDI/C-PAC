@@ -6,26 +6,40 @@ from CPAC.utils.configuration import Configuration
 
 
 @pytest.mark.parametrize('run_value', [
-    True, False, [True], [False], [True, False], [False, True], None, []])
+    True, False, [True], [False], [True, False], [False, True]])
 def test_motion_estimates_and_correction(run_value):
     '''Test that any truthy forkable option for 'run' throws the custom
     human-readable exception for an invalid motion_estimate_filter.
     '''
-    d = {
-        'FROM': 'default',
-        'functional_preproc': {'motion_estimates_and_correction': {
+    # pylint: disable=invalid-name
+    d = {'FROM': 'default',
+         'functional_preproc': {'motion_estimates_and_correction': {
              'motion_estimate_filter': {'run': run_value,
-                                        'filter_type': 'notch',
-                                        'filter_order': 0,
-                                        'breathing_rate_min': None,
-                                        'breathing_rate_max': 101.5}}}
-    }
+                                        'filters': [{
+                                            'filter_type': 'notch',
+                                            'filter_order': 0,
+                                            'breathing_rate_min': None,
+                                            'breathing_rate_max': 101.5}]}}}}
     if bool(run_value) and run_value not in [[False], []]:
         with pytest.raises(Invalid) as e:
             Configuration(d)
         assert "func#motion_estimate_filter_valid_options" in str(e.value)
     else:
         Configuration(d)
+    d = {'FROM': 'default',
+         'functional_preproc': {'motion_estimates_and_correction': {
+             'motion_estimate_filter': {'run': run_value,
+                                        'filters': [{
+                                            'filter_type': 'notch',
+                                            'filter_order': 4,
+                                            'center_frequency': .31,
+                                            'filter_bandwidth': .12}]}}}}
+    c = Configuration(d)
+    if c['functional_preproc', 'motion_estimates_and_correction',
+         'motion_estimate_filter', 'filters']:
+        assert c['functional_preproc', 'motion_estimates_and_correction',
+                 'motion_estimate_filter', 'filters', 0, 'Name'
+                 ] == 'notch4c0p31bw0p12'
 
 
 @pytest.mark.parametrize('registration_using',

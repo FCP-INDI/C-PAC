@@ -232,7 +232,6 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
         out_filename = out_filename.replace('_space-T1w_', '_')
     if subdir == 'func':
         out_filename = out_filename.replace('_space-bold_', '_')
-
     return combine_multiple_entity_instances(out_filename)
 
 

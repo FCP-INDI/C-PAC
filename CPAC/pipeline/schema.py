@@ -204,12 +204,110 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
+motion_estimate_filter = Any({  # notch filter with breathing_rate_* set
+        Required('filter_type'): 'notch',
+        Required('filter_order'): int,
+        Required('breathing_rate_min'): Number,
+        'breathing_rate_max': Number,
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # notch filter with manual parameters set
+        Required('filter_type'): 'notch',
+        Required('filter_order'): int,
+        'breathing_rate_min': None,
+        'breathing_rate_max': None,
+        Required('center_frequency'): Number,
+        Required('filter_bandwidth'): Number,
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # lowpass filter with breathing_rate_min
+        Required('filter_type'): 'lowpass',
+        Required('filter_order'): int,
+        Required('breathing_rate_min'): Number,
+        'breathing_rate_max': Maybe(Number),
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # lowpass filter with lowpass_cutoff
+        Required('filter_type'): 'lowpass',
+        Required('filter_order'): int,
+        Required('breathing_rate_min', default=None): None,
+        'breathing_rate_max': Maybe(Number),
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        Required('lowpass_cutoff'): Number,
+        'Name': Maybe(str)},
+    msg='`motion_estimate_filter` configuration is invalid.\nSee '
+        f'{docs_prefix}/user/'
+        'func#motion-estimate-filter-valid-options for details.\n')
 target_space = All(Coerce(ListFromItem),
                    [All(Title, In(valid_options['target_space']))])
 
 
+def name_motion_filter(mfilter, mfilters=None):
+    '''Given a motion filter, create a short string for the filename
+
+    Parameters
+    ----------
+    mfilter : dict
+
+    mfliters : list or None
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 2,
+    ...     'center_frequency': 0.31, 'filter_bandwidth': 0.12})
+    'notch2c0p31bw0p12'
+    >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 4,
+    ...     'breathing_rate_min': 0.19, 'breathing_rate_max': 0.43})
+    'notch4from0p19to0p43'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 4,
+    ...     'lowpass_cutoff': .0032})
+    'lowpass4co0p0032'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19})
+    'lowpass2from0p19'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2from0p19'}])
+    'lowpass2from0p19dup1'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2from0p19'},
+    ...     {'Name': 'lowpass2from0p19dup1'}])
+    'lowpass2from0p19dup2'
+    '''
+    if mfilters is None:
+        mfilters = []
+    if mfilter['filter_type'] == 'notch':
+        if mfilter.get('breathing_rate_min'):
+            range_str = (f'from{mfilter["breathing_rate_min"]}'
+                         f'to{mfilter["breathing_rate_max"]}')
+        else:
+            range_str = (f'c{mfilter["center_frequency"]}'
+                         f'bw{mfilter["filter_bandwidth"]}')
+    else:
+        if mfilter.get('breathing_rate_min'):
+            range_str = f'from{mfilter["breathing_rate_min"]}'
+        else:
+            range_str = f'co{mfilter["lowpass_cutoff"]}'
+    range_str = range_str.replace('.', 'p')
+    name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
+    dupes = len([_ for _ in (_.get('Name', '') for _ in mfilters) if
+                 _.startswith(name)])
+    if dupes:
+        name = f'{name}dup{dupes}'
+    return name
+
+
 def permutation_message(key, options):
-    '''Function to give a clean, human-readable error message for keys that accept permutation values
+    '''Function to give a clean, human-readable error message for keys
+    that accept permutation values
 
     Parameters
     ----------
@@ -668,56 +766,10 @@ latest_schema = Schema({
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
-                Any({  # no motion estimate filter
-                    'run': Maybe(Any(
-                        ExactSequence([False]), ExactSequence([]), False)),
-                    'filter_type': Maybe(In({'notch', 'lowpass'})),
-                    'filter_order': Maybe(int),
-                    'breathing_rate_min': Maybe(Number),
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with breathing_rate_* set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Number,
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with manual parameters set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    'breathing_rate_min': None,
-                    'breathing_rate_max': None,
-                    Required('center_frequency'): Number,
-                    Required('filter_bandwidth'): Number,
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with breathing_rate_min
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with lowpass_cutoff
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min', default=None): None,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    Required('lowpass_cutoff'): Number,
-                },),
-                msg='`motion_estimate_filter` configuration is invalid. See '
-                    f'{docs_prefix}/user/'
-                    'func#motion_estimate_filter_valid_options for details.\n',
+                Any({'run': forkable,
+                     'filters': [motion_estimate_filter]},
+                    {'run': All(forkable, [In([False], [])]),
+                     'filters': Maybe(list)})
             ),
         },
         'distortion_correction': {
@@ -1030,6 +1082,14 @@ def schema(config_dict):
                     f'registration: using`` to ``ANTS`` {or_else}')
     except KeyError:
         pass
+    motion_filters = partially_validated['functional_preproc'][
+        'motion_estimates_and_correction']['motion_estimate_filter']
+    if True in motion_filters['run']:
+        for motion_filter in motion_filters['filters']:
+            motion_filter['Name'] = name_motion_filter(
+                motion_filter, motion_filters['filters'])
+    else:
+        motion_filters['filters'] = []
     return partially_validated
 
 

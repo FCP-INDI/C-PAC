@@ -30,7 +30,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.bids_utils import insert_reg_entity
+from CPAC.utils.bids_utils import insert_entity
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -866,8 +866,8 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'pipeline_{pipe_name}', 
-                                         part_id, ses_id)
+                container = os.path.join(f'pipeline_{pipe_name}', part_id,
+                                         ses_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -934,11 +934,34 @@ class ResourcePool:
                     continue
 
                 unique_id = out_dct['unique_id']
-
+                resource_idx = resource
                 if num_variant:
-                    reg_value = None
+                    labeled_variant = False
+                    if True in cfg['functional_preproc',
+                                   'motion_estimates_and_correction',
+                                   'motion_estimate_filter', 'run']:
+                        filt_value = None
+                        if ('movement-parameters' in json_info.get(
+                            'CpacVariant', {}) and json_info['CpacVariant'][
+                                'movement-parameters']):
+                            filt_value = json_info['CpacVariant'][
+                                'movement-parameters'][0].replace(
+                                    'motion_estimate_filter_', '')
+                        elif False in cfg['functional_preproc',
+                                          'motion_estimates_and_correction',
+                                          'motion_estimate_filter', 'run']:
+                            filt_value = 'none'
+                        if filt_value is not None:
+                            resource_idx = insert_entity(resource_idx, 'filt',
+                                                         filt_value)
+                            out_dct['filename'] = insert_entity(
+                                out_dct['filename'], 'filt', filt_value)
+                            resource_idx = insert_entity(resource_idx, 'filt',
+                                                         filt_value)
+                            labeled_variant = True
                     if True in cfg['nuisance_corrections',
                                    '2-nuisance_regression', 'run']:
+                        reg_value = None
                         if ('regressors' in json_info.get('CpacVariant', {})
                                 and json_info['CpacVariant']['regressors']):
                             reg_value = json_info['CpacVariant'][
@@ -947,25 +970,25 @@ class ResourcePool:
                         elif False in cfg['nuisance_corrections',
                                           '2-nuisance_regression', 'run']:
                             reg_value = 'Off'
-                    if reg_value is not None:
-                        out_dct['filename'] = insert_reg_entity(
-                            out_dct['filename'], reg_value)
-                        resource_idx = insert_reg_entity(resource, reg_value)
-                    else:
+                        if reg_value is not None:
+                            out_dct['filename'] = insert_entity(
+                                out_dct['filename'], 'reg', reg_value)
+                            resource_idx = insert_entity(resource_idx, 'reg',
+                                                         reg_value)
+                            labeled_variant = True
+                    if labeled_variant is False:
                         for key in out_dct['filename'].split('_')[::-1]:
                             if key.startswith('desc-'):  # final `desc` entity
                                 out_dct['filename'] = out_dct[
                                     'filename'].replace(key,
                                                         f'{key}-{num_variant}')
-                                resource_idx = resource.replace(
+                                resource_idx = resource_idx.replace(
                                     key, f'{key}-{num_variant}')
                                 break
                             suff = resource.split('_')[-1]
                             newdesc_suff = f'desc-{num_variant}_{suff}'
-                            resource_idx = resource.replace(suff,
-                                                            newdesc_suff)
-                else:
-                    resource_idx = resource
+                            resource_idx = resource_idx.replace(suff,
+                                                                newdesc_suff)
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',

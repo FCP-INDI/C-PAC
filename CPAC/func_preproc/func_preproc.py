@@ -1186,7 +1186,7 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_correction",
      "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+     "switch": ["functional_preproc", "motion_estimates_and_correction",
                 "run"],
      "option_key": ["functional_preproc", "motion_estimates_and_correction",
                     "motion_correction", "using"],
@@ -1211,7 +1211,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "motion_estimates",
      "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction", 
+     "switch": ["functional_preproc", "motion_estimates_and_correction",
                 "run"],
      "option_key": ["functional_preproc", "motion_estimates_and_correction",
                     "motion_correction", "using"],
@@ -1274,19 +1274,20 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": ["functional_preproc", "motion_estimates_and_correction",
                 "motion_estimate_filter"],
      "switch": ["run"],
-     "option_key": "filter_type",
-     "option_val": ["notch", "lowpass"],
+     "option_key": "filters",
+     "option_val": "USER-DEFINED",
      "inputs": ["movement-parameters",
                 "TR"],
      "outputs": ["movement-parameters",
                  "motion-filter-info",
                  "motion-filter-plot"]}
     '''
-
     notch_imports = ['import os', 'import numpy as np',
-                     'from scipy.signal import iirnotch, lfilter, firwin, freqz',
+                     'from scipy.signal import iirnotch, lfilter, firwin, '
+                     'freqz',
                      'from matplotlib import pyplot as plt',
-                     'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
+                     'from CPAC.func_preproc.utils import degrees_to_mm, '
+                     'mm_to_degrees']
     notch = pe.Node(Function(input_names=['motion_params',
                                           'filter_type',
                                           'TR',
@@ -1302,29 +1303,15 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
                                  'filter_plot'],
                              function=notch_filter_motion,
                              imports=notch_imports),
-                    name=f'filter_motion_params_{pipe_num}')
+                    name=f'filter_motion_params_{opt["Name"]}_{pipe_num}')
 
-    notch.inputs.filter_type = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['filter_type']
-    notch.inputs.fc_RR_min = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['breathing_rate_min']
-    notch.inputs.fc_RR_max = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['breathing_rate_max']
-    notch.inputs.center_freq = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['center_frequency']
-    notch.inputs.freq_bw = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['filter_bandwidth']
-    notch.inputs.lowpass_cutoff = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['lowpass_cutoff']
-    notch.inputs.filter_order = cfg.functional_preproc[
-        "motion_estimates_and_correction"][
-        "motion_estimate_filter"]['filter_order']
+    notch.inputs.filter_type = opt.get('filter_type')
+    notch.inputs.fc_RR_min = opt.get('breathing_rate_min')
+    notch.inputs.fc_RR_max = opt.get('breathing_rate_max')
+    notch.inputs.center_freq = opt.get('center_frequency')
+    notch.inputs.freq_bw = opt.get('filter_bandwidth')
+    notch.inputs.lowpass_cutoff = opt.get('lowpass_cutoff')
+    notch.inputs.filter_order = opt.get('filter_order')
 
     node, out = strat_pool.get_data('movement-parameters')
     wf.connect(node, out, notch, 'motion_params')

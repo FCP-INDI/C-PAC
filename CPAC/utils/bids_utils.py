@@ -835,13 +835,13 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
                      ] + suffixes)
 
 
-def insert_reg_entity(resource, reg_value):
-    """Insert a `reg-` BIDS entity before `desc-` if present or before
-    the suffix otherwise
+def insert_entity(resource, key, value):
+    """Insert a `f'{key}-{value}'` BIDS entity before `desc-` if
+    present or before the suffix otherwise
 
     Parameters
     ----------
-    resource, reg_value : str
+    resource, key, value : str
 
     Returns
     -------
@@ -849,10 +849,14 @@ def insert_reg_entity(resource, reg_value):
 
     Examples
     --------
-    >>> insert_reg_entity('run-1_desc-preproc_bold', 'default')
+    >>> insert_entity('run-1_desc-preproc_bold', 'reg', 'default')
     'run-1_reg-default_desc-preproc_bold'
-    >>> insert_reg_entity('run-1_bold', 'default')
+    >>> insert_entity('run-1_bold', 'reg', 'default')
     'run-1_reg-default_bold'
+    >>> insert_entity('run-1_desc-preproc_bold', 'filt', 'notch4c0p31bw0p12')
+    'run-1_filt-notch4c0p31bw0p12_desc-preproc_bold'
+    >>> insert_entity('run-1_reg-default_bold', 'filt', 'notch4c0p31bw0p12')
+    'run-1_reg-default_filt-notch4c0p31bw0p12_bold'
     """
     entities = resource.split('_')[:-1]
     suff = resource.split('_')[-1]
@@ -862,7 +866,7 @@ def insert_reg_entity(resource, reg_value):
             new_entities[1].append(entity)
         else:
             new_entities[0].append(entity)
-    return '_'.join([*new_entities[0], f'reg-{reg_value}', *new_entities[1],
+    return '_'.join([*new_entities[0], f'{key}-{value}', *new_entities[1],
                      suff])
 
 
