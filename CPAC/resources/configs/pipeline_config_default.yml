@@ -1326,8 +1326,8 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     # If multiple groups of regressors are included (as in the default
     # pipeline), each group will be applied to the data separately, resulting in
-    # one preprocessed bold series per group. E.g., `*-preproc-1_bold.nii.gz`
-    # and `*-preproc-2_bold.nii.gz` if there are two groups.
+    # one preprocessed bold series per group. E.g., `*_reg-default_desc-preproc_bold.nii.gz`
+    # and `*_reg-defaultNoGSR_desc-preproc_bold.nii.gz` if there are the two groups in the default preconfig.
     Regressors:
 
       -  Name: 'default'
