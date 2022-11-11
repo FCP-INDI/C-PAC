@@ -356,7 +356,7 @@ def run_main():
     output_dir_is_s3 = args.output_dir.lower().startswith("s3://")
     output_dir = args.output_dir if output_dir_is_s3 else os.path.realpath(
         args.output_dir)
-
+    exitcode = 0
     if args.analysis_level == "cli":
         from CPAC.__main__ import main
         main.main(args=sys.argv[sys.argv.index('--') + 1:])
@@ -779,7 +779,7 @@ def run_main():
                         'observed_usage']['buffer']}
 
             print("Starting participant level processing")
-            CPAC.pipeline.cpac_runner.run(
+            exitcode = CPAC.pipeline.cpac_runner.run(
                 data_config_file,
                 pipeline_config_file,
                 plugin='MultiProc' if plugin_args[
@@ -793,16 +793,13 @@ def run_main():
             if monitoring:
                 monitoring.join(10)
 
-            if args.analysis_level == "test_config":
+            if args.analysis_level == "test_config" and exitcode == 0:
                 print(
                     '\nPipeline and data configuration files should'
-                    ' have been written to {0} and {1} respectively.'.format(
-                        pipeline_config_file,
-                        data_config_file
-                    )
-                )
+                    f' have been written to {pipeline_config_file} and ',
+                    f'{data_config_file} respectively.')
 
-    sys.exit(0)
+    sys.exit(exitcode)
 
 
 if __name__ == '__main__':
