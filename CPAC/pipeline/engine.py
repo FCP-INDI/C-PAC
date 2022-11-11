@@ -936,16 +936,20 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
 
                 if num_variant:
-                    if (
-                        'regressors' in json_info.get('CpacVariant', {}) and
-                        json_info['CpacVariant']['regressors']
-                    ):
-                        reg_value = json_info['CpacVariant'][
-                            'regressors'
-                        ][0].replace('nuisance_regressors_generation_', '')
+                    if True in cfg['nuisance_corrections',
+                                   '2-nuisance_regression', 'run']:
+                        if ('regressors' in json_info.get('CpacVariant', {})
+                                and json_info['CpacVariant']['regressors']):
+                            reg_value = json_info['CpacVariant'][
+                                'regressors'
+                            ][0].replace('nuisance_regressors_generation_', '')
+                        elif False in cfg['nuisance_corrections',
+                                          '2-nuisance_regression', 'run']:
+                            reg_value = 'Off'
                         out_dct['filename'] = insert_reg_entity(
                             out_dct['filename'], reg_value)
                         resource_idx = insert_reg_entity(resource, reg_value)
+
                     else:
                         for key in out_dct['filename'].split('_')[::-1]:
                             if key.startswith('desc-'):  # final `desc` entity
