@@ -99,7 +99,7 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
 
 
 @docstring_parameter(
-    weight_options=valid_options['centrality']['weight_options'])
+    weight_options=tuple(valid_options['centrality']['weight_options']))
 def sep_nifti_subbriks(nifti_file, out_names):
     '''Separate sub-briks of niftis and save specified out
 
@@ -108,8 +108,8 @@ def sep_nifti_subbriks(nifti_file, out_names):
     nifti_file : str
         path to NIfTI output of an AFNI centrality tool
 
-    out_names : iterable
-        a subset of {weight_options}
+    out_names : iterable of str
+        an iterable of strings, each ending with one of {weight_options}
 
     Returns
     -------
