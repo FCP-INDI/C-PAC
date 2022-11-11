@@ -250,6 +250,9 @@ network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: On
+
+  # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
+  template_specification_file: /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
   degree_centrality:
 
     # Enable/Disable degree centrality by selecting the connectivity weights

@@ -217,7 +217,13 @@ def run_T1w_longitudinal(sublist, cfg):
 # Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
-        test_config=False):
+        test_config=False) -> int:
+    """
+    Returns
+    -------
+    int
+        exit code
+    """
     exitcode = 0
 
     # Import packages
@@ -251,8 +257,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         sublist = bids_gen_cpac_sublist(subject_list_file, file_paths,
                                         config, None)
         if not sublist:
-            print("Did not find data in {0}".format(subject_list_file))
-            sys.exit(1)
+            print(f"Did not find data in {subject_list_file}")
+            return 1
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -660,4 +666,4 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 exitcode = exitcode or pid.exitcode
             # Close PID txt file to indicate finish
             pid.close()
-    sys.exit(exitcode)
+    return exitcode

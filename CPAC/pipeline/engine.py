@@ -961,7 +961,8 @@ class ResourcePool:
                                 break
                             suff = resource.split('_')[-1]
                             newdesc_suff = f'desc-{num_variant}_{suff}'
-                            resource_idx = resource.replace(suff, newdesc_suff)
+                            resource_idx = resource.replace(suff,
+                                                            newdesc_suff)
                 else:
                     resource_idx = resource
                 id_string = pe.Node(Function(input_names=['unique_id',
