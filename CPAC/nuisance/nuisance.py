@@ -2612,7 +2612,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-cleaned_bold": {
         "Description": "Preprocessed BOLD image that was nusiance-"
                        "regressed in template space"},
-                "space-template_desc-denoisedNofilt_bold": {
+                 "space-template_desc-denoisedNofilt_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
                  "regressors": {

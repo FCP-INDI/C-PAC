@@ -16,12 +16,10 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
-import fnmatch
 import os
 from logging import Logger
-
+from pathlib import Path
 import yaml
-
 from CPAC.utils.datasource import bidsier_prefix
 from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, \
                                                  set_up_logger
@@ -46,9 +44,11 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     -------
     message :str
     """
+    output_dir = Path(output_dir)
     outputs_logger = getLogger(f'{unique_id}_expectedOutputs')
     missing_outputs = ExpectedOutputs()
-    container = os.path.join(f'pipeline_{pipe_name}', unique_id)
+    container = os.path.join(f'pipeline_{pipe_name}',
+                             '/'.join(unique_id.split('_', 1)))
     if (
         isinstance(outputs_logger, (Logger, MockLogger)) and
         len(outputs_logger.handlers)
@@ -59,16 +59,13 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     if outputs_log is None:
         message = 'Could not find expected outputs log file'
     else:
-        with open(outputs_log, 'r') as expected_outputs_file:
+        with open(outputs_log, 'r', encoding='utf-8') as expected_outputs_file:
             expected_outputs = yaml.safe_load(expected_outputs_file.read())
         for subdir, filenames in expected_outputs.items():
-            full_dir = os.path.join(output_dir, container, subdir)
-            observed_outputs = os.listdir(full_dir) if os.path.exists(
-                full_dir) else []
+            observed_outputs = list(output_dir.glob(f'{container}/{subdir}'))
             for filename in filenames:
-                if not fnmatch.filter(observed_outputs,
-                                      f'*{unique_id}*'
-                                      f'{filename.replace(unique_id, "")}*'):
+                if not (observed_outputs and list(observed_outputs[0].glob(
+                        f'*{filename}*'))):
                     missing_outputs += (subdir, filename)
         if missing_outputs:
             missing_log = set_up_logger(f'missingOutputs_{unique_id}',

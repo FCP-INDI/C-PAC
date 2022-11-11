@@ -951,8 +951,6 @@ class ResourcePool:
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
-                expected_outputs += (out_dct['subdir'],
-                                     out_dct['filename'][len(unique_id)+1:])
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -990,6 +988,7 @@ class ResourcePool:
 
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
+                atlas_id = None
                 if resource.split('_')[-1] in atlas_suffixes:
                     atlas_idx = pipe_idx.replace(resource, 'atlas_name')
                     # need the single quote and the colon inside the double
@@ -1009,6 +1008,10 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
+                expected_outputs += (out_dct['subdir'], create_id_string(
+                    unique_id, resource,
+                    template_desc=json_info.get('Template'),
+                    atlas_id=atlas_id))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
