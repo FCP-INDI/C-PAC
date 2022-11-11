@@ -1,3 +1,19 @@
+# Copyright (C) 2012-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 
@@ -82,21 +98,39 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
             eigen_binarized, lfcd_weighted, lfcd_binarized)
 
 
-# Separate sub-briks of niftis and save
+@docstring_parameter(
+    weight_options=valid_options['centrality']['weight_options'])
 def sep_nifti_subbriks(nifti_file, out_names):
+    '''Separate sub-briks of niftis and save specified out
+
+    Parameters
+    ----------
+    nifti_file : str
+        path to NIfTI output of an AFNI centrality tool
+
+    out_names : iterable
+        a subset of {weight_options}
+
+    Returns
+    -------
+    list
+        each of the specified outputs as its own file
     '''
-    '''
+    # pylint: disable=redefined-outer-name,reimported
     import os
     import nibabel as nib
+    from CPAC.pipeline.schema import valid_options
 
     output_niftis = []
+    weight_options = valid_options['centrality']['weight_options']
+    selected_options = {_[::-1].split('_', 1)[0][::-1]: _ for _ in out_names}
 
     nii_img = nib.load(nifti_file)
     nii_arr = nii_img.get_data()
     nii_affine = nii_img.get_affine()
     nii_dims = nii_arr.shape
 
-    if nii_dims[-1] != len(out_names):
+    if nii_dims[-1] != len(weight_options):
         if len(nii_dims) == 3 and len(out_names) == 1:
             pass
         else:
@@ -104,15 +138,17 @@ def sep_nifti_subbriks(nifti_file, out_names):
                       'nifti sub-briks'
             raise Exception(err_msg)
 
-    for brik, out_name in enumerate(out_names):
-        if len(nii_dims) == 3:
-            brik_arr = nii_arr
-        elif len(nii_dims) > 3:
-            brik_arr = nii_arr[:, :, :, 0, brik]
-        out_file = os.path.join(os.getcwd(), out_name+'.nii.gz')
-        out_img = nib.Nifti1Image(brik_arr, nii_affine)
-        out_img.to_filename(out_file)
-        output_niftis.append(out_file)
+    for brik, option in enumerate(weight_options):
+        if option in selected_options:
+            if len(nii_dims) == 3:
+                brik_arr = nii_arr
+            elif len(nii_dims) > 3:
+                brik_arr = nii_arr[:, :, :, 0, brik]
+            out_file = os.path.join(os.getcwd(),
+                                    selected_options[option] + '.nii.gz')
+            out_img = nib.Nifti1Image(brik_arr, nii_affine)
+            out_img.to_filename(out_file)
+            output_niftis.append(out_file)
 
     return output_niftis
 
