@@ -17,11 +17,12 @@
 import csv
 import json
 import re
-from typing import Optional, Tuple
+from typing import Tuple
 from nipype import logging
 from nipype.interfaces import utility as util
-from nipype.interfaces.fsl import MultiImageMaths
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.resources.templates.lookup_table import format_identifier, \
+                                                  lookup_identifier
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
@@ -1016,33 +1017,36 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
 
-        base_file = os.path.basename(mask_file)
+        name, desc = lookup_identifier(mask_file)
 
-        try:
-            valid_extensions = ['.nii', '.nii.gz']
+        if name == 'template':
+            base_file = os.path.basename(mask_file)
 
-            base_name = [
-                base_file[:-len(ext)]
-                for ext in valid_extensions
-                if base_file.endswith(ext)
-                ][0]
+            try:
+                valid_extensions = ['.nii', '.nii.gz']
 
-            if base_name in mask_dict:
-                raise ValueError(
-                    'Files with same name not allowed: %s %s' % (
-                        mask_file,
-                        mask_dict[base_name]
-                    )
-                )
+                base_name = [
+                    base_file[:-len(ext)]
+                    for ext in valid_extensions
+                    if base_file.endswith(ext)
+                    ][0]
 
-            mask_dict[base_name] = mask_file
+            except IndexError:
+                # pylint: disable=raise-missing-from
+                raise ValueError('Error in spatial_map_dataflow: File '
+                                 f'extension of {base_file} not ".nii" or '
+                                 '.nii.gz')
 
-        except IndexError as e:
-            raise Exception('Error in spatial_map_dataflow: '
-                            'File extension not in .nii and .nii.gz')
+            except Exception as e:
+                raise e
+        else:
+            base_name = format_identifier(name, desc)
 
-        except Exception as e:
-            raise e
+        if base_name in mask_dict:
+            raise ValueError('Duplicate templates/atlases not allowed: '
+                             f'{mask_file} {mask_dict[base_name]}')
+
+        mask_dict[base_name] = mask_file
 
     wf = pe.Workflow(name=wf_name)
 
