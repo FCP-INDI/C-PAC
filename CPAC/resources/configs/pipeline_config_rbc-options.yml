@@ -237,17 +237,11 @@ amplitude_low_frequency_fluctuation:
   # space: Template or Native
   target_space: [Template]
 
-  # space: Template or Native
-  target_space: [Template]
-
 regional_homogeneity:
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: On
-
-  # space: Template or Native
-  target_space: [Template]
 
   # space: Template or Native
   target_space: [Template]
