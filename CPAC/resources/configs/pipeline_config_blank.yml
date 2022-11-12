@@ -985,8 +985,7 @@ functional_preproc:
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
       run: [Off]
-
-      filters:
+      filters: []
 
   distortion_correction:
 
