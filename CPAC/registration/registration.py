@@ -286,12 +286,16 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
     return wf
 
 
-def convert_pedir(pedir):
+def convert_pedir(pedir, convert='xyz_to_int'):
     '''FSL Flirt requires pedir input encoded as an int'''
-    conv_dct = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
-                'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
-                '-x': -1, '-i': -1, '-y': -2,
-                '-j': -2, '-z': -3, '-k': -3}
+    if convert == 'xyz_to_int':
+        conv_dct = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
+                    'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
+                    '-x': -1, '-i': -1, '-y': -2,
+                    '-j': -2, '-z': -3, '-k': -3}
+    elif convert == 'ijk_to_xyz':
+        conv_dct = {'i': 'x', 'j': 'y', 'k': 'z',
+                    'i-': 'x-', 'j-': 'y-', 'k-': 'z-'}
 
     if isinstance(pedir, bytes):
         pedir = pedir.decode()
@@ -302,7 +306,8 @@ def convert_pedir(pedir):
     if pedir not in conv_dct.keys():
         raise Exception("\n\nInvalid phase-encoding direction "
                         "entered: {0}\n\n".format(pedir))
-    return conv_dct[pedir]
+    pedir = conv_dct[pedir]
+    return pedir
 
 
 def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
@@ -711,9 +716,18 @@ def create_register_func_to_anat(config, phase_diff_distcor=False,
         linear_reg.inputs.args = config.registration_workflows['functional_registration']['coregistration']['arguments']
 
     if phase_diff_distcor:
-        register_func_to_anat.connect(
-            inputNode_pedir, ('pedir', convert_pedir),
-            linear_reg, 'pedir')
+        conv_pedir = \
+            pe.Node(interface=util.Function(input_names=['pedir',
+                                                         'convert'],
+                                            output_names=['pedir'],
+                                            function=convert_pedir),
+                    name='coreg_convert_pedir')
+        conv_pedir.inputs.convert = 'xyz_to_int'
+
+        register_func_to_anat.connect(inputNode_pedir, 'pedir',
+                                      conv_pedir, 'pedir')
+        register_func_to_anat.connect(conv_pedir, 'pedir', 
+                                      linear_reg, 'pedir')
         register_func_to_anat.connect(inputspec, 'fieldmap',
                                       linear_reg, 'fieldmap')
         register_func_to_anat.connect(inputspec, 'fieldmapmask',
@@ -981,9 +995,18 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         bbreg_func_to_anat, 'in_matrix_file')
 
     if phase_diff_distcor:
-        register_bbregister_func_to_anat.connect(
-            inputNode_pedir, ('pedir', convert_pedir),
-            bbreg_func_to_anat, 'pedir')
+        conv_pedir = \
+            pe.Node(interface=util.Function(input_names=['pedir',
+                                                         'convert'],
+                                            output_names=['pedir'],
+                                            function=convert_pedir),
+                    name='bbreg_convert_pedir')
+        conv_pedir.inputs.convert = 'xyz_to_int'
+
+        register_bbregister_func_to_anat.connect(inputNode_pedir, 'pedir',
+                                                 conv_pedir, 'pedir')
+        register_bbregister_func_to_anat.connect(conv_pedir, 'pedir', 
+                                                 bbreg_func_to_anat, 'pedir')
         register_bbregister_func_to_anat.connect(
             inputspec, 'fieldmap',
             bbreg_func_to_anat, 'fieldmap')
@@ -3141,7 +3164,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
      "option_val": "None",
      "inputs": [("sbref",
                  "desc-preproc_bold",
-                 "from-bold_to-T1w_desc-linear_mode-image_xfm"),
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 "despiked-fieldmap",
                 "pe-direction",
                 "effectiveEchoSpacing"],
@@ -3170,12 +3193,24 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
 
     wf.connect(invert_coreg_xfm, 'out_file', warp_fmap, 'premat')
 
-    mask_fmap = pe.Node(interface=fsl.ConvertXFM(), name=f'mask_fmap_{pipe_num}')
+    mask_fmap = pe.Node(interface=fsl.maths.MathsCommand(),
+                        name=f'mask_fmap_{pipe_num}')
     mask_fmap.inputs.args = '-abs -bin'
 
     wf.connect(warp_fmap, 'out_file', mask_fmap, 'in_file')
 
-    fugue_saveshift = pe.Node(interface=fsl.preprocess.FUGUE(),
+    conv_pedir = \
+        pe.Node(interface=util.Function(input_names=['pedir',
+                                                     'convert'],
+                                        output_names=['pedir'],
+                                        function=convert_pedir),
+                name=f'apply_phasediff_convert_pedir_{pipe_num}')
+    conv_pedir.inputs.convert = 'ijk_to_xyz'
+
+    node, out = strat_pool.get_data('pe-direction')
+    wf.connect(node, out, conv_pedir, 'pedir')
+
+    fugue_saveshift = pe.Node(interface=fsl.FUGUE(),
                               name=f'fugue_saveshift_{pipe_num}')
     fugue_saveshift.inputs.save_shift = True
 
@@ -3186,8 +3221,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('effectiveEchoSpacing')
     wf.connect(node, out, fugue_saveshift, 'dwell_time')
 
-    node, out = strat_pool.get_data('pe-direction')
-    wf.connect(node, out, fugue_saveshift, 'unwarp_direction')
+    wf.connect(conv_pedir, 'pedir', fugue_saveshift, 'unwarp_direction')
 
     shift_warp = pe.Node(interface=fsl.ConvertWarp(), 
                          name=f'shift_warp_{pipe_num}')
@@ -3196,10 +3230,9 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     wf.connect(fugue_saveshift, 'shift_out_file', shift_warp, 'shift_in_file')
 
     node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, fugue_saveshift, 'reference')
+    wf.connect(node, out, shift_warp, 'reference')
 
-    node, out = strat_pool.get_data('pe-direction')
-    wf.connect(node, out, fugue_saveshift, 'shift_direction')
+    wf.connect(conv_pedir, 'pedir', shift_warp, 'shift_direction')
 
     warp_bold = pe.Node(interface=fsl.ApplyWarp(),
                         name=f'warp_bold_phasediff_{pipe_num}')
@@ -3211,6 +3244,8 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
 
     node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, warp_bold, 'ref_file')
+
+    wf.connect(shift_warp, 'out_file', warp_bold, 'field_file')
 
     outputs = {
         'desc-preproc_bold': (warp_bold, 'out_file')
@@ -3246,11 +3281,13 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     if strat_pool.check_rpool("ants-blip-warp"):
         if reg_tool == 'fsl':
             blip_node, blip_out = strat_pool.get_data("ants-blip-warp")
+            reg_tool = 'ants'
         else:
             return (wf, outputs)
     elif strat_pool.check_rpool("fsl-blip-warp"):
         if reg_tool == 'ants':
             blip_node, blip_out = strat_pool.get_data("fsl-blip-warp")
+            reg_tool = 'fsl'
         else:
             return (wf, outputs)
     else:
@@ -4136,6 +4173,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
+                 "ants-blip-warp",
+                 "fsl-blip-warp",
                  "T1w",
                  "desc-preproc_T1w",
                  "T1w-brain-template-funcreg",
@@ -4149,6 +4188,11 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "space-template_res-derivative_desc-bold_mask": {
                      "Template": "T1w-brain-template-deriv"}}}
     '''  # noqa: 501
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-T1w_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
     bbr2itk = pe.Node(util.Function(input_names=['reference_file',
                                                  'source_file',
                                                  'transform_file'],
@@ -4212,9 +4256,20 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         wf.connect(convert_transform, 'transform_directory',
                    motionxfm2itk, 'transform_file')
 
-    collectxfm = pe.MapNode(util.Merge(4),
+    merge_num = 4
+    blip = False
+    if strat_pool.check_rpool('ants-blip-warp') and reg_tool == 'ants':
+        blip_node, blip_out = strat_pool.get_data('ants-blip-warp')
+        merge_num = 5
+        blip = True
+    elif strat_pool.check_rpool('fsl-blip-warp') and reg_tool == 'fsl':
+        blip_node, blip_out = strat_pool.get_data('fsl-blip-warp')
+        merge_num = 5
+        blip = True
+
+    collectxfm = pe.MapNode(util.Merge(merge_num),
                             name=f'collectxfm_func_to_standard_{pipe_num}',
-                            iterfield=['in4'])
+                            iterfield=[f'in{merge_num}'])
 
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, collectxfm, 'in1')
@@ -4224,8 +4279,11 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     collectxfm.inputs.in3 = 'identity'
 
+    if blip:
+        wf.connect(blip_node, blip_out, collectxfm, 'in4')
+
     wf.connect(motionxfm2itk, 'itk_transform',
-               collectxfm, 'in4')
+               collectxfm, f'in{merge_num}')
 
     applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
                                            name=f'applyxfm_func_to_standard_{pipe_num}',

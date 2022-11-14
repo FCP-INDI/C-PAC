@@ -1177,13 +1177,18 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if rpool.check_rpool('diffphase') or rpool.check_rpool('phase1'):
-            if rpool.check_rpool('magnitude') or rpool.check_rpool('magnitude1'):
-                distcor_blocks.append(distcor_phasediff_fsl_fugue)
-
-        if rpool.check_rpool('epi-1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp) 
-            distcor_blocks.append(distcor_blip_fsl_topup)
+        if 'fmap' in sub_dict:
+            fmap_keys = sub_dict['fmap']
+            if 'phasediff' in fmap_keys or 'phase1' in fmap_keys:
+                if 'magnitude' in fmap_keys or 'magnitude1' in fmap_keys:
+                    distcor_blocks.append(distcor_phasediff_fsl_fugue)
+            if len(fmap_keys) == 2:
+                for key in fmap_keys:
+                    if 'epi_' not in key:
+                        break
+                else:
+                    distcor_blocks.append(distcor_blip_afni_qwarp) 
+                    distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:
