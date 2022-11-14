@@ -392,6 +392,7 @@ voxel_mirrored_homotopic_connectivity:
 # -----------------------
 post_processing:
   spatial_smoothing:
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
@@ -402,7 +403,6 @@ post_processing:
     # this is a fork point
     #   i.e. multiple kernels - fwhm: [4,6,8]
     fwhm: [6]
-    run: On
 
   z-scoring:
     run: On

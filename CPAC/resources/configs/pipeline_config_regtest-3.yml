@@ -428,12 +428,12 @@ network_centrality:
 # -----------------------
 post_processing:
   spatial_smoothing:
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
     smoothing_method: [AFNI]
-    run: On
 
   z-scoring:
     run: On

@@ -1545,7 +1545,6 @@ longitudinal_template_generation:
 # -----------------------
 post_processing:
   spatial_smoothing:
-
     run: Off
 
     # Smooth the derivative outputs.

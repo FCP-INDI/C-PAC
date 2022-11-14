@@ -528,6 +528,7 @@ network_centrality:
 # -----------------------
 post_processing:
   spatial_smoothing:
+    run: On
 
     # Smooth the derivative outputs.
     # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
@@ -535,7 +536,6 @@ post_processing:
     # Options:
     #     ['smoothed', 'nonsmoothed']
     output: [smoothed, nonsmoothed]
-    run: On
 
   z-scoring:
     run: On
