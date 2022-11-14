@@ -835,6 +835,37 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
                      ] + suffixes)
 
 
+def insert_reg_entity(resource, reg_value):
+    """Insert a `reg-` BIDS entity before `desc-` if present or before
+    the suffix otherwise
+
+    Parameters
+    ----------
+    resource, reg_value : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> insert_reg_entity('run-1_desc-preproc_bold', 'default')
+    'run-1_reg-default_desc-preproc_bold'
+    >>> insert_reg_entity('run-1_bold', 'default')
+    'run-1_reg-default_bold'
+    """
+    entities = resource.split('_')[:-1]
+    suff = resource.split('_')[-1]
+    new_entities = [[], []]
+    for entity in entities:
+        if entity.startswith('desc-'):
+            new_entities[1].append(entity)
+        else:
+            new_entities[0].append(entity)
+    return '_'.join([*new_entities[0], f'reg-{reg_value}', *new_entities[1],
+                     suff])
+
+
 def load_yaml_config(config_filename, aws_input_creds):
 
     if config_filename.lower().startswith('data:'):

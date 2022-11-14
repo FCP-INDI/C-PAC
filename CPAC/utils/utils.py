@@ -173,7 +173,7 @@ def read_json(json_file):
 
 
 def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
-                     atlas_id=None, fwhm=None):
+                     atlas_id=None, fwhm=None, subdir=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -226,6 +226,12 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
                 break
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
+
+    # drop space- entities from from native-space filenames
+    if subdir == 'anat':
+        out_filename = out_filename.replace('_space-T1w_', '_')
+    if subdir == 'func':
+        out_filename = out_filename.replace('_space-bold_', '_')
 
     return combine_multiple_entity_instances(out_filename)
 
