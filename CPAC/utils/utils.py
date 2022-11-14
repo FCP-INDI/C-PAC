@@ -187,6 +187,12 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
     """
     from CPAC.utils.bids_utils import combine_multiple_entity_instances
+    from CPAC.utils.outputs import Outputs
+
+    if resource in Outputs.motion:
+        resource = (
+            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
+
     if atlas_id:
         if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
