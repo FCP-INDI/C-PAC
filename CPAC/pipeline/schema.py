@@ -1005,16 +1005,28 @@ def schema(config_dict):
             'functional_registration'
         ]['func_registration_to_template']['apply_transform'][
             'using'
-        ] == 'single_step_resampling_from_stc' and partially_validated[
-            'nuisance_corrections'
-        ]['2-nuisance_regression']['space'] != ['template']):
-            raise ExclusiveInvalid(
-                '``single_step_resampling_from_stc`` requires template-space '
-                'nuisance regression. Either set ``nuisance_corrections: '
-                '2-nuisance_regression: space`` to ``template`` or choose a '
-                'different option for ``registration_workflows: '
-                'functional_registration: func_registration_to_template: '
-                'apply_transform: using``')
+        ] == 'single_step_resampling_from_stc'):
+            or_else = ('or choose a different option for '
+                       '``registration_workflows: functional_registration: '
+                       'func_registration_to_template: apply_transform: '
+                       'using``')
+            if True in partially_validated['nuisance_corrections'][
+                '2-nuisance_regression']['run'] and partially_validated[
+                'nuisance_corrections'
+            ]['2-nuisance_regression']['space'] != ['template']:
+                raise ExclusiveInvalid(
+                    '``single_step_resampling_from_stc`` requires '
+                    'template-space nuisance regression. Either set '
+                    '``nuisance_corrections: 2-nuisance_regression: space`` '
+                    f'to ``template`` {or_else}')
+            if any(registration != 'ANTS' for registration in
+                   partially_validated['registration_workflows'][
+                       'anatomical_registration']['registration']['using']):
+                raise ExclusiveInvalid(
+                    '``single_step_resampling_from_stc`` requires '
+                    'ANTS registration. Either set '
+                    '``registration_workflows: anatomical_registration: '
+                    f'registration: using`` to ``ANTS`` {or_else}')
     except KeyError:
         pass
     return partially_validated
