@@ -41,14 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed minimized pipeline base from `default` to `blank`
 - Removed deprecated `--disable_file_logging` CLI flag
 - Improved flexibility of some pipeline options regarding the application of distortion correction transforms
-- Pinned AFNI to AFNI_21.1.00
-
+- Pinned AFNI to AFNI_21.1.00   
+                  
 ### Fixed
+- Fixed an issue where the distortion correction un-warps were not being applied to the final template-space BOLD time series data depending on pipeline configuration decisions.
 - Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
 - Replaces ``DwellTime`` with ``EffectiveEchoSpacing`` for FSL usage of the term
 - Fixed an issue that was causing some epi field maps to not be ingressed if the BIDS tags were not in the correct order.
 - Fixed an issue where some phase-difference GRE field map files were not properly being ingressed if the filenames were not expected.
+- Fixed a bug where ALFF & f/ALFF would not run if frequency filtering was disabled earlier in the pipeline.
 
 ## [v1.8.4] - 2022-06-27
 
