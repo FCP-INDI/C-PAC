@@ -1546,6 +1546,8 @@ longitudinal_template_generation:
 post_processing:
   spatial_smoothing:
 
+    run: Off
+
     # Smooth the derivative outputs.
     # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
     #
