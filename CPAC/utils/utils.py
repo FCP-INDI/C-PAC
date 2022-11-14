@@ -179,10 +179,22 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
 
     This is used in the file renaming performed during the Datasink
     connections.
+
+    Example
+    -------
+    >>> create_id_string('sub-1_ses-1', 'desc-Mean-1_timeseries',
+    ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
+    'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
     """
+    from CPAC.utils.bids_utils import combine_multiple_entity_instances
+    from CPAC.utils.outputs import Outputs
+
+    if resource in Outputs.motion:
+        resource = (
+            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
 
     if atlas_id:
-        if '_' in atlas_id:
+        if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
@@ -221,7 +233,7 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     if subdir == 'func':
         out_filename = out_filename.replace('_space-bold_', '_')
 
-    return out_filename
+    return combine_multiple_entity_instances(out_filename)
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):

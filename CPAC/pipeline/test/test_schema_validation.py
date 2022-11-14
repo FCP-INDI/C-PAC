@@ -1,6 +1,7 @@
 '''Tests for schema.py'''
+from itertools import combinations
 import pytest
-from voluptuous.error import Invalid
+from voluptuous.error import ExclusiveInvalid, Invalid
 from CPAC.utils.configuration import Configuration
 
 
@@ -25,6 +26,26 @@ def test_motion_estimates_and_correction(run_value):
         assert "func#motion_estimate_filter_valid_options" in str(e.value)
     else:
         Configuration(d)
+
+
+@pytest.mark.parametrize('registration_using',
+                         [list(combo) for _ in [list(combinations(
+                          ['ANTS', 'FSL', 'FSL-linear'], i)) for i in
+                          range(1, 4)] for combo in _])
+def test_single_step_vs_registration(registration_using):
+    '''Test that single-step resampling requires ANTS registration'''
+    # pylint: disable=invalid-name
+    d = {'registration_workflows': {'anatomical_registration': {
+        'registration': {'using': registration_using}},
+                                    'functional_registration':  {
+        'func_registration_to_template': {'apply_transform': {
+            'using': 'single_step_resampling_from_stc'}}}}}
+    if registration_using == ['ANTS']:
+        Configuration(d)  # validates without exception
+    else:
+        with pytest.raises(ExclusiveInvalid) as e:
+            Configuration(d)
+        assert "requires ANTS registration" in str(e.value)
 
 
 def test_pipeline_name():

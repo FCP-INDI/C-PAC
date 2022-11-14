@@ -23,7 +23,7 @@ import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
                        ExactSequence, ExclusiveInvalid, In, Length, Lower, \
-                       Match, Maybe, Optional, Range, Required, Schema
+                       Match, Maybe, Optional, Range, Required, Schema, Title
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
@@ -204,6 +204,8 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
+target_space = All(Coerce(ListFromItem),
+                   [All(Title, In(valid_options['target_space']))])
 
 
 def permutation_message(key, options):
@@ -865,7 +867,7 @@ latest_schema = Schema({
     },
     'amplitude_low_frequency_fluctuation': {
         'run': bool1_1,
-        'target_space': [In(valid_options['target_space'])],
+        'target_space': target_space,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
@@ -884,7 +886,7 @@ latest_schema = Schema({
     },
     'regional_homogeneity': {
         'run': bool1_1,
-        'target_space': [In(valid_options['target_space'])],
+        'target_space': target_space,
         'cluster_size': In({7, 19, 27}),
     },
     'post_processing': {
@@ -1004,16 +1006,28 @@ def schema(config_dict):
             'functional_registration'
         ]['func_registration_to_template']['apply_transform'][
             'using'
-        ] == 'single_step_resampling_from_stc' and partially_validated[
-            'nuisance_corrections'
-        ]['2-nuisance_regression']['space'] != ['template']):
-            raise ExclusiveInvalid(
-                '``single_step_resampling_from_stc`` requires template-space '
-                'nuisance regression. Either set ``nuisance_corrections: '
-                '2-nuisance_regression: space`` to ``template`` or choose a '
-                'different option for ``registration_workflows: '
-                'functional_registration: func_registration_to_template: '
-                'apply_transform: using``')
+        ] == 'single_step_resampling_from_stc'):
+            or_else = ('or choose a different option for '
+                       '``registration_workflows: functional_registration: '
+                       'func_registration_to_template: apply_transform: '
+                       'using``')
+            if True in partially_validated['nuisance_corrections'][
+                '2-nuisance_regression']['run'] and partially_validated[
+                'nuisance_corrections'
+            ]['2-nuisance_regression']['space'] != ['template']:
+                raise ExclusiveInvalid(
+                    '``single_step_resampling_from_stc`` requires '
+                    'template-space nuisance regression. Either set '
+                    '``nuisance_corrections: 2-nuisance_regression: space`` '
+                    f'to ``template`` {or_else}')
+            if any(registration != 'ANTS' for registration in
+                   partially_validated['registration_workflows'][
+                       'anatomical_registration']['registration']['using']):
+                raise ExclusiveInvalid(
+                    '``single_step_resampling_from_stc`` requires '
+                    'ANTS registration. Either set '
+                    '``registration_workflows: anatomical_registration: '
+                    f'registration: using`` to ``ANTS`` {or_else}')
     except KeyError:
         pass
     return partially_validated
