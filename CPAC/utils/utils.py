@@ -172,8 +172,8 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None, template_desc=None, 
-                     atlas_id=None, fwhm=None):
+def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
+                     atlas_id=None, fwhm=None, subdir=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -186,7 +186,7 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
     'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
     """
-
+    from CPAC.utils.bids_utils import combine_multiple_entity_instances
     if atlas_id:
         if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
@@ -221,21 +221,13 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
 
-    entity_list = out_filename.split('_')
-    entities = {}
-    # should just be one suffix, but don't want to lose information
-    suffixes = [entity for entity in entity_list if '-' not in entity]
-    for entity in entity_list:
-        if '-' in entity:
-            key, value = entity.split('-', maxsplit=1)
-            if key not in entities:
-                entities[key] = []
-            entities[key].append(value)
-    for key, value in entities.items():
-        entities[key] = value[0] + " ".join(value[1:]).replace("-", " ").title(
-        ).replace(" ", "")
-    return '_'.join([f'{key}-{value}' for key, value in entities.items()
-                     ] + suffixes)
+    # drop space- entities from from native-space filenames
+    if subdir == 'anat':
+        out_filename = out_filename.replace('_space-T1w_', '_')
+    if subdir == 'func':
+        out_filename = out_filename.replace('_space-bold_', '_')
+
+    return combine_multiple_entity_instances(out_filename)
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):
