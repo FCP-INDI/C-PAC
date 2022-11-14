@@ -2209,7 +2209,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["space-T1w_desc-brain_mask",
                   "space-longitudinal_desc-brain_mask",
                   "space-T1w_desc-acpcbrain_mask"],
-                 ["desc-restore_T1w", "desc-preproc_T1w",
+                 ["desc-restore_T1w", "desc-head_T1w", "desc-preproc_T1w",
                   "space-longitudinal_desc-reorient_T1w"]),
                 "T1w-template",
                 "T1w-brain-template",
@@ -2299,7 +2299,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                ants_rc, 'inputspec.reference_brain')
 
     # TODO check the order of T1w
-    node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w",
+    node, out = strat_pool.get_data(["desc-restore_T1w", "desc-head_T1w",
+                                     "desc-preproc_T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants_rc, 'inputspec.input_head')
 
@@ -2345,7 +2346,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
      "inputs": [(["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
                  ["space-T1w_desc-brain_mask",
                   "space-longitudinal_desc-brain_mask"],
-                 ["desc-preproc_T1w",
+                 ["desc-head_T1w", "desc-preproc_T1w",
                   "space-longitudinal_desc-reorient_T1w"]),
                 "T1w-template-symmetric",
                 "T1w-brain-template-symmetric",
@@ -2400,7 +2401,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
     node, out = strat_pool.get_data('T1w-brain-template-symmetric')
     wf.connect(node, out, ants, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w",
+    node, out = strat_pool.get_data(["desc-head_T1w", "desc-preproc_T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
     wf.connect(node, out, ants, 'inputspec.input_head')
 
@@ -2728,10 +2729,10 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_vol",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "Selected_Functional_Volume",
      "inputs": [("desc-brain_bold",
                  ["desc-motion_bold", "bold"],
@@ -2771,10 +2772,10 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_mean",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "Mean_Functional",
      "inputs": ["desc-mean_bold"],
      "outputs": ["sbref"]}
@@ -2810,10 +2811,10 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "coregistration_prep_fmriprep",
-     "config": ["registration_workflows", "functional_registration",
-                "coregistration"],
-     "switch": ["run"],
-     "option_key": ["func_input_prep", "input"],
+     "config": "None",
+     "switch": ["functional_preproc", "run"],
+     "option_key": ["registration_workflows", "functional_registration",
+                    "coregistration", "func_input_prep", "input"],
      "option_val": "fmriprep_reference",
      "inputs": ["desc-ref_bold"],
      "outputs": ["sbref"]}
@@ -3338,7 +3339,8 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-head_T1w",
                  "from-T1w_to-template_mode-image_xfm"),
                 "T1w-template"],
-     "outputs": ["space-template_desc-head_T1w"]}
+     "outputs": {"space-template_desc-head_T1w": {
+                     "Template": "T1w-template"}}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -3393,7 +3395,8 @@ def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-T1w_desc-brain_mask",
                  "from-T1w_to-template_mode-image_xfm"),
                 "T1w-template"],
-     "outputs": ["space-template_desc-brain_mask"]}
+     "outputs": {"space-template_desc-brain_mask": {
+                     "Template": "T1w-template"}}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -4418,7 +4421,7 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["registration_workflows", "functional_registration",
                     "func_registration_to_template", "apply_transform",
                     "using"],
-     "option_val": "default",
+     "option_val": ["default", "abcd", "dcan_nhp"],
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-funcreg"],
@@ -4447,7 +4450,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["registration_workflows", "functional_registration",
                     "func_registration_to_template", "apply_transform",
                     "using"],
-     "option_val": "default",
+     "option_val": ["default", "abcd", "dcan_nhp"],
      "inputs": [("space-bold_desc-brain_mask",
                  "from-bold_to-template_mode-image_xfm"),
                 "T1w-brain-template-deriv"],

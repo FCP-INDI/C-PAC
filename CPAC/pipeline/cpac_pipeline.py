@@ -1319,10 +1319,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
+
     if 'Template' in target_space_alff and 'Native' in target_space_nuis:
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
-    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+    template = cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
 	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
@@ -1350,8 +1352,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_deriv_mask_to_EPItemplate]
 
     # Template-space nuisance regression
-    if 'template' in cfg['nuisance_corrections', '2-nuisance_regression',
-                         'space'] and not generate_only:
+    nuisance_template = 'template' in cfg[
+        'nuisance_corrections', '2-nuisance_regression', 'space'
+    ] and not generate_only
+    if nuisance_template:
         pipeline_blocks += [(nuisance_regression_template,
                             ("desc-preproc_bold", "desc-stc_bold"))]
 
@@ -1394,13 +1398,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [alff_falff]
 
     if 'Template' in target_space_alff:
+        if not nuisance_template and not rpool.check_rpool(
+                'space-template_desc-denoisedNofilt_bold'):
+            pipeline_blocks += [warp_denoiseNofilt_to_T1template]
         if not rpool.check_rpool('space-template_alff'):
             pipeline_blocks += [alff_falff_space_template]
 
     if 'Native' in target_space_reho:
         if not rpool.check_rpool('reho'):
             pipeline_blocks += [reho]
-            
+
     if 'Template' in target_space_reho:
         if not rpool.check_rpool('space-template_reho'):
             pipeline_blocks += [reho_space_template]

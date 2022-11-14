@@ -770,6 +770,102 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     return file_paths, config_dict
 
 
+def camelCase(string: str) -> str:  # pylint: disable=invalid-name
+    """Convert a hyphenated string to camelCase
+
+    Paremeters
+    ----------
+    string : str
+        string to convert to camelCase
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> camelCase('PearsonNilearn-aCompCor')
+    'PearsonNilearnACompCor'
+    >>> camelCase('mean-Pearson-Nilearn-aCompCor')
+    'meanPearsonNilearnACompCor'
+    """
+    pieces = string.split('-')
+    for i in range(1, len(pieces)):  # don't change case of first piece
+        if pieces[i]:  # don't do anything to falsy pieces
+            pieces[i] = f'{pieces[i][0].upper()}{pieces[i][1:]}'
+    return ''.join(pieces)
+
+
+def combine_multiple_entity_instances(bids_str: str) -> str:
+    """Combines mutliple instances of a key in a BIDS string to a single
+    instance by camelCasing and concatenating the values
+
+    Parameters
+    ----------
+    bids_str : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_'
+    ...     'desc-Nilearn_desc-36-param_suffix.ext')
+    'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_desc-Nilearn36Param_suffix.ext'
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_'
+    ...     'run-1_framewise-displacement-power.1D')
+    'sub-1_ses-HBN_site-RU_task-rest_run-1_framewiseDisplacementPower.1D'
+    """
+    _entity_list = bids_str.split('_')
+    entity_list = _entity_list[:-1]
+    suffixes = [camelCase(_entity_list[-1])]
+    entities = {}
+    for entity in entity_list:
+        if '-' in entity:
+            key, value = entity.split('-', maxsplit=1)
+            if key not in entities:
+                entities[key] = []
+            entities[key].append(value)
+    for key, value in entities.items():
+        entities[key] = camelCase('-'.join(value))
+    return '_'.join([f'{key}-{value}' for key, value in entities.items()
+                     ] + suffixes)
+
+
+def insert_reg_entity(resource, reg_value):
+    """Insert a `reg-` BIDS entity before `desc-` if present or before
+    the suffix otherwise
+
+    Parameters
+    ----------
+    resource, reg_value : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> insert_reg_entity('run-1_desc-preproc_bold', 'default')
+    'run-1_reg-default_desc-preproc_bold'
+    >>> insert_reg_entity('run-1_bold', 'default')
+    'run-1_reg-default_bold'
+    """
+    entities = resource.split('_')[:-1]
+    suff = resource.split('_')[-1]
+    new_entities = [[], []]
+    for entity in entities:
+        if entity.startswith('desc-'):
+            new_entities[1].append(entity)
+        else:
+            new_entities[0].append(entity)
+    return '_'.join([*new_entities[0], f'reg-{reg_value}', *new_entities[1],
+                     suff])
+
+
 def load_yaml_config(config_filename, aws_input_creds):
 
     if config_filename.lower().startswith('data:'):

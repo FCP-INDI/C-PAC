@@ -172,17 +172,29 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None, template_desc=None, 
-                     atlas_id=None, fwhm=None):
+def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
+                     atlas_id=None, fwhm=None, subdir=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
     This is used in the file renaming performed during the Datasink
     connections.
+
+    Example
+    -------
+    >>> create_id_string('sub-1_ses-1', 'desc-Mean-1_timeseries',
+    ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
+    'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
     """
+    from CPAC.utils.bids_utils import combine_multiple_entity_instances
+    from CPAC.utils.outputs import Outputs
+
+    if resource in Outputs.motion:
+        resource = (
+            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
 
     if atlas_id:
-        if '_' in atlas_id:
+        if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
             atlas_id = atlas_id.replace('_', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
@@ -203,8 +215,8 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
         for prefix in ['space-', 'from-', 'to-']:
             for bidstag in out_filename.split('_'):
                 if prefix in bidstag and 'template' in bidstag:
-                    out_filename = out_filename.replace(bidstag,
-                                                        f'{prefix}{template_tag}')
+                    out_filename = out_filename.replace(
+                        bidstag, f'{prefix}{template_tag}')
 
     if fwhm:
         for tag in resource.split('_'):
@@ -215,7 +227,13 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
 
-    return out_filename
+    # drop space- entities from from native-space filenames
+    if subdir == 'anat':
+        out_filename = out_filename.replace('_space-T1w_', '_')
+    if subdir == 'func':
+        out_filename = out_filename.replace('_space-bold_', '_')
+
+    return combine_multiple_entity_instances(out_filename)
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):

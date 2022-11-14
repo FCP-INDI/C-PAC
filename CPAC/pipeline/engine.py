@@ -19,7 +19,6 @@ import logging
 import os
 import warnings
 import copy
-import yaml
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -31,7 +30,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.outputs import Outputs
+from CPAC.utils.bids_utils import insert_reg_entity
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -43,8 +42,9 @@ from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring.custom_logging import getLogger
-from CPAC.utils.utils import read_json, create_id_string, write_output_json, \
-    get_last_prov_entry, check_prov_for_regtool
+from CPAC.utils.outputs import Outputs
+from CPAC.utils.utils import check_prov_for_regtool, \
+    create_id_string, get_last_prov_entry, read_json, write_output_json
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
@@ -936,35 +936,49 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
 
                 if num_variant:
-                    for key in out_dct['filename'].split('_'):
-                        if 'desc-' in key:
-                            out_dct['filename'] = out_dct[
-                                'filename'].replace(key,
-                                                    f'{key}-{num_variant}')
-                            resource_idx = resource.replace(key, f'{key}-'
-                                                            f'{num_variant}')
-                            break
-                        else:
+                    reg_value = None
+                    if True in cfg['nuisance_corrections',
+                                   '2-nuisance_regression', 'run']:
+                        if ('regressors' in json_info.get('CpacVariant', {})
+                                and json_info['CpacVariant']['regressors']):
+                            reg_value = json_info['CpacVariant'][
+                                'regressors'
+                            ][0].replace('nuisance_regressors_generation_', '')
+                        elif False in cfg['nuisance_corrections',
+                                          '2-nuisance_regression', 'run']:
+                            reg_value = 'Off'
+                    if reg_value is not None:
+                        out_dct['filename'] = insert_reg_entity(
+                            out_dct['filename'], reg_value)
+                        resource_idx = insert_reg_entity(resource, reg_value)
+                    else:
+                        for key in out_dct['filename'].split('_')[::-1]:
+                            if key.startswith('desc-'):  # final `desc` entity
+                                out_dct['filename'] = out_dct[
+                                    'filename'].replace(key,
+                                                        f'{key}-{num_variant}')
+                                resource_idx = resource.replace(
+                                    key, f'{key}-{num_variant}')
+                                break
                             suff = resource.split('_')[-1]
                             newdesc_suff = f'desc-{num_variant}_{suff}'
                             resource_idx = resource.replace(suff,
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
-                expected_outputs += (out_dct['subdir'],
-                                     out_dct['filename'][len(unique_id)+1:])
-
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
                                                           'template_desc',
                                                           'atlas_id',
-                                                          'fwhm'],
+                                                          'fwhm',
+                                                          'subdir'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
+                id_string.inputs.subdir = out_dct['subdir']
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -990,6 +1004,7 @@ class ResourcePool:
 
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
+                atlas_id = None
                 if resource.split('_')[-1] in atlas_suffixes:
                     atlas_idx = pipe_idx.replace(resource, 'atlas_name')
                     # need the single quote and the colon inside the double
@@ -1009,6 +1024,10 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
+                expected_outputs += (out_dct['subdir'], create_id_string(
+                    unique_id, resource_idx,
+                    template_desc=json_info.get('Template'),
+                    atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
@@ -1785,12 +1804,12 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             val = val.replace('${func_resolution}', cfg.registration_workflows[
                 'functional_registration']['func_registration_to_template'][
                 'output_resolution'][tag])
-            
+
         if desc:
-            template_name = lookup_identifier(val)
+            template_name, _template_desc = lookup_identifier(val)
             if template_name:
                 desc = f"{template_name} - {desc}"
-            json_info['Description'] = f"{desc} - {val}"     
+            json_info['Description'] = f"{desc} - {val}"
         if resolution:
             resolution = cfg.get_nested(cfg, res_keys)
             json_info['Resolution'] = resolution

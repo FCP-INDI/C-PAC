@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed deprecated `--disable_file_logging` CLI flag
 - Improved flexibility of some pipeline options regarding the application of distortion correction transforms
 - Pinned AFNI to AFNI_21.1.00
+- Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 
 ### Fixed
 - Fixed an issue where the distortion correction un-warps were not being applied to the final template-space BOLD time series data depending on pipeline configuration decisions.

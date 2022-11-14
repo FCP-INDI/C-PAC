@@ -6,8 +6,6 @@ from .interfaces import function, masktool
 from .extract_data import run
 from .datatypes import ListFromItem
 from .configuration import check_pname, Configuration, set_subject
-from .strategy import Strategy
-from .outputs import Outputs
 
 from .utils import (
     get_zscore,

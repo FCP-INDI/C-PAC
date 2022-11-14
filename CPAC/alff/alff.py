@@ -290,7 +290,6 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_alff",
                  "space-template_falff"]}
     '''
-
     alff = create_alff(f'alff_falff_{pipe_num}')
 
     alff.inputs.hp_input.hp = \
