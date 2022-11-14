@@ -117,7 +117,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "PhaseDiff",
-     "inputs": ["diffphase",
+     "inputs": ["phasediff",
                 "phase1",
                 "phase2",
                 "magnitude",
@@ -196,8 +196,8 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
         node, out = (fslmaths_sub, 'out_file')
 
-    elif strat_pool.check_rpool('diffphase'):
-        node, out = strat_pool.get_data('diffphase')
+    elif strat_pool.check_rpool('phasediff'):
+        node, out = strat_pool.get_data('phasediff')
     
     wf.connect(node, out, prepare, 'in_phase')
     wf.connect(brain_node, brain_out, prepare, 'in_magnitude')
