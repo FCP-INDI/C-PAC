@@ -105,7 +105,7 @@ jobs:
         if: ${{ always() }}
         with:
           name: expectedOutputs human ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
-          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          path: outputs/log/pipeline_*/*/*_expectedOutputs.yml
           if-no-files-found: ignore
   smoke_test_nhp:
     name: Non-human primate ${{ matrix.preconfig }} participant smoke tests
@@ -179,7 +179,7 @@ jobs:
         if: ${{ always() }}
         with:
           name: expectedOutputs nhp ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
-          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          path: outputs/log/pipeline_*/*/*_expectedOutputs.yml
           if-no-files-found: ignore
   smoke_test_rodent:
     name: Rodent participant smoke tests
@@ -239,7 +239,7 @@ jobs:
         if: ${{ always() }}
         with:
           name: expectedOutputs rodent ${{ matrix.variant }}
-          path: outputs/log/pipeline_*/sub-*/*_expectedOutputs.yml
+          path: outputs/log/pipeline_*/*/*_expectedOutputs.yml
           if-no-files-found: ignore
   finish-check:
     name: Finish GitHub check
