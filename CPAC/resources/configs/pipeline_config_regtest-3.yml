@@ -192,6 +192,8 @@ functional_preproc:
     run: [On]
 
   func_masking:
+    FSL_AFNI:
+      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
@@ -428,12 +430,12 @@ network_centrality:
 # -----------------------
 post_processing:
   spatial_smoothing:
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
     smoothing_method: [AFNI]
-    run: On
 
   z-scoring:
     run: On
