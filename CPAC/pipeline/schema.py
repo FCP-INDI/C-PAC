@@ -14,6 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+
 """Validation schema for C-PAC pipeline configurations"""
 # pylint: disable=too-many-lines
 import re
@@ -21,8 +22,8 @@ from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
-                       ExactSequence, ExclusiveInvalid, In, Length, Lower, \
-                       Match, Maybe, Optional, Range, Required, Schema, Title
+                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
+                       Optional, Range, Required, Schema, Title
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
@@ -203,12 +204,118 @@ ANTs_parameters = [Any(
         },
     }, dict  # TODO: specify other valid ANTs parameters
 )]
+motion_estimate_filter = Any({  # notch filter with breathing_rate_* set
+        Required('filter_type'): 'notch',
+        Required('filter_order'): int,
+        Required('breathing_rate_min'): Number,
+        'breathing_rate_max': Number,
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # notch filter with manual parameters set
+        Required('filter_type'): 'notch',
+        Required('filter_order'): int,
+        'breathing_rate_min': None,
+        'breathing_rate_max': None,
+        Required('center_frequency'): Number,
+        Required('filter_bandwidth'): Number,
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # lowpass filter with breathing_rate_min
+        Required('filter_type'): 'lowpass',
+        Required('filter_order'): int,
+        Required('breathing_rate_min'): Number,
+        'breathing_rate_max': Maybe(Number),
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        'lowpass_cutoff': Maybe(Number),
+        'Name': Maybe(str)
+    }, {  # lowpass filter with lowpass_cutoff
+        Required('filter_type'): 'lowpass',
+        Required('filter_order'): int,
+        Required('breathing_rate_min', default=None): None,
+        'breathing_rate_max': Maybe(Number),
+        'center_frequency': Maybe(Number),
+        'filter_bandwidth': Maybe(Number),
+        Required('lowpass_cutoff'): Number,
+        'Name': Maybe(str)},
+    msg='`motion_estimate_filter` configuration is invalid.\nSee '
+        f'{docs_prefix}/user/'
+        'func#motion-estimate-filter-valid-options for details.\n')
 target_space = All(Coerce(ListFromItem),
                    [All(Title, In(valid_options['target_space']))])
 
 
+def name_motion_filter(mfilter, mfilters=None):
+    '''Given a motion filter, create a short string for the filename
+
+    Parameters
+    ----------
+    mfilter : dict
+
+    mfliters : list or None
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 2,
+    ...     'center_frequency': 0.31, 'filter_bandwidth': 0.12})
+    'notch2fc0p31bw0p12'
+    >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 4,
+    ...     'breathing_rate_min': 0.19, 'breathing_rate_max': 0.43})
+    'notch4fl0p19fu0p43'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 4,
+    ...     'lowpass_cutoff': .0032})
+    'lowpass4fc0p0032'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19})
+    'lowpass2fl0p19'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2fl0p19'}])
+    'lowpass2fl0p19dup1'
+    >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2fl0p19'},
+    ...     {'Name': 'lowpass2fl0p19dup1'}])
+    'lowpass2fl0p19dup2'
+    '''
+    if mfilters is None:
+        mfilters = []
+    if 'Name' in mfilter:
+        name = mfilter['Name']
+    else:
+        if mfilter['filter_type'] == 'notch':
+            if mfilter.get('breathing_rate_min'):
+                range_str = (f'fl{mfilter["breathing_rate_min"]}'
+                             f'fu{mfilter["breathing_rate_max"]}')
+            else:
+                range_str = (f'fc{mfilter["center_frequency"]}'
+                             f'bw{mfilter["filter_bandwidth"]}')
+        else:
+            if mfilter.get('breathing_rate_min'):
+                range_str = f'fl{mfilter["breathing_rate_min"]}'
+            else:
+                range_str = f'fc{mfilter["lowpass_cutoff"]}'
+        range_str = range_str.replace('.', 'p')
+        name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
+    dupes = 'Name' not in mfilter and len([_ for _ in (_.get('Name', '') for
+                                           _ in mfilters) if
+                                           _.startswith(name)])
+    if dupes:
+        dup = re.search('(?=[A-Za-z0-9]*)(dup[0-9]*)', name)
+        if dup:  # Don't chain 'dup' suffixes
+            name = name.replace(dup.group(), f'dup{dupes}')
+        else:
+            name = f'{name}dup{dupes}'
+    return name
+
+
 def permutation_message(key, options):
-    '''Function to give a clean, human-readable error message for keys that accept permutation values
+    '''Function to give a clean, human-readable error message for keys
+    that accept permutation values
 
     Parameters
     ----------
@@ -667,56 +774,10 @@ latest_schema = Schema({
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
-                Any({  # no motion estimate filter
-                    'run': Maybe(Any(
-                        ExactSequence([False]), ExactSequence([]), False)),
-                    'filter_type': Maybe(In({'notch', 'lowpass'})),
-                    'filter_order': Maybe(int),
-                    'breathing_rate_min': Maybe(Number),
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with breathing_rate_* set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Number,
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # notch filter with manual parameters set
-                    Required('run'): forkable,
-                    Required('filter_type'): 'notch',
-                    Required('filter_order'): int,
-                    'breathing_rate_min': None,
-                    'breathing_rate_max': None,
-                    Required('center_frequency'): Number,
-                    Required('filter_bandwidth'): Number,
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with breathing_rate_min
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min'): Number,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
-                }, {  # lowpass filter with lowpass_cutoff
-                    Required('run'): forkable,
-                    Required('filter_type'): 'lowpass',
-                    Required('filter_order'): int,
-                    Required('breathing_rate_min', default=None): None,
-                    'breathing_rate_max': Maybe(Number),
-                    'center_frequency': Maybe(Number),
-                    'filter_bandwidth': Maybe(Number),
-                    Required('lowpass_cutoff'): Number,
-                },),
-                msg='`motion_estimate_filter` configuration is invalid. See '
-                    f'{docs_prefix}/user/'
-                    'func#motion_estimate_filter_valid_options for details.\n',
+                Any({'run': forkable,
+                     'filters': [motion_estimate_filter]},
+                    {'run': All(forkable, [In([False], [])]),
+                     'filters': Maybe(list)})
             ),
         },
         'distortion_correction': {
@@ -1027,6 +1088,17 @@ def schema(config_dict):
                     'ANTS registration. Either set '
                     '``registration_workflows: anatomical_registration: '
                     f'registration: using`` to ``ANTS`` {or_else}')
+    except KeyError:
+        pass
+    try:
+        motion_filters = partially_validated['functional_preproc'][
+            'motion_estimates_and_correction']['motion_estimate_filter']
+        if True in motion_filters['run']:
+            for motion_filter in motion_filters['filters']:
+                motion_filter['Name'] = name_motion_filter(
+                    motion_filter, motion_filters['filters'])
+        else:
+            motion_filters['filters'] = []
     except KeyError:
         pass
     return partially_validated
