@@ -142,20 +142,6 @@ registration_workflows:
   anatomical_registration:
     run: On
     registration:
-      FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
-
-        # Reference mask for FSL registration.
-        ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
