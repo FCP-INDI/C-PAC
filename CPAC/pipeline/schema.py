@@ -193,9 +193,9 @@ ANTs_parameters = [Any(
             'SyN': ANTs_parameter_transforms,
         })],
     }, {
-        'verbose': Any(bool1_1, In({0, 1})),
+        'verbose': Any(In({0, 1}), bool1_1),
     }, {
-        'float': Any(bool1_1, In({0, 1})),
+        'float': Any(In({0, 1}), bool1_1),
     }, {
         'masks': {
             'fixed_image_mask': bool1_1,
