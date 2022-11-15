@@ -1957,7 +1957,7 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
          "desc-preproc_T1w": {
              "SkullStripped": "True"},
          "desc-tempbrain_T1w": {
-             "SkullStripped": "True"}}
+             "SkullStripped": "True"}}}
     '''
 
     anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
