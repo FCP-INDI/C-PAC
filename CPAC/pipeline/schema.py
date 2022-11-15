@@ -1089,14 +1089,17 @@ def schema(config_dict):
                     f'registration: using`` to ``ANTS`` {or_else}')
     except KeyError:
         pass
-    motion_filters = partially_validated['functional_preproc'][
-        'motion_estimates_and_correction']['motion_estimate_filter']
-    if True in motion_filters['run']:
-        for motion_filter in motion_filters['filters']:
-            motion_filter['Name'] = name_motion_filter(
-                motion_filter, motion_filters['filters'])
-    else:
-        motion_filters['filters'] = []
+    try:
+        motion_filters = partially_validated['functional_preproc'][
+            'motion_estimates_and_correction']['motion_estimate_filter']
+        if True in motion_filters['run']:
+            for motion_filter in motion_filters['filters']:
+                motion_filter['Name'] = name_motion_filter(
+                    motion_filter, motion_filters['filters'])
+        else:
+            motion_filters['filters'] = []
+    except KeyError:
+        pass
     return partially_validated
 
 
