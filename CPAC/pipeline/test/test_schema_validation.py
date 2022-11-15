@@ -23,7 +23,7 @@ def test_motion_estimates_and_correction(run_value):
     if bool(run_value) and run_value not in [[False], []]:
         with pytest.raises(Invalid) as e:
             Configuration(d)
-        assert "func#motion_estimate_filter_valid_options" in str(e.value)
+        assert "func#motion-estimate-filter-valid-options" in str(e.value)
     else:
         Configuration(d)
     d = {'FROM': 'default',
@@ -39,7 +39,7 @@ def test_motion_estimates_and_correction(run_value):
          'motion_estimate_filter', 'filters']:
         assert c['functional_preproc', 'motion_estimates_and_correction',
                  'motion_estimate_filter', 'filters', 0, 'Name'
-                 ] == 'notch4c0p31bw0p12'
+                 ] == 'notch4fc0p31bw0p12'
 
 
 @pytest.mark.parametrize('registration_using',
