@@ -36,21 +36,22 @@ jobs:
           - fx-options
           - ndmg
           - preproc
-          # - rbc-options
-          # - regtest-1
-          # - regtest-2
-          # - regtest-3
-          # - regtest-4
+          - rbc-options
+          - regtest-1
+          - regtest-2
+          - regtest-3
+          - regtest-4
         variant:
           - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
         participant:
-          - 1019436 2014113 3154996 3699991 3884955  # ADHD200
-          - NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9  # HBN with EPI field maps
-          - NDARAD481FXF NDARAV894XWD NDARCA186WGH  # HBN with gradient echo field maps
-          - 0025428 0025429 0025448 0025452 0025453 # CoRR HNU
+          - 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
+        include:
+          - preconfig: default
+            variant: lite
+          - preconfig: abcd-options
+            variant: ABCD-HCP
+          - preconfig: fmriprep-options
+            variant: fMRIPrep-LTS
     steps:
       - name: Get C-PAC
         run: |
@@ -113,25 +114,15 @@ jobs:
       matrix:
         preconfig:
           - monkey
-          # - monkey-ABCD
           - nhp-macaque
         variant:
           - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
         participant:
-          - 032102 032106 # Newcastle
-          - 032164 032167 # Oxford
-          - 032130 032128 # UC Davis
-          - 2215 2312 # UW Madison
-          - 032191 032195 # UWO
-        exclude:
-          # No T2w
+          - 032102 032106 032164 032167 032130 032128 2215 2312 032191 032195
+        include:
+          # requires T2w
           - preconfig: monkey-ABCD
-            participant: 2215 2312
-          - preconfig: monkey-ABCD
-            participant: 032164 032167
+            participant: 032102 032106 032130 032128 032191 032195
     steps:
       - name: Get C-PAC
         run: |
@@ -193,9 +184,6 @@ jobs:
       matrix:
         variant:
           - ''
-          - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
     steps:
       - name: Get C-PAC
         run: |
