@@ -2851,7 +2851,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "T2w",
                  ["label-WM_probseg", "label-WM_mask"],
                  ["label-WM_pveseg", "label-WM_mask"],
-                 "desc-head_T1w")],
+                 "desc-head_T1w", "desc-head_T2w")],
      "outputs": ["space-T1w_sbref",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_warp"]}
