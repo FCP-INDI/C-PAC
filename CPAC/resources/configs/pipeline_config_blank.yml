@@ -1386,6 +1386,7 @@ amplitude_low_frequency_fluctuation:
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
+  # space: Template or Native
   target_space: []
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
@@ -1567,8 +1568,8 @@ post_processing:
     fwhm: [4]
 
   z-scoring:
-
     run: Off
+
     # z-score standardize the derivatives. This may be needed for group-level analysis.
     # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
     #
