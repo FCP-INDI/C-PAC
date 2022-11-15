@@ -820,10 +820,11 @@ class ResourcePool:
             excl += Outputs.template_raw
 
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
-            substring_excl.append(['bold'])
+            #substring_excl.append(['bold'])
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
+
             if resource not in Outputs.any:
                 continue
 
@@ -884,6 +885,8 @@ class ResourcePool:
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
+                
+
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:
@@ -966,6 +969,7 @@ class ResourcePool:
                                                             newdesc_suff)
                 else:
                     resource_idx = resource
+
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
