@@ -170,10 +170,7 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     reho = create_reho(f'reho_{pipe_num}')
     reho.inputs.inputspec.cluster_size = cluster_size
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
+    node, out = strat_pool.get_data("space-template_res-derivative_desc-preproc_bold")
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
     node, out_file = strat_pool.get_data(

@@ -103,7 +103,8 @@ from CPAC.registration.registration import (
     apply_phasediff_to_timeseries_separately,
     apply_blip_to_timeseries_separately,
     warp_timeseries_to_T1template,
-    warp_bold_mean_to_T1template,
+    warp_timeseries_to_T1template_deriv,
+    warp_sbref_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template,
     warp_denoiseNofilt_to_T1template,
@@ -1293,12 +1294,19 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool(func):
             apply_func_warp['T1'] = False
 
+    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
+    target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
+    target_space_reho = cfg.regional_homogeneity['target_space']
+
     if apply_func_warp['T1']:
 
         ts_to_T1template_block = [apply_phasediff_to_timeseries_separately,
                                   apply_blip_to_timeseries_separately,
                                   warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
+                                  
+        if 'Template' in target_space_alff or 'Template' in target_space_reho:
+            ts_to_T1template_block += [warp_timeseries_to_T1template_deriv]
 
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
             ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-preproc_bold', 'bold'))]
@@ -1308,17 +1316,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
 
         pipeline_blocks += [ts_to_T1template_block,
-                            warp_bold_mean_to_T1template,
-                            warp_bold_mean_to_EPItemplate]
+                            warp_sbref_to_T1template]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
     pipeline_blocks += [func_despike_template]
-
-    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
-    target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
 
     if 'Template' in target_space_alff and 'Native' in target_space_nuis:
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]
@@ -1367,7 +1371,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases
-    target_space_reho = cfg.regional_homogeneity['target_space']
 
     if not rpool.check_rpool('desc-Mean_timeseries') and \
                     'Avg' in tse_atlases:
