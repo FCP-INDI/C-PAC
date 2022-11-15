@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calculate reho and alff when timeseries in template space
 - Added new default pipeline that uses FSL-BET for brain extraction. Previous default pipleine is now called default-deprecated.
 - Added ``fail_fast`` configuration setting and CLI flag
+- Added abililty to fork on motion filter
 
 ### Changed
 - Space labels in output filenames now contain specific template labels for MNI templates
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved flexibility of some pipeline options regarding the application of distortion correction transforms
 - Pinned AFNI to AFNI_21.1.00
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
+- Changed motion filter from single dictionary to list of dictionaries
 
 ### Fixed
 - Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
