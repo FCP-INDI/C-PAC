@@ -1566,6 +1566,7 @@ post_processing:
 
   z-scoring:
 
+    run: Off
     # z-score standardize the derivatives. This may be needed for group-level analysis.
     # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
     #
