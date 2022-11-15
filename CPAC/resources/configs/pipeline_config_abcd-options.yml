@@ -102,8 +102,8 @@ registration_workflows:
 
         # ANTs parameters for T1-template-based registration
         T1_registration:
-          - verbose: On
-          - float: Off
+          - verbose: 1
+          - float: 0
           - collapse-output-transforms: 0
           - dimensionality: 3
           - winsorize-image-intensities:
