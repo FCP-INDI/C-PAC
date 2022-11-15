@@ -21,8 +21,8 @@ from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
-                       ExactSequence, ExclusiveInvalid, In, Length, Lower, \
-                       Match, Maybe, Optional, Range, Required, Schema, Title
+                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
+                       Optional, Range, Required, Schema, Title
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
