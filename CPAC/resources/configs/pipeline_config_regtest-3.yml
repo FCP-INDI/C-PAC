@@ -202,6 +202,13 @@ functional_preproc:
     # this is a fork point
     using: [FSL_AFNI]
 
+    FSL_AFNI:
+      bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
+
+      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
+      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
   generate_func_mean:
 
     # Generate mean functional image
