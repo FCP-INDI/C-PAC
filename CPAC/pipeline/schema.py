@@ -301,10 +301,15 @@ def name_motion_filter(mfilter, mfilters=None):
                 range_str = f'fc{mfilter["lowpass_cutoff"]}'
         range_str = range_str.replace('.', 'p')
         name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
-    dupes = len([_ for _ in (_.get('Name', '') for _ in mfilters) if
-                 _.startswith(name)])
+    dupes = 'Name' not in mfilter and len([_ for _ in (_.get('Name', '') for
+                                           _ in mfilters) if
+                                           _.startswith(name)])
     if dupes:
-        name = f'{name}dup{dupes}'
+        dup = re.search('(?=[A-Za-z0-9]*)(dup[0-9]*)', name)
+        if dup:  # Don't chain 'dup' suffixes
+            name = name.replace(dup.group(), f'dup{dupes}')
+        else:
+            name = f'{name}dup{dupes}'
     return name
 
 
