@@ -1401,6 +1401,8 @@ regional_homogeneity:
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
 
+  target_space: []
+
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)
   # 19 (Faces + Edges)
