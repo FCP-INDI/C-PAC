@@ -14,7 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-'''Validation schema for C-PAC pipeline configurations'''
+
+"""Validation schema for C-PAC pipeline configurations"""
 # pylint: disable=too-many-lines
 import re
 from itertools import chain, permutations
@@ -193,9 +194,9 @@ ANTs_parameters = [Any(
             'SyN': ANTs_parameter_transforms,
         })],
     }, {
-        'verbose': Any(bool1_1, In({0, 1})),
+        'verbose': Any(Coerce(int), In({0, 1})),
     }, {
-        'float': Any(bool1_1, In({0, 1})),
+        'float': Any(Coerce(int), In({0, 1})),
     }, {
         'masks': {
             'fixed_image_mask': bool1_1,

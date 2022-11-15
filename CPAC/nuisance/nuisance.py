@@ -2582,7 +2582,8 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
                        "regressed in native space"},
                  "desc-denoisedNofilt_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
-                       "regressed in native space"},
+                       "regressed in native space, but without "
+                       "frequency filtering."},
                  "regressors": {
         "Description": "Regressors that were applied in native space"}}}
     '''
@@ -2614,7 +2615,8 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                        "regressed in template space"},
                  "space-template_desc-denoisedNofilt_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
-                       "regressed in template space"},
+                       "regressed in template space, but without "
+                       "frequency filtering."},
                  "regressors": {
         "Description": "Regressors that were applied in template space"}}}
     '''
