@@ -3173,7 +3173,8 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
                 "despiked-fieldmap",
                 "pe-direction",
                 "effectiveEchoSpacing"],
-     "outputs": ["desc-preproc_bold",
+     "outputs": ["sbref",
+                 "desc-preproc_bold",
                  "desc-stc_bold",
                  "bold"]}
     '''
@@ -3262,9 +3263,21 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     wf.connect(node, out, warp_bold, 'ref_file')
 
     wf.connect(shift_warp, 'out_file', warp_bold, 'field_file')
+    
+    warp_sbref = pe.Node(interface=fsl.ApplyWarp(),
+                        name=f'warp_sbref_phasediff_{pipe_num}')
+    warp_sbref.inputs.relwarp = True
+    warp_sbref.inputs.interp = 'spline'
+
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, warp_sbref, 'in_file')
+    wf.connect(node, out, warp_sbref, 'ref_file')
+
+    wf.connect(shift_warp, 'out_file', warp_sbref, 'field_file')
 
     outputs = {
-        out_label: (warp_bold, 'out_file')
+        out_label: (warp_bold, 'out_file'),
+        'sbref': (warp_sbref, 'out_file')
     }
 
     return (wf, outputs)

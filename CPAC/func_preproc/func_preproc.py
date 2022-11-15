@@ -1037,13 +1037,17 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["space"],
      "option_val": ["template"],
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_res-derivative_desc-preproc_bold"],
+     "inputs": [("space-template_desc-preproc_bold",
+                 "space-template_res-derivative_desc-preproc_bold"),
+                "T1w-template-funcreg",
+                "T1w-template-deriv"],
      "outputs": {
          "space-template_desc-preproc_bold": {
-             "Description": "De-spiked BOLD time-series via AFNI 3dDespike."},
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike.",
+             "Template": "T1w-template-funcreg"},
          "space-template_res-derivative_desc-preproc_bold": {
-             "Description": "De-spiked BOLD time-series via AFNI 3dDespike."}
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike.",
+             "Template": "T1w-template-deriv"}
     }}
     '''
 
