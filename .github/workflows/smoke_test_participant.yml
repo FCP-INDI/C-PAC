@@ -48,10 +48,13 @@ jobs:
         include:
           - preconfig: default
             variant: lite
+            participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
           - preconfig: abcd-options
             variant: ABCD-HCP
+            participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
           - preconfig: fmriprep-options
             variant: fMRIPrep-LTS
+            participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
     steps:
       - name: Get C-PAC
         run: |
@@ -122,6 +125,10 @@ jobs:
         include:
           # requires T2w
           - preconfig: monkey-ABCD
+            variant: ''
+            participant: 032102 032106 032130 032128 032191 032195
+          - preconfig: monkey-ABCD
+            variant: ABCD-HCP
             participant: 032102 032106 032130 032128 032191 032195
     steps:
       - name: Get C-PAC
