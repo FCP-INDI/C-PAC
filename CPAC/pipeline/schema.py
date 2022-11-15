@@ -264,40 +264,43 @@ def name_motion_filter(mfilter, mfilters=None):
     --------
     >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 2,
     ...     'center_frequency': 0.31, 'filter_bandwidth': 0.12})
-    'notch2c0p31bw0p12'
+    'notch2fc0p31bw0p12'
     >>> name_motion_filter({'filter_type': 'notch', 'filter_order': 4,
     ...     'breathing_rate_min': 0.19, 'breathing_rate_max': 0.43})
-    'notch4from0p19to0p43'
+    'notch4fl0p19fu0p43'
     >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 4,
     ...     'lowpass_cutoff': .0032})
-    'lowpass4co0p0032'
+    'lowpass4fc0p0032'
     >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
     ...     'breathing_rate_min': 0.19})
-    'lowpass2from0p19'
+    'lowpass2fl0p19'
     >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
-    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2from0p19'}])
-    'lowpass2from0p19dup1'
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2fl0p19'}])
+    'lowpass2fl0p19dup1'
     >>> name_motion_filter({'filter_type': 'lowpass', 'filter_order': 2,
-    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2from0p19'},
-    ...     {'Name': 'lowpass2from0p19dup1'}])
-    'lowpass2from0p19dup2'
+    ...     'breathing_rate_min': 0.19}, [{'Name': 'lowpass2fl0p19'},
+    ...     {'Name': 'lowpass2fl0p19dup1'}])
+    'lowpass2fl0p19dup2'
     '''
     if mfilters is None:
         mfilters = []
-    if mfilter['filter_type'] == 'notch':
-        if mfilter.get('breathing_rate_min'):
-            range_str = (f'from{mfilter["breathing_rate_min"]}'
-                         f'to{mfilter["breathing_rate_max"]}')
-        else:
-            range_str = (f'c{mfilter["center_frequency"]}'
-                         f'bw{mfilter["filter_bandwidth"]}')
+    if 'Name' in mfilter:
+        name = mfilter['Name']
     else:
-        if mfilter.get('breathing_rate_min'):
-            range_str = f'from{mfilter["breathing_rate_min"]}'
+        if mfilter['filter_type'] == 'notch':
+            if mfilter.get('breathing_rate_min'):
+                range_str = (f'fl{mfilter["breathing_rate_min"]}'
+                             f'fu{mfilter["breathing_rate_max"]}')
+            else:
+                range_str = (f'fc{mfilter["center_frequency"]}'
+                             f'bw{mfilter["filter_bandwidth"]}')
         else:
-            range_str = f'co{mfilter["lowpass_cutoff"]}'
-    range_str = range_str.replace('.', 'p')
-    name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
+            if mfilter.get('breathing_rate_min'):
+                range_str = f'fl{mfilter["breathing_rate_min"]}'
+            else:
+                range_str = f'fc{mfilter["lowpass_cutoff"]}'
+        range_str = range_str.replace('.', 'p')
+        name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
     dupes = len([_ for _ in (_.get('Name', '') for _ in mfilters) if
                  _.startswith(name)])
     if dupes:

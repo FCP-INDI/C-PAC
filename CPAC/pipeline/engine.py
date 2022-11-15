@@ -956,8 +956,6 @@ class ResourcePool:
                                                          filt_value)
                             out_dct['filename'] = insert_entity(
                                 out_dct['filename'], 'filt', filt_value)
-                            resource_idx = insert_entity(resource_idx, 'filt',
-                                                         filt_value)
                             labeled_variant = True
                     if True in cfg['nuisance_corrections',
                                    '2-nuisance_regression', 'run']:
