@@ -2424,7 +2424,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
     return (wf, outputs)
 
 
-def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
+def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
     '''Nuisance regression in native (BOLD) or template space
 
     Parameters
@@ -2464,7 +2464,10 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space):
     desc_keys = ('desc-preproc_bold', 'desc-cleaned_bold',
                  'desc-denoisedNofilt_bold')
     if space != 'native':
-        desc_keys = tuple(f'space-{space}_{key}' for key in desc_keys)
+        new_label = f'space-{space}'
+        if res:
+            new_label = f'{new_label}_res-{res}'
+        desc_keys = tuple(f'{new_label}_{key}' for key in desc_keys)
 
     brain_mask = 'FSL-AFNI-brain-mask' if (
         space == 'template'
@@ -2601,6 +2604,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "template",
      "inputs": [("desc-stc_bold",
                  "space-template_desc-preproc_bold",
+                 "space-template_res-derivative_desc-preproc_bold",
                  "regressors",
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",
@@ -2608,19 +2612,31 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars"),
                 "TR"],
      "outputs": {"space-template_desc-preproc_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
+                       "regressed in template space"},
+                 "space-template_res-derivative_desc-preproc_bold": {
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
                  "space-template_desc-cleaned_bold": {
-        "Description": "Preprocessed BOLD image that was nusiance-"
+        "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
-                 "space-template_desc-denoisedNofilt_bold": {
+                 "space-template_res-derivative_desc-cleaned_bold": {
+        "Description": "Preprocessed BOLD image that was nuisance-"
+                       "regressed in template space"},
+                 "space-template_res-derivative_desc-denoisedNofilt_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space, but without "
                        "frequency filtering."},
                  "regressors": {
         "Description": "Regressors that were applied in template space"}}}
     '''
-    return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'template')
+    wf, outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 
+                                      'template')
+    if strat_pool.check_rpool('space-template_res-derivative_desc-preproc_bold'):
+        wf, res_outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, 
+                                              opt, 'template', 'derivative')
+        outputs.update(res_outputs)
+    return (wf, outputs)
 
 
 def erode_mask_bold(wf, cfg, strat_pool, pipe_num, opt=None):

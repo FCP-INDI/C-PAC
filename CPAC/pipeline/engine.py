@@ -820,10 +820,11 @@ class ResourcePool:
             excl += Outputs.template_raw
 
         if not cfg.pipeline_setup['output_directory']['write_debugging_outputs']:
-            substring_excl.append(['bold'])
+            # substring_excl.append(['bold'])
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
+
             if resource not in Outputs.any:
                 continue
 
@@ -866,8 +867,8 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'pipeline_{pipe_name}', part_id,
-                                         ses_id)
+                container = os.path.join(f'pipeline_{pipe_name}', 
+                                         part_id, ses_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -884,6 +885,7 @@ class ResourcePool:
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
+
         for resource in self.rpool.keys():
 
             if resource not in Outputs.any:

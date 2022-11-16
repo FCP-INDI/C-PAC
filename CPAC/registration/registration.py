@@ -3161,15 +3161,22 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
      "switch": [["registration_workflows", "functional_registration",
                  "func_registration_to_template", "run"],
                 ["functional_preproc", "distortion_correction", "run"]],
-     "option_key": "None",
-     "option_val": "None",
+     "option_key": ["registration_workflows", "functional_registration",
+                    "func_registration_to_template", "apply_transform", 
+                    "using"],
+     "option_val": ["default", "single_step_resampling_from_stc", "abcd"],
      "inputs": [("sbref",
                  "desc-preproc_bold",
+                 "desc-stc_bold",
+                 "bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 "despiked-fieldmap",
                 "pe-direction",
                 "effectiveEchoSpacing"],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": ["sbref",
+                 "desc-preproc_bold",
+                 "desc-stc_bold",
+                 "bold"]}
     '''
 
     outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
@@ -3240,16 +3247,37 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     warp_bold.inputs.relwarp = True
     warp_bold.inputs.interp = 'spline'
 
-    node, out = strat_pool.get_data('desc-preproc_bold')
+    if opt == 'default':
+        node, out = strat_pool.get_data('desc-preproc_bold')
+        out_label = 'desc-preproc_bold'
+    elif opt == 'single_step_resampling_from_stc':
+        node, out = strat_pool.get_data('desc-stc_bold')
+        out_label = 'desc-stc_bold'
+    elif opt == 'abcd':
+        node, out = strat_pool.get_data('bold')
+        out_label = 'bold'
+
     wf.connect(node, out, warp_bold, 'in_file')
 
     node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, warp_bold, 'ref_file')
 
     wf.connect(shift_warp, 'out_file', warp_bold, 'field_file')
+    
+    warp_sbref = pe.Node(interface=fsl.ApplyWarp(),
+                        name=f'warp_sbref_phasediff_{pipe_num}')
+    warp_sbref.inputs.relwarp = True
+    warp_sbref.inputs.interp = 'spline'
+
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, warp_sbref, 'in_file')
+    wf.connect(node, out, warp_sbref, 'ref_file')
+
+    wf.connect(shift_warp, 'out_file', warp_sbref, 'field_file')
 
     outputs = {
-        'desc-preproc_bold': (warp_bold, 'out_file')
+        out_label: (warp_bold, 'out_file'),
+        'sbref': (warp_sbref, 'out_file')
     }
 
     return (wf, outputs)
@@ -3264,14 +3292,20 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
      "switch": [["registration_workflows", "functional_registration",
                  "func_registration_to_template", "run"],
                 ["functional_preproc", "distortion_correction", "run"]],
-     "option_key": "None",
-     "option_val": "None",
+     "option_key": ["registration_workflows", "functional_registration",
+                    "func_registration_to_template", "apply_transform", 
+                    "using"],
+     "option_val": ["default", "single_step_resampling_from_stc", "abcd"],
      "inputs": [("sbref",
                  "desc-preproc_bold",
+                 "desc-stc_bold",
+                 "bold",
                  "from-bold_to-template_mode-image_xfm",
                  "ants-blip-warp",
                  "fsl-blip-warp")],
-     "outputs": ["desc-preproc_bold"]}
+     "outputs": ["desc-preproc_bold",
+                 "desc-stc_bold",
+                 "bold"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -3313,7 +3347,17 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
             'FNIRT_pipelines']['interpolation']
 
     connect = strat_pool.get_data("desc-preproc_bold")
-    node, out = connect
+
+    if opt == 'default':
+        node, out = strat_pool.get_data('desc-preproc_bold')
+        out_label = 'desc-preproc_bold'
+    elif opt == 'single_step_resampling_from_stc':
+        node, out = strat_pool.get_data('desc-stc_bold')
+        out_label = 'desc-stc_bold'
+    elif opt == 'abcd':
+        node, out = strat_pool.get_data('bold')
+        out_label = 'bold'
+
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
     node, out = strat_pool.get_data("sbref")
@@ -3322,7 +3366,7 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     wf.connect(blip_node, blip_out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        'desc-preproc_bold': (apply_xfm, 'outputspec.output_image')
+        out_label: (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -3490,6 +3534,63 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'space-template_desc-preproc_bold': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+    
+    
+def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, 
+                                        opt=None):
+    '''
+    Node Block:
+    {"name": "transform_timeseries_to_T1template_deriv",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["apply_transform", "using"],
+     "option_val": "default",
+     "inputs": [("desc-preproc_bold",
+                 "from-bold_to-template_mode-image_xfm"),
+                "T1w-brain-template-funcreg"],
+     "outputs": {"space-template_res-derivative_desc-preproc_bold": {
+                     "Template": "T1w-brain-template-deriv"}}}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    connect = strat_pool.get_data("desc-preproc_bold")
+    node, out = connect
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w-brain-template-deriv")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_res-derivative_desc-preproc_bold': 
+            (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -4076,9 +4177,9 @@ def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "Template",
      "inputs": [(["desc-denoisedNofilt_bold"],
                  "from-bold_to-template_mode-image_xfm"),
-                "T1w-brain-template-funcreg"],
-     "outputs": {"space-template_desc-denoisedNofilt_bold": {
-                     "Template": "T1w-brain-template-funcreg"}}}
+                "T1w-brain-template-deriv"],
+     "outputs": {"space-template_res-derivative_desc-denoisedNofilt_bold": {
+                     "Template": "T1w-brain-template-deriv"}}}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -4103,19 +4204,17 @@ def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
             'functional_registration']['func_registration_to_template'][
             'FNIRT_pipelines']['interpolation']
 
-    connect, resource = strat_pool.get_data(["desc-denoisedNofilt_bold"],
-                                            report_fetched=True)
-    node, out = connect
+    node, out = strat_pool.get_data("desc-denoisedNofilt_bold")
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data("T1w-brain-template-funcreg")
+    node, out = strat_pool.get_data("T1w-brain-template-deriv")
     wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
     node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+        f'space-template_res-derivative_desc-denoisedNofilt_bold': (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -4188,6 +4287,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                      "Template": "T1w-brain-template-funcreg"},
                  "space-template_desc-bold_mask": {
                      "Template": "T1w-brain-template-funcreg"},
+                 "space-template_res-derivative_desc-preproc_bold": {
+                     "Template": "T1w-brain-template-deriv"},
                  "space-template_res-derivative_desc-bold_mask": {
                      "Template": "T1w-brain-template-deriv"}}}
     '''  # noqa: 501
@@ -4291,32 +4392,49 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
                                            name=f'applyxfm_func_to_standard_{pipe_num}',
                                            iterfield=['input_image', 'transforms'])
-
     applyxfm_func_to_standard.inputs.float = True
     applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
+    
+    applyxfm_derivfunc_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
+                                           name=f'applyxfm_derivfunc_to_standard_{pipe_num}',
+                                           iterfield=['input_image', 'transforms'])
+    applyxfm_derivfunc_to_standard.inputs.float = True
+    applyxfm_derivfunc_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
 
     wf.connect(split_func, 'out_files',
                applyxfm_func_to_standard, 'input_image')
+    wf.connect(split_func, 'out_files',
+               applyxfm_derivfunc_to_standard, 'input_image')
 
     node, out = strat_pool.get_data('T1w-brain-template-funcreg')
     wf.connect(node, out, applyxfm_func_to_standard, 'reference_image')
+    
+    node, out = strat_pool.get_data('T1w-brain-template-deriv')
+    wf.connect(node, out, applyxfm_derivfunc_to_standard, 'reference_image')
 
     wf.connect(collectxfm, 'out',
                applyxfm_func_to_standard, 'transforms')
+    wf.connect(collectxfm, 'out',
+               applyxfm_derivfunc_to_standard, 'transforms')
 
     ### Loop ends! ###
 
     merge_func_to_standard = pe.Node(interface=fslMerge(),
                                      name=f'merge_func_to_standard_{pipe_num}')
-
     merge_func_to_standard.inputs.dimension = 't'
 
     wf.connect(applyxfm_func_to_standard, 'output_image',
         merge_func_to_standard, 'in_files')
+        
+    merge_derivfunc_to_standard = pe.Node(interface=fslMerge(),
+                                     name=f'merge_derivfunc_to_standard_{pipe_num}')
+    merge_derivfunc_to_standard.inputs.dimension = 't'
+
+    wf.connect(applyxfm_derivfunc_to_standard, 'output_image',
+               merge_derivfunc_to_standard, 'in_files')
 
     applyxfm_func_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
                                              name=f'applyxfm_func_mask_to_standard_{pipe_num}')
-
     applyxfm_func_mask_to_standard.inputs.interpolation = 'MultiLabel'
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -4339,7 +4457,6 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     applyxfm_deriv_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
                                              name=f'applyxfm_deriv_mask_to_standard_{pipe_num}')
-
     applyxfm_deriv_mask_to_standard.inputs.interpolation = 'MultiLabel'
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -4375,6 +4492,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
         'space-template_desc-brain_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
             'output_image'),
+        'space-template_res-derivative_desc-preproc_bold':
+            (merge_derivfunc_to_standard, 'merged_file'),
         'space-template_res-derivative_desc-bold_mask': 
             (applyxfm_deriv_mask_to_standard, 'output_image')
     }
@@ -4382,7 +4501,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     return (wf, outputs)
 
 
-def warp_bold_mean_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_sbref_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Node Block:
     {"name": "transform_sbref_to_T1template",

@@ -1037,11 +1037,18 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["space"],
      "option_val": ["template"],
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": [("space-template_desc-preproc_bold",
+                 "space-template_res-derivative_desc-preproc_bold"),
+                "T1w-template-funcreg",
+                "T1w-template-deriv"],
      "outputs": {
          "space-template_desc-preproc_bold": {
-             "Description": "De-spiked BOLD time-series via AFNI 3dDespike."
-    }}}
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike.",
+             "Template": "T1w-template-funcreg"},
+         "space-template_res-derivative_desc-preproc_bold": {
+             "Description": "De-spiked BOLD time-series via AFNI 3dDespike.",
+             "Template": "T1w-template-deriv"}
+    }}
     '''
 
     despike = pe.Node(interface=preprocess.Despike(),
@@ -1057,6 +1064,21 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-template_desc-preproc_bold': (despike, 'out_file')
     }
+    
+    if strat_pool.get_data("space-template_res-derivative_desc-preproc_bold"):
+        despike_funcderiv = pe.Node(interface=preprocess.Despike(),
+                                    name=f'func_deriv_despiked_template_{pipe_num}',
+                                    mem_gb=0.66,
+                                    mem_x=(8251808479088459 / 1208925819614629174706176,
+                                    'in_file'))
+        despike_funcderiv.inputs.outputtype = 'NIFTI_GZ'
+
+        node, out = strat_pool.get_data("space-template_res-derivative_desc-preproc_bold")
+        wf.connect(node, out, despike_funcderiv, 'in_file')
+
+        outputs.update({
+            'space-template_res-derivative_desc-preproc_bold':
+                (despike_funcderiv, 'out_file')})
 
     return (wf, outputs)
 
