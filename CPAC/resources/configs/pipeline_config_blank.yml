@@ -985,51 +985,7 @@ functional_preproc:
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
       run: [Off]
-
-      # options: "notch", "lowpass"
-      filter_type: notch
-
-      # Number of filter coefficients.
-      filter_order: 4
-
-      # Dataset-wide respiratory rate data from breathing belt.
-      # Notch filter requires either:
-      #     "breathing_rate_min" and "breathing_rate_max"
-      # or
-      #     "center_frequency" and "filter_bandwitdh".
-      # Lowpass filter requires either:
-      #     "breathing_rate_min"
-      # or
-      #     "lowpass_cutoff".
-      # If "breathing_rate_min" (for lowpass and notch filter)
-      # and "breathing_rate_max" (for notch filter) are set,
-      # the values set in "lowpass_cutoff" (for lowpass filter),
-      # "center_frequency" and "filter_bandwidth" (for notch filter)
-      # options are ignored.
-      # Lowest Breaths-Per-Minute in dataset.
-      # For both notch and lowpass filters.
-      breathing_rate_min:
-
-      # Highest Breaths-Per-Minute in dataset.
-      # For notch filter.
-      breathing_rate_max:
-
-      # notch filter direct customization parameters
-      # mutually exclusive with breathing_rate options above.
-      # If breathing_rate_min and breathing_rate_max are provided,
-      # the following parameters will be ignored.
-      # the center frequency of the notch filter
-      center_frequency:
-
-      # the width of the notch filter
-      filter_bandwidth:
-
-      # lowpass filter direct customization parameter
-      # mutually exclusive with breathing_rate options above.
-      # If breathing_rate_min is provided, the following
-      # parameter will be ignored.
-      # the frequency cutoff of the filter
-      lowpass_cutoff:
+      filters: []
 
   distortion_correction:
 
@@ -1386,6 +1342,9 @@ amplitude_low_frequency_fluctuation:
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: Off
 
+  # space: Template or Native
+  target_space: []
+
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
   highpass_cutoff: [0.01]
 
@@ -1397,6 +1356,9 @@ regional_homogeneity:
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
+
+  # space: Template or Native
+  target_space: []
 
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)
@@ -1545,6 +1507,7 @@ longitudinal_template_generation:
 # -----------------------
 post_processing:
   spatial_smoothing:
+    run: Off
 
     # Smooth the derivative outputs.
     # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
@@ -1564,6 +1527,7 @@ post_processing:
     fwhm: [4]
 
   z-scoring:
+    run: Off
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
     # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
