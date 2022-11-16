@@ -108,6 +108,34 @@ class ResourcePool:
     def append_name(self, name):
         self.name.append(name)
 
+    def back_propogate_template_name(self, resource_idx: str, json_info: dict,
+                                     id_string: 'pe.Node') -> None:
+        """Find and apply the template name from a resource's provenance
+
+        Parameters
+        ----------
+        resource_idx : str
+
+        json_info : dict
+
+        id_string : pe.Node
+
+        Returns
+        -------
+        None
+        """
+        if 'Template' in json_info:
+            id_string.inputs.template_desc = json_info['Template']
+        elif ('space-template' in resource_idx and
+              len(json_info.get('CpacProvenance', [])) > 1):
+            try:
+                # check parent resource
+                self.back_propogate_template_name(resource_idx,
+                    list(self.get(json_info['CpacProvenance'][-2][-1].split(
+                        ':')[0]).values())[0]['json'], id_string)
+            except (IndexError, KeyError):
+                pass
+
     def get_name(self):
         return self.name
 
@@ -1009,8 +1037,8 @@ class ResourcePool:
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
 
-                if 'Template' in json_info:
-                    id_string.inputs.template_desc = json_info['Template']
+                self.back_propogate_template_name(resource_idx, json_info,
+                                                  id_string)
 
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
@@ -1048,8 +1076,8 @@ class ResourcePool:
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    unique_id, resource_idx,
-                    template_desc=json_info.get('Template'),
+                    unique_id, id_string.inputs.resource,
+                    template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
