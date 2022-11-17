@@ -167,7 +167,7 @@ space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI
 desc-brain_T1w	T1w	T1w	anat	NIfTI					
 desc-head_T1w	T1w	T1w	anat	NIfTI					
 desc-preproc_T1w	T1w	T1w	anat	NIfTI					
-desc-reorient_T1w	T1w	T1w	anat	NIfTI					
+desc-reorient_T1w	T1w	T1w	anat	NIfTI				Yes	
 desc-restore_T1w	T1w	T1w	anat	NIfTI					
 desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
