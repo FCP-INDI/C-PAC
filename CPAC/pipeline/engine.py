@@ -1871,9 +1871,20 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                     creds_path=creds_path,
                     dl_dir=cfg.pipeline_setup['working_directory']['path']
                 )
-                rpool.set_data(key, config_ingress, 'outputspec.data', json_info,
-                               "", f"{key}_config_ingress")
-    
+                rpool.set_data(key, config_ingress, 'outputspec.data',
+                               json_info, "", f"{key}_config_ingress")
+
+    # Freesurfer directory, not a template, so not in cpac_templates.tsv
+    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
+        fs_ingress = create_general_datasource('gather_freesurfer_dir')
+        fs_ingress.inputs.inputnode.set(
+            unique_id=unique_id,
+            data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
+            creds_path=creds_path,
+            dl_dir=cfg.pipeline_setup['working_directory']['path'])
+        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
+                       json_info, "", "freesurfer_config_ingress")
+
     # templates, resampling from config
     '''
     template_keys = [
