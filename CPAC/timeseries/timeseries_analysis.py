@@ -842,7 +842,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     pipe_num=pipe_num
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-brain_bold'])
+                    'space-template_desc-preproc_bold'])
                 wf.connect(brain_mask_node, brain_mask_out,
                            timeseries_correlation, 'inputspec.mask')
 

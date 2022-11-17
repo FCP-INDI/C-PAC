@@ -1294,7 +1294,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool(func):
             apply_func_warp['T1'] = False
 
-    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
+    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression'][
+        'space']
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
     target_space_reho = cfg.regional_homogeneity['target_space']
 
@@ -1304,7 +1305,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                   apply_blip_to_timeseries_separately,
                                   warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
-                                  
+
         if 'Template' in target_space_alff or 'Template' in target_space_reho:
             ts_to_T1template_block += [warp_timeseries_to_T1template_deriv]
 

@@ -2234,7 +2234,8 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     {"name": "bold_masking",
      "config": None,
      "switch": [["functional_preproc", "run"],
-                ["functional_preproc", "func_masking", "apply_func_mask_in_native_space"]],
+                ["functional_preproc", "func_masking",
+                 "apply_func_mask_in_native_space"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
@@ -2248,7 +2249,6 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
              "SkullStripped": True}}
     }
     '''
-
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name=f'func_extract_brain_{pipe_num}')
 
