@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
+import copy
 import logging
 import os
+import re
 import warnings
-import copy
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -798,6 +799,11 @@ class ResourcePool:
                                   json_info, pipe_idx,
                                   'fisher_zscore_standardize',
                                   fork=True)
+
+        if '_res-' in label and 'Resolution' in json_info:
+            # replace resolution text with actual resolution
+            label = re.sub('_res-[A-Za-z0-9]*_',
+                           f'_res-{json_info["Resolution"]}_', label)
 
         return (wf, post_labels)
 
