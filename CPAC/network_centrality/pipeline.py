@@ -82,17 +82,17 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-template_desc-preproc_bold",
                  "T1w-brain-template-funcreg"),
                 "template-specification-file"],
-     "outputs": {"space-template_desc-weighted_degree-centrality": {
+     "outputs": {"space-template_dcw": {
                      "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-binarized_degree-centrality": {
+                 "space-template_dcb": {
                      "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-weighted_eigen-centrality": {
+                 "space-template_ecw": {
                      "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-binarized_eigen-centrality": {
+                 "space-template_ecb": {
                      "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-weighted_lfcd": {
+                 "space-template_lfcdw": {
                      "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-binarized_lfcd": {
+                 "space-template_lfcdb": {
                      "Template": "T1w-brain-template-funcreg"}}}
     '''
 
@@ -140,20 +140,28 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     for option in valid_options['centrality']['method_options']:
         if cfg.network_centrality[option]['weight_options']:
             for weight in cfg.network_centrality[option]['weight_options']:
-                if 'degree' in option.lower():
-                    if 'weight' in weight.lower():
-                        outputs['space-template_desc-weighted_degree-centrality'] = (merge_node, 'degree_weighted')
-                    elif 'binarize' in weight.lower():
-                        outputs['space-template_desc-binarized_degree-centrality'] = (merge_node, 'degree_binarized')
-                elif 'eigen' in option.lower():
-                    if 'weight' in weight.lower():
-                        outputs['space-template_desc-weighted_eigen-centrality'] = (merge_node, 'eigen_weighted')
-                    elif 'binarize' in weight.lower():
-                        outputs['space-template_desc-binarized_eigen-centrality'] = (merge_node, 'eigen_binarized')
-                elif 'lfcd' in option.lower() or 'local_functional' in option.lower():
-                    if 'weight' in weight.lower():
-                        outputs['space-template_desc-weighted_lfcd'] = (merge_node, 'lfcd_weighted')
-                    elif 'binarize' in weight.lower():
-                        outputs['space-template_desc-binarized_lfcd'] = (merge_node, 'lfcd_binarized')
+                _option = option.lower()
+                _weight = weight.lower()
+                if 'degree' in _option:
+                    if 'weight' in _weight:
+                        outputs['space-template_dcw'] = (merge_node,
+                                                         'degree_weighted')
+                    elif 'binarize' in _weight:
+                        outputs['space-template_dcb'] = (merge_node,
+                                                         'degree_binarized')
+                elif 'eigen' in _option:
+                    if 'weight' in _weight:
+                        outputs['space-template_ecw'] = (merge_node,
+                                                         'eigen_weighted')
+                    elif 'binarize' in _weight:
+                        outputs['space-template_ecb'] = (merge_node,
+                                                         'eigen_binarized')
+                elif 'lfcd' in _option or 'local_functional' in _option:
+                    if 'weight' in _weight:
+                        outputs['space-template_lfcdw'] = (merge_node,
+                                                           'lfcd_weighted')
+                    elif 'binarize' in _weight:
+                        outputs['space-template_lfcdb'] = (merge_node,
+                                                           'lfcd_binarized')
 
     return (wf, outputs)
