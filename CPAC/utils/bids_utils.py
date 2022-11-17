@@ -1044,6 +1044,56 @@ def sub_list_filter_by_labels(sub_list, labels):
     return sub_list
 
 
+def with_key(entity: str, key: str) -> str:
+    """Return a keyed BIDS entity
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> with_key('sub-1', 'sub')
+    'sub-1'
+    >>> with_key('1', 'sub')
+    'sub-1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if not entity.startswith(f'{key}-'):
+        entity = '-'.join((key, entity))
+    return entity
+
+
+def without_key(entity: str, key: str) -> str:
+    """Return a BIDS entity value
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> without_key('sub-1', 'sub')
+    '1'
+    >>> without_key('1', 'sub')
+    '1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if entity.startswith(f'{key}-'):
+        entity = entity.replace(f'{key}-', '')
+    return entity
+
+
 def _t1w_filter(anat, shortest_entity, label):
     """Helper function to filter T1w paths
 
