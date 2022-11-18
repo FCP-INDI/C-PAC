@@ -1,31 +1,33 @@
-"""Test to check if all expected outputs were generated
+# Copyright (C) 2022  C-PAC Developers
 
-Copyright (C) 2022  C-PAC Developers
+# This file is part of C-PAC.
 
-This file is part of C-PAC.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
-import os
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Test to check if all expected outputs were generated"""
+from itertools import chain
 from logging import Logger
+import os
 from pathlib import Path
 import yaml
+from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
 from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, \
                                                  set_up_logger
 
 
-def check_outputs(output_dir, log_dir, pipe_name, unique_id):
+def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
+                  unique_id: str) -> str:
     """Check if all expected outputs were generated
 
     Parameters
@@ -36,23 +38,24 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
     log_dir : str
         Path to the log directory for the participant pipeline
 
-    pipe_name : str
-
-    unique_id : str
+    pipe_name, unique_id : str
 
     Returns
     -------
-    message :str
+    message : str
     """
     output_dir = Path(output_dir)
     outputs_logger = getLogger(f'{unique_id}_expectedOutputs')
     missing_outputs = ExpectedOutputs()
-    container = os.path.join(f'pipeline_{pipe_name}',
-                             '/'.join(unique_id.split('_', 1)))
-    if (
-        isinstance(outputs_logger, (Logger, MockLogger)) and
-        len(outputs_logger.handlers)
-    ):
+    subject, session = unique_id.split('_', 1)
+    # allow any combination of keyed/unkeyed subject and session directories
+    containers = [os.path.join(f'pipeline_{pipe_name}',
+                               '/'.join((sub, ses))) for sub in [
+                      fxn(subject, 'sub') for fxn in (with_key, without_key)
+                      ] for ses in [fxn(session, 'ses') for fxn in
+                                    (with_key, without_key)]]
+    if (isinstance(outputs_logger, (Logger, MockLogger)) and
+            len(outputs_logger.handlers)):
         outputs_log = getattr(outputs_logger.handlers[0], 'baseFilename', None)
     else:
         outputs_log = None
@@ -62,7 +65,9 @@ def check_outputs(output_dir, log_dir, pipe_name, unique_id):
         with open(outputs_log, 'r', encoding='utf-8') as expected_outputs_file:
             expected_outputs = yaml.safe_load(expected_outputs_file.read())
         for subdir, filenames in expected_outputs.items():
-            observed_outputs = list(output_dir.glob(f'{container}/{subdir}'))
+            observed_outputs = list(chain.from_iterable([
+                output_dir.glob(f'{container}/{subdir}') for
+                container in containers]))
             for filename in filenames:
                 if not (observed_outputs and list(observed_outputs[0].glob(
                         f'*{filename}*'))):

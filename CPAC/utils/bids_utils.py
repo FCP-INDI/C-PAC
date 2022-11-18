@@ -1,3 +1,19 @@
+# Copyright (C) 2016-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import json
 import os
 import re
@@ -1042,6 +1058,56 @@ def sub_list_filter_by_labels(sub_list, labels):
         labels['bold'] = cl_strip_brackets(labels['bold'])
         sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
     return sub_list
+
+
+def with_key(entity: str, key: str) -> str:
+    """Return a keyed BIDS entity
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> with_key('sub-1', 'sub')
+    'sub-1'
+    >>> with_key('1', 'sub')
+    'sub-1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if not entity.startswith(f'{key}-'):
+        entity = '-'.join((key, entity))
+    return entity
+
+
+def without_key(entity: str, key: str) -> str:
+    """Return a BIDS entity value
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> without_key('sub-1', 'sub')
+    '1'
+    >>> without_key('1', 'sub')
+    '1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if entity.startswith(f'{key}-'):
+        entity = entity.replace(f'{key}-', '')
+    return entity
 
 
 def _t1w_filter(anat, shortest_entity, label):

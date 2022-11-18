@@ -245,7 +245,7 @@ registration_workflows:
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: /usr/share/data/fsl-mni152-templates//MNI152_T1_${func_resolution}.nii.gz
+          T1w_template_funcreg: /usr/share/data/fsl-mni152-templates/MNI152_T1_${func_resolution}.nii.gz
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
