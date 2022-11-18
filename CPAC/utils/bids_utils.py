@@ -847,6 +847,8 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
             entities[key].append(value)
     for key, value in entities.items():
         entities[key] = camelCase('-'.join(value))
+    if 'desc' in entities:  # make 'desc' final entity
+        suffixes.insert(0, f'desc-{entities.pop("desc")}')
     return '_'.join([f'{key}-{value}' for key, value in entities.items()
                      ] + suffixes)
 

@@ -786,7 +786,7 @@ class ResourcePool:
                     wf.connect(connection[0], connection[1],
                                zstd, 'inputspec.correlation_file')
 
-                    # if the output is 'desc-MeanSCA_correlations', we want
+                    # if the output is 'space-template_desc-MeanSCA_correlations', we want
                     # 'desc-MeanSCA_timeseries'
                     oned = label.replace('correlations', 'timeseries')
 

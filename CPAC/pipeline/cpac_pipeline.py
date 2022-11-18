@@ -1373,7 +1373,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases
 
-    if not rpool.check_rpool('desc-Mean_timeseries') and \
+    if not rpool.check_rpool('space-template_desc-Mean_timeseries') and \
                     'Avg' in tse_atlases:
         pipeline_blocks += [timeseries_extraction_AVG]
 
@@ -1385,15 +1385,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
 
-    if not rpool.check_rpool('desc-MeanSCA_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:
         pipeline_blocks += [SCA_AVG]
 
-    if not rpool.check_rpool('desc-DualReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-DualReg_correlations') and \
                     'DualReg' in sca_atlases:
         pipeline_blocks += [dual_regression]
 
-    if not rpool.check_rpool('desc-MultReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MultReg_correlations') and \
                     'MultReg' in sca_atlases:
         pipeline_blocks += [multiple_regression]
 

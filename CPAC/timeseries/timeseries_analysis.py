@@ -767,13 +767,13 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_bold"],
-     "outputs": ["desc-Mean_timeseries",
-                 "desc-ndmg_correlations",
+     "outputs": ["space-template_desc-Mean_timeseries",
+                 "space-template_space-template_desc-ndmg_correlations",
                  "atlas_name",
-                 "desc-PearsonAfni_correlations",
-                 "desc-PartialAfni_correlations",
-                 "desc-PearsonNilearn_correlations",
-                 "desc-PartialNilearn_correlations"]}
+                 "space-template_desc-PearsonAfni_correlations",
+                 "space-template_desc-PartialAfni_correlations",
+                 "space-template_desc-PearsonNilearn_correlations",
+                 "space-template_desc-PartialNilearn_correlations"]}
     '''
     resample_functional_roi = pe.Node(Function(input_names=['in_func',
                                                             'in_roi',
@@ -856,11 +856,12 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
             output_desc = ''.join(term.lower().capitalize() for term in [
                 cm_measure, cm_tool])
-            matrix_outputs[f'desc-{output_desc}_correlations'] = (
-                timeseries_correlation, 'outputspec.out_file')
+            matrix_outputs[f'space-template_desc-{output_desc}_correlations'
+                           ] = (timeseries_correlation, 'outputspec.out_file')
 
     outputs = {
-        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_csv'),
+        'space-template_desc-Mean_timeseries': (
+            roi_timeseries, 'outputspec.roi_csv'),
         'atlas_name': (roi_dataflow, 'outputspec.out_name'),
         **matrix_outputs
     }
@@ -883,7 +884,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
         wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
         wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
-        outputs['desc-ndmg_correlations'] = (ndmg_graph, 'out_file')
+        outputs['space-template_space-template_desc-ndmg_correlations'
+                ] = (ndmg_graph, 'out_file')
 
     return (wf, outputs)
 
