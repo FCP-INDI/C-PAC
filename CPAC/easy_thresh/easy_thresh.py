@@ -1,4 +1,8 @@
+import os
+import re
+import subprocess
 
+import nibabel as nib
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
@@ -232,7 +236,7 @@ def easy_thresh(wf_name):
 #    #defines the cluster cordinates
 #    cluster.inputs.out_localmax_txt_file = True
 
-    cluster_imports = ['import os', 'import re', 'import subprocess as sb']
+    cluster_imports = ['import os', 'import re', 'import subprocess']
     cluster = pe.MapNode(util.Function(input_names=['in_file',
                                                     'volume',
                                                     'dlh',
@@ -279,7 +283,7 @@ def easy_thresh(wf_name):
 
     # function mapnode to get the standard fsl brain image based on parameters
     # as FSLDIR,MNI and voxel size
-    get_bg_imports = ['import os', 'from nibabel import load']
+    get_bg_imports = ['import os', 'import nibabel as nib']
     get_backgroundimage = pe.MapNode(util.Function(input_names=['in_file',
                                                                 'file_parameters'],
                                                    output_names=['out_file'],
@@ -351,7 +355,7 @@ def easy_thresh(wf_name):
 
 def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
 
-    out_name = re.match('z(\w)*stat(\d)+', os.path.basename(in_file))
+    out_name = re.match(r'z(\w)*stat(\d)+', os.path.basename(in_file))
 
     filename, ext = os.path.splitext(os.path.basename(in_file))
     ext=  os.path.splitext(filename)[1] + ext
@@ -372,7 +376,7 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
 
     f = open(localmax_txt_file,'wb')
 
-    cmd = sb.Popen([ cmd_path,
+    cmd = subprocess.Popen([ cmd_path,
                     '--dlh=' + str(dlh),
                     '--in=' + in_file,
                     '--oindex=' + index_file,
@@ -451,7 +455,7 @@ def get_standard_background_img(in_file, file_parameters):
 
     try:
 
-        img = load(in_file)
+        img = nib.load(in_file)
         hdr = img.get_header()
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
