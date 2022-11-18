@@ -236,7 +236,7 @@ def easy_thresh(wf_name):
 #    #defines the cluster cordinates
 #    cluster.inputs.out_localmax_txt_file = True
 
-    cluster_imports = ['import os', 'import re', 'import subprocess as sb']
+    cluster_imports = ['import os', 'import re', 'import subprocess']
     cluster = pe.MapNode(util.Function(input_names=['in_file',
                                                     'volume',
                                                     'dlh',
@@ -283,7 +283,7 @@ def easy_thresh(wf_name):
 
     # function mapnode to get the standard fsl brain image based on parameters
     # as FSLDIR,MNI and voxel size
-    get_bg_imports = ['import os', 'from nibabel import load']
+    get_bg_imports = ['import os', 'import nibabel as nib']
     get_backgroundimage = pe.MapNode(util.Function(input_names=['in_file',
                                                                 'file_parameters'],
                                                    output_names=['out_file'],
