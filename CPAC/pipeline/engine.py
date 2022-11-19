@@ -952,17 +952,21 @@ class ResourcePool:
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
+            all_jsons = (self.rpool[resource][pipe_idx]['json'] for pipe_idx in
+                         self.rpool[resource])
+            unlabelled = set(key for json_info in all_jsons for key in
+                             json_info.get('CpacVariant', {}).keys() if
+                             key not in ('movement-parameters', 'regressors'))
             for pipe_idx in self.rpool[resource]:
-
                 pipe_x = self.get_pipe_number(pipe_idx)
-
-                try:
-                    num_variant += 1
-                except TypeError:
-                    pass
-
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
+
+                try:
+                    if unlabelled:
+                        num_variant += 1
+                except TypeError:
+                    pass
 
                 try:
                     del json_info['subjson']
@@ -975,7 +979,6 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
                 if num_variant:
-                    labeled_variant = False
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
@@ -995,7 +998,6 @@ class ResourcePool:
                                                          filt_value)
                             out_dct['filename'] = insert_entity(
                                 out_dct['filename'], 'filt', filt_value)
-                            labeled_variant = True
                     if True in cfg['nuisance_corrections',
                                    '2-nuisance_regression', 'run']:
                         reg_value = None
@@ -1012,16 +1014,17 @@ class ResourcePool:
                                 out_dct['filename'], 'reg', reg_value)
                             resource_idx = insert_entity(resource_idx, 'reg',
                                                          reg_value)
-                            labeled_variant = True
-                    if labeled_variant is False:
-                        for key in out_dct['filename'].split('_')[::-1]:
-                            if key.startswith('desc-'):  # final `desc` entity
-                                out_dct['filename'] = out_dct[
-                                    'filename'].replace(key,
-                                                        f'{key}-{num_variant}')
-                                resource_idx = resource_idx.replace(
-                                    key, f'{key}-{num_variant}')
-                                break
+                    if unlabelled:
+                        if 'desc-' in out_dct['filename']:
+                            for key in out_dct['filename'].split('_')[::-1]:
+                                if key.startswith('desc-'):  # final `desc` entity
+                                    out_dct['filename'] = out_dct['filename'
+                                                                  ].replace(
+                                        key, f'{key}-{num_variant}')
+                                    resource_idx = resource_idx.replace(
+                                        key, f'{key}-{num_variant}')
+                                    break
+                        else:
                             suff = resource.split('_')[-1]
                             newdesc_suff = f'desc-{num_variant}_{suff}'
                             resource_idx = resource_idx.replace(suff,
