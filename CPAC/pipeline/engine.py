@@ -15,10 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
+import copy
 import logging
 import os
 import warnings
-import copy
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -126,13 +126,22 @@ class ResourcePool:
         """
         if 'Template' in json_info:
             id_string.inputs.template_desc = json_info['Template']
-        elif ('space-template' in resource_idx and
+        elif ('template' in resource_idx and
               len(json_info.get('CpacProvenance', [])) > 1):
             try:
                 # check parent resource
-                self.back_propogate_template_name(resource_idx,
-                    list(self.get(json_info['CpacProvenance'][-2][-1].split(
-                        ':')[0]).values())[0]['json'], id_string)
+                parent_resource = list(self.get(
+                    json_info['CpacProvenance'][-2][-1].split(':')[0]
+                ).items())[0]
+                if (ast.literal_eval(parent_resource[0])[0].split(':')[0] in
+                    json_info.get('Sources', []) and
+                    'json' in parent_resource[1] and
+                        'Description' in parent_resource[1]['json']):
+                    id_string.inputs.template_desc = (
+                        parent_resource[1]['json']['Description'])
+                else:
+                    self.back_propogate_template_name(
+                        resource_idx, parent_resource[1]['json'], id_string)
             except (IndexError, KeyError):
                 pass
 
