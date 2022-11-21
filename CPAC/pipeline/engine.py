@@ -130,11 +130,15 @@ class ResourcePool:
               len(json_info.get('CpacProvenance', [])) > 1):
             try:
                 # check parent resource
-                parent_resource = list(self.get(
-                    json_info['CpacProvenance'][-2][-1].split(':')[0]
-                ).items())[0]
-                if (ast.literal_eval(parent_resource[0])[0].split(':')[0] in
-                    json_info.get('Sources', []) and
+                parent = json_info['CpacProvenance'][-2]
+                while isinstance(parent, list):
+                    parent = parent[-1]
+                parent_resource = list(self.get(parent.split(':')[0]).items()
+                                       )[0]
+                parent = ast.literal_eval(parent_resource[0])
+                while isinstance(parent, list):
+                    parent = parent[0]
+                if (parent[0].split(':')[0] in json_info.get('Sources', []) and
                     'json' in parent_resource[1] and
                         'Description' in parent_resource[1]['json']):
                     id_string.inputs.template_desc = (
