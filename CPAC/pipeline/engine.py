@@ -968,13 +968,24 @@ class ResourcePool:
                                         json_info in all_jsons if
                                         'CpacVariant' in json_info and
                                         'bold' in json_info['CpacVariant']))
-                # any(not) because all is overloaded as a parameter here
-                if any(not re.match(r'apply_(phasediff|blip)_to_timeseries_'
-                                    r'separately_.*', _bold) for
-                       _bold in all_bolds):
+                # not any(not) because all is overloaded as a parameter here
+                if not any(not re.match(r'apply_(phasediff|blip)_to_'
+                                        r'timeseries_separately_.*', _bold)
+                           for _bold in all_bolds):
                     # this fork point should only result in 0 or 1 forks
                     unlabelled.remove('bold')
                 del all_bolds
+            all_forks = {key: set(
+                chain.from_iterable(json_info['CpacVariant'][key] for
+                                    json_info in all_jsons if
+                                    'CpacVariant' in json_info and
+                                    key in json_info['CpacVariant'])) for
+                key in unlabelled}
+            # del all_jsons
+            for key, forks in all_forks.items():
+                if len(forks) < 2:  # no int suffix needed if only one fork
+                    unlabelled.remove(key)
+            # del all_forks
             for pipe_idx in self.rpool[resource]:
                 pipe_x = self.get_pipe_number(pipe_idx)
                 json_info = self.rpool[resource][pipe_idx]['json']
