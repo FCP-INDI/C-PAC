@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
 import copy
+from itertools import chain
 import logging
 import os
 import warnings
@@ -956,11 +957,24 @@ class ResourcePool:
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
-            all_jsons = (self.rpool[resource][pipe_idx]['json'] for pipe_idx in
-                         self.rpool[resource])
+            all_jsons = [self.rpool[resource][pipe_idx]['json'] for pipe_idx in
+                         self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
                              key not in ('movement-parameters', 'regressors'))
+            if 'bold' in unlabelled:
+                all_bolds = list(
+                    chain.from_iterable(json_info['CpacVariant']['bold'] for
+                                        json_info in all_jsons if
+                                        'CpacVariant' in json_info and
+                                        'bold' in json_info['CpacVariant']))
+                # any(not) because all is overloaded as a parameter here
+                if any(not re.match(r'apply_(phasediff|blip)_to_timeseries_'
+                                    r'separately_.*', _bold) for
+                       _bold in all_bolds):
+                    # this fork point should only result in 0 or 1 forks
+                    unlabelled.remove('bold')
+                del all_bolds
             for pipe_idx in self.rpool[resource]:
                 pipe_x = self.get_pipe_number(pipe_idx)
                 json_info = self.rpool[resource][pipe_idx]['json']
