@@ -30,6 +30,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
+from CPAC.pipeline.utils import source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import insert_entity
 from CPAC.utils.datasource import (
@@ -129,26 +130,23 @@ class ResourcePool:
             id_string.inputs.template_desc = json_info['Template']
         elif ('template' in resource_idx and
               len(json_info.get('CpacProvenance', [])) > 1):
-            try:
-                # check parent resource
-                parent = json_info['CpacProvenance'][-2]
-                while isinstance(parent, list):
-                    parent = parent[-1]
-                parent_resource = list(self.get(parent.split(':')[0]).items()
-                                       )[0]
-                parent = ast.literal_eval(parent_resource[0])
-                while isinstance(parent, list):
-                    parent = parent[0]
-                if (parent[0].split(':')[0] in json_info.get('Sources', []) and
-                    'json' in parent_resource[1] and
-                        'Description' in parent_resource[1]['json']):
-                    id_string.inputs.template_desc = (
-                        parent_resource[1]['json']['Description'])
-                else:
-                    self.back_propogate_template_name(
-                        resource_idx, parent_resource[1]['json'], id_string)
-            except (IndexError, KeyError):
-                pass
+            for resource in source_set(json_info['CpacProvenance']):
+                source, value = resource.split(':', 1)
+                if value.startswith('template_'
+                                    ) and source != 'FSL-AFNI-bold-ref':
+                    # 'FSL-AFNI-bold-ref' is currently allowed to be in
+                    # a different space, so don't use it as the space for
+                    # descendents
+                    try:
+                        anscestor_json = list(self.rpool.get(source).items()
+                                              )[0][1].get('json', {})
+                        if 'Description' in anscestor_json:
+                            id_string.inputs.template_desc = anscestor_json[
+                                'Description']
+                            return
+                    except (IndexError, KeyError):
+                        pass
+        return
 
     def get_name(self):
         return self.name
@@ -1093,7 +1091,6 @@ class ResourcePool:
                             # engine.py smoothing
                             pass
                         break
-
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
