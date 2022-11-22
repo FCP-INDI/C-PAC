@@ -114,20 +114,20 @@ rels-displacement	motion		func	1D
 label-CSF_probseg	probseg	T1w	anat	NIfTI					
 label-GM_probseg	probseg	T1w	anat	NIfTI					
 label-WM_probseg	probseg	T1w	anat	NIfTI					
-T1w-axial-qc	qc		anat	png					
-T1w-sagittal-qc	qc		anat	png					
-dseg-axial-qc	qc		anat	png					
-desg-sagittal-qc	qc		anat	png					
-bold-axial-qc	qc		func	png					
-bold-sagittal-qc	qc		func	png					
-bold-carpet-qc	qc		func	png					
-framewise-displacement-jenkinson-plot-qc	qc		func	png					
-movement-parameters-trans-qc	qc		func	png					
-movement-parameters-rot-qc	qc		func	png					
-bold-snr-axial-qc	qc		func	png					
-bold-snr-sagittal-qc	qc		func	png					
-bold-snr-hist-qc	qc		func	png					
-bold-snr-qc	qc		func	png					
+desc-T1wAxial_quality	qc		anat	png					
+desc-T1wSagittal_quality	qc		anat	png					
+desc-dsegAxial_quality	qc		anat	png					
+desc-dsegSagittal_quality	qc		anat	png					
+desc-boldAxial_quality	qc		func	png					
+desc-boldSagittal_quality	qc		func	png					
+desc-boldCarpet_quality	qc		func	png					
+desc-framewiseDisplacementJenkinsonPlot_quality	qc		func	png					
+desc-movementParametersTrans_quality	qc		func	png					
+desc-movementParametersRot_quality	qc		func	png					
+desc-boldSnrAxial_quality	qc		func	png					
+desc-boldSnrSagittal_quality	qc		func	png					
+desc-boldSnrHist_quality	qc		func	png					
+desc-boldSnr_quality	qc		func	png					
 space-template_desc-xcp_quality	qc		func	tsv					
 regressors	regressors		func	1D					
 desc-sm_reho	reho	functional	func	NIfTI		Yes			
