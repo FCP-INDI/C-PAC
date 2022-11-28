@@ -38,21 +38,21 @@ space-template_desc-PartialAfni_correlations	correlation	template	func	tsv
 space-template_desc-PearsonNilearn_correlations	correlation	template	func	tsv					
 space-template_desc-PartialNilearn_correlations	correlation	template	func	tsv					
 space-template_dcb	degree-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-binarized-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-sm_dcb	degree-centrality	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_dcb	degree-centrality	template	func	NIfTI					
+space-template_desc-zstd_dcb	degree-centrality	template	func	NIfTI					
 space-template_dcw	degree-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-weighted-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
+space-template_desc-sm_dcw	degree-centrality	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_dcw	degree-centrality	template	func	NIfTI					
+space-template_desc-zstd_dcw	degree-centrality	template	func	NIfTI					
 space-template_ecb	eigen-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-space-template_desc-binarized-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+space-template_desc-sm_ecb	eigen-centrality	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_ecb	eigen-centrality	template	func	NIfTI					
+space-template_desc-zstd_ecb	eigen-centrality	template	func	NIfTI					
 space-template_ecw	eigen-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-space-template_desc-weighted-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
+space-template_desc-sm_ecw	eigen-centrality	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_ecw	eigen-centrality	template	func	NIfTI					
+space-template_desc-zstd_ecw	eigen-centrality	template	func	NIfTI					
 desc-sm_falff	falff	functional	func	NIfTI		Yes			
 desc-sm-zstd_falff	falff	functional	func	NIfTI					
 desc-zstd_falff	falff	functional	func	NIfTI					
@@ -62,13 +62,13 @@ space-template_desc-sm-zstd_falff	falff	template	func	NIfTI
 space-template_desc-zstd_falff	falff	template	func	NIfTI					
 space-template_falff	falff	template	func	NIfTI	Yes	Yes			
 space-template_lfcdb	lfcd	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_lfcd	lfcd	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_lfcd	lfcd	template	func	NIfTI					
-space-template_desc-binarized-zstd_lfcd	lfcd	template	func	NIfTI					
+space-template_desc-sm_lfcdb	lfcd	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_lfcdb	lfcd	template	func	NIfTI					
+space-template_desc-zstd_lfcdb	lfcd	template	func	NIfTI					
 space-template_lfcdw	lfcd	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_lfcd	lfcd	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_lfcd	lfcd	template	func	NIfTI					
-space-template_desc-weighted-zstd_lfcd	lfcd	template	func	NIfTI					
+space-template_desc-sm_lfcdw	lfcd	template	func	NIfTI		Yes			
+space-template_desc-sm-zstd_lfcdw	lfcd	template	func	NIfTI					
+space-template_desc-zstd_lfcdw	lfcd	template	func	NIfTI					
 space-EPItemplate_desc-bold_mask	mask	EPI template	func	NIfTI					
 space-EPItemplate_res-derivative_desc-bold_mask	mask	EPI template	func	NIfTI					
 space-bold_desc-brain_mask	mask	functional	func	NIfTI					

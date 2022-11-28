@@ -691,7 +691,10 @@ class ResourcePool:
 
         post_labels = [(label, connection[0], connection[1])]
 
-        if 'centrality' in label or 'lfcd' in label:
+        if re.match(r'(.*_)?[ed]c[bw]$', label) or re.match(r'(.*_)?lfcd[bw]$',
+                                                            label):
+            # suffix: [eigenvector or degree] centrality [binarized or weighted]
+            # or lfcd [binarized or weighted]
             mask = 'template-specification-file'
         elif 'space-template' in label:
             mask = 'space-template_res-derivative_desc-bold_mask'
