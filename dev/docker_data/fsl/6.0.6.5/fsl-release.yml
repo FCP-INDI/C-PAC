@@ -59,7 +59,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2209.3
+ - fsl-base 2211.1
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -108,7 +108,7 @@ packages:
  - fsl-fugue 2201.2
  - fsl-get_standard 0.1.0
  - fsl-giftiio 2111.0
- - fsl-gps 2111.0
+ - fsl-gps 2211.0
  - fsl-installer 2.1.0
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
@@ -126,7 +126,7 @@ packages:
  - fsl-miscvis 2201.0
  - fsl-mist 2111.3
  - fsl-mm 2111.0
- - fsl_mrs 2.0.8
+ - fsl_mrs 2.0.9
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
