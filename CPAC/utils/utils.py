@@ -22,6 +22,7 @@ import gzip
 import json
 import numbers
 import pickle
+import re
 import numpy as np
 import yaml
 
@@ -199,7 +200,11 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
 
     if atlas_id:
         if '_desc-' in atlas_id:
-            atlas_id = atlas_id.replace('_desc-', '')
+            atlas, desc = atlas_id.split('_desc-')
+            if not re.match(r'.*[0-9]$', atlas) and re.match(r'[a-z].*', desc):
+                atlas_id = f'{atlas}{desc[0].upper()}{desc[1:]}'
+            else:
+                atlas_id = atlas_id.replace('_desc-', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
     part_id = unique_id.split('_')[0]
