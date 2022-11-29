@@ -172,8 +172,9 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
-                     atlas_id=None, fwhm=None, subdir=None):
+def create_id_string(cfg, unique_id, resource, scan_id=None,
+                     template_desc=None, atlas_id=None, fwhm=None, subdir=None
+                     ):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -182,11 +183,14 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
 
     Example
     -------
-    >>> create_id_string('sub-1_ses-1', 'desc-Mean-1_timeseries',
+    >>> from CPAC.utils.configuration import Configuration
+    >>> create_id_string(Configuration(), 'sub-1_ses-1',
+    ...                  'res-derivative_desc-Mean-1_timeseries',
     ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
-    'sub-1_ses-1_task-rest_atlas-Schaefer2018_desc-1007p17Mean1_timeseries'
+    'sub-1_ses-1_task-rest_atlas-Schaefer2018_res-3mm_desc-1007p17Mean1_timeseries'
     """
-    from CPAC.utils.bids_utils import combine_multiple_entity_instances
+    from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
+                                      res_in_filename
     from CPAC.utils.outputs import Outputs
 
     if resource in Outputs.motion:
@@ -233,7 +237,8 @@ def create_id_string(unique_id, resource, scan_id=None, template_desc=None,
     if subdir == 'func':
         out_filename = out_filename.replace('_space-bold_', '_')
 
-    return combine_multiple_entity_instances(out_filename)
+    return combine_multiple_entity_instances(
+        res_in_filename(cfg, out_filename))
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):

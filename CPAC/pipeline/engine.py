@@ -31,7 +31,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.bids_utils import insert_entity
+from CPAC.utils.bids_utils import insert_entity, res_in_filename
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -803,11 +803,6 @@ class ResourcePool:
                                   'fisher_zscore_standardize',
                                   fork=True)
 
-        if '_res-' in label and 'Resolution' in json_info:
-            # replace resolution text with actual resolution
-            label = re.sub('_res-[A-Za-z0-9]*_',
-                           f'_res-{json_info["Resolution"]}_', label)
-
         return (wf, post_labels)
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
@@ -876,9 +871,9 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'pipeline_{pipe_name}', 
-                                         part_id, ses_id)
-                filename = f'{unique_id}_{resource}'
+                container = os.path.join(f'pipeline_{pipe_name}', part_id,
+                                         ses_id)
+                filename = f'{unique_id}_{res_in_filename(self.cfg, resource)}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
@@ -998,7 +993,7 @@ class ResourcePool:
                             newdesc_suff = f'desc-{num_variant}_{suff}'
                             resource_idx = resource_idx.replace(suff,
                                                                 newdesc_suff)
-                id_string = pe.Node(Function(input_names=['unique_id',
+                id_string = pe.Node(Function(input_names=['cfg', 'unique_id',
                                                           'resource',
                                                           'scan_id',
                                                           'template_desc',
@@ -1008,6 +1003,7 @@ class ResourcePool:
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
+                id_string.inputs.cfg = self.cfg
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
@@ -1057,7 +1053,7 @@ class ResourcePool:
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    unique_id, resource_idx,
+                    self.cfg, unique_id, resource_idx,
                     template_desc=json_info.get('Template'),
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
 
@@ -1441,9 +1437,9 @@ class NodeBlock:
                                            new_json_info,
                                            pipe_idx, node_name, fork)
 
-                            wf, post_labels = rpool.post_process(wf, label, connection,
-                                                                 new_json_info, pipe_idx,
-                                                                 pipe_x, outs)
+                            wf, post_labels = rpool.post_process(
+                                wf, label, connection, new_json_info, pipe_idx,
+                                pipe_x, outs)
 
                             if rpool.func_reg:
                                 for postlabel in post_labels:
