@@ -22,7 +22,6 @@ import gzip
 import json
 import numbers
 import pickle
-import re
 import numpy as np
 import yaml
 
@@ -190,6 +189,7 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     ...                  scan_id='rest', atlas_id='Yeo_desc-7')
     'sub-1_ses-1_task-rest_atlas-Yeo7_res-3mm_desc-Mean1_timeseries'
     """
+    import re
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
                                       res_in_filename
     from CPAC.utils.outputs import Outputs
