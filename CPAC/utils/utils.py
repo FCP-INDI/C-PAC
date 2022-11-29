@@ -186,8 +186,8 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     >>> from CPAC.utils.configuration import Configuration
     >>> create_id_string(Configuration(), 'sub-1_ses-1',
     ...                  'res-derivative_desc-Mean-1_timeseries',
-    ...                  scan_id='rest', atlas_id='Schaefer2018_desc-1007p17')
-    'sub-1_ses-1_task-rest_atlas-Schaefer2018_res-3mm_desc-1007p17Mean1_timeseries'
+    ...                  scan_id='rest', atlas_id='Yeo_desc-7')
+    'sub-1_ses-1_task-rest_atlas-Yeo7_res-3mm_desc-Mean1_timeseries'
     """
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
                                       res_in_filename
@@ -198,8 +198,8 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
             f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
 
     if atlas_id:
-        if not (atlas_id.count('_') == 1 and '_desc-' in atlas_id):
-            atlas_id = atlas_id.replace('_', '')
+        if '_desc-' in atlas_id:
+            atlas_id = atlas_id.replace('_desc-', '')
         resource = f'atlas-{atlas_id}_{resource}'
 
     part_id = unique_id.split('_')[0]
