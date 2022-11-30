@@ -342,7 +342,7 @@ def get_bids_info(subject, scan, wf_name):
     '1'
     >>> get_bids_info(subject='sub-colornest035', scan='rest_run-01',
     ...               wf_name='cpac_sub-colornest035_ses-1')
-    ('colornest035', '1', 'rest', '1')
+    ('colornest035', '1', 'rest', '01')
     """
     returns = ('subject', 'session', 'task', 'run')
     ses = wf_name.split('_')[-1]
