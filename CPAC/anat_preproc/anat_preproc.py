@@ -1893,9 +1893,9 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-preproc_T1w",
-                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"],
-                 "desc-head_T1w")],
+     "inputs": [("desc-head_T1w", "desc-preproc_T1w",
+                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"]
+                )],
      "outputs": {
          "desc-preproc_T1w": {
              "SkullStripped": "True"},
@@ -1928,7 +1928,7 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
     anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
-    node_T1w, out_T1w = strat_pool.get_data('desc-preproc_T1w')
+    node_T1w, out_T1w = strat_pool.get_data('desc-head_T1w')
     wf.connect(node_T1w, out_T1w, anat_skullstrip_orig_vol, 'in_file_a')
 
     node, out = strat_pool.get_data(['space-T1w_desc-brain_mask',
