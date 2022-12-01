@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
+import copy
+from itertools import chain
 import logging
 import os
 import warnings
-import copy
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -29,6 +30,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
+from CPAC.pipeline.utils import source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import insert_entity
 from CPAC.utils.datasource import (
@@ -107,6 +109,44 @@ class ResourcePool:
 
     def append_name(self, name):
         self.name.append(name)
+
+    def back_propogate_template_name(self, resource_idx: str, json_info: dict,
+                                     id_string: 'pe.Node') -> None:
+        """Find and apply the template name from a resource's provenance
+
+        Parameters
+        ----------
+        resource_idx : str
+
+        json_info : dict
+
+        id_string : pe.Node
+
+        Returns
+        -------
+        None
+        """
+        if 'Template' in json_info:
+            id_string.inputs.template_desc = json_info['Template']
+        elif ('template' in resource_idx and
+              len(json_info.get('CpacProvenance', [])) > 1):
+            for resource in source_set(json_info['CpacProvenance']):
+                source, value = resource.split(':', 1)
+                if value.startswith('template_'
+                                    ) and source != 'FSL-AFNI-bold-ref':
+                    # 'FSL-AFNI-bold-ref' is currently allowed to be in
+                    # a different space, so don't use it as the space for
+                    # descendents
+                    try:
+                        anscestor_json = list(self.rpool.get(source).items()
+                                              )[0][1].get('json', {})
+                        if 'Description' in anscestor_json:
+                            id_string.inputs.template_desc = anscestor_json[
+                                'Description']
+                            return
+                    except (IndexError, KeyError):
+                        pass
+        return
 
     def get_name(self):
         return self.name
@@ -915,17 +955,45 @@ class ResourcePool:
             num_variant = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
+            all_jsons = [self.rpool[resource][pipe_idx]['json'] for pipe_idx in
+                         self.rpool[resource]]
+            unlabelled = set(key for json_info in all_jsons for key in
+                             json_info.get('CpacVariant', {}).keys() if
+                             key not in ('movement-parameters', 'regressors'))
+            if 'bold' in unlabelled:
+                all_bolds = list(
+                    chain.from_iterable(json_info['CpacVariant']['bold'] for
+                                        json_info in all_jsons if
+                                        'CpacVariant' in json_info and
+                                        'bold' in json_info['CpacVariant']))
+                # not any(not) because all is overloaded as a parameter here
+                if not any(not re.match(r'apply_(phasediff|blip)_to_'
+                                        r'timeseries_separately_.*', _bold)
+                           for _bold in all_bolds):
+                    # this fork point should only result in 0 or 1 forks
+                    unlabelled.remove('bold')
+                del all_bolds
+            all_forks = {key: set(
+                chain.from_iterable(json_info['CpacVariant'][key] for
+                                    json_info in all_jsons if
+                                    'CpacVariant' in json_info and
+                                    key in json_info['CpacVariant'])) for
+                key in unlabelled}
+            # del all_jsons
+            for key, forks in all_forks.items():
+                if len(forks) < 2:  # no int suffix needed if only one fork
+                    unlabelled.remove(key)
+            # del all_forks
             for pipe_idx in self.rpool[resource]:
-
                 pipe_x = self.get_pipe_number(pipe_idx)
-
-                try:
-                    num_variant += 1
-                except TypeError:
-                    pass
-
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
+
+                try:
+                    if unlabelled:
+                        num_variant += 1
+                except TypeError:
+                    pass
 
                 try:
                     del json_info['subjson']
@@ -938,7 +1006,6 @@ class ResourcePool:
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
                 if num_variant:
-                    labeled_variant = False
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
@@ -958,7 +1025,6 @@ class ResourcePool:
                                                          filt_value)
                             out_dct['filename'] = insert_entity(
                                 out_dct['filename'], 'filt', filt_value)
-                            labeled_variant = True
                     if True in cfg['nuisance_corrections',
                                    '2-nuisance_regression', 'run']:
                         reg_value = None
@@ -975,16 +1041,17 @@ class ResourcePool:
                                 out_dct['filename'], 'reg', reg_value)
                             resource_idx = insert_entity(resource_idx, 'reg',
                                                          reg_value)
-                            labeled_variant = True
-                    if labeled_variant is False:
-                        for key in out_dct['filename'].split('_')[::-1]:
-                            if key.startswith('desc-'):  # final `desc` entity
-                                out_dct['filename'] = out_dct[
-                                    'filename'].replace(key,
-                                                        f'{key}-{num_variant}')
-                                resource_idx = resource_idx.replace(
-                                    key, f'{key}-{num_variant}')
-                                break
+                    if unlabelled:
+                        if 'desc-' in out_dct['filename']:
+                            for key in out_dct['filename'].split('_')[::-1]:
+                                if key.startswith('desc-'):  # final `desc` entity
+                                    out_dct['filename'] = out_dct['filename'
+                                                                  ].replace(
+                                        key, f'{key}-{num_variant}')
+                                    resource_idx = resource_idx.replace(
+                                        key, f'{key}-{num_variant}')
+                                    break
+                        else:
                             suff = resource.split('_')[-1]
                             newdesc_suff = f'desc-{num_variant}_{suff}'
                             resource_idx = resource_idx.replace(suff,
@@ -1009,8 +1076,8 @@ class ResourcePool:
                         'data']
                     wf.connect(node, out, id_string, 'scan_id')
 
-                if 'Template' in json_info:
-                    id_string.inputs.template_desc = json_info['Template']
+                self.back_propogate_template_name(resource_idx, json_info,
+                                                  id_string)
 
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
@@ -1024,7 +1091,6 @@ class ResourcePool:
                             # engine.py smoothing
                             pass
                         break
-
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
@@ -1048,8 +1114,8 @@ class ResourcePool:
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    unique_id, resource_idx,
-                    template_desc=json_info.get('Template'),
+                    unique_id, id_string.inputs.resource,
+                    template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
