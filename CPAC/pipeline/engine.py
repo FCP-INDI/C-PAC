@@ -19,6 +19,7 @@ import copy
 from itertools import chain
 import logging
 import os
+import re
 import warnings
 
 from CPAC.pipeline import \
@@ -32,7 +33,7 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.utils import source_set
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.bids_utils import insert_entity
+from CPAC.utils.bids_utils import insert_entity, res_in_filename
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -730,7 +731,10 @@ class ResourcePool:
 
         post_labels = [(label, connection[0], connection[1])]
 
-        if 'centrality' in label or 'lfcd' in label:
+        if re.match(r'(.*_)?[ed]c[bw]$', label) or re.match(r'(.*_)?lfcd[bw]$',
+                                                            label):
+            # suffix: [eigenvector or degree] centrality [binarized or weighted]
+            # or lfcd [binarized or weighted]
             mask = 'template-specification-file'
         elif 'space-template' in label:
             mask = 'space-template_res-derivative_desc-bold_mask'
@@ -825,7 +829,7 @@ class ResourcePool:
                     wf.connect(connection[0], connection[1],
                                zstd, 'inputspec.correlation_file')
 
-                    # if the output is 'desc-MeanSCA_correlations', we want
+                    # if the output is 'space-template_desc-MeanSCA_correlations', we want
                     # 'desc-MeanSCA_timeseries'
                     oned = label.replace('correlations', 'timeseries')
 
@@ -907,9 +911,9 @@ class ResourcePool:
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
                 pipe_name = cfg.pipeline_setup['pipeline_name']
-                container = os.path.join(f'pipeline_{pipe_name}', 
-                                         part_id, ses_id)
-                filename = f'{unique_id}_{resource}'
+                container = os.path.join(f'pipeline_{pipe_name}', part_id,
+                                         ses_id)
+                filename = f'{unique_id}_{res_in_filename(self.cfg, resource)}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
@@ -1056,7 +1060,7 @@ class ResourcePool:
                             newdesc_suff = f'desc-{num_variant}_{suff}'
                             resource_idx = resource_idx.replace(suff,
                                                                 newdesc_suff)
-                id_string = pe.Node(Function(input_names=['unique_id',
+                id_string = pe.Node(Function(input_names=['cfg', 'unique_id',
                                                           'resource',
                                                           'scan_id',
                                                           'template_desc',
@@ -1066,6 +1070,7 @@ class ResourcePool:
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
+                id_string.inputs.cfg = self.cfg
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
@@ -1114,8 +1119,8 @@ class ResourcePool:
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    unique_id, id_string.inputs.resource,
-                    template_desc=id_string.inputs.template_desc,
+                    self.cfg, unique_id, resource_idx,
+                    template_desc=json_info.get('Template'),
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
@@ -1498,9 +1503,9 @@ class NodeBlock:
                                            new_json_info,
                                            pipe_idx, node_name, fork)
 
-                            wf, post_labels = rpool.post_process(wf, label, connection,
-                                                                 new_json_info, pipe_idx,
-                                                                 pipe_x, outs)
+                            wf, post_labels = rpool.post_process(
+                                wf, label, connection, new_json_info, pipe_idx,
+                                pipe_x, outs)
 
                             if rpool.func_reg:
                                 for postlabel in post_labels:

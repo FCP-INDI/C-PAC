@@ -4286,13 +4286,14 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "space-template_desc-brain_bold": {
                      "Template": "T1w-brain-template-funcreg"},
                  "space-template_desc-bold_mask": {
+                    "Template": "T1w-brain-template-funcreg"},
+                 "space-template_desc-head_bold": {
                      "Template": "T1w-brain-template-funcreg"},
                  "space-template_res-derivative_desc-preproc_bold": {
                      "Template": "T1w-brain-template-deriv"},
                  "space-template_res-derivative_desc-bold_mask": {
                      "Template": "T1w-brain-template-deriv"}}}
     '''  # noqa: 501
-
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -4319,7 +4320,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     node, out = strat_pool.get_data('sbref')
     wf.connect(node, out, bbr2itk, 'source_file')
 
-    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    node, out = strat_pool.get_data(
+        'from-bold_to-T1w_mode-image_desc-linear_xfm')
     wf.connect(node, out, bbr2itk, 'transform_file')
 
     split_func = pe.Node(interface=fsl.Split(),
@@ -4389,15 +4391,17 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     wf.connect(motionxfm2itk, 'itk_transform',
                collectxfm, f'in{merge_num}')
 
-    applyxfm_func_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
-                                           name=f'applyxfm_func_to_standard_{pipe_num}',
-                                           iterfield=['input_image', 'transforms'])
+    applyxfm_func_to_standard = pe.MapNode(
+        interface=ants.ApplyTransforms(),
+        name=f'applyxfm_func_to_standard_{pipe_num}',
+        iterfield=['input_image', 'transforms'])
     applyxfm_func_to_standard.inputs.float = True
     applyxfm_func_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
-    
-    applyxfm_derivfunc_to_standard = pe.MapNode(interface=ants.ApplyTransforms(),
-                                           name=f'applyxfm_derivfunc_to_standard_{pipe_num}',
-                                           iterfield=['input_image', 'transforms'])
+
+    applyxfm_derivfunc_to_standard = pe.MapNode(
+        interface=ants.ApplyTransforms(),
+        name=f'applyxfm_derivfunc_to_standard_{pipe_num}',
+        iterfield=['input_image', 'transforms'])
     applyxfm_derivfunc_to_standard.inputs.float = True
     applyxfm_derivfunc_to_standard.inputs.interpolation = 'LanczosWindowedSinc'
 
@@ -4412,10 +4416,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     node, out = strat_pool.get_data('T1w-brain-template-deriv')
     wf.connect(node, out, applyxfm_derivfunc_to_standard, 'reference_image')
 
-    wf.connect(collectxfm, 'out',
-               applyxfm_func_to_standard, 'transforms')
-    wf.connect(collectxfm, 'out',
-               applyxfm_derivfunc_to_standard, 'transforms')
+    wf.connect(collectxfm, 'out', applyxfm_func_to_standard, 'transforms')
+    wf.connect(collectxfm, 'out', applyxfm_derivfunc_to_standard, 'transforms')
 
     ### Loop ends! ###
 
@@ -4424,17 +4426,18 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     merge_func_to_standard.inputs.dimension = 't'
 
     wf.connect(applyxfm_func_to_standard, 'output_image',
-        merge_func_to_standard, 'in_files')
-        
-    merge_derivfunc_to_standard = pe.Node(interface=fslMerge(),
-                                     name=f'merge_derivfunc_to_standard_{pipe_num}')
+               merge_func_to_standard, 'in_files')
+
+    merge_derivfunc_to_standard = pe.Node(
+        interface=fslMerge(), name=f'merge_derivfunc_to_standard_{pipe_num}')
     merge_derivfunc_to_standard.inputs.dimension = 't'
 
     wf.connect(applyxfm_derivfunc_to_standard, 'output_image',
                merge_derivfunc_to_standard, 'in_files')
 
-    applyxfm_func_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
-                                             name=f'applyxfm_func_mask_to_standard_{pipe_num}')
+    applyxfm_func_mask_to_standard = pe.Node(
+        interface=ants.ApplyTransforms(),
+        name=f'applyxfm_func_mask_to_standard_{pipe_num}')
     applyxfm_func_mask_to_standard.inputs.interpolation = 'MultiLabel'
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -4443,20 +4446,20 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     node, out = strat_pool.get_data('T1w-brain-template-funcreg')
     wf.connect(node, out, applyxfm_func_mask_to_standard, 'reference_image')
 
-    collectxfm_mask = pe.Node(util.Merge(2),
-                              name=f'collectxfm_func_mask_to_standard_{pipe_num}')
+    collectxfm_mask = pe.Node(
+        util.Merge(2), name=f'collectxfm_func_mask_to_standard_{pipe_num}')
 
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, collectxfm_mask, 'in1')
 
-    wf.connect(bbr2itk, 'itk_transform',
-        collectxfm_mask, 'in2')
+    wf.connect(bbr2itk, 'itk_transform', collectxfm_mask, 'in2')
 
     wf.connect(collectxfm_mask, 'out',
-        applyxfm_func_mask_to_standard, 'transforms')
+               applyxfm_func_mask_to_standard, 'transforms')
 
-    applyxfm_deriv_mask_to_standard = pe.Node(interface=ants.ApplyTransforms(),
-                                             name=f'applyxfm_deriv_mask_to_standard_{pipe_num}')
+    applyxfm_deriv_mask_to_standard = pe.Node(
+        interface=ants.ApplyTransforms(),
+        name=f'applyxfm_deriv_mask_to_standard_{pipe_num}')
     applyxfm_deriv_mask_to_standard.inputs.interpolation = 'MultiLabel'
 
     node, out = strat_pool.get_data('space-bold_desc-brain_mask')
@@ -4465,36 +4468,37 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     node, out = strat_pool.get_data('T1w-brain-template-deriv')
     wf.connect(node, out, applyxfm_deriv_mask_to_standard, 'reference_image')
 
-    collectxfm_deriv_mask = pe.Node(util.Merge(2),
-                                    name=f'collectxfm_deriv_mask_to_standard_{pipe_num}')
+    collectxfm_deriv_mask = pe.Node(
+        util.Merge(2), name=f'collectxfm_deriv_mask_to_standard_{pipe_num}')
 
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, collectxfm_deriv_mask, 'in1')
 
     wf.connect(bbr2itk, 'itk_transform',
-        collectxfm_deriv_mask, 'in2')
+               collectxfm_deriv_mask, 'in2')
 
     wf.connect(collectxfm_deriv_mask, 'out',
-        applyxfm_deriv_mask_to_standard, 'transforms')
+               applyxfm_deriv_mask_to_standard, 'transforms')
 
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(),
                          name=f'get_func_brain_to_standard_{pipe_num}')
 
     wf.connect(merge_func_to_standard, 'merged_file',
-        apply_mask, 'in_file')
+               apply_mask, 'in_file')
 
     wf.connect(applyxfm_func_mask_to_standard, 'output_image',
-        apply_mask, 'mask_file')
+               apply_mask, 'mask_file')
 
     outputs = {
-        'space-template_desc-preproc_bold': (merge_func_to_standard,
-                                             'merged_file'),
+        'space-template_desc-head_bold': (merge_func_to_standard,
+                                          'merged_file'),
         'space-template_desc-brain_bold': (apply_mask, 'out_file'),
+        'space-template_desc-preproc_bold': (apply_mask, 'out_file'),
         'space-template_desc-bold_mask': (applyxfm_func_mask_to_standard,
-            'output_image'),
+                                          'output_image'),
         'space-template_res-derivative_desc-preproc_bold':
             (merge_derivfunc_to_standard, 'merged_file'),
-        'space-template_res-derivative_desc-bold_mask': 
+        'space-template_res-derivative_desc-bold_mask':
             (applyxfm_deriv_mask_to_standard, 'output_image')
     }
 

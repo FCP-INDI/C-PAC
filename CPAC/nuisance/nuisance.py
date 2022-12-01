@@ -2455,9 +2455,11 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                        '2-nuisance_regression',
                                        'bandpass_filtering_order'] == 'Before'
 
-    nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
-                                               f'_{space}_{opt["Name"]}'
-                                               f'_{pipe_num}')
+    name_suff = (f'{space}_{opt["Name"]}_{pipe_num}' if res is None else
+                 f'{space}_res-{res}_{opt["Name"]}_{pipe_num}')
+    nuis_name = f'nuisance_regression_{name_suff}'
+
+    nuis = create_nuisance_regression_workflow(opt, name=nuis_name)
     if bandpass_before:
         nofilter_nuis = nuis.clone(name=f'{nuis.name}-noFilter')
 
@@ -2504,8 +2506,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     if bandpass:
         filt = filtering_bold_and_regressors(opt, name=f'filtering_bold_and_'
-                                             f'regressors_{opt["Name"]}'
-                                             f'_{pipe_num}')
+                                             f'regressors_{name_suff}')
         filt.inputs.inputspec.nuisance_selectors = opt
 
         node, out = strat_pool.get_data('regressors')
@@ -2623,6 +2624,10 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_res-derivative_desc-cleaned_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space"},
+                "space-template_desc-denoisedNofilt_bold": {
+        "Description": "Preprocessed BOLD image that was nuisance-"
+                       "regressed in template space, but without "
+                       "frequency filtering."},
                  "space-template_res-derivative_desc-denoisedNofilt_bold": {
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space, but without "

@@ -145,7 +145,7 @@ class Configuration:
             # set attribute
             setattr(self, key, set_from_ENV(config_map[key]))
 
-        self.__update_attr()
+        self._update_attr()
 
     def __str__(self):
         return ('C-PAC Configuration '
@@ -158,7 +158,7 @@ class Configuration:
     def __copy__(self):
         newone = type(self)({})
         newone.__dict__.update(self.__dict__)
-        newone.__update_attr()
+        newone._update_attr()
         return newone
 
     def __getitem__(self, key):
@@ -287,7 +287,7 @@ class Configuration:
 
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
-    def __update_attr(self):
+    def _update_attr(self):
 
         def check_path(key):
             if isinstance(key, str) and '/' in key:

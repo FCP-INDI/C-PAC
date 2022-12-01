@@ -1294,7 +1294,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool(func):
             apply_func_warp['T1'] = False
 
-    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression']['space']
+    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression'][
+        'space']
     target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
     target_space_reho = cfg.regional_homogeneity['target_space']
 
@@ -1304,7 +1305,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                   apply_blip_to_timeseries_separately,
                                   warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
-                                  
+
         if 'Template' in target_space_alff or 'Template' in target_space_reho:
             ts_to_T1template_block += [warp_timeseries_to_T1template_deriv]
 
@@ -1372,7 +1373,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases
 
-    if not rpool.check_rpool('desc-Mean_timeseries') and \
+    if not rpool.check_rpool('space-template_desc-Mean_timeseries') and \
                     'Avg' in tse_atlases:
         pipeline_blocks += [timeseries_extraction_AVG]
 
@@ -1384,15 +1385,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
 
-    if not rpool.check_rpool('desc-MeanSCA_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:
         pipeline_blocks += [SCA_AVG]
 
-    if not rpool.check_rpool('desc-DualReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-DualReg_correlations') and \
                     'DualReg' in sca_atlases:
         pipeline_blocks += [dual_regression]
 
-    if not rpool.check_rpool('desc-MultReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MultReg_correlations') and \
                     'MultReg' in sca_atlases:
         pipeline_blocks += [multiple_regression]
 

@@ -847,6 +847,8 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
             entities[key].append(value)
     for key, value in entities.items():
         entities[key] = camelCase('-'.join(value))
+    if 'desc' in entities:  # make 'desc' final entity
+        suffixes.insert(0, f'desc-{entities.pop("desc")}')
     return '_'.join([f'{key}-{value}' for key, value in entities.items()
                      ] + suffixes)
 
@@ -1031,6 +1033,51 @@ def load_cpac_data_config(data_config_file, participant_labels,
             sys.exit(1)
 
     return sub_list
+
+
+def res_in_filename(cfg, label):
+    """Specify resolution in filename
+
+    Parameters
+    ----------
+    cfg : CPAC.utils.configuration.Configuration
+
+    label : str
+
+    Returns
+    -------
+    label : str
+
+    Examples
+    --------
+    >>> from CPAC.utils.configuration import Configuration
+    >>> res_in_filename(Configuration({
+    ...     'registration_workflows': {
+    ...         'anatomical_registration': {'resolution_for_anat': '2x2x2'}}}),
+    ...     'sub-1_res-anat_bold')
+    'sub-1_res-2x2x2_bold'
+    >>> res_in_filename(Configuration({
+    ...     'registration_workflows': {
+    ...         'anatomical_registration': {'resolution_for_anat': '2x2x2'}}}),
+    ...     'sub-1_res-3mm_bold')
+    'sub-1_res-3mm_bold'
+    """
+    if '_res-' in label:
+        # replace resolution text with actual resolution
+        resolution = label.split('_res-', 1)[1].split('_', 1)[0]
+        resolution = {
+            'anat': cfg['registration_workflows', 'anatomical_registration',
+                        'resolution_for_anat'],
+            'bold': cfg['registration_workflows', 'functional_registration',
+                        'func_registration_to_template', 'output_resolution',
+                        'func_preproc_outputs'],
+            'derivative': cfg['registration_workflows',
+                              'functional_registration',
+                              'func_registration_to_template',
+                              'output_resolution', 'func_derivative_outputs']
+        }.get(resolution, resolution)
+        label = re.sub('_res-[A-Za-z0-9]*_', f'_res-{resolution}_', label)
+    return label
 
 
 def sub_list_filter_by_labels(sub_list, labels):
