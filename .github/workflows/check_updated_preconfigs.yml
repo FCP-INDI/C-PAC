@@ -44,20 +44,13 @@ jobs:
             export PATTERN="(declare|typeset) -a"
             if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
             then
-              echo "$VERSIONS"
-              echo "${VERSIONS[0]:1}"
-              echo "${VERSIONS[1]:1}"
-              echo "${VERSIONS[2]:1}"
               for DOCKERFILE in $(find ./.github/Dockerfiles -name "*.Dockerfile")
               do
                 export IFS=""
-                export PATTERN="FROM ghcr\.io/fcp\-indi/c\-pac/.*\-${VERSIONS[1]:1}"
-                echo "grep ${PATTERN} ${DOCKERFILE}"
-                echo "$(grep ${PATTERN} ${DOCKERFILE})"
-                for LINE in $(grep ${PATTERN} ${DOCKERFILE})
+                for LINE in $(grep "FROM ghcr\.io/fcp\-indi/c\-pac/.*\-${VERSIONS[0]:1}" ${DOCKERFILE})
                 do
                   echo "Updating stage tags in ${DOCKERFILE}"
-                  sed -i '' "s/\-${VERSIONS[1]:1}/\-${VERSIONS[2]:1}/g" ${DOCKERFILE}
+                  sed -i "s/\-${VERSIONS[0]:1}/\-${VERSIONS[1]:1}/g" ${DOCKERFILE}
                 done
               done
               unset IFS
