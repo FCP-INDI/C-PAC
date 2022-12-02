@@ -44,7 +44,7 @@ This file is part of C-PAC."""
 _version_major = 1
 _version_minor = 8
 _version_micro = 5
-_version_extra = 'dev'
+_version_extra = 'testfix'
 
 
 def get_cpac_gitversion():
