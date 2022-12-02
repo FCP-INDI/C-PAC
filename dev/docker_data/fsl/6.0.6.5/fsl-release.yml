@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 2.1.0
+installer: 3.0.0
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -59,7 +59,7 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2211.1
+ - fsl-base 2212.0
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -109,7 +109,7 @@ packages:
  - fsl-get_standard 0.1.0
  - fsl-giftiio 2111.0
  - fsl-gps 2211.0
- - fsl-installer 2.1.0
+ - fsl-installer 3.0.0
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
  - fsl-libmeshutils 2111.0
