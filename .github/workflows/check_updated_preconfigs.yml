@@ -44,6 +44,8 @@ jobs:
             export PATTERN="(declare|typeset) -a"
             if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
             then
+              echo "$VERSIONS"
+              echo "${VERSIONS[0]:1}"
               echo "${VERSIONS[1]:1}"
               echo "${VERSIONS[2]:1}"
               for DOCKERFILE in $(find ./.github/Dockerfiles -name "*.Dockerfile")
