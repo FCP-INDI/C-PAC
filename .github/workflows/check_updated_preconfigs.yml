@@ -21,6 +21,47 @@ jobs:
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          export PYTHONPATH=$PWD
+          pip install -q wheel
+          pip install -q nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
+          python ./CPAC/utils/configuration/yaml_template.py
+          if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
+          then
+            git add CPAC/resources/configs
+            git commit -m ":bulb: Update comments based on default preconfig"
+          fi
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
+          then
+            cd CPAC
+            VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+            cd ..
+            echo "v${VERSION}" > version
+            find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+            git add version
+            VERSIONS=($(git diff origin/${GITHUB_BRANCH} -- version | tail -n 2))
+            export PATTERN="(declare|typeset) -a"
+            if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
+            then
+              for DOCKERFILE in $(find ./.github/Dockerfiles -name "*.Dockerfile")
+              do
+                export IFS=""
+                for LINE in $(grep "FROM ghcr\.io/fcp\-indi/c\-pac/.*\-${VERSIONS[0]:1}" ${DOCKERFILE})
+                do
+                  echo "Updating stage tags in ${DOCKERFILE}"
+                  sed -i "s/\-${VERSIONS[0]:1}/\-${VERSIONS[1]:1}/g" ${DOCKERFILE}
+                done
+              done
+              unset IFS
+            fi
+            if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
+            then
+              git add CPAC/resources/configs .github/Dockerfiles
+              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)" || true
+              git push origin HEAD:${GITHUB_BRANCH} || true
+            fi
+            cd ..
+          fi
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]
           then
             cd $HOME/work/C-PAC/C-PAC
@@ -38,30 +79,6 @@ jobs:
             \
             [skip ci]"
             git push origin HEAD:${GITHUB_BRANCH} || true
-          fi
-          export PYTHONPATH=$PWD
-          pip install nipype numpy matplotlib pandas pathvalidate pytz pyyaml voluptuous yamlordereddictloader
-          python ./CPAC/utils/configuration/yaml_template.py
-          if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
-          then
-            git add CPAC/resources/configs
-            git commit -m ":bulb: Update comments based on default preconfig"
-          fi
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
-          then
-            cd CPAC
-            VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
-            cd ..
-            echo "v${VERSION}" > version
-            find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-            git add version CPAC/resources/configs
-            if [[ ! -z $(git diff origin/${GITHUB_BRANCH}) ]]
-            then
-              git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)" || true
-              git push origin HEAD:${GITHUB_BRANCH} || true
-            fi
-            cd ..
           fi
 
   trigger-next-workflow:
