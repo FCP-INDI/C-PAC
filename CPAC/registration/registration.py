@@ -3034,6 +3034,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "T1_template",
      "inputs": [("sbref",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "phasediff-warp",
                  "ants-blip-warp",
                  "fsl-blip-warp"),
                 ("from-T1w_to-template_mode-image_xfm",
@@ -3089,6 +3090,13 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
             wf.connect(node, out, xfm, 'inputspec.blip_warp')
         elif reg_tool == 'ants':
             # apply the fsl blip warp separately
+            pass
+    elif strat_pool.check_rpool('phasediff-warp'):
+        if reg_tool == 'ants':
+            node, out = strat_pool.get_data('phasediff-warp')
+            wf.connect(node, out, xfm, 'inputspec.blip_warp')
+        elif reg_tool == 'fsl':
+            # apply the ants phasediff warp separately
             pass
 
     return (wf, outputs)
@@ -3169,83 +3177,41 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
                  "desc-preproc_bold",
                  "desc-stc_bold",
                  "bold",
-                 "from-bold_to-T1w_mode-image_desc-linear_xfm"),
-                "despiked-fieldmap",
-                "pe-direction",
-                "effectiveEchoSpacing"],
-     "outputs": ["sbref",
-                 "desc-preproc_bold",
+                 "from-bold_to-template_mode-image_xfm",
+                 "phasediff-warp")],
+     "outputs": ["desc-preproc_bold",
                  "desc-stc_bold",
                  "bold"]}
     '''
 
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
     outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
-    if not strat_pool.check_rpool("despiked-fieldmap"):
+    if strat_pool.check_rpool("phasediff-warp"):
+        if reg_tool == 'fsl':
+            phase_node, phase_out = strat_pool.get_data("phasediff-warp")
+            reg_tool = 'ants'
+        else:
+            return (wf, outputs)
+    else:
         return (wf, outputs)
 
-    invert_coreg_xfm = pe.Node(interface=fsl.ConvertXFM(),
-        name=f'invert_coreg_xfm_{pipe_num}')
-    invert_coreg_xfm.inputs.invert_xfm = True
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
 
-    node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
-    wf.connect(node, out, invert_coreg_xfm, 'in_file')
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    warp_fmap = pe.Node(interface=fsl.ApplyWarp(),
-        name=f'warp_fmap_{pipe_num}')
+    apply_xfm = apply_transform(f'warp_ts_to_phase_sep_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
 
-    node, out = strat_pool.get_data('despiked-fieldmap')
-    wf.connect(node, out, warp_fmap, 'in_file')
+    apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+        'functional_registration']['func_registration_to_template'][
+        'ANTs_pipelines']['interpolation']
 
-    node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, warp_fmap, 'ref_file')
-
-    wf.connect(invert_coreg_xfm, 'out_file', warp_fmap, 'premat')
-
-    mask_fmap = pe.Node(interface=fsl.maths.MathsCommand(),
-                        name=f'mask_fmap_{pipe_num}')
-    mask_fmap.inputs.args = '-abs -bin'
-
-    wf.connect(warp_fmap, 'out_file', mask_fmap, 'in_file')
-
-    conv_pedir = \
-        pe.Node(interface=util.Function(input_names=['pedir',
-                                                     'convert'],
-                                        output_names=['pedir'],
-                                        function=convert_pedir),
-                name=f'apply_phasediff_convert_pedir_{pipe_num}')
-    conv_pedir.inputs.convert = 'ijk_to_xyz'
-
-    node, out = strat_pool.get_data('pe-direction')
-    wf.connect(node, out, conv_pedir, 'pedir')
-
-    fugue_saveshift = pe.Node(interface=fsl.FUGUE(),
-                              name=f'fugue_saveshift_{pipe_num}')
-    fugue_saveshift.inputs.save_shift = True
-
-    wf.connect(warp_fmap, 'out_file', fugue_saveshift, 'fmap_in_file')
-    wf.connect(mask_fmap, 'out_file', fugue_saveshift, 'mask_file')
-
-    # FSL calls effective echo spacing = dwell time (not accurate)
-    node, out = strat_pool.get_data('effectiveEchoSpacing')
-    wf.connect(node, out, fugue_saveshift, 'dwell_time')
-
-    wf.connect(conv_pedir, 'pedir', fugue_saveshift, 'unwarp_direction')
-
-    shift_warp = pe.Node(interface=fsl.ConvertWarp(), 
-                         name=f'shift_warp_{pipe_num}')
-    shift_warp.inputs.out_relwarp = True
-
-    wf.connect(fugue_saveshift, 'shift_out_file', shift_warp, 'shift_in_file')
-
-    node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, shift_warp, 'reference')
-
-    wf.connect(conv_pedir, 'pedir', shift_warp, 'shift_direction')
-
-    warp_bold = pe.Node(interface=fsl.ApplyWarp(),
-                        name=f'warp_bold_phasediff_{pipe_num}')
-    warp_bold.inputs.relwarp = True
-    warp_bold.inputs.interp = 'spline'
+    connect = strat_pool.get_data("desc-preproc_bold")
 
     if opt == 'default':
         node, out = strat_pool.get_data('desc-preproc_bold')
@@ -3257,27 +3223,15 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
         node, out = strat_pool.get_data('bold')
         out_label = 'bold'
 
-    wf.connect(node, out, warp_bold, 'in_file')
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
-    node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, warp_bold, 'ref_file')
+    node, out = strat_pool.get_data("sbref")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
 
-    wf.connect(shift_warp, 'out_file', warp_bold, 'field_file')
-    
-    warp_sbref = pe.Node(interface=fsl.ApplyWarp(),
-                        name=f'warp_sbref_phasediff_{pipe_num}')
-    warp_sbref.inputs.relwarp = True
-    warp_sbref.inputs.interp = 'spline'
-
-    node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, warp_sbref, 'in_file')
-    wf.connect(node, out, warp_sbref, 'ref_file')
-
-    wf.connect(shift_warp, 'out_file', warp_sbref, 'field_file')
+    wf.connect(phase_node, phase_out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        out_label: (warp_bold, 'out_file'),
-        'sbref': (warp_sbref, 'out_file')
+        out_label: (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -4275,6 +4229,7 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                  "from-T1w_to-template_mode-image_xfm",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "from-bold_to-template_mode-image_xfm",
+                 "phasediff-warp",
                  "ants-blip-warp",
                  "fsl-blip-warp",
                  "T1w",
@@ -4361,15 +4316,19 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
                    motionxfm2itk, 'transform_file')
 
     merge_num = 4
-    blip = False
+    dist = False
     if strat_pool.check_rpool('ants-blip-warp') and reg_tool == 'ants':
-        blip_node, blip_out = strat_pool.get_data('ants-blip-warp')
+        dist_node, dist_out = strat_pool.get_data('ants-blip-warp')
         merge_num = 5
-        blip = True
+        dist = True
     elif strat_pool.check_rpool('fsl-blip-warp') and reg_tool == 'fsl':
-        blip_node, blip_out = strat_pool.get_data('fsl-blip-warp')
+        dist_node, dist_out = strat_pool.get_data('fsl-blip-warp')
         merge_num = 5
-        blip = True
+        dist = True
+    elif strat_pool.check_rpool('phasediff-warp') and reg_tool == 'ants':
+        dist_node, dist_out = strat_pool.get_data('phasediff-warp')
+        merge_num = 5
+        dist = True
 
     collectxfm = pe.MapNode(util.Merge(merge_num),
                             name=f'collectxfm_func_to_standard_{pipe_num}',
@@ -4383,8 +4342,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
 
     collectxfm.inputs.in3 = 'identity'
 
-    if blip:
-        wf.connect(blip_node, blip_out, collectxfm, 'in4')
+    if dist:
+        wf.connect(dist_node, dist_out, collectxfm, 'in4')
 
     wf.connect(motionxfm2itk, 'itk_transform',
                collectxfm, f'in{merge_num}')

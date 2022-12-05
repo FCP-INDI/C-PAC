@@ -154,6 +154,7 @@ from CPAC.func_preproc.func_preproc import (
 )
 
 from CPAC.distortion_correction.distortion_correction import (
+    distcor_phasediff_sdcflows,
     distcor_phasediff_fsl_fugue,
     distcor_blip_afni_qwarp,
     distcor_blip_fsl_topup
@@ -1182,7 +1183,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             fmap_keys = sub_dict['fmap']
             if 'phasediff' in fmap_keys or 'phase1' in fmap_keys:
                 if 'magnitude' in fmap_keys or 'magnitude1' in fmap_keys:
-                    distcor_blocks.append(distcor_phasediff_fsl_fugue)
+                    distcor_blocks.append(distcor_phasediff_sdcflows)
             if len(fmap_keys) == 2:
                 for key in fmap_keys:
                     if 'epi_' not in key:

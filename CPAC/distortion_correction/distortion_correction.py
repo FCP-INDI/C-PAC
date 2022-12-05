@@ -33,8 +33,10 @@ from CPAC.pipeline.engine import wrap_block
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.datasource import match_epi_fmaps
+from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 from CPAC.func_preproc.func_preproc import bold_mask_afni, bold_masking
+from CPAC.registration.utils import run_c3d
 
 from CPAC.distortion_correction.utils import run_convertwarp, \
                                              phase_encode, \
@@ -42,11 +44,185 @@ from CPAC.distortion_correction.utils import run_convertwarp, \
                                              z_pad, \
                                              choose_phase_image, \
                                              find_vnum_base
+                                             
+from sdcflows.workflows.fit.fieldmap import init_fmap_wf
+from sdcflows.workflows.apply.registration import init_coeff2epi_wf
+from sdcflows.workflows.apply.correction import init_unwarp_wf
 
 
 def create_afni_arg(shrink_fac):
     expr = '-shrink_fac {0} '.format(shrink_fac)
     return expr
+    
+    
+def gather_phase_inputs(phase1, phase1_params, phase2, phase2_params):
+    out = [(phase1, phase1_params), (phase2, phase2_params)]
+    return out
+    
+    
+def pick_coeff(coeff_list):
+    coeff = coeff_list[0]
+    return coeff
+
+
+def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "distcor_phasediff_sdcflows",
+     "config": ["functional_preproc", "distortion_correction"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "PhaseDiff",
+     "inputs": ["sbref",
+                "space-bold_desc-brain_mask",
+                "scan-params",
+                "phasediff",
+                "phasediff-scan-params",
+                "phase1",
+                "phase1-scan-params",
+                "phase2",
+                "phase2-scan-params",
+                "magnitude",
+                "magnitude1",
+                "magnitude2"],
+     "outputs": ["sbref",
+                 "space-bold_desc-brain_mask",
+                 "phasediff-warp"]}
+    '''
+
+    sdcflow_fmap = init_fmap_wf()
+
+    '''
+    if strat_pool.check_rpool('phase1') and strat_pool.check_rpool('phase2'):
+        fslmaths_sub = pe.Node(interface=fsl.BinaryMaths(), 
+                               name='fugue_phase_subtraction')
+        fslmaths_sub.inputs.operation = 'sub'
+
+        node, out = strat_pool.get_data('phase1')
+        wf.connect(node, out, fslmaths_sub, 'in_file')
+    
+        node, out = strat_pool.get_data('phase2')
+        wf.connect(node, out, fslmaths_sub, 'operand_file')
+
+        node, out = (fslmaths_sub, 'out_file')
+
+    elif strat_pool.check_rpool('phasediff'):
+        node, out = strat_pool.get_data('phasediff')
+    '''
+    
+    phase_to_list = pe.Node(util.Function(input_names=['phase1',
+                                                       'phase1_params',
+                                                       'phase2',
+                                                       'phase2_params'],
+                                          output_names=['out'],
+                                          function=gather_phase_inputs),
+                                  name=f'phase_to_list_{pipe_num}')
+
+    node, out = strat_pool.get_data('phase1')
+    wf.connect(node, out, phase_to_list, 'phase1')
+    
+    node, out = strat_pool.get_data('phase1-scan-params')
+    wf.connect(node, out, phase_to_list, 'phase1_params')
+    
+    node, out = strat_pool.get_data('phase2')
+    wf.connect(node, out, phase_to_list, 'phase2')
+    
+    node, out = strat_pool.get_data('phase2-scan-params')
+    wf.connect(node, out, phase_to_list, 'phase2_params')
+    
+    wf.connect(phase_to_list, 'out', sdcflow_fmap, 'inputnode.fieldmap')
+    
+    if strat_pool.check_rpool('magnitude'):
+        node, out = strat_pool.get_data('magnitude')
+    elif strat_pool.check_rpool('magnitude1'):
+        node, out = strat_pool.get_data('magnitude1')
+        
+    wf.connect(node, out, sdcflow_fmap, 'inputnode.magnitude')
+    
+    reg_coeffs = init_coeff2epi_wf(omp_nthreads=1, debug=True, 
+                                   write_coeff=True)
+    
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, reg_coeffs, 'inputnode.target_ref')
+    
+    # target_mask, ref image skull stripped??
+    
+    wf.connect(sdcflow_fmap, 'outputnode.fmap_ref', 
+               reg_coeffs, 'inputnode.fmap_ref')
+               
+    wf.connect(sdcflow_fmap, 'outputnode.fmap_mask', 
+               reg_coeffs, 'inputnode.fmap_mask')
+
+    coeff = pe.Node(util.Function(input_names=['coeff_list'],
+                                  output_names=['coeff'],
+                                  function=pick_coeff),
+                                  name=f'pick_coeff_{pipe_num}')
+
+    wf.connect(sdcflow_fmap, 'outputnode.fmap_coeff', coeff, 'coeff_list')
+    wf.connect(coeff, 'coeff', reg_coeffs, 'inputnode.fmap_coeff')
+
+    unwarp = init_unwarp_wf()
+   
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, unwarp, 'inputnode.distorted')
+    
+    node, out = strat_pool.get_data('scan-params')
+    wf.connect(node, out, unwarp, 'inputnode.metadata')
+   
+    wf.connect(reg_coeffs, 'outputnode.fmap_coeff',
+               unwarp, 'inputnode.fmap_coeff')
+    '''
+    motionxfm2itk = pe.MapNode(util.Function(
+        input_names=['reference_file',
+                     'source_file',
+                     'transform_file'],
+        output_names=['itk_transform'],
+        function=run_c3d),
+        name=f'convert_motionxfm2itk_{pipe_num}',
+        iterfield=['transform_file'])
+
+    node, out = strat_pool.get_data('motion-basefile')
+    wf.connect(node, out, motionxfm2itk, 'reference_file')
+    wf.connect(node, out, motionxfm2itk, 'source_file')
+
+
+    node, out = strat_pool.get_data('coordinate-transformation')
+    motion_correct_tool = check_prov_for_motion_tool(
+        strat_pool.get_cpac_provenance('coordinate-transformation'))
+    if motion_correct_tool == 'mcflirt':
+        wf.connect(node, out, motionxfm2itk, 'transform_file')
+    elif motion_correct_tool == '3dvolreg':
+        convert_transform = pe.Node(util.Function(
+            input_names=['one_d_filename'],
+            output_names=['transform_directory'],
+            function=one_d_to_mat,
+            imports=['import os', 'import numpy as np']),
+            name=f'convert_transform_{pipe_num}')
+        wf.connect(node, out, convert_transform, 'one_d_filename')
+        wf.connect(convert_transform, 'transform_directory',
+                   motionxfm2itk, 'transform_file')
+                   
+    wf.connect(motionxfm2itk, 'itk_transform', unwarp, 'inputnode.hmc_xforms')
+
+
+    input:
+    hmc_xforms
+        list of head-motion correction matrices (in ITK format)
+
+    output:
+    fieldmap
+        the actual B\ :sub:`0` inhomogeneity map (also called *fieldmap*)
+        interpolated from the B-Spline coefficients into the target EPI's
+        grid, given in Hz units.
+    '''
+
+    outputs = {
+        'sbref': (unwarp, 'outputnode.corrected'),
+        'space-bold_desc-brain_mask': (unwarp, 'outputnode.corrected_mask'),
+        'phasediff-warp': (unwarp, 'outputnode.fieldwarp')
+    }
+    
+    return (wf, outputs)
 
 
 def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):

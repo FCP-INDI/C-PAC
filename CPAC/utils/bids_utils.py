@@ -224,6 +224,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     t_dict = bids_config_dict  # pointer to current dictionary
     # try to populate the configuration using information
     # already in the list
+
     for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
                   'rec', 'dir', 'run']:
         if level in f_dict:
@@ -260,7 +261,10 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
 
     for k, v in params.items():
         if isinstance(v, str):
-            params[k] = v.encode('ascii', errors='ignore')
+            val = v.encode('ascii', errors='ignore')
+            if isinstance(val, bytes):
+                val = val.decode()
+            params[k] = val
 
     return params
 
@@ -573,6 +577,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
             if config_dict:
                 t_params = bids_retrieve_params(bids_config_dict,
                                                 f_dict)
+
                 if not t_params:
                     print("Did not receive any parameters for %s," % (p) +
                           " is this a problem?")
