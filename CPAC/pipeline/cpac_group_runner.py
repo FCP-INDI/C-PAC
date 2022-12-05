@@ -1742,11 +1742,12 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
     output_df_dct = gather_outputs(
         pipeline_dir,
-        ["space-template_bold", "desc-Mean_timeseries"],
+        ["space-template_bold", "space-template_desc-Mean_timeseries"],
         inclusion_list=None,
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["space-template_bold", "desc-Mean_timeseries"],
-        #exts=['nii', 'nii.gz', 'csv']
+        derivatives=["space-template_bold",
+                     "space-template_desc-Mean_timeseries"],
+        # exts=['nii', 'nii.gz', 'csv']
     )
 
     iteration_ids = []
@@ -1758,10 +1759,11 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
         if "voxel" not in levels and derivative == "space-template_bold":
             continue
 
-        if "roi" not in levels and derivative == "desc-Mean_timeseries":
+        if ("roi" not in levels and
+                derivative == "space-template_desc-Mean_timeseries"):
             continue
 
-        if derivative == "desc-Mean_timeseries":
+        if derivative == "space-template_desc-Mean_timeseries":
             if roi_inclusion:
                 # backwards because ROI labels embedded as substrings
                 for roi_label in roi_inclusion:

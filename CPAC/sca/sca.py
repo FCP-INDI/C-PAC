@@ -391,7 +391,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_bold"],
      "outputs": ["desc-MeanSCA_timeseries",
-                 "desc-MeanSCA_correlations",
+                 "space-template_desc-MeanSCA_correlations",
                  "atlas_name"]}
     '''
 
@@ -453,7 +453,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
             (roi_timeseries_for_sca, 'outputspec.roi_csv'),
                                     #('outputspec.roi_outputs',
                                     # extract_one_d)),
-        'desc-MeanSCA_correlations':
+        'space-template_desc-MeanSCA_correlations':
             (sca_roi, 'outputspec.correlation_stack'),
         'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
     }
@@ -472,7 +472,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_bold"],
                 "space-template_desc-bold_mask"],
-     "outputs": ["desc-DualReg_correlations",
+     "outputs": ["space-template_desc-DualReg_correlations",
                  "desc-DualReg_statmap",
                  "atlas_name"]}
     '''
@@ -536,7 +536,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, dr_temp_reg, 'inputspec.subject_mask')
 
     outputs = {
-        'desc-DualReg_correlations':
+        'space-template_desc-DualReg_correlations':
             (dr_temp_reg, 'outputspec.temp_reg_map'),
         'desc-DualReg_statmap':
             (dr_temp_reg, 'outputspec.temp_reg_map_z'),
@@ -558,7 +558,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_bold",
                 "space-template_desc-bold_mask"],
-     "outputs": ["desc-MultReg_correlations",
+     "outputs": ["space-template_desc-MultReg_correlations",
                  "desc-MultReg_statmap",
                  "atlas_name"]}
     '''
@@ -634,7 +634,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, sc_temp_reg, 'inputspec.subject_mask')
 
     outputs = {
-        'desc-MultReg_correlations':
+        'space-template_desc-MultReg_correlations':
             (sc_temp_reg, 'outputspec.temp_reg_map'),
         'desc-MultReg_statmap':
             (sc_temp_reg, 'outputspec.temp_reg_map_z'),

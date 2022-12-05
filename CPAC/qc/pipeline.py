@@ -43,10 +43,10 @@ def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
                 "desc-preproc_T1w",
                 "space-T1w_sbref"],
-     "outputs": ["bold-snr-axial-qc",
-                 "bold-snr-sagittal-qc",
-                 "bold-snr-hist-qc",
-                 "bold-snr-qc"]}
+     "outputs": ["desc-boldSnrAxial_quality",
+                 "desc-boldSnrSagittal_quality",
+                 "desc-boldSnrHist_quality",
+                 "desc-boldSnr_quality"]}
     '''
 
     # make SNR plot
@@ -70,12 +70,13 @@ def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, qc_workflow, 'inputspec.mean_functional_in_anat')
 
     outputs = {
-        'bold-snr-axial-qc': (qc_workflow, 'outputspec.snr_axial_image'),
-        'bold-snr-sagittal-qc':
+        'desc-boldSnrAxial_quality': (qc_workflow,
+                                      'outputspec.snr_axial_image'),
+        'desc-boldSnrSagittal_quality':
             (qc_workflow, 'outputspec.snr_sagittal_image'),
-        'bold-snr-hist-qc': (
+        'desc-boldSnrHist_quality': (
             qc_workflow, 'outputspec.snr_histogram_image'),
-        'bold-snr-qc': (qc_workflow, 'outputspec.snr_mean')
+        'desc-boldSnr_quality': (qc_workflow, 'outputspec.snr_mean')
     }
 
     return (wf, outputs)
@@ -89,8 +90,8 @@ def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["movement-parameters"],
-     "outputs": ["movement-parameters-trans-qc",
-                 "movement-parameters-rot-qc"]}
+     "outputs": ["desc-movementParametersTrans_quality",
+                 "desc-movementParametersRot_quality"]}
     '''
 
     # make motion parameters plot
@@ -100,9 +101,9 @@ def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, qc_workflow, 'inputspec.motion_parameters')
 
     outputs = {
-        'movement-parameters-trans-qc': (
+        'desc-movementParametersTrans_quality': (
             qc_workflow, 'outputspec.motion_translation_plot'),
-        'movement-parameters-rot-qc': (
+        'desc-movementParametersRot_quality': (
             qc_workflow, 'outputspec.motion_rotation_plot')
     }
 
@@ -117,7 +118,7 @@ def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["framewise-displacement-jenkinson"],
-     "outputs": ["framewise-displacement-jenkinson-plot-qc"]}
+     "outputs": ["desc-framewiseDisplacementJenkinsonPlot_quality"]}
     '''
 
     qc_workflow = create_qc_fd(f'qc_fd_{pipe_num}')
@@ -126,7 +127,7 @@ def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, qc_workflow, 'inputspec.fd')
 
     outputs = {
-        'framewise-displacement-jenkinson-plot-qc':
+        'desc-framewiseDisplacementJenkinsonPlot_quality':
             (qc_workflow, 'outputspec.fd_histogram_plot')
     }
 
@@ -142,8 +143,8 @@ def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["desc-preproc_T1w",
                 "desc-head_T1w"],
-     "outputs": ["desc-brain_T1w-axial-qc",
-                 "desc-brain_T1w-sagittal-qc"]}
+     "outputs": ["desc-brain_desc-T1wAxial_quality",
+                 "desc-brain_desc-T1wSagittal_quality"]}
     '''
 
     # make QC montages for Skull Stripping Visualization
@@ -158,8 +159,9 @@ def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, qc_workflow, 'inputspec.anatomical_reorient')
 
     outputs = {
-        'desc-brain_T1w-axial-qc': (qc_workflow, 'outputspec.axial_image'),
-        'desc-brain_T1w-sagittal-qc':
+        'desc-brain_desc-T1wAxial_quality': (qc_workflow,
+                                             'outputspec.axial_image'),
+        'desc-brain_desc-T1wSagittal_quality':
             (qc_workflow, 'outputspec.sagittal_image')
     }
 
@@ -175,8 +177,8 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_T1w",
                 "T1w-brain-template"],
-     "outputs": ["space-template_desc-brain_T1w-axial-qc",
-                 "space-template_desc-brain_T1w-sagittal-qc"]}
+     "outputs": ["space-template_desc-brain_desc-T1wAxial_quality",
+                 "space-template_desc-brain_desc-T1wSagittal_quality"]}
     '''
 
     # make QC montages for mni normalized anatomical image
@@ -200,9 +202,9 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
                montage_mni_anat, 'inputspec.overlay')
 
     outputs = {
-        'space-template_desc-brain_T1w-axial-qc':
+        'space-template_desc-brain_desc-T1wAxial_quality':
             (montage_mni_anat, 'outputspec.axial_png'),
-        'space-template_desc-brain_T1w-sagittal-qc':
+        'space-template_desc-brain_desc-T1wSagittal_quality':
             (montage_mni_anat, 'outputspec.sagittal_png')
     }
 
@@ -223,8 +225,8 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
                   "label-WM_mask"],
                  ["label-GM_desc-preproc_mask",
                   "label-GM_mask"])],
-     "outputs": ["dseg-axial-qc",
-                 "dseg-sagittal-qc"]}
+     "outputs": ["desc-dsegAxial_quality",
+                 "desc-dsegSagittal_quality"]}
     '''
 
     # make QC montages for CSF WM GM
@@ -247,8 +249,9 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_gm')
 
     outputs = {
-        'dseg-axial-qc': (montage_csf_gm_wm, 'outputspec.axial_png'),
-        'dseg-sagittal-qc': (montage_csf_gm_wm, 'outputspec.sagittal_png')
+        'desc-dsegAxial_quality': (montage_csf_gm_wm, 'outputspec.axial_png'),
+        'desc-dsegSagittal_quality': (montage_csf_gm_wm,
+                                      'outputspec.sagittal_png')
     }
 
     return (wf, outputs)
@@ -268,8 +271,8 @@ def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-bold_label-WM_mask"],
                  ["space-bold_label-GM_desc-preproc_mask",
                   "space-bold_label-GM_mask"])],
-     "outputs": ["epi-dseg-axial-qc",
-                 "epi-dseg-sagittal-qc"]}
+     "outputs": ["epi-desc-dsegAxial_quality",
+                 "epi-desc-dsegSagittal_quality"]}
     '''
 
     # make QC montages for CSF WM GM
@@ -292,8 +295,10 @@ def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, montage_csf_gm_wm, 'inputspec.overlay_gm')
 
     outputs = {
-        'epi-dseg-axial-qc': (montage_csf_gm_wm, 'outputspec.axial_png'),
-        'epi-dseg-sagittal-qc': (montage_csf_gm_wm, 'outputspec.sagittal_png')
+        'epi-desc-dsegAxial_quality': (montage_csf_gm_wm,
+                                       'outputspec.axial_png'),
+        'epi-desc-dsegSagittal_quality': (montage_csf_gm_wm,
+                                          'outputspec.sagittal_png')
     }
 
     return (wf, outputs)
@@ -311,7 +316,7 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
                 "GM-path",
                 "WM-path",
                 "CSF-path"],
-     "outputs": ["space-template_desc-preproc_bold-carpet-qc"]}
+     "outputs": ["space-template_desc-preprocBoldCarpet_quality"]}
     '''
 
     # make QC Carpet plot
@@ -335,9 +340,8 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("CSF-path")
     wf.connect(node, out, carpet_seg, 'inputspec.anatomical_csf_mask')
 
-    outputs = {
-        f'{resource}-carpet-qc': (carpet_seg, 'outputspec.carpet_plot'),
-    }
+    outputs = {'space-template_desc-preprocBoldCarpet_quality': (
+        carpet_seg, 'outputspec.carpet_plot')}
 
     return (wf, outputs)
 
@@ -351,8 +355,8 @@ def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-preproc_T1w",
                  "space-T1w_sbref")],
-     "outputs": ["space-T1w_bold-axial-qc",
-                 "space-T1w_bold-sagittal-qc"]}
+     "outputs": ["space-T1w_desc-boldAxial_quality",
+                 "space-T1w_desc-boldSagittal_quality"]}
     '''
 
     # make QC montage for Mean Functional in T1 with T1 edge
@@ -375,9 +379,9 @@ def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, montage_anat, 'inputspec.underlay')
 
     outputs = {
-        'space-T1w_bold-axial-qc':
+        'space-T1w_desc-boldAxial_quality':
             (montage_anat, 'outputspec.axial_png'),
-        'space-T1w_bold-sagittal-qc':
+        'space-T1w_desc-boldSagittal_quality':
             (montage_anat, 'outputspec.sagittal_png')
     }
 
@@ -395,8 +399,8 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["space-template_sbref",
                 "T1w-brain-template-funcreg"],
-     "outputs": ["space-template_bold-axial-qc",
-                 "space-template_bold-sagittal-qc"]}
+     "outputs": ["space-template_desc-boldAxial_quality",
+                 "space-template_desc-boldSagittal_quality"]}
     '''
 
     # make QC montage for Mean Functional in MNI with MNI edge
@@ -420,9 +424,9 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
                montage_mfi, 'inputspec.overlay')
 
     outputs = {
-        'space-template_bold-axial-qc':
+        'space-template_desc-boldAxial_quality':
             (montage_mfi, 'outputspec.axial_png'),
-        'space-template_bold-sagittal-qc':
+        'space-template_desc-boldSagittal_quality':
             (montage_mfi, 'outputspec.sagittal_png')
     }
 
@@ -442,8 +446,8 @@ def qc_bold_EPI_registration(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("space-template_sbref",
                  "from-bold_to-EPItemplate_mode-image_xfm"),
                 "EPI-template-funcreg"],
-     "outputs": ["space-template_desc-mean_bold-axial-qc",
-                 "space-template_desc-mean_bold-sagittal-qc"]}
+     "outputs": ["space-template_desc-mean_desc-boldAxial_quality",
+                 "space-template_desc-mean_desc-boldSagittal_quality"]}
     '''
 
     # make QC montage for Mean Functional in MNI with MNI edge
@@ -467,9 +471,9 @@ def qc_bold_EPI_registration(wf, cfg, strat_pool, pipe_num, opt=None):
                montage_mfi, 'inputspec.overlay')
 
     outputs = {
-        'space-template_bold-axial-qc':
+        'space-template_desc-boldAxial_quality':
             (montage_mfi, 'outputspec.axial_png'),
-        'space-template_bold-sagittal-qc':
+        'space-template_desc-boldSagittal_quality':
             (montage_mfi, 'outputspec.sagittal_png')
     }
 

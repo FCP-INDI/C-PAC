@@ -18,10 +18,28 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
 import os
 import tempfile
+import pytest
+
 import yaml
 
-from CPAC.utils.configuration import preconfig_yaml
+from CPAC.utils.configuration import Configuration, Preconfiguration, \
+                                     preconfig_yaml
 from CPAC.utils.configuration.yaml_template import create_yaml_from_template
+from .configs import NEUROSTARS_23786, NEUROSTARS_24035
+
+
+@pytest.mark.parametrize('config', ['blank', 'default', NEUROSTARS_23786,
+                                    NEUROSTARS_24035])
+def test_sca_config(config):
+    '''Test SCA config parsing'''
+    if '\n' in config:
+        participant_config = Configuration(yaml.safe_load(config))
+        assert participant_config['seed_based_correlation_analysis',
+                                  'run'] is True
+    else:
+        participant_config = Preconfiguration(config)
+        assert participant_config['seed_based_correlation_analysis',
+                                  'run'] is False
 
 
 def test_yaml_template():
