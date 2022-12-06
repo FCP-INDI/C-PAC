@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgraded dependencies
 - `nibabel` 2.3.3 → 3.0.1
+- `numpy` 1.16.4 → 1.21.0
+- `pandas` 0.23.4 → 1.0.5
 - `pybids` 0.13.2 → 0.15.1
 - `scipy` 1.4.1 → 1.6.0
 
