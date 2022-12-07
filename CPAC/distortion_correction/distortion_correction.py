@@ -59,6 +59,10 @@ def gather_phase_inputs(phase1, phase1_params, phase2, phase2_params):
     out = [(phase1, phase1_params), (phase2, phase2_params)]
     return out
     
+def gather_mag_inputs(mag1, mag2):
+    out = [mag1, mag2]
+    return out
+    
     
 def pick_coeff(coeff_list):
     coeff = coeff_list[0]
@@ -134,7 +138,19 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
     
     if strat_pool.check_rpool('magnitude'):
         node, out = strat_pool.get_data('magnitude')
-    elif strat_pool.check_rpool('magnitude1'):
+    elif strat_pool.check_rpool('magnitude1') and \
+            strat_pool.check_rpool('magnitude2'):
+        mag1_node, mag1_out = strat_pool.get_data('magnitude1')
+        mag2_node, mag2_out = strat_pool.get_data('magnitude2')
+        mag_to_list = pe.Node(util.Function(input_names=['mag1',
+                                                         'mag2'],
+                                          output_names=['out'],
+                                          function=gather_mag_inputs),
+                                  name=f'mag_to_list_{pipe_num}')
+        wf.connect(mag1_node, mag1_out, mag_to_list, 'mag1')
+        wf.connect(mag2_node, mag2_out, mag_to_list, 'mag2')
+        node, out = (mag_to_list, 'out')
+    else:
         node, out = strat_pool.get_data('magnitude1')
         
     wf.connect(node, out, sdcflow_fmap, 'inputnode.magnitude')
