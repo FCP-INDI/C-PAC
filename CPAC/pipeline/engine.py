@@ -1009,7 +1009,7 @@ class ResourcePool:
 
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
-                if num_variant:
+                if isinstance(num_variant, int):
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
