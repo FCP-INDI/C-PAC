@@ -132,8 +132,10 @@ class ExpectedOutputs:
     >>> len(expected_outputs)
     4
     '''   # noqa: E501  # pylint: disable=line-too-long
-    def __init__(self):
-        self.expected_outputs = {}
+    def __init__(self, expected=None):
+        self.expected_outputs = {} if expected is None else expected
+        if not isinstance(self.expected_outputs, dict):
+            raise TypeError("ExpectedOutputs.expected_outputs must be a dict")
 
     def __bool__(self):
         return bool(len(self))
@@ -143,7 +145,7 @@ class ExpectedOutputs:
                     subdir, filename in self.expected_outputs.items()}.items()
 
     def __iadd__(self, other):
-        if not isinstance(other, tuple) or not len(other) == 2:
+        if not isinstance(other, tuple) or len(other) != 2:
             raise TypeError(
                 f'{self.__module__}.{self.__class__.__name__} requires a '
                 "tuple of ('subdir', 'output') for addition")
@@ -171,17 +173,6 @@ class ExpectedOutputs:
         output : str
             filename of expected output
         '''
-        # add wildcard to the end of each BIDS entity before the last
-        # also add wildcard before dashes after the first in an entity
-        # TODO: revisit once we only have one dash per BIDS entity
-        new_output = []
-        for entity in output.split('_'):
-            if entity.count('-') > 1:
-                key, value = entity.split('-', 1)
-                entity = '-'.join([key, value.replace('-', '*-')])
-            new_output.append(entity)
-        output = '*_'.join(new_output)
-        del new_output
         if subdir in self.expected_outputs:
             self.expected_outputs[subdir].add(output)
         else:
