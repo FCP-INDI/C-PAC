@@ -74,14 +74,13 @@ jobs:
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          TAG=latest
           if [[ $VARIANT == "" ]]
           then
             DOCKERFILE=Dockerfile
           else
             DOCKERFILE=variant$VARIANT.Dockerfile
           fi
-          TAG=$TAG$VARIANT
+          TAG=release-${{ github.ref_name }}$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
