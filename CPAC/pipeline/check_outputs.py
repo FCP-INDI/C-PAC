@@ -119,16 +119,16 @@ class ExpectedOutputs:
     >>> dict(expected_outputs)['anat']
     ['T1w']
     >>> dict(expected_outputs)['func']
-    ['desc-preproc_bold.json', 'desc-sm-1_reho', 'task-rest_bold.nii.gz']
+    ['desc-preproc*_bold.json', 'desc-sm*-1*_reho', 'task-rest*_bold.nii.gz']
     >>> str(expected_outputs)
-    'anat:\n- T1w\nfunc:\n- desc-preproc_bold.json\n- desc-sm-1_reho\n- task-rest_bold.nii.gz\n'
+    'anat:\n- T1w\nfunc:\n- desc-preproc*_bold.json\n- desc-sm*-1*_reho\n- task-rest*_bold.nii.gz\n'
     >>> expected_outputs
     anat:
     - T1w
     func:
-    - desc-preproc_bold.json
-    - desc-sm-1_reho
-    - task-rest_bold.nii.gz
+    - desc-preproc*_bold.json
+    - desc-sm*-1*_reho
+    - task-rest*_bold.nii.gz
     >>> len(expected_outputs)
     4
     '''   # noqa: E501  # pylint: disable=line-too-long
@@ -173,6 +173,17 @@ class ExpectedOutputs:
         output : str
             filename of expected output
         '''
+        # add wildcard to the end of each BIDS entity before the last
+        # also add wildcard before dashes after the first in an entity
+        # TODO: revisit once we only have one dash per BIDS entity
+        new_output = []
+        for entity in output.split('_'):
+            if entity.count('-') > 1:
+                key, value = entity.split('-', 1)
+                entity = '-'.join([key, value.replace('-', '*-')])
+            new_output.append(entity)
+        output = '*_'.join(new_output)
+        del new_output
         if subdir in self.expected_outputs:
             self.expected_outputs[subdir].add(output)
         else:
