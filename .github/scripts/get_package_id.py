@@ -41,9 +41,10 @@ def get_packages(owner, tag, api_token=None):
         -------
         dict or list
         """
-        response = requests.get(
-            url,
-            headers={'Authorization': f'token {api_token}'}).json()
+        if isinstance(requests, dict):
+            response = requests.get(
+                url,
+                headers={'Authorization': f'token {api_token}'}).json()
         if isinstance(response, dict) and response.get(
             'message', ''
         ) == 'Bad credentials':
@@ -89,9 +90,22 @@ def id_from_tag(owner, image, tag, api_token=None):
         GitHub API personal access token with read.packages permission
     """
     packages = get_packages(owner, image, api_token)
-    versions = [image['id'] for image in packages if tag in image.get(
-        'metadata', {}
-    ).get('container', {}).get('tags', [])]
+    metadata = image.get('metadata', {})
+    if isinstance(metadata, list):
+        for _md in metadata:
+            if isinstance(_md, dict) and 'container' in _md:
+                metadata = _md
+    if not isinstance(metadata, dict):
+        metadata = {}
+    container = metadata.get('container')
+    if isinstance(container, list):
+        for _container in container:
+            if isinstance(_container, dict) and 'tags' in _container:
+                container = _container
+    if not isinstance(container, dict):
+        container = {}
+    versions = [image['id'] for image in packages if tag in
+                container.get('tags', [])]
     if len(versions):
         return versions[0]
     else:
