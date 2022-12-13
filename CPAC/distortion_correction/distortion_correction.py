@@ -77,7 +77,8 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "PhaseDiff",
-     "inputs": ["sbref",
+     "inputs": [["desc-stc_bold", "bold"],
+                "sbref",
                 "space-bold_desc-brain_mask",
                 "scan-params",
                 "phasediff",
@@ -89,7 +90,7 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
                 "magnitude",
                 "magnitude1",
                 "magnitude2"],
-     "outputs": ["sbref",
+     "outputs": ["desc-undistorted_sbref",
                  "space-bold_desc-brain_mask",
                  "phasediff-warp"]}
     '''
@@ -179,8 +180,19 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
 
     unwarp = init_unwarp_wf()
    
-    node, out = strat_pool.get_data('sbref')
-    wf.connect(node, out, unwarp, 'inputnode.distorted')
+    split = pe.Node(fsl.Split(), name=f'sdc_split_bold_{pipe_num}')
+    split.inputs.dimension = 't'
+    
+    node, out = strat_pool.get_data(['desc-stc_bold', 'bold'])
+    wf.connect(node, out, split, 'in_file')
+    
+    first_vol = pe.Node(util.Function(input_names=['coeff_list'],
+                                      output_names=['coeff'],
+                                      function=pick_coeff),
+                                      name=f'pick_firstvol_{pipe_num}')
+    
+    wf.connect(split, 'out_files', first_vol, 'coeff_list')
+    wf.connect(first_vol, 'coeff', unwarp, 'inputnode.distorted')
     
     node, out = strat_pool.get_data('scan-params')
     wf.connect(node, out, unwarp, 'inputnode.metadata')
@@ -233,7 +245,7 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     outputs = {
-        'sbref': (unwarp, 'outputnode.corrected'),
+        'desc-undistorted_sbref': (unwarp, 'outputnode.corrected'),
         'space-bold_desc-brain_mask': (unwarp, 'outputnode.corrected_mask'),
         'phasediff-warp': (unwarp, 'outputnode.fieldwarp')
     }

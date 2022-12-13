@@ -3051,10 +3051,34 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
+    distcor = False
+    if strat_pool.check_rpool('ants-blip-warp'):
+        if reg_tool == 'ants':
+            distnode, distout = strat_pool.get_data('ants-blip-warp')
+            distcor = True
+        elif reg_tool == 'fsl':
+            # apply the ants blip warp separately
+            pass
+    elif strat_pool.check_rpool('fsl-blip-warp'):
+        if reg_tool == 'fsl':
+            distnode, distout = strat_pool.get_data('fsl-blip-warp')
+            distcor = True
+        elif reg_tool == 'ants':
+            # apply the fsl blip warp separately
+            pass
+    elif strat_pool.check_rpool('phasediff-warp'):
+        if reg_tool == 'ants':
+            distnode, distout = strat_pool.get_data('phasediff-warp')
+            distcor = True
+        elif reg_tool == 'fsl':
+            # apply the ants phasediff warp separately
+            pass
+
     xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1w'
                                                     f'template_xfm_{pipe_num}',
                                                     cfg, reg_tool,
-                                                    symmetric=False)
+                                                    symmetric=False,
+                                                    blip=distcor)
 
     node, out = strat_pool.get_data(
         'from-bold_to-T1w_mode-image_desc-linear_xfm')
@@ -3072,32 +3096,13 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, xfm, 'inputspec.T1w_to_template_xfm')
 
+    if distcor:
+        wf.connect(distnode, distout, xfm, 'inputspec.blip_warp')
+
     # FNIRT pipelines don't have an inverse nonlinear warp, make optional
     if strat_pool.check_rpool('from-template_to-T1w_mode-image_xfm'):
         node, out = strat_pool.get_data('from-template_to-T1w_mode-image_xfm')
         wf.connect(node, out, xfm, 'inputspec.template_to_T1w_xfm')
-
-    if strat_pool.check_rpool('ants-blip-warp'):
-        if reg_tool == 'ants':
-            node, out = strat_pool.get_data('ants-blip-warp')
-            wf.connect(node, out, xfm, 'inputspec.blip_warp')
-        elif reg_tool == 'fsl':
-            # apply the ants blip warp separately
-            pass
-    elif strat_pool.check_rpool('fsl-blip-warp'):
-        if reg_tool == 'fsl':
-            node, out = strat_pool.get_data('fsl-blip-warp')
-            wf.connect(node, out, xfm, 'inputspec.blip_warp')
-        elif reg_tool == 'ants':
-            # apply the fsl blip warp separately
-            pass
-    elif strat_pool.check_rpool('phasediff-warp'):
-        if reg_tool == 'ants':
-            node, out = strat_pool.get_data('phasediff-warp')
-            wf.connect(node, out, xfm, 'inputspec.blip_warp')
-        elif reg_tool == 'fsl':
-            # apply the ants phasediff warp separately
-            pass
 
     return (wf, outputs)
 
