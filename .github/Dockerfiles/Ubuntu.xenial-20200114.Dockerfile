@@ -143,7 +143,7 @@ RUN conda update conda -y && \
         nose==1.3.7 \
         numpy==1.15.4 \
         pandas==0.23.4 \
-        scipy==1.1.0 \
+        scipy==1.6.3 \
         traits==4.6.0 \
         pip
 
