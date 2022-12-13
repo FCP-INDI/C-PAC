@@ -19,6 +19,7 @@ import copy
 from itertools import chain
 import logging
 import os
+from pathlib import Path
 import re
 import warnings
 
@@ -1118,10 +1119,6 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-                expected_outputs += (out_dct['subdir'], create_id_string(
-                    self.cfg, unique_id, resource_idx,
-                    template_desc=json_info.get('Template'),
-                    atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
@@ -1159,12 +1156,12 @@ class ResourcePool:
                     'aws_output_bucket_credentials']:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
                         'aws_output_bucket_credentials']
-
+                outpath = Path(out_dct['out_path'])
+                expected_outputs += (outpath.parent.stem, outpath.name)
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
-
         outputs_logger.info(expected_outputs)
 
     def node_data(self, resource, **kwargs):
