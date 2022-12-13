@@ -133,7 +133,7 @@ RUN conda update conda -y && \
       nose==1.3.7 \
       numpy==1.16.4 \
       pandas==1.0.5 \
-      scipy==1.4.1 \
+      scipy==1.6.3 \
       traits==4.6.0 \
       wxpython \
       pip && \

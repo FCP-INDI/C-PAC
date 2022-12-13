@@ -23,8 +23,8 @@ python-dateutil==2.7.3
 pyyaml==5.4
 yamlordereddictloader==0.4.0
 requests==2.21.0
-scipy==1.6.0
-sdcflows==2.0.2
+scipy==1.6.3
+sdcflows==2.0.5
 simplejson==3.15.0
 scikit-learn==0.22.1
 traits==4.6.0
