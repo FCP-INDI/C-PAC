@@ -182,7 +182,7 @@ class ExpectedOutputs:
                 key, value = entity.split('-', 1)
                 entity = '-'.join([key, value.replace('-', '*-')])
             new_output.append(entity)
-        output = '*_'.join(new_output)
+        output = f"{'*_'.join(new_output)}*".replace('**', '*')
         del new_output
         if subdir in self.expected_outputs:
             self.expected_outputs[subdir].add(output)
