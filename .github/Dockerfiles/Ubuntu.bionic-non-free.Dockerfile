@@ -1,3 +1,4 @@
+FROM python:3.11-slim as Python
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
@@ -19,9 +20,14 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV TZ=America/New_York
 
+# Installing specified Python version
+COPY --from=Python /lib/ /lib/
+COPY --from=Python /usr/local/ /usr/local/
+RUN ldconfig
+
 # Creating usergroup and user
 # Allow users to update / create themselves
-# Installing system requirments, the BIDS validator & minconda
+# Installing system requirments & the BIDS validator
 RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
@@ -108,9 +114,6 @@ RUN groupadd -r c-pac && \
       libxp-dev && \
     add-apt-repository --remove --yes ppa:zeehio/libxp && \
     apt-get update && \
-    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
-    bash Miniconda3-py37_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.12.0-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -119,25 +122,11 @@ RUN groupadd -r c-pac && \
     chmod 777 /opt && \
     chmod a+s /opt
 
-ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
+ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:$PATH
 
-# Installing conda dependencies, torch & Python dependencies
+# Installing torch & Python dependencies
 COPY requirements.txt /opt/requirements.txt
-RUN conda update conda -y && \
-    conda install nomkl && \
-    conda install -y  \
-      blas \
-      cython \
-      matplotlib==3.1.3 \
-      networkx==2.4 \
-      nose==1.3.7 \
-      numpy==1.16.4 \
-      pandas==0.23.4 \
-      scipy==1.6.3 \
-      traits==4.6.0 \
-      wxpython \
-      pip && \
-    pip install \
+RUN pip install \
       torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html && \
     pip install --upgrade setuptools && \
     pip install --upgrade pip && \

@@ -1,3 +1,4 @@
+FROM python:3.11-slim as Python
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 FROM ubuntu:xenial-20200114 AS dcan-hcp
@@ -17,6 +18,11 @@ LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A
 Ubuntu Xenial base image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Installing specified Python version
+COPY --from=Python /lib/ /lib/
+COPY --from=Python /usr/local/ /usr/local/
+RUN ldconfig
 
 # create usergroup and user, set permissions, install curl
 RUN groupadd -r c-pac && \
@@ -120,32 +126,10 @@ RUN apt-get update && \
                     connectome-workbench=1.3.2-2~nd16.04+1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Installing and setting up miniconda
-RUN curl -sSLO https://repo.continuum.io/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
-    bash Miniconda3-py37_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.12.0-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda
-
-# Set CPATH for packages relying on compiled libs (e.g. indexed_gzip)
-ENV PATH="/usr/local/miniconda/bin:$PATH" \
-    CPATH="/usr/local/miniconda/include/:$CPATH" \
-    LANG="C.UTF-8" \
+# Set variables for packages relying on compiled libs (e.g. indexed_gzip)
+ENV LANG="C.UTF-8" \
     LC_ALL="C.UTF-8" \
     PYTHONNOUSERSITE=1
-
-# install conda dependencies
-RUN conda update conda -y && \
-    conda install nomkl && \
-    conda install -y  \
-        blas \
-        cython \
-        matplotlib==2.2.2 \
-        networkx==2.4 \
-        nose==1.3.7 \
-        numpy==1.15.4 \
-        pandas==0.23.4 \
-        scipy==1.6.3 \
-        traits==4.6.0 \
-        pip
 
 # install torch
 RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
