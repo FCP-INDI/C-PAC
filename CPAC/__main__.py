@@ -18,6 +18,7 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import pkg_resources as p
 import click
+from CPAC.utils.docs import version_report
 
 # CLI tree
 #
@@ -52,8 +53,10 @@ def main():
 
 @main.command()
 def version():
+    """Display environment version information"""
     import CPAC
-    print('C-PAC version: {0}'.format(CPAC.__version__))
+    print('\n'.join(['Environment', '===========', version_report(),
+                     f'C-PAC version: {CPAC.__version__}']))
 
 
 @main.command()

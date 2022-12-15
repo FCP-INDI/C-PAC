@@ -21,7 +21,7 @@ from pkg_resources import working_set
 PYTHON_PACKAGES = dict(sorted({
   d.key: d.version for d in list(working_set)}.items()))
 REPORTED = dict(sorted({
-  'Python': sys.version
+  'Python': sys.version.replace('\n', ' ').replace('  ', ' ')
 }.items()))
 
 __all__ = ['PYTHON_PACKAGES', 'REPORTED']
