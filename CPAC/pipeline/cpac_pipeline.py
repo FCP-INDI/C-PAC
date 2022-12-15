@@ -192,6 +192,7 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
+from CPAC.utils.workflow_utils import dump_workflow
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -463,6 +464,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                     raise RuntimeError(f'Failed to visualize {p_name} ('
                                        f'{graph2use}, {graph_format})'
                                        ) from exception
+
+    if c.pipeline_setup['log_directory'].get('save_workflow', False):
+        workflow_filename = os.path.join(
+            log_dir,
+            f'workflow_{strftime("%Y-%m-%d_%H-%M-%S")}_{p_name}.pkl'
+        )
+        dump_workflow(workflow_filename, workflow)
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
