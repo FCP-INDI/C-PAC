@@ -3,6 +3,7 @@ import ast
 from urllib import request
 from urllib.error import ContentTooShortError, HTTPError, URLError
 from CPAC import __version__
+from CPAC.utils import versioning
 
 
 def docstring_parameter(*args, **kwargs):
@@ -69,6 +70,19 @@ def grab_docstring_dct(fn):
                             f'{init_dct_schema}\n\nYou provided:\n'
                             f'{dct.keys()}\n\nDocstring:\n{fn_docstring}\n\n')
     return dct
+
+
+def version_report() -> str:
+    """A formatted block of versions included in CPAC's environment"""
+    version_list = []
+    for pkg, version in versioning.REPORTED.items():
+        version_list.append(f'{pkg}: {version}')
+        if pkg == 'Python':
+            version_list.append('  Python packages')
+            version_list.append('  ---------------')
+            for ppkg, pversion in versioning.PYTHON_PACKAGES.items():
+                version_list.append(f'  {ppkg}: {pversion}')
+    return '\n'.join(version_list)
 
 
 DOCS_URL_PREFIX = _docs_url_prefix()

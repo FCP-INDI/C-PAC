@@ -207,7 +207,7 @@ from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
-
+from CPAC.utils.docs import version_report
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
@@ -362,6 +362,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     C-PAC version: {cpac_version}
 
+    {dependency_versions}
+
     {license_notice}
 
     Setting maximum number of cores per participant to {cores}
@@ -391,6 +393,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
+        dependency_versions=version_report(),
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
             'num_participants_at_once'],
