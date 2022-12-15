@@ -117,18 +117,18 @@ class ExpectedOutputs:
     >>> expected_outputs.add('func', 'desc-preproc_bold.json')
     >>> expected_outputs.add('func', 'desc-sm-1_reho')
     >>> dict(expected_outputs)['anat']
-    ['T1w']
+    ['T1w*']
     >>> dict(expected_outputs)['func']
-    ['desc-preproc*_bold.json', 'desc-sm*-1*_reho', 'task-rest*_bold.nii.gz']
+    ['desc-preproc*_bold.json*', 'desc-sm*-1*_reho*', 'task-rest*_bold.nii.gz*']
     >>> str(expected_outputs)
-    'anat:\n- T1w\nfunc:\n- desc-preproc*_bold.json\n- desc-sm*-1*_reho\n- task-rest*_bold.nii.gz\n'
+    'anat:\n- T1w*\nfunc:\n- desc-preproc*_bold.json*\n- desc-sm*-1*_reho*\n- task-rest*_bold.nii.gz*\n'
     >>> expected_outputs
     anat:
-    - T1w
+    - T1w*
     func:
-    - desc-preproc*_bold.json
-    - desc-sm*-1*_reho
-    - task-rest*_bold.nii.gz
+    - desc-preproc*_bold.json*
+    - desc-sm*-1*_reho*
+    - task-rest*_bold.nii.gz*
     >>> len(expected_outputs)
     4
     '''   # noqa: E501  # pylint: disable=line-too-long
