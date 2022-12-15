@@ -19,6 +19,7 @@ from itertools import chain
 from logging import Logger
 import os
 from pathlib import Path
+import re
 import yaml
 from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
@@ -69,9 +70,14 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
                 output_dir.glob(f'{container}/{subdir}') for
                 container in containers]))
             for filename in filenames:
-                if not (observed_outputs and list(observed_outputs[0].glob(
-                        f'*{filename}*'))):
-                    missing_outputs += (subdir, filename)
+                try:
+                    if not (observed_outputs and list(
+                        observed_outputs[0].glob(
+                            re.sub(r'\*\**', r'*', f'*{filename}*')))):
+                        missing_outputs += (subdir, filename)
+                except Exception as exception:  # pylint: disable=broad-except
+                    logger = getLogger('nipype.workflow')
+                    logger.error(str(exception))
         if missing_outputs:
             missing_log = set_up_logger(f'missingOutputs_{unique_id}',
                                         filename='_'.join([
