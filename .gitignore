@@ -38,16 +38,9 @@ bids-examples
 .project
 .pydevproject
 
-# Other project files
-.idea/*.xml
-
-# Transpiling and compiling
-*.c
-*.so
-
-
- .vscode/launch.json
- .vscode/settings.json
+# IDE configs
+.vscode/
+.idea/
 
 cpac_runs/
 
