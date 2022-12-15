@@ -612,7 +612,9 @@ def run_main():
                            'Either change the output directory to something '
                            'local or turn off the --save_working_dir flag')
 
-        c['pipeline_setup']['log_directory']['save_workflow'] = args.save_workflow
+        c['pipeline_setup']['log_directory']['save_workflow'] = \
+            args.save_workflow or \
+            c['pipeline_setup']['log_directory'].get('save_workflow', False)
 
         if args.fail_fast is not None:
             c['pipeline_setup', 'system_config',
