@@ -20,7 +20,16 @@ LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Installing specified Python version
-COPY --from=Python /lib/ /lib/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      software-properties-common \
+    && add-apt-repository 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libc6 \
+      libc-bin \
+    && add-apt-repository --remove 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
+    && apt-get update
 COPY --from=Python /usr/local/ /usr/local/
 RUN ldconfig
 

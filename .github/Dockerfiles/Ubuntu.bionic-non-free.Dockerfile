@@ -21,6 +21,16 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York
 
 # Installing specified Python version
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      software-properties-common \
+    && add-apt-repository 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libc6 \
+      libc-bin \
+    && add-apt-repository --remove 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
+    && apt-get update
 COPY --from=Python /lib/ /lib/
 COPY --from=Python /usr/local/ /usr/local/
 RUN ldconfig
@@ -83,7 +93,6 @@ RUN groupadd -r c-pac && \
       openssh-client \
       pkg-config \
       rsync \
-      software-properties-common \
       tcsh \
       unzip \
       vim \
