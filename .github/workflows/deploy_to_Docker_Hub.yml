@@ -32,7 +32,6 @@ jobs:
           TAG1=release-${{ github.ref_name }}$VARIANT
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "original tag: ${DOCKER_TAG}:${TAG1}"
-          docker pull ${DOCKER_TAG}:${TAG1}
           docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG1}
           docker push fcpindi/c-pac:${TAG1}
           if [[ ${{ github.ref_name }} =~ ${TAG_PATTERN} ]]
