@@ -42,5 +42,5 @@ jobs:
             docker push fcpindi/c-pac:${TAG2}
             echo "new tags: fcpindi/c-pac:${TAG1} fcpindi/c-pac:${TAG2}"
           else
-            echo "new tags: fcpindi/c-pac:${TAG1}
+            echo "new tags: fcpindi/c-pac:${TAG1}"
           fi
