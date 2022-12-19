@@ -1239,9 +1239,11 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-preproc_T1w",
+     "inputs": ["desc-head_T1w",
+                "desc-preproc_T1w",
                 "T1w-ACPC-template"],
-     "outputs": ["desc-preproc_T1w",
+     "outputs": ["desc-head_T1w",
+                 "desc-preproc_T1w",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
 
@@ -1251,16 +1253,18 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                 mask=False,
                                 wf_name=f'acpc_align_{pipe_num}')
 
-    node, out = strat_pool.get_data('desc-preproc_T1w')
+    node, out = strat_pool.get_data(['desc-head_T1w', 'desc-preproc_T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
     outputs = {
+        'desc-head_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm': (
-            acpc_align, 'outputspec.from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
+            acpc_align,
+            'outputspec.from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
     }
 
     return (wf, outputs)
@@ -1274,11 +1278,12 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-preproc_T1w",
+     "inputs": [("desc-head_T1w", "desc-preproc_T1w",
                  "space-T1w_desc-brain_mask"),
                 "T1w-ACPC-template",
                 "T1w-brain-ACPC-template"],
-     "outputs": ["desc-preproc_T1w",
+     "outputs": ["desc-head_T1w",
+                 "desc-preproc_T1w",
                  "space-T1w_desc-brain_mask",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
@@ -1289,7 +1294,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                                 mask=True,
                                 wf_name=f'acpc_align_{pipe_num}')
 
-    node, out = strat_pool.get_data('desc-preproc_T1w')
+    node, out = strat_pool.get_data(['desc-head_T1w', 'desc-preproc_T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
@@ -1303,6 +1308,7 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, acpc_align, 'inputspec.template_brain_for_acpc')
 
     outputs = {
+        'desc-head_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'space-T1w_desc-brain_mask': (
             acpc_align, 'outputspec.acpc_brain_mask'),

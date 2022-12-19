@@ -21,11 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to run AFNI 3dDespike on template-space BOLD data.
 - Added the ability to ingress TotalReadoutTime from epi field map meta-data from the JSON sidecars.
 - Added the ability to use TotalReadoutTime of epi field maps in the calculation of FSL topup distortion correction.
-- Difference method (``-``) for ``CPAC.utils.configuration.Configuration`` instances
+- Difference method (`-`) for `CPAC.utils.configuration.Configuration` instances
 - Calculate reho and alff when timeseries in template space
 - Added new default pipeline that uses FSL-BET for brain extraction. Previous default pipleine is now called default-deprecated.
-- Added ``fail_fast`` configuration setting and CLI flag
+- Added `fail_fast` configuration setting and CLI flag
 - Added abililty to fork on motion filter
+- Added [`sdcflows`](https://www.nipreps.org/sdcflows/2.0/) to CPAC requirements
 
 ### Changed
 - Space labels in output filenames now contain specific template labels for MNI templates
@@ -46,6 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
+
+### Upgraded dependencies
+- `nibabel` 2.3.3 → 3.0.1
+- `pybids` 0.13.2 → 0.15.1
+- `scipy` 1.4.1 → 1.6.0
 
 ### Fixed
 - Fixed an issue where the distortion correction un-warps were not being applied to the final template-space BOLD time series data depending on pipeline configuration decisions.
