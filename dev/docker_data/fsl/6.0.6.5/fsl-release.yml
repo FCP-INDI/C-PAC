@@ -23,7 +23,7 @@ channels:
 # Private internal channel for development and
 # testing releases. This is prepended to the
 # channels list for development releases.
-internal-channel: http://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/internal/
+internal-channel: https://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/internal/
 
 # The FSL installation is created in two stages.
 # First of all, the base_packages are installed.
