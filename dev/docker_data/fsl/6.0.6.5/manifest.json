@@ -71,6 +71,11 @@
         //                     updating from an older FSL installation
         //                     (e.g. "6.1.0" : "50") - used to report
         //                     progress to the user.
+        //                     "output" may optionally be a dictionary
+        //                     containing "value" and "version", in which
+        //                     case an alternative progress reporting
+        //                     mechanism will be used. See the
+        //                     fslinstaller script for more details.
         "6.1.0"  : [
             {
                 "platform"      : "linux-64",
@@ -78,8 +83,8 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"}
                 }
             },
             {
@@ -88,8 +93,8 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"}
                 }
             },
             {
@@ -98,8 +103,8 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"}
                 }
             }
         ],
@@ -110,9 +115,9 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11",
-                    "6.1.0"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"},
+                    "6.1.0"     : {"value" : "11", "version" : "2"}
                 }
             },
             {
@@ -121,9 +126,9 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11",
-                    "6.1.0"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"},
+                    "6.1.0"     : {"value" : "11", "version" : "2"}
                 }
             },
             {
@@ -132,9 +137,9 @@
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
                 "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
-                    "install"   : "92",
-                    "6.0.6"     : "11",
-                    "6.1.0"     : "11"
+                    "install"   : {"value" : "92", "version" : "2"},
+                    "6.0.6"     : {"value" : "11", "version" : "2"},
+                    "6.1.0"     : {"value" : "11", "version" : "2"}
                 }
             }
         ]
