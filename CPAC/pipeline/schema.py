@@ -710,9 +710,9 @@ latest_schema = Schema({
     },
     'surface_analysis': {
         'freesurfer': {
-            'run': bool1_1,
+            'run_reconall': bool1_1,
             'reconall_args': Maybe(str),
-            'freesurfer_dir': Maybe(str)
+            'run_postproc': bool1_1
         },
         'post_freesurfer': {
             'run': bool1_1,

@@ -49,8 +49,9 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    run: On
+    # Run recon-all post-processing steps
+    #   Includes conversions of .mgz to .nii, and generation of tissue masks
+    run_postproc: On
 
 anatomical_preproc:
   run: On
