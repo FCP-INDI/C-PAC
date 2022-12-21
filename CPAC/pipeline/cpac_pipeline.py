@@ -41,7 +41,8 @@ import CPAC
 from CPAC.pipeline.check_outputs import check_outputs
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
-    freesurfer_preproc,
+    freesurfer_reconall,
+    freesurfer_postproc,
     freesurfer_abcd_preproc,
     anatomical_init,
     acpc_align_head,
@@ -845,7 +846,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_init_blocks
 
     if not rpool.check_rpool('freesurfer-subject-dir'):
-        pipeline_blocks += [freesurfer_preproc]
+        pipeline_blocks += [freesurfer_reconall]
+    pipeline_blocks += [freesurfer_postproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -901,8 +903,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += anat_blocks
 
-        if not rpool.check_rpool('freesurfer-subject-dir'):
-            pipeline_blocks += [freesurfer_abcd_preproc]
+        pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \

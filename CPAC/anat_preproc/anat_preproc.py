@@ -2529,37 +2529,19 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
+def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "freesurfer_preproc",
+    {"name": "freesurfer_reconall",
      "config": ["surface_analysis", "freesurfer"],
-     "switch": ["run"],
+     "switch": ["run_reconall"],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-preproc_T1w"],
-     "outputs": ["space-T1w_desc-brain_mask",
-                 "freesurfer-subject-dir",
-                 "hemi-L_desc-surface_curv",
-                 "hemi-R_desc-surface_curv",
-                 "hemi-L_desc-surfaceMesh_pial",
-                 "hemi-R_desc-surfaceMesh_pial",
-                 "hemi-L_desc-surfaceMesh_smoothwm",
-                 "hemi-R_desc-surfaceMesh_smoothwm",
-                 "hemi-L_desc-surfaceMesh_sphere",
-                 "hemi-R_desc-surfaceMesh_sphere",
-                 "hemi-L_desc-surfaceMap_sulc",
-                 "hemi-R_desc-surfaceMap_sulc",
-                 "hemi-L_desc-surfaceMap_thickness",
-                 "hemi-R_desc-surfaceMap_thickness",
-                 "hemi-L_desc-surfaceMap_volume",
-                 "hemi-R_desc-surfaceMap_volume",
-                 "hemi-L_desc-surfaceMesh_white",
-                 "hemi-R_desc-surfaceMesh_white",
-                 "label-CSF_mask",
-                 "label-WM_mask",
-                 "label-GM_mask",
+     "outputs": ["freesurfer-subject-dir",
                  "raw-average",
+                 "subcortical-seg",
                  "brainmask",
+                 "wmparc",
                  "T1"]}
     '''
 
@@ -2583,10 +2565,60 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'num_OMP_threads']
 
     if cfg.surface_analysis['freesurfer']['reconall_args'] is not None:
-        reconall.inputs.args = cfg.surface_analysis['freesurfer']['reconall_args']
+        reconall.inputs.args = cfg.surface_analysis['freesurfer'][
+            'reconall_args']
 
     node, out = strat_pool.get_data("desc-preproc_T1w")
     wf.connect(node, out, reconall, 'T1_files')
+
+    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
+
+    outputs = {
+        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
+        **hemisphere_outputs,
+        'raw-average': (reconall, 'rawavg'),
+        'subcortical-seg': (reconall, 'aseg'),
+        'brainmask': (reconall, 'brainmask'),
+        'wmparc': (reconall, 'wmparc'),
+        'T1': (reconall, 'T1')
+    }
+
+    return (wf, out)
+
+
+def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "freesurfer_postproc",
+     "config": ["surface_analysis", "freesurfer"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("freesurfer-subject-dir",
+                 "raw-average",
+                 "subcortical-seg",
+                 "brainmask",
+                 "T1")],
+     "outputs": ["space-T1w_desc-brain_mask",
+                 "hemi-L_desc-surface_curv",
+                 "hemi-R_desc-surface_curv",
+                 "hemi-L_desc-surfaceMesh_pial",
+                 "hemi-R_desc-surfaceMesh_pial",
+                 "hemi-L_desc-surfaceMesh_smoothwm",
+                 "hemi-R_desc-surfaceMesh_smoothwm",
+                 "hemi-L_desc-surfaceMesh_sphere",
+                 "hemi-R_desc-surfaceMesh_sphere",
+                 "hemi-L_desc-surfaceMap_sulc",
+                 "hemi-R_desc-surfaceMap_sulc",
+                 "hemi-L_desc-surfaceMap_thickness",
+                 "hemi-R_desc-surfaceMap_thickness",
+                 "hemi-L_desc-surfaceMap_volume",
+                 "hemi-R_desc-surfaceMap_volume",
+                 "hemi-L_desc-surfaceMesh_white",
+                 "hemi-R_desc-surfaceMesh_white",
+                 "label-CSF_mask",
+                 "label-WM_mask",
+                 "label-GM_mask"]}
+    '''
 
     # register FS brain mask to native space
     fs_brain_mask_to_native = pe.Node(
@@ -2594,10 +2626,14 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f'fs_brain_mask_to_native_{pipe_num}')
     fs_brain_mask_to_native.inputs.reg_header = True
 
-    wf.connect(reconall, 'brainmask', fs_brain_mask_to_native, 'source_file')
-    wf.connect(reconall, 'rawavg', fs_brain_mask_to_native, 'target_file')
-    wf.connect(reconall, 'subjects_dir',
-               fs_brain_mask_to_native, 'subjects_dir')
+    node, out = strat_pool.get_data('brainmask')
+    wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
+    
+    node, out = strat_pool.get_data('raw-average')
+    wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
+    
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
+    wf.connect(node, out, fs_brain_mask_to_native, 'subjects_dir')
 
     # convert brain mask file from .mgz to .nii.gz
     fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
@@ -2627,10 +2663,14 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                                 name=f'fs_aseg_to_native_{pipe_num}')
     fs_aseg_to_native.inputs.reg_header = True
     fs_aseg_to_native.inputs.interp = 'nearest'
-    fs_aseg_to_native.inputs.subjects_dir = freesurfer_subject_dir
+    
+    wf.connect(node, out, fs_aseg_to_native, 'subjects_dir')
 
-    wf.connect(reconall, 'aseg', fs_aseg_to_native, 'source_file')
-    wf.connect(reconall, 'rawavg', fs_aseg_to_native, 'target_file')
+    node, out = strat_pool.get_data('subcortical-seg')
+    wf.connect(node, out, fs_aseg_to_native, 'source_file')
+    
+    node, out = strat_pool.get_data('raw-average')
+    wf.connect(node, out, fs_aseg_to_native, 'target_file')
 
     # convert registered FS segmentations from .mgz to .nii.gz
     fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
@@ -2666,15 +2706,8 @@ def freesurfer_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
             wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
                        'in_file')
 
-    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
-
     outputs = {
-        'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file'),
-        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        **hemisphere_outputs,
-        'raw-average': (reconall, 'rawavg'),
-        'brainmask': (reconall, 'brainmask'),
-        'T1': (reconall, 'T1')
+        'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file')
     }
 
     if erode_tissues:
@@ -2901,10 +2934,11 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "using",
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
-                 "T1w-template",
-                 "T1w-brain-template-mask",
-                 "template-ref-mask-res-2",
-                 "T1w-template-res-2"],
+                "T1w-template",
+                "T1w-brain-template-mask",
+                "template-ref-mask-res-2",
+                "T1w-template-res-2",
+                "freesurfer-subject-dir"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
                  "desc-fast_biasfield",
@@ -3019,31 +3053,40 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(average_brain, 'out_stat',
                normalize_head, 'number')
 
-    ### recon-all -all step ###
-    reconall = pe.Node(interface=freesurfer.ReconAll(),
-                       name=f'anat_freesurfer_{pipe_num}',
-                       mem_gb=2.7)
+    if strat_pool.check_rpool('freesurfer-subject-dir'):
+        outputs = {
+            'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
+            'desc-restore-brain_T1w': (fast_correction,
+                                       'outputspec.anat_brain_restore'),
+            'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
+        return (wf, outputs)
 
-    sub_dir = cfg.pipeline_setup['working_directory']['path']
-    freesurfer_subject_dir = os.path.join(sub_dir,
-                                          'cpac_'+cfg['subject_id'],
-                                          f'anat_preproc_freesurfer_{pipe_num}',
-                                          'anat_freesurfer')
+    else:
+        ### recon-all -all step ###
+        reconall = pe.Node(interface=freesurfer.ReconAll(),
+                           name=f'anat_freesurfer_{pipe_num}',
+                           mem_gb=2.7)
 
-    # create the directory for FreeSurfer node
-    if not os.path.exists(freesurfer_subject_dir):
-        os.makedirs(freesurfer_subject_dir)
+        sub_dir = cfg.pipeline_setup['working_directory']['path']
+        freesurfer_subject_dir = os.path.join(sub_dir,
+                                              'cpac_'+cfg['subject_id'],
+                                              f'anat_preproc_freesurfer_{pipe_num}',
+                                              'anat_freesurfer')
 
-    reconall.inputs.directive = 'all'
-    reconall.inputs.subjects_dir = freesurfer_subject_dir
-    reconall.inputs.openmp = cfg.pipeline_setup['system_config']['num_OMP_threads']
+        # create the directory for FreeSurfer node
+        if not os.path.exists(freesurfer_subject_dir):
+            os.makedirs(freesurfer_subject_dir)
 
-    wf.connect(normalize_head, 'out_file',
-               reconall, 'T1_files')
+        reconall.inputs.directive = 'all'
+        reconall.inputs.subjects_dir = freesurfer_subject_dir
+        reconall.inputs.openmp = cfg.pipeline_setup['system_config']['num_OMP_threads']
 
-    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
+        wf.connect(normalize_head, 'out_file',
+                   reconall, 'T1_files')
 
-    outputs = {
+        wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
+
+        outputs = {
         'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
         'desc-restore-brain_T1w': (fast_correction,
                                    'outputspec.anat_brain_restore'),
