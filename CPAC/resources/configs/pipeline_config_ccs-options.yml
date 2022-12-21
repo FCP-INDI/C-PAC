@@ -44,6 +44,8 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
 
+    run_reconall: On
+
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
