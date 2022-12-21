@@ -203,13 +203,12 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
 
+    run_reconall: Off
+
     # Add extra arguments to recon-all command
     reconall_args:
 
-    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
-    freesurfer_dir:
-
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
+    # Run recon-all post-processing steps
     run: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
