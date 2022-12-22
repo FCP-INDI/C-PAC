@@ -202,15 +202,10 @@ surface_analysis:
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
+    run_reconall: Off
 
     # Add extra arguments to recon-all command
     reconall_args:
-
-    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
-    freesurfer_dir:
-
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    run: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:

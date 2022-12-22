@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added [`sdcflows`](https://www.nipreps.org/sdcflows/2.0/) to CPAC requirements
 
 ### Changed
+- Freesurfer output directory ingress moved to the data configuration YAML
 - Space labels in output filenames now contain specific template labels for MNI templates
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
 - Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths

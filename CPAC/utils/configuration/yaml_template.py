@@ -87,7 +87,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
         -------
         str
         """
-        # Initialize variable for autmatically updated value
+        # Initialize variable for automatically updated value
         if parents == ['surface_analysis', 'freesurfer'] or parents is None:
             freesurfer_extraction = False
             try:
@@ -119,7 +119,8 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             # Insert automatically-changed value in original dict
             if freesurfer_extraction:
                 new_dict = set_nested_value(
-                    new_dict, ['surface_analysis', 'freesurfer', 'run'], False)
+                    new_dict, ['surface_analysis', 'freesurfer', 
+                    'run_reconall'], False)
         else:
             _dump = []
         # Prepare for indentation
@@ -143,7 +144,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             except KeyError:  # exclude unincluded keys
                 continue
             # Add comment for automatically changed value
-            if (keys == ['surface_analysis', 'freesurfer', 'run'] and
+            if (keys == ['surface_analysis', 'freesurfer', 'run_reconall'] and
                     freesurfer_extraction):
                 if comment is None:
                     comment = []
