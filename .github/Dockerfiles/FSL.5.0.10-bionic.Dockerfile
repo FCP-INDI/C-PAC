@@ -14,7 +14,6 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH \
     TZ=America/New_York
 
-
 # Installing and setting up FSL
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
      echo $TZ > /etc/timezone && \
@@ -56,4 +55,5 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-
+COPY --from=FSL-Neurodebian /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
+COPY --from=FSL-Neurodebian /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
