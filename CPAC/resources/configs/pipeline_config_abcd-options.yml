@@ -32,15 +32,6 @@ surface_analysis:
   post_freesurfer:
     run: On
 
-  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
-  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
-  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  freesurfer:
-
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
-    run: Off
-
 anatomical_preproc:
   run: On
   acpc_alignment:
