@@ -187,6 +187,8 @@ class ExpectedOutputs:
             if entity.count('-') > 1:
                 key, value = entity.split('-', 1)
                 entity = '-'.join([key, value.replace('-', '*-')])
+            if entity == 'space-template':
+                entity = 'space-*'
             new_output.append(entity)
         output = f"{'*_'.join(new_output)}*".replace('**', '*')
         del new_output
