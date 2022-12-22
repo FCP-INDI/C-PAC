@@ -30,6 +30,17 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     --exclude=fsl/data/mist \
     --exclude=fsl/data/first
 
+# install CPAC resources into FSL
+RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
+    tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
+    cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+    chmod -R ugo+r $FSLDIR/data/standard
+
 ENTRYPOINT ["/bin/bash"]
 
 # set user
@@ -45,4 +56,4 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/tissuepriors/*mm /usr/share/fsl/5.0/data/standard/tissuepriors/
+
