@@ -2589,8 +2589,8 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
 def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_postproc",
-     "config": ["surface_analysis", "freesurfer"],
-     "switch": ["run_postproc"],
+     "config": "None",
+     "switch": "None",
      "option_key": "None",
      "option_val": "None",
      "inputs": [("freesurfer-subject-dir",

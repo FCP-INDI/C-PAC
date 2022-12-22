@@ -207,9 +207,6 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args:
 
-    # Run recon-all post-processing steps
-    #   Includes conversions of .mgz to .nii, and generation of tissue masks
-    run_postproc: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:

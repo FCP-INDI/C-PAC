@@ -849,7 +849,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += [freesurfer_reconall]
         pipeline_blocks += [freesurfer_postproc]
     else:
-	pipeline_blocks += [freesurfer_postproc]
+        pipeline_blocks += [freesurfer_postproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -882,7 +882,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             'acpc_target'] == 'whole-head':
             if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
                 cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
-                    cfg.surface_analysis['freesurfer']['run']:
+                    cfg.surface_analysis['freesurfer']['run_reconall']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
