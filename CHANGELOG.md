@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned AFNI to AFNI_21.1.00
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
+- Changed CI logic to allow non-release tags
 
 ### Upgraded dependencies
 - `nibabel` 2.3.3 → 3.0.1

@@ -28,13 +28,18 @@ jobs:
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          TAG1=latest$VARIANT
-          TAG2=release-${{ github.ref_name }}$VARIANT
+          TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          TAG1=release-${{ github.ref_name }}$VARIANT
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "original tag: ${DOCKER_TAG}:${TAG1}"
-          echo "new tags: fcpindi/c-pac:${TAG1} fcpindi/c-pac:${TAG2}"
-          docker pull ${DOCKER_TAG}:${TAG1}
           docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG1}
-          docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG2}
           docker push fcpindi/c-pac:${TAG1}
-          docker push fcpindi/c-pac:${TAG2}
+          if [[ ${{ github.ref_name }} =~ ${TAG_PATTERN} ]]
+          then
+            TAG2=latest$VARIANT
+            docker tag ${DOCKER_TAG}:${TAG1} fcpindi/c-pac:${TAG2}
+            docker push fcpindi/c-pac:${TAG2}
+            echo "new tags: fcpindi/c-pac:${TAG1} fcpindi/c-pac:${TAG2}"
+          else
+            echo "new tags: fcpindi/c-pac:${TAG1}"
+          fi
