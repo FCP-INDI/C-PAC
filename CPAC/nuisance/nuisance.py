@@ -2471,15 +2471,31 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
             new_label = f'{new_label}_res-{res}'
         desc_keys = tuple(f'{new_label}_{key}' for key in desc_keys)
 
-    brain_mask = 'FSL-AFNI-brain-mask' if (
-        space == 'template'
-    ) else 'space-bold_desc-brain_mask'
-
-    node, out = strat_pool.get_data(brain_mask)
-    wf.connect(node, out, nuis, 'inputspec.functional_brain_mask_file_path')
-    if bandpass_before:
+    if space == 'template':
+        # sometimes mm dimensions match but the voxel dimensions don't
+        # so here we align the mask to the resampled data before applying
+        match_grid = pe.Node(afni.Resample(),
+                             name='align_template_mask_to_template_data')
+        match_grid.inputs.outputtype = 'NIFTI_GZ'
+        match_grid.inputs.resample_mode = 'Cu'
+        node, out = strat_pool.get_data('FSL-AFNI-brain-mask')
+        wf.connect(node, out, match_grid, 'in_file')
+        node, out = strat_pool.get_data(desc_keys[0])
+        wf.connect(node, out, match_grid, 'master')
+        wf.connect(match_grid, 'out_file',
+                   nuis, 'inputspec.functional_brain_mask_file_path')
+        if bandpass_before:
+            wf.connect(match_grid, 'out_file',
+                       nofilter_nuis,
+                       'inputspec.functional_brain_mask_file_path')
+    else:
+        node, out = strat_pool.get_data('space-bold_desc-brain_mask')
         wf.connect(node, out,
-                   nofilter_nuis, 'inputspec.functional_brain_mask_file_path')
+                   nuis, 'inputspec.functional_brain_mask_file_path')
+        if bandpass_before:
+            wf.connect(node, out,
+                       nofilter_nuis,
+                       'inputspec.functional_brain_mask_file_path')
 
     node, out = strat_pool.get_data('regressors')
     wf.connect(node, out, nuis, 'inputspec.regressor_file')
@@ -2512,9 +2528,13 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         node, out = strat_pool.get_data('regressors')
         wf.connect(node, out, filt, 'inputspec.regressors_file_path')
 
-        node, out = strat_pool.get_data(brain_mask)
-        wf.connect(node, out,
-                   filt, 'inputspec.functional_brain_mask_file_path')
+        if space == 'template':
+            wf.connect(match_grid, 'out_file',
+                       filt, 'inputspec.functional_brain_mask_file_path')
+        else:
+            node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+            wf.connect(node, out,
+                       filt, 'inputspec.functional_brain_mask_file_path')
 
         node, out = strat_pool.get_data('TR')
         wf.connect(node, out, filt, 'inputspec.tr')
