@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed an issue where some phase-difference GRE field map files were not properly being ingressed if the filenames were not expected.
 - Fixed a bug where ALFF & f/ALFF would not run if frequency filtering was disabled earlier in the pipeline.
 - Fixed a bug where `surface_analysis.freesurfer.freesurfer_dir` in the pipeline config was not ingressed at runtime.
+- Added public read access to some overly restricted packaged templates
 
 ## [v1.8.4] - 2022-06-27
 
