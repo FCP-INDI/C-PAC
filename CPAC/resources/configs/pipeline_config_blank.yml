@@ -207,7 +207,6 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args:
 
-
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
     run: Off

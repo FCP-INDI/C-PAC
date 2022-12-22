@@ -48,7 +48,6 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
-
 anatomical_preproc:
   run: On
   acpc_alignment:
