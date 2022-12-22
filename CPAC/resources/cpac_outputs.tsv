@@ -14,7 +14,8 @@ desc-motion_bold	bold	functional	func	NIfTI			Yes	Yes
 desc-preproc_bold	bold	functional	func	NIfTI			Yes		
 desc-sm_bold	bold	functional	func	NIfTI			Yes	Yes	
 sbref	bold	functional	func	NIfTI					
-desc-undistorted_sbref	bold	functional	func	NIfTI					
+desc-undistorted_sbref	bold	functional	func	NIfTI				Yes	
+desc-undistorted_boldref	bold	functional	func	NIfTI				Yes	
 space-EPItemplate_bold	bold	EPI template	func	NIfTI			Yes		
 space-EPItemplate_desc-brain_bold	bold	EPI template	func	NIfTI			Yes		
 space-EPItemplate_desc-cleaned_bold	bold	EPI template	func	NIfTI			Yes		

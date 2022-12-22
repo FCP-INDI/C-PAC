@@ -2837,7 +2837,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("sbref",
+     "inputs": [(["desc-undistorted_sbref", "sbref"],
                  "desc-motion_bold",
                  "space-bold_label-WM_mask",
                  "despiked-fieldmap",
@@ -2903,7 +2903,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         func_to_anat.inputs.inputspec.interp = cfg.registration_workflows[
         'functional_registration']['coregistration']['interpolation']
 
-        node, out = strat_pool.get_data('sbref')
+        node, out = strat_pool.get_data(['desc-undistorted_sbref', 'sbref'])
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
@@ -2962,7 +2962,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 'coregistration']['boundary_based_registration'][
                 'bbr_wm_mask_args']
 
-        node, out = strat_pool.get_data('sbref')
+        node, out = strat_pool.get_data(['desc-undistorted_sbref', 'sbref'])
         wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')
 
         if cfg.registration_workflows['functional_registration'][
@@ -4150,8 +4150,8 @@ def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
-    apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', reg_tool,
-                                time_series=True, num_cpus=num_cpus,
+    apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', 
+                                reg_tool, time_series=True, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':

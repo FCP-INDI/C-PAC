@@ -36,7 +36,7 @@ from CPAC.utils.datasource import match_epi_fmaps
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 from CPAC.func_preproc.func_preproc import bold_mask_afni, bold_masking
-from CPAC.registration.utils import run_c3d
+from CPAC.registration.utils import run_c3d, single_ants_xfm_to_list
 
 from CPAC.distortion_correction.utils import run_convertwarp, \
                                              phase_encode, \
@@ -91,6 +91,7 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
                 "magnitude1",
                 "magnitude2"],
      "outputs": ["desc-undistorted_sbref",
+                 "desc-undistorted_boldref",
                  "space-bold_desc-brain_mask",
                  "phasediff-warp"]}
     '''
@@ -199,6 +200,30 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
    
     wf.connect(reg_coeffs, 'outputnode.fmap_coeff',
                unwarp, 'inputnode.fmap_coeff')
+               
+    apply_warp = pe.Node(interface=ants.ApplyTransforms(),
+                         name='apply_warp_sdcflows_sbref',
+                         mem_gb=0.7,
+                         mem_x=(1708448960473801 /
+                                151115727451828646838272,
+                         'input_image'))
+    apply_warp.inputs.dimension = 3
+    apply_warp.inputs.interpolation = 'LanczosWindowedSinc'
+    
+    node, out = strat_pool.get_data('sbref')
+    wf.connect(node, out, apply_warp, 'input_image')
+    wf.connect(node, out, apply_warp, 'reference_image')
+    
+    ants_xfm_list = \
+            pe.Node(util.Function(input_names=['transform'],
+                                  output_names=['transform_list'],
+                                  function=single_ants_xfm_to_list),
+                    name=f'sdcflows_sbref_single_ants_xfm_to_list',
+                    mem_gb=2.5)
+
+    wf.connect(unwarp, 'outputnode.fieldwarp', ants_xfm_list, 'transform')
+    wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
+
     '''
     motionxfm2itk = pe.MapNode(util.Function(
         input_names=['reference_file',
@@ -245,7 +270,8 @@ def distcor_phasediff_sdcflows(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     outputs = {
-        'desc-undistorted_sbref': (unwarp, 'outputnode.corrected'),
+        'desc-undistorted_sbref': (apply_warp, 'output_image'),
+        'desc-undistorted_boldref': (unwarp, 'outputnode.corrected'),
         'space-bold_desc-brain_mask': (unwarp, 'outputnode.corrected_mask'),
         'phasediff-warp': (unwarp, 'outputnode.fieldwarp')
     }
