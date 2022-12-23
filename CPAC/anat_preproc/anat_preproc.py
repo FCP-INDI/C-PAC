@@ -2583,7 +2583,10 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
         'T1': (reconall, 'T1')
     }
 
-    return (wf, out)
+    wf, post_outputs = freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt)
+    outputs.update(post_outputs)
+
+    return wf, outputs
 
 
 def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
