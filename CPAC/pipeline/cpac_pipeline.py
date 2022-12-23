@@ -847,8 +847,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     if not rpool.check_rpool('freesurfer-subject-dir'):
         pipeline_blocks += [freesurfer_reconall]
-        pipeline_blocks += [freesurfer_postproc]
-    else:
+    if rpool.check_rpool('freesurfer-subject-dir'):
+        # if we have it from ingress or from running reconall
         pipeline_blocks += [freesurfer_postproc]
 
     if not rpool.check_rpool('desc-preproc_T1w'):
