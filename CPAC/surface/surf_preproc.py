@@ -111,18 +111,20 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                'destrieux_32'],
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
-
-    
+    surf.interface.num_threads = 1
     surf.inputs.subject = cfg['subject_id']
-
-    surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    surf.inputs.post_freesurfer_folder = os.path.join(
+        cfg.pipeline_setup['working_directory']['path'],
         'cpac_'+cfg['subject_id'],
         f'post_freesurfer_{pipe_num}')
-
-    surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
-    surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
-    surf.inputs.subcortical_gray_labels = cfg.surface_analysis['post_freesurfer']['subcortical_gray_labels']
-    surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer']['freesurfer_labels']
+    surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer'][
+        'surf_atlas_dir']
+    surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer'][
+        'gray_ordinates_dir']
+    surf.inputs.subcortical_gray_labels = cfg.surface_analysis[
+        'post_freesurfer']['subcortical_gray_labels']
+    surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer'][
+        'freesurfer_labels']
 
     # convert integers to strings as subprocess requires string inputs
     surf.inputs.gray_ordinates_res = str(cfg.surface_analysis['post_freesurfer']['gray_ordinates_res'])
