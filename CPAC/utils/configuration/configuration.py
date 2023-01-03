@@ -123,7 +123,8 @@ class Configuration:
             if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
                     'brain_extraction']['using']:
                 self.set_nested(config_map,
-                                ['surface_analysis', 'freesurfer', 'run'],
+                                ['surface_analysis', 'freesurfer', 
+                                 'run_reconall'],
                                 False)
                 warn(DOUBLERUN_GUARD_MESSAGE)
         except (KeyError, TypeError):

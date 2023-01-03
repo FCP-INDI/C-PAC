@@ -19,6 +19,7 @@ from itertools import chain
 from logging import Logger
 import os
 from pathlib import Path
+import re
 import yaml
 from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
@@ -69,9 +70,14 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
                 output_dir.glob(f'{container}/{subdir}') for
                 container in containers]))
             for filename in filenames:
-                if not (observed_outputs and list(observed_outputs[0].glob(
-                        f'*{filename}*'))):
-                    missing_outputs += (subdir, filename)
+                try:
+                    if not (observed_outputs and list(
+                        observed_outputs[0].glob(
+                            re.sub(r'\*\**', r'*', f'*{filename}*')))):
+                        missing_outputs += (subdir, filename)
+                except Exception as exception:  # pylint: disable=broad-except
+                    logger = getLogger('nipype.workflow')
+                    logger.error(str(exception))
         if missing_outputs:
             missing_log = set_up_logger(f'missingOutputs_{unique_id}',
                                         filename='_'.join([
@@ -117,23 +123,25 @@ class ExpectedOutputs:
     >>> expected_outputs.add('func', 'desc-preproc_bold.json')
     >>> expected_outputs.add('func', 'desc-sm-1_reho')
     >>> dict(expected_outputs)['anat']
-    ['T1w']
+    ['T1w*']
     >>> dict(expected_outputs)['func']
-    ['desc-preproc*_bold.json', 'desc-sm*-1*_reho', 'task-rest*_bold.nii.gz']
+    ['desc-preproc*_bold.json*', 'desc-sm*-1*_reho*', 'task-rest*_bold.nii.gz*']
     >>> str(expected_outputs)
-    'anat:\n- T1w\nfunc:\n- desc-preproc*_bold.json\n- desc-sm*-1*_reho\n- task-rest*_bold.nii.gz\n'
+    'anat:\n- T1w*\nfunc:\n- desc-preproc*_bold.json*\n- desc-sm*-1*_reho*\n- task-rest*_bold.nii.gz*\n'
     >>> expected_outputs
     anat:
-    - T1w
+    - T1w*
     func:
-    - desc-preproc*_bold.json
-    - desc-sm*-1*_reho
-    - task-rest*_bold.nii.gz
+    - desc-preproc*_bold.json*
+    - desc-sm*-1*_reho*
+    - task-rest*_bold.nii.gz*
     >>> len(expected_outputs)
     4
     '''   # noqa: E501  # pylint: disable=line-too-long
-    def __init__(self):
-        self.expected_outputs = {}
+    def __init__(self, expected=None):
+        self.expected_outputs = {} if expected is None else expected
+        if not isinstance(self.expected_outputs, dict):
+            raise TypeError("ExpectedOutputs.expected_outputs must be a dict")
 
     def __bool__(self):
         return bool(len(self))
@@ -143,7 +151,7 @@ class ExpectedOutputs:
                     subdir, filename in self.expected_outputs.items()}.items()
 
     def __iadd__(self, other):
-        if not isinstance(other, tuple) or not len(other) == 2:
+        if not isinstance(other, tuple) or len(other) != 2:
             raise TypeError(
                 f'{self.__module__}.{self.__class__.__name__} requires a '
                 "tuple of ('subdir', 'output') for addition")
@@ -180,7 +188,7 @@ class ExpectedOutputs:
                 key, value = entity.split('-', 1)
                 entity = '-'.join([key, value.replace('-', '*-')])
             new_output.append(entity)
-        output = '*_'.join(new_output)
+        output = f"{'*_'.join(new_output)}*".replace('**', '*')
         del new_output
         if subdir in self.expected_outputs:
             self.expected_outputs[subdir].add(output)

@@ -43,8 +43,8 @@ This file is part of C-PAC."""
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 6
-_version_extra = 'dev'
+_version_micro = 5
+_version_extra = 'dev1'
 
 
 def get_cpac_gitversion():
@@ -185,7 +185,7 @@ REQUIREMENTS = [
     "nipype==1.5.1",
     "nose==1.3.7",
     "numpy==1.21.0",
-    "pandas==0.23.4",
+    "pandas==1.0.5",
     "pathvalidate==2.5.2",
     "patsy==0.5.0",
     "prov==1.5.2",
