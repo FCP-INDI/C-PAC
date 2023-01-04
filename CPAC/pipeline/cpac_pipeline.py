@@ -1088,6 +1088,12 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             nb = NodeBlock(block)
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
+            if nb.name == 'freesurfer_postproc':
+                logger.warning('The provided data configuration includes '
+                               "'freesurfer_dir' but the provided pipeline "
+                               'config is not configured to use FreeSurfer '
+                               'outputs.')
+                continue
             previous_nb_str = (
                 f"after node block '{previous_nb.get_name()}': "
             ) if previous_nb else 'at beginning:'
