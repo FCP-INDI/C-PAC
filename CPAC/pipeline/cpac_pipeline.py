@@ -847,7 +847,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     if not rpool.check_rpool('freesurfer-subject-dir'):
         pipeline_blocks += [freesurfer_reconall]
-        pipeline_blocks += [freesurfer_postproc]
+	if cfg.surface_analysis['freesurfer']['run_reconall']:
+            pipeline_blocks += [freesurfer_postproc]
     else:
         pipeline_blocks += [freesurfer_postproc]
 
