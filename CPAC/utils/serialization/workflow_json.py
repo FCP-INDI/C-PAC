@@ -87,7 +87,13 @@ class NodeData:
 class WorkflowJSONMeta:
     """Data class for meta information."""
     pipeline_name: str
+    stage: str
     time: datetime = dataclasses.field(default_factory=lambda: datetime.now().astimezone())
+
+    def filename(self) -> str:
+        """Generate filename from fields"""
+        timestamp = self.time.strftime("%Y-%m-%d_%H-%M-%S")
+        return f'workflow_{self.stage}_{timestamp}_{self.pipeline_name}.json'
 
 
 class WorkflowJSONEncoder(json.JSONEncoder):

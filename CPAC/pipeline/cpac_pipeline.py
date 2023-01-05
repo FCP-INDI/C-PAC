@@ -468,13 +468,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
     if workflow_save:
-        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name)
-        workflow_filename = os.path.join(
-            log_dir,
-            f'workflow_pre_{workflow_meta.time.strftime("%Y-%m-%d_%H-%M-%S")}_{p_name}.json'
-        )
+        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
         save_workflow_json(
-            filename=workflow_filename,
+            filename=os.path.join(log_dir, workflow_meta.filename()),
             workflow=workflow,
             meta=workflow_meta
         )
@@ -784,9 +780,10 @@ CPAC run error:
                 ))
 
                 if workflow_save:
+                    workflow_meta.stage = "post"
                     workflow_filename = os.path.join(
                         log_dir,
-                        f'workflow_post_{workflow_meta.time.strftime("%Y-%m-%d_%H-%M-%S")}_{p_name}.json'
+                        workflow_meta.filename()
                     )
                     save_workflow_json(
                         filename=workflow_filename,
