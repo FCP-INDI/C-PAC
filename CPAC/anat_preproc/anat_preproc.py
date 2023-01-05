@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 import os
 from nipype import logging
 from nipype.interfaces import afni
@@ -16,8 +17,8 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
-from CPAC.pipeline.engine import flatten_input_list
-from CPAC.utils.docs import grab_docstring_dct
+from CPAC.pipeline.engine import flatten_list
+from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
@@ -2533,66 +2534,6 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "freesurfer_reconall",
-     "config": ["surface_analysis", "freesurfer"],
-     "switch": ["run_reconall"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["desc-preproc_T1w"],
-     "outputs": ["freesurfer-subject-dir",
-                 "raw-average",
-                 "subcortical-seg",
-                 "brainmask",
-                 "wmparc",
-                 "T1"]}
-    '''
-
-    reconall = pe.Node(interface=freesurfer.ReconAll(),
-                       name=f'anat_freesurfer_{pipe_num}',
-                       mem_gb=2.7)
-    reconall.skip_timeout = True  # this Node could take > 24 hours
-
-    freesurfer_subject_dir = os.path.join(
-        cfg.pipeline_setup['working_directory']['path'],
-        'cpac_'+cfg['subject_id'],
-        f'anat_preproc_freesurfer_{pipe_num}',
-        'anat_freesurfer')
-
-    if not os.path.exists(freesurfer_subject_dir):
-        os.makedirs(freesurfer_subject_dir)
-
-    reconall.inputs.directive = 'all'
-    reconall.inputs.subjects_dir = freesurfer_subject_dir
-    reconall.inputs.openmp = cfg.pipeline_setup['system_config'][
-        'num_OMP_threads']
-
-    if cfg.surface_analysis['freesurfer']['reconall_args'] is not None:
-        reconall.inputs.args = cfg.surface_analysis['freesurfer'][
-            'reconall_args']
-
-    node, out = strat_pool.get_data("desc-preproc_T1w")
-    wf.connect(node, out, reconall, 'T1_files')
-
-    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
-
-    outputs = {
-        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        **hemisphere_outputs,
-        'raw-average': (reconall, 'rawavg'),
-        'subcortical-seg': (reconall, 'aseg'),
-        'brainmask': (reconall, 'brainmask'),
-        'wmparc': (reconall, 'wmparc'),
-        'T1': (reconall, 'T1')
-    }
-
-    wf, post_outputs = freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt)
-    outputs.update(post_outputs)
-
-    return wf, outputs
-
-
 def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_postproc",
@@ -2626,7 +2567,7 @@ def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask"]}
     '''
-    inputs = flatten_input_list(freesurfer_postproc)
+    inputs = flatten_list(freesurfer_postproc, 'inputs')
     inputs.remove('T1')  # optional input
     if not all(strat_pool.check_rpool(_input) for _input in inputs):
         # warn and continue if we have FreeSurfer outputs but
@@ -2736,7 +2677,81 @@ def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def fnirt_based_brain_extraction(config=None, wf_name='fnirt_based_brain_extraction'):
+# we're grabbing the postproc outputs and appending them to
+# the reconall outputs
+@docstring_parameter(postproc_outputs=str(flatten_list(
+                     freesurfer_postproc, 'outputs')
+                                          ).lstrip('[').replace("'", '"'))
+def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {{"name": "freesurfer_reconall",
+      "config": ["surface_analysis", "freesurfer"],
+      "switch": ["run_reconall"],
+      "option_key": "None",
+      "option_val": "None",
+      "inputs": ["desc-preproc_T1w"],
+      "outputs": ["freesurfer-subject-dir",
+                  "raw-average",
+                  "subcortical-seg",
+                  "brainmask",
+                  "wmparc",
+                  "T1",
+                  {postproc_outputs}}}
+    '''
+
+    reconall = pe.Node(interface=freesurfer.ReconAll(),
+                       name=f'anat_freesurfer_{pipe_num}',
+                       mem_gb=2.7)
+    reconall.skip_timeout = True  # this Node could take > 24 hours
+
+    freesurfer_subject_dir = os.path.join(
+        cfg.pipeline_setup['working_directory']['path'],
+        'cpac_'+cfg['subject_id'],
+        f'anat_preproc_freesurfer_{pipe_num}',
+        'anat_freesurfer')
+
+    if not os.path.exists(freesurfer_subject_dir):
+        os.makedirs(freesurfer_subject_dir)
+
+    reconall.inputs.directive = 'all'
+    reconall.inputs.subjects_dir = freesurfer_subject_dir
+    reconall.inputs.openmp = cfg.pipeline_setup['system_config'][
+        'num_OMP_threads']
+
+    if cfg.surface_analysis['freesurfer']['reconall_args'] is not None:
+        reconall.inputs.args = cfg.surface_analysis['freesurfer'][
+            'reconall_args']
+
+    node, out = strat_pool.get_data("desc-preproc_T1w")
+    wf.connect(node, out, reconall, 'T1_files')
+
+    wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
+
+    outputs = {
+        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
+        **hemisphere_outputs,
+        'raw-average': (reconall, 'rawavg'),
+        'subcortical-seg': (reconall, 'aseg'),
+        'brainmask': (reconall, 'brainmask'),
+        'wmparc': (reconall, 'wmparc'),
+        'T1': (reconall, 'T1')
+    }
+
+    for label, connection in outputs.items():
+        # Put the reconall outputs in the strat pool before we run postproc
+        strat_pool.set_data(label, connection[0], connection[1],
+                            deepcopy(strat_pool.get('json')),
+                            pipe_num, 'freesurfer_reconall', fork=False)
+    # Run postproc if we ran reconall
+    wf, post_outputs = freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt)
+    # Update the outputs to include the postproc outputs
+    outputs.update(post_outputs)
+
+    return wf, outputs
+
+
+def fnirt_based_brain_extraction(config=None,
+                                 wf_name='fnirt_based_brain_extraction'):
 
     ### ABCD Harmonization - FNIRT-based brain extraction ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh

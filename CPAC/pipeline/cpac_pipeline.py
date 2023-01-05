@@ -1086,9 +1086,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block)
-            wf, logtail = nb.connect_block(wf, cfg, rpool)
-            if logtail:
-                LOGTAIL['warnings'].append(logtail)
+            wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
                 logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)

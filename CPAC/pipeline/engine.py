@@ -46,7 +46,8 @@ from CPAC.utils.datasource import (
 from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
-from CPAC.utils.monitoring import getLogger, WARNING_FREESURFER_OFF_WITH_DATA
+from CPAC.utils.monitoring import getLogger, LOGTAIL, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
@@ -1255,7 +1256,6 @@ class NodeBlock:
     def connect_block(self, wf, cfg, rpool):
         debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
-        logtail = None
         for name, block_dct in self.node_blocks.items():
             opts = []
             config = self.check_null(block_dct['config'])
@@ -1412,7 +1412,10 @@ class NodeBlock:
                         if not outs:
                             if (block_function.__name__ == 'freesurfer_'
                                                            'postproc'):
-                                logtail = WARNING_FREESURFER_OFF_WITH_DATA
+                                logger.warning(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
+                                LOGTAIL['warnings'].append(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
                             continue
 
                         if opt and len(option_val) > 1:
@@ -1520,17 +1523,20 @@ class NodeBlock:
                                                               pipe_idx,
                                                               pipe_x)
 
-        return wf, logtail
+        return wf
 
 
-def flatten_input_list(node_block_function: Union[FunctionType, list, Tuple]
-                       ) -> list:
+def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
+                 key: str = 'inputs') -> list:
     """Take a Node Block function or list of inputs and return a flat list
 
     Parameters
     ----------
     node_block_function : function, list or tuple
         a Node Block function or a list or tuple for recursion
+
+    key : str
+        'inputs' or 'outputs'
 
     Returns
     -------
@@ -1541,15 +1547,16 @@ def flatten_input_list(node_block_function: Union[FunctionType, list, Tuple]
     if isinstance(node_block_function, (list, tuple)):
         resource_list = node_block_function
     elif isinstance(node_block_function, FunctionType):
-        resource_list = grab_docstring_dct(node_block_function).get('inputs',
-                                                                    [])
+        resource_list = grab_docstring_dct(node_block_function).get(key, [])
     elif isinstance(node_block_function, str):
         resource_list = [node_block_function]
+    if isinstance(resource_list, dict):
+        resource_list = list(resource_list.keys())
     for resource in resource_list:
         if isinstance(resource, str):
             flat_list.append(resource)
         else:
-            flat_list += flatten_input_list(resource)
+            flat_list += flatten_list(resource, key)
     return flat_list
 
 
