@@ -80,7 +80,7 @@ class NodeData:
 
             return node_data
 
-        raise Exception(f'Unknown Node type found in graph: {type(obj)}')
+        raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
 
 
 @dataclass
