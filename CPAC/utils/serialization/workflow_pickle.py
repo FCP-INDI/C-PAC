@@ -11,7 +11,7 @@ def save_workflow_pickle(filename: str, workflow: Any) -> None:
     Parameters
     ----------
     filename : Filename to save to.
-    workflow : Workflow object.
+    workflow : Workflow object. (Can be any pickle-able python object.)
     """
 
     obj = workflow_container(workflow)
