@@ -44,7 +44,7 @@ from CPAC.utils.datasource import (
 from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import getLogger, WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
@@ -1253,6 +1253,7 @@ class NodeBlock:
     def connect_block(self, wf, cfg, rpool):
         debug = cfg.pipeline_setup['Debugging']['verbose']
         all_opts = []
+        logtail = None
         for name, block_dct in self.node_blocks.items():
             opts = []
             config = self.check_null(block_dct['config'])
@@ -1407,6 +1408,9 @@ class NodeBlock:
                             continue
 
                         if not outs:
+                            if (block_function.__name__ == 'freesurfer_'
+                                                           'postproc'):
+                                logtail = WARNING_FREESURFER_OFF_WITH_DATA
                             continue
 
                         if opt and len(option_val) > 1:
@@ -1514,7 +1518,27 @@ class NodeBlock:
                                                               pipe_idx,
                                                               pipe_x)
 
-        return wf
+        return wf, logtail
+
+
+def flatten_input_list(resource_list: list) -> list:
+    """Take a list of input resources and return a flat list
+
+    Parameters
+    ----------
+    resource_list : list
+
+    Returns
+    -------
+    list
+    """
+    flat_list = []
+    for resource in resource_list:
+        if isinstance(resource, str):
+            flat_list.append(resource)
+        else:
+            flat_list += flatten_input_list(resource)
+    return flat_list
 
 
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):

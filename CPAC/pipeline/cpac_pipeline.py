@@ -213,7 +213,8 @@ from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
-                                  set_up_logger
+                                  LOGTAIL, set_up_logger, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -746,7 +747,6 @@ CPAC run error:
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
     {output_check}
-
 """
 
         finally:
@@ -1086,13 +1086,13 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block)
-            wf = nb.connect_block(wf, cfg, rpool)
+            wf, logtail = nb.connect_block(wf, cfg, rpool)
+            if logtail:
+                LOGTAIL['warning'] += f'\n{logtail}'
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
-                logger.warning('The provided data configuration includes '
-                               "'freesurfer_dir' but the provided pipeline "
-                               'config is not configured to use FreeSurfer '
-                               'outputs.')
+                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                LOGTAIL['warning'] += f'\n{WARNING_FREESURFER_OFF_WITH_DATA}'
                 continue
             previous_nb_str = (
                 f"after node block '{previous_nb.get_name()}': "

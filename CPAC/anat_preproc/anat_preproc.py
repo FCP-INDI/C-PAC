@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from nipype import logging
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
@@ -15,9 +16,12 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands
+from CPAC.pipeline.engine import flatten_input_list
+from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
+from CPAC.utils.monitoring import WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.unet.function import predict_volumes
 
 
@@ -2622,7 +2626,15 @@ def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask"]}
     '''
-
+    inputs = flatten_input_list(
+        grab_docstring_dct(freesurfer_postproc).get('inputs', []))
+    inputs.remove('T1')  # not necessary to exist
+    if not all(strat_pool.check_rpool(_input) for _input in inputs):
+        # warn and continue if we have FreeSurfer outputs but
+        # don't have a FreeSurfer configuration
+        logger = logging.getLogger('nipype.workflow')
+        logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+        return wf, {}
     # register FS brain mask to native space
     fs_brain_mask_to_native = pe.Node(
         interface=freesurfer.ApplyVolTransform(),
