@@ -20,6 +20,8 @@ from itertools import chain
 import logging
 import os
 import re
+from types import FunctionType
+from typing import Tuple, Union
 import warnings
 
 from CPAC.pipeline import \
@@ -1521,18 +1523,28 @@ class NodeBlock:
         return wf, logtail
 
 
-def flatten_input_list(resource_list: list) -> list:
-    """Take a list of input resources and return a flat list
+def flatten_input_list(node_block_function: Union[FunctionType, list, Tuple]
+                       ) -> list:
+    """Take a Node Block function or list of inputs and return a flat list
 
     Parameters
     ----------
-    resource_list : list
+    node_block_function : function, list or tuple
+        a Node Block function or a list or tuple for recursion
 
     Returns
     -------
     list
     """
     flat_list = []
+    resource_list = []
+    if isinstance(node_block_function, (list, tuple)):
+        resource_list = node_block_function
+    elif isinstance(node_block_function, FunctionType):
+        resource_list = grab_docstring_dct(node_block_function).get('inputs',
+                                                                    [])
+    elif isinstance(node_block_function, str):
+        resource_list = [node_block_function]
     for resource in resource_list:
         if isinstance(resource, str):
             flat_list.append(resource)

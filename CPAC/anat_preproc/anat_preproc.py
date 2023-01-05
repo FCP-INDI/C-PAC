@@ -2626,9 +2626,8 @@ def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-WM_mask",
                  "label-GM_mask"]}
     '''
-    inputs = flatten_input_list(
-        grab_docstring_dct(freesurfer_postproc).get('inputs', []))
-    inputs.remove('T1')  # not necessary to exist
+    inputs = flatten_input_list(freesurfer_postproc)
+    inputs.remove('T1')  # optional input
     if not all(strat_pool.check_rpool(_input) for _input in inputs):
         # warn and continue if we have FreeSurfer outputs but
         # don't have a FreeSurfer configuration
