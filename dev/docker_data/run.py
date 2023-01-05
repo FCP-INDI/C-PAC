@@ -800,6 +800,7 @@ def run_main():
                         ' have been written to %s and %s respectively.\n',
                         pipeline_config_file, data_config_file)
 
+            # wait to import `LOGTAIL` here so it has any runtime updates
             from CPAC.utils.monitoring import LOGTAIL
             for warning in LOGTAIL['warnings']:
                 logger.warning('%s\n', warning.rstrip())
