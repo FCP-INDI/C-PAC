@@ -801,8 +801,8 @@ def run_main():
                         pipeline_config_file, data_config_file)
 
             from CPAC.utils.monitoring import LOGTAIL
-            if LOGTAIL['warning']:
-                logger.warning('%s\n', LOGTAIL['warning'].rstrip())
+            for warning in LOGTAIL['warnings']:
+                logger.warning('%s\n', warning.rstrip())
 
     sys.exit(exitcode)
 

@@ -1088,11 +1088,11 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             nb = NodeBlock(block)
             wf, logtail = nb.connect_block(wf, cfg, rpool)
             if logtail:
-                LOGTAIL['warning'] += f'\n{logtail}'
+                LOGTAIL['warnings'].append(logtail)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
                 logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
-                LOGTAIL['warning'] += f'\n{WARNING_FREESURFER_OFF_WITH_DATA}'
+                LOGTAIL['warnings'].append(WARNING_FREESURFER_OFF_WITH_DATA)
                 continue
             previous_nb_str = (
                 f"after node block '{previous_nb.get_name()}': "
