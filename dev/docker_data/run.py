@@ -793,11 +793,17 @@ def run_main():
             if monitoring:
                 monitoring.join(10)
 
-            if args.analysis_level == "test_config" and exitcode == 0:
-                print(
-                    '\nPipeline and data configuration files should'
-                    f' have been written to {pipeline_config_file} and ',
-                    f'{data_config_file} respectively.')
+            if args.analysis_level == "test_config":
+                if exitcode == 0:
+                    logger.info(
+                        '\nPipeline and data configuration files should'
+                        ' have been written to %s and %s respectively.\n',
+                        pipeline_config_file, data_config_file)
+
+            # wait to import `LOGTAIL` here so it has any runtime updates
+            from CPAC.utils.monitoring import LOGTAIL
+            for warning in LOGTAIL['warnings']:
+                logger.warning('%s\n', warning.rstrip())
 
     sys.exit(exitcode)
 

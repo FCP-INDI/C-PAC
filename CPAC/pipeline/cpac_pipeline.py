@@ -213,7 +213,8 @@ from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
-                                  set_up_logger
+                                  LOGTAIL, set_up_logger, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -746,7 +747,6 @@ CPAC run error:
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
     {output_check}
-
 """
 
         finally:
@@ -845,11 +845,10 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    if not rpool.check_rpool('freesurfer-subject-dir'):
-        pipeline_blocks += [freesurfer_reconall]
+    if rpool.check_rpool('freesurfer-subject-dir'):
         pipeline_blocks += [freesurfer_postproc]
     else:
-        pipeline_blocks += [freesurfer_postproc]
+        pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
@@ -1089,6 +1088,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             nb = NodeBlock(block)
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
+            if nb.name == 'freesurfer_postproc':
+                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                LOGTAIL['warnings'].append(WARNING_FREESURFER_OFF_WITH_DATA)
+                continue
             previous_nb_str = (
                 f"after node block '{previous_nb.get_name()}': "
             ) if previous_nb else 'at beginning:'
