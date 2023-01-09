@@ -877,7 +877,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['freesurfer']['run']:
+                    cfg.surface_analysis['freesurfer']['run_reconall']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -930,7 +930,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['freesurfer']['run']:
+        cfg.surface_analysis['freesurfer']['run_reconall']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
