@@ -193,6 +193,7 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
+from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -465,6 +466,15 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                     raise RuntimeError(f'Failed to visualize {p_name} ('
                                        f'{graph2use}, {graph_format})'
                                        ) from exception
+
+    workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
+    if workflow_save:
+        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
+        save_workflow_json(
+            filename=os.path.join(log_dir, workflow_meta.filename()),
+            workflow=workflow,
+            meta=workflow_meta
+        )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -769,6 +779,18 @@ CPAC run error:
                                  c['subject_id'])
                 ))
 
+                if workflow_save:
+                    workflow_meta.stage = "post"
+                    workflow_filename = os.path.join(
+                        log_dir,
+                        workflow_meta.filename()
+                    )
+                    save_workflow_json(
+                        filename=workflow_filename,
+                        workflow=workflow,
+                        meta=workflow_meta
+                    )
+
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
@@ -855,7 +877,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['freesurfer']['run']:
+                    cfg.surface_analysis['freesurfer']['run_reconall']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -908,7 +930,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['freesurfer']['run']:
+        cfg.surface_analysis['freesurfer']['run_reconall']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
