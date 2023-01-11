@@ -18,8 +18,10 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import logging
 import os
+import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
+from nipype import logging as nipype_logging
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
@@ -56,6 +58,44 @@ def getLogger(name):  # pylint: disable=invalid-name
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
     return logging.getLogger(name)
+
+
+def log_failed_subprocess(cpe):
+    """Pass STDERR from a subprocess to the interface's logger
+
+    Parameters
+    ----------
+    cpe : subprocess.CalledProcessError
+    """
+    logger = nipype_logging.getLogger('nipype.interface')
+    logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
+
+
+def log_subprocess(cmd, *args, **kwargs):
+    """Pass STDERR and STDOUT from subprocess to interface's logger
+
+    Parameters
+    ----------
+    cmd : str
+
+    args, kwargs : any
+        pass-through arguments for subprocess.check_output
+
+    Returns
+    -------
+    exit_code : int
+
+    output : str
+    """
+    logger = nipype_logging.getLogger('nipype.interface')
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                universal_newlines=True, *args, **kwargs)
+        logger.info(output)
+    except subprocess.CalledProcessError as cpe:
+        log_failed_subprocess(cpe)
+        return cpe.output, cpe.returncode
+    return output, 0
 
 
 # pylint: disable=too-few-public-methods

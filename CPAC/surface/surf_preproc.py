@@ -35,24 +35,25 @@ def run_surface(post_freesurfer_folder,
     destrieux : str
         Path to the Destrieux parcellation file.
     """
-
-    import os
-    import subprocess
+    import os  # pylint: disable=redefined-outer-name,reimported
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
-    
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
-    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
-        '--freesurfer_folder', freesurfer_folder, '--subject', subject, \
-        '--t1w_restore', t1w_restore_image, '--atlas_t1w', atlas_space_t1w_image, \
-        '--atlas_transform', atlas_transform, '--inverse_atlas_transform', inverse_atlas_transform, \
-        '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
-        '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
-        '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
-
-    subprocess.check_output(cmd)
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh',
+           '--post_freesurfer_folder', post_freesurfer_folder,
+           '--freesurfer_folder', freesurfer_folder, '--subject', subject,
+           '--t1w_restore', t1w_restore_image, '--atlas_t1w',
+           atlas_space_t1w_image, '--atlas_transform', atlas_transform,
+           '--inverse_atlas_transform', inverse_atlas_transform,
+           '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir',
+           gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res,
+           '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh,
+           '--subcortgraylabels', subcortical_gray_labels,
+           '--freesurferlabels', freesurfer_labels]
+    log_subprocess(cmd)
 
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
@@ -62,7 +63,7 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
