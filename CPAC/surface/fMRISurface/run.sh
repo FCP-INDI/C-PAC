@@ -1,3 +1,5 @@
+#!/bin/bash
+# set TempSubjectDIR before running this script
 # Input Variables
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -54,6 +56,7 @@ bash /code/CPAC/surface/fMRISurface/SurfaceSmoothing.sh "$ResultsFolder"/"$NameO
 
 #Subcortical Processing
 echo "Subcortical Processing"
+export TempSubjectDIR=$TempSubjectDIR
 bash /code/CPAC/surface/fMRISurface/SubcorticalProcessing.sh "$AtlasSpaceFolder" "$ROIFolder" "$FinalfMRIResolution" "$ResultsFolder" "$NameOffMRI" "$SmoothingFWHM" "$GrayordinatesResolution"
 
 #Generation of Dense Timeseries

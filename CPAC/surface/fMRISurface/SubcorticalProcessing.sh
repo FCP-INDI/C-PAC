@@ -1,4 +1,5 @@
-#!/bin/bash 
+#!/bin/bash
+# set TempSubjectDIR before running this script
 set -e
 script_name="SubcorticalProcessing.sh"
 echo "${script_name}: START"
@@ -33,30 +34,8 @@ echo "${script_name}: Sigma: ${Sigma}"
 #NOTE: wmparc has dashes in structure names, which -cifti-create-* won't accept
 #ROIs files have acceptable structure names
 
-
 #deal with fsl_sub being silly when we want to use numeric equality on decimals
 unset POSIXLY_CORRECT
-
-## Create scratch space directory to run I/O intensive wb_commands
-#TMPDIR=${TMPDIR:-/tmp/$USER}
-#if [ ! -d ${TMPDIR} ]; then
-#    mkdir -p ${TMDPIR}
-#    chmod 770 ${TMPDIR} || true
-#fi
-#RandomHash=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')
-#TempSubjectDIR="${TMPDIR}/$RandomHash"
-#mkdir -p $TempSubjectDIR
-
-#hj edit: make a temp dir
-TempSubjectDIR="/tmp/TempSubjectDIR"
-mkdir -p $TempSubjectDIR
-chmod 770 $TempSubjectDIR
-
-#function clean_up {
-#    echo Exit code caught. Removing temp scratch space directory
-#    rm -fR ${TempSubjectDIR}
-#}
-
 
 #generate subject-roi space fMRI cifti for subcortical
 if [[ `echo "$BrainOrdinatesResolution == $FinalfMRIResolution" | bc -l | cut -f1 -d.` == "1" ]]
@@ -96,11 +75,6 @@ else
     wb_command -cifti-resample ${TempSubjectDIR}/${NameOffMRI}_temp_subject_dilate.dtseries.nii COLUMN ${TempSubjectDIR}/${NameOffMRI}_temp_template.dlabel.nii COLUMN ADAP_BARY_AREA CUBIC ${TempSubjectDIR}/${NameOffMRI}_temp_atlas.dtseries.nii -volume-predilate 10
     cp ${TempSubjectDIR}/${NameOffMRI}_temp_atlas.dtseries.nii ${ResultsFolder}/${NameOffMRI}_temp_atlas.dtseries.nii
 fi
-
-
-#delete the temp space directory
-# trap clean_up EXIT SIGTERM SIGHUP SIGINT SIGQUIT
-rm -rf ${TempSubjectDIR}
 
 #delete common temporaries
 rm -f ${ResultsFolder}/${NameOffMRI}_temp_subject_dilate.dtseries.nii

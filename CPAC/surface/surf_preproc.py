@@ -36,6 +36,7 @@ def run_surface(post_freesurfer_folder,
         Path to the Destrieux parcellation file.
     """
     import os  # pylint: disable=redefined-outer-name,reimported
+    from nipype.utils.tmpdirs import TemporaryDirectory
     from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
@@ -63,7 +64,8 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
-    log_subprocess(cmd)
+    with TemporaryDirectory() as temp_subject_dir:
+        log_subprocess(cmd, env={'TempSubjectDIR': temp_subject_dir})
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
