@@ -71,7 +71,7 @@ def log_failed_subprocess(cpe):
     logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
 
 
-def log_subprocess(cmd, *args, raise_error=True, **kwargs):
+def log_subprocess(cmd, raise_error=True, **kwargs):
     """Pass STDERR and STDOUT from subprocess to interface's logger
 
     Parameters
@@ -87,9 +87,9 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
 
     Returns
     -------
-    exit_code : int
-
     output : str
+
+    exit_code : int
     """
     logger = nipype_logging.getLogger('nipype.interface')
     try:
