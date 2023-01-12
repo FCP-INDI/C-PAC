@@ -71,12 +71,16 @@ def log_failed_subprocess(cpe):
     logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
 
 
-def log_subprocess(cmd, *args, **kwargs):
+def log_subprocess(cmd, *args, raise_error=True, **kwargs):
     """Pass STDERR and STDOUT from subprocess to interface's logger
 
     Parameters
     ----------
     cmd : str
+        command to run with `subprocess.check_output`
+
+    raise_error : boolean
+        raise any exception after logging
 
     args, kwargs : any
         pass-through arguments for subprocess.check_output
@@ -94,6 +98,8 @@ def log_subprocess(cmd, *args, **kwargs):
         logger.info(output)
     except subprocess.CalledProcessError as cpe:
         log_failed_subprocess(cpe)
+        if raise_error:
+            raise
         return cpe.output, cpe.returncode
     return output, 0
 
