@@ -48,7 +48,7 @@ unset POSIXLY_CORRECT
 #mkdir -p $TempSubjectDIR
 
 #hj edit: make a temp dir
-TempSubjectDIR="/tmp/TempSubjectDIR"
+TempSubjectDIR="/output/working/tmp/TempSubjectDIR"
 mkdir -p $TempSubjectDIR
 chmod 770 $TempSubjectDIR
 
