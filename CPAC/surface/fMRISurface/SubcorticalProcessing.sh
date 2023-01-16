@@ -100,7 +100,7 @@ fi
 
 #delete the temp space directory
 # trap clean_up EXIT SIGTERM SIGHUP SIGINT SIGQUIT
-#rm -rf ${TempSubjectDIR}
+rm -rf ${TempSubjectDIR}
 
 #delete common temporaries
 rm -f ${ResultsFolder}/${NameOffMRI}_temp_subject_dilate.dtseries.nii
