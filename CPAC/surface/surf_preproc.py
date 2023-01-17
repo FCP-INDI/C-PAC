@@ -5,6 +5,7 @@ from CPAC.utils.interfaces.function import Function
 from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
+
 def run_surface(post_freesurfer_folder,
                 freesurfer_folder,
                 subject,
@@ -84,7 +85,7 @@ def run_surface(post_freesurfer_folder,
 
 
 def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
-
+    
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
                                               'freesurfer_folder',
                                               'subject',
@@ -107,7 +108,8 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                'desikan_killiany_164',
                                                'destrieux_164',
                                                'desikan_killiany_32',
-                                               'destrieux_32'],
+                                               'destrieux_32',
+                                              ],
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
@@ -159,6 +161,25 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     node, out = strat_pool.get_data(scout_bold)
     wf.connect(node, out, surf, 'scout_bold')
+    
+    falff = pe.Node(util.Function(input_names=['dtseries'], 
+                                output_names=['falff'],
+                                function=run_surf_falff),
+                   name=f'surf_falff_{pipe_num}')
+    #falff.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #    'cpac_'+cfg['subject_id'],
+    #    f'post_freesurfer_{pipe_num}')
+   
+    wf.connect(surf, 'dtseries', falff, 'dtseries')
+    
+    alff = pe.Node(util.Function(input_names=['dtseries'], 
+                                output_names=['alff'],
+                                function=run_surf_alff),
+                  name=f'surf_alff_{pipe_num}')
+
+  
+    wf.connect(surf, 'dtseries', alff, 'dtseries')
+
 
     outputs = {
         'atlas-DesikanKilliany_space-fsLR_den-32k_dlabel': (surf,
@@ -169,8 +190,101 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                              'desikan_'
                                                              'killiany_164'),
         'atlas-Destrieux_space-fsLR_den-164k_dlabel': (surf, 'destrieux_164'),
-        'space-fsLR_den-32k_bold-dtseries': (surf, 'dtseries')
+        'space-fsLR_den-32k_bold-dtseries': (surf, 'dtseries'),
+        'falff-surf_dscalar': (falff, 'falff'),
+        'alff-surf_dscalar': (alff, 'alff')
+
+
     }
+
+    
+    
+  
+    # L_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'post_freesurfer_folder', 'cortex_filename'], 
+    #                             output_names=['L_cortex_file'],
+    #                             function=run_get_cortex),
+    #               name=f'L_surf_cortex_{pipe_num}')
+
+    # L_cortex_file.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #     'cpac_'+cfg['subject_id'],
+    #     f'post_freesurfer_{pipe_num}')
+    # L_cortex_file.inputs.structure = "LEFT"
+    # L_cortex_file.inputs.cortex_filename = "L_cortex.func.gii"
+    # wf.connect(surf, 'dtseries', L_cortex_file, 'dtseries')
+
+    # R_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'post_freesurfer_folder', 'cortex_filename'], 
+    #                             output_names=['R_cortex_file'],
+    #                             function=run_get_cortex),
+    #               name=f'R_surf_cortex_{pipe_num}')
+
+    # R_cortex_file.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #     'cpac_'+cfg['subject_id'],
+    #     f'post_freesurfer_{pipe_num}')
+    # R_cortex_file.inputs.structure = "RIGHT"
+    # R_cortex_file.inputs.cortex_filename = "R_cortex.func.gii"
+    # wf.connect(surf, 'dtseries', R_cortex_file, 'dtseries')
+
+
+    # mean_timeseries = pe.Node(util.Function(input_names=['post_freesurfer_folder', 'dtseries'], 
+    #                             output_names=['mean_timeseries'],
+    #                             function=run_mean_timeseries),
+    #               name=f'mean_timeseries_{pipe_num}')
+
+    # mean_timeseries.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #     'cpac_'+cfg['subject_id'],
+    #     f'post_freesurfer_{pipe_num}')
+    # wf.connect(surf, 'dtseries', mean_timeseries, 'dtseries')
+
+    
+    # L_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries', 
+    #                                         'post_freesurfer_folder', 'reho_filename'], 
+    #                             output_names=['L_reho'],
+    #                             function=run_surf_reho),
+    #                 name=f'surf_reho{pipe_num}')
+
+    # wf.connect(get_L_cortex_file, 'L_cortex_file', L_reho, 'cortex_file')
+    # wf.connect(surf, 'L_surface_file', L_reho, 'surface_file')
+    # wf.connect(surf, 'L_mask', L_reho, 'mask')
+    # wf.connect(mean_timeseries, 'mean_timeseries', L_reho, 'mean_timeseries') 
+    # L_reho.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #     'cpac_'+cfg['subject_id'],
+    #     f'post_freesurfer_{pipe_num}')
+    # L_reho.inputs.reho_filename = L_surf_reho.dscalar.nii
+
+    # R_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries', 
+    #                                         'post_freesurfer_folder', 'reho_filename'], 
+    #                             output_names=['R_reho'],
+    #                             function=run_surf_reho),
+    #                 name=f'surf_reho{pipe_num}')
+
+    # wf.connect(get_R_cortex_file, 'R_cortex_file', R_reho, 'cortex_file')
+    # wf.connect(surf, 'R_surface_file', R_reho, 'surface_file')
+    # wf.connect(surf, 'R_mask', R_reho, 'mask')
+    # wf.connect(mean_timeseries, 'mean_timeseries', R_reho, 'mean_timeseries')  
+    # R_reho.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
+    #     'cpac_'+cfg['subject_id'],
+    #     f'post_freesurfer_{pipe_num}')
+    # R_reho.inputs.reho_filename = R_surf_reho.dscalar.nii
+
+
+    
+    # connectivity_parcellation = pe.Node(util.Function(input_names=['dtseries', 'surf_atlaslabel',
+    #                                             'post_freesurfer_folder'], 
+    #                             output_names=['parcellation_file'],
+    #                             function=run_ciftiparcellate),
+    #                         name=f'connectivity_parcellation{pipe_num}')
+                
+    
+    # wf.connect(surf, 'dtseries', connectivity, 'dtseries') 
+    # connectivity_parcellation.inputs.surf_atlaslabel = ## path to the label file
+
+    # correlation_matrix = pe.Node(util.Function(input_names=['ptseries','post_freesurfer_folder'], 
+    #                             output_names=['correlation_matrix'],
+    #                             function=run_cifticorrelation),
+    #                         name=f'correlation_matrix{pipe_num}')
+                
+    
+    # wf.connect(connectivity_parcellation, 'parcellation_file', correlation_matrix 'ptseries') 
 
     return wf, outputs
 
@@ -194,8 +308,71 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-                 "space-fsLR_den-32k_bold-dtseries"]}
+                 "space-fsLR_den-32k_bold-dtseries",
+                 "falff-surf_dscalar",
+                 "alff-surf_dscalar"]}
     '''
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
+
+
+def run_surf_falff(dtseries):
+    import os
+    import subprocess
+    falff = os.path.join(os.getcwd(), 'falff_surf.dscalar.nii.gz')
+    cmd = ['ciftify_falff', dtseries, falff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1']
+    subprocess.check_output(cmd)
+    return falff
+
+
+def run_surf_alff(dtseries):
+    import os
+    import subprocess
+    alff = os.path.join(os.getcwd(), 'alff_surf.dscalar.nii.gz')
+    cmd = ['ciftify_falff', dtseries, alff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1' , '--calc-alff']
+    subprocess.check_output(cmd)
+    return alff
+    
+#cmd = ['ciftify_falff', dtseries , 'alff_surf.dscalar.nii', '--min-low-freq', '0.01', '--max-low-freq' , '0.1' , '--calc-alff']
+# def run_get_cortex(dtseries, structure, post_freesurfer_folder, cortex_filename):
+#     import os
+#     import subprocess
+#     cmd = ['wb_command', '-cifti-separate', dtseries , 'COLUMN', '-label', structure, cortex_filename]
+#     subprocess.check_output(cmd)
+#     cortex_file = os.path.join(post_freesurfer_folder, cortex_filename)
+#     return cortex_file
+
+# def run_mean_timeseries(dtseries,post_freesurfer_folder):
+
+#     import os
+#     import subprocess
+#     cmd = ['wb_command', '-cifti-reduce', dtseries, 'MEAN', 'mean.dscalar.nii']
+#     subprocess.check_output(cmd)
+#     mean_timeseries = os.path.join(post_freesurfer_folder, mean.dscalar.nii)
+#     return mean_timeseries
+    
+# def run_surf_reho(dtseries, mask, cortex_file, surface_file,mean_timeseries,post_freesurfer_folder, reho_filename):
+
+#     import os
+#     import subprocess
+#     cmd = ['python', '/code/CPAC/surface/PostFreeSurfer/surf_reho.py', dtseries, mask, cortex_file, surface_file, mean_timeseries, reho_filename]
+#     subprocess.check_output(cmd)
+#     surf_reho = os.path.join(post_freesurfer_folder, reho_filename)
+#     return surf_reho
+    
+# def run_ciftiparcellate(dtseries, surf_atlaslabel):
+#     import os  
+#     import subprocess
+#     cmd = ['wb_command', '-cifti-parcellate', dtseries , surf_atlaslabel, 'COLUMN', 'parcellation.ptseries.nii']
+#     subprocess.check_output(cmd)
+#     parcellation_file = os.path.join(post_freesurfer_folder, 'parcellation.ptseries.nii')
+#     return parcellation_file
+
+# def run_cifticorrelation(ptseries):
+#     import os  
+#     import subprocess
+#     cmd = ['wb_command', '-cifti-correlation ', ptseries , 'cifti_corr.pconn.nii']
+#     subprocess.check_output(cmd)
+#     correlation_matrix = os.path.join(post_freesurfer_folder, 'cifti_corr.pconn.nii')
+#     return correlation_matrix
