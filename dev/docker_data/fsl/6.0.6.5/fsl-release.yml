@@ -175,7 +175,7 @@ packages:
  - python 3.10.*
  - tk 8.6.*
  - vtk 9.1
- - wxpython 4.1.*
+ - wxpython 4.2.*
  - zlib 1.2.*
 
 # List of additional packages that
