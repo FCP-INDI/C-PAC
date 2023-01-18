@@ -89,6 +89,7 @@ class MockLogger:
         built-in level."""
         @docstring_parameter(level=level)
         def _log(message, exc_info=False):
+            """Log a message if logging level >= {level}. See `Logging Levels <https://docs.python.org/3/library/logging.html#levels>`_ for a list of levels."""
             if self.level == 0 or self.level >= getattr(logging, level.upper(),
                                                         logging.NOTSET):
                 with open(self.handlers[0].baseFilename, 'a',
