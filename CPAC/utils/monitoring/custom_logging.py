@@ -57,7 +57,8 @@ def getLogger(name):  # pylint: disable=invalid-name
     """
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
-    return nipype_logging.getLogger(name)
+    logger = nipype_logging.getLogger(name)
+    return logging.getLogger(name) if logger is None else logger
 
 
 def log_failed_subprocess(cpe):
@@ -142,15 +143,43 @@ class MockLogger:
                           encoding='utf-8') as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
-                        print_exception(str(message) % items, value=value,
+                        print_exception(_lazy_sub(message, *items), value=value,
                                         tb=traceback, file=log_file)
                     else:
-                        print(message % items, file=log_file)
+                        print(_lazy_sub(message, *items), file=log_file)
         return _log
 
     def delete(self):
         """Delete the mock logger from memory."""
         del MOCK_LOGGERS[self.name]
+
+
+def _lazy_sub(message, *items):
+    """Given lazy-logging syntax, return string with substitutions
+
+    Parameters
+    ----------
+    message : str
+
+    items : tuple
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> _lazy_sub('no substitution')
+    'no substitution'
+    >>> _lazy_sub('%s substitution', 'yes')
+    'yes substitution'
+    >>> _lazy_sub('%s substitution %s', 'yes', 'again')
+    'yes substitution again'
+    """
+    try:
+        return str(message) % items
+    except (AttributeError, TypeError):
+        return str([message, *items])
 
 
 def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
