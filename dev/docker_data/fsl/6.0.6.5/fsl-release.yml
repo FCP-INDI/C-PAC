@@ -49,7 +49,7 @@ base-packages:
 # above) are installed in the second stage.
 packages:
  - boost-cpp 1.74.*
- - ciftilib 1.5.3
+ - ciftilib 1.6
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.5.2
