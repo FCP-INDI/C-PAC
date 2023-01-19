@@ -23,7 +23,6 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
 from time import strftime
 
 import nipype
@@ -212,10 +211,10 @@ from CPAC.utils import Configuration, set_subject
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
-
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
                                   LOGTAIL, set_up_logger, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
+from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,

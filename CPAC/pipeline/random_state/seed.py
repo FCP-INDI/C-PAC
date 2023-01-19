@@ -1,7 +1,6 @@
 '''Functions to set, check, and log random seed'''
 import os
 import random
-from logging import getLogger
 
 import numpy as np
 from nipype.interfaces.ants.registration import Registration
@@ -11,7 +10,7 @@ from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
 
 from CPAC.utils.interfaces.ants import AI
-from CPAC.utils.monitoring.custom_logging import set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, set_up_logger
 
 _seed = {'seed': None}
 

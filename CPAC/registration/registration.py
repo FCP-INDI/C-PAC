@@ -3045,7 +3045,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-template_to-bold_mode-image_xfm": {
                      "Template": "T1w-brain-template-funcreg"}}}
     '''
-
+    breakpoint()
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
