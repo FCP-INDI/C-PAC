@@ -413,17 +413,6 @@ def workflows():
     pass
 
 
-@workflows.command()
-@click.argument('func_ts')
-@click.argument('func_brain_mask')
-@click.option('--hp', default=0.01)
-@click.option('--lp', default=0.1)
-def alff(func_ts, func_brain_mask, hp=0.01, lp=0.1):
-    from CPAC.alff.alff import run_alff
-    paths = run_alff(func_ts, func_brain_mask, hp, lp)
-    print(paths)
-
-
 @utils.command()
 @click.argument('directory')
 def repickle(directory):
