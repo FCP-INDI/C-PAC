@@ -480,7 +480,6 @@ class ResourcePool:
                 len_inputs -= 1
                 continue
             sub_pool = []
-            print(f'\tlen(rp_dct) {resource}: {len(rp_dct)}')
             if debug:
                 verbose_logger = getLogger('engine')
                 verbose_logger.debug('%s len(rp_dct): %s\n', resource, len(rp_dct))
