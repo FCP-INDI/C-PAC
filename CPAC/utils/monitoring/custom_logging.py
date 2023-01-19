@@ -55,7 +55,51 @@ def getLogger(name):  # pylint: disable=invalid-name
     """
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
-    return logging.getLogger(name)
+    return nipype_logging.getLogger(name)
+
+
+def log_failed_subprocess(cpe):
+    """Pass STDERR from a subprocess to the interface's logger
+
+    Parameters
+    ----------
+    cpe : subprocess.CalledProcessError
+    """
+    logger = getLogger('nipype.interface')
+    logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
+
+
+def log_subprocess(cmd, raise_error=True, **kwargs):
+    """Pass STDERR and STDOUT from subprocess to interface's logger
+
+    Parameters
+    ----------
+    cmd : str
+        command to run with `subprocess.check_output`
+
+    raise_error : boolean
+        raise any exception after logging
+
+    args, kwargs : any
+        pass-through arguments for subprocess.check_output
+
+    Returns
+    -------
+    output : str
+
+    exit_code : int
+    """
+    logger = getLogger('nipype.interface')
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                universal_newlines=True, *args, **kwargs)
+        logger.info(output)
+    except subprocess.CalledProcessError as cpe:
+        log_failed_subprocess(cpe)
+        if raise_error:
+            raise
+        return cpe.output, cpe.returncode
+    return output, 0
 
 
 # pylint: disable=too-few-public-methods
@@ -88,7 +132,7 @@ class MockLogger:
         r"""Generate a log method like `self.log(message)` for a given
         built-in level."""
         @docstring_parameter(level=level)
-        def _log(message, exc_info=False):
+        def _log(message, *items, exc_info=False):
             """Log a message if logging level >= {level}. See `Logging Levels <https://docs.python.org/3/library/logging.html#levels>`_ for a list of levels."""
             if self.level == 0 or self.level >= getattr(logging, level.upper(),
                                                         logging.NOTSET):
@@ -96,10 +140,10 @@ class MockLogger:
                           encoding='utf-8') as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
-                        print_exception(message, value=value, tb=traceback,
-                                        file=log_file)
+                        print_exception(str(message) % items, value=value,
+                                        tb=traceback, file=log_file)
                     else:
-                        print(message, file=log_file)
+                        print(message % items, file=log_file)
         return _log
 
     def delete(self):
@@ -171,7 +215,7 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
             log_file.write('')
     if mock:
         return MockLogger(name, filename, level, log_dir)
-    logger = logging.getLogger(name)
+    logger = getLogger(name)
     logger.setLevel(level)
     handler = logging.FileHandler(filepath)
     logger.addHandler(handler)

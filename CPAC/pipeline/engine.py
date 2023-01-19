@@ -17,7 +17,6 @@
 import ast
 import copy
 from itertools import chain
-import logging
 import os
 import re
 from types import FunctionType
@@ -54,8 +53,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
-verbose_logger = logging.getLogger('engine')
+logger = getLogger('nipype.workflow')
 
 
 class ResourcePool:
@@ -438,7 +436,6 @@ class ResourcePool:
             return flat_prov
 
     def get_strats(self, resources, debug=False):
-
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
@@ -447,6 +444,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -470,6 +468,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -481,8 +480,10 @@ class ResourcePool:
                 len_inputs -= 1
                 continue
             sub_pool = []
+            print(f'\tlen(rp_dct) {resource}: {len(rp_dct)}')
             if debug:
-                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
+                verbose_logger = getLogger('engine')
+                verbose_logger.debug('%s len(rp_dct): %s\n', resource, len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -495,7 +496,6 @@ class ResourcePool:
                             variant_pool[fetched_resource] += val
                             variant_pool[fetched_resource].append(
                                 f'NO-{val[0]}')
-
             if debug:
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
@@ -1424,6 +1424,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1756,6 +1757,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
