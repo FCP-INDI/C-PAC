@@ -74,7 +74,6 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
 
-random_state_logger = getLogger('random')
 logger = getLogger("nipype.workflow")
 
 
@@ -422,6 +421,7 @@ class Node(pe.Node):
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
+                random_state_logger = getLogger('random')
                 random_state_logger.info('%s\t%s', '# (Atropos constant)' if
                                          'atropos' in self.name else
                                          str(self.seed), self.name)

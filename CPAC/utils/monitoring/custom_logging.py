@@ -20,6 +20,7 @@ import logging
 import os
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
+from nipype import logging as nipype_logging
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
@@ -55,51 +56,8 @@ def getLogger(name):  # pylint: disable=invalid-name
     """
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
-    return nipype_logging.getLogger(name)
-
-
-def log_failed_subprocess(cpe):
-    """Pass STDERR from a subprocess to the interface's logger
-
-    Parameters
-    ----------
-    cpe : subprocess.CalledProcessError
-    """
-    logger = getLogger('nipype.interface')
-    logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
-
-
-def log_subprocess(cmd, raise_error=True, **kwargs):
-    """Pass STDERR and STDOUT from subprocess to interface's logger
-
-    Parameters
-    ----------
-    cmd : str
-        command to run with `subprocess.check_output`
-
-    raise_error : boolean
-        raise any exception after logging
-
-    args, kwargs : any
-        pass-through arguments for subprocess.check_output
-
-    Returns
-    -------
-    output : str
-
-    exit_code : int
-    """
-    logger = getLogger('nipype.interface')
-    try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                universal_newlines=True, *args, **kwargs)
-        logger.info(output)
-    except subprocess.CalledProcessError as cpe:
-        log_failed_subprocess(cpe)
-        if raise_error:
-            raise
-        return cpe.output, cpe.returncode
-    return output, 0
+    logger = nipype_logging.getLogger(name)
+    return logging.getLogger(name) if logger is None else logger
 
 
 # pylint: disable=too-few-public-methods
@@ -140,15 +98,43 @@ class MockLogger:
                           encoding='utf-8') as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
-                        print_exception(str(message) % items, value=value,
+                        print_exception(_lazy_sub(message, *items), value=value,
                                         tb=traceback, file=log_file)
                     else:
-                        print(message % items, file=log_file)
+                        print(_lazy_sub(message, *items), file=log_file)
         return _log
 
     def delete(self):
         """Delete the mock logger from memory."""
         del MOCK_LOGGERS[self.name]
+
+
+def _lazy_sub(message, *items):
+    """Given lazy-logging syntax, return string with substitutions
+
+    Parameters
+    ----------
+    message : str
+
+    items : tuple
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> _lazy_sub('no substitution')
+    'no substitution'
+    >>> _lazy_sub('%s substitution', 'yes')
+    'yes substitution'
+    >>> _lazy_sub('%s substitution %s', 'yes', 'again')
+    'yes substitution again'
+    """
+    try:
+        return str(message) % items
+    except (AttributeError, TypeError):
+        return str([message, *items])
 
 
 def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
