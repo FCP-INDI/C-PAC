@@ -1,0 +1,210 @@
+%YAML 1.1
+---
+# CPAC Pipeline Configuration YAML file
+# Version 1.8.5.dev
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+FROM: blank
+
+pipeline_setup:
+
+  # Name for this pipeline configuration - useful for identification.
+  # This string will be sanitized and used in filepaths
+  pipeline_name: cpac-default-deprecated-pipeline
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: On
+
+anatomical_preproc:
+  run: On
+  acpc_alignment:
+    T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+
+  brain_extraction:
+    run: On
+
+segmentation:
+
+  # Automatically segment anatomical images into white matter, gray matter,
+  # and CSF based on prior probability maps.
+  run: On
+
+registration_workflows:
+  anatomical_registration:
+    run: On
+
+  functional_registration:
+    coregistration:
+
+      # functional (BOLD/EPI) registration to anatomical (structural/T1)
+      run: On
+      boundary_based_registration:
+
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [On]
+
+    func_registration_to_template:
+
+      # these options modify the application (to the functional data), not the calculation, of the
+      # T1-to-template and EPI-to-template transforms calculated earlier during registration
+      # apply the functional-to-template (T1 template) registration transform to the functional data
+      run: On
+
+functional_preproc:
+  run: On
+  slice_timing_correction:
+
+    # Interpolate voxel time courses so they are sampled at the same time points.
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
+  motion_estimates_and_correction:
+    run: On
+
+  distortion_correction:
+
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
+  generate_func_mean:
+
+    # Generate mean functional image
+    run: On
+
+  normalize_func:
+
+    # Normalize functional image
+    run: On
+
+nuisance_corrections:
+  2-nuisance_regression:
+
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
+    # Select which nuisance signal corrections to apply
+    Regressors:
+      - Name: default
+        Motion:
+          include_delayed: On
+          include_squared: On
+          include_delayed_squared: On
+        aCompCor:
+          summary:
+            method: DetrendPC
+            components: 5
+          tissues:
+          - WhiteMatter
+          - CerebrospinalFluid
+          extraction_resolution: 2
+        CerebrospinalFluid:
+          summary: Mean
+          extraction_resolution: 2
+          erode_mask: On
+        GlobalSignal:
+          summary: Mean
+        PolyOrt:
+          degree: 2
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+          method: default
+      - Name: defaultNoGSR
+        Motion:
+          include_delayed: On
+          include_squared: On
+          include_delayed_squared: On
+        aCompCor:
+          summary:
+            method: DetrendPC
+            components: 5
+          tissues:
+          - WhiteMatter
+          - CerebrospinalFluid
+          extraction_resolution: 2
+        CerebrospinalFluid:
+          summary: Mean
+          extraction_resolution: 2
+          erode_mask: On
+        PolyOrt:
+          degree: 2
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+          method: default
+
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks:
+      erode_anatomical_brain_mask:
+
+        # Erode brain mask in millimeters, default for brain mask is 30 mm
+        # Brain erosion default is using millimeters.
+        brain_mask_erosion_mm: 30
+
+      erode_csf:
+
+        # Erode cerebrospinal fluid mask in millimeters, default for cerebrospinal fluid is 30mm
+        # Cerebrospinal fluid erosion default is using millimeters.
+        csf_mask_erosion_mm: 30
+
+      erode_wm:
+
+        # Target volume ratio, if using erosion.
+        # Default proportion is 0.6 for white matter mask.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        # White matter erosion default is using proportion erosion method when use erosion for white matter.
+        wm_erosion_prop: 0.6
+
+      erode_gm:
+
+        # Target volume ratio, if using erosion.
+        # If using erosion, using both proportion and millimeters is not recommended.
+        gm_erosion_prop: 0.6
+
+timeseries_extraction:
+  run: On
+  connectivity_matrix:
+
+    # Create a connectivity matrix from timeseries data
+    # Options:
+    #  ['AFNI', 'Nilearn', 'ndmg']
+    using: [Nilearn, ndmg]
+
+    # Options:
+    #  ['Pearson', 'Partial']
+    # Note: These options are not configurable for ndmg, which will ignore these options
+    measure: [Pearson, Partial]
+
+amplitude_low_frequency_fluctuation:
+
+  # ALFF & f/ALFF
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
+  run: On
+
+regional_homogeneity:
+
+  # ReHo
+  # Calculate Regional Homogeneity (ReHo) for all voxels.
+  run: On
+
+voxel_mirrored_homotopic_connectivity:
+
+  # VMHC
+  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
+  run: On
+
+network_centrality:
+
+  # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
+  run: On

@@ -28,12 +28,11 @@ from time import strftime
 
 import nipype
 import yaml
-
+# pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import \
     LegacyMultiProcPlugin, MultiProcPlugin
-from nipype import config
-from nipype import logging
+from nipype import config, logging
 
 from indi_aws import aws_utils, fetch_creds
 
@@ -42,7 +41,8 @@ import CPAC
 from CPAC.pipeline.check_outputs import check_outputs
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
-    freesurfer_preproc,
+    freesurfer_reconall,
+    freesurfer_postproc,
     freesurfer_abcd_preproc,
     anatomical_init,
     acpc_align_head,
@@ -99,10 +99,16 @@ from CPAC.registration.registration import (
     coregistration,
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
+    warp_wholeheadT1_to_template,
+    warp_T1mask_to_template,
+    apply_phasediff_to_timeseries_separately,
+    apply_blip_to_timeseries_separately,
     warp_timeseries_to_T1template,
-    warp_bold_mean_to_T1template,
+    warp_timeseries_to_T1template_deriv,
+    warp_sbref_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template,
+    warp_denoiseNofilt_to_T1template,
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
@@ -110,8 +116,8 @@ from CPAC.registration.registration import (
     warp_timeseries_to_T1template_abcd,
     single_step_resample_timeseries_to_T1template,
     warp_timeseries_to_T1template_dcan_nhp,
-    warp_Tissuemask_to_T1template,
-    warp_Tissuemask_to_EPItemplate
+    warp_tissuemask_to_T1template,
+    warp_tissuemask_to_EPItemplate
 )
 
 from CPAC.seg_preproc.seg_preproc import (
@@ -126,6 +132,7 @@ from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_truncate,
     func_despike,
+    func_despike_template,
     func_slice_time,
     func_reorient,
     bold_mask_afni,
@@ -166,7 +173,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_bold,
     erode_mask_boldCSF,
     erode_mask_boldGM,
-    erode_mask_boldWM
+    erode_mask_boldWM,
+    nuisance_regression_template
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -183,8 +191,9 @@ from CPAC.sca.sca import (
     multiple_regression
 )
 
-from CPAC.alff.alff import alff_falff
-from CPAC.reho.reho import reho
+from CPAC.alff.alff import alff_falff, alff_falff_space_template
+from CPAC.reho.reho import reho, reho_space_template
+from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -197,16 +206,16 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.pipeline.random_state import set_up_random_state_logger
-from CPAC.utils.datasource import bidsier_prefix, gather_extraction_maps
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
-from CPAC.utils import Configuration
+from CPAC.utils import Configuration, set_subject
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
-                                  set_up_logger
+                                  LOGTAIL, set_up_logger, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
@@ -248,6 +257,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
+    from CPAC.utils.datasource import bidsier_prefix
+
     if plugin is not None and not isinstance(plugin, str):
         raise TypeError(
             'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
@@ -258,17 +269,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
 
-    subject_id = sub_dict['subject_id']
-    if sub_dict['unique_id']:
-        subject_id += "_" + sub_dict['unique_id']
-
+    subject_id, p_name, log_dir = set_subject(sub_dict, c)
     c['subject_id'] = subject_id
-
-    log_dir = os.path.join(c.pipeline_setup['log_directory']['path'],
-                           f'pipeline_{c.pipeline_setup["pipeline_name"]}',
-                           subject_id)
-    if not os.path.exists(log_dir):
-        os.makedirs(os.path.join(log_dir))
 
     set_up_logger(f'{subject_id}_expectedOutputs',
                   filename=f'{bidsier_prefix(c["subject_id"])}_'
@@ -286,9 +288,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         },
         'execution': {
             'crashfile_format': 'txt',
-            'resource_monitor_frequency': 0.2
-        }
-    })
+            'resource_monitor_frequency': 0.2,
+            'stop_on_first_crash': c['pipeline_setup', 'system_config',
+                                     'fail_fast']}})
 
     config.enable_resource_monitor()
     logging.update_logging(config)
@@ -430,8 +432,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                       check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
-    c.pipeline_setup['working_directory']['path'] = os.path.abspath(
-        c.pipeline_setup['working_directory']['path'])
+    c.pipeline_setup['working_directory']['path'] = os.path.join(
+        os.path.abspath(c.pipeline_setup['working_directory']['path']),
+        p_name)
     if 's3://' not in c.pipeline_setup['output_directory']['path']:
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(
             c.pipeline_setup['output_directory']['path'])
@@ -439,9 +442,39 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if c.pipeline_setup['system_config']['random_seed'] is not None:
         set_up_random_state_logger(log_dir)
 
-    workflow = build_workflow(
-        subject_id, sub_dict, c, p_name, num_ants_cores
-    )
+    try:
+        workflow = build_workflow(
+            subject_id, sub_dict, c, p_name, num_ants_cores
+        )
+    except Exception as exception:
+        logger.exception('Building workflow failed')
+        raise exception
+
+    wf_graph = c['pipeline_setup', 'log_directory', 'graphviz',
+                 'entire_workflow']
+    if wf_graph.get('generate'):
+        for graph2use in wf_graph.get('graph2use'):
+            dotfilename = os.path.join(log_dir, f'{p_name}_{graph2use}.dot')
+            for graph_format in wf_graph.get('format'):
+                try:
+                    workflow.write_graph(dotfilename=dotfilename,
+                                         graph2use=graph2use,
+                                         format=graph_format,
+                                         simple_form=wf_graph.get(
+                                             'simple_form', True))
+                except Exception as exception:
+                    raise RuntimeError(f'Failed to visualize {p_name} ('
+                                       f'{graph2use}, {graph_format})'
+                                       ) from exception
+
+    workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
+    if workflow_save:
+        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
+        save_workflow_json(
+            filename=os.path.join(log_dir, workflow_meta.filename()),
+            workflow=workflow,
+            meta=workflow_meta
+        )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -724,7 +757,6 @@ CPAC run error:
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
     {output_check}
-
 """
 
         finally:
@@ -746,6 +778,18 @@ CPAC run error:
                                  log_dir, c.pipeline_setup['pipeline_name'],
                                  c['subject_id'])
                 ))
+
+                if workflow_save:
+                    workflow_meta.stage = "post"
+                    workflow_filename = os.path.join(
+                        log_dir,
+                        workflow_meta.filename()
+                    )
+                    save_workflow_json(
+                        filename=workflow_filename,
+                        workflow=workflow,
+                        meta=workflow_meta
+                    )
 
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
@@ -823,15 +867,17 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
 
-    if not rpool.check_rpool('freesurfer-subject-dir'):
-        pipeline_blocks += [freesurfer_preproc]
+    if rpool.check_rpool('freesurfer-subject-dir'):
+        pipeline_blocks += [freesurfer_postproc]
+    else:
+        pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
             if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['freesurfer']['run']:
+                    cfg.surface_analysis['freesurfer']['run_reconall']:
                 acpc_blocks = [
                     brain_extraction_temp,
                     acpc_align_brain_with_mask
@@ -857,7 +903,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             'acpc_target'] == 'whole-head':
             if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
                 cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
-                    cfg.surface_analysis['freesurfer']['run']:
+                    cfg.surface_analysis['freesurfer']['run_reconall']:
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -880,12 +926,11 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += anat_blocks
 
-        if not rpool.check_rpool('freesurfer-subject-dir'):
-            pipeline_blocks += [freesurfer_abcd_preproc]
+        pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
     if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['freesurfer']['run']:
+        cfg.surface_analysis['freesurfer']['run_reconall']:
         anat_brain_mask_blocks = [
             [brain_mask_afni,
              brain_mask_fsl,
@@ -983,6 +1028,8 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
+            warp_wholeheadT1_to_template,
+            warp_T1mask_to_template
         ]
 
 
@@ -1020,7 +1067,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
 
     if cfg.registration_workflows['anatomical_registration']['run'] and 'T1_Template' in cfg.segmentation[
     'tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_T1template)
+        pipeline_blocks.append(warp_tissuemask_to_T1template)
 
 
     return pipeline_blocks
@@ -1063,6 +1110,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             nb = NodeBlock(block)
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
+            if nb.name == 'freesurfer_postproc':
+                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                LOGTAIL['warnings'].append(WARNING_FREESURFER_OFF_WITH_DATA)
+                continue
             previous_nb_str = (
                 f"after node block '{previous_nb.get_name()}': "
             ) if previous_nb else 'at beginning:'
@@ -1084,6 +1135,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
 
 def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                    num_ants_cores=1):
+    from CPAC.utils.datasource import gather_extraction_maps
 
     # Workflow setup
     wf = initialize_nipype_wf(cfg, sub_dict)
@@ -1124,13 +1176,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc['run']:
         func_init_blocks = [
+            func_reorient,
             func_scaling,
             func_truncate
         ]
         func_preproc_blocks = [
             func_despike,
-            func_slice_time,
-            func_reorient
+            func_slice_time
         ]
 
         if not rpool.check_rpool('desc-mean_bold'):
@@ -1146,17 +1198,26 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         func_prep_blocks = [
             calc_motion_stats,
-            func_normalize
+            func_normalize,
+            [coregistration_prep_vol,
+             coregistration_prep_mean,
+             coregistration_prep_fmriprep]
         ]
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
-            distcor_blocks.append(distcor_phasediff_fsl_fugue)
-
-        if rpool.check_rpool('epi-1'):
-            distcor_blocks.append(distcor_blip_afni_qwarp) 
-            distcor_blocks.append(distcor_blip_fsl_topup)
+        if 'fmap' in sub_dict:
+            fmap_keys = sub_dict['fmap']
+            if 'phasediff' in fmap_keys or 'phase1' in fmap_keys:
+                if 'magnitude' in fmap_keys or 'magnitude1' in fmap_keys:
+                    distcor_blocks.append(distcor_phasediff_fsl_fugue)
+            if len(fmap_keys) == 2:
+                for key in fmap_keys:
+                    if 'epi_' not in key:
+                        break
+                else:
+                    distcor_blocks.append(distcor_blip_afni_qwarp) 
+                    distcor_blocks.append(distcor_blip_fsl_topup)
 
         if distcor_blocks:
             if len(distcor_blocks) > 1:
@@ -1194,10 +1255,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # BOLD to T1 coregistration
     if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
-            (not rpool.check_rpool('space-T1w_desc-mean_bold') or
+            (not rpool.check_rpool('space-T1w_sbref') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
-            [coregistration_prep_vol, coregistration_prep_mean, coregistration_prep_fmriprep],
             coregistration
         ]
         pipeline_blocks += coreg_blocks
@@ -1211,11 +1271,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         ]
         pipeline_blocks += EPI_reg_blocks
 
-    if cfg.registration_workflows['functional_registration']['EPI_registration']['run'
-    ] and 'EPI_Template' in cfg.segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']:
-        pipeline_blocks.append(warp_Tissuemask_to_EPItemplate)
-
-
+    if (cfg['registration_workflows', 'functional_registration',
+            'EPI_registration', 'run'] and
+        'EPI_Template' in cfg['segmentation', 'tissue_segmentation',
+                              'Template_Based', 'template_for_segmentation']):
+        pipeline_blocks.append(warp_tissuemask_to_EPItemplate)
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
@@ -1230,6 +1290,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
+    generate_only = True not in cfg['nuisance_corrections',
+                                    '2-nuisance_regression', 'run']
     if not rpool.check_rpool('desc-cleaned_bold'):
         nuisance = [ICA_AROMA_ANTsreg, ICA_AROMA_FSLreg,
                     ICA_AROMA_ANTsEPIreg, ICA_AROMA_FSLEPIreg]
@@ -1242,7 +1304,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
 
         pipeline_blocks += nuisance
 
@@ -1253,9 +1315,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         _r_w_f_r['coregistration']['run'] and
         _r_w_f_r['func_registration_to_template']['run'])
     template_funcs = [
-        'space-template_desc-cleaned_bold',
-        'space-template_desc-brain_bold',
-        'space-template_desc-motion_bold',
         'space-template_desc-preproc_bold',
         'space-template_bold'
     ]
@@ -1263,27 +1322,42 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         if rpool.check_rpool(func):
             apply_func_warp['T1'] = False
 
+    target_space_nuis = cfg.nuisance_corrections['2-nuisance_regression'][
+        'space']
+    target_space_alff = cfg.amplitude_low_frequency_fluctuation['target_space']
+    target_space_reho = cfg.regional_homogeneity['target_space']
+
     if apply_func_warp['T1']:
 
-        ts_to_T1template_block = [warp_timeseries_to_T1template,
+        ts_to_T1template_block = [apply_phasediff_to_timeseries_separately,
+                                  apply_blip_to_timeseries_separately,
+                                  warp_timeseries_to_T1template,
                                   warp_timeseries_to_T1template_dcan_nhp]
 
+        if 'Template' in target_space_alff or 'Template' in target_space_reho:
+            ts_to_T1template_block += [warp_timeseries_to_T1template_deriv]
+
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-cleaned_bold', 'bold'))]
+            ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-preproc_bold', 'bold'))]
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
         else:
             ts_to_T1template_block.append(warp_timeseries_to_T1template_abcd)
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
 
         pipeline_blocks += [ts_to_T1template_block,
-                            warp_bold_mean_to_T1template,
-                            warp_bold_mean_to_EPItemplate]
+                            warp_sbref_to_T1template]
 
     if not rpool.check_rpool('space-template_desc-bold_mask'):
         pipeline_blocks += [warp_bold_mask_to_T1template,
                             warp_deriv_mask_to_T1template]
 
-    template = cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['using']
+    pipeline_blocks += [func_despike_template]
+
+    if 'Template' in target_space_alff and 'Native' in target_space_nuis:
+        pipeline_blocks += [warp_denoiseNofilt_to_T1template]
+
+    template = cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
 	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
@@ -1310,6 +1384,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [warp_bold_mask_to_EPItemplate,
                             warp_deriv_mask_to_EPItemplate]
 
+    # Template-space nuisance regression
+    nuisance_template = 'template' in cfg[
+        'nuisance_corrections', '2-nuisance_regression', 'space'
+    ] and not generate_only
+    if nuisance_template:
+        pipeline_blocks += [(nuisance_regression_template,
+                            ("desc-preproc_bold", "desc-stc_bold"))]
+
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
         pipeline_blocks += [surface_postproc]
@@ -1319,7 +1401,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases
 
-    if not rpool.check_rpool('desc-Mean_timeseries') and \
+    if not rpool.check_rpool('space-template_desc-Mean_timeseries') and \
                     'Avg' in tse_atlases:
         pipeline_blocks += [timeseries_extraction_AVG]
 
@@ -1331,23 +1413,36 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'SpatialReg' in tse_atlases:
         pipeline_blocks += [spatial_regression]
 
-    if not rpool.check_rpool('desc-MeanSCA_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MeanSCA_correlations') and \
                     'Avg' in sca_atlases:
         pipeline_blocks += [SCA_AVG]
 
-    if not rpool.check_rpool('desc-DualReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-DualReg_correlations') and \
                     'DualReg' in sca_atlases:
         pipeline_blocks += [dual_regression]
 
-    if not rpool.check_rpool('desc-MultReg_correlations') and \
+    if not rpool.check_rpool('space-template_desc-MultReg_correlations') and \
                     'MultReg' in sca_atlases:
         pipeline_blocks += [multiple_regression]
 
-    if not rpool.check_rpool('alff'):
-        pipeline_blocks += [alff_falff]
+    if 'Native' in target_space_alff:
+        if not rpool.check_rpool('alff'):
+            pipeline_blocks += [alff_falff]
 
-    if not rpool.check_rpool('reho'):
-        pipeline_blocks += [reho]
+    if 'Template' in target_space_alff:
+        if not nuisance_template and not rpool.check_rpool(
+                'space-template_desc-denoisedNofilt_bold'):
+            pipeline_blocks += [warp_denoiseNofilt_to_T1template]
+        if not rpool.check_rpool('space-template_alff'):
+            pipeline_blocks += [alff_falff_space_template]
+
+    if 'Native' in target_space_reho:
+        if not rpool.check_rpool('reho'):
+            pipeline_blocks += [reho]
+
+    if 'Template' in target_space_reho:
+        if not rpool.check_rpool('space-template_reho'):
+            pipeline_blocks += [reho_space_template]
 
     if not rpool.check_rpool('vmhc'):
         pipeline_blocks += [smooth_func_vmhc,

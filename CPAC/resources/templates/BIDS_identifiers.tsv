@@ -1,0 +1,30 @@
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_T1w_reference.nii.gz	MNI152NLin2009cAsym	
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-brain_T1w.nii.gz	MNI152NLin2009cAsym	
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-brain_mask.nii.gz	MNI152NLin2009cAsym	
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-fMRIPrep_boldref.nii.gz	MNI152NLin2009cAsym	
+/code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_label-brain_probseg.nii.gz	MNI152NLin2009cAsym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*.nii.gz	MNI152NLin6ASym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain.nii.gz	MNI152NLin6ASym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask.nii.gz	MNI152NLin6ASym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_dil.nii.gz	MNI152NLin6ASym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_symmetric.nii.gz	MNI152NLin6Sym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_symmetric.nii.gz	MNI152NLin6Sym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric.nii.gz	MNI152NLin6Sym	
+/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric_dil.nii.gz	MNI152NLin6Sym	
+/ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz	AAL	
+/ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz	Brodmann	
+/cpac_templates/CC200.nii.gz	CC	200
+/cpac_templates/CC400.nii.gz	CC	400
+/ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-2x2x2.nii.gz	Glasser	
+/ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-2x2x2.nii.gz	Slab	
+/ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz	HOCPA	th25
+/ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz	HOSPA	th25
+/ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-2x2x2.nii.gz	Juelich	
+/cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-200Parcels17NetworksOrder.nii.gz	Schaefer2018	p200n17
+/cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-300Parcels17NetworksOrder.nii.gz	Schaefer2018	p300n17
+/cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-400Parcels17NetworksOrder.nii.gz	Schaefer2018	p400n17
+/cpac_templates/Schaefer2018_space-FSLMNI152_res-2mm_desc-1000Parcels17NetworksOrder.nii.gz	Schaefer2018	p1000n17
+/ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-2x2x2.nii.gz	Yeo	7
+/ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-2x2x2.nii.gz	Yeo	7liberal
+/ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-2x2x2.nii.gz	Yeo	17
+/ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-2x2x2.nii.gz	Yeo	17liberal

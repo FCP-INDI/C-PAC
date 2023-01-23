@@ -1,3 +1,19 @@
+# Copyright (C) 2016-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import json
 import os
 import re
@@ -534,7 +550,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                               raise_error=raise_error)
 
     subdict = {}
-
     for p in paths_list:
         if bids_dir in p:
             str_list = p.split(bids_dir)
@@ -645,17 +660,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                                task_key,
                                p))
 
-            if "phasediff" in f_dict["scantype"]:
+            if "phase" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffphase" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffphase"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
-            if "magnitude1" in f_dict["scantype"] or f_dict["scantype"] == "magnitude":
+            if "magnitude" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if "diffmag" not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["diffmag"] = task_info
+                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
 
             if "epi" in f_dict["scantype"]:
                 pe_dir = f_dict["dir"]
@@ -702,8 +717,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'T2w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude',
-                'magnitude1', 'magnitude2']
+    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'phase1',
+                'phase2', 'magnitude', 'magnitude1', 'magnitude2']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -724,6 +739,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
+                    if suf == 'epi' and 'acq-fMRI' not in s3_obj.key:
+                        continue
                     if str(s3_obj.key).endswith("json"):
                         try:
                             config_dict[s3_obj.key.replace(prefix, "")
@@ -743,6 +760,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
             if files:
                 for f in files:
                     for suf in suffixes:
+                        if suf == 'epi' and 'acq-fMRI' not in f:
+                            continue
                         if 'nii' in f and suf in f:
                             file_paths += [os.path.join(root, f)
                                            .replace(bids_dir, '').lstrip('/')]
@@ -765,6 +784,108 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                       "empty.".format(bids_dir))
 
     return file_paths, config_dict
+
+
+def camelCase(string: str) -> str:  # pylint: disable=invalid-name
+    """Convert a hyphenated string to camelCase
+
+    Paremeters
+    ----------
+    string : str
+        string to convert to camelCase
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> camelCase('PearsonNilearn-aCompCor')
+    'PearsonNilearnACompCor'
+    >>> camelCase('mean-Pearson-Nilearn-aCompCor')
+    'meanPearsonNilearnACompCor'
+    """
+    pieces = string.split('-')
+    for i in range(1, len(pieces)):  # don't change case of first piece
+        if pieces[i]:  # don't do anything to falsy pieces
+            pieces[i] = f'{pieces[i][0].upper()}{pieces[i][1:]}'
+    return ''.join(pieces)
+
+
+def combine_multiple_entity_instances(bids_str: str) -> str:
+    """Combines mutliple instances of a key in a BIDS string to a single
+    instance by camelCasing and concatenating the values
+
+    Parameters
+    ----------
+    bids_str : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_'
+    ...     'desc-Nilearn_desc-36-param_suffix.ext')
+    'sub-1_ses-HBN_site-RU_task-rest_atlas-AAL_desc-Nilearn36Param_suffix.ext'
+    >>> combine_multiple_entity_instances(
+    ...     'sub-1_ses-HBN_site-RU_task-rest_'
+    ...     'run-1_framewise-displacement-power.1D')
+    'sub-1_ses-HBN_site-RU_task-rest_run-1_framewiseDisplacementPower.1D'
+    """
+    _entity_list = bids_str.split('_')
+    entity_list = _entity_list[:-1]
+    suffixes = [camelCase(_entity_list[-1])]
+    entities = {}
+    for entity in entity_list:
+        if '-' in entity:
+            key, value = entity.split('-', maxsplit=1)
+            if key not in entities:
+                entities[key] = []
+            entities[key].append(value)
+    for key, value in entities.items():
+        entities[key] = camelCase('-'.join(value))
+    if 'desc' in entities:  # make 'desc' final entity
+        suffixes.insert(0, f'desc-{entities.pop("desc")}')
+    return '_'.join([f'{key}-{value}' for key, value in entities.items()
+                     ] + suffixes)
+
+
+def insert_entity(resource, key, value):
+    """Insert a `f'{key}-{value}'` BIDS entity before `desc-` if
+    present or before the suffix otherwise
+
+    Parameters
+    ----------
+    resource, key, value : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> insert_entity('run-1_desc-preproc_bold', 'reg', 'default')
+    'run-1_reg-default_desc-preproc_bold'
+    >>> insert_entity('run-1_bold', 'reg', 'default')
+    'run-1_reg-default_bold'
+    >>> insert_entity('run-1_desc-preproc_bold', 'filt', 'notch4c0p31bw0p12')
+    'run-1_filt-notch4c0p31bw0p12_desc-preproc_bold'
+    >>> insert_entity('run-1_reg-default_bold', 'filt', 'notch4c0p31bw0p12')
+    'run-1_reg-default_filt-notch4c0p31bw0p12_bold'
+    """
+    entities = resource.split('_')[:-1]
+    suff = resource.split('_')[-1]
+    new_entities = [[], []]
+    for entity in entities:
+        if entity.startswith('desc-'):
+            new_entities[1].append(entity)
+        else:
+            new_entities[0].append(entity)
+    return '_'.join([*new_entities[0], f'{key}-{value}', *new_entities[1],
+                     suff])
 
 
 def load_yaml_config(config_filename, aws_input_creds):
@@ -914,6 +1035,51 @@ def load_cpac_data_config(data_config_file, participant_labels,
     return sub_list
 
 
+def res_in_filename(cfg, label):
+    """Specify resolution in filename
+
+    Parameters
+    ----------
+    cfg : CPAC.utils.configuration.Configuration
+
+    label : str
+
+    Returns
+    -------
+    label : str
+
+    Examples
+    --------
+    >>> from CPAC.utils.configuration import Configuration
+    >>> res_in_filename(Configuration({
+    ...     'registration_workflows': {
+    ...         'anatomical_registration': {'resolution_for_anat': '2x2x2'}}}),
+    ...     'sub-1_res-anat_bold')
+    'sub-1_res-2x2x2_bold'
+    >>> res_in_filename(Configuration({
+    ...     'registration_workflows': {
+    ...         'anatomical_registration': {'resolution_for_anat': '2x2x2'}}}),
+    ...     'sub-1_res-3mm_bold')
+    'sub-1_res-3mm_bold'
+    """
+    if '_res-' in label:
+        # replace resolution text with actual resolution
+        resolution = label.split('_res-', 1)[1].split('_', 1)[0]
+        resolution = {
+            'anat': cfg['registration_workflows', 'anatomical_registration',
+                        'resolution_for_anat'],
+            'bold': cfg['registration_workflows', 'functional_registration',
+                        'func_registration_to_template', 'output_resolution',
+                        'func_preproc_outputs'],
+            'derivative': cfg['registration_workflows',
+                              'functional_registration',
+                              'func_registration_to_template',
+                              'output_resolution', 'func_derivative_outputs']
+        }.get(resolution, resolution)
+        label = re.sub('_res-[A-Za-z0-9]*_', f'_res-{resolution}_', label)
+    return label
+
+
 def sub_list_filter_by_labels(sub_list, labels):
     """Function to filter a sub_list by provided BIDS labels for
     specified suffixes
@@ -939,6 +1105,56 @@ def sub_list_filter_by_labels(sub_list, labels):
         labels['bold'] = cl_strip_brackets(labels['bold'])
         sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
     return sub_list
+
+
+def with_key(entity: str, key: str) -> str:
+    """Return a keyed BIDS entity
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> with_key('sub-1', 'sub')
+    'sub-1'
+    >>> with_key('1', 'sub')
+    'sub-1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if not entity.startswith(f'{key}-'):
+        entity = '-'.join((key, entity))
+    return entity
+
+
+def without_key(entity: str, key: str) -> str:
+    """Return a BIDS entity value
+
+    Parameters
+    ----------
+    entity, key : str
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> without_key('sub-1', 'sub')
+    '1'
+    >>> without_key('1', 'sub')
+    '1'
+    """
+    if not isinstance(entity, str):
+        entity = str(entity)
+    if entity.startswith(f'{key}-'):
+        entity = entity.replace(f'{key}-', '')
+    return entity
 
 
 def _t1w_filter(anat, shortest_entity, label):

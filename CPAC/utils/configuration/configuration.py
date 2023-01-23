@@ -1,45 +1,42 @@
-"""C-PAC Configuration class"""
-import re
+"""C-PAC Configuration class and related functions
+
+Copyright (C) 2022  C-PAC Developers
+
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
-import warnings
-
-from itertools import repeat
+import re
+from typing import Optional, Tuple
 from warnings import warn
-
+import pkg_resources as p
 import yaml
-
+from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
 from CPAC.utils.utils import load_preconfig
+from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
 
-# Find default config
-# in-container location
-DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline.yml'
-if not os.path.exists(DEFAULT_PIPELINE_FILE):
-    CPAC_DIRECTORY = os.path.abspath(os.path.join(
-        __file__,
-        *repeat(os.path.pardir, 3)))
-    # package location
-    DEFAULT_PIPELINE_FILE = os.path.join(
-        CPAC_DIRECTORY,
-        'CPAC/resources/configs/default_pipeline.yml')
-    # source code (developer) location
-    if not os.path.exists(DEFAULT_PIPELINE_FILE):
-        DEFAULT_PIPELINE_FILE = os.path.join(
-            CPAC_DIRECTORY,
-            'dev/docker_data/default_pipeline.yml')
-    del CPAC_DIRECTORY
-
-with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
-    default_config = yaml.safe_load(dp_fp)
-
 
 class ConfigurationDictUpdateConflation(SyntaxError):
+    """Custom exception to clarify similar methods"""
     def __init__(self):
         self.msg = (
             '`Configuration().update` requires a key and a value. '
             'Perhaps you meant `Configuration().dict().update`?')
+        super().__init__()
 
 
 class Configuration:
@@ -72,7 +69,7 @@ class Configuration:
     --------
     >>> c = Configuration({})
     >>> c['pipeline_setup', 'pipeline_name']
-    'cpac-default-pipeline'
+    'cpac-blank-template'
     >>> c = Configuration({'pipeline_setup': {
     ...     'pipeline_name': 'example_pipeline'}})
     >>> c['pipeline_setup', 'pipeline_name']
@@ -84,27 +81,25 @@ class Configuration:
     def __init__(self, config_map=None):
         from click import BadParameter
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
-            update_nested_dict
+        from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
         if config_map is None:
             config_map = {}
 
-        base_config = config_map.get('FROM', 'default_pipeline')
-
-        # import another config (specified with 'FROM' key)
-        if base_config not in ['default', 'default_pipeline']:
+        base_config = config_map.pop('FROM', None)
+        if base_config:
+            if base_config.lower() in ['default', 'default_pipeline']:
+                base_config = 'default'
+            # import another config (specified with 'FROM' key)
             try:
-                base_config = load_preconfig(base_config)
+                base_config = Preconfiguration(base_config)
             except BadParameter:
-                pass
-            from_config = yaml.safe_load(open(base_config, 'r'))
-            config_map = update_nested_dict(
-                Configuration(from_config).dict(), config_map)
-
-        # base everything on default pipeline
-        config_map = _enforce_forkability(
-            update_nested_dict(default_config, config_map))
+                base_config = configuration_from_file(base_config)
+            config_map = update_nested_dict(base_config.dict(), config_map)
+        else:
+            # base everything on blank pipeline for unspecified keys
+            with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
+                config_map = update_nested_dict(yaml.safe_load(_f), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -127,8 +122,12 @@ class Configuration:
         try:
             if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
                     'brain_extraction']['using']:
-                config_map['surface_analysis']['freesurfer']['run'] = False
-        except TypeError:
+                self.set_nested(config_map,
+                                ['surface_analysis', 'freesurfer', 
+                                 'run_reconall'],
+                                False)
+                warn(DOUBLERUN_GUARD_MESSAGE)
+        except (KeyError, TypeError):
             pass
 
         config_map = schema(config_map)
@@ -147,19 +146,20 @@ class Configuration:
             # set attribute
             setattr(self, key, set_from_ENV(config_map[key]))
 
-        self.__update_attr()
+        self._update_attr()
 
     def __str__(self):
-        return 'C-PAC Configuration'
+        return ('C-PAC Configuration '
+                f"('{self['pipeline_setup', 'pipeline_name']}')")
 
     def __repr__(self):
         # show Configuration as a dict when accessed directly
-        return self.__str__()
+        return str(self.dict())
 
     def __copy__(self):
         newone = type(self)({})
         newone.__dict__.update(self.__dict__)
-        newone.__update_attr()
+        newone._update_attr()
         return newone
 
     def __getitem__(self, key):
@@ -178,10 +178,49 @@ class Configuration:
         else:
             self.key_type_error(key)
 
+    def __sub__(self: 'Configuration', other: 'Configuration'):
+        '''Return the set difference between two Configurations
+
+        Examples
+        --------
+        >>> diff = (Preconfiguration('fmriprep-options')
+        ...         - Preconfiguration('default'))
+        >>> diff['pipeline_setup']['pipeline_name']
+        ('cpac_fmriprep-options', 'cpac-default-pipeline')
+        >>> diff['pipeline_setup']['pipeline_name'].s_value
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].t_value
+        'cpac-default-pipeline'
+        >>> diff.s_value['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff.t_value['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        >>> diff['pipeline_setup']['pipeline_name'].left
+        'cpac_fmriprep-options'
+        >>> diff.left['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].minuend
+        'cpac_fmriprep-options'
+        >>> diff.minuend['pipeline_setup']['pipeline_name']
+        'cpac_fmriprep-options'
+        >>> diff['pipeline_setup']['pipeline_name'].right
+        'cpac-default-pipeline'
+        >>> diff.right['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        >>> diff['pipeline_setup']['pipeline_name'].subtrahend
+        'cpac-default-pipeline'
+        >>> diff.subtrahend['pipeline_setup']['pipeline_name']
+        'cpac-default-pipeline'
+        '''
+        return(dct_diff(self.dict(), other.dict()))
+
     def dict(self):
         '''Show contents of a C-PAC configuration as a dict'''
-        return {k: self[k] for k in self.__dict__ if not callable(
-            self.__dict__[k])}
+        return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
+    def keys(self):
+        '''Show toplevel keys of a C-PAC configuration dict'''
+        return self.dict().keys()
 
     def _nonestr_to_None(self, d):
         '''Recursive method to type convert 'None' to None in nested
@@ -249,14 +288,13 @@ class Configuration:
 
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
-    def __update_attr(self):
+    def _update_attr(self):
 
         def check_path(key):
-            if type(key) is str and '/' in key:
+            if isinstance(key, str) and '/' in key:
                 if not os.path.exists(key):
-                    warnings.warn(
-                        "Invalid path- %s. Please check your configuration "
-                        "file" % key)
+                    warn(f"Invalid path- {key}. Please check your "
+                         "configuration file")
 
         attributes = [(attr, getattr(self, attr)) for attr in dir(self)
                       if not callable(attr) and not attr.startswith("__")]
@@ -292,10 +330,10 @@ class Configuration:
             else:
                 return d[keys[0]]
 
-    def set_nested(self, d, keys, value):
+    def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
             d[keys] = value
-        elif isinstance(keys, tuple) or isinstance(keys, list):
+        elif isinstance(keys, (list, tuple)):
             if len(keys) > 1:
                 d[keys[0]] = self.set_nested(d[keys[0]], keys[1:], value)
             else:
@@ -309,6 +347,45 @@ class Configuration:
                 f'`{str(key)}`',
                 'was given.'
             ]))
+
+
+def check_pname(p_name: str, pipe_config: Configuration) -> str:
+    '''Function to check / set `p_name`, the string representation of a
+    pipeline for use in filetrees
+
+    Parameters
+    ----------
+    p_name : str or None
+
+    pipe_config : Configuration
+
+    Returns
+    -------
+    p_name
+
+    Examples
+    --------
+    >>> c = Configuration()
+    >>> check_pname(None, c)
+    'pipeline_cpac-blank-template'
+    >>> check_pname('cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('pipeline_cpac-default-pipeline', c)
+    'pipeline_cpac-default-pipeline'
+    >>> check_pname('different-name', Configuration())
+    'pipeline_different-name'
+    >>> p_name = check_pname(None, Preconfiguration('blank'))
+    >>> p_name
+    'pipeline_cpac-blank-template'
+    >>> p_name = check_pname(None, Preconfiguration('default'))
+    >>> p_name
+    'pipeline_cpac-default-pipeline'
+    '''
+    if p_name is None:
+        p_name = f'pipeline_{pipe_config["pipeline_setup", "pipeline_name"]}'
+    elif not p_name.startswith('pipeline_'):
+        p_name = f'pipeline_{p_name}'
+    return p_name
 
 
 def collect_key_list(config_dict):
@@ -349,52 +426,30 @@ def configuration_from_file(config_file):
     -------
     Configuration
     """
-    with open(config_file, 'r') as config:
+    with open(config_file, 'r', encoding='utf-8') as config:
         return Configuration(yaml.safe_load(config))
 
 
-def _enforce_forkability(config_dict):
-    '''Function to set forkable booleans as lists of booleans.
+def preconfig_yaml(preconfig_name='default', load=False):
+    """Get the path to a preconfigured pipeline's YAML file
 
     Parameters
     ----------
-    config_dict : dict
+    preconfig_name : str
+
+    load : boolean
+        return dict if True, str if False
 
     Returns
     -------
-    config_dict : dict
-
-    Examples
-    --------
-    >>> c = Configuration().dict()
-    >>> c['functional_preproc']['despiking']['run']
-    [False]
-    >>> c['functional_preproc']['despiking']['run'] = True
-    >>> c['functional_preproc']['despiking']['run']
-    True
-    >>> _enforce_forkability(c)['functional_preproc']['despiking']['run']
-    [True]
-    '''
-    from CPAC.pipeline.schema import schema
-    from CPAC.utils.utils import lookup_nested_value, set_nested_value
-
-    key_list_list = collect_key_list(config_dict)
-    for key_list in key_list_list:
-        try:
-            schema_check = lookup_nested_value(schema.schema, key_list)
-        except KeyError:
-            continue
-        if hasattr(schema_check, 'validators'):
-            schema_check = schema_check.validators
-            if bool in schema_check and [bool] in schema_check:
-                try:
-                    value = lookup_nested_value(config_dict, key_list)
-                except KeyError:
-                    continue
-                if isinstance(value, bool):
-                    config_dict = set_nested_value(
-                        config_dict, key_list, [value])
-    return config_dict
+    str or dict
+        path to YAML file or dict loaded from YAML
+    """
+    if load:
+        with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:
+            return yaml.safe_load(_f)
+    return p.resource_filename("CPAC", os.path.join(
+        "resources", "configs", f"pipeline_config_{preconfig_name}.yml"))
 
 
 class Preconfiguration(Configuration):
@@ -406,8 +461,7 @@ class Preconfiguration(Configuration):
         The canonical name of the preconfig to load
     """
     def __init__(self, preconfig):
-        with open(load_preconfig(preconfig), 'r') as preconfig_yaml:
-            super().__init__(config_map=yaml.safe_load(preconfig_yaml))
+        super().__init__(config_map=preconfig_yaml(preconfig, True))
 
 
 def set_from_ENV(conf):  # pylint: disable=invalid-name
@@ -452,3 +506,55 @@ def set_from_ENV(conf):  # pylint: disable=invalid-name
                 conf = re.sub(
                     _pattern, os.environ.get(_match, f'${_match}'), conf)
     return conf
+
+
+def set_subject(sub_dict: dict, pipe_config: 'Configuration',
+                p_name: Optional[str] = None) -> Tuple[str, str, str]:
+    '''Function to set pipeline name and log directory path for a given
+    sub_dict
+
+    Parameters
+    ----------
+    sub_dict : dict
+
+    pipe_config : CPAC.utils.configuration.Configuration
+
+    p_name : str, optional
+        pipeline name string
+
+    Returns
+    -------
+    subject_id : str
+
+    p_name : str
+        pipeline name string
+
+    log_dir : str
+        path to subject log directory
+
+    Examples
+    --------
+    >>> from tempfile import TemporaryDirectory
+    >>> from CPAC.utils.configuration import Configuration
+    >>> sub_dict = {'site_id': 'site1', 'subject_id': 'sub1',
+    ...             'unique_id': 'uid1'}
+    >>> with TemporaryDirectory() as tmpdir:
+    ...     subject_id, p_name, log_dir = set_subject(
+    ...         sub_dict, Configuration({'pipeline_setup': {'log_directory':
+    ...             {'path': tmpdir}}}))
+    >>> subject_id
+    'sub1_uid1'
+    >>> p_name
+    'pipeline_cpac-blank-template'
+    >>> log_dir.endswith(f'{p_name}/{subject_id}')
+    True
+    '''
+    subject_id = sub_dict['subject_id']
+    if sub_dict.get('unique_id'):
+        subject_id += f'_{sub_dict["unique_id"]}'
+    p_name = check_pname(p_name, pipe_config)
+    log_dir = os.path.join(pipe_config.pipeline_setup['log_directory']['path'],
+                           p_name, subject_id)
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
+    return subject_id, p_name, log_dir

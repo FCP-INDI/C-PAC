@@ -10,7 +10,6 @@ from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
 
-from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import set_up_logger
 
@@ -92,6 +91,7 @@ def random_seed_flags():
     ...     'functions', 'interfaces']])
     True
     '''
+    from CPAC.registration.utils import hardcoded_reg
     seed = random_seed()
     if seed is None:
         return {'functions': {}, 'interfaces': {}}
@@ -121,7 +121,7 @@ def random_seed_flags():
                       [f'--use-random-seed{one}', f'-r{one}']]),
             # FreeSurfer
             ReconAll: ['-norandomness', f'-rng-seed {seed}'],
-            ApplyVolTransform: _reusable_flags()['FSL'],
+            ApplyVolTransform: [f'--seed {seed}'],
             # FSL
             ImageMaths: _reusable_flags()['FSL'],
             MathsCommand: _reusable_flags()['FSL']
@@ -166,16 +166,15 @@ def set_up_random_state(seed):
     if seed is not None:
         if seed == 'random':
             seed = random_random_seed()
-        if (seed != 'random' and not (
-            isinstance(seed, int) and
-            (0 < int(seed) <= np.iinfo(np.int32).max)
-        )):
-            raise ValueError('Valid random seeds are positive integers up to '
-                             f'2147483647, "random", or None, not {seed}')
-    try:
-        _seed['seed'] = int(seed)
-    except (TypeError, ValueError):
-        _seed['seed'] = seed
+        else:
+            try:
+                seed = int(seed)
+                assert 0 < seed <= np.iinfo(np.int32).max
+            except(ValueError, TypeError, AssertionError):
+                raise ValueError('Valid random seeds are positive integers up to '
+                                    f'2147483647, "random", or None, not {seed}')
+    
+    _seed['seed'] = seed
     return random_seed()
 
 
