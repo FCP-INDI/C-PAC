@@ -115,6 +115,11 @@ jobs:
               --header 'content-type: application/json' \
               --data "${DATA}" |
               jq '.number')
+            if [[ $PIPELINE_NUMBER == 'null' ]]
+            then
+              echo "Failed to trigger CircleCI tests"
+              exit 126
+            fi
             PIPELINE_ID=$(curl \
               --request GET \
               --url "https://circleci.com/api/v2/project/gh/${GITHUB_REPOSITORY}/pipeline/${PIPELINE_NUMBER}" \
