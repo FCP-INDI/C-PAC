@@ -27,7 +27,7 @@ from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-
+from CPAC.func_preproc.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
@@ -852,6 +852,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
+        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
+            'outputs', [])
 
         if add_excl:
             excl += add_excl
@@ -965,7 +967,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in ('movement-parameters', 'regressors'))
+                             key not in (*movement_filter_keys, 'regressors'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1016,15 +1018,17 @@ class ResourcePool:
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
                         filt_value = None
-                        if ('movement-parameters' in json_info.get(
-                            'CpacVariant', {}) and json_info['CpacVariant'][
-                                'movement-parameters']):
-                            filt_value = json_info['CpacVariant'][
-                                'movement-parameters'][0].replace(
-                                    'motion_estimate_filter_', '')
-                        elif False in cfg['functional_preproc',
-                                          'motion_estimates_and_correction',
-                                          'motion_estimate_filter', 'run']:
+                        _motion_variant = {
+                            _key: json_info['CpacVariant'][_key]
+                            for _key in movement_filter_keys
+                            if _key in json_info.get('CpacVariant', {})}
+                        try:
+                            filt_value = [
+                                json_info['CpacVariant'][_k][0].replace(
+                                    'motion_estimate_filter_', ''
+                                ) for _k, _v in _motion_variant.items()
+                                if _v][0]
+                        except IndexError:
                             filt_value = 'none'
                         if filt_value is not None:
                             resource_idx = insert_entity(resource_idx, 'filt',
