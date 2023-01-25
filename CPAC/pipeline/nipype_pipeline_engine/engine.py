@@ -8,6 +8,7 @@
 #     * Applies a random seed
 #     * Supports overriding memory estimates via a log file and a buffer
 #     * Adds quotation marks around strings in dotfiles
+#     * Separates indices from rest of MapNode names
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #     Copyright (c) 2009-2016, Nipype developers
@@ -26,7 +27,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022 C-PAC Developers
+# Modifications Copyright (C) 2022-2023 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -63,8 +64,9 @@ from nipype.pipeline.engine.utils import (
     _replacefunk,
     _run_dot
 )
-from nipype.utils.filemanip import fname_presuffix
+from nipype.utils.filemanip import ensure_list, fname_presuffix
 from nipype.utils.functions import getsource
+from nipype.utils.misc import flatten
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -444,6 +446,45 @@ class MapNode(Node, pe.MapNode):
             Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
                       default=DEFAULT_MEM_GB)
         )[1] for p in signature(pe.Node).parameters.items()])
+
+    def _make_nodes(self, cwd=None):
+        # adapted from https://github.com/nipy/nipype/blob/a8978476/nipype/pipeline/engine/nodes.py#L1210-L1242
+        # Copyright (c) 2009-2016, Nipype developers
+        # Licensed under the Apache License, Version 2.0
+        if cwd is None:
+            cwd = self.output_dir()
+        if self.nested:
+            nitems = len(flatten(
+                ensure_list(getattr(self.inputs, self.iterfield[0]))))
+        else:
+            nitems = len(ensure_list(getattr(self.inputs, self.iterfield[0])))
+        for i in range(nitems):
+            nodename = f"_{self.name}_{i}"
+            node = Node(
+                deepcopy(self._interface),
+                n_procs=self._n_procs,
+                mem_gb=self._mem_gb,
+                overwrite=self.overwrite,
+                needed_outputs=self.needed_outputs,
+                run_without_submitting=self.run_without_submitting,
+                base_dir=os.path.join(cwd, "mapflow"),
+                name=nodename,
+            )
+            node.plugin_args = self.plugin_args
+            node.interface.inputs.trait_set(
+                **deepcopy(self._interface.inputs.trait_get())
+            )
+            node.interface.resource_monitor = self._interface.resource_monitor
+            for field in self.iterfield:
+                if self.nested:
+                    fieldvals = flatten(
+                        ensure_list(getattr(self.inputs, field)))
+                else:
+                    fieldvals = ensure_list(getattr(self.inputs, field))
+                logger.debug("setting input %d %s %s", i, field, fieldvals[i])
+                setattr(node.inputs, field, fieldvals[i])
+            node.config = self.config
+            yield i, node
 
 
 class Workflow(pe.Workflow):
