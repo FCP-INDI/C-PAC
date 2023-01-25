@@ -784,7 +784,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                                                function=resample_func_roi,
                                                as_module=True),
                                       name=f'resample_functional_roi_'
-                                           f'{pipe_num}')
+                                           f'{pipe_num}',
+                                      n_procs=1)
 
     resample_functional_roi.inputs.realignment = cfg.timeseries_extraction[
         'realignment']

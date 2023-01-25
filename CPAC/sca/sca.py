@@ -405,7 +405,8 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                       output_names=['out_func', 'out_roi'],
                       function=resample_func_roi,
                       as_module=True),
-        name=f'resample_functional_roi_for_sca_{pipe_num}')
+        name=f'resample_functional_roi_for_sca_{pipe_num}',
+        n_procs=1)
 
     resample_functional_roi_for_sca.inputs.realignment = \
         cfg.timeseries_extraction['realignment']
