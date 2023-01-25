@@ -2455,8 +2455,9 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                        '2-nuisance_regression',
                                        'bandpass_filtering_order'] == 'Before'
 
-    name_suff = (f'{space}_{opt["Name"]}_{pipe_num}' if res is None else
-                 f'{space}_res-{res}_{opt["Name"]}_{pipe_num}')
+    name_suff = (f'space-{space}_reg-{opt["Name"]}_{pipe_num}'
+                 if res is None else
+                 f'space-{space}_res-{res}_reg-{opt["Name"]}_{pipe_num}')
     nuis_name = f'nuisance_regression_{name_suff}'
 
     nuis = create_nuisance_regression_workflow(opt, name=nuis_name)
@@ -2476,7 +2477,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         # so here we align the mask to the resampled data before applying
         match_grid = pe.Node(afni.Resample(),
                              name='align_template_mask_to_template_data_'
-                                  f'{space}_{opt["Name"]}_{pipe_num}')
+                                  f'{name_suff}')
         match_grid.inputs.outputtype = 'NIFTI_GZ'
         match_grid.inputs.resample_mode = 'Cu'
         node, out = strat_pool.get_data('FSL-AFNI-brain-mask')
@@ -2627,6 +2628,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-stc_bold",
                  "space-template_desc-preproc_bold",
                  "space-template_res-derivative_desc-preproc_bold",
+                 "movement-parameters",
                  "regressors",
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",
