@@ -73,7 +73,40 @@ def log_failed_subprocess(cpe):
 
 
 def log_subprocess(cmd, *args, raise_error=True, **kwargs):
-    """Pass STDERR and STDOUT from subprocess to interface's logger
+    """Pass STDERR and STDOUT from subprocess to interface's logger.
+    This function is nearly a drop-in replacement for
+    `subprocess.check_output`.
+
+    Caveat: if you're assigning to a variable (like
+
+    ```Python
+    output = subprocess.check_output(cmd)
+    ```
+
+    ), the new function also returns the command's exit code, so you can just
+    assign that to a throwaway variable if you don't want it
+
+    ```Python
+    output, _ = log_subprocess(cmd)
+    ```
+
+    or subscript the command like
+
+    ```Python
+    output = log_subprocess(cmd)[0]
+    ```
+
+    . If you're not assigning to a variable, it doesn't matter and just
+
+    ```Python
+    log_subprocess(cmd)
+    ```
+
+    should work just like
+
+    ```Python
+    subprocess.check_output(cmd)
+    ```
 
     Parameters
     ----------
