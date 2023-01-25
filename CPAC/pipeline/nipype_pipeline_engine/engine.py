@@ -437,6 +437,8 @@ class MapNode(Node, pe.MapNode):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.name.endswith('_'):
+            self.name = f'{self.name}_'
 
     __init__.__signature__ = Signature(parameters=[
         p[1] if p[0] != 'mem_gb' else (
