@@ -5,7 +5,6 @@ import os
 from warnings import warn
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
-from nilearn.input_data import NiftiLabelsMasker
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -99,17 +98,22 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     -------
     numpy.ndarray or NotImplemented
     """
+    from nilearn.input_data import NiftiLabelsMasker
+    from nipype.utils.tmpdirs import TemporaryDirectory
     tool = 'Nilearn'
     output = connectome_name(atlas_name, tool, method)
     method = get_connectome_method(method, tool)
     if method is NotImplemented:
         return NotImplemented
-    masker = NiftiLabelsMasker(labels_img=in_rois,
-                               standardize=True,
-                               verbose=True)
-    timeser = masker.fit_transform(in_file)
-    correlation_measure = ConnectivityMeasure(kind=method)
-    corr_matrix = correlation_measure.fit_transform([timeser])[0]
+    with TemporaryDirectory() as cache_dir:
+        masker = NiftiLabelsMasker(labels_img=in_rois,
+                                standardize=True,
+                                verbose=True,
+                                memory=cache_dir,
+                                memory_level=3)
+        timeser = masker.fit_transform(in_file)
+        correlation_measure = ConnectivityMeasure(kind=method)
+        corr_matrix = correlation_measure.fit_transform([timeser])[0]
     np.fill_diagonal(corr_matrix, 1)
     np.savetxt(output, corr_matrix, delimiter='\t')
     return output
