@@ -79,34 +79,24 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
 
     Caveat: if you're assigning to a variable (like
 
-    ```Python
-    output = subprocess.check_output(cmd)
-    ```
+    >>> output = subprocess.check_output(cmd)  # doctest: +SKIP
 
     ), the new function also returns the command's exit code, so you can just
     assign that to a throwaway variable if you don't want it
 
-    ```Python
-    output, _ = log_subprocess(cmd)
-    ```
+    >>> output, _ = log_subprocess(cmd)  # doctest: +SKIP
 
     or subscript the command like
 
-    ```Python
-    output = log_subprocess(cmd)[0]
-    ```
+    >>> output = log_subprocess(cmd)[0]  # doctest: +SKIP
 
     . If you're not assigning to a variable, it doesn't matter and just
 
-    ```Python
-    log_subprocess(cmd)
-    ```
+    >>> log_subprocess(cmd)  # doctest: +SKIP
 
     should work just like
 
-    ```Python
-    subprocess.check_output(cmd)
-    ```
+    >>> subprocess.check_output(cmd)  # doctest: +SKIP
 
     Parameters
     ----------
