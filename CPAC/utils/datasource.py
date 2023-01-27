@@ -24,6 +24,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.resources.templates.lookup_table import format_identifier, \
                                                   lookup_identifier
 from CPAC.utils import function
+from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
 
@@ -1030,6 +1031,9 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                     for ext in valid_extensions
                     if base_file.endswith(ext)
                     ][0]
+
+                for key in ['res', 'space']:
+                    base_name = bids_remove_entity(base_name, key)
 
             except IndexError:
                 # pylint: disable=raise-missing-from

@@ -198,6 +198,32 @@ def bids_match_entities(file_list, entities, suffix):
     return matches
 
 
+def bids_remove_entity(name, key):
+    """Remove an entity from a BIDS string by key
+
+    Parameters
+    ----------
+    name : str
+        BIDS string to remove entity from
+    key : str
+        BIDS key of entity to remove
+
+    Returns
+    -------
+    str
+        BIDS name with entity removed
+
+    Examples
+    --------
+    >>> bids_remove_entity('atlas-Yeo_space-MNI152NLin6_res-2x2x2', 'space')
+    'atlas-Yeo_res-2x2x2'
+    >>> bids_remove_entity('atlas-Yeo_space-MNI152NLin6_res-2x2x2', 'res')
+    'atlas-Yeo_space-MNI152NLin6'
+    """
+    return '_'.join(entity for entity in bids_entities_from_filename(name)
+                    if not entity.startswith(f'{key.rstrip("-")}-'))
+
+
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     """
 
