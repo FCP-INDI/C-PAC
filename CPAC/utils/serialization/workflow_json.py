@@ -88,7 +88,7 @@ class NodeData:
     edges: List['EdgeData'] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod
-    def from_obj(cls, obj):
+    def from_obj(cls, obj, serialze_postex: bool = True):
         node_data = cls(
             name=obj.name,  # There is name, fullname and itername
             fullname=obj.fullname,
@@ -103,17 +103,18 @@ class NodeData:
         )
 
         if isinstance(obj, NodeRaw):
-            try:
-                node_data.result_inputs = \
-                    _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.inputs))
-            except:
-                node_data.result_inputs = _object_as_strdict('Error loading results')
+            if serialze_postex:
+                try:
+                    node_data.result_inputs = \
+                        _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.inputs))
+                except:
+                    node_data.result_inputs = _object_as_strdict('Error loading results')
 
-            try:
-                node_data.result_outputs = \
-                    _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.outputs))
-            except:
-                node_data.result_outputs = _object_as_strdict('Error loading results')
+                try:
+                    node_data.result_outputs = \
+                        _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.outputs))
+                except:
+                    node_data.result_outputs = _object_as_strdict('Error loading results')
 
             return node_data
 
@@ -122,7 +123,7 @@ class NodeData:
             graph = _workflow_get_graph(obj)
 
             for child_node in graph.nodes:
-                node_data_child = cls.from_obj(child_node)
+                node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex)
                 node_data.nodes.append(node_data_child)
 
             for child_edgle in graph.edges:
@@ -172,7 +173,7 @@ def save_workflow_json(
     meta : Meta information.
     """
 
-    node_data = NodeData.from_obj(workflow)
+    node_data = NodeData.from_obj(workflow, serialze_postex=meta.stage == 'post')
     obj = workflow_container(workflow=node_data, meta=meta)
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(obj, file, indent=2, cls=WorkflowJSONEncoder)
