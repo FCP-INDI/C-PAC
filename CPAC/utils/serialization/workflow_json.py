@@ -1,5 +1,6 @@
 import dataclasses
 import json
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, date
 from os import PathLike
@@ -106,15 +107,15 @@ class NodeData:
             if serialze_postex:
                 try:
                     node_data.result_inputs = \
-                        _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.inputs))
-                except:
-                    node_data.result_inputs = _object_as_strdict('Error loading results')
+                        _object_as_strdict(_serialize_inout(obj.result.inputs))
+                except:  # noqa
+                    node_data.result_inputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
 
                 try:
                     node_data.result_outputs = \
-                        _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.outputs))
-                except:
-                    node_data.result_outputs = _object_as_strdict('Error loading results')
+                        _object_as_strdict(_serialize_inout(obj.result.outputs))
+                except:  # noqa
+                    node_data.result_inputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
 
             return node_data
 
