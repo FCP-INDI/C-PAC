@@ -6,13 +6,48 @@ from os import PathLike
 from typing import List, Dict, Union
 
 import networkx
+from traits.has_traits import HasTraits
+from traits.trait_base import _Undefined
 
 from .core import workflow_container, WorkflowRaw, NodeRaw
+from .. import Configuration
 
 
 def _object_as_strdict(obj: object) -> Dict[str, str]:
     """Extracts and converts all fields of an object to a {str: str} dict."""
-    return {str(k): str(v) for k, v in obj.__dict__.items()}
+    if isinstance(obj, dict):
+        obj_dict = obj
+    elif hasattr(obj, '__dict__'):
+        obj_dict = obj.__dict__
+    else:
+        return {'value': str(obj)}
+    return {str(k): str(v) for k, v in obj_dict.items()}
+
+
+def _serialize_inout(obj: object):
+    if isinstance(obj, dict):
+        if 'json_data' in obj:
+            obj_clone = obj.copy()
+            obj_clone['json_data'] = '[truncated]'
+            obj = obj_clone
+        return {str(k): _serialize_inout(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_serialize_inout(i) for i in obj]
+    if isinstance(obj, tuple):
+        return (_serialize_inout(i) for i in obj)
+    elif isinstance(obj, HasTraits):
+        return _serialize_inout(obj.trait_get())
+    elif isinstance(obj, (int, float, str)):
+        return obj
+    elif isinstance(obj, _Undefined):
+        return '[Undefined]'
+    elif isinstance(obj, Configuration):
+        return '[C-PAC config]'
+    elif obj is None:
+        return None
+    else:
+        print(type(obj))
+        return str(obj)
 
 
 def _workflow_get_graph(wf: WorkflowRaw) -> networkx.DiGraph:
@@ -46,6 +81,8 @@ class NodeData:
 
     inputs: dict
     outputs: dict
+    result_inputs: dict
+    result_outputs: dict
 
     nodes: List['NodeData'] = dataclasses.field(default_factory=lambda: [])
     edges: List['EdgeData'] = dataclasses.field(default_factory=lambda: [])
@@ -57,13 +94,27 @@ class NodeData:
             fullname=obj.fullname,
             type='node',
             repr=str(obj),
-            inputs=_object_as_strdict(obj.inputs),
-            outputs=_object_as_strdict(obj.outputs),
+            inputs=_object_as_strdict(_serialize_inout(obj.inputs)),
+            outputs=_object_as_strdict(_serialize_inout(obj.outputs)),
+            result_inputs=_object_as_strdict(None),
+            result_outputs=_object_as_strdict(None),
             nodes=[],
             edges=[]
         )
 
         if isinstance(obj, NodeRaw):
+            try:
+                node_data.result_inputs = \
+                    _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.inputs))
+            except:
+                node_data.result_inputs = _object_as_strdict('Error loading results')
+
+            try:
+                node_data.result_outputs = \
+                    _object_as_strdict(None if obj.result is None else _serialize_inout(obj.result.outputs))
+            except:
+                node_data.result_outputs = _object_as_strdict('Error loading results')
+
             return node_data
 
         if isinstance(obj, WorkflowRaw):
@@ -114,7 +165,6 @@ def save_workflow_json(
 ) -> None:
     """
     Serialize and save workflow object to a file.
-
     Parameters
     ----------
     filename : Filename to save to.

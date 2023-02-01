@@ -7,7 +7,6 @@ from .core import workflow_container
 def save_workflow_pickle(filename: str, workflow: Any) -> None:
     """
     Serialize and save workflow object to a file.
-
     Parameters
     ----------
     filename : Filename to save to.
