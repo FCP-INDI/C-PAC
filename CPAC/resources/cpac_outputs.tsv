@@ -218,3 +218,5 @@ space-template_label-GM_mask	mask	template	anat	NIfTI
 space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
+falff	surface_derived		func
+alff	surface_derived		func

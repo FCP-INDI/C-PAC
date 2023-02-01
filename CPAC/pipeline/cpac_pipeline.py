@@ -170,6 +170,10 @@ from CPAC.nuisance.nuisance import (
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
+from CPAC.surface.surf_preproc import cal_falff
+from CPAC.surface.surf_preproc import cal_alff
+#from CPAC.surface.surf_preproc import cal_reho
+#from CPAC.surface.surf_preproc import cal_connectivity_matrix
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -1313,6 +1317,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
         pipeline_blocks += [surface_postproc]
+
+    if not rpool.check_rpool('surf-falff'):
+        pipeline_blocks += [cal_falff]
+
+    if not rpool.check_rpool('surf-alff'):
+        pipeline_blocks += [cal_alff]
+
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
