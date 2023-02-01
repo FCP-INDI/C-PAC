@@ -377,7 +377,8 @@ latest_schema = Schema({
                                                 'exec', 'colored')))])),
                     'format': Maybe(All(Coerce(ListFromItem),
                                         [All(Lower, In(('png', 'svg')))])),
-                    'simple_form': Maybe(bool)}}
+                    'simple_form': Maybe(bool)}},
+            'save_workflow': Maybe(bool),
         },
         'crash_log_directory': {
             'path': Maybe(str),
@@ -710,9 +711,8 @@ latest_schema = Schema({
     },
     'surface_analysis': {
         'freesurfer': {
-            'run': bool1_1,
-            'reconall_args': Maybe(str),
-            'freesurfer_dir': Maybe(str)
+            'run_reconall': bool1_1,
+            'reconall_args': Maybe(str)
         },
         'post_freesurfer': {
             'run': bool1_1,

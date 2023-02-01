@@ -185,7 +185,7 @@ REQUIREMENTS = [
     "nipype==1.5.1",
     "nose==1.3.7",
     "numpy==1.21.0",
-    "pandas==0.23.4",
+    "pandas==1.0.5",
     "pathvalidate==2.5.2",
     "patsy==0.5.0",
     "prov==1.5.2",
@@ -202,4 +202,5 @@ REQUIREMENTS = [
     "traits==4.6.0",
     "PyBASC==0.4.5",
     "voluptuous>=0.12.0",
+    "ciftify",
 ]

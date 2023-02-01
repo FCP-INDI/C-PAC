@@ -219,13 +219,12 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     else:
         out_filename = f'{part_id}_{ses_id}_{resource}'
 
-    if template_desc:
-        template_tag = template_desc.split(' -')[0]
-        for prefix in ['space-', 'from-', 'to-']:
-            for bidstag in out_filename.split('_'):
-                if prefix in bidstag and 'template' in bidstag:
-                    out_filename = out_filename.replace(
-                        bidstag, f'{prefix}{template_tag}')
+    template_tag = template_desc.split(' -')[0] if template_desc else '*'
+    for prefix in ['space-', 'from-', 'to-']:
+        for bidstag in out_filename.split('_'):
+            if prefix in bidstag and 'template' in bidstag:
+                out_filename = out_filename.replace(
+                    bidstag, f'{prefix}{template_tag}')
 
     if fwhm:
         for tag in resource.split('_'):

@@ -42,3 +42,11 @@ jobs:
             -u ${GITHUB_TOKEN}: \
             -X DELETE \
             https://api.github.com/${OWNER_TYPE}/${OWNER}/packages/container/c-pac/versions/${VERSION_ID}
+      - name: Delete all containers from repository without tags
+        uses: Chizkiyahu/delete-untagged-ghcr-action@v2
+        with:
+          token: ${GITHUB_TOKEN}
+          repository_owner: ${{ github.repository_owner }}
+          repository: ${{ github.repository }}
+          untagged_only: true
+          owner_type: org

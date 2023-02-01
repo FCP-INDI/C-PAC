@@ -20,6 +20,8 @@ from itertools import chain
 import logging
 import os
 import re
+from types import FunctionType
+from typing import Tuple, Union
 import warnings
 
 from CPAC.pipeline import \
@@ -44,7 +46,8 @@ from CPAC.utils.datasource import (
 from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import getLogger, LOGTAIL, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
@@ -1009,7 +1012,7 @@ class ResourcePool:
 
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
-                if num_variant:
+                if isinstance(num_variant, int):
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
@@ -1118,10 +1121,6 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-                expected_outputs += (out_dct['subdir'], create_id_string(
-                    self.cfg, unique_id, resource_idx,
-                    template_desc=json_info.get('Template'),
-                    atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
@@ -1159,12 +1158,14 @@ class ResourcePool:
                     'aws_output_bucket_credentials']:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
                         'aws_output_bucket_credentials']
-
+                expected_outputs += (out_dct['subdir'], create_id_string(
+                    self.cfg, unique_id, resource_idx,
+                    template_desc=id_string.inputs.template_desc,
+                    atlas_id=atlas_id, subdir=out_dct['subdir']))
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
-
         outputs_logger.info(expected_outputs)
 
     def node_data(self, resource, **kwargs):
@@ -1409,6 +1410,12 @@ class NodeBlock:
                             continue
 
                         if not outs:
+                            if (block_function.__name__ == 'freesurfer_'
+                                                           'postproc'):
+                                logger.warning(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
+                                LOGTAIL['warnings'].append(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
                             continue
 
                         if opt and len(option_val) > 1:
@@ -1519,6 +1526,40 @@ class NodeBlock:
         return wf
 
 
+def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
+                 key: str = 'inputs') -> list:
+    """Take a Node Block function or list of inputs and return a flat list
+
+    Parameters
+    ----------
+    node_block_function : function, list or tuple
+        a Node Block function or a list or tuple for recursion
+
+    key : str
+        'inputs' or 'outputs'
+
+    Returns
+    -------
+    list
+    """
+    flat_list = []
+    resource_list = []
+    if isinstance(node_block_function, (list, tuple)):
+        resource_list = node_block_function
+    elif isinstance(node_block_function, FunctionType):
+        resource_list = grab_docstring_dct(node_block_function).get(key, [])
+    elif isinstance(node_block_function, str):
+        resource_list = [node_block_function]
+    if isinstance(resource_list, dict):
+        resource_list = list(resource_list.keys())
+    for resource in resource_list:
+        if isinstance(resource, str):
+            flat_list.append(resource)
+        else:
+            flat_list += flatten_list(resource, key)
+    return flat_list
+
+
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     """Wrap a list of node block functions to make them easier to use within
     other node blocks.
@@ -1626,6 +1667,55 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         )
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
+
+    if 'freesurfer_dir' in data_paths['anat']:
+        anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
+
+        fs_ingress = create_general_datasource('gather_freesurfer_dir')
+        fs_ingress.inputs.inputnode.set(
+            unique_id=unique_id,
+            data=data_paths['anat']['freesurfer_dir'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'])
+        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
+                       {}, "", "freesurfer_config_ingress")
+
+        recon_outs = {
+            'raw-average': 'mri/rawavg.mgz',
+            'subcortical-seg': 'mri/aseg.mgz',
+            'brainmask': 'mri/brainmask.mgz',
+            'wmparc': 'mri/wmparc.mgz',
+            'T1': 'mri/T1.mgz',
+            'hemi-L_desc-surface_curv': 'surf/lh.curv',
+            'hemi-R_desc-surface_curv': 'surf/rh.curv',
+            'hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
+            'hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
+            'hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
+            'hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
+            'hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
+            'hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
+            'hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
+            'hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
+            'hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
+            'hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
+            'hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
+            'hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
+            'hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
+            'hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+        }
+        
+        for key, outfile in recon_outs.items():
+            fullpath = os.path.join(data_paths['anat']['freesurfer_dir'],
+                                    outfile)
+            if os.path.exists(fullpath):
+                fs_ingress = create_general_datasource(f'gather_fs_{key}_dir')
+                fs_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=fullpath,
+                    creds_path=data_paths['creds_path'],
+                    dl_dir=cfg.pipeline_setup['working_directory']['path'])
+                rpool.set_data(key, fs_ingress, 'outputspec.data',
+                               {}, "", f"fs_{key}_ingress")
 
     return rpool
 
@@ -1944,17 +2034,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data',
                                json_info, "", f"{key}_config_ingress")
-
-    # Freesurfer directory, not a template, so not in cpac_templates.tsv
-    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
-        fs_ingress = create_general_datasource('gather_freesurfer_dir')
-        fs_ingress.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
-            creds_path=creds_path,
-            dl_dir=cfg.pipeline_setup['working_directory']['path'])
-        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
-                       json_info, "", "freesurfer_config_ingress")
 
     # templates, resampling from config
     '''
