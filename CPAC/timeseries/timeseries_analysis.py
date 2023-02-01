@@ -775,6 +775,21 @@ def gen_vertices_timeseries(rh_surface_file,
     return out_list
 
 
+def resample_function() -> 'Function':
+    """
+    Returns a Function interface for
+    `CPAC.utils.datasource.resample_func_roi`
+
+    Returns
+    -------
+    Function
+    """
+    return Function(input_names=['in_func', 'in_roi', 'realignment',
+                                 'identity_matrix'],
+                    output_names=['out_func', 'out_roi'],
+                    function=resample_func_roi, as_module=True)
+
+
 def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "timeseries_extraction_AVG",
@@ -791,15 +806,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-PearsonNilearn_correlations",
                  "space-template_desc-PartialNilearn_correlations"]}
     '''
-    resample_functional_roi = pe.Node(Function(input_names=['in_func',
-                                                            'in_roi',
-                                                            'realignment',
-                                                            'identity_matrix'],
-                                               output_names=['out_func',
-                                                             'out_roi'],
-                                               function=resample_func_roi,
-                                               as_module=True),
-                                      name=f'resample_functional_roi_'
+    resample_functional_roi = pe.Node(resample_function(),
+                                      name='resample_functional_roi_'
                                            f'{pipe_num}')
 
     resample_functional_roi.inputs.realignment = cfg.timeseries_extraction[
@@ -918,15 +926,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
                  "atlas_name"]}
     '''
 
-    resample_functional_to_mask = pe.Node(Function(input_names=['in_func',
-                                                                'in_roi',
-                                                                'realignment',
-                                                                'identity_matrix'],
-                                                   output_names=['out_func',
-                                                                 'out_roi'],
-                                                   function=resample_func_roi,
-                                                   as_module=True),
-                                          name=f'resample_functional_to_mask_'
+    resample_functional_to_mask = pe.Node(resample_function(),
+                                          name='resample_functional_to_mask_'
                                                f'{pipe_num}')
 
     resample_functional_to_mask.inputs.realignment = cfg.timeseries_extraction[

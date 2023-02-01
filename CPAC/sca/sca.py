@@ -28,7 +28,7 @@ from CPAC.utils.datasource import resample_func_roi, \
     create_roi_mask_dataflow, create_spatial_map_dataflow
 
 from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
-    get_spatial_map_timeseries
+    get_spatial_map_timeseries, resample_function
 
 
 def create_sca(name_sca='sca'):
@@ -582,14 +582,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_multreg = pe.Node(
-        util.Function(input_names=['in_func',
-                              'in_roi',
-                              'realignment',
-                              'identity_matrix'],
-                 output_names=['out_func',
-                               'out_roi'],
-                 function=resample_func_roi,
-                 as_module=True),
+        resample_function(),
         name=f'resample_functional_roi_for_multreg_{pipe_num}')
 
     resample_functional_roi_for_multreg.inputs.realignment = \
