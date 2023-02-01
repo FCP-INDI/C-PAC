@@ -29,7 +29,7 @@ space-template_sbref	bold	template	func	NIfTI
 space-template_desc-DualReg_correlations	correlation	template	func	NIfTI					
 space-template_desc-MeanSCA_correlations	correlation	template	func	NIfTI					
 space-template_desc-MultReg_correlations	correlation	template	func	NIfTI					
-space-template_space-template_desc-ndmg_correlations	correlation	template	func	NIfTI					
+space-template_desc-ndmg_correlations	correlation	template	func	NIfTI					
 space-template_desc-PearsonAfni_correlations	correlation	template	func	tsv					
 space-template_desc-PartialAfni_correlations	correlation	template	func	tsv					
 space-template_desc-PearsonNilearn_correlations	correlation	template	func	tsv					
