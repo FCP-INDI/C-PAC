@@ -26,7 +26,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022 C-PAC Developers
+# Modifications Copyright (C) 2022-2023 C-PAC Developers
 
 # This file is part of C-PAC.
 

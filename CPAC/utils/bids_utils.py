@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2022  C-PAC Developers
+# Copyright (C) 2016-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,7 +21,6 @@ import sys
 from warnings import warn
 
 import yaml
-from CPAC.utils.utils import cl_strip_brackets
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -951,6 +950,32 @@ def load_yaml_config(config_filename, aws_input_creds):
     except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise
+
+
+def cl_strip_brackets(arg_list):
+    """Removes '[' from before first and ']' from after final
+    arguments in a list of commandline arguments
+
+    Parameters
+    ----------
+    arg_list : list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> cl_strip_brackets('[a b c]'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('a b c'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('[ a b c ]'.split(' '))
+    ['a', 'b', 'c']
+    """
+    arg_list[0] = arg_list[0].lstrip('[')
+    arg_list[-1] = arg_list[-1].rstrip(']')
+    return [arg for arg in arg_list if arg]
 
 
 def create_cpac_data_config(bids_dir, participant_labels=None,
