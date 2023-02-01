@@ -486,7 +486,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
                 "space-template_desc-bold_mask"],
      "outputs": ["space-template_desc-DualReg_correlations",
                  "desc-DualReg_statmap",
