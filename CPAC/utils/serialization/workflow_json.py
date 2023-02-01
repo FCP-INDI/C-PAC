@@ -1,5 +1,6 @@
 import dataclasses
 import json
+import re
 import traceback
 from dataclasses import dataclass
 from datetime import datetime, date
@@ -7,8 +8,11 @@ from os import PathLike
 from typing import List, Dict, Union
 
 import networkx
+import pathlib as pl
 from traits.has_traits import HasTraits
 from traits.trait_base import _Undefined
+from traits.trait_errors import TraitError
+from nipype.pipeline.engine.utils import load_resultfile as nipype_load_resultfile
 
 from .core import workflow_container, WorkflowRaw, NodeRaw
 from .. import Configuration
@@ -106,16 +110,31 @@ class NodeData:
         if isinstance(obj, NodeRaw):
             if serialze_postex:
                 try:
-                    node_data.result_inputs = \
-                        _object_as_strdict(_serialize_inout(obj.result.inputs))
+                    res_file = pl.Path(obj.output_dir()) / f"result_{obj.name}.pklz"
+                    if res_file.exists():
+                        res = nipype_load_resultfile(res_file)
+
+                        node_data.result_inputs = \
+                            _object_as_strdict(_serialize_inout(res.inputs))
+                    else:
+                        node_data.result_inputs = \
+                            _object_as_strdict(f'resfile does not exist: {res_file}')
                 except:  # noqa
                     node_data.result_inputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
 
                 try:
-                    node_data.result_outputs = \
-                        _object_as_strdict(_serialize_inout(obj.result.outputs))
+                    res_file = pl.Path(obj.output_dir()) / f"result_{obj.name}.pklz"
+                    if res_file.exists():
+                        res = nipype_load_resultfile(res_file)
+
+                        node_data.result_outputs = \
+                            _object_as_strdict(_serialize_inout(res.outputs))
+                    else:
+                        node_data.result_inputs = \
+                            _object_as_strdict(f'resfile does not exist: {res_file}')
+
                 except:  # noqa
-                    node_data.result_inputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
+                    node_data.result_outputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
 
             return node_data
 
