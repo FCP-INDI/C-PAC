@@ -797,7 +797,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
+                "space-template_res-derivative_desc-bold_mask"],
      "outputs": ["space-template_desc-Mean_timeseries",
                  "space-template_desc-ndmg_correlations",
                  "atlas_name",
@@ -866,7 +867,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     pipe_num=pipe_num
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-preproc_bold'])
+                    'space-template_res-derivative_desc-bold_mask'])
                 wf.connect(brain_mask_node, brain_mask_out,
                            timeseries_correlation, 'inputspec.mask')
 
