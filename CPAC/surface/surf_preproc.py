@@ -744,7 +744,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "surface_preproc",
+    {"name": "surface_postproc",
      "config": ["surface_analysis", "post_freesurfer"],
      "switch": ["run"],
      "option_key": "None",

@@ -170,8 +170,8 @@ from CPAC.nuisance.nuisance import (
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
-from CPAC.surface.surf_preproc import cal_falff
-from CPAC.surface.surf_preproc import cal_alff
+from CPAC.surface.surf_preproc import surface_falf
+from CPAC.surface.surf_preproc import surface_alff
 #from CPAC.surface.surf_preproc import cal_reho
 #from CPAC.surface.surf_preproc import cal_connectivity_matrix
 
@@ -1319,10 +1319,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [surface_postproc]
 
     if not rpool.check_rpool('surf-falff'):
-        pipeline_blocks += [cal_falff]
+        pipeline_blocks += [surface_falff]
 
     if not rpool.check_rpool('surf-alff'):
-        pipeline_blocks += [cal_alff]
+        pipeline_blocks += [surface_alff]
 
 
     # Extractions and Derivatives
