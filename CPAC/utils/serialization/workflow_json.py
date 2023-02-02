@@ -130,7 +130,7 @@ class NodeData:
                         node_data.result_outputs = \
                             _object_as_strdict(_serialize_inout(res.outputs))
                     else:
-                        node_data.result_inputs = \
+                        node_data.result_outputs = \
                             _object_as_strdict(f'resfile does not exist: {res_file}')
 
                 except:  # noqa
