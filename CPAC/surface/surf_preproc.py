@@ -852,16 +852,12 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
-    falff = pe.Node(util.Function(input_names=['subject','dtseries','surf_falff_folder'], 
+    falff = pe.Node(util.Function(input_names=['subject','dtseries'], 
                                 output_names=['surf_falff'],
                                 function=run_surf_falff),
                    name=f'surf_falff_{pipe_num}')
     
     falff.inputs.subject = cfg['subject_id']
-    falff.inputs.surf_falff_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
-        'cpac_'+cfg['subject_id'],
-        f'surf_falff_{pipe_num}')
-
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold-dtseries') 
     wf.connect(node, out, falff, 'dtseries')
     
@@ -871,15 +867,12 @@ def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
 def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
 
-    alff = pe.Node(util.Function(input_names=['subject','dtseries','surf_alff_folder'], 
+    alff = pe.Node(util.Function(input_names=['subject','dtseries'], 
                              output_names=['surf_alff'],
                                function=run_surf_alff),
                  name=f'surf_alff_{pipe_num}')
     
     alff.inputs.subject = cfg['subject_id']
-    alff.inputs.surf_alff_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
-        'cpac_'+cfg['subject_id'],
-        f'surf_alff_{pipe_num}')
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold-dtseries') 
     wf.connect(node, out,alff, 'dtseries')
     outputs = {
@@ -1027,18 +1020,18 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
 
 #     return (wf, outputs)
 
-def run_surf_falff(subject,dtseries,surf_falff_folder):
+def run_surf_falff(subject,dtseries):
     import os
     import subprocess
-    falff = os.path.join(surf_falff_folder, f'{subject}.falff_surf.dscalar.nii.gz')
+    falff = os.path.join(os.getcwd(), f'{subject}_falff_surf.dscalar.nii.gz')
     cmd = ['ciftify_falff', dtseries, falff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1']
     subprocess.check_output(cmd)
     return falff
 
-def run_surf_alff(subject,dtseries,surf_alff_folder):
+def run_surf_alff(subject,dtseries):
    import os
    import subprocess
-   alff = os.path.join(surf_alff_folder, f'{subject}.alff_surf.dscalar.nii.gz')
+   alff = os.path.join(os.getcwd(), f'{subject}_alff_surf.dscalar.nii.gz')
    cmd = ['ciftify_falff', dtseries, alff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1' , '--calc-alff']
    subprocess.check_output(cmd)
    return alff
