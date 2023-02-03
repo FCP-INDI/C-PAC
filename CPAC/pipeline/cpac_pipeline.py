@@ -170,7 +170,7 @@ from CPAC.nuisance.nuisance import (
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
-from CPAC.surface.surf_preproc import surface_falf
+from CPAC.surface.surf_preproc import surface_falff
 from CPAC.surface.surf_preproc import surface_alff
 #from CPAC.surface.surf_preproc import cal_reho
 #from CPAC.surface.surf_preproc import cal_connectivity_matrix
@@ -1318,10 +1318,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
         pipeline_blocks += [surface_postproc]
 
-    if not rpool.check_rpool('surf-falff'):
+    if not rpool.check_rpool('surf_falff'):
         pipeline_blocks += [surface_falff]
 
-    if not rpool.check_rpool('surf-alff'):
+    if not rpool.check_rpool('surf_alff'):
         pipeline_blocks += [surface_alff]
 
 
