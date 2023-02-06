@@ -360,6 +360,7 @@ latest_schema = Schema({
                 'generate_quality_control_images': bool1_1,
                 'generate_xcpqc_files': bool1_1,
             },
+            'user_defined': Maybe(str),
         },
         'working_directory': {
             'path': str,

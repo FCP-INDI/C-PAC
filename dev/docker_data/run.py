@@ -333,6 +333,10 @@ def run_main():
                         help='run only the anatomical preprocessing',
                         action='store_true')
 
+    parser.add_argument('--user_defined', type=str,
+                        help='Arbitrary user defined string that will be '
+                             'included in every output sidecar file.')
+
     parser.add_argument('--tracking_opt-out', action='store_true',
                         help='Disable usage tracking. Only the number of '
                              'participants on the analysis is tracked.',
@@ -494,6 +498,9 @@ def run_main():
 
         if args.anat_only:
             c = update_nested_dict(c, {'FROM': 'anat-only'})
+
+        if args.user_defined:
+            c['pipeline_setup']['output_directory']['user_defined'] = args.user_defined
 
         c = Configuration(c)
 

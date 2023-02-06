@@ -1491,6 +1491,10 @@ class NodeBlock:
                             if 'Description' in new_json_info:
                                 new_json_info['Description'] = ' '.join(new_json_info['Description'].split())
 
+                            if 'UserDefined' not in new_json_info and \
+                                    cfg['pipeline_setup']['output_directory'].get('user_defined'):
+                                new_json_info['UserDefined'] = cfg['pipeline_setup']['output_directory']['user_defined']
+
                             try:
                                 del new_json_info['subjson']
                             except KeyError:
