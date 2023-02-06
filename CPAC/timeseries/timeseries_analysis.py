@@ -810,7 +810,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     resample_functional_roi = pe.Node(resample_function(),
                                       name='resample_functional_roi_'
                                            f'{pipe_num}')
-
+    realignment = cfg.timeseries_extraction['realignment']
     resample_functional_roi.inputs.realignment = realignment
     resample_functional_roi.inputs.identity_matrix = \
     cfg.registration_workflows['functional_registration'][
@@ -871,8 +871,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     resample_brain_mask_roi = pe.Node(
                         resample_function(),
                         name=f'resample_brain_mask_roi_{pipe_num}')
-                    resample_brain_mask_roi.inputs.realignment = (
-                        cfg.timeseries_extraction['realignment'])
+                    resample_brain_mask_roi.inputs.realignment = realignment
                     resample_brain_mask_roi.inputs.identity_matrix = (
                         cfg.registration_workflows['functional_registration'][
                             'func_registration_to_template'
