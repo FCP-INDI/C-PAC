@@ -7,7 +7,6 @@ from CPAC.connectome.connectivity_matrix import create_connectome_afni, \
                                                 get_connectome_method
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import create_roi_mask_dataflow, \
-                                  create_spatial_map_dataflow, \
                                   resample_func_roi
 
 
@@ -984,7 +983,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             'func_registration_to_template']['FNIRT_pipelines'][
             'identity_matrix'])
 
-    spatial_map_dataflow = create_spatial_map_dataflow(
+    spatial_map_dataflow = create_roi_mask_dataflow(
         cfg.timeseries_extraction['tse_atlases']['SpatialReg'],
         f'spatial_map_dataflow_{pipe_num}')
 

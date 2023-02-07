@@ -9,7 +9,7 @@ import nipype.interfaces.utility as util
 from CPAC.sca.utils import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.datasource import resample_func_roi, \
-    create_roi_mask_dataflow, create_spatial_map_dataflow
+    create_roi_mask_dataflow
 
 from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
     get_spatial_map_timeseries
@@ -490,7 +490,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             'identity_matrix']
     )
 
-    spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
+    spatial_map_dataflow_for_dr = create_roi_mask_dataflow(
         cfg.seed_based_correlation_analysis['sca_atlases']['DualReg'],
         f'spatial_map_dataflow_for_DR_{pipe_num}'
     )

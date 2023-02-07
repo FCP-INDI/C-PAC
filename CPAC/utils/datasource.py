@@ -1033,9 +1033,8 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
             except IndexError:
                 # pylint: disable=raise-missing-from
-                raise ValueError('Error in spatial_map_dataflow: File '
-                                 f'extension of {base_file} not ".nii" or '
-                                 '.nii.gz')
+                raise ValueError(f'Error in {wf_name}: File extension '
+                                 f'of {base_file} not ".nii" or ".nii.gz"')
 
             except Exception as e:
                 raise e
@@ -1086,82 +1085,6 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
     wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
     wf.connect(inputnode, 'mask', outputnode, 'out_name')
-
-    return wf
-
-
-def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
-    import os
-
-    wf = pe.Workflow(name=wf_name)
-
-    spatial_map_dict = {}
-
-    for spatial_map_file in spatial_maps:
-
-        spatial_map_file = spatial_map_file.rstrip('\r\n')
-        base_file = os.path.basename(spatial_map_file)
-
-        try:
-            valid_extensions = ['.nii', '.nii.gz']
-
-            base_name = [
-                base_file[:-len(ext)]
-                for ext in valid_extensions
-                if base_file.endswith(ext)
-                ][0]
-
-            if base_name in spatial_map_dict:
-                raise ValueError(
-                    'Files with same name not allowed: %s %s' % (
-                        spatial_map_file,
-                        spatial_map_dict[base_name]
-                    )
-                )
-
-            spatial_map_dict[base_name] = spatial_map_file
-
-        except IndexError as e:
-            raise Exception('Error in spatial_map_dataflow: '
-                            'File extension not in .nii and .nii.gz')
-
-    inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map',
-                                                       'spatial_map_file',
-                                                       'creds_path',
-                                                       'dl_dir'],
-                                               mandatory_inputs=True),
-                        name='inputspec')
-
-    spatial_map_keys, spatial_map_values = \
-        zip(*spatial_map_dict.items())
-
-    inputnode.synchronize = True
-    inputnode.iterables = [
-        ('spatial_map', spatial_map_keys),
-        ('spatial_map_file', spatial_map_values),
-    ]
-
-    check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='check_for_s3')
-
-    wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
-    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'mask'
-
-    select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file',
-                                                                'out_name'],
-                                                        mandatory_inputs=True),
-                                 name='select_spatial_map')
-
-    wf.connect(check_s3_node, 'local_path', select_spatial_map, 'out_file')
-    wf.connect(inputnode, 'spatial_map', select_spatial_map, 'out_name')
 
     return wf
 
