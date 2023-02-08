@@ -1023,7 +1023,7 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
 def run_surf_falff(subject,dtseries):
     import os
     import subprocess
-    falff = os.path.join(os.getcwd(), f'{subject}_falff_surf.dscalar.nii.gz')
+    falff = os.path.join(os.getcwd(), f'{subject}_falff_surf.dscalar.nii')
     cmd = ['ciftify_falff', dtseries, falff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1']
     subprocess.check_output(cmd)
     return falff
@@ -1031,7 +1031,7 @@ def run_surf_falff(subject,dtseries):
 def run_surf_alff(subject,dtseries):
    import os
    import subprocess
-   alff = os.path.join(os.getcwd(), f'{subject}_alff_surf.dscalar.nii.gz')
+   alff = os.path.join(os.getcwd(), f'{subject}_alff_surf.dscalar.nii')
    cmd = ['ciftify_falff', dtseries, alff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1' , '--calc-alff']
    subprocess.check_output(cmd)
    return alff

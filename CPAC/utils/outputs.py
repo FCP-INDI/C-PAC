@@ -72,3 +72,15 @@ class Outputs():
     template_raw = list(
         reference[all_template_filter &  
         (reference['To z-std'] == 'Yes')]['Resource'])
+        
+        
+    def _is_cifti(_file_key):
+         return _file_key.upper().startswith('CIFTI ')
+    ciftis = reference[reference.File.map(_is_cifti)][['Resource', 'File']]
+    ciftis = {cifti.Resource: cifti.File.split(' ')[-1] for cifti in ciftis.itertuples() if ' ' in cifti.File}
+    
+    def _is_gifti(_file_key):
+         return _file_key.upper().startswith('GIFTI ')
+    giftis = reference[reference.File.map(_is_gifti)][['Resource', 'File']]
+    giftis = {gifti.Resource: gifti.File.split(' ')[-1] for gifti in giftis.itertuples() if ' ' in gifti.File}
+    

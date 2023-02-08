@@ -993,17 +993,33 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-                #print(resource)
-                #print(pipe_idx)
+               
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
+                
+                if resource in Outputs.ciftis:
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = f'{Outputs.ciftis[resource]}.nii'
+                   raise Exception(id_string.inputs.extension)
+                else:
+                   nii_name.inputs.keep_ext = True
+                
+                #raise Exception(Outputs.giftis)    
+                if resource in Outputs.giftis:
+
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = f'{Outputs.giftis[resource]}.gii'
+                   
+                else:
+                   nii_name.inputs.keep_ext = True
+                
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
-
+                
+               
                 node, out = self.rpool[resource][pipe_idx]['data']
-                print(node)
-                #print(out)
+               
                 try:
                     wf.connect(node, out, nii_name, 'in_file')
                 except OSError as os_error:
