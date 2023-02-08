@@ -513,7 +513,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
 
-    wf.connect(spatial_map_dataflow_for_dr, 'select_spatial_map.out_file',
+    wf.connect(spatial_map_dataflow_for_dr, 'outputspec.out_file',
                resample_spatial_map_to_native_space_for_dr, 'in_file')
 
     # connect it to the spatial_map_timeseries
@@ -541,7 +541,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-DualReg_statmap':
             (dr_temp_reg, 'outputspec.temp_reg_map_z'),
         'atlas_name':
-            (spatial_map_dataflow_for_dr, 'select_spatial_map.out_name')
+            (spatial_map_dataflow_for_dr, 'outputspec.out_name')
     }
 
     return (wf, outputs)

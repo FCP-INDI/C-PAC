@@ -1000,7 +1000,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # resample the input functional file and functional mask
     # to spatial map
     wf.connect(node, out, resample_spatial_map_to_native_space, 'reference')
-    wf.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+    wf.connect(spatial_map_dataflow, 'outputspec.out_file',
                resample_spatial_map_to_native_space, 'in_file')
 
     wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_rest')
@@ -1016,7 +1016,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-SpatReg_timeseries':
             (spatial_map_timeseries, 'outputspec.subject_timeseries'),
-        'atlas_name': (spatial_map_dataflow, 'select_spatial_map.out_name')
+        'atlas_name': (spatial_map_dataflow, 'outputspec.out_name')
     }
 
     return (wf, outputs)
