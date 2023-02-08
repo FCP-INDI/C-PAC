@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 3.2.1
+installer: 3.3.0
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -52,7 +52,7 @@ packages:
  - ciftilib 1.6.0
  - c-compiler
  - cxx-compiler
- - fmrib-unpack 3.5.2
+ - fmrib-unpack 3.6.0
  - fsleyes 1.5.0
  - fslpy 3.10.0
  - fsl-add_module 0.4.0
@@ -83,9 +83,9 @@ packages:
  - fsl-dpm 2111.0
  - fsl-dwssfp 2111.0
  - fsl-eddy 2111.0
- - fsl-eddy_qc v1.1.1
+ - fsl-eddy_qc v1.2.1
  - fsl-fabber_core v4.0.10
- - fsl-fabber_models_asl v2.0.7
+ - fsl-fabber_models_asl v2.0.8
  - fsl-fabber_models_cest v2.1.6
  - fsl-fabber_models_dce v2.1.5
  - fsl-fabber_models_dsc v2.0.5
@@ -94,7 +94,7 @@ packages:
  - fsl-fabber_models_pet v1.0.1
  - fsl-fabber_models_qbold v1.0.2
  - fsl-fabber_models_t1 v2.0.2
- - fsl-fast4 2111.0
+ - fsl-fast4 2111.1
  - fsl-fastpdlib 2111.1
  - fsl-fdt 2202.5
  - fsl-feat5 2201.2
@@ -109,7 +109,7 @@ packages:
  - fsl-get_standard 0.1.0
  - fsl-giftiio 2111.0
  - fsl-gps 2211.0
- - fsl-installer 3.2.1
+ - fsl-installer 3.3.0
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
  - fsl-libmeshutils 2111.0
@@ -117,7 +117,7 @@ packages:
  - fsl-load_dicom 2111.0
  - fsl-load_varian 2111.1
  - fsl-mcflirt 2111.0
- - fsl-melodic 2111.1
+ - fsl-melodic 2111.2
  - fsl-meshclass 2111.0
  - fsl-misc_c 2111.0
  - fsl-misc_scripts 2111.0
@@ -137,8 +137,8 @@ packages:
  - fsl-oxford_asl v4.0.28
  - fsl-possum 2111.2
  - fsl-ptx2 2111.4
- - fsl-pyfeeds 0.10.1
- - fsl-pyfeeds-tests 2210.0
+ - fsl-pyfeeds 0.11.0
+ - fsl-pyfeeds-tests 2302.0
  - fsl-qboot 2111.0
  - fsl-randomise 2203.2
  - fsl-relax 2111.0
@@ -147,7 +147,7 @@ packages:
  - fsl-slicetimer 2111.0
  - fsl_sub 2.7.5
  - fsl_sub_plugin_sge 1.5.2
- - fsl_sub_plugin_slurm 1.4.3
+ - fsl_sub_plugin_slurm 1.4.4
  - fsl-surface 2111.0
  - fsl-susan 2111.0
  - fsl-swe v1.1.0
