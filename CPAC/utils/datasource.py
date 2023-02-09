@@ -21,9 +21,11 @@ from typing import Tuple
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.schema import valid_options
 from CPAC.resources.templates.lookup_table import format_identifier, \
                                                   lookup_identifier
 from CPAC.utils import function
+from CPAC.utils.docs import docstring_parameter, list_items_unbracketed
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params
 
@@ -1005,21 +1007,23 @@ def create_anat_datasource(wf_name='anat_datasource'):
     return wf
 
 
+@docstring_parameter(roi_analyses=list_items_unbracketed(
+    [f'tse-{option}' for option in valid_options['timeseries']['roi_paths']]
+    + [f'sca-{option}' for option in valid_options['sca']['roi_paths']]))
 def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     """
     Collects all the ROI atlases in a config, resamples them and adds
     them to the resource pool
 
     Node Block:
-    {"name": "gather_atlases",
-     "config": "None",
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": "None",
-     "outputs": ['atlas-file', 'atlas-name']}
+    {{"name": "gather_atlases",
+      "config": "None",
+      "switch": "None",
+      "option_key": "None",
+      "option_val": "None",
+      "inputs": "None",
+      "outputs": ['atlas-file', 'atlas-name', {roi_analyses}]}}
     """
-    outputs = {}
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
         tse_atlases, sca_atlases = gather_extraction_maps(cfg)
@@ -1029,7 +1033,8 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg['seed_based_correlation_analysis', 'run']:
         atlases += sca_atlases
     gather = create_roi_mask_dataflow(atlases, f'gather_rois_{pipe_num}')
-    outputs['atlas-name'] = (gather, 'outputspec.out_name')
+    outputs = {'atlas-config-path': (gather, 'outputspec.config_path'),
+               'atlas-name': (gather, 'outputspec.out_name')}
     if 'func_to_ROI' in cfg['timeseries_extraction', 'realignment']:
         # realign to output res
         resample_ROI = pe.Node()
@@ -1050,7 +1055,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
     mask_dict = {}
 
     for mask_file in masks:
-
+        config_path = mask_file
         mask_file = mask_file.rstrip('\r\n')
 
         if mask_file.strip() == '' or mask_file.startswith('#'):
@@ -1119,9 +1124,10 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
     check_s3_node.inputs.img_type = 'mask'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
-                                                        'out_name']),
+                                                        'out_name',
+                                                        'config_path']),
                          name='outputspec')
-
+    outputnode.config_path = config_path
     wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
     wf.connect(inputnode, 'mask', outputnode, 'out_name')
 

@@ -765,7 +765,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": [("atlas-config-path", "atlas-file", "atlas-name"),
+                "space-template_desc-preproc_bold"],
      "outputs": ["space-template_desc-Mean_timeseries",
                  "space-template_space-template_desc-ndmg_correlations",
                  "atlas_name",
@@ -774,6 +775,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-PearsonNilearn_correlations",
                  "space-template_desc-PartialNilearn_correlations"]}
     '''
+    
     resample_functional_roi = pe.Node(Function(input_names=['in_func',
                                                             'in_roi',
                                                             'realignment',
@@ -791,15 +793,6 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
-    roi_dataflow = create_roi_mask_dataflow(
-        cfg.timeseries_extraction['tse_atlases']['Avg'],
-        f'roi_dataflow_{pipe_num}')
-
-    roi_dataflow.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
-    )
-
     roi_timeseries = get_roi_timeseries(f'roi_timeseries_{pipe_num}')
     #roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
     #    'roi_tse_outputs']
@@ -807,12 +800,12 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     wf.connect(node, out, resample_functional_roi, 'in_func')
 
-    wf.connect(roi_dataflow, 'outputspec.out_file',
+    roi_atlas = strat_pool.node_data("atlas-file")
+    wf.connect(roi_atlas.node, roi_atlas.out,
                resample_functional_roi, 'in_roi')
+    atlas_name = strat_pool.node_data("atlas-name")
 
     # connect it to the roi_timeseries
-    # workflow.connect(roi_dataflow, 'outputspec.out_file',
-    #                  roi_timeseries, 'input_roi.roi')
     wf.connect(resample_functional_roi, 'out_roi',
                roi_timeseries, 'input_roi.roi')
     wf.connect(resample_functional_roi, 'out_func',
@@ -847,8 +840,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
             timeseries_correlation.inputs.inputspec.method = cm_measure
             wf.connect([
-                (roi_dataflow, timeseries_correlation, [
-                    ('outputspec.out_name', 'inputspec.atlas_name')]),
+                (atlas_name.node, timeseries_correlation, [
+                    (atlas_name.out, 'inputspec.atlas_name')]),
                 (resample_functional_roi, timeseries_correlation, [
                     ('out_roi', 'inputspec.in_rois'),
                     ('out_func', 'inputspec.in_file')])])
@@ -861,7 +854,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-template_desc-Mean_timeseries': (
             roi_timeseries, 'outputspec.roi_csv'),
-        'atlas_name': (roi_dataflow, 'outputspec.out_name'),
+        'atlas_name': (atlas_name.node, atlas_name.out),
         **matrix_outputs
     }
     # - NDMG
@@ -882,7 +875,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
            mem_x=(1928411764134803 / 302231454903657293676544, 'ts'))
 
         wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
-        wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
+        wf.connect(roi_atlas.node, roi_atlas.out, ndmg_graph, 'labels')
         outputs['space-template_space-template_desc-ndmg_correlations'
                 ] = (ndmg_graph, 'out_file')
 
@@ -896,7 +889,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": [("atlas-config-path", "atlas-file", "atlas-name"),
+                "space-template_desc-preproc_bold"],
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
     '''

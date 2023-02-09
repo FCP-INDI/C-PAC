@@ -18,7 +18,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fslmaths_command, \
     VolumeRemoveIslands
 from CPAC.pipeline.engine import flatten_list
-from CPAC.utils.docs import docstring_parameter
+from CPAC.utils.docs import docstring_parameter, list_items_unbracketed
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
     pick_tissue_from_labels_file_interface
@@ -2679,9 +2679,8 @@ def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
 # we're grabbing the postproc outputs and appending them to
 # the reconall outputs
-@docstring_parameter(postproc_outputs=str(flatten_list(
-                     freesurfer_postproc, 'outputs')
-                                          ).lstrip('[').replace("'", '"'))
+@docstring_parameter(postproc_outputs=list_items_unbracketed(
+    flatten_list(freesurfer_postproc, 'outputs')))
 def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {{"name": "freesurfer_reconall",
@@ -2696,7 +2695,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
                   "brainmask",
                   "wmparc",
                   "T1",
-                  {postproc_outputs}}}
+                  {postproc_outputs}]}}
     '''
 
     reconall = pe.Node(interface=freesurfer.ReconAll(),

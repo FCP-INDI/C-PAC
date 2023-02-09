@@ -78,4 +78,31 @@ def grab_docstring_dct(fn):
     return dct
 
 
+def list_items_unbracketed(full_list, inner_quotes='"'):
+    """
+    Takes a list of items and returns a string representing that list
+    without the containing brackets.
+
+    Parameters
+    ----------
+    full_list : list
+
+    inner_quotes : str, optional
+        '"' or "'"
+
+    Examples
+    --------
+    >>> list_items_unbracketed(['a', 'b', 'c'])
+    '"a", "b", "c"'
+    >>> list_items_unbracketed(['a', 'b', 'c'], "'")
+    "'a', 'b', 'c'"
+    >>> list_items_unbracketed(["a", "b", "c"])
+    '"a", "b", "c"'
+    >>> list_items_unbracketed(["a", "b", "c"], "'")
+    "'a', 'b', 'c'"
+    """
+    outer_quotes = '"' if inner_quotes == "'" else "'"
+    return str(full_list).lstrip('[').replace(outer_quotes, inner_quotes).rstrip(']')
+
+
 DOCS_URL_PREFIX = _docs_url_prefix()
