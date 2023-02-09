@@ -152,7 +152,7 @@ def read_json(json_file):
 
 
 def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
-                     fwhm=None):
+                     fwhm=None, extension=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -181,6 +181,9 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
                 break
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
+
+    if extension is not None: 
+       out_filename = out_filename.join(extension) 
 
     return out_filename
 

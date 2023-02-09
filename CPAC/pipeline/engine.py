@@ -946,7 +946,8 @@ class ResourcePool:
                                                           'resource',
                                                           'scan_id',
                                                           'atlas_id',
-                                                          'fwhm'],
+                                                          'fwhm',
+                                                          'extension'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1001,7 +1002,6 @@ class ResourcePool:
                 if resource in Outputs.ciftis:
                    nii_name.inputs.keep_ext = False
                    id_string.inputs.extension = f'{Outputs.ciftis[resource]}.nii'
-                   raise Exception(id_string.inputs.extension)
                 else:
                    nii_name.inputs.keep_ext = True
                 
