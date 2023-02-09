@@ -1005,6 +1005,45 @@ def create_anat_datasource(wf_name='anat_datasource'):
     return wf
 
 
+def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
+    """
+    Collects all the ROI atlases in a config, resamples them and adds
+    them to the resource pool
+
+    Node Block:
+    {"name": "gather_atlases",
+     "config": "None",
+     "switch": "None",
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": "None",
+     "outputs": ['atlas-file', 'atlas-name']}
+    """
+    outputs = {}
+    if cfg['timeseries_extraction',
+           'run'] or cfg['seed_based_correlation_analysis', 'run']:
+        tse_atlases, sca_atlases = gather_extraction_maps(cfg)
+    atlases = []
+    if cfg['timeseries_extraction', 'run']:
+        atlases += tse_atlases
+    if cfg['seed_based_correlation_analysis', 'run']:
+        atlases += sca_atlases
+    gather = create_roi_mask_dataflow(atlases, f'gather_rois_{pipe_num}')
+    outputs['atlas-name'] = (gather, 'outputspec.out_name')
+    if 'func_to_ROI' in cfg['timeseries_extraction', 'realignment']:
+        # realign to output res
+        resample_ROI = pe.Node()
+        resample_ROI.inputs.resolution = cfg[
+            'registration_workflows', 'functional_registration',
+            'func_registration_to_template', 'output_resolution',
+            'func_preproc_outputs']
+        wf.connect(gather, 'outputspec.out_file', resample_ROI, 'infile')
+        outputs['atlas-file'] = (resample_ROI, 'out_file')
+    else:
+        outputs['atlas-file'] = (gather, 'outputspec.out_file')
+    return wf, outputs
+
+
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
     import os
 
