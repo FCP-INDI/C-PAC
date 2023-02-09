@@ -1135,10 +1135,10 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
 
 def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                    num_ants_cores=1):
-    from CPAC.utils.datasource import gather_extraction_maps
+    from CPAC.utils.datasource import gather_atlases, gather_extraction_maps
 
     # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict)
+    wf = initialize_nipype_wf(cfg, sub_dict, name=pipeline_name)
 
     # Extract credentials path if it exists
     try:
@@ -1397,6 +1397,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
+    pipeline_blocks += [gather_atlases]
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
     cfg.seed_based_correlation_analysis['sca_atlases'] = sca_atlases

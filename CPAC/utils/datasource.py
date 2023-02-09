@@ -1008,60 +1008,6 @@ def create_anat_datasource(wf_name='anat_datasource'):
     return wf
 
 
-def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
-    from CPAC.utils.datasource import get_atlas_name
-    mask_dict = {}
-
-    for mask_file in masks:
-        config_path = mask_file
-        if mask_file.strip() == '' or mask_file.startswith('#'):
-            continue
-        base_name = get_atlas_name(mask_file)
-        mask_dict[base_name] = mask_file
-
-    wf = pe.Workflow(name=wf_name)
-
-    inputnode = pe.Node(util.IdentityInterface(fields=['mask',
-                                                       'mask_file',
-                                                       'creds_path',
-                                                       'dl_dir'],
-                                               mandatory_inputs=True),
-                        name='inputspec')
-
-    mask_keys, mask_values = \
-        zip(*mask_dict.items())
-
-    inputnode.synchronize = True
-    inputnode.iterables = [
-        ('mask', mask_keys),
-        ('mask_file', mask_values),
-    ]
-
-    check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='check_for_s3')
-
-    wf.connect(inputnode, 'mask_file', check_s3_node, 'file_path')
-    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'mask'
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
-                                                        'out_name',
-                                                        'config_path']),
-                         name='outputspec')
-    outputnode.config_path = config_path
-    wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
-    wf.connect(inputnode, 'mask', outputnode, 'out_name')
-
-    return wf
-
-
 def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
     from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
