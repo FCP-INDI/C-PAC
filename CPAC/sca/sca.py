@@ -7,9 +7,8 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 
 from CPAC.sca.utils import *
-from CPAC.utils.utils import extract_one_d
-from CPAC.utils.datasource import resample_func_roi, \
-    create_roi_mask_dataflow
+# from CPAC.utils.utils import extract_one_d
+from CPAC.utils.datasource import resample_func_roi
 
 from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
     get_spatial_map_timeseries
@@ -389,7 +388,8 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": [("atlas-sca-Avg", "atlas_name",
+                 "space-template_desc-preproc_bold")],
      "outputs": ["desc-MeanSCA_timeseries",
                  "space-template_desc-MeanSCA_correlations",
                  "atlas_name"]}
@@ -413,31 +413,20 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
-    roi_dataflow_for_sca = create_roi_mask_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['Avg'],
-        f'roi_dataflow_for_sca_{pipe_num}'
-    )
-
-    roi_dataflow_for_sca.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
-    )
-
     roi_timeseries_for_sca = get_roi_timeseries(
         f'roi_timeseries_for_sca_{pipe_num}')
 
-    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
-    wf.connect(node, out,
-                     resample_functional_roi_for_sca, 'in_func')
-    wf.connect(roi_dataflow_for_sca, 'outputspec.out_file',
-                     resample_functional_roi_for_sca, 'in_roi')
+    wf.connect(*strat_pool.get_data("space-template_desc-preproc_bold"),
+               resample_functional_roi_for_sca, 'in_func')
+    wf.connect(*strat_pool.get_data("atlas-sca-Avg"),
+               resample_functional_roi_for_sca, 'in_roi')
 
     # connect it to the roi_timeseries
     wf.connect(resample_functional_roi_for_sca, 'out_roi',
-                     roi_timeseries_for_sca, 'input_roi.roi')
+               roi_timeseries_for_sca, 'input_roi.roi')
     wf.connect(resample_functional_roi_for_sca, 'out_func',
-                     roi_timeseries_for_sca, 'inputspec.rest')
+               roi_timeseries_for_sca, 'inputspec.rest')
 
     sca_roi = create_sca(f'sca_roi_{pipe_num}')
 
@@ -455,7 +444,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                                     # extract_one_d)),
         'space-template_desc-MeanSCA_correlations':
             (sca_roi, 'outputspec.correlation_stack'),
-        'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
+        'atlas_name': strat_pool.get_data('atlas_name')
     }
 
     return (wf, outputs)
@@ -470,8 +459,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
-                "space-template_desc-bold_mask"],
+     "inputs": [("atlas-sca-DualReg", "atlas_name",
+                 "space-template_desc-preproc_bold"
+                 "space-template_desc-bold_mask")],
      "outputs": ["space-template_desc-DualReg_correlations",
                  "desc-DualReg_statmap",
                  "atlas_name"]}
@@ -490,16 +480,6 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             'identity_matrix']
     )
 
-    spatial_map_dataflow_for_dr = create_roi_mask_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['DualReg'],
-        f'spatial_map_dataflow_for_DR_{pipe_num}'
-    )
-
-    spatial_map_dataflow_for_dr.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
-    )
-
     spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
         f'spatial_map_timeseries_for_DR_{pipe_num}'
     )
@@ -513,7 +493,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out,
                spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
 
-    wf.connect(spatial_map_dataflow_for_dr, 'outputspec.out_file',
+    wf.connect(*strat_pool.get_data('atlas-sca-DualReg'),
                resample_spatial_map_to_native_space_for_dr, 'in_file')
 
     # connect it to the spatial_map_timeseries
@@ -540,8 +520,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             (dr_temp_reg, 'outputspec.temp_reg_map'),
         'desc-DualReg_statmap':
             (dr_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name':
-            (spatial_map_dataflow_for_dr, 'outputspec.out_name')
+        'atlas_name': strat_pool.get_data('atlas_name')
     }
 
     return (wf, outputs)
@@ -556,8 +535,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
+     "inputs": [("atlas-sca-DualReg", "atlas_name",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-bold_mask")],
      "outputs": ["space-template_desc-MultReg_correlations",
                  "desc-MultReg_statmap",
                  "atlas_name"]}
@@ -567,9 +547,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_multreg = pe.Node(
         util.Function(input_names=['in_func',
-                              'in_roi',
-                              'realignment',
-                              'identity_matrix'],
+                                   'in_roi',
+                                   'realignment',
+                                   'identity_matrix'],
                  output_names=['out_func',
                                'out_roi'],
                  function=resample_func_roi,
@@ -582,25 +562,14 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
-    roi_dataflow_for_multreg = create_roi_mask_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['MultReg'],
-        f'roi_dataflow_for_mult_reg_{pipe_num}')
-
-    roi_dataflow_for_multreg.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
-    )
-
     roi_timeseries_for_multreg = get_roi_timeseries(
         f'roi_timeseries_for_mult_reg_{pipe_num}')
 
-    node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
-    wf.connect(node, out, resample_functional_roi_for_multreg, 'in_func')
-    wf.connect(roi_dataflow_for_multreg,
-                     'outputspec.out_file',
-                     resample_functional_roi_for_multreg,
-                     'in_roi')
+    wf.connect(*strat_pool.get_data("space-template_desc-preproc_bold"),
+               resample_functional_roi_for_multreg, 'in_func')
+    wf.connect(*strat_pool.get_data("atlas-sca-MultReg"),
+               resample_functional_roi_for_multreg, 'in_roi')
 
     # connect it to the roi_timeseries
     wf.connect(resample_functional_roi_for_multreg,
@@ -638,7 +607,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             (sc_temp_reg, 'outputspec.temp_reg_map'),
         'desc-MultReg_statmap':
             (sc_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name': (roi_dataflow_for_multreg, 'outputspec.out_name')
+        'atlas_name': strat_pool.get_data('atlas_name')
     }
 
     return (wf, outputs)

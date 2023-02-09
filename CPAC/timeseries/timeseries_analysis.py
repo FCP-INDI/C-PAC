@@ -764,8 +764,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-Avg", "atlas-name"),
-                "space-template_desc-preproc_bold"],
+     "inputs": [("atlas-tse-Avg", "atlas_name",
+                 "space-template_desc-preproc_bold")],
      "outputs": ["space-template_desc-Mean_timeseries",
                  "space-template_space-template_desc-ndmg_correlations",
                  "atlas_name",
@@ -801,7 +801,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     roi_atlas = strat_pool.node_data("atlas-tse-Avg")
     wf.connect(roi_atlas.node, roi_atlas.out,
                resample_functional_roi, 'in_roi')
-    atlas_name = strat_pool.node_data("atlas-name")
+    atlas_name = strat_pool.node_data("atlas_name")
 
     # connect it to the roi_timeseries
     wf.connect(resample_functional_roi, 'out_roi',
@@ -887,8 +887,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-Voxel", "atlas-name"),
-                "space-template_desc-preproc_bold"],
+     "inputs": [("atlas-tse-Voxel", "atlas_name",
+                 "space-template_desc-preproc_bold")],
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
     '''
@@ -917,7 +917,7 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to mask
     wf.connect(node, out, resample_functional_to_mask, 'in_func')
-    wf.connect(strat_pool.get_data('atlas-tse-Voxel'),
+    wf.connect(*strat_pool.get_data('atlas-tse-Voxel'),
                resample_functional_to_mask, 'in_roi')
 
     # connect it to the voxel_timeseries
@@ -929,7 +929,7 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-Voxel_timeseries':
             (voxel_timeseries, 'outputspec.mask_outputs'),
-        'atlas_name': strat_pool.get_data('atlas-name')}
+        'atlas_name': strat_pool.get_data('atlas_name')}
 
     return (wf, outputs)
 
@@ -948,9 +948,9 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-SpatialReg", "atlas-name"),
-                "space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
+     "inputs": [("atlas-tse-SpatialReg", "atlas_name",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-bold_mask")],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''
@@ -977,7 +977,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # resample the input functional file and functional mask
     # to spatial map
     wf.connect(node, out, resample_spatial_map_to_native_space, 'reference')
-    wf.connect(strat_pool.get_data("atlas-tse-SpatialReg"),
+    wf.connect(*strat_pool.get_data("atlas-tse-SpatialReg"),
                resample_spatial_map_to_native_space, 'in_file')
 
     wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_rest')

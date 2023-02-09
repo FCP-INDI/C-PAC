@@ -1127,8 +1127,8 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": "None",
       "option_key": "None",
       "option_val": "None",
-      "inputs": ['space-template_bold'],
-      "outputs": ['atlas-name', {atlas_analyses}]}}
+      "inputs": ['space-template_desc-preproc_bold'],
+      "outputs": ['atlas_name', {atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
@@ -1158,13 +1158,14 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
                 'func_registration_to_template', 'FNIRT_pipelines',
                 'identity_matrix']
             resample_roi.inputs.realignment = realignment
-            wf.connect(strat_pool.get_data('space-template_bold'),
+            wf.connect(*strat_pool.get_data('space-template_'
+                                            'desc-preproc_bold'),
                        resample_roi, 'in_func')
             wf.connect(gather, 'outputspec.out_file', resample_roi, 'in_roi')
             final_subnode, final_out = resample_roi, 'out_roi'
         else:
             final_subnode, final_out = gather, 'outputspec.out_file'
-        outputs = {'atlas-name': (gather, 'outputspec.out_name')}
+        outputs = {'atlas_name': (gather, 'outputspec.out_name')}
         for analysis, _atlases in tse_atlases.items():
             if atlas in _atlases:
                 outputs[f'atlas-tse-{analysis}'] = (final_subnode, final_out)

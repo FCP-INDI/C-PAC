@@ -1411,9 +1411,10 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
-        'space-T1w_desc-brain_mask': (acpc_align, 'outputspec.acpc_brain_mask'),
-        'space-T1w_desc-prebrain_mask': (strat_pool.get_data('space-T1w_desc-brain_mask'))
-    }
+        'space-T1w_desc-brain_mask': (acpc_align,
+                                      'outputspec.acpc_brain_mask'),
+        'space-T1w_desc-prebrain_mask': strat_pool.get_data(
+            'space-T1w_desc-brain_mask')}
 
     return (wf, outputs)
 
@@ -2478,9 +2479,11 @@ def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["space-T2w_desc-brain_mask", "space-T2w_desc-acpcbrain_mask"])],
      "outputs": ["desc-brain_T2w"]}
     '''
-    if cfg.anatomical_preproc['acpc_alignment']['run'] and cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
+    if (cfg.anatomical_preproc['acpc_alignment']['run'] and
+        and cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain'
+    ):
         outputs = {
-            'desc-brain_T2w': (strat_pool.get_data(["desc-acpcbrain_T2w"]))
+            'desc-brain_T2w': strat_pool.get_data(["desc-acpcbrain_T2w"])
         }
     else:
         anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
