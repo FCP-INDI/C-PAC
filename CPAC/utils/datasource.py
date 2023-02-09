@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import csv
 import json
+import os
 import re
 from typing import Tuple
 from nipype import logging
@@ -1007,13 +1008,15 @@ def create_anat_datasource(wf_name='anat_datasource'):
     return wf
 
 
-@docstring_parameter(roi_analyses=list_items_unbracketed(
-    [f'tse-{option}' for option in valid_options['timeseries']['roi_paths']]
-    + [f'sca-{option}' for option in valid_options['sca']['roi_paths']]))
+@docstring_parameter(atlas_analyses=list_items_unbracketed(
+    [f'atlas-tse-{option}' for option
+     in valid_options['timeseries']['roi_paths']]
+    + [f'atlas-sca-{option}' for option in valid_options['sca']['roi_paths']]))
 def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     """
     Collects all the ROI atlases in a config, resamples them and adds
-    them to the resource pool
+    them to the resource pool. Outputs are dynamically generated during
+    graph build.
 
     Node Block:
     {{"name": "gather_atlases",
@@ -1021,8 +1024,8 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": "None",
       "option_key": "None",
       "option_val": "None",
-      "inputs": "None",
-      "outputs": ['atlas-file', 'atlas-name', {roi_analyses}]}}
+      "inputs": ['space-template_bold'],
+      "outputs": ['atlas-name', {atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
@@ -1032,63 +1035,132 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
         atlases += tse_atlases
     if cfg['seed_based_correlation_analysis', 'run']:
         atlases += sca_atlases
-    gather = create_roi_mask_dataflow(atlases, f'gather_rois_{pipe_num}')
-    outputs = {'atlas-config-path': (gather, 'outputspec.config_path'),
-               'atlas-name': (gather, 'outputspec.out_name')}
-    if 'func_to_ROI' in cfg['timeseries_extraction', 'realignment']:
-        # realign to output res
-        resample_ROI = pe.Node()
-        resample_ROI.inputs.resolution = cfg[
-            'registration_workflows', 'functional_registration',
-            'func_registration_to_template', 'output_resolution',
-            'func_preproc_outputs']
-        wf.connect(gather, 'outputspec.out_file', resample_ROI, 'infile')
-        outputs['atlas-file'] = (resample_ROI, 'out_file')
-    else:
-        outputs['atlas-file'] = (gather, 'outputspec.out_file')
+    for atlas in atlases:
+        atlas_name = get_atlas_name(atlas)
+        gather = gather_atlas(atlas_name, atlas, pipe_num)
+        realignment = cfg['timeseries_extraction', 'realignment']
+        if 'func_to_ROI' in cfg['timeseries_extraction', 'realignment']:
+            # realign to output res
+            resample_roi = pe.Node(Function(input_names=['in_func',
+                                                         'in_roi',
+                                                         'realignment',
+                                                         'identity_matrix'],
+                                               output_names=['out_func',
+                                                             'out_roi'],
+                                               function=resample_func_roi,
+                                               as_module=True),
+                                   name=f'resample_{atlas}_{pipe_num}')
+            resample_roi.inputs.identity_matrix = cfg[
+                'registration_workflows', 'functional_registration',
+                'func_registration_to_template', 'FNIRT_pipelines',
+                'identity_matrix']
+            resample_roi.inputs.realignment = realignment
+            wf.connect(strat_pool.get_data('space-template_bold'),
+                       resample_roi, 'in_func')
+            wf.connect(gather, 'outputspec.out_file', resample_roi, 'in_roi')
+            final_subnode, final_out = resample_roi, 'out_roi'
+        else:
+            final_subnode, final_out = gather, 'outputspec.out_file'
+        outputs = {'atlas-name': (gather, 'outputspec.out_name')}
+        for analysis, _atlases in tse_atlases.items():
+            if atlas in _atlases:
+                outputs[f'atlas-tse-{analysis}'] = (final_subnode, final_out)
+        for analysis, _atlases in sca_atlases.items():
+            if atlas in _atlases:
+                outputs[f'atlas-sca-{analysis}'] = (final_subnode, final_out)
     return wf, outputs
 
 
-def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
-    import os
+def gather_atlas(atlas_name, atlas, pipe_num):
+    """
+    Injects a single ROI atlas to the resource pool at the required
+    resolution.
 
+    Parameters
+    ----------
+    atlas_name, atlas_path : str
+
+    pipe_num : int
+
+    Returns
+    -------
+    pe.Workflow
+    """
+    wf = pe.Workflow(name=f'gather_{atlas_name}_{pipe_num}')
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['mask',
+                                                       'mask_file',
+                                                       'creds_path',
+                                                       'dl_dir'],
+                                               mandatory_inputs=True),
+                        name='inputspec')
+
+    inputnode.inputs.mask = atlas_name
+    inputnode.inputs.mask_file = atlas
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+    check_s3_node.inputs.img_type = 'mask'
+    wf.connect([inputnode, check_s3_node, [('mask_file', 'file_path'),
+                                           ('creds_path', 'creds_path')]])
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                        'out_name',
+                                                        'config_path']),
+                         name='outputspec')
+
+    wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
+    wf.connect(inputnode, 'mask', outputnode, 'out_name')
+
+    return wf
+
+
+def get_atlas_name(atlas):
+    """Get a resource name for an atlas
+
+    Parameters
+    ----------
+    atlas : str
+
+    Returns
+    -------
+    str
+    """
+    mask_file = atlas.rstrip('\r\n')
+    name, desc = lookup_identifier(mask_file)
+    if name == 'template':
+        base_file = os.path.basename(mask_file)
+        try:
+            valid_extensions = ['.nii', '.nii.gz']
+            base_name = [base_file[:-len(ext)] for ext in valid_extensions
+                         if base_file.endswith(ext)][0]
+        except IndexError:
+            # pylint: disable=raise-missing-from
+            raise ValueError(
+                f'File extension of {base_file} not ".nii" or ".nii.gz"')
+        except Exception as e:
+            raise e
+    else:
+        base_name = format_identifier(name, desc)
+    return base_name
+
+
+def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
+    from CPAC.utils.datasource import get_atlas_name
     mask_dict = {}
 
     for mask_file in masks:
         config_path = mask_file
-        mask_file = mask_file.rstrip('\r\n')
-
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
-
-        name, desc = lookup_identifier(mask_file)
-
-        if name == 'template':
-            base_file = os.path.basename(mask_file)
-
-            try:
-                valid_extensions = ['.nii', '.nii.gz']
-
-                base_name = [
-                    base_file[:-len(ext)]
-                    for ext in valid_extensions
-                    if base_file.endswith(ext)
-                    ][0]
-
-            except IndexError:
-                # pylint: disable=raise-missing-from
-                raise ValueError(f'Error in {wf_name}: File extension '
-                                 f'of {base_file} not ".nii" or ".nii.gz"')
-
-            except Exception as e:
-                raise e
-        else:
-            base_name = format_identifier(name, desc)
-
-        if base_name in mask_dict:
-            raise ValueError('Duplicate templates/atlases not allowed: '
-                             f'{mask_file} {mask_dict[base_name]}')
-
+        base_name = get_atlas_name(mask_file)
         mask_dict[base_name] = mask_file
 
     wf = pe.Workflow(name=wf_name)
