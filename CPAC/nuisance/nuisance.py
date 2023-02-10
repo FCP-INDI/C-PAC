@@ -2475,7 +2475,8 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         # sometimes mm dimensions match but the voxel dimensions don't
         # so here we align the mask to the resampled data before applying
         match_grid = pe.Node(afni.Resample(),
-                             name='align_template_mask_to_template_data')
+                             name='align_template_mask_to_template_'
+                                  f'data_{name_suff}')
         match_grid.inputs.outputtype = 'NIFTI_GZ'
         match_grid.inputs.resample_mode = 'Cu'
         node, out = strat_pool.get_data('FSL-AFNI-brain-mask')
