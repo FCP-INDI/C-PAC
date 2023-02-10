@@ -2479,7 +2479,7 @@ def brain_extraction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
                  ["space-T2w_desc-brain_mask", "space-T2w_desc-acpcbrain_mask"])],
      "outputs": ["desc-brain_T2w"]}
     '''
-    if (cfg.anatomical_preproc['acpc_alignment']['run'] and
+    if (cfg.anatomical_preproc['acpc_alignment']['run']
         and cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain'
     ):
         outputs = {
