@@ -1073,8 +1073,8 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": "None",
       "option_key": "None",
       "option_val": "None",
-      "inputs": ['space-template_desc-preproc_bold'],
-      "outputs": ['atlas_name', {atlas_analyses}]}}
+      "inputs": ["space-template_desc-preproc_bold"],
+      "outputs": ["atlas_name", {atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
