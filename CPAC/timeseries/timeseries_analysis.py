@@ -774,6 +774,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-PearsonNilearn_correlations",
                  "space-template_desc-PartialNilearn_correlations"]}
     '''
+    if strat_pool.check_rpool('atlas-tse-Avg') is False:
+        return wf, {}
     resample_functional_roi = pe.Node(Function(input_names=['in_func',
                                                             'in_roi',
                                                             'realignment',
@@ -892,6 +894,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
     '''
+    if strat_pool.check_rpool('atlas-tse-Voxel') is False:
+        return wf, {}
     resample_functional_to_mask = pe.Node(Function(input_names=['in_func',
                                                                 'in_roi',
                                                                 'realignment',
@@ -954,7 +958,8 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''
-
+    if strat_pool.check_rpool('atlas-tse-SpatialReg') is False:
+        return wf, {}
     resample_spatial_map_to_native_space = pe.Node(
         interface=fsl.FLIRT(),
         name=f'resample_spatial_map_to_native_space_{pipe_num}',

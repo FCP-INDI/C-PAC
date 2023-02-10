@@ -394,7 +394,8 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-MeanSCA_correlations",
                  "atlas_name"]}
     '''
-
+    if strat_pool.check_rpool('atlas-sca-Avg') is False:
+        return wf, {}
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_sca = pe.Node(
@@ -466,7 +467,8 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                  "desc-DualReg_statmap",
                  "atlas_name"]}
     '''
-
+    if strat_pool.check_rpool('atlas-sca-DualReg') is False:
+        return wf, {}
     resample_spatial_map_to_native_space_for_dr = pe.Node(
         interface=fsl.FLIRT(),
         name=f'resample_spatial_map_to_native_space_for_DR_{pipe_num}'
@@ -535,14 +537,15 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-sca-DualReg", "atlas_name",
+     "inputs": [("atlas-sca-MultReg", "atlas_name",
                  "space-template_desc-preproc_bold",
                  "space-template_desc-bold_mask")],
      "outputs": ["space-template_desc-MultReg_correlations",
                  "desc-MultReg_statmap",
                  "atlas_name"]}
     '''
-
+    if strat_pool.check_rpool('atlas-sca-MultReg') is False:
+        return wf, {}
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_multreg = pe.Node(

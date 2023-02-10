@@ -1120,7 +1120,6 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
         for analysis, _atlases in sca_atlases.items():
             if atlas in _atlases:
                 outputs[f'atlas-sca-{analysis}'] = (final_subnode, final_out)
-    print(outputs)
     return wf, outputs
 
 
