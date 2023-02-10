@@ -1079,11 +1079,13 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
         tse_atlases, sca_atlases = gather_extraction_maps(cfg)
-    atlases = []
+    atlases = set()
     if cfg['timeseries_extraction', 'run']:
-        atlases += tse_atlases
+        for atlas in [atlas for analysis_type in tse_atlases for atlas in tse_atlases[analysis_type]]:
+            atlases.add(atlas)
     if cfg['seed_based_correlation_analysis', 'run']:
-        atlases += sca_atlases
+        for atlas in [atlas for analysis_type in sca_atlases for atlas in sca_atlases[analysis_type]]:
+            atlases.add(atlas)
     for atlas in atlases:
         atlas_name = get_atlas_name(atlas)
         gather = gather_atlas(atlas_name, atlas, pipe_num)
@@ -1157,8 +1159,8 @@ def gather_atlas(atlas_name, atlas, pipe_num):
                                               as_module=True),
                             name='check_for_s3')
     check_s3_node.inputs.img_type = 'mask'
-    wf.connect([inputnode, check_s3_node, [('mask_file', 'file_path'),
-                                           ('creds_path', 'creds_path')]])
+    wf.connect([(inputnode, check_s3_node, [('mask_file', 'file_path'),
+                                            ('creds_path', 'creds_path')])])
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
