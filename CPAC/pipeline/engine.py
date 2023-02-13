@@ -1503,26 +1503,18 @@ class NodeBlock:
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
- 
-                            rpool.set_data(label,
-                                           connection[0],
-                                           connection[1],
-                                           new_json_info,
-                                           pipe_idx, node_name, fork)
 
-                            wf, post_labels = rpool.post_process(
-                                wf, label, connection, new_json_info, pipe_idx,
-                                pipe_x, outs)
-
-                            if rpool.func_reg:
-                                for postlabel in post_labels:
-                                    connection = (postlabel[1], postlabel[2])
-                                    wf = rpool.derivative_xfm(wf, postlabel[0],
-                                                              connection,
-                                                              new_json_info,
-                                                              pipe_idx,
-                                                              pipe_x)
-
+                            if isinstance(connection, list):
+                                for _connection in connection:
+                                    wf = load_into_rpool(
+                                        wf, rpool, label, _connection,
+                                        new_json_info, pipe_idx, node_name,
+                                        fork, pipe_x, outs)
+                            else:
+                                wf = load_into_rpool(
+                                    wf, rpool, label, connection,
+                                    new_json_info, pipe_idx, node_name, fork,
+                                    pipe_x, outs)
         return wf
 
 
@@ -1558,6 +1550,50 @@ def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
         else:
             flat_list += flatten_list(resource, key)
     return flat_list
+
+
+def load_into_rpool(wf, rpool, label, connection, new_json_info, pipe_idx,
+                    node_name, fork, pipe_x, outs):
+    """
+    Loads a single resource into a ResourcePool
+
+    Parameters
+    ----------
+    wf : pe.Workflow
+
+    rpool : ResourcePool
+
+    label : str
+
+    connection : 2-tuple
+
+    new_json_info : dict
+
+    pipe_idx : dict
+
+    node_name : str
+
+    fork : bool
+
+    pipe_x : int
+
+    outs : dict
+
+    Returns
+    -------
+    wf : pe.Workflow
+    """
+    rpool.set_data(label, connection[0], connection[1], new_json_info,
+                   pipe_idx, node_name, fork)
+    wf, post_labels = rpool.post_process(
+        wf, label, connection, new_json_info, pipe_idx,
+        pipe_x, outs)
+    if rpool.func_reg:
+        for postlabel in post_labels:
+            connection = (postlabel[1], postlabel[2])
+            wf = rpool.derivative_xfm(wf, postlabel[0], connection,
+                                      new_json_info, pipe_idx, pipe_x)
+    return wf
 
 
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
