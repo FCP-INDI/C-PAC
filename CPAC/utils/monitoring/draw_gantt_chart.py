@@ -358,7 +358,11 @@ def generate_gantt_chart(
 
     # Only include nodes with timing information, and covert timestamps
     # from strings to datetimes
-    nodes_list = _timing(nodes_list)
+    try:
+        nodes_list = _timing(nodes_list)
+    except ProcessLookupError:
+        warn(str(ProcessLookupError))
+        nodes_list = []
 
     if not nodes_list:
         return
@@ -605,6 +609,8 @@ def _timing_timestamp(node):
     -------
     dict
     """
+    if node is None:
+        raise ProcessLookupError('No logged nodes have timing information.')
     return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
             '.' in v else datetime.fromisoformat(v)) if
             k in {"start", "finish"} else v for k, v in node.items()}

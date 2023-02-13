@@ -50,10 +50,8 @@ for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
 from copy import deepcopy
-from logging import getLogger
 from inspect import Parameter, Signature, signature
 from nibabel import load
-from nipype import logging
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import (
@@ -70,12 +68,12 @@ from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+from CPAC.utils.monitoring.custom_logging import getLogger
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
 
-random_state_logger = getLogger('random')
 logger = getLogger("nipype.workflow")
 
 
@@ -159,7 +157,7 @@ class Node(pe.Node):
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
-        self.logger = logging.getLogger("nipype.workflow")
+        self.logger = getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
         self.input_data_shape = Undefined
@@ -423,6 +421,7 @@ class Node(pe.Node):
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
+                random_state_logger = getLogger('random')
                 random_state_logger.info('%s\t%s', '# (Atropos constant)' if
                                          'atropos' in self.name else
                                          str(self.seed), self.name)
