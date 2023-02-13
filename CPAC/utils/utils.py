@@ -1852,6 +1852,16 @@ def insert_in_dict_of_lists(dict_of_lists: dict, key: str, value: Any) -> dict:
     Returns
     -------
     dict_of_lists : dict
+
+    Examples
+    --------
+    >>> d = {'a': 100}
+    >>> insert_in_dict_of_lists(d, 'a', 30)
+    {'a': [100, 30]}
+    >>> insert_in_dict_of_lists(d, 'a', 30)
+    {'a': [100, 30, 30]}
+    >>> insert_in_dict_of_lists(d, 'b', 30)
+    {'a': [100, 30, 30], 'b': [30]}
     '''
     if key not in dict_of_lists:
         dict_of_lists[key] = [value]
