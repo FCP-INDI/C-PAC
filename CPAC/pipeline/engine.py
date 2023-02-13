@@ -1005,7 +1005,7 @@ class ResourcePool:
                 else:
                    nii_name.inputs.keep_ext = True
                 
-                #raise Exception(Outputs.giftis)    
+               
                 if resource in Outputs.giftis:
 
                    nii_name.inputs.keep_ext = False

@@ -181,9 +181,11 @@ def create_id_string(unique_id, resource, scan_id=None, atlas_id=None,
                 break
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
-
+    
+    
     if extension is not None: 
-       out_filename = out_filename.join(extension) 
+       out_filename = out_filename + "." + str(extension)
+       raise Exception(out_filename)
 
     return out_filename
 

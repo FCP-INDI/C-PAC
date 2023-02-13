@@ -301,3 +301,5 @@ hemi-L_space-fsLR_den-32k_white_surf	surface_derived		func	GIFTI surf
 hemi-R_space-fsLR_den-32k_white_surf	surface_derived		func	GIFTI surf					
 hemi-L_space-native_white_surf	surface_derived		func	GIFTI surf					
 hemi-R_space-native_white_surf	surface_derived		func	GIFTI surf					
+surf_alff	surface_derived		func	CIFTI dscalar					
+surf_falff	surface_derived		func	CIFTI dscalar					
