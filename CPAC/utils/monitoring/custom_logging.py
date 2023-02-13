@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import logging
 import os
+import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
 from nipype import logging as nipype_logging
@@ -58,6 +59,73 @@ def getLogger(name):  # pylint: disable=invalid-name
         return MOCK_LOGGERS[name]
     logger = nipype_logging.getLogger(name)
     return logging.getLogger(name) if logger is None else logger
+
+
+def log_failed_subprocess(cpe):
+    """Pass STDERR from a subprocess to the interface's logger
+
+    Parameters
+    ----------
+    cpe : subprocess.CalledProcessError
+    """
+    logger = getLogger('nipype.interface')
+    logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
+
+
+def log_subprocess(cmd, *args, raise_error=True, **kwargs):
+    """Pass STDERR and STDOUT from subprocess to interface's logger.
+    This function is nearly a drop-in replacement for
+    `subprocess.check_output`.
+
+    Caveat: if you're assigning to a variable (like
+
+    >>> output = subprocess.check_output(cmd)  # doctest: +SKIP
+
+    ), the new function also returns the command's exit code, so you can just
+    assign that to a throwaway variable if you don't want it
+
+    >>> output, _ = log_subprocess(cmd)  # doctest: +SKIP
+
+    or subscript the command like
+
+    >>> output = log_subprocess(cmd)[0]  # doctest: +SKIP
+
+    . If you're not assigning to a variable, it doesn't matter and just
+
+    >>> log_subprocess(cmd)  # doctest: +SKIP
+
+    should work just like
+
+    >>> subprocess.check_output(cmd)  # doctest: +SKIP
+
+    Parameters
+    ----------
+    cmd : str
+        command to run with `subprocess.check_output`
+
+    raise_error : boolean
+        raise any exception after logging
+
+    args, kwargs : any
+        pass-through arguments for subprocess.check_output
+
+    Returns
+    -------
+    output : str
+
+    exit_code : int
+    """
+    logger = getLogger('nipype.interface')
+    try:
+        output = subprocess.check_output(cmd, *args, stderr=subprocess.STDOUT,
+                                         universal_newlines=True, **kwargs)
+        logger.info(output)
+    except subprocess.CalledProcessError as cpe:
+        log_failed_subprocess(cpe)
+        if raise_error:
+            raise
+        return cpe.output, cpe.returncode
+    return output, 0
 
 
 # pylint: disable=too-few-public-methods
