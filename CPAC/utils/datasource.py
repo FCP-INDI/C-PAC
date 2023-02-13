@@ -18,6 +18,7 @@ import csv
 import json
 import os
 import re
+from itertools import chain
 from typing import Tuple
 from nipype import logging
 from nipype.interfaces import utility as util
@@ -28,7 +29,7 @@ from CPAC.resources.templates.lookup_table import format_identifier, \
 from CPAC.utils import function
 from CPAC.utils.docs import docstring_parameter, list_items_unbracketed
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import get_scan_params
+from CPAC.utils.utils import get_scan_params, insert_in_dict_of_lists
 
 logger = logging.getLogger('nipype.workflow')
 
@@ -1057,10 +1058,11 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
     return wf
 
 
-@docstring_parameter(atlas_analyses=list_items_unbracketed(
-    [f'atlas-tse-{option}' for option
-     in valid_options['timeseries']['roi_paths']]
-    + [f'atlas-sca-{option}' for option in valid_options['sca']['roi_paths']]))
+@docstring_parameter(atlas_analyses=list_items_unbracketed(list(
+    chain.from_iterable([(f'atlas-tse-{option}_name', f'atlas-tse-{option}')
+        for option in valid_options['timeseries']['roi_paths']]
+        + [(f'atlas-sca-{option}-name', f'atlas-sca-{option}')
+        for option in valid_options['sca']['roi_paths']]))))
 def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     """
     Collects all the ROI atlases in a config, resamples them and adds
@@ -1074,18 +1076,22 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "option_key": "None",
       "option_val": "None",
       "inputs": ["space-template_desc-preproc_bold"],
-      "outputs": ["atlas_name", {atlas_analyses}]}}
+      "outputs": [{atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
            'run'] or cfg['seed_based_correlation_analysis', 'run']:
         tse_atlases, sca_atlases = gather_extraction_maps(cfg)
     atlases = set()
-    if cfg['timeseries_extraction', 'run']:
-        for atlas in [atlas for analysis_type in tse_atlases for atlas in tse_atlases[analysis_type]]:
-            atlases.add(atlas)
-    if cfg['seed_based_correlation_analysis', 'run']:
-        for atlas in [atlas for analysis_type in sca_atlases for atlas in sca_atlases[analysis_type]]:
-            atlases.add(atlas)
+    specified_atlases = {'tse': tse_atlases, 'sca': sca_atlases}
+    for config_key, _atlases in {
+        'timeseries_extraction': tse_atlases,
+        'seed_based_correlation_analysis': sca_atlases}.items():
+        if cfg[config_key, 'run']:
+            # pylint: disable=consider-using-dict-items
+            for atlas in [atlas for analysis_type in _atlases for atlas
+                            in _atlases[analysis_type]]:
+                atlases.add(atlas)
+    outputs = {}
     for atlas in atlases:
         atlas_name = get_atlas_name(atlas)
         gather = gather_atlas(atlas_name, atlas, pipe_num)
@@ -1113,17 +1119,19 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
             final_subnode, final_out = resample_roi, 'out_roi'
         else:
             final_subnode, final_out = gather, 'outputspec.out_file'
-        outputs = {'atlas_name': (gather, 'outputspec.out_name')}
-        for analysis, _atlases in tse_atlases.items():
-            if atlas in _atlases:
-                outputs[f'atlas-tse-{analysis}'] = (final_subnode, final_out)
-        for analysis, _atlases in sca_atlases.items():
-            if atlas in _atlases:
-                outputs[f'atlas-sca-{analysis}'] = (final_subnode, final_out)
+        for spec, _specified in specified_atlases.items():
+            for analysis, _atlases in _specified.items():
+                if atlas in _atlases:
+                    outputs = insert_in_dict_of_lists(
+                        outputs, f'atlas-{spec}-{analysis}_name',
+                        (gather, 'outputspec.out_name'))
+                    outputs = insert_in_dict_of_lists(
+                        outputs, f'atlas-{spec}-{analysis}',
+                        (final_subnode, final_out))
     return wf, outputs
 
 
-def gather_atlas(atlas_name, atlas, pipe_num):
+def gather_atlas(atlas_name, atlas, pipe_num, s3_options=None):
     """
     Injects a single ROI atlas to the resource pool at the required
     resolution.
@@ -1134,21 +1142,13 @@ def gather_atlas(atlas_name, atlas, pipe_num):
 
     pipe_num : int
 
+    s3_options : dict or None
+
     Returns
     -------
     pe.Workflow
     """
     wf = pe.Workflow(name=f'gather_{atlas_name}_{pipe_num}')
-
-    inputnode = pe.Node(util.IdentityInterface(fields=['mask',
-                                                       'mask_file',
-                                                       'creds_path',
-                                                       'dl_dir'],
-                                               mandatory_inputs=True),
-                        name='inputspec')
-
-    inputnode.inputs.mask = atlas_name
-    inputnode.inputs.mask_file = atlas
 
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                            'creds_path',
@@ -1157,19 +1157,18 @@ def gather_atlas(atlas_name, atlas, pipe_num):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='inputnode')
+    check_s3_node.inputs.file_path = atlas
     check_s3_node.inputs.img_type = 'mask'
-    wf.connect([(inputnode, check_s3_node, [('mask_file', 'file_path'),
-                                            ('creds_path', 'creds_path')])])
-    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    if s3_options:
+        for option in s3_options:
+            setattr(check_s3_node.inputs, option, s3_options[option])
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
-                                                        'out_name',
-                                                        'config_path']),
+                                                        'out_name']),
                          name='outputspec')
-
-    wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
-    wf.connect(inputnode, 'mask', outputnode, 'out_name')
+    wf.connect([(check_s3_node, outputnode, [('local_path', 'out_file'),
+                                             ('mask', 'out_name')])])
 
     return wf
 
@@ -1249,3 +1248,32 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
         out_roi = in_roi
 
     return out_func, out_roi
+
+
+def roi_input_node(wf, strat_pool, atlas_key, pipe_num):
+    """Create a utility node for forking atlases
+
+    Parameters
+    ----------
+    wf : pe.Workflow
+
+    strat_pool : ResourcePool
+
+    atlas_key : str
+
+    pipe_num : int
+
+    Returns
+    -------
+    pe.Node
+    """
+    roi_atlas = strat_pool.node_data(atlas_key)
+    atlas_name = strat_pool.node_data(f'{atlas_key}_name')
+    node = pe.Node(util.IdentityInterface(iterfields=['atlas_name',
+                                                      'atlas_file'],
+                                          mandatory_inputs=True),
+                   name=f'roi_atlas_{pipe_num}')
+    wf.connect([
+        (roi_atlas.node, node, [(roi_atlas.out, 'atlas_file')]),
+        (atlas_name.node, node, [(atlas_name.out, 'atlas_name')])])
+    return node

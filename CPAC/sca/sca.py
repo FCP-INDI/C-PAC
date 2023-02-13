@@ -8,7 +8,7 @@ import nipype.interfaces.utility as util
 
 from CPAC.sca.utils import *
 # from CPAC.utils.utils import extract_one_d
-from CPAC.utils.datasource import resample_func_roi
+from CPAC.utils.datasource import resample_func_roi, roi_input_node
 
 from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
     get_spatial_map_timeseries
@@ -388,7 +388,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-sca-Avg", "atlas_name",
+     "inputs": [("atlas-sca-Avg", "atlas-sca-Avg_name",
                  "space-template_desc-preproc_bold")],
      "outputs": ["desc-MeanSCA_timeseries",
                  "space-template_desc-MeanSCA_correlations",
@@ -420,7 +420,8 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     # resample the input functional file to roi
     wf.connect(*strat_pool.get_data("space-template_desc-preproc_bold"),
                resample_functional_roi_for_sca, 'in_func')
-    wf.connect(*strat_pool.get_data("atlas-sca-Avg"),
+    fork_atlases = roi_input_node(wf, strat_pool, 'atlas-sca-Avg', pipe_num)
+    wf.connect(fork_atlases, 'atlas_file',
                resample_functional_roi_for_sca, 'in_roi')
 
     # connect it to the roi_timeseries
@@ -445,7 +446,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                                     # extract_one_d)),
         'space-template_desc-MeanSCA_correlations':
             (sca_roi, 'outputspec.correlation_stack'),
-        'atlas_name': strat_pool.get_data('atlas_name')
+        'atlas_name': (fork_atlases, 'atlas_name')
     }
 
     return (wf, outputs)
@@ -460,7 +461,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-sca-DualReg", "atlas_name",
+     "inputs": [("atlas-sca-DualReg", "atlas-sca-DualReg_name",
                  "space-template_desc-preproc_bold"
                  "space-template_desc-bold_mask")],
      "outputs": ["space-template_desc-DualReg_correlations",
@@ -494,8 +495,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                resample_spatial_map_to_native_space_for_dr, 'reference')
     wf.connect(node, out,
                spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
-
-    wf.connect(*strat_pool.get_data('atlas-sca-DualReg'),
+    fork_atlases = roi_input_node(wf, strat_pool, 'atlas-sca-DualReg',
+                                  pipe_num)
+    wf.connect(fork_atlases, 'atlas_file',
                resample_spatial_map_to_native_space_for_dr, 'in_file')
 
     # connect it to the spatial_map_timeseries
@@ -522,10 +524,9 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             (dr_temp_reg, 'outputspec.temp_reg_map'),
         'desc-DualReg_statmap':
             (dr_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name': strat_pool.get_data('atlas_name')
-    }
+        'atlas_name': (fork_atlases, 'atlas_name')}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -537,7 +538,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-sca-MultReg", "atlas_name",
+     "inputs": [("atlas-sca-MultReg", "atlas-sca-MultReg_name",
                  "space-template_desc-preproc_bold",
                  "space-template_desc-bold_mask")],
      "outputs": ["space-template_desc-MultReg_correlations",
@@ -571,7 +572,9 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # resample the input functional file to roi
     wf.connect(*strat_pool.get_data("space-template_desc-preproc_bold"),
                resample_functional_roi_for_multreg, 'in_func')
-    wf.connect(*strat_pool.get_data("atlas-sca-MultReg"),
+    fork_atlases = roi_input_node(wf, strat_pool, 'atlas-sca-MultReg',
+                                  pipe_num)
+    wf.connect(fork_atlases, 'atlas_file',
                resample_functional_roi_for_multreg, 'in_roi')
 
     # connect it to the roi_timeseries
@@ -610,7 +613,6 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
             (sc_temp_reg, 'outputspec.temp_reg_map'),
         'desc-MultReg_statmap':
             (sc_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name': strat_pool.get_data('atlas_name')
-    }
+        'atlas_name': (fork_atlases, 'atlas_name')}
 
-    return (wf, outputs)
+    return wf, outputs

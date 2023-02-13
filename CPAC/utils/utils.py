@@ -22,12 +22,12 @@ import gzip
 import json
 import numbers
 import pickle
-import numpy as np
-import yaml
-
-from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
+from typing import Any
+import numpy as np
+import yaml
+from click import BadParameter
 from voluptuous.error import Invalid
 from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
@@ -1834,6 +1834,32 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
 
     return out_list
+
+
+def insert_in_dict_of_lists(dict_of_lists: dict, key: str, value: Any) -> dict:
+    '''
+    Function to insert a value into a list at a key in a dict,
+    creating the list if not yet present
+
+    Parameters
+    ----------
+    dict_of_lists : dict of lists
+
+    key : str
+
+    value : any
+
+    Returns
+    -------
+    dict_of_lists : dict
+    '''
+    if key not in dict_of_lists:
+        dict_of_lists[key] = [value]
+    else:
+        if not isinstance(dict_of_lists[key], list):
+            dict_of_lists[key] = [dict_of_lists[key]]
+        dict_of_lists[key].append(value)
+    return dict_of_lists
 
 
 def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
