@@ -1061,7 +1061,7 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 @docstring_parameter(atlas_analyses=list_items_unbracketed(list(
     chain.from_iterable([(f'atlas-tse-{option}_name', f'atlas-tse-{option}')
         for option in valid_options['timeseries']['roi_paths']]
-        + [(f'atlas-sca-{option}-name', f'atlas-sca-{option}')
+        + [(f'atlas-sca-{option}_name', f'atlas-sca-{option}')
         for option in valid_options['sca']['roi_paths']]))))
 def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     """
