@@ -837,8 +837,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
             timeseries_correlation.inputs.inputspec.method = cm_measure
             wf.connect([
-                (atlas_name.node, timeseries_correlation, [
-                    (atlas_name.out, 'inputspec.atlas_name')]),
+                (fork_atlases, timeseries_correlation, [
+                    ('atlas_name', 'inputspec.atlas_name')]),
                 (resample_functional_roi, timeseries_correlation, [
                     ('out_roi', 'inputspec.in_rois'),
                     ('out_func', 'inputspec.in_file')])])

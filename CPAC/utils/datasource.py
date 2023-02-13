@@ -1075,7 +1075,7 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": "None",
       "option_key": "None",
       "option_val": "None",
-      "inputs": ["space-template_desc-preproc_bold"],
+      "inputs": [],
       "outputs": [{atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
@@ -1095,30 +1095,22 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     for atlas in atlases:
         atlas_name = get_atlas_name(atlas)
         gather = gather_atlas(atlas_name, atlas, pipe_num)
-        realignment = cfg['timeseries_extraction', 'realignment']
-        if 'func_to_ROI' in cfg['timeseries_extraction', 'realignment']:
-            # realign to output res
-            resample_roi = pe.Node(Function(input_names=['in_func',
-                                                         'in_roi',
-                                                         'realignment',
-                                                         'identity_matrix'],
-                                               output_names=['out_func',
-                                                             'out_roi'],
-                                               function=resample_func_roi,
-                                               as_module=True),
-                                   name=f'resample_{atlas}_{pipe_num}')
-            resample_roi.inputs.identity_matrix = cfg[
-                'registration_workflows', 'functional_registration',
-                'func_registration_to_template', 'FNIRT_pipelines',
-                'identity_matrix']
-            resample_roi.inputs.realignment = realignment
-            wf.connect(*strat_pool.get_data('space-template_'
-                                            'desc-preproc_bold'),
-                       resample_roi, 'in_func')
-            wf.connect(gather, 'outputspec.out_file', resample_roi, 'in_roi')
-            final_subnode, final_out = resample_roi, 'out_roi'
-        else:
-            final_subnode, final_out = gather, 'outputspec.out_file'
+        resampled = pe.Node(Function(input_names=['resolution',
+                                                  'template',
+                                                  'template_name',
+                                                  'tag'],
+                                     output_names=['local_path'],
+                                     function=resolve_resolution,
+                                     as_module=True),
+                            name='resampled_' + atlas_name)
+        resampled.inputs.resolution = cfg[
+            "registration_workflows", "functional_registration",
+            "func_registration_to_template", "output_resolution",
+            "func_preproc_outputs"]
+        resampled.inputs.tag = 'func_preproc_outputs'
+        wf.connect([(gather, resampled, [
+            ('outputspec.out_file', 'template'),
+            ('outputspec.out_name', 'template_name')])])
         for spec, _specified in specified_atlases.items():
             for analysis, _atlases in _specified.items():
                 if atlas in _atlases:
@@ -1127,7 +1119,7 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
                         (gather, 'outputspec.out_name'))
                     outputs = insert_in_dict_of_lists(
                         outputs, f'atlas-{spec}-{analysis}',
-                        (final_subnode, final_out))
+                        (resampled, 'local_path'))
     return wf, outputs
 
 
