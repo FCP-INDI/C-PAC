@@ -25,10 +25,10 @@ channels:
 # channels list for development releases.
 internal-channel: https://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/internal/
 
-# The FSL installation is created in two stages.
-# First of all, the base_packages are installed.
-# Versions of these packages are specified in
-# the main packages list below
+# The FSL installation may be created in two
+# stages.  First of all, the base_packages are
+# installed.  Versions of these packages are
+# specified in the main packages list below.
 base-packages:
  - boost-cpp
  - fslpy
