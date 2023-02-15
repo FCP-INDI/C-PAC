@@ -1644,7 +1644,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
         for in_resource, val in interface.items():
             if isinstance(val, tuple):
                 strat_pool.set_data(in_resource, val[0], val[1], {}, "", "",
-                                    fork=True)#
+                                    fork=True)
         if 'sub_num' not in strat_pool.get_pool_info():
             strat_pool.set_pool_info({'sub_num': 0})
         sub_num = strat_pool.get_pool_info()['sub_num']

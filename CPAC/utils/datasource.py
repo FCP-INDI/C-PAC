@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -691,7 +691,7 @@ def create_check_for_s3_node(name, file_path, img_type='other',
                                                      function=check_for_s3,
                                                      as_module=True),
                                    iterfield=['file_path'],
-                                   name='check_for_s3_%s' % name)
+                                   name=f'check_for_s3_{name}')
     else:
         check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                                'creds_path',
@@ -700,7 +700,7 @@ def create_check_for_s3_node(name, file_path, img_type='other',
                                                   output_names=['local_path'],
                                                   function=check_for_s3,
                                                   as_module=True),
-                                name='check_for_s3_%s' % name)
+                                name=f'check_for_s3_{name}')
 
     check_s3_node.inputs.set(
         file_path=file_path,
@@ -1075,7 +1075,7 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": "None",
       "option_key": "None",
       "option_val": "None",
-      "inputs": [],
+      "inputs": ["bold"],
       "outputs": [{atlas_analyses}]}}
     """
     if cfg['timeseries_extraction',
@@ -1094,7 +1094,13 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {}
     for atlas in atlases:
         atlas_name = get_atlas_name(atlas)
-        gather = gather_atlas(atlas_name, atlas, pipe_num)
+        atlas_name_node = pe.Node(util.IdentityInterface(
+            fields=['atlas_name'], mandatory_inputs=True),
+            name=f'{atlas_name}_name')
+        atlas_name_node.inputs.atlas_name = atlas_name
+        gather = create_check_for_s3_node(
+            atlas_name, atlas, img_type='mask',
+            creds_path=cfg['pipeline_setup', 'input_creds_path'])
         resampled = pe.Node(Function(input_names=['resolution',
                                                   'template',
                                                   'template_name',
@@ -1102,67 +1108,24 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
                                      output_names=['local_path'],
                                      function=resolve_resolution,
                                      as_module=True),
-                            name='resampled_' + atlas_name)
+                            name=f'resampled_{atlas_name}')
         resampled.inputs.resolution = cfg[
             "registration_workflows", "functional_registration",
             "func_registration_to_template", "output_resolution",
             "func_preproc_outputs"]
         resampled.inputs.tag = 'func_preproc_outputs'
-        wf.connect([(gather, resampled, [
-            ('outputspec.out_file', 'template'),
-            ('outputspec.out_name', 'template_name')])])
+        resampled.inputs.template_name = atlas_name
+        wf.connect(gather, 'local_path', resampled, 'template')
         for spec, _specified in specified_atlases.items():
             for analysis, _atlases in _specified.items():
                 if atlas in _atlases:
                     outputs = insert_in_dict_of_lists(
                         outputs, f'atlas-{spec}-{analysis}_name',
-                        (gather, 'outputspec.out_name'))
+                        (atlas_name_node, 'atlas_name'))
                     outputs = insert_in_dict_of_lists(
                         outputs, f'atlas-{spec}-{analysis}',
                         (resampled, 'local_path'))
     return wf, outputs
-
-
-def gather_atlas(atlas_name, atlas, pipe_num, s3_options=None):
-    """
-    Injects a single ROI atlas to the resource pool at the required
-    resolution.
-
-    Parameters
-    ----------
-    atlas_name, atlas_path : str
-
-    pipe_num : int
-
-    s3_options : dict or None
-
-    Returns
-    -------
-    pe.Workflow
-    """
-    wf = pe.Workflow(name=f'gather_{atlas_name}_{pipe_num}')
-
-    check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='inputnode')
-    check_s3_node.inputs.file_path = atlas
-    check_s3_node.inputs.img_type = 'mask'
-    if s3_options:
-        for option in s3_options:
-            setattr(check_s3_node.inputs, option, s3_options[option])
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
-                                                        'out_name']),
-                         name='outputspec')
-    wf.connect([(check_s3_node, outputnode, [('local_path', 'out_file'),
-                                             ('mask', 'out_name')])])
-
-    return wf
 
 
 def get_atlas_name(atlas):
@@ -1261,10 +1224,10 @@ def roi_input_node(wf, strat_pool, atlas_key, pipe_num):
     """
     roi_atlas = strat_pool.node_data(atlas_key)
     atlas_name = strat_pool.node_data(f'{atlas_key}_name')
-    node = pe.Node(util.IdentityInterface(iterfields=['atlas_name',
-                                                      'atlas_file'],
-                                          mandatory_inputs=True),
-                   name=f'roi_atlas_{pipe_num}')
+    node = pe.MapNode(util.IdentityInterface(fields=['atlas_name',
+                                                     'atlas_file']),
+                      name=f'roi_{atlas_key}_{pipe_num}',
+                      iterfield=['atlas_name', 'atlas_file'])
     wf.connect([
         (roi_atlas.node, node, [(roi_atlas.out, 'atlas_file')]),
         (atlas_name.node, node, [(atlas_name.out, 'atlas_name')])])

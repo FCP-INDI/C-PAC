@@ -764,8 +764,8 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-Avg", "atlas-tse-Avg_name",
-                 "space-template_desc-preproc_bold")],
+     "inputs": [("atlas-tse-Avg", "atlas-tse-Avg_name"),
+                "space-template_desc-preproc_bold"],
      "outputs": ["space-template_desc-Mean_timeseries",
                  "space-template_space-template_desc-ndmg_correlations",
                  "atlas_name",
@@ -886,8 +886,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-Voxel", "atlas-tse-Voxel_name",
-                 "space-template_desc-preproc_bold")],
+     "inputs": [("atlas-tse-Voxel", "atlas-tse-Voxel_name"),
+                "space-template_desc-preproc_bold"],
      "outputs": ["desc-Voxel_timeseries",
                  "atlas_name"]}
     '''
@@ -949,8 +949,8 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("atlas-tse-SpatialReg", "atlas-tse-SpatialReg_name",
-                 "space-template_desc-preproc_bold",
+     "inputs": [("atlas-tse-SpatialReg", "atlas-tse-SpatialReg_name"),
+                ("space-template_desc-preproc_bold",
                  "space-template_desc-bold_mask")],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
