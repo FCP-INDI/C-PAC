@@ -6,4 +6,3 @@ pytest_bdd
 pytest_click
 pytest-timeout
 pyyaml
-yamlordereddictloader

@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022  C-PAC Developers
+<!-- Copyright (C) 2022-2023  C-PAC Developers
 
 This file is part of C-PAC.
 
@@ -15,6 +15,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
+
+### Removed dependencies
+- bids-validator
+- Node
+- NVM
+- simplejson
+- yamlordereddictloader
+
+### Upgraded dependencies
+- Python 3.7.13 → 3.10.6 (holding back from 3.11 for sdcflows, torch, and torchvision)
+- Torch 1.2.0+cu92 → 1.13.1
+- torchvision 0.4.0+cu92 → 0.14.1
+- Ubuntu 18.04 → 22.04
+
+## [1.8.5]
 
 ### Added
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
