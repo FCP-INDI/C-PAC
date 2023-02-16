@@ -27,6 +27,7 @@ from CPAC.pipeline.schema import valid_options
 from CPAC.resources.templates.lookup_table import format_identifier, \
                                                   lookup_identifier
 from CPAC.utils import function
+from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.docs import docstring_parameter, list_items_unbracketed
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import get_scan_params, insert_in_dict_of_lists
@@ -1007,6 +1008,170 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf.connect(check_s3_node, 'local_path', outputnode, 'anat')
 
     # Return the workflow
+    return wf
+
+
+def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
+    import os
+
+    mask_dict = {}
+
+    for mask_file in masks:
+
+        mask_file = mask_file.rstrip('\r\n')
+
+        if mask_file.strip() == '' or mask_file.startswith('#'):
+            continue
+
+        name, desc = lookup_identifier(mask_file)
+
+        if name == 'template':
+            base_file = os.path.basename(mask_file)
+
+            try:
+                valid_extensions = ['.nii', '.nii.gz']
+
+                base_name = [
+                    base_file[:-len(ext)]
+                    for ext in valid_extensions
+                    if base_file.endswith(ext)
+                    ][0]
+
+                for key in ['res', 'space']:
+                    base_name = bids_remove_entity(base_name, key)
+
+            except IndexError:
+                # pylint: disable=raise-missing-from
+                raise ValueError('Error in spatial_map_dataflow: File '
+                                 f'extension of {base_file} not ".nii" or '
+                                 '.nii.gz')
+
+            except Exception as e:
+                raise e
+        else:
+            base_name = format_identifier(name, desc)
+
+        if base_name in mask_dict:
+            raise ValueError('Duplicate templates/atlases not allowed: '
+                             f'{mask_file} {mask_dict[base_name]}')
+
+        mask_dict[base_name] = mask_file
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['mask',
+                                                       'mask_file',
+                                                       'creds_path',
+                                                       'dl_dir'],
+                                               mandatory_inputs=True),
+                        name='inputspec')
+
+    mask_keys, mask_values = \
+        zip(*mask_dict.items())
+
+    inputnode.synchronize = True
+    inputnode.iterables = [
+        ('mask', mask_keys),
+        ('mask_file', mask_values),
+    ]
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(inputnode, 'mask_file', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'mask'
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                        'out_name']),
+                         name='outputspec')
+
+    wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
+    wf.connect(inputnode, 'mask', outputnode, 'out_name')
+
+    return wf
+
+
+def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
+    import os
+
+    wf = pe.Workflow(name=wf_name)
+
+    spatial_map_dict = {}
+
+    for spatial_map_file in spatial_maps:
+
+        spatial_map_file = spatial_map_file.rstrip('\r\n')
+        base_file = os.path.basename(spatial_map_file)
+
+        try:
+            valid_extensions = ['.nii', '.nii.gz']
+
+            base_name = [
+                base_file[:-len(ext)]
+                for ext in valid_extensions
+                if base_file.endswith(ext)
+                ][0]
+
+            if base_name in spatial_map_dict:
+                raise ValueError(
+                    'Files with same name not allowed: %s %s' % (
+                        spatial_map_file,
+                        spatial_map_dict[base_name]
+                    )
+                )
+
+            spatial_map_dict[base_name] = spatial_map_file
+
+        except IndexError as e:
+            raise Exception('Error in spatial_map_dataflow: '
+                            'File extension not in .nii and .nii.gz')
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map',
+                                                       'spatial_map_file',
+                                                       'creds_path',
+                                                       'dl_dir'],
+                                               mandatory_inputs=True),
+                        name='inputspec')
+
+    spatial_map_keys, spatial_map_values = \
+        zip(*spatial_map_dict.items())
+
+    inputnode.synchronize = True
+    inputnode.iterables = [
+        ('spatial_map', spatial_map_keys),
+        ('spatial_map_file', spatial_map_values),
+    ]
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'mask'
+
+    select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                                'out_name'],
+                                                        mandatory_inputs=True),
+                                 name='select_spatial_map')
+
+    wf.connect(check_s3_node, 'local_path', select_spatial_map, 'out_file')
+    wf.connect(inputnode, 'spatial_map', select_spatial_map, 'out_name')
+
     return wf
 
 

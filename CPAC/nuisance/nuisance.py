@@ -1,3 +1,19 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import re
 import os
 import numpy as np
@@ -2455,8 +2471,9 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                        '2-nuisance_regression',
                                        'bandpass_filtering_order'] == 'Before'
 
-    name_suff = (f'{space}_{opt["Name"]}_{pipe_num}' if res is None else
-                 f'{space}_res-{res}_{opt["Name"]}_{pipe_num}')
+    name_suff = (f'space-{space}_reg-{opt["Name"]}_{pipe_num}'
+                 if res is None else
+                 f'space-{space}_res-{res}_reg-{opt["Name"]}_{pipe_num}')
     nuis_name = f'nuisance_regression_{name_suff}'
 
     nuis = create_nuisance_regression_workflow(opt, name=nuis_name)
@@ -2627,6 +2644,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [("desc-stc_bold",
                  "space-template_desc-preproc_bold",
                  "space-template_res-derivative_desc-preproc_bold",
+                 "movement-parameters",
                  "regressors",
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",

@@ -1,3 +1,19 @@
+# Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from nipype.interfaces.afni import preprocess
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
@@ -11,7 +27,7 @@ from CPAC.sca.utils import *
 from CPAC.utils.datasource import resample_func_roi, roi_input_node
 
 from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
-    get_spatial_map_timeseries
+    get_spatial_map_timeseries, resample_function
 
 
 def create_sca(name_sca='sca'):
@@ -550,14 +566,7 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_multreg = pe.Node(
-        util.Function(input_names=['in_func',
-                                   'in_roi',
-                                   'realignment',
-                                   'identity_matrix'],
-                 output_names=['out_func',
-                               'out_roi'],
-                 function=resample_func_roi,
-                 as_module=True),
+        resample_function(),
         name=f'resample_functional_roi_for_multreg_{pipe_num}')
 
     resample_functional_roi_for_multreg.inputs.realignment = \

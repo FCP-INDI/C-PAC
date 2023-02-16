@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2022  C-PAC Developers
+# Copyright (C) 2021-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,7 +17,6 @@
 import ast
 import copy
 from itertools import chain
-import logging
 import os
 import re
 from types import FunctionType
@@ -28,7 +27,7 @@ from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-
+from CPAC.func_preproc.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
@@ -54,8 +53,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
-verbose_logger = logging.getLogger('engine')
+logger = getLogger('nipype.workflow')
 
 
 class ResourcePool:
@@ -438,7 +436,6 @@ class ResourcePool:
             return flat_prov
 
     def get_strats(self, resources, debug=False):
-
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
@@ -447,6 +444,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -470,6 +468,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -482,7 +481,8 @@ class ResourcePool:
                 continue
             sub_pool = []
             if debug:
-                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
+                verbose_logger = getLogger('engine')
+                verbose_logger.debug('%s len(rp_dct): %s\n', resource, len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -495,7 +495,6 @@ class ResourcePool:
                             variant_pool[fetched_resource] += val
                             variant_pool[fetched_resource].append(
                                 f'NO-{val[0]}')
-
             if debug:
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
@@ -853,6 +852,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
+        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
+            'outputs', [])
 
         if add_excl:
             excl += add_excl
@@ -966,7 +967,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in ('movement-parameters', 'regressors'))
+                             key not in (*movement_filter_keys, 'regressors'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1017,15 +1018,17 @@ class ResourcePool:
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
                         filt_value = None
-                        if ('movement-parameters' in json_info.get(
-                            'CpacVariant', {}) and json_info['CpacVariant'][
-                                'movement-parameters']):
-                            filt_value = json_info['CpacVariant'][
-                                'movement-parameters'][0].replace(
-                                    'motion_estimate_filter_', '')
-                        elif False in cfg['functional_preproc',
-                                          'motion_estimates_and_correction',
-                                          'motion_estimate_filter', 'run']:
+                        _motion_variant = {
+                            _key: json_info['CpacVariant'][_key]
+                            for _key in movement_filter_keys
+                            if _key in json_info.get('CpacVariant', {})}
+                        try:
+                            filt_value = [
+                                json_info['CpacVariant'][_k][0].replace(
+                                    'motion_estimate_filter_', ''
+                                ) for _k, _v in _motion_variant.items()
+                                if _v][0]
+                        except IndexError:
                             filt_value = 'none'
                         if filt_value is not None:
                             resource_idx = insert_entity(resource_idx, 'filt',
@@ -1424,6 +1427,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1792,6 +1796,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 

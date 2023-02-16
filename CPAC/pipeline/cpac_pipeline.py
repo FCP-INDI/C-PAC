@@ -1,19 +1,19 @@
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 import time
@@ -23,7 +23,6 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
 from time import strftime
 
 import nipype
@@ -212,10 +211,10 @@ from CPAC.utils import Configuration, set_subject
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
-
 from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
                                   LOGTAIL, set_up_logger, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
+from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.utils import (
     check_config_resources,
