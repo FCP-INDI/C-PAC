@@ -181,9 +181,34 @@ def fallback_svd(a, full_matrices=True, compute_uv=True):
 
 
 def TR_string_to_float(tr):
-    if 'ms' in tr:
-        tr = float(tr.replace('ms', '')) / 1000
-    else:
-        tr = float(tr.replace('s', ''))
+    """
+    Convert TR string to seconds (float). Suffixes 's' or 'ms' to indicate
+    seconds or milliseconds.
 
-    return tr
+    Parameters
+    ----------
+    tr : TR string representation. May use suffixes 's' or 'ms' to indicate
+    seconds or milliseconds.
+
+    Returns
+    -------
+    tr in seconds (float)
+    """
+    if not isinstance(tr, str):
+        raise TypeError(f'Improper type for TR_string_to_float ({tr}).')
+
+    tr_str = tr.replace(' ', '')
+    factor = 1.
+
+    if tr_str.endswith('ms'):
+        tr_str = tr_str[:-2]
+        factor = 0.001
+    elif tr.endswith('s'):
+        tr_str = tr_str[:-1]
+
+    try:
+        tr_numeric = float(tr_str)
+    except Exception as exc:
+        raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
+
+    return tr_numeric * factor
