@@ -856,25 +856,25 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
                     'space-template_desc-brain_mask'])
-                if 'func_to_ROI' in realignment:
-                    resample_brain_mask_roi = pe.Node(
-                        resample_function(),
-                        name=f'resample_brain_mask_roi_{pipe_num}')
-                    resample_brain_mask_roi.inputs.realignment = realignment
-                    resample_brain_mask_roi.inputs.identity_matrix = (
-                        cfg.registration_workflows['functional_registration'][
-                            'func_registration_to_template'
-                        ]['FNIRT_pipelines']['identity_matrix'])
-                    wf.connect([
-                        (brain_mask_node, resample_brain_mask_roi, [
-                            (brain_mask_out, 'in_func')]),
-                        (roi_dataflow, resample_brain_mask_roi, [
-                            ('outputspec.out_file', 'in_roi')]),
-                        (resample_brain_mask_roi, timeseries_correlation, [
-                            ('out_func', 'inputspec.mask')])])
-                else:
-                    wf.connect(brain_mask_node, brain_mask_out,
-                               timeseries_correlation, 'inputspec.mask')
+                # if 'func_to_ROI' in realignment:
+                resample_brain_mask_roi = pe.Node(
+                    resample_function(),
+                    name=f'resample_brain_mask_roi_{pipe_num}')
+                resample_brain_mask_roi.inputs.realignment = realignment
+                resample_brain_mask_roi.inputs.identity_matrix = (
+                    cfg.registration_workflows['functional_registration'][
+                        'func_registration_to_template'
+                    ]['FNIRT_pipelines']['identity_matrix'])
+                wf.connect([
+                    (brain_mask_node, resample_brain_mask_roi, [
+                        (brain_mask_out, 'in_func')]),
+                    (fork_atlases, resample_brain_mask_roi, [
+                        ('atlas_file', 'in_roi')]),
+                    (resample_brain_mask_roi, timeseries_correlation, [
+                        ('out_func', 'inputspec.mask')])])
+                # else:
+                #     wf.connect(brain_mask_node, brain_mask_out,
+                #                timeseries_correlation, 'inputspec.mask')
 
             timeseries_correlation.inputs.inputspec.method = cm_measure
             wf.connect([
