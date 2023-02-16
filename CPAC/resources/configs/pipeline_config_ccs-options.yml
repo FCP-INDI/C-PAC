@@ -48,9 +48,6 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
-
 anatomical_preproc:
   run: On
   acpc_alignment:

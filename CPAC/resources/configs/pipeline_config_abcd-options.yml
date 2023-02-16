@@ -40,9 +40,6 @@ surface_analysis:
     # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
     run_reconall: Off
 
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
-
 anatomical_preproc:
   run: On
   acpc_alignment:
