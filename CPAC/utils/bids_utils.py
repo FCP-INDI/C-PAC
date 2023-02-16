@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2022  C-PAC Developers
+# Copyright (C) 2016-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,7 +21,6 @@ import sys
 from warnings import warn
 
 import yaml
-from CPAC.utils.utils import cl_strip_brackets
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -196,6 +195,32 @@ def bids_match_entities(file_list, entities, suffix):
                 ])
         raise LookupError(error_message)
     return matches
+
+
+def bids_remove_entity(name, key):
+    """Remove an entity from a BIDS string by key
+
+    Parameters
+    ----------
+    name : str
+        BIDS string to remove entity from
+    key : str
+        BIDS key of entity to remove
+
+    Returns
+    -------
+    str
+        BIDS name with entity removed
+
+    Examples
+    --------
+    >>> bids_remove_entity('atlas-Yeo_space-MNI152NLin6_res-2x2x2', 'space')
+    'atlas-Yeo_res-2x2x2'
+    >>> bids_remove_entity('atlas-Yeo_space-MNI152NLin6_res-2x2x2', 'res')
+    'atlas-Yeo_space-MNI152NLin6'
+    """
+    return '_'.join(entity for entity in bids_entities_from_filename(name)
+                    if not entity.startswith(f'{key.rstrip("-")}-'))
 
 
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
@@ -925,6 +950,32 @@ def load_yaml_config(config_filename, aws_input_creds):
     except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise
+
+
+def cl_strip_brackets(arg_list):
+    """Removes '[' from before first and ']' from after final
+    arguments in a list of commandline arguments
+
+    Parameters
+    ----------
+    arg_list : list
+
+    Returns
+    -------
+    list
+
+    Examples
+    --------
+    >>> cl_strip_brackets('[a b c]'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('a b c'.split(' '))
+    ['a', 'b', 'c']
+    >>> cl_strip_brackets('[ a b c ]'.split(' '))
+    ['a', 'b', 'c']
+    """
+    arg_list[0] = arg_list[0].lstrip('[')
+    arg_list[-1] = arg_list[-1].rstrip(']')
+    return [arg for arg in arg_list if arg]
 
 
 def create_cpac_data_config(bids_dir, participant_labels=None,

@@ -1,20 +1,20 @@
 #!/usr/bin/env python
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2018-2023  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import argparse
 import datetime
 import os
@@ -29,7 +29,8 @@ from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.pipeline.schema import str_to_bool1_1
-from CPAC.utils.bids_utils import create_cpac_data_config, \
+from CPAC.utils.bids_utils import cl_strip_brackets, \
+                                  create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
@@ -39,8 +40,7 @@ from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.configuration.yaml_template import create_yaml_from_template, \
                                                    hash_data_config, \
                                                    upgrade_pipeline_to_1_8
-from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
-                             update_nested_dict
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
 logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"

@@ -26,7 +26,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022 C-PAC Developers
+# Modifications Copyright (C) 2022-2023 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -437,6 +437,8 @@ class MapNode(Node, pe.MapNode):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.name.endswith('_'):
+            self.name = f'{self.name}_'
 
     __init__.__signature__ = Signature(parameters=[
         p[1] if p[0] != 'mem_gb' else (
