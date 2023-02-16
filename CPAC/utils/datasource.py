@@ -924,7 +924,8 @@ def res_string_to_tuple(resolution):
     return (float(resolution.replace('mm', '')),) * 3
 
 
-def resolve_resolution(resolution, template, template_name, tag=None):
+def resolve_resolution(resolution, template, template_name, tag=None,
+                       resample_mode='Cu'):
     from nipype.interfaces import afni
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.datasource import check_for_s3
@@ -962,7 +963,7 @@ def resolve_resolution(resolution, template, template_name, tag=None):
                            mem_x=(0.0115, 'in_file', 't'))
         resample.inputs.voxel_size = res_string_to_tuple(resolution)
         resample.inputs.outputtype = 'NIFTI_GZ'
-        resample.inputs.resample_mode = 'Cu'
+        resample.inputs.resample_mode = resample_mode
         resample.inputs.in_file = local_path
         resample.base_dir = '.'
 
@@ -1098,24 +1099,23 @@ def gather_atlases(wf, cfg, strat_pool, pipe_num, opt=None):
             fields=['atlas_name'], mandatory_inputs=True),
             name=f'{atlas_name}_name')
         atlas_name_node.inputs.atlas_name = atlas_name
-        gather = create_check_for_s3_node(
-            atlas_name, atlas, img_type='mask',
-            creds_path=cfg['pipeline_setup', 'input_creds_path'])
         resampled = pe.Node(Function(input_names=['resolution',
                                                   'template',
                                                   'template_name',
-                                                  'tag'],
+                                                  'tag',
+                                                  'resample_mode'],
                                      output_names=['local_path'],
                                      function=resolve_resolution,
                                      as_module=True),
                             name=f'resampled_{atlas_name}')
+        resampled.inputs.template = atlas
         resampled.inputs.resolution = cfg[
             "registration_workflows", "functional_registration",
             "func_registration_to_template", "output_resolution",
             "func_preproc_outputs"]
         resampled.inputs.tag = 'func_preproc_outputs'
         resampled.inputs.template_name = atlas_name
-        wf.connect(gather, 'local_path', resampled, 'template')
+        resampled.inputs.resample_mode = 'NN'
         for spec, _specified in specified_atlases.items():
             for analysis, _atlases in _specified.items():
                 if atlas in _atlases:
