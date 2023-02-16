@@ -40,6 +40,9 @@ surface_analysis:
     # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
     run_reconall: Off
 
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
+
 anatomical_preproc:
   run: On
   acpc_alignment:
@@ -56,7 +59,7 @@ anatomical_preproc:
   brain_extraction:
     run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [FreeSurfer-ABCD]
 

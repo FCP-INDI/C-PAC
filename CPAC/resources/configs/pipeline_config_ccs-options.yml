@@ -48,6 +48,9 @@ surface_analysis:
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
+
 anatomical_preproc:
   run: On
   acpc_alignment:
@@ -60,7 +63,7 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /code/CPAC/resources/templates/MNI152_T1_1mm_first_brain_mask.nii.gz
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [FreeSurfer-BET-Tight, FreeSurfer-BET-Loose]
 

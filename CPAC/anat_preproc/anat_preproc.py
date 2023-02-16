@@ -870,10 +870,13 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         name='fs_brain_mask_to_native')
     fs_brain_mask_to_native.inputs.reg_header = True
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    # node, out = strat_pool.get_data('space-T1w_desc-brain_mask') 
+    # wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
+
+    node, out = strat_pool.get_data('pipeline-fs_brainmask') 
     wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
 
-    node, out = strat_pool.get_data('raw-average')
+    node, out = strat_pool.get_data('pipeline-fs_raw-average')
     wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
@@ -922,7 +925,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                               name=f'wmparc_to_nifti_{pipe_num}')
     wmparc_to_nifti.inputs.args = '-rt nearest'
 
-    node, out = strat_pool.get_data('wmparc')
+    node, out = strat_pool.get_data('pipeline-fs_wmparc')
     wf.connect(node, out, wmparc_to_nifti, 'in_file')
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
@@ -1118,7 +1121,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(binarize_combined_mask, 'out_file', 
         fs_fsl_brain_mask_to_native, 'source_file')
 
-    node, out = strat_pool.get_data('raw-average')
+    node, out = strat_pool.get_data('pipeline-fs_raw-average')
     wf.connect(node, out, fs_fsl_brain_mask_to_native, 'target_file')
 
     node, out = strat_pool.get_data('freesurfer-subject-dir')
@@ -1283,13 +1286,15 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [("desc-head_T1w", "desc-preproc_T1w",
-                 "space-T1w_desc-brain_mask"),
+     "inputs": [("desc-head_T1w", "desc-preproc_T1w", 
+                 ["space-T1w_desc-brain_mask",
+                 "space-T1w_desc-brain_mask"]),
                 "T1w-ACPC-template",
                 "T1w-brain-ACPC-template"],
      "outputs": ["desc-head_T1w",
                  "desc-preproc_T1w",
-                 "space-T1w_desc-brain_mask",
+                 ["space-T1w_desc-brain_mask",
+                 "space-T1w_desc-brain_mask"],
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
 
@@ -1305,8 +1310,8 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w-ACPC-template')
     wf.connect(node, out, acpc_align, 'inputspec.template_head_for_acpc')
 
-    if strat_pool.check_rpool('space-T1w_desc-brain_mask'):
-        node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    if strat_pool.check_rpool("space-T1w_desc-brain_mask"):
+        node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
         wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
         node, out = strat_pool.get_data('T1w-brain-ACPC-template')
@@ -1378,7 +1383,8 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_T1w",
-                 "desc-tempbrain_T1w", "space-T1w_desc-brain_mask"),
+                 "desc-tempbrain_T1w", 
+                 "space-T1w_desc-brain_mask"),
                  "T1w-ACPC-template",
                  "T1w-brain-ACPC-template"],
      "outputs": ["desc-preproc_T1w",
@@ -1399,7 +1405,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('desc-tempbrain_T1w')
     wf.connect(node, out, acpc_align, 'inputspec.anat_brain')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
     wf.connect(node, out, acpc_align, 'inputspec.brain_mask')
 
     node, out = strat_pool.get_data('T1w-ACPC-template') 
@@ -1412,7 +1418,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
         'space-T1w_desc-brain_mask': (acpc_align, 'outputspec.acpc_brain_mask'),
-        'space-T1w_desc-prebrain_mask': (strat_pool.get_data('space-T1w_desc-brain_mask'))
+        'space-T1w_desc-prebrain_mask': (strat_pool.get_data(desc_brain_mask))
     }
 
     return (wf, outputs)
@@ -1553,7 +1559,6 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
-
 def brain_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "brain_mask_afni",
@@ -1569,7 +1574,6 @@ def brain_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     wf, outputs = afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
-
 
 def brain_mask_acpc_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -1591,7 +1595,6 @@ def brain_mask_acpc_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-
 
 def brain_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -1630,7 +1633,6 @@ def brain_mask_acpc_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-
 
 def brain_mask_niworkflows_ants(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -1729,9 +1731,9 @@ def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": [["anatomical_preproc", "brain_extraction", "run"],
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
-     "option_val": "Freesurfer",
-     "inputs": ["space-T1w_desc-brain_mask",
-                "raw-average",
+     "option_val": "FreeSurfer-Brainmask",
+     "inputs": ["pipeline-fs_raw-average",
+                "pipeline-fs_brainmask",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1749,9 +1751,9 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": [["anatomical_preproc", "brain_extraction", "run"],
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
-     "option_val": "Freesurfer",
+     "option_val": "FreeSurfer-Brainmask", 
      "inputs": ["space-T1w_desc-brain_mask",
-                "raw-average",
+                "pipeline-fs_raw-average",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
@@ -1774,7 +1776,7 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
-                "wmparc",
+                "pipeline-fs_wmparc",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1792,9 +1794,9 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-BET-Tight",
-     "inputs": ["brainmask",
-                "T1",
-                "raw-average",
+     "inputs": ["pipeline-fs_brainmask",
+                "pipeline-fs_T1",
+                "pipeline-fs_raw-average",
                 "freesurfer-subject-dir",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
@@ -1815,7 +1817,7 @@ def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
-                "wmparc",
+                "pipeline-fs_wmparc",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
@@ -1836,9 +1838,9 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-BET-Loose",
-     "inputs": ["brainmask",
-                "T1",
-                "raw-average",
+     "inputs": ["pipeline-fs_brainmask",
+                "pipeline-fs_T1",
+                "pipeline-fs_raw-average",
                 "freesurfer-subject-dir",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
@@ -1858,8 +1860,8 @@ def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-BET-Tight",
-     "inputs": ["brainmask",
-                "T1",
+     "inputs": ["pipeline-fs_brainmask",
+                "pipeline-fs_T1",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-tight_acpcbrain_mask"]}
@@ -1881,8 +1883,8 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
                 ["anatomical_preproc", "run"]],
      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-BET-Loose",
-     "inputs": ["brainmask",
-                "T1",
+     "inputs": ["pipeline-fs_brainmask",
+                "pipeline-fs_T1",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
@@ -2534,154 +2536,143 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "freesurfer_postproc",
-     "config": "None",
-     "switch": "None",
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("freesurfer-subject-dir",
-                 "raw-average",
-                 "subcortical-seg",
-                 "brainmask",
-                 "T1")],
-     "outputs": ["space-T1w_desc-brain_mask",
-                 "hemi-L_desc-surface_curv",
-                 "hemi-R_desc-surface_curv",
-                 "hemi-L_desc-surfaceMesh_pial",
-                 "hemi-R_desc-surfaceMesh_pial",
-                 "hemi-L_desc-surfaceMesh_smoothwm",
-                 "hemi-R_desc-surfaceMesh_smoothwm",
-                 "hemi-L_desc-surfaceMesh_sphere",
-                 "hemi-R_desc-surfaceMesh_sphere",
-                 "hemi-L_desc-surfaceMap_sulc",
-                 "hemi-R_desc-surfaceMap_sulc",
-                 "hemi-L_desc-surfaceMap_thickness",
-                 "hemi-R_desc-surfaceMap_thickness",
-                 "hemi-L_desc-surfaceMap_volume",
-                 "hemi-R_desc-surfaceMap_volume",
-                 "hemi-L_desc-surfaceMesh_white",
-                 "hemi-R_desc-surfaceMesh_white",
-                 "label-CSF_mask",
-                 "label-WM_mask",
-                 "label-GM_mask"]}
-    '''
-    inputs = flatten_list(freesurfer_postproc, 'inputs')
-    inputs.remove('T1')  # optional input
-    if not all(strat_pool.check_rpool(_input) for _input in inputs):
-        # warn and continue if we have FreeSurfer outputs but
-        # don't have a FreeSurfer configuration
-        logger = logging.getLogger('nipype.workflow')
-        logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
-        return wf, {}
-    # register FS brain mask to native space
-    fs_brain_mask_to_native = pe.Node(
-        interface=freesurfer.ApplyVolTransform(),
-        name=f'fs_brain_mask_to_native_{pipe_num}')
-    fs_brain_mask_to_native.inputs.reg_header = True
+# def freesurfer_brainmask(wf, cfg, strat_pool, pipe_num, opt=None):
+#     '''
+#     {"name": "freesurfer_postproc",
+#      "config": ["surface_analysis", "freesurfer"],
+#       "switch": [["anatomical_preproc", "brain_extraction", "run"],
+#                 ["anatomical_preproc", "run"]],
+#      "option_key": ["anatomical_preproc", "brain_extraction", "using"],
+#      "option_val": "FreeSurfer-Brainmask",
+#      "inputs": [("freesurfer-subject-dir",
+#                  "pipeline-fs_raw-average",
+#                  "pipeline-fs_subcortical-seg",
+#                  "pipeline-fs_brainmask",
+#                  "pipeline-fs_T1")],
+#      "outputs": ["space-T1w_desc-brain_mask"]}
+#     '''
+#     inputs = flatten_list(freesurfer_brainmask, 'inputs')
+#     inputs.remove('pipeline-fs_T1')  # optional input
+#     if not all(strat_pool.check_rpool(_input) for _input in inputs):
+#         # warn and continue if we have FreeSurfer outputs but
+#         # don't have a FreeSurfer configuration
+#         logger = logging.getLogger('nipype.workflow')
+#         logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+#         return wf, {}
+#     # register FS brain mask to native space
+#     fs_brain_mask_to_native = pe.Node(
+#         interface=freesurfer.ApplyVolTransform(),
+#         name=f'fs_brain_mask_to_native_{pipe_num}')
+#     fs_brain_mask_to_native.inputs.reg_header = True
 
-    node, out = strat_pool.get_data('brainmask')
-    wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
+#     node, out = strat_pool.get_data('pipeline-fs_brainmask') 
+#     wf.connect(node, out, fs_brain_mask_to_native, 'source_file')
     
-    node, out = strat_pool.get_data('raw-average')
-    wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
+#     node, out = strat_pool.get_data('pipeline-fs_raw-average')
+#     wf.connect(node, out, fs_brain_mask_to_native, 'target_file')
     
-    node, out = strat_pool.get_data('freesurfer-subject-dir')
-    wf.connect(node, out, fs_brain_mask_to_native, 'subjects_dir')
+#     node, out = strat_pool.get_data('freesurfer-subject-dir')
+#     wf.connect(node, out, fs_brain_mask_to_native, 'subjects_dir')
 
-    # convert brain mask file from .mgz to .nii.gz
-    fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
-                                                   output_names=['out_file'],
-                                                   function=mri_convert),
-                                     name=f'fs_brainmask_to_nifti_{pipe_num}')
-    wf.connect(fs_brain_mask_to_native, 'transformed_file',
-               fs_brain_mask_to_nifti, 'in_file')
+#     # convert brain mask file from .mgz to .nii.gz
+#     fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+#                                                    output_names=['out_file'],
+#                                                    function=mri_convert),
+#                                      name=f'fs_brainmask_to_nifti_{pipe_num}')
+#     wf.connect(fs_brain_mask_to_native, 'transformed_file',
+#                fs_brain_mask_to_nifti, 'in_file')
 
-    # binarize the brain mask
-    binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                                     name=f'binarize_fs_brainmask_{pipe_num}')
-    binarize_fs_brain_mask.inputs.args = '-bin'
-    wf.connect(fs_brain_mask_to_nifti, 'out_file',
-               binarize_fs_brain_mask, 'in_file')
+#     # binarize the brain mask
+#     binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+#                                      name=f'binarize_fs_brainmask_{pipe_num}')
+#     binarize_fs_brain_mask.inputs.args = '-bin'
+#     wf.connect(fs_brain_mask_to_nifti, 'out_file',
+#                binarize_fs_brain_mask, 'in_file')
 
-    # fill holes
-    fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
-                                 name=f'fill_fs_brainmask_{pipe_num}')
-    fill_fs_brain_mask.inputs.fill_holes = True
-    fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-    wf.connect(binarize_fs_brain_mask, 'out_file',
-               fill_fs_brain_mask, 'in_file')
+#     # fill holes
+#     fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
+#                                  name=f'fill_fs_brainmask_{pipe_num}')
+#     fill_fs_brain_mask.inputs.fill_holes = True
+#     fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+#     wf.connect(binarize_fs_brain_mask, 'out_file',
+#                fill_fs_brain_mask, 'in_file')
 
-    # register FS segmentations (aseg.mgz) to native space
-    fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                                name=f'fs_aseg_to_native_{pipe_num}')
-    fs_aseg_to_native.inputs.reg_header = True
-    fs_aseg_to_native.inputs.interp = 'nearest'
+    # # register FS segmentations (aseg.mgz) to native space
+    # fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+    #                             name=f'fs_aseg_to_native_{pipe_num}')
+    # fs_aseg_to_native.inputs.reg_header = True
+    # fs_aseg_to_native.inputs.interp = 'nearest'
     
-    wf.connect(node, out, fs_aseg_to_native, 'subjects_dir')
+    # wf.connect(node, out, fs_aseg_to_native, 'subjects_dir')
 
-    node, out = strat_pool.get_data('subcortical-seg')
-    wf.connect(node, out, fs_aseg_to_native, 'source_file')
+    # node, out = strat_pool.get_data('pipeline-fs_subcortical-seg')
+    # wf.connect(node, out, fs_aseg_to_native, 'source_file')
     
-    node, out = strat_pool.get_data('raw-average')
-    wf.connect(node, out, fs_aseg_to_native, 'target_file')
+    # node, out = strat_pool.get_data('pipeline-fs_raw-average')
+    # wf.connect(node, out, fs_aseg_to_native, 'target_file')
 
-    # convert registered FS segmentations from .mgz to .nii.gz
-    fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
-                                             output_names=['out_file'],
-                                             function=mri_convert),
-                               name=f'fs_aseg_to_nifti_{pipe_num}')
-    fs_aseg_to_nifti.inputs.args = '-rt nearest'
+    # # convert registered FS segmentations from .mgz to .nii.gz
+    # fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+    #                                          output_names=['out_file'],
+    #                                          function=mri_convert),
+    #                            name=f'fs_aseg_to_nifti_{pipe_num}')
+    # fs_aseg_to_nifti.inputs.args = '-rt nearest'
 
-    wf.connect(fs_aseg_to_native, 'transformed_file',
-               fs_aseg_to_nifti, 'in_file')
+    # wf.connect(fs_aseg_to_native, 'transformed_file',
+    #            fs_aseg_to_nifti, 'in_file')
 
-    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
-                          name=f'select_fs_tissue_{pipe_num}')
+    # pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
+    #                       name=f'select_fs_tissue_{pipe_num}')
 
-    pick_tissue.inputs.csf_label = cfg['segmentation'][
-        'tissue_segmentation']['FreeSurfer']['CSF_label']
-    pick_tissue.inputs.gm_label = cfg['segmentation'][
-        'tissue_segmentation']['FreeSurfer']['GM_label']
-    pick_tissue.inputs.wm_label = cfg['segmentation'][
-        'tissue_segmentation']['FreeSurfer']['WM_label']
+    # pick_tissue.inputs.csf_label = cfg['segmentation'][
+    #     'tissue_segmentation']['FreeSurfer']['CSF_label']
+    # pick_tissue.inputs.gm_label = cfg['segmentation'][
+    #     'tissue_segmentation']['FreeSurfer']['GM_label']
+    # pick_tissue.inputs.wm_label = cfg['segmentation'][
+    #     'tissue_segmentation']['FreeSurfer']['WM_label']
 
-    wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
+    # wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
 
-    erode_tissues = {}
-    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
-        for tissue in ['csf', 'wm', 'gm']:
-            erode_tissues[tissue] = pe.Node(
-                interface=freesurfer.model.Binarize(),
-                name=f'erode_{tissue}_{pipe_num}')
-            erode_tissues[tissue].inputs.match = [1]
-            erode_tissues[tissue].inputs.erode = cfg['segmentation'][
-                'tissue_segmentation']['FreeSurfer']['erode']
-            wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
-                       'in_file')
+    # erode_tissues = {}
+    # if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
+    #     for tissue in ['csf', 'wm', 'gm']:
+    #         erode_tissues[tissue] = pe.Node(
+    #             interface=freesurfer.model.Binarize(),
+    #             name=f'erode_{tissue}_{pipe_num}')
+    #         erode_tissues[tissue].inputs.match = [1]
+    #         erode_tissues[tissue].inputs.erode = cfg['segmentation'][
+    #             'tissue_segmentation']['FreeSurfer']['erode']
+    #         wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
+    #                    'in_file')
 
-    outputs = {
-        'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file')
-    }
+    #outputs = {
+     #   'space-T1w_desc-brain_mask': (fill_fs_brain_mask, 'out_file')
+    #}
 
-    if erode_tissues:
-        outputs['label-CSF_mask'] = (erode_tissues['csf'], 'binary_file')
-        outputs['label-WM_mask'] = (erode_tissues['wm'], 'binary_file')
-        outputs['label-GM_mask'] = (erode_tissues['gm'], 'binary_file')
-    else:
-        outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
-        outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
-        outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
+    # if erode_tissues:
+    #     # outputs['pipeline-fs_label-CSF_mask'] = (erode_tissues['csf'], 'binary_file')
+    #     # outputs['pipeline-fs_label-WM_mask'] = (erode_tissues['wm'], 'binary_file')
+    #     # outputs['pipeline-fs_label-GM_mask'] = (erode_tissues['gm'], 'binary_file')
+    #     outputs['label-CSF_mask'] = (erode_tissues['csf'], 'binary_file')
+    #     outputs['label-WM_mask'] = (erode_tissues['wm'], 'binary_file')
+    #     outputs['label-GM_mask'] = (erode_tissues['gm'], 'binary_file')
 
-    return (wf, outputs)
+    # else:
+    #     # outputs['pipeline-fs_label-CSF_mask'] = (pick_tissue, 'csf_mask')
+    #     # outputs['pipeline-fs_label-WM_mask'] = (pick_tissue, 'wm_mask')
+    #     # outputs['pipeline-fs_label-GM_mask'] = (pick_tissue, 'gm_mask')
+    #     outputs['label-CSF_mask'] = (pick_tissue, 'csf_mask')
+    #     outputs['label-WM_mask'] = (pick_tissue, 'wm_mask')
+    #     outputs['label-GM_mask'] = (pick_tissue, 'gm_mask')
+
+    # return (wf, outputs)
 
 
 # we're grabbing the postproc outputs and appending them to
 # the reconall outputs
-@docstring_parameter(postproc_outputs=str(flatten_list(
-                     freesurfer_postproc, 'outputs')
-                                          ).lstrip('[').replace("'", '"'))
+@docstring_parameter(postproc_outputs=str(flatten_list(brain_mask_freesurfer, 'outputs')
+                                           ).lstrip('[').replace("'", '"'))
+
 def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {{"name": "freesurfer_reconall",
@@ -2691,11 +2682,11 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
       "option_val": "None",
       "inputs": ["desc-preproc_T1w"],
       "outputs": ["freesurfer-subject-dir",
-                  "raw-average",
-                  "subcortical-seg",
-                  "brainmask",
-                  "wmparc",
-                  "T1",
+                  "pipeline-fs_raw-average",
+                  "pipeline-fs_subcortical-seg",
+                  "pipeline-fs_brainmask",
+                  "pipeline-fs_wmparc",
+                  "pipeline-fs_T1",
                   {postproc_outputs}}}
     '''
 
@@ -2730,22 +2721,22 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'freesurfer-subject-dir': (reconall, 'subjects_dir'),
         **hemisphere_outputs,
-        'raw-average': (reconall, 'rawavg'),
-        'subcortical-seg': (reconall, 'aseg'),
-        'brainmask': (reconall, 'brainmask'),
-        'wmparc': (reconall, 'wmparc'),
-        'T1': (reconall, 'T1')
+        'pipeline-fs_raw-average': (reconall, 'rawavg'),
+        'pipeline-fs_subcortical-seg': (reconall, 'aseg'),
+        'pipeline-fs_brainmask': (reconall, 'brainmask'),
+        'pipeline-fs_wmparc': (reconall, 'wmparc'),
+        'pipeline-fs_T1': (reconall, 'T1')
     }
 
-    for label, connection in outputs.items():
-        # Put the reconall outputs in the strat pool before we run postproc
-        strat_pool.set_data(label, connection[0], connection[1],
-                            deepcopy(strat_pool.get('json')),
-                            pipe_num, 'freesurfer_reconall', fork=False)
-    # Run postproc if we ran reconall
-    wf, post_outputs = freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt)
-    # Update the outputs to include the postproc outputs
-    outputs.update(post_outputs)
+    # for label, connection in outputs.items():
+    #     # Put the reconall outputs in the strat pool before we run postproc
+    #     strat_pool.set_data(label, connection[0], connection[1],
+    #                         deepcopy(strat_pool.get('json')),
+    #                         pipe_num, 'freesurfer_reconall', fork=False)
+    # # Run postproc if we ran reconall
+    # wf, post_outputs = freesurfer_postproc(wf, cfg, strat_pool, pipe_num, opt)
+    # # Update the outputs to include the postproc outputs
+    # outputs.update(post_outputs)
 
     return wf, outputs
 
@@ -2970,24 +2961,24 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "freesurfer-subject-dir"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
-                 "desc-fast_biasfield",
-                 "hemi-L_desc-surface_curv",
-                 "hemi-R_desc-surface_curv",
-                 "hemi-L_desc-surfaceMesh_pial",
-                 "hemi-R_desc-surfaceMesh_pial",
-                 "hemi-L_desc-surfaceMesh_smoothwm",
-                 "hemi-R_desc-surfaceMesh_smoothwm",
-                 "hemi-L_desc-surfaceMesh_sphere",
-                 "hemi-R_desc-surfaceMesh_sphere",
-                 "hemi-L_desc-surfaceMap_sulc",
-                 "hemi-R_desc-surfaceMap_sulc",
-                 "hemi-L_desc-surfaceMap_thickness",
-                 "hemi-R_desc-surfaceMap_thickness",
-                 "hemi-L_desc-surfaceMap_volume",
-                 "hemi-R_desc-surfaceMap_volume",
-                 "hemi-L_desc-surfaceMesh_white",
-                 "hemi-R_desc-surfaceMesh_white",
-                 "wmparc",
+                 "pipeline-fs_desc-fast_biasfield",
+                 "pipeline-fs_hemi-L_desc-surface_curv",
+                 "pipeline-fs_hemi-R_desc-surface_curv", 
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_sulc", 
+                 "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
+                 "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_volume",
+                 "pipeline-fs_hemi-R_desc-surfaceMap_volume",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_white",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_white",
+                 "pipeline-fs_wmparc",
                  "freesurfer-subject-dir"]}
     '''
 
@@ -3087,7 +3078,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
             'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
             'desc-restore-brain_T1w': (fast_correction,
                                        'outputspec.anat_brain_restore'),
-            'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
+            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
         return (wf, outputs)
 
     else:
@@ -3119,14 +3110,13 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
         'desc-restore-brain_T1w': (fast_correction,
                                    'outputspec.anat_brain_restore'),
-        'desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
-        'wmparc': (reconall, 'wmparc'),
+        'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
+        'pipeline-fs_wmparc': (reconall, 'wmparc'),
         'freesurfer-subject-dir': (reconall, 'subjects_dir'),
         **hemisphere_outputs
     }
 
     return (wf, outputs)
-
 
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
@@ -3137,9 +3127,8 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-ABCD",
      "inputs": [("desc-preproc_T1w",
                  "desc-n4_T1w",
-                 "desc-restore-brain_T1w",
                  "space-T1w_desc-brain_mask",
-                 "desc-fast_biasfield",
+                 "pipeline-fs_desc-fast_biasfield",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm",
                  "from-T1w_to-template_mode-image_xfm")],
      "outputs": ["desc-restore-brain_T1w"]}
@@ -3181,8 +3170,8 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     convertwarp_orig_t1_to_t1.inputs.out_relwarp = True
     convertwarp_orig_t1_to_t1.inputs.relwarp = True
-
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    
+    node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
     wf.connect(node, out, convertwarp_orig_t1_to_t1, 'reference')
 
     node, out = strat_pool.get_data('from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm')
@@ -3198,10 +3187,10 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     applywarp_biasfield.inputs.relwarp = True
     applywarp_biasfield.inputs.interp = 'spline'
 
-    node, out = strat_pool.get_data('desc-fast_biasfield')
+    node, out = strat_pool.get_data('pipeline-fs_desc-fast_biasfield')
     wf.connect(node, out, applywarp_biasfield, 'in_file')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
     wf.connect(node, out, applywarp_biasfield, 'ref_file')
 
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
@@ -3226,7 +3215,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     node, out = strat_pool.get_data('desc-n4_T1w')
     wf.connect(node, out, applywarp_t1, 'in_file')
     
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
     wf.connect(node, out, applywarp_t1, 'ref_file')
     
     wf.connect(convertwarp_orig_t1_to_t1, 'out_file',
@@ -3247,7 +3236,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     wf.connect(abs_t1, 'out_file', div_t1_by_biasfield, 'in_file')
 
-    node, out = strat_pool.get_data('desc-fast_biasfield')
+    node, out = strat_pool.get_data('pipeline-fs_desc-fast_biasfield')
     wf.connect(node, out, div_t1_by_biasfield, 'in_file2')
 
     # fslmaths "$OutputT1wImageRestore" -mas "$T1wImageBrain" "$OutputT1wImageRestoreBrain"
@@ -3257,7 +3246,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(div_t1_by_biasfield, 'out_file',
         apply_mask, 'in_file')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
     wf.connect(node, out, apply_mask, 'mask_file')
 
     outputs = {
@@ -3265,3 +3254,4 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     }
 
     return (wf, outputs)
+
