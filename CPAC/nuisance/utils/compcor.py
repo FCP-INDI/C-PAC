@@ -198,17 +198,13 @@ def TR_string_to_float(tr):
         raise TypeError(f'Improper type for TR_string_to_float ({tr}).')
 
     tr_str = tr.replace(' ', '')
-    factor = 1.
-
-    if tr_str.endswith('ms'):
-        tr_str = tr_str[:-2]
-        factor = 0.001
-    elif tr.endswith('s'):
-        tr_str = tr_str[:-1]
 
     try:
-        tr_numeric = float(tr_str)
+        if tr_str.endswith('ms'):
+            tr_numeric = float(tr_str[:-2]) * 0.001
+        elif tr.endswith('s'):
+            tr_numeric = float(tr_str[:-1])
     except Exception as exc:
         raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
 
-    return tr_numeric * factor
+    return tr_numeric
