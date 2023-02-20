@@ -40,7 +40,7 @@ def run_surface(post_freesurfer_folder,
     import subprocess
 
     #freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
-    
+    print('run_surface 1')
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
@@ -54,6 +54,7 @@ def run_surface(post_freesurfer_folder,
 
     subprocess.check_output(cmd)
 
+    print('run_surface 12')
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
     cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh',
@@ -114,16 +115,16 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     
     surf.inputs.subject = cfg['subject_id']
-
+    print('surf_postproc1')
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
         'cpac_'+cfg['subject_id'],
         f'post_freesurfer_{pipe_num}')
-
+    print('surf_postproc2')
     surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
     surf.inputs.gray_ordinates_dir = cfg.surface_analysis['post_freesurfer']['gray_ordinates_dir']
     surf.inputs.subcortical_gray_labels = cfg.surface_analysis['post_freesurfer']['subcortical_gray_labels']
     surf.inputs.freesurfer_labels = cfg.surface_analysis['post_freesurfer']['freesurfer_labels']
-
+    print('surf_postproc3')
     # convert integers to strings as subprocess requires string inputs
     surf.inputs.gray_ordinates_res = str(cfg.surface_analysis['post_freesurfer']['gray_ordinates_res'])
     surf.inputs.high_res_mesh = str(cfg.surface_analysis['post_freesurfer']['high_res_mesh'])
@@ -133,18 +134,18 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     restore = ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
-    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask",]
+    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"]
     atlas_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
     atlas_xfm_inv = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
     atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"]
     scout_bold = ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold",
                   "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]
 
-
+    print('surf_postproc4')
     node, out = strat_pool.get_data('freesurfer-subject-dir')
     wf.connect(node, out, surf, 'freesurfer_folder')
     
-
+    print('surf_postproc5')
     node, out = strat_pool.get_data(restore) 
     wf.connect(node, out, surf, 't1w_restore_image')
     
@@ -163,7 +164,7 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     node, out = strat_pool.get_data(scout_bold)
     wf.connect(node, out, surf, 'scout_bold')
-
+    print('surf_postproc6')
     outputs = {
         'atlas-DesikanKilliany_space-fsLR_den-32k_dlabel': (surf,
                                                             'desikan_'
@@ -180,20 +181,20 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "surface_preproc",
+    {"name": "surface_postproc",
      "config": ["surface_analysis", "post_freesurfer"],
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
      "inputs": ["freesurfer-subject-dir",
-                ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
+                (["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
                 "space-longitudinal_desc-reorient_T1w"],
                 ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
                 ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
                 ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
                 ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
                 ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
-                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
+                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"])],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",

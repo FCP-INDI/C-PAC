@@ -979,7 +979,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                    function=mri_convert),
                                             name=f'convert_fs_brainmask_to_nifti_{node_id}')
 
-    node, out = strat_pool.get_data('brainmask')
+    node, out = strat_pool.get_data('pipeline-fs_brainmask')
     wf.connect(node, out, convert_fs_brainmask_to_nifti, 'in_file')
 
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/T1.mgz -ot nii T1.nii.gz
@@ -988,7 +988,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                    function=mri_convert),
                                      name=f'convert_fs_T1_to_nifti_{node_id}')
 
-    node, out = strat_pool.get_data('T1')
+    node, out = strat_pool.get_data('pipeline-fs_T1')
     wf.connect(node, out, convert_fs_T1_to_nifti, 'in_file')
 
     # 3dresample -orient RPI -inset brainmask.nii.gz -prefix brain_fs.nii.gz
@@ -2982,6 +2982,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "freesurfer-subject-dir"]}
     '''
 
+    print('abcd preproc')
     # fnirt-based brain extraction
     brain_extraction = fnirt_based_brain_extraction(config=cfg,
                                                     wf_name=f'fnirt_based_brain_extraction_{pipe_num}')

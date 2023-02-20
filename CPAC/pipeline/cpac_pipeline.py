@@ -873,21 +873,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
-        #     if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        #              cfg.surface_analysis['freesurfer']['run_reconall']:
-            # if not rpool.check_rpool('freesurfer-subject-dir') \
-            #         and not cfg.surface_analysis['freesurfer']['run_reconall'] \
-            #         and not cfg.surface_analysis['freesurfer']['generate_masks']:
-                # acpc_blocks = [
-                #     brain_extraction_temp,
-                #     acpc_align_brain_with_mask
-                #     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
-                # ]
-                # acpc_blocks.append(
-                #     [brain_mask_acpc_freesurfer_fsl_tight,
-                #      brain_mask_acpc_freesurfer_fsl_loose]
-                # )
-            #else:
                 acpc_blocks = [
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
@@ -945,7 +930,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         brain_mask_unet,
         brain_mask_freesurfer_abcd,
         brain_mask_freesurfer,
-    #    freesurfer_brainmask,
         brain_mask_freesurfer_fsl_tight,
         brain_mask_freesurfer_fsl_loose]
     ]
@@ -1403,6 +1387,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+        
         pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
