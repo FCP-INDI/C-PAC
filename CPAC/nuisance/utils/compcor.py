@@ -204,6 +204,8 @@ def TR_string_to_float(tr):
             tr_numeric = float(tr_str[:-2]) * 0.001
         elif tr.endswith('s'):
             tr_numeric = float(tr_str[:-1])
+        else:
+            tr_numeric = float(tr_str)
     except Exception as exc:
         raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
 
