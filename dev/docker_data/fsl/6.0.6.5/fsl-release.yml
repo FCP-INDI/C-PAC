@@ -59,11 +59,11 @@ packages:
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2301.1
+ - fsl-base 2302.1
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
- - fsl-bet2 2111.1
+ - fsl-bet2 2111.2
  - fsl-bianca 2209.2
  - fsl-biancadata 2006.0
  - fsl-bint 2111.0
@@ -97,7 +97,7 @@ packages:
  - fsl-fast4 2111.2
  - fsl-fastpdlib 2111.1
  - fsl-fdt 2202.6
- - fsl-feat5 2201.3
+ - fsl-feat5 2201.4
  - fsl-film 2111.0
  - fsl-filmbabe 2111.0
  - fsl-first 2203.0
@@ -160,8 +160,8 @@ packages:
  - fsl-vtkio 2111.0
  - fsl-warpfns 2203.0
  - fsl-wire 1.0.0
- - fsl-xtract 1.5.1
- - fsl-xtract_data 1.3.4
+ - fsl-xtract 1.6.0
+ - fsl-xtract_data 2.0.0
  - fsl-znzlib 2111.0
  - ghalton 0.6.1
  - hlsvdpropy 2.0.1
