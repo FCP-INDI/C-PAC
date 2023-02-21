@@ -1106,7 +1106,8 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     previous_nb = None
     for block in pipeline_blocks:
         try:
-            nb = NodeBlock(block)
+            nb = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                            'verbose'])
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':

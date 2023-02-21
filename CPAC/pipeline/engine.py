@@ -1186,8 +1186,9 @@ class ResourcePool:
 
 
 class NodeBlock:
-    def __init__(self, node_block_functions):
-
+    def __init__(self, node_block_functions, debug=False):
+        if debug:
+            verbose_logger = getLogger('engine')
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -1235,6 +1236,14 @@ class NodeBlock:
             self.options = ['base']
             if 'options' in init_dct:
                 self.options = init_dct['options']
+
+            if debug:
+                dashline = '-' * (len(name) + 10)
+                verbose_logger.debug('\n'.join([
+                    dashline, f'NodeBlock {name}:',
+                    f'\t"inputs": {init_dct["inputs"]}',
+                    f'\t"outputs": {list(self.outputs.keys())}',
+                    f'\t"options": {self.options}', dashline]))
 
     def get_name(self):
         return self.name
@@ -2200,7 +2209,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         }
 
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
-    rpool = initiate_rpool(cfg, data_paths)
+    _, rpool = initiate_rpool(cfg, data_paths)
 
     wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
@@ -2220,7 +2229,9 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         run_blocks += blocks[1]
 
     for block in run_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        wf = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                        'verbose']).connect_block(
+                                            wf, cfg, rpool)
     rpool.gather_pipes(wf, cfg)
 
     wf.run()
