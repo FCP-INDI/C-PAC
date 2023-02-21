@@ -3131,7 +3131,8 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
                  "space-T1w_desc-brain_mask",
                  "pipeline-fs_desc-fast_biasfield",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm",
-                 "from-T1w_to-template_mode-image_xfm")],
+                 "from-T1w_to-template_mode-image_xfm",
+                 "desc-restore-brain_T1w")],
      "outputs": ["desc-restore-brain_T1w"]}
     '''
 
