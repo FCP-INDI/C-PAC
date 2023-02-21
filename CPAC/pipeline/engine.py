@@ -1001,7 +1001,7 @@ class ResourcePool:
                 
                 if resource in Outputs.ciftis:
                    nii_name.inputs.keep_ext = False
-                   id_string.inputs.extension = f'{Outputs.ciftis[resource]}.nii'
+                   id_string.inputs.extension = Outputs.ciftis[resource]
                 else:
                    nii_name.inputs.keep_ext = True
                 
