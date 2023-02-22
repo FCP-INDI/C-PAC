@@ -160,7 +160,7 @@ packages:
  - fsl-vtkio 2111.0
  - fsl-warpfns 2203.0
  - fsl-wire 1.0.0
- - fsl-xtract 1.6.0
+ - fsl-xtract 1.6.1
  - fsl-xtract_data 2.0.1
  - fsl-znzlib 2111.0
  - ghalton 0.6.1
