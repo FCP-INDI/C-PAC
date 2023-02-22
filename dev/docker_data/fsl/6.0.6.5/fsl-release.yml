@@ -53,8 +53,8 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.6.0
- - fsleyes 1.5.0
- - fslpy 3.10.0
+ - fsleyes 1.6.0
+ - fslpy 3.11.0
  - fsl-add_module 0.4.0
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
@@ -94,7 +94,7 @@ packages:
  - fsl-fabber_models_pet v1.0.1
  - fsl-fabber_models_qbold v1.0.2
  - fsl-fabber_models_t1 v2.0.2
- - fsl-fast4 2111.2
+ - fsl-fast4 2111.3
  - fsl-fastpdlib 2111.1
  - fsl-fdt 2202.6
  - fsl-feat5 2201.4
@@ -134,7 +134,7 @@ packages:
  - fsl-newmesh 2111.0
  - fsl-newnifti 4.1.0
  - fsl-newran 2111.0
- - fsl-oxford_asl v4.0.28
+ - fsl-oxford_asl v4.0.29
  - fsl-possum 2111.2
  - fsl-ptx2 2111.4
  - fsl-pyfeeds 0.11.0
