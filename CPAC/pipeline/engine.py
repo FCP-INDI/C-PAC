@@ -17,6 +17,7 @@
 import ast
 import copy
 from itertools import chain
+import logging
 import os
 import re
 from types import FunctionType
@@ -53,7 +54,8 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = getLogger('nipype.workflow')
+logger = logging.getLogger('nipype.workflow')
+verbose_logger = logging.getLogger('engine')
 
 
 class ResourcePool:
@@ -436,6 +438,7 @@ class ResourcePool:
             return flat_prov
 
     def get_strats(self, resources, debug=False):
+
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
@@ -444,7 +447,6 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
-            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -468,7 +470,6 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
-            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -481,8 +482,7 @@ class ResourcePool:
                 continue
             sub_pool = []
             if debug:
-                verbose_logger = getLogger('engine')
-                verbose_logger.debug('%s len(rp_dct): %s\n', resource, len(rp_dct))
+                verbose_logger.debug('len(rp_dct): %s\n', len(rp_dct))
             for strat in rp_dct.keys():
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
@@ -495,6 +495,7 @@ class ResourcePool:
                             variant_pool[fetched_resource] += val
                             variant_pool[fetched_resource].append(
                                 f'NO-{val[0]}')
+
             if debug:
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
@@ -1013,6 +1014,7 @@ class ResourcePool:
 
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
+
                 if isinstance(num_variant, int):
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
@@ -1130,7 +1132,7 @@ class ResourcePool:
                 nii_name.inputs.keep_ext = True
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
-
+                
                 node, out = self.rpool[resource][pipe_idx]['data']
                 try:
                     wf.connect(node, out, nii_name, 'in_file')
@@ -1427,7 +1429,6 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
-                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1672,7 +1673,9 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
 
-    if 'freesurfer_dir' in data_paths['anat']:
+    ingress_fs = cfg.surface_analysis['freesurfer']['ingress_reconall']
+    
+    if 'freesurfer_dir' in data_paths['anat'] and ingress_fs:
         anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
 
         fs_ingress = create_general_datasource('gather_freesurfer_dir')
@@ -1685,27 +1688,27 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                        {}, "", "freesurfer_config_ingress")
 
         recon_outs = {
-            'raw-average': 'mri/rawavg.mgz',
-            'subcortical-seg': 'mri/aseg.mgz',
-            'brainmask': 'mri/brainmask.mgz',
-            'wmparc': 'mri/wmparc.mgz',
-            'T1': 'mri/T1.mgz',
-            'hemi-L_desc-surface_curv': 'surf/lh.curv',
-            'hemi-R_desc-surface_curv': 'surf/rh.curv',
-            'hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
-            'hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
-            'hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
-            'hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
-            'hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
-            'hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
-            'hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
-            'hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
-            'hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
-            'hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
-            'hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
-            'hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
-            'hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
-            'hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_raw-average': 'mri/rawavg.mgz',
+            'pipeline-fs_subcortical-seg': 'mri/aseg.mgz',
+            'pipeline-fs_brainmask': 'mri/brainmask.mgz',
+            'pipeline-fs_wmparc': 'mri/wmparc.mgz',
+            'pipeline-fs_T1': 'mri/T1.mgz',
+            'pipeline-fs_hemi-L_desc-surface_curv': 'surf/lh.curv',
+            'pipeline-fs_hemi-R_desc-surface_curv': 'surf/rh.curv',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
+            'pipeline-fs_hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
+            'pipeline-fs_hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
+            'pipeline-fs_hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
+            'pipeline-fs_hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
+            'pipeline-fs_hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
+            'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
         }
         
         for key, outfile in recon_outs.items():
@@ -1760,7 +1763,6 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
-            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 

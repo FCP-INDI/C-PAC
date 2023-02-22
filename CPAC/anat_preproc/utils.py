@@ -174,22 +174,22 @@ def freesurfer_hemispheres(wf, reconall, pipe_num):
     for label in splits:
         wf.connect(reconall, label, splits[label], 'multi_file')
     outputs = {
-        'hemi-L_desc-surface_curv': (splits['curv'], 'lh'),
-        'hemi-R_desc-surface_curv': (splits['curv'], 'rh'),
-        'hemi-L_desc-surfaceMesh_pial': (splits['pial'], 'lh'),
-        'hemi-R_desc-surfaceMesh_pial': (splits['pial'], 'rh'),
-        'hemi-L_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'lh'),
-        'hemi-R_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'rh'),
-        'hemi-L_desc-surfaceMesh_sphere': (splits['sphere'], 'lh'),
-        'hemi-R_desc-surfaceMesh_sphere': (splits['sphere'], 'rh'),
-        'hemi-L_desc-surfaceMap_sulc': (splits['sulc'], 'lh'),
-        'hemi-R_desc-surfaceMap_sulc': (splits['sulc'], 'rh'),
-        'hemi-L_desc-surfaceMap_thickness': (splits['thickness'], 'lh'),
-        'hemi-R_desc-surfaceMap_thickness': (splits['thickness'], 'rh'),
-        'hemi-L_desc-surfaceMap_volume': (splits['volume'], 'lh'),
-        'hemi-R_desc-surfaceMap_volume': (splits['volume'], 'rh'),
-        'hemi-L_desc-surfaceMesh_white': (splits['white'], 'lh'),
-        'hemi-R_desc-surfaceMesh_white': (splits['white'], 'rh')}
+        'pipeline-fs_hemi-L_desc-surface_curv': (splits['curv'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surface_curv': (splits['curv'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMesh_pial': (splits['pial'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMesh_pial': (splits['pial'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': (splits['sphere'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': (splits['sphere'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMap_sulc': (splits['sulc'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMap_sulc': (splits['sulc'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMap_thickness': (splits['thickness'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMap_thickness': (splits['thickness'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMap_volume': (splits['volume'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMap_volume': (splits['volume'], 'rh'),
+        'pipeline-fs_hemi-L_desc-surfaceMesh_white': (splits['white'], 'lh'),
+        'pipeline-fs_hemi-R_desc-surfaceMesh_white': (splits['white'], 'rh')}
 
     return wf, outputs
 

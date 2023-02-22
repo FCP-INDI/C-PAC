@@ -2210,7 +2210,9 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                   "space-longitudinal_desc-brain_mask",
                   "space-T1w_desc-acpcbrain_mask"],
                  ["desc-restore_T1w", "desc-head_T1w", "desc-preproc_T1w",
-                  "space-longitudinal_desc-reorient_T1w"]),
+                  "space-longitudinal_desc-reorient_T1w"],
+                 "space-template_desc-head_T1w",
+                 "space-template_desc-preproc_T1w"),
                 "T1w-template",
                 "T1w-brain-template",
                 "T1w-brain-template-mask",
@@ -2513,7 +2515,8 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
                  "T1w-template",
                  "from-T1w_to-template_mode-image_xfm",
                  "from-template_to-T1w_mode-image_xfm",
-                 "space-template_desc-brain_T1w")],
+                 "space-template_desc-brain_T1w",
+                 "space-template_desc-preproc_T1w")],
      "outputs": {"space-template_desc-preproc_T1w": {
                      "Template": "T1w-template"},
                  "space-template_desc-head_T1w": {
@@ -3380,7 +3383,8 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-head_T1w",
-                 "from-T1w_to-template_mode-image_xfm"),
+                 "from-T1w_to-template_mode-image_xfm",
+                 "space-template_desc-head_T1w"),
                 "T1w-template"],
      "outputs": {"space-template_desc-head_T1w": {
                      "Template": "T1w-template"}}}
