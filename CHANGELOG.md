@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `fail_fast` configuration setting and CLI flag
 - Added abililty to fork on motion filter
 - Added [`sdcflows`](https://www.nipreps.org/sdcflows/2.0/) to CPAC requirements
+- Added ability to ingress FreeSurfer data into CPAC
+- Added ability to select FreeSurfer derived masks for brain extraction
 
 ### Changed
 - Freesurfer output directory ingress moved to the data configuration YAML
