@@ -53,7 +53,6 @@ def run_surface(post_freesurfer_folder,
 
     subprocess.check_output(cmd)
 
-    print('run_surface 12')
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
     cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh',
