@@ -917,11 +917,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += [freesurfer_abcd_preproc]
 
     # Anatomical T1 brain masking
-    # if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-    #     cfg.surface_analysis['freesurfer']['run_reconall']:
-    # if not rpool.check_rpool('freesurfer-subject-dir') \
-    #         and not cfg.surface_analysis['freesurfer']['run_reconall'] \
-    #         and not cfg.surface_analysis['freesurfer']['generate_masks']:
 
     anat_brain_mask_blocks = [
         [brain_mask_afni,
