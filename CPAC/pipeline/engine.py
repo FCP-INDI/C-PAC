@@ -1503,7 +1503,7 @@ class NodeBlock:
 
                             for sidecar_key, sidecar_value in sidecar_additions.items():
                                 if sidecar_key not in new_json_info:
-                                    new_json_info[sidecar_value] = sidecar_key
+                                    new_json_info[sidecar_key] = sidecar_value
 
                             try:
                                 del new_json_info['subjson']
