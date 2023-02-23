@@ -200,6 +200,9 @@ surface_analysis:
 
     run_reconall: Off
 
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
+
     # Add extra arguments to recon-all command
     reconall_args:
 
@@ -331,7 +334,7 @@ anatomical_preproc:
   
     run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: ['BET']
 
