@@ -11,9 +11,9 @@ installer: 3.3.0
 # URLs to miniconda installers to
 # use for all supported platforms
 miniconda:
- linux-64: https://github.com/conda-forge/miniforge/releases/download/22.9.0-3/Mambaforge-22.9.0-3-Linux-x86_64.sh
- macos-64: https://github.com/conda-forge/miniforge/releases/download/22.9.0-3/Mambaforge-22.9.0-3-MacOSX-x86_64.sh
- macos-M1: https://github.com/conda-forge/miniforge/releases/download/22.9.0-3/Mambaforge-22.9.0-3-MacOSX-arm64.sh
+ linux-64: https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-Linux-x86_64.sh
+ macos-64: https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-MacOSX-x86_64.sh
+ macos-M1: https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-MacOSX-arm64.sh
 
 # Conda channels to source packages from
 channels:
