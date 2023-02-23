@@ -1309,7 +1309,7 @@ class NodeBlock:
             all_opts += opts
 
         sidecar_additions = {
-            'CpacConfigHash': hashlib.sha1(json.dumps(cfg.dict(), sort_keys=True)),
+            'CpacConfigHash': hashlib.sha1(json.dumps(cfg.dict(), sort_keys=True).encode('utf-8')).hexdigest(),
             'CpacConfig': cfg.dict()
         }
 
