@@ -172,7 +172,7 @@ from CPAC.nuisance.nuisance import (
 from CPAC.surface.surf_preproc import surface_postproc
 from CPAC.surface.surf_preproc import surface_falff
 from CPAC.surface.surf_preproc import surface_alff
-#from CPAC.surface.surf_preproc import cal_reho
+from CPAC.surface.surf_preproc import surface_reho
 #from CPAC.surface.surf_preproc import cal_connectivity_matrix
 
 from CPAC.timeseries.timeseries_analysis import (
@@ -1324,6 +1324,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if not rpool.check_rpool('surf_alff'):
         pipeline_blocks += [surface_alff]
 
+    if not rpool.check_rpool('surf-L_reho') or not rpool.check_rpool('surf-R_reho') :
+        pipeline_blocks += [surface_reho]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

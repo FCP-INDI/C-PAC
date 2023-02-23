@@ -879,66 +879,75 @@ def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
         'surf_alff': (alff,'surf_alff')}
     return wf, outputs
 
-# def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
+def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
 
-#     L_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'cortex_filename'], 
-#                                 output_names=['L_cortex_file'],
-#                                 function=run_get_cortex),
-#                   name=f'L_surf_cortex_{pipe_num}')
+    L_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'cortex_filename'], 
+                                output_names=['L_cortex_file'],
+                                function=run_get_cortex),
+                  name=f'L_surf_cortex_{pipe_num}')
 
-#     L_cortex_file.inputs.structure = "LEFT"
-#     L_cortex_file.inputs.cortex_filename = "L_cortex.func.gii"
-#     node, out = strat_pool.get_data(space-fsLR_den-32k_bold) 
-#     wf.connect(node, out, L_cortex_file, 'dtseries')
+    L_cortex_file.inputs.structure = "LEFT"
+    L_cortex_file.inputs.cortex_filename = "L_cortex.func.gii"
+    node, out = strat_pool.get_data('space-fsLR_den-32k_bold') 
+    wf.connect(node, out, L_cortex_file, 'dtseries')
 
-#     R_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'cortex_filename'], 
-#                                 output_names=['R_cortex_file'],
-#                                 function=run_get_cortex),
-#                   name=f'R_surf_cortex_{pipe_num}')
-
-
-#     R_cortex_file.inputs.structure = "RIGHT"
-#     R_cortex_file.inputs.cortex_filename = "R_cortex.func.gii"
-#     wf.connect(node, out,R_cortex_file, 'dtseries')
+    R_cortex_file = pe.Node(util.Function(input_names=['dtseries', 'structure', 'cortex_filename'], 
+                                output_names=['R_cortex_file'],
+                                function=run_get_cortex),
+                  name=f'R_surf_cortex_{pipe_num}')
 
 
-#     mean_timeseries = pe.Node(util.Function(input_names=['dtseries'], 
-#                                 output_names=['mean_timeseries'],
-#                                 function=run_mean_timeseries),
-#                   name=f'mean_timeseries_{pipe_num}')
+    R_cortex_file.inputs.structure = "RIGHT"
+    R_cortex_file.inputs.cortex_filename = "R_cortex.func.gii"
+    wf.connect(node, out,R_cortex_file, 'dtseries')
 
 
-#     wf.connect(node, out, mean_timeseries, 'dtseries')
+    mean_timeseries = pe.Node(util.Function(input_names=['dtseries'], 
+                                output_names=['mean_timeseries'],
+                                function=run_mean_timeseries),
+                  name=f'mean_timeseries_{pipe_num}')
 
-#     L_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries','reho_filename'], 
-#                                 output_names=['L_reho'],
-#                                 function=run_surf_reho),
-#                     name=f'surf_reho{pipe_num}')
 
-#     wf.connect(L_cortex_file, 'L_cortex_file', L_reho, 'cortex_file')
-#     wf.connect(surf, 'midthickness_L_32', L_reho, 'surface_file')
-#     wf.connect(surf,'atlas_roi_shape_L', L_reho, 'mask')
-#     wf.connect(mean_timeseries, 'mean_timeseries', L_reho, 'mean_timeseries') 
-#     L_reho.inputs.reho_filename = L_surf_reho.dscalar.nii
-#     wf.connect(node, out, L_reho, 'dtseries')
+    wf.connect(node, out, mean_timeseries, 'dtseries')
 
-#     R_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries', 'reho_filename'], 
-#                                 output_names=['R_reho'],
-#                                 function=run_surf_reho),
-#                     name=f'surf_reho{pipe_num}')
+    L_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries','reho_filename', 'structure_name'], 
+                                output_names=['L_reho'],
+                                function=run_surf_reho),
+                    name=f'L_surf_reho{pipe_num}')
 
-#     wf.connect(R_cortex_file, 'R_cortex_file', R_reho, 'cortex_file')
-#     wf.connect(surf, 'midthickness_R_32', R_reho, 'surface_file')
-#     wf.connect(surf,'atlas_roi_shape_R', L_reho, 'mask')
-#     wf.connect(mean_timeseries, 'mean_timeseries', R_reho, 'mean_timeseries')  
-#     R_reho.inputs.reho_filename = R_surf_reho.dscalar.nii
-#     wf.connect(node, out, R_reho, 'dtseries')
+    wf.connect(L_cortex_file, 'L_cortex_file', L_reho, 'cortex_file')
+    node, out = strat_pool.get_data('hemi-L_space-fsLR_den-32k_midthickness')
+    wf.connect(node, out, L_reho, 'surface_file')
+    
+    node, out = strat_pool.get_data('hemi-L_space-fsLR_den-32k_desc-atlasroi_mask')
+    wf.connect(node, out, L_reho, 'mask')
+    wf.connect(mean_timeseries, 'mean_timeseries', L_reho, 'mean_timeseries') 
+    L_reho.inputs.reho_filename = "L_surf_reho.dscalar.nii"
+    L_reho.inputs.structure_name = "CIFTI_STRUCTURE_CORTEX_LEFT"
+    node, out = strat_pool.get_data('space-fsLR_den-32k_bold')
+    wf.connect(node, out, L_reho, 'dtseries')
 
-#     outputs = {
-#         'surf-L_reho': (L_reho,'L_reho'),
-#         'surf-R_reho': (R_reho,'R_reho')}
+    R_reho = pe.Node(util.Function(input_names=['dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries', 'reho_filename', 'structure_name'], 
+                                output_names=['R_reho'],
+                                function=run_surf_reho),
+                    name=f'R_surf_reho{pipe_num}')
 
-#     return wf, outputs
+    wf.connect(R_cortex_file, 'R_cortex_file', R_reho, 'cortex_file')
+    node, out = strat_pool.get_data('hemi-R_space-fsLR_den-32k_midthickness')
+    wf.connect(node, out, R_reho, 'surface_file')
+    L_reho.inputs.structure_name = "CIFTI_STRUCTURE_CORTEX_RIGHT"
+    node, out = strat_pool.get_data('hemi-R_space-fsLR_den-32k_desc-atlasroi_mask')
+    wf.connect(node, out, R_reho, 'mask')
+    wf.connect(mean_timeseries, 'mean_timeseries', R_reho, 'mean_timeseries') 
+    R_reho.inputs.reho_filename = "R_surf_reho.dscalar.nii"
+    node, out = strat_pool.get_data('space-fsLR_den-32k_bold')
+    wf.connect(node, out, R_reho, 'dtseries')
+
+    outputs = {
+        'surf-L_reho': (L_reho,'L_reho'),
+        'surf-R_reho': (R_reho,'R_reho')}
+
+    return wf, outputs
 
 # def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
         
@@ -992,19 +1001,19 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
-# def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
-#     '''
-#     {"name": "ReHo",
-#      "config": ["regional_homogeneity"],
-#      "switch": ["run"],
-#      "option_key": "surface_reho",
-#      "option_val": "None",
-#      "inputs": ["space-fsLR_den-32k_bold"],
-#      "outputs": ["surf-L_reho", "surf-R_reho"]}
-#     '''
-#     wf, outputs = cal_reho(wf, cfg, strat_pool, pipe_num, opt)
+def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "ReHo",
+     "config": ["regional_homogeneity"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-fsLR_den-32k_bold"],
+     "outputs": ["surf-L_reho", "surf-R_reho"]}
+    '''
+    wf, outputs = cal_reho(wf, cfg, strat_pool, pipe_num, opt)
 
-#     return (wf, outputs)
+    return (wf, outputs)
 
 # def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
 #     '''
@@ -1036,31 +1045,32 @@ def run_surf_alff(subject,dtseries):
    subprocess.check_output(cmd)
    return alff
     
-# def run_get_cortex(dtseries, structure, cortex_filename):
-#     import os
-#     import subprocess
-#     cortex_file = os.path.join(os.getcwd(), cortex_filename)
-#     cmd = ['wb_command', '-cifti-separate', dtseries , 'COLUMN', '-label', structure, cortex_file]
-#     subprocess.check_output(cmd)
-#     return cortex_file
+def run_get_cortex(subject, dtseries, structure, cortex_filename):
+    import os
+    import subprocess
+    cortex_file = os.path.join(os.getcwd(), f'{subject}_{cortex_filename}')
+    cmd = ['wb_command', '-cifti-separate', dtseries , 'COLUMN', '-label', structure, cortex_file]
+    subprocess.check_output(cmd)
+    return cortex_file
 
-# def run_mean_timeseries(dtseries,post_freesurfer_folder):
+def run_mean_timeseries(subject, dtseries):
 
-#     import os
-#     import subprocess
-#     mean_timeseries = os.path.join(os.getcwd(), mean.dscalar.nii)
-#     cmd = ['wb_command', '-cifti-reduce', dtseries, 'MEAN', mean_timeseries]
-#     subprocess.check_output(cmd)
-#     return mean_timeseries
+    import os
+    import subprocess
+    mean_timeseries = os.path.join(os.getcwd(), f'{subject}_mean.dscalar.nii')
+    cmd = ['wb_command', '-cifti-reduce', dtseries, 'MEAN', mean_timeseries]
+    subprocess.check_output(cmd)
+    return mean_timeseries
     
-# def run_surf_reho(dtseries, mask, cortex_file, surface_file,mean_timeseries,post_freesurfer_folder, reho_filename):
+def run_surf_reho(subject, dtseries, mask, cortex_file, surface_file,mean_timeseries,reho_filename,structure_name):
 
-#     import os
-#     import subprocess
-#     surf_reho = os.path.join(os.getcwd(), reho_filename)
-#     cmd = ['python', '/code/CPAC/surface/PostFreeSurfer/surf_reho.py', dtseries, mask, cortex_file, surface_file, mean_timeseries, surf_reho]
-#     subprocess.check_output(cmd)
-#     return surf_reho
+    import os
+    import subprocess
+
+    surf_reho = os.path.join(os.getcwd(), f'{subject}_{reho_filename}')
+    cmd = ['python', '/code/CPAC/surface/PostFreeSurfer/surf_reho.py', dtseries, mask, cortex_file, surface_file, mean_timeseries, structure_name, surf_reho]
+    subprocess.check_output(cmd)
+    return surf_reho
     
 # def run_ciftiparcellate(dtseries, surf_atlaslabel):
 #     import os  
