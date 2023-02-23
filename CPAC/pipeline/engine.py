@@ -1309,8 +1309,8 @@ class NodeBlock:
             all_opts += opts
 
         sidecar_additions = {
-            'CpacConfigHash': hashlib.sha1(json.dumps(cfg, sort_keys=True)),
-            'CpacConfig': cfg
+            'CpacConfigHash': hashlib.sha1(json.dumps(cfg.dict(), sort_keys=True)),
+            'CpacConfig': cfg.dict()
         }
 
         if cfg['pipeline_setup']['output_directory'].get('user_defined'):
