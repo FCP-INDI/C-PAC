@@ -62,7 +62,7 @@ anatomical_preproc:
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
-    using: [FreeSurfer-BET-Tight, FreeSurfer-BET-Loose]
+    using: [FreeSurfer-BET-Tight, FreeSurfer-BET-Loose, FreeSurfer-Brainmask]
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
