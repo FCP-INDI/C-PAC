@@ -38,8 +38,11 @@ def run_surface(post_freesurfer_folder,
 
     import os
     import subprocess
-
-    #freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
+    
+    recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
+    
+    if os.path.isdir(recon_all_path):
+        freesurfer_folder = recon_all_path
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
