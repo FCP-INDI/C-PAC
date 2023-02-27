@@ -879,7 +879,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                      brain_mask_acpc_niworkflows_ants,
                      brain_mask_acpc_unet,
                      brain_mask_acpc_freesurfer_abcd,
-                     brain_mask_acpc,
                      brain_mask_acpc_freesurfer,
                      brain_mask_acpc_freesurfer_fsl_tight,
                      brain_mask_acpc_freesurfer_fsl_loose],
