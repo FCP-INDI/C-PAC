@@ -322,13 +322,15 @@ class Configuration:
         setattr(self, key, val)
 
     def get_nested(self, d, keys):
+        if d is None:
+            d = {}
         if isinstance(keys, str):
             return d[keys]
-        elif isinstance(keys, tuple) or isinstance(keys, list):
+        if isinstance(keys, (list, tuple)):
             if len(keys) > 1:
                 return self.get_nested(d[keys[0]], keys[1:])
-            else:
-                return d[keys[0]]
+            return d[keys[0]]
+        return d
 
     def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
