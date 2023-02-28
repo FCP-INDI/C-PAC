@@ -122,14 +122,12 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 new_dict = set_nested_value(
                     new_dict, ['surface_analysis', 'freesurfer',
                     'run_reconall'], False)
+            ingress_keys = ['surface_analysis', 'freesurfer', 'ingress_reconall']
             try:
-                self.get_nested(new_dict,
-                                ['surface_analysis', 'freesurfer',
-                                 'ingress_reconall'])
+                self.get_nested(new_dict, ingress_keys)
             except KeyError:
-                new_dict = set_nested_value(new_dict,
-                                            ['surface_analysis', 'freesurfer',
-                                             'ingress_reconall'], False)
+                new_dict = set_nested_value(new_dict, ingress_keys,
+                                            self.get_nested(self._dict, ingress_keys))
         else:
             _dump = []
         # Prepare for indentation
