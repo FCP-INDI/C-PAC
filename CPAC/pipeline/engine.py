@@ -26,6 +26,7 @@ import warnings
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype import config, logging  # pylint: disable=wrong-import-order
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
 from CPAC.func_preproc.func_preproc import motion_estimate_filter
@@ -1188,8 +1189,7 @@ class ResourcePool:
 
 
 class NodeBlock:
-    def __init__(self, node_block_functions):
-
+    def __init__(self, node_block_functions, debug=False):
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -1237,6 +1237,19 @@ class NodeBlock:
             self.options = ['base']
             if 'options' in init_dct:
                 self.options = init_dct['options']
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             init_dct["inputs"], list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
 
     def get_name(self):
         return self.name
@@ -1384,7 +1397,6 @@ class NodeBlock:
                     switch = [switch]
 
             if True in switch:
-                logger.info('Connecting %s...', name)
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
@@ -2202,7 +2214,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         }
 
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
-    rpool = initiate_rpool(cfg, data_paths)
+    _, rpool = initiate_rpool(cfg, data_paths)
 
     wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
@@ -2222,7 +2234,9 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         run_blocks += blocks[1]
 
     for block in run_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        wf = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                        'verbose']).connect_block(
+                                            wf, cfg, rpool)
     rpool.gather_pipes(wf, cfg)
 
     wf.run()

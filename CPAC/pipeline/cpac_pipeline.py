@@ -290,7 +290,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'resource_monitor_frequency': 0.2,
             'stop_on_first_crash': c['pipeline_setup', 'system_config',
                                      'fail_fast']}})
-
     config.enable_resource_monitor()
     logging.update_logging(config)
 
@@ -1093,7 +1092,8 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     previous_nb = None
     for block in pipeline_blocks:
         try:
-            nb = NodeBlock(block)
+            nb = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                            'verbose'])
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
