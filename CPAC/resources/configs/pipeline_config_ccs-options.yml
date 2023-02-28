@@ -49,7 +49,7 @@ surface_analysis:
     reconall_args: -clean-bm -gcut
 
     # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
+    ingress_reconall: On
 
 anatomical_preproc:
   run: On
