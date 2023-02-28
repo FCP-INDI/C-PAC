@@ -4,13 +4,14 @@ import os
 import sys
 
 
-dtseries = sys.argv[0] # dtseries file
-mask = sys.argv[1] # surface mask file
-cortex_file = sys.argv[2] # cortex file 
-surf = sys.argv[3] # surface file
-scalar_dt =  sys.argv[4] # mean_timeseries
-structure_name = sys.argv[5]
-surf_reho = sys.argv[6] # Path to reho file
+dtseries = nb.load(sys.argv[1]) # dtseries file
+mask = nb.load(sys.argv[2]) # surface mask file
+cortex_file = nb.load(sys.argv[3]) # cortex file 
+surf_file = nb.load(sys.argv[4]) # surface file
+scalar_dt =  nb.load(sys.argv[5]) # mean_timeseries
+structure_name = sys.argv[6] #structure name
+surf_reho = sys.argv[7] # Path to reho file
+
 
 def get_neighbours(faces, vertex_id, depth=1):
     fois = np.where(faces == vertex_id)[0]
@@ -27,7 +28,8 @@ def get_neighbours(faces, vertex_id, depth=1):
 def ccs_ReHo(dt_file, surf_file):
 
     #Finding neighbors
-    surf = np.array(surf_file.agg_data()) # 2 separate arrays
+    print(surf_file)
+    #surf = np.array(surf_file.agg_data()) # 2 separate arrays
     faces = np.array(surf_file.agg_data('triangle'))
     vertex = np.array(surf_file.agg_data('pointset'))
     voi = range(0,(vertex.shape)[0])
@@ -63,7 +65,7 @@ def ccs_ReHo(dt_file, surf_file):
 
     return(cReHo)    
 
-cReHo = ccs_ReHo(cortex_file, surf)
+cReHo = ccs_ReHo(cortex_file, surf_file)
 
 ## Axes and Header stuff ##
 axes = [dtseries.header.get_axis(i) for i in range(dtseries.ndim)]
