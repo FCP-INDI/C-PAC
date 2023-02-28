@@ -53,13 +53,13 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.6.0
- - fsleyes 1.6.0
- - fslpy 3.11.0
+ - fsleyes 1.6.1
+ - fslpy 3.11.2
  - fsl-add_module 0.4.0
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2302.1
+ - fsl-base 2302.2
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -160,7 +160,7 @@ packages:
  - fsl-vtkio 2111.0
  - fsl-warpfns 2203.0
  - fsl-wire 1.0.0
- - fsl-xtract 1.6.1
+ - fsl-xtract 1.6.2
  - fsl-xtract_data 2.0.1
  - fsl-znzlib 2111.0
  - ghalton 0.6.1
