@@ -108,6 +108,12 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             fsldir = self.get_nested(self._dict,
                                      ['pipeline_setup', 'system_config',
                                       'FSLDIR'])
+        try:
+            self.get_nested(new_dict, ['surface_analysis', 'freesurfer', 'ingress_reconall'])
+        except KeyError:
+            new_dict = set_nested_value(new_dict, ['surface_analysis', 'freesurfer', 
+                            'ingress_reconall'], False)
+        
         # Add YAML version directive to top of document and ensure
         # C-PAC version comment and 'FROM' are at the top of the YAML
         # output
