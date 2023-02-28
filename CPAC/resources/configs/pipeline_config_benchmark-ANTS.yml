@@ -358,3 +358,15 @@ seed_based_correlation_analysis:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths:
     s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off

@@ -28,17 +28,20 @@ pipeline_setup:
 # -------------
 surface_analysis:
 
-  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer:
-    run: On
-
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
 
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: On
+
     # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
     run_reconall: Off
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer:
+    run: On
 
 anatomical_preproc:
   run: On

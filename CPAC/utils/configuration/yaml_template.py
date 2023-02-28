@@ -108,6 +108,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             fsldir = self.get_nested(self._dict,
                                      ['pipeline_setup', 'system_config',
                                       'FSLDIR'])
+
         # Add YAML version directive to top of document and ensure
         # C-PAC version comment and 'FROM' are at the top of the YAML
         # output
@@ -119,8 +120,14 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             # Insert automatically-changed value in original dict
             if freesurfer_extraction:
                 new_dict = set_nested_value(
-                    new_dict, ['surface_analysis', 'freesurfer', 
+                    new_dict, ['surface_analysis', 'freesurfer',
                     'run_reconall'], False)
+            ingress_keys = ['surface_analysis', 'freesurfer', 'ingress_reconall']
+            try:
+                self.get_nested(new_dict, ingress_keys)
+            except KeyError:
+                new_dict = set_nested_value(new_dict, ingress_keys,
+                                            self.get_nested(self._dict, ingress_keys))
         else:
             _dump = []
         # Prepare for indentation
