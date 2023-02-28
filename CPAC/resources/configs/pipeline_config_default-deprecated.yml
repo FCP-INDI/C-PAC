@@ -208,3 +208,15 @@ network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: On
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off

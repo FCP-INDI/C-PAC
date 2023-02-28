@@ -37,6 +37,9 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
 
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
+
     # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
     run_reconall: Off
 

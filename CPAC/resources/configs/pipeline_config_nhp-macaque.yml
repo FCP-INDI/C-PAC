@@ -13,3 +13,15 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_default_macaque_skullstrip
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
