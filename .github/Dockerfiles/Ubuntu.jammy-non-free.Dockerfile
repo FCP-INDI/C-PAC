@@ -17,14 +17,13 @@
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:jammy-non-free AS dcan-hcp
 
-
 ARG DEBIAN_FRONTEND=noninteractive
-
+COPY ./dev/docker_data/neurodebian.sources.list /etc/apt/sources.list.d/neurodebian.sources.list
 # add DCAN dependencies & HCP code
-RUN apt-get update && \
-    apt-get install -y git && \
-    mkdir -p /opt/dcan-tools && \
-    git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
+RUN apt-get update \
+    && apt-get install -y git \
+    && mkdir -p /opt/dcan-tools \
+    && git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
 
 # use neurodebian runtime as parent image
 FROM neurodebian:jammy-non-free
@@ -35,6 +34,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York
 
 # install install dependencies
+COPY ./dev/docker_data/neurodebian.sources.list /etc/apt/sources.list.d/neurodebian.sources.list
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       software-properties-common python3-pip python3-dev \
@@ -127,6 +127,14 @@ RUN pip install --upgrade pip setuptools \
     && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
     && apt-get install -y --no-install-recommends git-lfs \
     && git lfs install
+
+COPY --from=c-pac_templates /cpac_templates /cpac_templates
+COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
+COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
+
+# Installing surface files for downsampling
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
 
 ENTRYPOINT ["/bin/bash"]
 

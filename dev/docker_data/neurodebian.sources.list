@@ -1,0 +1,3 @@
+deb [signed-by=/etc/apt/trusted.gpg.d/neurodebian.gpg] http://neuro.debian.net/debian jammy main contrib non-free
+deb [signed-by=/etc/apt/trusted.gpg.d/neurodebian.gpg] http://neuro.debian.net/debian data main contrib non-free
+#deb-src http://neuro.debian.net/debian-devel jammy main contrib non-free

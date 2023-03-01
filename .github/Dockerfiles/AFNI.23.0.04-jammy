@@ -1,0 +1,78 @@
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
+USER root
+
+COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
+
+RUN add-apt-repository universe \
+    && apt-get update \
+    && apt-get install -y \
+       tcsh xfonts-base libssl-dev       \
+       python-is-python3                 \
+       python3-matplotlib python3-numpy  \
+       python3-pil                       \
+       gsl-bin netpbm gnome-tweaks       \
+       libjpeg62 xvfb xterm vim curl     \
+       gedit evince eog                  \
+       libglu1-mesa-dev libglw1-mesa     \
+       libxm4 build-essential            \
+       libcurl4-openssl-dev libxml2-dev  \
+       libgfortran-11-dev libgomp1       \
+       gnome-terminal nautilus           \
+       firefox xfonts-100dpi             \
+       r-base-dev cmake \
+    && apt-get install -y \
+       libgdal-dev libopenblas-dev       \
+       libnode-dev libudunits2-dev       \
+    && ln -s \
+        /usr/lib/x86_64-linux-gnu/libgsl.so.27 \
+        /usr/lib/x86_64-linux-gnu/libgsl.so.19 \
+    && ldconfig \
+    && AFNI_VERSION="23.0.04"
+    # && curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz \
+    # && curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries \
+    # && tcsh @update.afni.binaries -local_package afni-AFNI_${AFNI_VERSION}.tar.gz -bindir /opt/afni -do_extras
+
+#     && libs_path=/usr/lib/x86_64-linux-gnu \
+#     && ln -s $libs_path/libgsl.so.19 $libs_path/libgsl.so.0
+
+# RUN LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
+#     export LD_LIBRARY_PATH && \
+#     apt-get update && apt-get install -y libglw1-mesa-dev && \
+#     ldconfig && \
+#     AFNI_VERSION="23.0.04" && \
+#     curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz && \
+#     mkdir /opt/afni && \
+#     tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 && \
+#     rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz && \
+#     cd /opt/afni/src && \
+#     sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' Makefile.linux_ubuntu_16_64 > Makefile
+#     make vastness && make cleanest && \
+#     cd /opt/afni && \
+#     # filter down to required packages
+#     ls > full_ls && \
+#     sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls && \
+#     comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls && \
+#     apt-get remove -y libglw1-mesa-dev && \
+#     ldconfig
+
+# set up AFNI
+# ENV PATH=/opt/afni:$PATH
+
+ENTRYPOINT ["/bin/bash"]
+
+# Link libraries for Singularity images
+RUN ldconfig
+
+RUN apt-get clean && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# FROM scratch
+# LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+# AFNI 21.1.00 (Domitian) stage"
+# LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+# COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+# COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+# COPY --from=AFNI /lib64/ld* /lib64/
+# COPY --from=AFNI /opt/afni/ /opt/afni/
+# COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
