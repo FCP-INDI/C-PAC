@@ -25,4 +25,5 @@ USER c-pac_user
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 ICA-AROMA 0.4.5 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

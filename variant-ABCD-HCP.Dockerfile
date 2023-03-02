@@ -1,9 +1,8 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.4
+FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.5.dev
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile)"
 USER root
 
 # install C-PAC
-COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
 RUN pip install -e /code

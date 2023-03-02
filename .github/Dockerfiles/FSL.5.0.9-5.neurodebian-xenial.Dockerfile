@@ -1,6 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-FSL 5.0.9-5 stage"
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as FSL
 USER root
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -34,7 +32,8 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
     cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
+    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+    chmod -R ugo+r $FSLDIR/data/standard
 
 ENTRYPOINT ["/bin/bash"]
 
@@ -44,5 +43,19 @@ RUN ldconfig && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# set user
-USER c-pac_user
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FSL 5.0.9-5 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+COPY --from=FSL /etc/fsl /etc/fsl
+COPY --from=FSL /usr/lib/fsl /usr/lib/fsl
+COPY --from=FSL /usr/lib/libnewmat.so.10 /usr/lib/libnewmat.so.10
+COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=FSL /usr/lib/libniftiio.so.2 /usr/lib/libniftiio.so.2
+COPY --from=FSL /usr/lib/libznz.so.2 /usr/lib/libznz.so.2
+COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
+COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
+COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
+COPY --from=FSL /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
+COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
+COPY --from=FSL /usr/share/fsl /usr/share/fsl

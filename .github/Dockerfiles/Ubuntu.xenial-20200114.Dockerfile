@@ -1,3 +1,4 @@
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM nipreps/fmriprep:20.2.1 as fmriprep
 FROM ubuntu:xenial-20200114 AS dcan-hcp
 
@@ -14,6 +15,7 @@ RUN git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs
 FROM ubuntu:xenial-20200114
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Xenial base image"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 
 # create usergroup and user, set permissions, install curl
@@ -119,9 +121,9 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Installing and setting up miniconda
-RUN curl -sSLO https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh && \
-    bash Miniconda3-4.5.11-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-4.5.11-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda
+RUN curl -sSLO https://repo.continuum.io/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
+    bash Miniconda3-py37_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-py37_4.12.0-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda
 
 # Set CPATH for packages relying on compiled libs (e.g. indexed_gzip)
 ENV PATH="/usr/local/miniconda/bin:$PATH" \
@@ -140,8 +142,8 @@ RUN conda update conda -y && \
         networkx==2.4 \
         nose==1.3.7 \
         numpy==1.15.4 \
-        pandas==0.23.4 \
-        scipy==1.1.0 \
+        pandas==1.0.5 \
+        scipy==1.6.3 \
         traits==4.6.0 \
         pip
 
@@ -156,8 +158,12 @@ RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
 # install cpac templates
-COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
+COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
+
+# Installing surface files for downsampling
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs

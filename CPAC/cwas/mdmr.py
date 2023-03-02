@@ -83,15 +83,15 @@ def mdmr(D, X, columns, permutations):
         Gs[:, di] = gower(D[di]).flatten()
     
     X1 = np.hstack((np.ones((subjects, 1)), X))
-    columns = columns.copy() + 1
+    columns = columns.copy() #removed a +1
 
     regressors = X1.shape[1]
-    
-    permutation_indexes = np.zeros((permutations + 1, subjects), dtype=np.int)
+
+    permutation_indexes = np.zeros((permutations, subjects), dtype=np.int)
     permutation_indexes[0, :] = range(subjects)
-    for i in range(1, permutations + 1):
+    for i in range(1, permutations):
         permutation_indexes[i,:] = np.random.permutation(subjects)
-        
+    
     H2perms = gen_h2_perms(X1, columns, permutation_indexes)
     IHperms = gen_ih_perms(X1, columns, permutation_indexes)
 

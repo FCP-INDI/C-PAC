@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1.6.0
+        uses: docker/setup-buildx-action@v2.2.1
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -74,14 +74,13 @@ jobs:
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          TAG=latest
           if [[ $VARIANT == "" ]]
           then
             DOCKERFILE=Dockerfile
           else
             DOCKERFILE=variant$VARIANT.Dockerfile
           fi
-          TAG=$TAG$VARIANT
+          TAG=release-${{ github.ref_name }}$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           echo DOCKERFILE="${DOCKERFILE}" >> $GITHUB_ENV
           cat $GITHUB_ENV
@@ -93,7 +92,7 @@ jobs:
           echo $DOCKERFILE
           cat $DOCKERFILE
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2.9.0
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           file: ${{ env.DOCKERFILE }}

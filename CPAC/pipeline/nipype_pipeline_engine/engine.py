@@ -1,58 +1,80 @@
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Supports just-in-time dynamic memory allocation
+#     * Skips doctests that require files that we haven't copied over
+#     * Applies a random seed
+#     * Supports overriding memory estimates via a log file and a buffer
+#     * Adds quotation marks around strings in dotfiles
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2022-2023 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 '''Module to import Nipype Pipeline engine and override some Classes.
 See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
-for Nipype's documentation.
-
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
-
-CHANGES:
-    * Supports just-in-time dynamic memory allocation
-    * Skips doctests that require files that we haven't copied over
-    * Applies a random seed
-    * Supports overriding memory estimates via a log file and a buffer
-
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright (c) 2009-2016, Nipype developers
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-    Prior to release 0.12, Nipype was licensed under a BSD license.
-
-Modifications Copyright (C) 2022  C-PAC Developers
-
-This file is part of C-PAC.'''  # noqa: E501
+for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
 import os
 import re
-from logging import getLogger
+from copy import deepcopy
 from inspect import Parameter, Signature, signature
 from nibabel import load
-from nipype import logging
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
-from nipype.pipeline.engine.utils import load_resultfile as _load_resultfile
+from nipype.pipeline.engine.utils import (
+    _create_dot_graph,
+    format_dot,
+    generate_expanded_graph,
+    get_print_name,
+    load_resultfile as _load_resultfile,
+    _replacefunk,
+    _run_dot
+)
+from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+from CPAC.utils.monitoring.custom_logging import getLogger
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
 
-random_state_logger = getLogger('random')
+logger = getLogger("nipype.workflow")
 
 
 def _check_mem_x_path(mem_x_path):
@@ -135,7 +157,7 @@ class Node(pe.Node):
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
-        self.logger = logging.getLogger("nipype.workflow")
+        self.logger = getLogger("nipype.workflow")
         self.seed = random_seed()
         self.seed_applied = False
         self.input_data_shape = Undefined
@@ -399,10 +421,10 @@ class Node(pe.Node):
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
-                random_state_logger.info('%s',
-                                         '%s  # (Atropos constant)' %
-                                         self.name if 'atropos' in
-                                         self.name else self.name)
+                random_state_logger = getLogger('random')
+                random_state_logger.info('%s\t%s', '# (Atropos constant)' if
+                                         'atropos' in self.name else
+                                         str(self.seed), self.name)
         return super().run(updatehash)
 
 
@@ -415,6 +437,8 @@ class MapNode(Node, pe.MapNode):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.name.endswith('_'):
+            self.name = f'{self.name}_'
 
     __init__.__signature__ = Signature(parameters=[
         p[1] if p[0] != 'mem_gb' else (
@@ -483,6 +507,119 @@ class Workflow(pe.Workflow):
                                         TypeError):
                                     self._handle_just_in_time_exception(node)
 
+    def _get_dot(
+        self, prefix=None, hierarchy=None, colored=False, simple_form=True,
+        level=0
+    ):
+        """Create a dot file with connection info"""
+        # pylint: disable=invalid-name,protected-access
+        import networkx as nx
+
+        if prefix is None:
+            prefix = "  "
+        if hierarchy is None:
+            hierarchy = []
+        colorset = [
+            "#FFFFC8",  # Y
+            "#0000FF",
+            "#B4B4FF",
+            "#E6E6FF",  # B
+            "#FF0000",
+            "#FFB4B4",
+            "#FFE6E6",  # R
+            "#00A300",
+            "#B4FFB4",
+            "#E6FFE6",  # G
+            "#0000FF",
+            "#B4B4FF",
+        ]  # loop B
+        if level > len(colorset) - 2:
+            level = 3  # Loop back to blue
+        quoted_prefix = f'"{prefix}"' if len(prefix.strip()) else prefix
+        dotlist = [f'{quoted_prefix}label="{self.name}";']
+        for node in nx.topological_sort(self._graph):
+            fullname = ".".join(hierarchy + [node.fullname])
+            nodename = fullname.replace(".", "_")
+            if not isinstance(node, Workflow):
+                node_class_name = get_print_name(node, simple_form=simple_form)
+                if not simple_form:
+                    node_class_name = ".".join(node_class_name.split(".")[1:])
+                if hasattr(node, "iterables") and node.iterables:
+                    dotlist.append(f'"{nodename}"[label="{node_class_name}", '
+                                   "shape=box3d, style=filled, color=black, "
+                                   "colorscheme=greys7 fillcolor=2];")
+                else:
+                    if colored:
+                        dotlist.append(f'"{nodename}"[label="'
+                                       f'{node_class_name}", style=filled,'
+                                       f' fillcolor="{colorset[level]}"];')
+                    else:
+                        dotlist.append(f'"{nodename}"[label="'
+                                       f'{node_class_name}"];')
+
+        for node in nx.topological_sort(self._graph):
+            if isinstance(node, Workflow):
+                fullname = ".".join(hierarchy + [node.fullname])
+                nodename = fullname.replace(".", "_")
+                dotlist.append(f"subgraph \"cluster_{nodename}\" {{")
+                if colored:
+                    dotlist.append(f'{prefix}{prefix}edge [color="'
+                                   f'{colorset[level + 1]}"];')
+                    dotlist.append(f"{prefix}{prefix}style=filled;")
+                    dotlist.append(f'{prefix}{prefix}fillcolor='
+                                   f'"{colorset[level + 2]}";')
+                dotlist.append(
+                    node._get_dot(
+                        prefix=prefix + prefix,
+                        hierarchy=hierarchy + [self.name],
+                        colored=colored,
+                        simple_form=simple_form,
+                        level=level + 3,
+                    )
+                )
+                dotlist.append("}")
+            else:
+                for subnode in self._graph.successors(node):
+                    if node._hierarchy != subnode._hierarchy:
+                        continue
+                    if not isinstance(subnode, Workflow):
+                        nodefullname = ".".join(hierarchy + [node.fullname])
+                        subnodefullname = ".".join(
+                            hierarchy + [subnode.fullname])
+                        nodename = nodefullname.replace(".", "_")
+                        subnodename = subnodefullname.replace(".", "_")
+                        for _ in self._graph.get_edge_data(
+                            node, subnode
+                        )["connect"]:
+                            dotlist.append(f'"{nodename}" -> "{subnodename}";')
+                        logger.debug("connection: %s", dotlist[-1])
+        # add between workflow connections
+        for u, v, d in self._graph.edges(data=True):
+            uname = ".".join(hierarchy + [u.fullname])
+            vname = ".".join(hierarchy + [v.fullname])
+            for src, dest in d["connect"]:
+                uname1 = uname
+                vname1 = vname
+                if isinstance(src, tuple):
+                    srcname = src[0]
+                else:
+                    srcname = src
+                if "." in srcname:
+                    uname1 += "." + ".".join(srcname.split(".")[:-1])
+                if "." in dest and "@" not in dest:
+                    if not isinstance(v, Workflow):
+                        if "datasink" not in str(
+                            v._interface.__class__
+                        ).lower():
+                            vname1 += "." + ".".join(dest.split(".")[:-1])
+                    else:
+                        vname1 += "." + ".".join(dest.split(".")[:-1])
+                if uname1.split(".")[:-1] != vname1.split(".")[:-1]:
+                    dotlist.append(f'"{uname1.replace(".", "_")}" -> '
+                                   f'"{vname1.replace(".", "_")}";')
+                    logger.debug("cross connection: %s", dotlist[-1])
+        return ("\n" + prefix).join(dotlist)
+
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
         if hasattr(self, '_local_func_scans'):
@@ -491,6 +628,75 @@ class Workflow(pe.Workflow):
         else:
             # TODO: handle S3 files
             node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
+
+    def write_graph(
+        self,
+        dotfilename="graph.dot",
+        graph2use="hierarchical",
+        format="png",
+        simple_form=True,
+    ):
+        graphtypes = ["orig", "flat", "hierarchical", "exec", "colored"]
+        if graph2use not in graphtypes:
+            raise ValueError(
+                "Unknown graph2use keyword. Must be one of: " + str(graphtypes)
+            )
+        base_dir, dotfilename = os.path.split(dotfilename)
+        if base_dir == "":
+            if self.base_dir:
+                base_dir = self.base_dir
+                if self.name:
+                    base_dir = os.path.join(base_dir, self.name)
+            else:
+                base_dir = os.getcwd()
+        os.makedirs(base_dir, exist_ok=True)
+        if graph2use in ["hierarchical", "colored"]:
+            if self.name[:1].isdigit():  # these graphs break if int
+                raise ValueError(f"{graph2use} graph failed, workflow name "
+                                 "cannot begin with a number")
+            dotfilename = os.path.join(base_dir, dotfilename)
+            self.write_hierarchical_dotfile(
+                dotfilename=dotfilename,
+                colored=graph2use == "colored",
+                simple_form=simple_form,
+            )
+            outfname = format_dot(dotfilename, format=format)
+        else:
+            graph = self._graph
+            if graph2use in ["flat", "exec"]:
+                graph = self._create_flat_graph()
+            if graph2use == "exec":
+                graph = generate_expanded_graph(deepcopy(graph))
+            outfname = export_graph(
+                graph,
+                base_dir,
+                dotfilename=dotfilename,
+                format=format,
+                simple_form=simple_form,
+            )
+
+        logger.info("Generated workflow graph: %s "
+                    "(graph2use=%s, simple_form=%s).",
+                    outfname, graph2use, simple_form)
+        return outfname
+
+    write_graph.__doc__ = pe.Workflow.write_graph.__doc__
+
+    def write_hierarchical_dotfile(
+        self, dotfilename=None, colored=False, simple_form=True
+    ):
+        # pylint: disable=invalid-name
+        dotlist = [f"digraph \"{self.name}\"{{"]
+        dotlist.append(self._get_dot(prefix="  ", colored=colored,
+                                     simple_form=simple_form))
+        dotlist.append("}")
+        dotstr = "\n".join(dotlist)
+        if dotfilename:
+            with open(dotfilename, "wt", encoding="utf-8") as fp:
+                fp.writelines(dotstr)
+                fp.close()
+        else:
+            logger.info(dotstr)
 
 
 def get_data_size(filepath, mode='xyzt'):
@@ -527,3 +733,140 @@ def get_data_size(filepath, mode='xyzt'):
     if mode == 'xyz':
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
+
+
+def export_graph(
+    graph_in,
+    base_dir=None,
+    show=False,
+    use_execgraph=False,
+    show_connectinfo=False,
+    dotfilename="graph.dot",
+    format="png",
+    simple_form=True,
+):
+    """Displays the graph layout of the pipeline
+    This function requires that pygraphviz and matplotlib are available on
+    the system.
+    Parameters
+    ----------
+    show : boolean
+    Indicate whether to generate pygraphviz output fromn
+    networkx. default [False]
+    use_execgraph : boolean
+    Indicates whether to use the specification graph or the
+    execution graph. default [False]
+    show_connectioninfo : boolean
+    Indicates whether to show the edge data on the graph. This
+    makes the graph rather cluttered. default [False]
+    """
+    import networkx as nx
+
+    graph = deepcopy(graph_in)
+    if use_execgraph:
+        graph = generate_expanded_graph(graph)
+        logger.debug("using execgraph")
+    else:
+        logger.debug("using input graph")
+    if base_dir is None:
+        base_dir = os.getcwd()
+
+    os.makedirs(base_dir, exist_ok=True)
+    out_dot = fname_presuffix(dotfilename, suffix="_detailed.dot",
+                              use_ext=False, newpath=base_dir)
+    _write_detailed_dot(graph, out_dot)
+
+    # Convert .dot if format != 'dot'
+    outfname, res = _run_dot(out_dot, format_ext=format)
+    if res is not None and res.runtime.returncode:
+        logger.warning("dot2png: %s", res.runtime.stderr)
+
+    pklgraph = _create_dot_graph(graph, show_connectinfo, simple_form)
+    simple_dot = fname_presuffix(dotfilename, suffix=".dot", use_ext=False,
+                                 newpath=base_dir)
+    nx.drawing.nx_pydot.write_dot(pklgraph, simple_dot)
+
+    # Convert .dot if format != 'dot'
+    simplefname, res = _run_dot(simple_dot, format_ext=format)
+    if res is not None and res.runtime.returncode:
+        logger.warning("dot2png: %s", res.runtime.stderr)
+
+    if show:
+        pos = nx.graphviz_layout(pklgraph, prog="dot")
+        nx.draw(pklgraph, pos)
+        if show_connectinfo:
+            nx.draw_networkx_edge_labels(pklgraph, pos)
+
+    return simplefname if simple_form else outfname
+
+
+def _write_detailed_dot(graph, dotfilename):
+    r"""
+    Create a dot file with connection info ::
+        digraph structs {
+        node [shape=record];
+        struct1 [label="<f0> left|<f1> middle|<f2> right"];
+        struct2 [label="<f0> one|<f1> two"];
+        struct3 [label="hello\nworld |{ b |{c|<here> d|e}| f}| g | h"];
+        struct1:f1 -> struct2:f0;
+        struct1:f0 -> struct2:f1;
+        struct1:f2 -> struct3:here;
+        }
+    """
+    # pylint: disable=invalid-name
+    import networkx as nx
+
+    text = ["digraph structs {", "node [shape=record];"]
+    # write nodes
+    edges = []
+    for n in nx.topological_sort(graph):
+        nodename = n.itername
+        inports = []
+        for u, v, d in graph.in_edges(nbunch=n, data=True):
+            for cd in d["connect"]:
+                if isinstance(cd[0], (str, bytes)):
+                    outport = cd[0]
+                else:
+                    outport = cd[0][0]
+                inport = cd[1]
+                ipstrip = f"in{_replacefunk(inport)}"
+                opstrip = f"out{_replacefunk(outport)}"
+                edges.append(f'"{u.itername.replace(".", "")}":'
+                             f'"{opstrip}":e -> '
+                             f'"{v.itername.replace(".", "")}":'
+                             f'"{ipstrip}":w;')
+                if inport not in inports:
+                    inports.append(inport)
+        inputstr = (["{IN"]
+                    + [f"|<in{_replacefunk(ip)}> {ip}" for
+                       ip in sorted(inports)] + ["}"])
+        outports = []
+        for u, v, d in graph.out_edges(nbunch=n, data=True):
+            for cd in d["connect"]:
+                if isinstance(cd[0], (str, bytes)):
+                    outport = cd[0]
+                else:
+                    outport = cd[0][0]
+                if outport not in outports:
+                    outports.append(outport)
+        outputstr = (
+            ["{OUT"]
+            + [f"|<out{_replacefunk(oport)}> {oport}" for
+               oport in sorted(outports)] + ["}"])
+        srcpackage = ""
+        if hasattr(n, "_interface"):
+            pkglist = n.interface.__class__.__module__.split(".")
+            if len(pkglist) > 2:
+                srcpackage = pkglist[2]
+        srchierarchy = ".".join(nodename.split(".")[1:-1])
+        nodenamestr = (f"{{ {nodename.split('.')[-1]} | {srcpackage} | "
+                       f"{srchierarchy} }}")
+        text += [f'"{nodename.replace(".", "")}" [label='
+                 f'"{"".join(inputstr)}|{nodenamestr}|{"".join(outputstr)}"];']
+    # write edges
+    for edge in sorted(edges):
+        text.append(edge)
+    text.append("}")
+    with open(dotfilename, "wt", encoding="utf-8") as filep:
+        filep.write("\n".join(text))
+    return text
