@@ -172,6 +172,7 @@ STATUS = 'stable'
 REQUIREMENTS = [
     "boto3==1.7.37",
     "click==6.7",
+    "ciftify",
     "configparser==3.7.4",
     "cython",
     "future",
