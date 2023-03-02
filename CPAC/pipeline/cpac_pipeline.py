@@ -1039,7 +1039,8 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             not rpool.check_rpool('label-WM_mask'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
-             tissue_seg_ants_prior]
+             tissue_seg_ants_prior,
+	     tissue_seg_freesurfer]
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
