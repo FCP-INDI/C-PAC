@@ -1231,6 +1231,8 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
+    Calculate motion estimates using 3dVolReg or MCFLIRT.
+    Node Block:
     {"name": "motion_estimates",
      "config": "None",
      "switch": ["functional_preproc", "motion_estimates_and_correction",
@@ -1245,23 +1247,11 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
                  "movement-parameters",
                  "coordinate-transformation"]}
     '''
-
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
-
-    outputs = {
-        'max-displacement': wf_outputs['max-displacement'],
-        'movement-parameters': wf_outputs['movement-parameters']
-    }
-
-    if 'coordinate-transformation' in wf_outputs:
-        outputs['coordinate-transformation'] = \
-            wf_outputs['coordinate-transformation']
-
-    if 'rels-displacement' in wf_outputs:
-        outputs['rels-displacement'] = wf_outputs['rels-displacement']
-
-    return (wf, outputs)
+    return (wf, {resource: wf_outputs[resource] for resource in [
+        'coordinate-transformation', 'max-displacement',
+        'movement-parameters', 'rels-displacement'] if resource in wf_outputs})
 
 
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
