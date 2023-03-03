@@ -10,8 +10,8 @@ RUN mkdir -p /usr/share/fsl/5.0/data/atlases /usr/share/fsl/5.0/data/standard/ti
     && cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard \
     && cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard \
     && cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford \
-    && cp -nr /tmp/cpac_image_resources/tissuepriors/2mm/* $FSLDIR/data/standard/tissuepriors/2mm/ \
-    && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm/* $FSLDIR/data/standard/tissuepriors/3mm/
+    && cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors \
+    && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 
@@ -28,8 +28,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH \
     TZ=America/New_York
 
-
-# Installing and setting up FSL
+# # Installing and setting up FSL
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     &&  echo $TZ > /etc/timezone \
     && apt-get update \
@@ -58,5 +57,5 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/* /usr/share/fsl/5.0/data/standard/
+COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/ /usr/share/fsl/5.0/data/standard/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
