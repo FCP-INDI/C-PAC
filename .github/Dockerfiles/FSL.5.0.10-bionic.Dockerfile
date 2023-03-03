@@ -11,7 +11,7 @@ RUN mkdir -p /usr/share/fsl/5.0/data/atlases /usr/share/fsl/5.0/data/standard/ti
     && cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard \
     && cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford \
     && cp -nr /tmp/cpac_image_resources/tissuepriors/2mm/* $FSLDIR/data/standard/tissuepriors/2mm/ \
-    && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm/* $FSLDIR/data/standard/tissuepriors/3mm
+    && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm/* $FSLDIR/data/standard/tissuepriors/3mm/
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 
