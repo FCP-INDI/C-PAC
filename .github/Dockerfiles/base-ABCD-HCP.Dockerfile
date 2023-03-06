@@ -2,7 +2,6 @@
 FROM ghcr.io/fcp-indi/c-pac/afni:update.afni.binaries-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.2.0.neurodocker-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
-FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.3.2-1.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/fsl:5.0.10-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
@@ -74,9 +73,14 @@ ENV MSMBINDIR=/opt/msm/Ubuntu \
     PATH=$PATH:/opt/msm/Ubuntu
 
 # install Connectome Workbench
-COPY --from=connectome-workbench /lib64/* /lib64.
-COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
-COPY --from=connectome-workbench /usr/* /usr/
+RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC && \
+    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138 && \
+    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys DCC9EFBF77E11517 && \
+    printf '\ndeb http://httpredir.debian.org/debian/ buster main non-free' >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install connectome-workbench=1.3.2-1 -y && \
+    strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+ENV PATH=/usr:$PATH
 
 # install ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA /opt/ICA-AROMA
