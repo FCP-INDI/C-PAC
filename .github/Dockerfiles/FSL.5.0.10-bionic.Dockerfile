@@ -3,7 +3,7 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as FSL-Neurodebian
 # install CPAC resources into FSL
 USER root
 ENV FSLDIR=/usr/share/fsl/5.0
-RUN mkdir -p /usr/share/fsl/5.0/data/atlases /usr/share/fsl/5.0/data/standard \
+RUN mkdir -p /usr/share/fsl/5.0/data/atlases /usr/share/fsl/5.0/data/standard/tissuepriors/2mm /usr/share/fsl/5.0/data/standard/tissuepriors/3mm \
     && curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz \
     && tar xfz /tmp/cpac_resources.tar.gz -C /tmp \
     && cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard \
@@ -28,8 +28,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH \
     TZ=America/New_York
 
-
-# Installing and setting up FSL
+# # Installing and setting up FSL
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     &&  echo $TZ > /etc/timezone \
     && apt-get update \
@@ -58,5 +57,5 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/* /usr/share/fsl/5.0/data/standard/
+COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/ /usr/share/fsl/5.0/data/standard/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
