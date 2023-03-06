@@ -200,4 +200,5 @@ REQUIREMENTS = [
     "traits==4.6.0",
     "PyBASC==0.4.5",
     "voluptuous>=0.12.0",
+    "joblib==1.1.0",
 ]
