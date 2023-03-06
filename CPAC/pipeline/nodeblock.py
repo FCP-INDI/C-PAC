@@ -11,7 +11,7 @@ class NodeBlockData(object):
             option_key: Optional[Union[str, List[str]]] = None,
             option_val: Optional[Union[str, List[str]]] = None,
             inputs: Optional[List[Union[str, list, tuple]]] = None,
-            outputs: Optional[Union[List[str], Dict[str]]] = None
+            outputs: Optional[Union[List[str], Dict[str, str]]] = None
     ) -> None:
         self.func = func
         self.name: Optional[str] = name
@@ -20,7 +20,7 @@ class NodeBlockData(object):
         self.option_key: Optional[Union[str, List[str]]] = option_key
         self.option_val: Optional[Union[str, List[str]]] = option_val
         self.inputs: Optional[List[Union[str, list, tuple]]] = inputs
-        self.outputs: Optional[Union[List[str], Dict[str]]] = outputs
+        self.outputs: Optional[Union[List[str], Dict[str, str]]] = outputs
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
@@ -44,6 +44,6 @@ def nodeblock(
         option_key: Optional[Union[str, List[str]]] = None,
         option_val: Optional[Union[str, List[str]]] = None,
         inputs: Optional[List[Union[str, list, tuple]]] = None,
-        outputs: Optional[Union[List[str], Dict[str]]] = None
+        outputs: Optional[Union[List[str], Dict[str, str]]] = None
 ):
     return lambda func: NodeBlockData(func, name, config, switch, option_key, option_val, inputs, outputs)
