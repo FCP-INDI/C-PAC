@@ -3,6 +3,7 @@ import ast
 from urllib import request
 from urllib.error import ContentTooShortError, HTTPError, URLError
 from CPAC import __version__
+from CPAC.pipeline.nodeblock import NodeBlockData
 
 
 def docstring_parameter(*args, **kwargs):
@@ -61,6 +62,14 @@ def grab_docstring_dct(fn):
     dct : dict
         A NodeBlock configuration dictionary.
     """
+
+    # Decorator node blocks
+
+    if isinstance(fn, NodeBlockData):
+        return fn.legacy_nodeblock_dict()
+
+    # Legacy (docstring) node blocks
+
     fn_docstring = fn.__doc__
     init_dct_schema = ['name', 'config', 'switch', 'option_key',
                        'option_val', 'inputs', 'outputs']

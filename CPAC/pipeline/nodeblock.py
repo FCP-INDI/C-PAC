@@ -1,7 +1,7 @@
 from typing import Callable, List, Union, Optional
 
 
-class NodeBlock(object):
+class NodeBlockData(object):
     def __init__(
             self,
             func: Callable,
@@ -24,6 +24,17 @@ class NodeBlock(object):
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
+
+    def legacy_nodeblock_dict(self):
+        return {
+            'name': self.name,
+            'config': self.config,
+            'switch': self.switch,
+            'option_key': self.option_key,
+            'option_val': self.option_val,
+            'inputs': self.inputs,
+            'outputs': self.outputs
+        }
 
 
 def nodeblock(
