@@ -20,12 +20,11 @@ from itertools import chain
 import logging
 import os
 import re
-from types import FunctionType
-from typing import Tuple, Union
 import warnings
 
 from CPAC.pipeline import \
-    nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+    nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
 from CPAC.func_preproc.func_preproc import motion_estimate_filter
@@ -43,7 +42,6 @@ from CPAC.utils.datasource import (
     create_general_datasource,
     resolve_resolution
 )
-from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
@@ -853,8 +851,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
-        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
-            'outputs', [])
+        movement_filter_keys = motion_estimate_filter.outputs \
+            if motion_estimate_filter.outputs is not None else []
 
         if add_excl:
             excl += add_excl
@@ -1204,39 +1202,40 @@ class NodeBlock:
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
 
-            init_dct = grab_docstring_dct(node_block_function)
-            name = init_dct['name']
+            assert isinstance(node_block_function, NodeBlockFunction)
+            
+            name = node_block_function.name
             self.name = name
             self.node_blocks[name] = {}
 
             if self.input_interface:
                 for interface in self.input_interface:
-                    for orig_input in init_dct['inputs']:
+                    for orig_input in node_block_function.inputs:
                         if isinstance(orig_input, tuple):
                             list_tup = list(orig_input)
                             if interface[0] in list_tup:
                                 list_tup.remove(interface[0])
                                 list_tup.append(interface[1])
-                                init_dct['inputs'].remove(orig_input)
-                                init_dct['inputs'].append(tuple(list_tup))
+                                node_block_function.inputs.remove(orig_input)
+                                node_block_function.inputs.append(tuple(list_tup))
                         else:                         
                             if orig_input == interface[0]:
-                                init_dct['inputs'].remove(interface[0])
-                                init_dct['inputs'].append(interface[1])
+                                node_block_function.inputs.remove(interface[0])
+                                node_block_function.inputs.append(interface[1])
 
-            for key, val in init_dct.items():
+            for key, val in node_block_function.legacy_nodeblock_dict().items():
                 self.node_blocks[name][key] = val
 
             self.node_blocks[name]['block_function'] = node_block_function
 
             #TODO: fix/replace below
             self.outputs = {}
-            for out in init_dct['outputs']:
+            for out in node_block_function.outputs:
                 self.outputs[out] = None
 
             self.options = ['base']
-            if 'options' in init_dct:
-                self.options = init_dct['options']
+            if node_block_function.outputs is not None:
+                self.options = node_block_function.outputs
 
     def get_name(self):
         return self.name
@@ -1529,40 +1528,6 @@ class NodeBlock:
                                                               pipe_x)
 
         return wf
-
-
-def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
-                 key: str = 'inputs') -> list:
-    """Take a Node Block function or list of inputs and return a flat list
-
-    Parameters
-    ----------
-    node_block_function : function, list or tuple
-        a Node Block function or a list or tuple for recursion
-
-    key : str
-        'inputs' or 'outputs'
-
-    Returns
-    -------
-    list
-    """
-    flat_list = []
-    resource_list = []
-    if isinstance(node_block_function, (list, tuple)):
-        resource_list = node_block_function
-    elif isinstance(node_block_function, FunctionType):
-        resource_list = grab_docstring_dct(node_block_function).get(key, [])
-    elif isinstance(node_block_function, str):
-        resource_list = [node_block_function]
-    if isinstance(resource_list, dict):
-        resource_list = list(resource_list.keys())
-    for resource in resource_list:
-        if isinstance(resource, str):
-            flat_list.append(resource)
-        else:
-            flat_list += flatten_list(resource, key)
-    return flat_list
 
 
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
