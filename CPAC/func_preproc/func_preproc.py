@@ -11,7 +11,6 @@ from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
                                     split_ts_chunks, oned_text_concat, \
                                     notch_filter_motion
 from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.ants import AI  # niworkflows
 from CPAC.utils.interfaces.ants import PrintHeader, SetDirectionByMatrix
 from CPAC.utils.interfaces.function import Function
@@ -1106,13 +1105,12 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=['motion-basefile']
 )
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
-    option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
-    if opt not in option_vals:
+    if opt not in get_motion_ref.option_val:
         raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
                          'parameter of the \'motion_correction\' workflow '
                          'must be one of:\n\t{0}.\n\nTool input: \'{1}\''
                          '\n\n'.format(
-                             ' or '.join([f"'{val}'" for val in option_vals]),
+                             ' or '.join([f"'{val}'" for val in get_motion_ref.option_val]),
                              opt))
 
     if opt == 'mean':
@@ -1998,6 +1996,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 @nodeblock(
     name='bold_mask_ccs',
     config=['functional_preproc'],
@@ -2139,6 +2138,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 @nodeblock(
     name='bold_masking',
     config=None,
@@ -2167,6 +2167,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+
 @nodeblock(
     name='func_mean',
     switch=[['functional_preproc', 'run'], ['functional_preproc', 'generate_func_mean', 'run']],
@@ -2189,6 +2190,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+
 
 @nodeblock(
     name='func_normalize',
@@ -2225,16 +2227,6 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=['space-bold_desc-brain_mask']
 )
 def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "func_mask_normalize",
-     "config": ["functional_preproc"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask")],
-     "outputs": ["space-bold_desc-brain_mask"]}
-    '''
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name=f'func_mask_normalize_{pipe_num}',

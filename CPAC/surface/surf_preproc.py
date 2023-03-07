@@ -1,5 +1,6 @@
 from logging import raiseExceptions
 import os
+from CPAC.pipeline.nodeblock import nodeblock
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -177,36 +178,53 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
+
+@nodeblock(
+    name="surface_postproc",
+    config=["surface_analysis", "post_freesurfer"],
+    switch=["run"],
+    inputs=[
+        (
+            "freesurfer-subject-dir",
+            [
+                "pipeline-fs_desc-restore_T1w",
+                "desc-preproc_T1w",
+                "desc-reorient_T1w",
+                "T1w",
+                "space-longitudinal_desc-reorient_T1w",
+            ],
+            [
+                "space-template_desc-head_T1w",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask",
+            ],
+            [
+                "from-T1w_to-template_mode-image_xfm",
+                "from-T1w_to-template_mode-image_desc-linear_xfm",
+            ],
+            [
+                "from-template_to-T1w_mode-image_xfm",
+                "from-template_to-T1w_mode-image_desc-linear_xfm",
+            ],
+            ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
+            [
+                "space-template_desc-scout_bold",
+                "space-template_desc-cleaned_bold",
+                "space-template_desc-brain_bold",
+                "space-template_desc-motion_bold",
+                "space-template_bold",
+            ],
+        )
+    ],
+    outputs=[
+        "atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+        "atlas-Destrieux_space-fsLR_den-32k_dlabel",
+        "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
+        "atlas-Destrieux_space-fsLR_den-164k_dlabel",
+        "space-fsLR_den-32k_bold-dtseries",
+    ],
+)
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_postproc",
-     "config": ["surface_analysis", "post_freesurfer"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("freesurfer-subject-dir",
-                 ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w",
-                  "desc-reorient_T1w", "T1w",
-                  "space-longitudinal_desc-reorient_T1w"],
-                 ["space-template_desc-head_T1w",
-                  "space-template_desc-brain_T1w",
-                  "space-template_desc-T1w_mask"],
-                 ["from-T1w_to-template_mode-image_xfm",
-                  "from-T1w_to-template_mode-image_desc-linear_xfm"],
-                 ["from-template_to-T1w_mode-image_xfm",
-                  "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                 ["space-template_desc-brain_bold",
-                  "space-template_desc-preproc_bold"],
-                 ["space-template_desc-scout_bold",
-                  "space-template_desc-cleaned_bold",
-                  "space-template_desc-brain_bold",
-                  "space-template_desc-motion_bold", "space-template_bold"])],
-     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
-                 "atlas-Destrieux_space-fsLR_den-32k_dlabel",
-                 "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
-                 "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-                 "space-fsLR_den-32k_bold-dtseries"]}
-    '''
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)

@@ -1,5 +1,6 @@
 import os
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -13,23 +14,18 @@ from CPAC.image_utils import spatial_smoothing
 from CPAC.utils.utils import check_prov_for_regtool
 
 
+@nodeblock(
+    name="smooth_func_vmhc",
+    switch=["voxel_mirrored_homotopic_connectivity", "run"],
+    option_key=["post_processing", "spatial_smoothing", "smoothing_method"],
+    option_val=["AFNI", "FSL"],
+    inputs=[
+        ["desc-cleaned_bold", "desc-brain_bold", "desc-preproc_bold", "bold"],
+        "space-bold_desc-brain_mask",
+    ],
+    outputs=["desc-sm_bold", "fwhm"],
+)
 def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Node Block:
-    {"name": "smooth_func_vmhc",
-     "config": "None",
-     "switch": ["voxel_mirrored_homotopic_connectivity", "run"],
-     "option_key": ["post_processing", "spatial_smoothing",
-                    "smoothing_method"],
-     "option_val": ["AFNI", "FSL"],
-     "inputs": [["desc-cleaned_bold",
-                 "desc-brain_bold",
-                 "desc-preproc_bold",
-                 "bold"],
-                "space-bold_desc-brain_mask"],
-     "outputs": ["desc-sm_bold",
-                 "fwhm"]}
-    '''
     fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
 
     smooth = spatial_smoothing(f'smooth_symmetric_{pipe_num}',
@@ -53,22 +49,23 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="transform_timeseries_to_sym_template",
+    config=["voxel_mirrored_homotopic_connectivity"],
+    switch=["run"],
+    inputs=[
+        [
+            "desc-cleaned-sm_bold",
+            "desc-brain-sm_bold",
+            "desc-preproc-sm_bold",
+            "desc-sm_bold",
+        ],
+        "from-bold_to-symtemplate_mode-image_xfm",
+        "T1w-brain-template-symmetric",
+    ],
+    outputs=["space-symtemplate_desc-sm_bold"],
+)
 def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Node Block:
-    {"name": "transform_timeseries_to_sym_template",
-     "config": ["voxel_mirrored_homotopic_connectivity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["desc-cleaned-sm_bold",
-                 "desc-brain-sm_bold",
-                 "desc-preproc-sm_bold",
-                 "desc-sm_bold"],
-                "from-bold_to-symtemplate_mode-image_xfm",
-                "T1w-brain-template-symmetric"],
-     "outputs": ["space-symtemplate_desc-sm_bold"]}
-    '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-bold_to-symtemplate_mode-image_xfm')
@@ -115,24 +112,26 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="vmhc",
+    config=["voxel_mirrored_homotopic_connectivity"],
+    switch=["run"],
+    inputs=[
+        [
+            "space-symtemplate_desc-cleaned-sm_bold",
+            "space-symtemplate_desc-brain-sm_bold",
+            "space-symtemplate_desc-preproc-sm_bold",
+            "space-symtemplate_desc-sm_bold",
+        ]
+    ],
+    outputs=["vmhc"],
+)
 def vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Compute Voxel-Mirrored Homotopic Connectivity.
 
     VMHC is the map of brain functional homotopy, the high degree of
     synchrony in spontaneous activity between geometrically corresponding
     interhemispheric (i.e., homotopic) regions.
-
-    Node Block:
-    {"name": "vmhc",
-     "config": ["voxel_mirrored_homotopic_connectivity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [["space-symtemplate_desc-cleaned-sm_bold",
-                 "space-symtemplate_desc-brain-sm_bold",
-                 "space-symtemplate_desc-preproc-sm_bold",
-                 "space-symtemplate_desc-sm_bold"]],
-     "outputs": ["vmhc"]}
     '''
 
     # write out a swapped version of the file
