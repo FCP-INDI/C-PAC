@@ -4,6 +4,7 @@ import nipype.interfaces.utility as util
 
 from nipype import logging
 
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
