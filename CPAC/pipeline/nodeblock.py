@@ -40,11 +40,11 @@ class NodeBlockFunction(object):
         self.option_val: Optional[Union[str, List[str]]] = option_val
         """Indicates values for which this NodeBlock should be active."""
         self.inputs: Optional[List[Union[str, list, tuple]]] = inputs
-        """ResourcePool keys indicating files needed for the NodeBlock’s functionality."""
+        """ResourcePool keys indicating files needed for the NodeBlock's functionality."""
         self.outputs: Optional[Union[List[str], Dict[str, Any]]] = outputs
         """
         ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata
-        for the outputs’ respective sidecars.
+        for the outputs' respective sidecars.
         """
 
     def __call__(self, *args, **kwargs):
@@ -94,10 +94,10 @@ def nodeblock(
     option_val
         Indicates values for which this NodeBlock should be active.
     inputs
-        ResourcePool keys indicating files needed for the NodeBlock’s functionality.
+        ResourcePool keys indicating files needed for the NodeBlock's functionality.
     outputs
         ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata
-        for the outputs’ respective sidecars.
+        for the outputs' respective sidecars.
 
     Returns
     -------
@@ -105,7 +105,7 @@ def nodeblock(
     """
     return lambda func: NodeBlockFunction(
         func,
-        name if name is not None else func.func_name,
+        name if name is not None else func.__name__,
         config,
         switch,
         option_key,

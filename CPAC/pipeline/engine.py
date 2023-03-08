@@ -1202,7 +1202,12 @@ class NodeBlock:
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
 
-            assert isinstance(node_block_function, NodeBlockFunction)
+            if not isinstance(node_block_function, NodeBlockFunction):
+                # If the object is a plain function `__name__` will be more useful then `str()`
+                obj_str = node_block_function.__name__ \
+                    if hasattr(node_block_function, '__name__') else \
+                    str(node_block_function)
+                raise TypeError(f'Object is not a nodeblock: "{obj_str}"')
             
             name = node_block_function.name
             self.name = name

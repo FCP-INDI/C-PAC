@@ -3714,34 +3714,34 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
     return (wf, outputs)
 
 
+@nodeblock(
+    name="transform_timeseries_to_T1template_abcd",
+    config=[
+        "registration_workflows",
+        "functional_registration",
+        "func_registration_to_template",
+    ],
+    switch=["run"],
+    option_key=["apply_transform", "using"],
+    option_val="abcd",
+    inputs=[
+        ("desc-preproc_bold", "bold", "motion-basefile", "coordinate-transformation"),
+        "from-T1w_to-template_mode-image_xfm",
+        "from-bold_to-T1w_mode-image_desc-linear_xfm",
+        "from-bold_to-template_mode-image_xfm",
+        "fsl-blip-warp",
+        "desc-preproc_T1w",
+        "space-template_res-bold_desc-brain_T1w",
+        "space-template_desc-bold_mask",
+        "T1w-brain-template-funcreg",
+    ],
+    outputs={
+        "space-template_desc-preproc_bold": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-scout_bold": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-head_bold": {"Template": "T1w-brain-template-funcreg"},
+    },
+)
 def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    """
-    {"name": "transform_timeseries_to_T1template_abcd",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
-     "option_val": "abcd",
-     "inputs": [("desc-preproc_bold",
-                 "bold",
-                 "motion-basefile",
-                 "coordinate-transformation"),
-                "from-T1w_to-template_mode-image_xfm",
-                "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                "from-bold_to-template_mode-image_xfm",
-                "fsl-blip-warp",
-                "desc-preproc_T1w",
-                "space-template_res-bold_desc-brain_T1w",
-                "space-template_desc-bold_mask",
-                "T1w-brain-template-funcreg"],
-     "outputs": {"space-template_desc-preproc_bold": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-scout_bold": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_desc-head_bold": {
-                     "Template": "T1w-brain-template-funcreg"}}}
-    """
-
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries using ABCD-style registration
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
 
@@ -4001,28 +4001,34 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="transform_timeseries_to_T1template_dcan_nhp",
+    config=[
+        "registration_workflows",
+        "functional_registration",
+        "func_registration_to_template",
+    ],
+    switch=["run"],
+    option_key=["apply_transform", "using"],
+    option_val="dcan_nhp",
+    inputs=[
+        (
+            ["desc-reorient_bold", "bold"],
+            "coordinate-transformation",
+            "from-T1w_to-template_mode-image_warp",
+            "from-bold_to-T1w_mode-image_desc-linear_warp",
+            "T1w-template",
+            "space-template_desc-head_T1w",
+            "space-template_desc-T1w_mask",
+            "space-template_desc-T1wT2w_biasfield",
+        )
+    ],
+    outputs={
+        "space-template_desc-preproc_bold": {"Template": "T1w-template"},
+        "space-template_desc-bold_mask": {"Template": "T1w-template"},
+    },
+)
 def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=None):
-    """
-    {"name": "transform_timeseries_to_T1template_dcan_nhp",
-     "config": ["registration_workflows", "functional_registration",
-                "func_registration_to_template"],
-     "switch": ["run"],
-     "option_key": ["apply_transform", "using"],
-     "option_val": "dcan_nhp",
-     "inputs": [(["desc-reorient_bold", "bold"],
-                 "coordinate-transformation",
-                 "from-T1w_to-template_mode-image_warp",
-                 "from-bold_to-T1w_mode-image_desc-linear_warp",
-                 "T1w-template",
-                 "space-template_desc-head_T1w",
-                 "space-template_desc-T1w_mask",
-                 "space-template_desc-T1wT2w_biasfield")],
-     "outputs": {"space-template_desc-preproc_bold": {
-                     "Template": "T1w-template"},
-                 "space-template_desc-bold_mask": {
-                     "Template": "T1w-template"}}}
-    """
-
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries
     # Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh
 
