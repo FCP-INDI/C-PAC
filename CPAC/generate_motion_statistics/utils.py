@@ -40,17 +40,13 @@ def affine_from_params(params):
 """
     import numpy as np
     from nipype.algorithms.rapidart import _get_affine_matrix
-    out = np.ones([params.shape[0], 12])
+    out = []
     for i in range(params.shape[0]):
-        l = _get_affine_matrix(params=params[i],
-                               source='AFNI').flatten()[:12]
-        out[i, :] = l
+        out.append(_get_affine_matrix(params=params[i], source='AFNI'))
 
     # Sign flips shouldn't matter?
-    out[:, 2] = -1 * out[:, 2]
-    out[:, 7] = -1 * out[:, 7]
-    out[:, 8] = -1 * out[:, 8]
-    out[:, 11] = -1 * out[:, 11]
-
-    return out
+    return np.array([[1,  1, -1,  1],
+                     [1,  1,  1, -1],
+                     [-1, 1,  1, -1],
+                     [1,  1,  1,  1]]) * out
     
