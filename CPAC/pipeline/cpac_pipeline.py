@@ -420,15 +420,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                     'local_functional_connectivity_density'][
                                     'weight_options']) != 0
 
-    # Check system dependencies
-    check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
-    if isinstance(check_ica_aroma, list):
-        check_ica_aroma = True in check_ica_aroma
-    check_system_deps(check_ants='ANTS' in c.registration_workflows[
-        'anatomical_registration']['registration']['using'],
-                      check_ica_aroma=check_ica_aroma,
-                      check_centrality_degree=check_centrality_degree,
-                      check_centrality_lfcd=check_centrality_lfcd)
+    if not test_config:
+        # Check system dependencies
+        check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
+        if isinstance(check_ica_aroma, list):
+            check_ica_aroma = True in check_ica_aroma
+        check_system_deps(check_ants='ANTS' in c.registration_workflows[
+            'anatomical_registration']['registration']['using'],
+                        check_ica_aroma=check_ica_aroma,
+                        check_centrality_degree=check_centrality_degree,
+                        check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
     c.pipeline_setup['working_directory']['path'] = os.path.join(
