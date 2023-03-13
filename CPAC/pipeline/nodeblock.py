@@ -47,8 +47,9 @@ class NodeBlockFunction(object):
         for the outputs' respective sidecars.
         """
 
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+    # all node block functions have this signature
+    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
+        return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
     def legacy_nodeblock_dict(self):
         """
