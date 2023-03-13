@@ -24,7 +24,7 @@ class NodeBlockFunction(object):
         self.config: Optional[List[str]] = config
         """
         Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this
-        function. If config is sct to "None", then all other configuration-related entities must be specified from the
+        function. If config is set to "None", then all other configuration-related entities must be specified from the
         root of the configuration.
         """
         self.switch: Optional[Union[List[str], List[List[str]]]] = switch
