@@ -69,7 +69,9 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Update check status
+      - env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
+        name: Update check status
         run: |
           result_failure="\"result\": \"failure\""
           result_cancelled="\"result\": \"cancelled\""
