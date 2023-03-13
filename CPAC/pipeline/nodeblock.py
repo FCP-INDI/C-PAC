@@ -1,3 +1,4 @@
+"""Class and decorator for NodeBlock functions"""
 from typing import Callable, List, Union, Optional, Dict, Any
 
 
