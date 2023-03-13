@@ -58,11 +58,17 @@ def _version_sort(_version_item):
     """Key to report by case-insensitive dependecy name"""
     return _version_item[0].lower()
 
+def first_line(stdout):
+    """Return first line of stdout"""
+    if '\n' in stdout:
+        return stdout.split('\n', 1)[0]
+    return stdout
+
 
 PYTHON_PACKAGES = dict(sorted({
   d.key: d.version for d in list(working_set)}.items(), key=_version_sort))
 REPORTED = dict(sorted({
-  **cli_version('ldd --version', formatting=lambda _: _.split('\n', 1)[0]),
+  **cli_version('ldd --version', formatting=first_line),
   'Python': sys.version.replace('\n', ' ').replace('  ', ' ')
 }.items(), key=_version_sort))
 

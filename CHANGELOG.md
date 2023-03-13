@@ -24,10 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - yamlordereddictloader
 
 ### Upgraded dependencies
-- Python 3.7.13 → 3.10.6 (holding back from 3.11 for sdcflows, torch, and torchvision)
+- AFNI 21.1.00 'Domitian' → 23.0.07 'Commodus'
+- Python 3.7.13 → 3.10.10 (holding back from 3.11 for sdcflows, torch, and torchvision)
 - Torch 1.2.0+cu92 → 1.13.1
 - torchvision 0.4.0+cu92 → 0.14.1
-- Ubuntu 18.04 → 22.04
 
 ## [1.8.5]
 
