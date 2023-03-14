@@ -914,7 +914,7 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
     L_reho = pe.Node(util.Function(input_names=['subject', 'dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries','reho_filename', 'structure_name'], 
                                 output_names=['L_reho'],
                                 function=run_surf_reho),
-                    name=f'L_surf_reho{pipe_num}')
+                    name=f'L_surf_reho_{pipe_num}')
     
     L_reho.inputs.subject = cfg['subject_id']
     wf.connect(L_cortex_file, 'L_cortex_file', L_reho, 'cortex_file')
@@ -932,7 +932,7 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
     R_reho = pe.Node(util.Function(input_names=['subject','dtseries', 'mask' , 'cortex_file', 'surface_file', 'mean_timeseries', 'reho_filename', 'structure_name'], 
                                 output_names=['R_reho'],
                                 function=run_surf_reho),
-                    name=f'R_surf_reho{pipe_num}')
+                    name=f'R_surf_reho_{pipe_num}')
     
     R_reho.inputs.subject = cfg['subject_id']
     wf.connect(R_cortex_file, 'R_cortex_file', R_reho, 'cortex_file')
@@ -952,30 +952,30 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
-# def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
+def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
         
-#     connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
-#                                 output_names=['parcellation_file'],
-#                                 function=run_ciftiparcellate),
-#                             name=f'connectivity_parcellation{pipe_num}')
+    connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
+                                output_names=['parcellation_file'],
+                                function=run_ciftiparcellate),
+                            name=f'connectivity_parcellation{pipe_num}')
 
-#     connectivity_parcellation.inputs.subject = cfg['subject_id'] 
-#     node, out = strat_pool.get_data('space-fsLR_den-32k_bold')           
-#     wf.connect(node, out, connectivity, 'dtseries') 
-#     connectivity_parcellation.inputs.surf_atlaslabel = '/code/CPAC/resources/templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii'
+    connectivity_parcellation.inputs.subject = cfg['subject_id'] 
+    node, out = strat_pool.get_data('space-fsLR_den-32k_bold')           
+    wf.connect(node, out, connectivity, 'dtseries') 
+    connectivity_parcellation.inputs.surf_atlaslabel = '/code/CPAC/resources/templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii'
 
-#     correlation_matrix = pe.Node(util.Function(input_names=['subject','ptseries'], 
-#                                 output_names=['correlation_matrix'],
-#                                 function=run_cifticorrelation),
-#                             name=f'correlation_matrix{pipe_num}')
+    correlation_matrix = pe.Node(util.Function(input_names=['subject','ptseries'], 
+                                output_names=['correlation_matrix'],
+                                function=run_cifticorrelation),
+                            name=f'correlation_matrix{pipe_num}')
                 
-#     correlation_matrix.inputs.subject = cfg['subject_id'] 
-#     wf.connect(connectivity_parcellation, 'parcellation_file', correlation_matrix, 'ptseries') 
+    correlation_matrix.inputs.subject = cfg['subject_id'] 
+    wf.connect(connectivity_parcellation, 'parcellation_file', correlation_matrix, 'ptseries') 
     
-#     outputs = {
-#         'surf-correlation_matrix': (correlation_matrix,'correlation_matrix')}
+    outputs = {
+        'space-fsLR_den-32k_bold_surf-correlation_matrix': (correlation_matrix,'correlation_matrix')}
 
-#     return wf, outputs
+    return wf, outputs
 
 
 def surface_falff(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1008,7 +1008,7 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "ReHo",
+    {"name": "surface_reho",
      "config": ["regional_homogeneity"],
      "switch": ["run"],
      "option_key": "None",
@@ -1024,19 +1024,19 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
-# def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
-#     '''
-#     {"name": "surface_connectivity_matrix",
-#      "config": ["timeseries_extraction","connectivity_matrix"],
-#      "switch": ["run"],
-#      "option_key": "using",
-#      "option_val": "AFNI",
-#      "inputs": ["space-fsLR_den-32k_bold"],
-#      "outputs": ["surf-correlation_matrix"]}
-#     '''
-#     wf, outputs = cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt)
+def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "surface_connectivity_matrix",
+     "config": ["timeseries_extraction","connectivity_matrix"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "Surface",
+     "inputs": ["space-fsLR_den-32k_bold"],
+     "outputs": ["space-fsLR_den-32k_bold_surf-correlation_matrix"]}
+    '''
+    wf, outputs = cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt)
 
-#     return (wf, outputs)
+    return (wf, outputs)
 
 def run_surf_falff(subject,dtseries):
     import os
@@ -1083,20 +1083,20 @@ def run_surf_reho(subject, dtseries, mask, cortex_file, surface_file,mean_timese
     log_subprocess(cmd)
     return surf_reho
     
-# def run_ciftiparcellate(subject, dtseries, surf_atlaslabel):
-#     import os  
-#     import subprocess
-#     from CPAC.utils.monitoring.custom_logging import log_subprocess
-#     parcellation_file = os.path.join(os.getcwd(), f'{subject}_parcellation.ptseries.nii')
-#     cmd = ['wb_command', '-cifti-parcellate', dtseries , surf_atlaslabel, 'COLUMN', parcellation_file ]
-#     log_subprocess(cmd)
-#     return parcellation_file
+def run_ciftiparcellate(subject, dtseries, surf_atlaslabel):
+    import os  
+    import subprocess
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
+    parcellation_file = os.path.join(os.getcwd(), f'{subject}_parcellation.ptseries.nii')
+    cmd = ['wb_command', '-cifti-parcellate', dtseries , surf_atlaslabel, 'COLUMN', parcellation_file ]
+    log_subprocess(cmd)
+    return parcellation_file
 
-# def run_cifticorrelation(subject, ptseries):
-#     import os  
-#     import subprocess
-#     from CPAC.utils.monitoring.custom_logging import log_subprocess
-#     correlation_matrix = os.path.join(os.getcwd(), f'{subject}_cifti_corr.pconn.nii')
-#     cmd = ['wb_command', '-cifti-correlation', ptseries , correlation_matrix]
-#     log_subprocess(cmd)
-#     return correlation_matrix
+def run_cifticorrelation(subject, ptseries):
+    import os  
+    import subprocess
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
+    correlation_matrix = os.path.join(os.getcwd(), f'{subject}_cifti_corr.pconn.nii')
+    cmd = ['wb_command', '-cifti-correlation', ptseries , correlation_matrix]
+    log_subprocess(cmd)
+    return correlation_matrix

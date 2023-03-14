@@ -67,7 +67,7 @@ valid_options = {
         'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
     },
     'connectivity_matrix': {
-        'using': {'AFNI', 'Nilearn', 'ndmg'},
+        'using': {'AFNI', 'Nilearn', 'ndmg','Surface'},
         'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
                     # 'TangentEmbed'  # "Skip tangent embedding for now"
                     },
