@@ -415,6 +415,7 @@ latest_schema = Schema({
         'Debugging': {
             'verbose': bool1_1,
         },
+        'ingress_fmriprep': bool1_1,
     },
     'anatomical_preproc': {
         'run': bool1_1,
