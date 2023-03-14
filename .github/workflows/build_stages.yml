@@ -69,6 +69,13 @@ jobs:
           echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
           docker manifest inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
+      - name: Clear up some space on runner
+        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
