@@ -1,23 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
-
-# This file is part of C-PAC.
-
-# C-PAC is free software: you can redistribute it and/or modify it under
-# the terms of the GNU Lesser General Public License as published by the
-# Free Software Foundation, either version 3 of the License, or (at your
-# option) any later version.
-
-# C-PAC is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-# License for more details.
-
-# You should have received a copy of the GNU Lesser General Public
-# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM python:3.11-slim as Python
-FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
-
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -31,28 +12,13 @@ RUN apt-get update && \
 FROM neurodebian:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Bionic base image"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=America/New_York
 
-# Installing specified Python version
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-      software-properties-common \
-    && add-apt-repository 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-      libc6 \
-      libc-bin \
-    && add-apt-repository --remove 'deb http://ports.ubuntu.com/ubuntu-ports jammy main' \
-    && apt-get update
-COPY --from=Python /lib/ /lib/
-COPY --from=Python /usr/local/ /usr/local/
-RUN ldconfig
+ENV TZ=America/New_York
 
 # Creating usergroup and user
 # Allow users to update / create themselves
-# Installing system requirments & the BIDS validator
+# Installing system requirments, the BIDS validator & minconda
 RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
@@ -108,6 +74,7 @@ RUN groupadd -r c-pac && \
       openssh-client \
       pkg-config \
       rsync \
+      software-properties-common \
       tcsh \
       unzip \
       vim \
@@ -138,6 +105,9 @@ RUN groupadd -r c-pac && \
       libxp-dev && \
     add-apt-repository --remove --yes ppa:zeehio/libxp && \
     apt-get update && \
+    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
+    bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -146,11 +116,25 @@ RUN groupadd -r c-pac && \
     chmod 777 /opt && \
     chmod a+s /opt
 
-ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:$PATH
+ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
 
-# Installing torch & Python dependencies
+# Installing conda dependencies, torch & Python dependencies
 COPY requirements.txt /opt/requirements.txt
-RUN pip install \
+RUN conda update conda -y && \
+    conda install nomkl && \
+    conda install -y  \
+      blas \
+      cython \
+      matplotlib==3.1.3 \
+      networkx==2.4 \
+      nose==1.3.7 \
+      numpy==1.16.4 \
+      pandas==0.23.4 \
+      scipy==1.4.1 \
+      traits==4.6.0 \
+      wxpython \
+      pip && \
+    pip install \
       torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html && \
     pip install --upgrade setuptools && \
     pip install --upgrade pip && \
@@ -161,14 +145,9 @@ RUN pip install \
     git lfs install
 
 # Installing C-PAC templates and atlases
-COPY --from=c-pac_templates /cpac_templates /cpac_templates
+COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
 COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
-
-# Installing surface files for downsampling
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
-COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
-
 
 ENTRYPOINT ["/bin/bash"]
 
