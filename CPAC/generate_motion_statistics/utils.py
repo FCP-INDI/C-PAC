@@ -38,15 +38,12 @@ def affine_from_params(params):
         the top three values in the fourth column encoding translation
         and the bottom row being [0, 0, 0, 1] for each timepoint
 """
-    import numpy as np
     from nipype.algorithms.rapidart import _get_affine_matrix
+    from scipy.spatial.transform import Rotation
     out = []
     for i in range(params.shape[0]):
-        out.append(_get_affine_matrix(params=params[i], source='AFNI'))
-
-    # Sign flips shouldn't matter?
-    return np.array([[1,  1, -1,  1],
-                     [1,  1,  1, -1],
-                     [-1, 1,  1, -1],
-                     [1,  1,  1,  1]]) * out
-    
+        affine = _get_affine_matrix(params=params[i], source='AFNI')
+        affine[:3, :3] = Rotation.from_euler("ZXY", -params[i, :3],
+                                             degrees=True).as_matrix()
+        out.append(affine)
+    return out
