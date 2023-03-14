@@ -953,14 +953,15 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
     return wf, outputs
 
 def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
-        
+
+     
     connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
                                 output_names=['parcellation_file'],
                                 function=run_ciftiparcellate),
                             name=f'connectivity_parcellation{pipe_num}')
 
     connectivity_parcellation.inputs.subject = cfg['subject_id'] 
-    node, out = strat_pool.get_data('space-fsLR_den-32k_bold')           
+    node, out = strat_pool.get_data('space-fsLR_den-32k_bold')        
     wf.connect(node, out, connectivity, 'dtseries') 
     connectivity_parcellation.inputs.surf_atlaslabel = '/code/CPAC/resources/templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii'
 
@@ -1021,21 +1022,21 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["surf-L_reho", "surf-R_reho"]}
     '''
     wf, outputs = cal_reho(wf, cfg, strat_pool, pipe_num, opt)
-
+    
     return (wf, outputs)
 
 def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "surface_connectivity_matrix",
      "config": ["timeseries_extraction","connectivity_matrix"],
-     "switch": ["run"],
+     "switch": ["None"],
      "option_key": "using",
      "option_val": "Surface",
      "inputs": ["space-fsLR_den-32k_bold"],
      "outputs": ["space-fsLR_den-32k_bold_surf-correlation_matrix"]}
     '''
+    raise Exception("Hello")
     wf, outputs = cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt)
-
     return (wf, outputs)
 
 def run_surf_falff(subject,dtseries):

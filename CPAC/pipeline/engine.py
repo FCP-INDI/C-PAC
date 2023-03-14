@@ -575,6 +575,7 @@ class ResourcePool:
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = ResourcePool()     # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool['json'] = {}
                 new_strats[pipe_idx].rpool['json']['subjson'] = {}
@@ -1140,6 +1141,7 @@ class NodeBlock:
         cfg_dct = cfg
         for key in key_list:
             cfg_dct = cfg_dct.__getitem__(key)
+            #print(key)
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
@@ -1240,7 +1242,9 @@ class NodeBlock:
                         raise Exception("\n\n[!] Developer info: Docstring error "
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
+                    print(key_list)
                     switch = self.grab_tiered_dct(cfg, key_list)
+                    
                 else:
                     if isinstance(switch[0], list):
                         # we have multiple switches, which is designed to only work if
