@@ -67,7 +67,7 @@ jobs:
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
           echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
-          docker manifest inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
+          docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
       - name: Clear up some space on runner
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
@@ -168,7 +168,7 @@ jobs:
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
           echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
-          docker manifest inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
+          docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
         if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Prep Dockerfiles for forked repository
@@ -248,7 +248,7 @@ jobs:
         TAG="stage-base:${{ matrix.variant }}-$(cat version)"
         DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
         echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
-        docker manifest inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
+        docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
         cat $GITHUB_OUTPUT
       id: docker_tag
     - name: Clear up some space on runner
