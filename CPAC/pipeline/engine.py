@@ -1643,7 +1643,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
     return (wf, strat_pool)
 
-def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id):
+def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
 
     fmriprep_ingress = create_general_datasource('ingress_fmriprep')
     fmriprep_ingress.inputs.inputnode.set(
@@ -1654,27 +1654,26 @@ def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id):
     rpool.set_data("fmriprep-dir", fmriprep_ingress, 'outputspec.data',
                        {}, "", "fmriprep_config_ingress")
 
-    fmriprep_func_out = {
-            
-        'desc-preproc_bold': 'func/sub-2824066679_ses-PNC1_task-rest_acq-singleband_space-MNI152NLin6Asym_res-2_desc-preproc_bold.nii.gz'
-        }
-
-    fmriprep_anat_out = {
-
-
-    }
-    for key, outfile in fmriprep_func_out.items():
-        fullpath = os.path.join(data_paths['fmriprep_dir'],
-                                outfile)
-        if os.path.exists(fullpath):
-            fmriprep_ingress = create_general_datasource(f'gather_fmriprep_{key}_dir')
-            fmriprep_ingress.inputs.inputnode.set(
-                unique_id=unique_id,
-                data=fullpath,
-                #creds_path=data_paths['creds_path'],
-                dl_dir=cfg.pipeline_setup['working_directory']['path'])
-            rpool.set_data(key, fmriprep_ingress, 'outputspec.data',
-                            {}, "", f"fmriprep_{key}_ingress")
+    fmriprep_path = os.path.join(data_paths['fmriprep_dir'], part_id, ses_id)
+    fmriprep_outputs = os.listdir(fmriprep_path)
+    
+    # loop through func and anat subdirectories
+    for subdirectory in fmriprep_outputs: 
+        subdir = os.listdir(os.path.join(fmriprep_path, subdirectory))
+        for file in subdir:
+            fullpath = os.path.join(fmriprep_path, subdirectory,
+                                    file)
+            if os.path.exists(fullpath):
+                key = file.split(unique_id + '_')
+                key = key.split('.')[0]
+                fmriprep_ingress = create_general_datasource(f'gather_fmriprep_{key}_dir')
+                fmriprep_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=fullpath,
+                    #creds_path=data_paths['creds_path'],
+                    dl_dir=cfg.pipeline_setup['working_directory']['path'])
+                rpool.set_data(key, fmriprep_ingress, 'outputspec.data',
+                                {}, "", f"fmriprep_{key}_ingress")
 
     return rpool
 
@@ -1778,7 +1777,6 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
 
     func_paths_dct = data_paths['func']
-    print(func_paths_dct)
 
     func_wf = create_func_datasource(func_paths_dct,
                                      f'func_ingress_{part_id}_{ses_id}')
@@ -2220,14 +2218,14 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         creds_path = None
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
-
+    print('unique id: ', unique_id, ' part_id ', part_id, ' ses_id ', ses_id)
     if data_paths:
 
         # ingress fmriprep
         if data_paths['fmriprep_dir'] and cfg.pipeline_setup['ingress_fmriprep']:
             #anat['fmriprep_dir'] = data_paths['anat']['fmriprep_dir']
             #func['fmriprep_dir'] = data_paths['func']['fmriprep_dir']
-            rpool = ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id)
+            rpool = ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id)
         rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                       part_id, ses_id)
         if 'func' in data_paths:
