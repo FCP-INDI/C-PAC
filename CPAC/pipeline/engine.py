@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2022  C-PAC Developers
+# Copyright (C) 2021-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,13 +20,16 @@ from itertools import chain
 import logging
 import os
 import re
+from types import FunctionType
+from typing import Tuple, Union
 import warnings
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype import config, logging  # pylint: disable=wrong-import-order
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-
+from CPAC.func_preproc.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
@@ -44,7 +47,8 @@ from CPAC.utils.datasource import (
 from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import getLogger, LOGTAIL, \
+                                  WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
@@ -850,6 +854,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
+        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
+            'outputs', [])
 
         if add_excl:
             excl += add_excl
@@ -963,7 +969,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in ('movement-parameters', 'regressors'))
+                             key not in (*movement_filter_keys, 'regressors'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1009,20 +1015,23 @@ class ResourcePool:
 
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
-                if num_variant:
+
+                if isinstance(num_variant, int):
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
                         filt_value = None
-                        if ('movement-parameters' in json_info.get(
-                            'CpacVariant', {}) and json_info['CpacVariant'][
-                                'movement-parameters']):
-                            filt_value = json_info['CpacVariant'][
-                                'movement-parameters'][0].replace(
-                                    'motion_estimate_filter_', '')
-                        elif False in cfg['functional_preproc',
-                                          'motion_estimates_and_correction',
-                                          'motion_estimate_filter', 'run']:
+                        _motion_variant = {
+                            _key: json_info['CpacVariant'][_key]
+                            for _key in movement_filter_keys
+                            if _key in json_info.get('CpacVariant', {})}
+                        try:
+                            filt_value = [
+                                json_info['CpacVariant'][_k][0].replace(
+                                    'motion_estimate_filter_', ''
+                                ) for _k, _v in _motion_variant.items()
+                                if _v][0]
+                        except IndexError:
                             filt_value = 'none'
                         if filt_value is not None:
                             resource_idx = insert_entity(resource_idx, 'filt',
@@ -1118,17 +1127,13 @@ class ResourcePool:
                         warnings.warn(str(
                             LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-                expected_outputs += (out_dct['subdir'], create_id_string(
-                    self.cfg, unique_id, resource_idx,
-                    template_desc=json_info.get('Template'),
-                    atlas_id=atlas_id, subdir=out_dct['subdir']))
 
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
-
+                
                 node, out = self.rpool[resource][pipe_idx]['data']
                 try:
                     wf.connect(node, out, nii_name, 'in_file')
@@ -1159,12 +1164,14 @@ class ResourcePool:
                     'aws_output_bucket_credentials']:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
                         'aws_output_bucket_credentials']
-
+                expected_outputs += (out_dct['subdir'], create_id_string(
+                    self.cfg, unique_id, resource_idx,
+                    template_desc=id_string.inputs.template_desc,
+                    atlas_id=atlas_id, subdir=out_dct['subdir']))
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
-
         outputs_logger.info(expected_outputs)
 
     def node_data(self, resource, **kwargs):
@@ -1182,8 +1189,7 @@ class ResourcePool:
 
 
 class NodeBlock:
-    def __init__(self, node_block_functions):
-
+    def __init__(self, node_block_functions, debug=False):
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -1231,6 +1237,19 @@ class NodeBlock:
             self.options = ['base']
             if 'options' in init_dct:
                 self.options = init_dct['options']
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             init_dct["inputs"], list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
 
     def get_name(self):
         return self.name
@@ -1378,7 +1397,6 @@ class NodeBlock:
                     switch = [switch]
 
             if True in switch:
-                logger.info('Connecting %s...', name)
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
@@ -1409,6 +1427,12 @@ class NodeBlock:
                             continue
 
                         if not outs:
+                            if (block_function.__name__ == 'freesurfer_'
+                                                           'postproc'):
+                                logger.warning(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
+                                LOGTAIL['warnings'].append(
+                                    WARNING_FREESURFER_OFF_WITH_DATA)
                             continue
 
                         if opt and len(option_val) > 1:
@@ -1519,6 +1543,40 @@ class NodeBlock:
         return wf
 
 
+def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
+                 key: str = 'inputs') -> list:
+    """Take a Node Block function or list of inputs and return a flat list
+
+    Parameters
+    ----------
+    node_block_function : function, list or tuple
+        a Node Block function or a list or tuple for recursion
+
+    key : str
+        'inputs' or 'outputs'
+
+    Returns
+    -------
+    list
+    """
+    flat_list = []
+    resource_list = []
+    if isinstance(node_block_function, (list, tuple)):
+        resource_list = node_block_function
+    elif isinstance(node_block_function, FunctionType):
+        resource_list = grab_docstring_dct(node_block_function).get(key, [])
+    elif isinstance(node_block_function, str):
+        resource_list = [node_block_function]
+    if isinstance(resource_list, dict):
+        resource_list = list(resource_list.keys())
+    for resource in resource_list:
+        if isinstance(resource, str):
+            flat_list.append(resource)
+        else:
+            flat_list += flatten_list(resource, key)
+    return flat_list
+
+
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     """Wrap a list of node block functions to make them easier to use within
     other node blocks.
@@ -1626,6 +1684,57 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         )
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
+
+    ingress_fs = cfg.surface_analysis['freesurfer']['ingress_reconall']
+    
+    if 'freesurfer_dir' in data_paths['anat'] and ingress_fs:
+        anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
+
+        fs_ingress = create_general_datasource('gather_freesurfer_dir')
+        fs_ingress.inputs.inputnode.set(
+            unique_id=unique_id,
+            data=data_paths['anat']['freesurfer_dir'],
+            creds_path=data_paths['creds_path'],
+            dl_dir=cfg.pipeline_setup['working_directory']['path'])
+        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
+                       {}, "", "freesurfer_config_ingress")
+
+        recon_outs = {
+            'pipeline-fs_raw-average': 'mri/rawavg.mgz',
+            'pipeline-fs_subcortical-seg': 'mri/aseg.mgz',
+            'pipeline-fs_brainmask': 'mri/brainmask.mgz',
+            'pipeline-fs_wmparc': 'mri/wmparc.mgz',
+            'pipeline-fs_T1': 'mri/T1.mgz',
+            'pipeline-fs_hemi-L_desc-surface_curv': 'surf/lh.curv',
+            'pipeline-fs_hemi-R_desc-surface_curv': 'surf/rh.curv',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
+            'pipeline-fs_hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
+            'pipeline-fs_hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
+            'pipeline-fs_hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
+            'pipeline-fs_hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
+            'pipeline-fs_hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
+            'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+        }
+        
+        for key, outfile in recon_outs.items():
+            fullpath = os.path.join(data_paths['anat']['freesurfer_dir'],
+                                    outfile)
+            if os.path.exists(fullpath):
+                fs_ingress = create_general_datasource(f'gather_fs_{key}_dir')
+                fs_ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=fullpath,
+                    creds_path=data_paths['creds_path'],
+                    dl_dir=cfg.pipeline_setup['working_directory']['path'])
+                rpool.set_data(key, fs_ingress, 'outputspec.data',
+                               {}, "", f"fs_{key}_ingress")
 
     return rpool
 
@@ -1945,17 +2054,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 rpool.set_data(key, config_ingress, 'outputspec.data',
                                json_info, "", f"{key}_config_ingress")
 
-    # Freesurfer directory, not a template, so not in cpac_templates.tsv
-    if cfg.surface_analysis['freesurfer']['freesurfer_dir']:
-        fs_ingress = create_general_datasource('gather_freesurfer_dir')
-        fs_ingress.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=cfg.surface_analysis['freesurfer']['freesurfer_dir'],
-            creds_path=creds_path,
-            dl_dir=cfg.pipeline_setup['working_directory']['path'])
-        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
-                       json_info, "", "freesurfer_config_ingress")
-
     # templates, resampling from config
     '''
     template_keys = [
@@ -2116,7 +2214,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         }
 
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
-    rpool = initiate_rpool(cfg, data_paths)
+    _, rpool = initiate_rpool(cfg, data_paths)
 
     wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
@@ -2136,7 +2234,9 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         run_blocks += blocks[1]
 
     for block in run_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        wf = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                        'verbose']).connect_block(
+                                            wf, cfg, rpool)
     rpool.gather_pipes(wf, cfg)
 
     wf.run()

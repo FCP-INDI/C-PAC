@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -117,30 +117,7 @@ def check_prov_for_motion_tool(prov):
             return None
 
 
-def cl_strip_brackets(arg_list):
-    """Removes '[' from before first and ']' from after final
-    arguments in a list of commandline arguments
 
-    Parameters
-    ----------
-    arg_list : list
-
-    Returns
-    -------
-    list
-
-    Examples
-    --------
-    >>> cl_strip_brackets('[a b c]'.split(' '))
-    ['a', 'b', 'c']
-    >>> cl_strip_brackets('a b c'.split(' '))
-    ['a', 'b', 'c']
-    >>> cl_strip_brackets('[ a b c ]'.split(' '))
-    ['a', 'b', 'c']
-    """
-    arg_list[0] = arg_list[0].lstrip('[')
-    arg_list[-1] = arg_list[-1].rstrip(']')
-    return [arg for arg in arg_list if arg]
 
 
 def get_flag(in_flag):
@@ -219,13 +196,12 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     else:
         out_filename = f'{part_id}_{ses_id}_{resource}'
 
-    if template_desc:
-        template_tag = template_desc.split(' -')[0]
-        for prefix in ['space-', 'from-', 'to-']:
-            for bidstag in out_filename.split('_'):
-                if prefix in bidstag and 'template' in bidstag:
-                    out_filename = out_filename.replace(
-                        bidstag, f'{prefix}{template_tag}')
+    template_tag = template_desc.split(' -')[0] if template_desc else '*'
+    for prefix in ['space-', 'from-', 'to-']:
+        for bidstag in out_filename.split('_'):
+            if prefix in bidstag and 'template' in bidstag:
+                out_filename = out_filename.replace(
+                    bidstag, f'{prefix}{template_tag}')
 
     if fwhm:
         for tag in resource.split('_'):

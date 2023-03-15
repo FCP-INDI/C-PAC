@@ -42,8 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `fail_fast` configuration setting and CLI flag
 - Added abililty to fork on motion filter
 - Added [`sdcflows`](https://www.nipreps.org/sdcflows/2.0/) to CPAC requirements
+- Added NodeBlock information to `pypeline.log` when verbose debugging is on
+- Added the ability to ingress FreeSurfer data into CPAC
+- Added the ability to toggle FreeSurfer derived masks for brain extraction
 
 ### Changed
+- Freesurfer output directory ingress moved to the data configuration YAML
 - Space labels in output filenames now contain specific template labels for MNI templates
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
 - Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths
@@ -61,9 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned AFNI to AFNI_21.1.00
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
+- Changed CI logic to allow non-release tags
 
 ### Upgraded dependencies
 - `nibabel` 2.3.3 → 3.0.1
+- `numpy` 1.16.4 → 1.21.0
+- `pandas` 0.23.4 → 1.0.5
 - `pybids` 0.13.2 → 0.15.1
 - `scipy` 1.4.1 → 1.6.0
 
@@ -76,6 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed an issue where some phase-difference GRE field map files were not properly being ingressed if the filenames were not expected.
 - Fixed a bug where ALFF & f/ALFF would not run if frequency filtering was disabled earlier in the pipeline.
 - Fixed a bug where `surface_analysis.freesurfer.freesurfer_dir` in the pipeline config was not ingressed at runtime.
+- Added public read access to some overly restricted packaged templates
+- Fixed a bug where notch filter was always assuming the sampling frequency was `2.0`.
 
 ## [v1.8.4] - 2022-06-27
 

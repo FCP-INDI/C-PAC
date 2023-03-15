@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (C) 2021-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for creating connectome connectivity matrices."""
 import os
 from warnings import warn
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
-from nilearn.input_data import NiftiLabelsMasker
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -99,17 +114,22 @@ def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
     -------
     numpy.ndarray or NotImplemented
     """
+    from nilearn.input_data import NiftiLabelsMasker
+    from nipype.utils.tmpdirs import TemporaryDirectory
     tool = 'Nilearn'
     output = connectome_name(atlas_name, tool, method)
     method = get_connectome_method(method, tool)
     if method is NotImplemented:
         return NotImplemented
-    masker = NiftiLabelsMasker(labels_img=in_rois,
-                               standardize=True,
-                               verbose=True)
-    timeser = masker.fit_transform(in_file)
-    correlation_measure = ConnectivityMeasure(kind=method)
-    corr_matrix = correlation_measure.fit_transform([timeser])[0]
+    with TemporaryDirectory() as cache_dir:
+        masker = NiftiLabelsMasker(labels_img=in_rois,
+                                standardize=True,
+                                verbose=True,
+                                memory=cache_dir,
+                                memory_level=3)
+        timeser = masker.fit_transform(in_file)
+        correlation_measure = ConnectivityMeasure(kind=method)
+        corr_matrix = correlation_measure.fit_transform([timeser])[0]
     np.fill_diagonal(corr_matrix, 1)
     np.savetxt(output, corr_matrix, delimiter='\t')
     return output

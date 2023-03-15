@@ -200,4 +200,5 @@ REQUIREMENTS = [
     "traits",
     "PyBASC",
     "voluptuous>=0.12.0",
+    "ciftify",
 ]

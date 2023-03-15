@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2018-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -29,7 +29,8 @@ from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
 from CPAC.pipeline.schema import str_to_bool1_1
-from CPAC.utils.bids_utils import create_cpac_data_config, \
+from CPAC.utils.bids_utils import cl_strip_brackets, \
+                                  create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
@@ -39,8 +40,7 @@ from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.configuration.yaml_template import create_yaml_from_template, \
                                                    hash_data_config, \
                                                    upgrade_pipeline_to_1_8
-from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
-                             update_nested_dict
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
 logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"
@@ -248,6 +248,11 @@ def run_main():
     parser.add_argument('--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
+    parser.add_argument('--save_workflow',
+                        help='Save a serialized version of the workflow. '
+                             'Can be used with `test_config` to save workflow '
+                             'without running the pipeline.',
+                        action='store_true')
 
     parser.add_argument('--fail_fast', type=str.title,
                         help='Stop worklow execution on first crash?')
@@ -607,6 +612,10 @@ def run_main():
                            'Either change the output directory to something '
                            'local or turn off the --save_working_dir flag')
 
+        c['pipeline_setup']['log_directory']['save_workflow'] = \
+            args.save_workflow or \
+            c['pipeline_setup']['log_directory'].get('save_workflow', False)
+
         if args.fail_fast is not None:
             c['pipeline_setup', 'system_config',
               'fail_fast'] = str_to_bool1_1(args.fail_fast)
@@ -793,11 +802,17 @@ def run_main():
             if monitoring:
                 monitoring.join(10)
 
-            if args.analysis_level == "test_config" and exitcode == 0:
-                print(
-                    '\nPipeline and data configuration files should'
-                    f' have been written to {pipeline_config_file} and ',
-                    f'{data_config_file} respectively.')
+            if args.analysis_level == "test_config":
+                if exitcode == 0:
+                    logger.info(
+                        '\nPipeline and data configuration files should'
+                        ' have been written to %s and %s respectively.\n',
+                        pipeline_config_file, data_config_file)
+
+            # wait to import `LOGTAIL` here so it has any runtime updates
+            from CPAC.utils.monitoring import LOGTAIL
+            for warning in LOGTAIL['warnings']:
+                logger.warning('%s\n', warning.rstrip())
 
     sys.exit(exitcode)
 

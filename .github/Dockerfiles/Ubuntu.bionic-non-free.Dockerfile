@@ -1,3 +1,4 @@
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -12,6 +13,7 @@ RUN apt-get update && \
 FROM neurodebian:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Bionic base image"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV TZ=America/New_York
@@ -129,8 +131,8 @@ RUN conda update conda -y && \
       networkx==2.4 \
       nose==1.3.7 \
       numpy==1.16.4 \
-      pandas==0.23.4 \
-      scipy==1.4.1 \
+      pandas==1.0.5 \
+      scipy==1.6.3 \
       traits==4.6.0 \
       wxpython \
       pip && \
@@ -145,9 +147,14 @@ RUN conda update conda -y && \
     git lfs install
 
 # Installing C-PAC templates and atlases
-COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
+COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
 COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
+
+# Installing surface files for downsampling
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
+
 
 ENTRYPOINT ["/bin/bash"]
 

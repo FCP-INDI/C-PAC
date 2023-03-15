@@ -1,4 +1,5 @@
 boto3
+ciftify
 click
 configparser
 future
@@ -17,17 +18,16 @@ pathvalidate
 patsy
 prov
 psutil
+PyBASC
 pybids
 git+https://git@github.com/ChildMindInstitute/PyPEER.git#egg=PyPEER
 python-dateutil
 pyyaml
 requests
+scikit-learn
 scipy
 sdcflows
-scikit-learn
 torch
 torchvision
 traits
-PyBASC
 voluptuous>=0.12.0
-xvfbwrapper
