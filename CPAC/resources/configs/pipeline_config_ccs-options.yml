@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev
+# Version 1.8.5
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -43,12 +43,13 @@ surface_analysis:
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
+    run_reconall: On
 
     # Add extra arguments to recon-all command
     reconall_args: -clean-bm -gcut
 
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    run: On
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: On
 
 anatomical_preproc:
   run: On
@@ -62,9 +63,12 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /code/CPAC/resources/templates/MNI152_T1_1mm_first_brain_mask.nii.gz
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
-    using: [FreeSurfer-BET-Tight, FreeSurfer-BET-Loose]
+    using:
+      - FreeSurfer-BET-Tight
+      - FreeSurfer-BET-Loose
+      - FreeSurfer-Brainmask
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:

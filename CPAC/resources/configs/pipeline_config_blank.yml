@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev
+# Version 1.8.5
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -202,15 +202,13 @@ surface_analysis:
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
+    run_reconall: Off
 
     # Add extra arguments to recon-all command
     reconall_args:
 
-    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
-    freesurfer_dir:
-
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    run: Off
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
@@ -266,7 +264,7 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [3dSkullStrip]
 

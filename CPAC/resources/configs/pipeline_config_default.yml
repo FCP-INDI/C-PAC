@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev
+# Version 1.8.5
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -198,14 +198,14 @@ surface_analysis:
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer: 
 
-    # If anatomical_preproc['brain_extraction']['using'] includes FreeSurfer-ABCD and this switch is On, C-PAC will automatically turn this switch Off to avoid running FreeSurfer twice unnecessarily
-    run: Off
+    run_reconall: Off
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
 
     # Add extra arguments to recon-all command
-    reconall_args: None
-    
-    # (Optional) Provide an already-existing FreeSurfer output directory to ingress already-computed surfaces
-    freesurfer_dir: None
+    reconall_args:
+
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer: 
@@ -334,7 +334,7 @@ anatomical_preproc:
   
     run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: ['BET']
 

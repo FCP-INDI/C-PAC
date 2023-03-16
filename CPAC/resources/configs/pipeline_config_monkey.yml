@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev
+# Version 1.8.5
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -84,7 +84,7 @@ anatomical_preproc:
   brain_extraction:
     run: On
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [UNet]
 
@@ -469,3 +469,15 @@ seed_based_correlation_analysis:
   sca_roi_paths:
     s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
     s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
