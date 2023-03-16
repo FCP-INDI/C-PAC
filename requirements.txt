@@ -20,7 +20,7 @@ prov
 psutil
 PyBASC
 pybids
-git+https://git@github.com/ChildMindInstitute/PyPEER.git#egg=PyPEER
+git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97#egg=PyPEER
 python-dateutil
 pyyaml
 requests
