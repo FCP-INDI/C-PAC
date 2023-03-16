@@ -29,7 +29,7 @@ from CPAC.pipeline import \
 from nipype import config, logging  # pylint: disable=wrong-import-order
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-from CPAC.func_preproc.func_preproc import motion_estimate_filter
+from CPAC.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize

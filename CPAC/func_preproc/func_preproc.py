@@ -1,3 +1,20 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Functional preprocessing"""
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype import logging
 from nipype.interfaces import afni, ants, fsl, utility as util
@@ -6,15 +23,10 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
-from CPAC.func_preproc.func_motion import motion_correct_connections
-from CPAC.func_preproc.utils import add_afni_prefix, nullify, \
-                                    notch_filter_motion
-from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.utils.docs import grab_docstring_dct
+from CPAC.func_preproc.utils import nullify
 from CPAC.utils.interfaces.ants import AI  # niworkflows
 from CPAC.utils.interfaces.ants import PrintHeader, SetDirectionByMatrix
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
+from CPAC.utils.utils import add_afni_prefix
 
 
 def collect_arguments(*args):
@@ -235,59 +247,6 @@ def anat_based_mask(wf_name='bold_mask'):
                 output_node, 'func_brain_mask')
 
     return wf
-
-
-def estimate_reference_image(in_file):
-
-    # fMRIPrep-style BOLD reference
-    # Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/interfaces/registration.py#L446-L549
-
-    import os
-    import numpy as np
-    import nibabel as nb
-
-    ref_input = [in_file]
-    mc_out_file = 'bold_mc.nii.gz'
-
-    # Build the nibabel spatial image we will work with
-    ref_im = []
-    for im_i in ref_input:
-        max_new_volumes = 50 - len(ref_im)
-        if max_new_volumes <= 0:
-            break
-        nib_i = nb.squeeze_image(nb.load(im_i))
-        if nib_i.dataobj.ndim == 3:
-            ref_im.append(nib_i)
-        elif nib_i.dataobj.ndim == 4:
-            ref_im += nb.four_to_three(nib_i.slicer[..., :max_new_volumes])
-    ref_im = nb.squeeze_image(nb.concat_images(ref_im))
-
-    out_file = os.path.join(os.getcwd(), "ref_bold.nii.gz")
-
-    # Slicing may induce inconsistencies with shape-dependent values in extensions.
-    # For now, remove all. If this turns out to be a mistake, we can select extensions
-    # that don't break pipeline stages.
-    ref_im.header.extensions.clear()
-
-    if ref_im.shape[-1] > 40:
-        ref_im = nb.Nifti1Image(
-            ref_im.dataobj[:, :, :, 20:40], ref_im.affine, ref_im.header
-        )
-
-    ref_name = os.path.join(os.getcwd(), "slice.nii.gz")
-    ref_im.to_filename(ref_name)
-    cmd = '3dvolreg -Fourier -twopass -zpad 4 -prefix %s %s'%(mc_out_file, ref_name)
-    os.system(cmd)
-
-    mc_slice_nii = nb.load(mc_out_file)
-
-    median_image_data = np.median(mc_slice_nii.get_fdata(), axis=3)
-
-    nb.Nifti1Image(median_image_data, ref_im.affine, ref_im.header).to_filename(
-        out_file
-    )
-
-    return out_file
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
@@ -784,300 +743,6 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'desc-preproc_bold': (slice_time, 'outputspec.slice_time_corrected'),
         'desc-stc_bold': (slice_time, 'outputspec.slice_time_corrected')
-    }
-
-    return (wf, outputs)
-
-
-def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "get_motion_ref",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction", 
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "motion_correction_reference"],
-     "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
-     "inputs": ["desc-preproc_bold",
-                "desc-reorient_bold"],
-     "outputs": ["motion-basefile"]}
-    '''
-    option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
-    if opt not in option_vals:
-        raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
-                         'parameter of the \'motion_correction\' workflow '
-                         'must be one of:\n\t{0}.\n\nTool input: \'{1}\''
-                         '\n\n'.format(
-                             ' or '.join([f"'{val}'" for val in option_vals]),
-                             opt))
-
-    if opt == 'mean':
-        func_get_RPI = pe.Node(interface=afni_utils.TStat(),
-                               name=f'func_get_mean_RPI_{pipe_num}',
-                               mem_gb=0.48,
-                               mem_x=(1435097126797993 /
-                                      302231454903657293676544,
-                                      'in_file'))
-
-        func_get_RPI.inputs.options = '-mean'
-        func_get_RPI.inputs.outputtype = 'NIFTI_GZ'
-
-        node, out = strat_pool.get_data('desc-preproc_bold')
-        wf.connect(node, out, func_get_RPI, 'in_file')
-
-    elif opt == 'median':
-        func_get_RPI = pe.Node(interface=afni_utils.TStat(),
-                               name=f'func_get_median_RPI_{pipe_num}')
-
-        func_get_RPI.inputs.options = '-median'
-        func_get_RPI.inputs.outputtype = 'NIFTI_GZ'
-
-        node, out = strat_pool.get_data('desc-preproc_bold')
-        wf.connect(node, out, func_get_RPI, 'in_file')
-
-    elif opt == 'selected_volume':
-        func_get_RPI = pe.Node(interface=afni.Calc(),
-                               name=f'func_get_selected_RPI_{pipe_num}')
-
-        func_get_RPI.inputs.set(
-            expr='a',
-            single_idx=cfg.functional_preproc['motion_estimates_and_correction'][
-                'motion_correction']['motion_correction_reference_volume'],
-            outputtype='NIFTI_GZ'
-        )
-
-        node, out = strat_pool.get_data('desc-preproc_bold')
-        wf.connect(node, out, func_get_RPI, 'in_file_a')
-
-    elif opt == 'fmriprep_reference':
-        func_get_RPI = pe.Node(util.Function(input_names=['in_file'],
-                                             output_names=['out_file'],
-                                             function=estimate_reference_image),
-                           name=f'func_get_fmriprep_ref_{pipe_num}')
-
-        node, out = strat_pool.get_data('desc-reorient_bold')
-        wf.connect(node, out, func_get_RPI, 'in_file')
-
-    outputs = {
-        'motion-basefile': (func_get_RPI, 'out_file')
-    }
-
-    return (wf, outputs)
-
-
-def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "motion_correction",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": ["desc-preproc_bold",
-                 "desc-motion_bold",
-                 "max-displacement",
-                 "rels-displacement",
-                 "movement-parameters",
-                 "coordinate-transformation"]}
-    '''
-
-    wf, outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
-                                             opt)
-
-    return (wf, outputs)
-
-
-def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Calculate motion estimates using 3dVolReg or MCFLIRT.
-    Node Block:
-    {"name": "motion_estimates",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": ["max-displacement",
-                 "rels-displacement",
-                 "movement-parameters",
-                 "coordinate-transformation"]}
-    '''
-    wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
-                                                opt)
-    return (wf, {resource: wf_outputs[resource] for resource in [
-        'coordinate-transformation', 'max-displacement',
-        'movement-parameters', 'rels-displacement'] if resource in wf_outputs})
-
-
-def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "motion_correction_only",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction", 
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": ["desc-preproc_bold",
-                 "desc-motion_bold"]}
-    '''
-
-    wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
-                                                opt)
-
-    outputs = {
-        'desc-preproc_bold': wf_outputs['desc-motion_bold'],
-        'desc-motion_bold': wf_outputs['desc-motion_bold']
-    }
-
-    return (wf, outputs)
-
-
-def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "motion_estimate_filter",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_estimate_filter"],
-     "switch": ["run"],
-     "option_key": "filters",
-     "option_val": "USER-DEFINED",
-     "inputs": ["movement-parameters",
-                "TR"],
-     "outputs": ["movement-parameters",
-                 "motion-filter-info",
-                 "motion-filter-plot"]}
-    '''
-    notch_imports = ['import os', 'import numpy as np',
-                     'from scipy.signal import iirnotch, lfilter, firwin, '
-                     'freqz',
-                     'from matplotlib import pyplot as plt',
-                     'from CPAC.func_preproc.utils import degrees_to_mm, '
-                     'mm_to_degrees']
-    notch = pe.Node(Function(input_names=['motion_params',
-                                          'filter_type',
-                                          'TR',
-                                          'fc_RR_min',
-                                          'fc_RR_max',
-                                          'center_freq',
-                                          'freq_bw',
-                                          'lowpass_cutoff',
-                                          'filter_order'],
-                             output_names=[
-                                 'filtered_motion_params',
-                                 'filter_info',
-                                 'filter_plot'],
-                             function=notch_filter_motion,
-                             imports=notch_imports),
-                    name=f'filter_motion_params_{opt["Name"]}_{pipe_num}')
-
-    notch.inputs.filter_type = opt.get('filter_type')
-    notch.inputs.fc_RR_min = opt.get('breathing_rate_min')
-    notch.inputs.fc_RR_max = opt.get('breathing_rate_max')
-    notch.inputs.center_freq = opt.get('center_frequency')
-    notch.inputs.freq_bw = opt.get('filter_bandwidth')
-    notch.inputs.lowpass_cutoff = opt.get('lowpass_cutoff')
-    notch.inputs.filter_order = opt.get('filter_order')
-
-    node, out = strat_pool.get_data('movement-parameters')
-    wf.connect(node, out, notch, 'motion_params')
-
-    node, out = strat_pool.get_data('TR')
-    wf.connect(node, out, notch, 'TR')
-
-    outputs = {
-        'motion-filter-info': (notch, 'filter_info'),
-        'motion-filter-plot': (notch, 'filter_plot'),
-        'movement-parameters': (notch, 'filtered_motion_params')
-    }
-
-    return (wf, outputs)
-
-
-def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "calc_motion_stats",
-     "config": "None",
-     "switch": [["functional_preproc", "run"], 
-                ["functional_preproc", "motion_estimates_and_correction", 
-                "motion_estimates", "calculate_motion_after"]],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "movement-parameters",
-                 "max-displacement",
-                 "rels-displacement",
-                 "coordinate-transformation"),
-                "subject",
-                "scan"],
-     "outputs": ["framewise-displacement-power",
-                 "framewise-displacement-jenkinson",
-                 "dvars",
-                 "power-params",
-                 "motion-params"]}
-    '''
-
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
-
-    gen_motion_stats = motion_power_statistics(
-        name=f'gen_motion_stats_{pipe_num}',
-        motion_correct_tool=motion_correct_tool)
-
-    # Special case where the workflow is not getting outputs from
-    # resource pool but is connected to functional datasource
-    node, out_file = strat_pool.get_data('subject')
-    wf.connect(node, out_file,
-               gen_motion_stats, 'inputspec.subject_id')
-
-    node, out_file = strat_pool.get_data('scan')
-    wf.connect(node, out_file,
-               gen_motion_stats, 'inputspec.scan_id')
-
-    node, out_file = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out_file,
-               gen_motion_stats, 'inputspec.motion_correct')
-
-    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
-    wf.connect(node, out_file,
-               gen_motion_stats, 'inputspec.mask')
-
-    node, out_file = strat_pool.get_data('movement-parameters')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.movement_parameters')
-
-    node, out_file = strat_pool.get_data('max-displacement')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.max_displacement')
-
-    if strat_pool.check_rpool('rels-displacement'):
-        node, out_file = strat_pool.get_data('rels-displacement')
-        wf.connect(node, out_file, gen_motion_stats,
-                   'inputspec.rels_displacement')
-
-    if strat_pool.check_rpool('coordinate-transformation'):
-        node, out_file = strat_pool.get_data('coordinate-transformation')
-        wf.connect(node, out_file, gen_motion_stats,
-                   'inputspec.transformations')
-
-    outputs = {
-        'framewise-displacement-power':
-            (gen_motion_stats, 'outputspec.FDP_1D'),
-        'framewise-displacement-jenkinson':
-            (gen_motion_stats, 'outputspec.FDJ_1D'),
-        'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-        'power-params': (gen_motion_stats, 'outputspec.power_params'),
-        'motion-params': (gen_motion_stats, 'outputspec.motion_params')
     }
 
     return (wf, outputs)
@@ -2007,4 +1672,3 @@ def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-

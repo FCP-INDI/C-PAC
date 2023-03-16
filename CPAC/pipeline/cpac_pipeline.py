@@ -127,6 +127,15 @@ from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_freesurfer
 )
 
+from CPAC.func_preproc import (
+    calc_motion_stats,
+    func_motion_correct,
+    func_motion_correct_only,
+    func_motion_estimates,
+    get_motion_ref,
+    motion_estimate_filter
+)
+
 from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_truncate,
@@ -144,13 +153,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_masking,
     func_mean,
     func_normalize,
-    func_mask_normalize,
-    get_motion_ref,
-    func_motion_estimates,
-    motion_estimate_filter,
-    calc_motion_stats,
-    func_motion_correct_only,
-    func_motion_correct
+    func_mask_normalize
 )
 
 from CPAC.distortion_correction.distortion_correction import (

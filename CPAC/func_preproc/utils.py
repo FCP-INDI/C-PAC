@@ -1,16 +1,10 @@
 
 import numpy as np
-from scipy.signal import iirnotch, firwin, filtfilt, lfilter, freqz
+from scipy.signal import iirnotch, firwin, lfilter, freqz
 from matplotlib import pyplot as plt
 import nibabel as nb
 import subprocess
 import math
-
-def add_afni_prefix(tpattern):
-    if tpattern:
-        if ".txt" in tpattern:
-            tpattern = "@{0}".format(tpattern)
-    return tpattern
 
 
 def nullify(value, function=None):

@@ -2,7 +2,7 @@
 import multiprocessing
 from unittest import mock
 import pytest
-from CPAC.func_preproc.func_preproc import get_motion_ref
+from CPAC.func_preproc import get_motion_ref
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.utils import check_config_resources, check_system_deps, \
