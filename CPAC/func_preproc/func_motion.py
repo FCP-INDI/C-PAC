@@ -25,7 +25,7 @@ from CPAC.func_preproc.utils import chunk_ts, oned_text_concat, \
 from CPAC.func_preproc.utils import notch_filter_motion
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.pipeline.schema import latest_schema
-from CPAC.utils.docs import grab_docstring_dct
+from CPAC.utils.docs import docstring_parameter, grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 try:
@@ -168,9 +168,34 @@ def estimate_reference_image(in_file):
     return out_file
 
 
+_MOTION_CORRECTED_OUTPUTS = """"desc-preproc_bold": {
+             "Description": "Motion-corrected BOLD time-series."
+         },
+         "desc-motion_bold": {
+             "Description": "Motion-corrected BOLD time-series."
+         }"""
+_MOTION_PARAM_OUTPUTS = """"max-displacement": {},
+         "rels-displacement": {},
+         "movement-parameters": {
+             "Description": "Each line contains for one timepoint a 6-DOF "
+                            "rigid transform parameters in the format "
+                            "defined by AFNI's 3dvolreg: [roll, pitch, yaw, "
+                            "superior displacement, left displacement, "
+                            "posterior displacement]. Rotation parameters "
+                            "are in degrees counterclockwise, and translation "
+                            "parameters are in millimeters."
+         },
+         "coordinate-transformation": {
+              "Description" : "Each row contains for one timepoint the first "
+                              "12 values of a 4x4 affine matrix"
+         }"""
+
+
+@docstring_parameter(_motion_corrected_outputs=_MOTION_CORRECTED_OUTPUTS,
+                     _motion_param_outputs=_MOTION_PARAM_OUTPUTS)
 def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "motion_correction",
+    {{"name": "motion_correction",
      "config": "None",
      "switch": ["functional_preproc", "motion_estimates_and_correction",
                 "run"],
@@ -179,23 +204,21 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [("desc-preproc_bold",
                  "motion-basefile")],
-     "outputs": ["desc-preproc_bold",
-                 "desc-motion_bold",
-                 "max-displacement",
-                 "rels-displacement",
-                 "movement-parameters",
-                 "coordinate-transformation"]}
+     "outputs": {{
+         {_motion_corrected_outputs},
+         {_motion_param_outputs}
+    }}}}
     '''
-
     wf, outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                              opt)
 
     return wf, outputs
 
 
+@docstring_parameter(_motion_corrected_outputs=_MOTION_CORRECTED_OUTPUTS)
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "motion_correction_only",
+    {{"name": "motion_correction_only",
      "config": "None",
      "switch": ["functional_preproc", "motion_estimates_and_correction",
                 "run"],
@@ -204,8 +227,9 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [("desc-preproc_bold",
                  "motion-basefile")],
-     "outputs": ["desc-preproc_bold",
-                 "desc-motion_bold"]}
+     "outputs": {{
+         {_motion_corrected_outputs}
+    }}}}
     '''
 
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
@@ -219,11 +243,12 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@docstring_parameter(_motion_param_outputs=_MOTION_PARAM_OUTPUTS)
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Calculate motion estimates using 3dVolReg or MCFLIRT.
     Node Block:
-    {"name": "motion_estimates",
+    {{"name": "motion_estimates",
      "config": "None",
      "switch": ["functional_preproc", "motion_estimates_and_correction",
                 "run"],
@@ -232,10 +257,9 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": ["3dvolreg", "mcflirt"],
      "inputs": [("desc-preproc_bold",
                  "motion-basefile")],
-     "outputs": ["max-displacement",
-                 "rels-displacement",
-                 "movement-parameters",
-                 "coordinate-transformation"]}
+     "outputs": {{
+         {_motion_param_outputs}
+    }}}}
     '''
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
