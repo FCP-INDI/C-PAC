@@ -23,7 +23,8 @@ from nipype.interfaces.afni import utils as afni_utils
 from CPAC.func_preproc.utils import chunk_ts, oned_text_concat, \
                                     split_ts_chunks
 from CPAC.func_preproc.utils import notch_filter_motion
-from CPAC.generate_motion_statistics import motion_power_statistics
+from CPAC.generate_motion_statistics import affine_file_from_params_file, \
+                                            motion_power_statistics
 from CPAC.pipeline.schema import latest_schema
 from CPAC.utils.docs import docstring_parameter, grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
@@ -643,9 +644,11 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "filters",
      "option_val": "USER-DEFINED",
-     "inputs": ["movement-parameters",
+     "inputs": ["coordinate-transformation",
+                "movement-parameters",
                 "TR"],
-     "outputs": ["movement-parameters",
+     "outputs": ["coordinate-transformation",
+                 "movement-parameters",
                  "motion-filter-info",
                  "motion-filter-plot"]}
     '''
@@ -686,7 +689,15 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('TR')
     wf.connect(node, out, notch, 'TR')
 
+    affine = pe.Node(Function(input_names=['params_file'],
+                              output_names=['affine_file'],
+                              function=affine_file_from_params_file),
+                     name='affine_from_filtered_params_'
+                          f'{opt["Name"]}_{pipe_num}')
+    wf.connect(notch, 'filtered_motion_params', affine, 'params_file')
+
     outputs = {
+        'coordinate-transformation': (affine, 'affine_file'),
         'motion-filter-info': (notch, 'filter_info'),
         'motion-filter-plot': (notch, 'filter_plot'),
         'movement-parameters': (notch, 'filtered_motion_params')
