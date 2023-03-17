@@ -638,6 +638,15 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
 
 def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
+    Filter motion parameters.
+
+    .. versionchanged:: 1.8.6
+       Beginning with version 1.8.6, C-PAC outputs both the unfiltered
+       and the filtered motion parameters and uses the unfiltered
+       parameters in QC. Previous versions only reported the filtered
+       parameters and used the filtered parameters for QC.
+
+    Node Block:
     {"name": "motion_estimate_filter",
      "config": ["functional_preproc", "motion_estimates_and_correction",
                 "motion_estimate_filter"],
@@ -647,10 +656,12 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["coordinate-transformation",
                 "movement-parameters",
                 "TR"],
-     "outputs": ["coordinate-transformation",
-                 "movement-parameters",
-                 "motion-filter-info",
-                 "motion-filter-plot"]}
+     "outputs": {"coordinate-transformation": {},
+                 "filtered-movement-parameters": {
+                     "Description": "Filtered movement parameters"
+                                    " (3 rotation, 3 translation)."},
+                 "motion-filter-info": {},
+                 "motion-filter-plot": {}}}
     '''
     notch_imports = ['import os', 'import numpy as np',
                      'from scipy.signal import iirnotch, lfilter, firwin, '
@@ -700,7 +711,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
         'coordinate-transformation': (affine, 'affine_file'),
         'motion-filter-info': (notch, 'filter_info'),
         'motion-filter-plot': (notch, 'filter_plot'),
-        'movement-parameters': (notch, 'filtered_motion_params')
+        'filtered-movement-parameters': (notch, 'filtered_motion_params')
     }
 
     return (wf, outputs)

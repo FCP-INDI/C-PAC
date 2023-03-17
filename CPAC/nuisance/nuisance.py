@@ -2191,6 +2191,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                  "desc-brain_bold",
                  "space-bold_desc-brain_mask",
                  "movement-parameters",
+                 "filtered-movement-parameters",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
                  "dvars",
@@ -2227,6 +2228,7 @@ def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                  "space-bold_desc-brain_mask",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm",
                  "movement-parameters",
+                 "filtered-movement-parameters",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
                  "dvars",
@@ -2412,8 +2414,10 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    if strat_pool.check_rpool('movement-parameters'):
-        node, out = strat_pool.get_data('movement-parameters')
+    movement_parameters = ['filtered-movement-parameters',
+                           'movement-parameters']
+    if strat_pool.check_rpool(movement_parameters):
+        node, out = strat_pool.get_data(movement_parameters)
         wf.connect(node, out,
                    regressors, 'inputspec.motion_parameters_file_path')
 

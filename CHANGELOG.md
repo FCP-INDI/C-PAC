@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
+- When applying a filter to motion parameters, now C-PAC reports both the original and the filtered motion parameters and uses the original parameters for qc. Previous versions only reported the filtered parameters and used the filtered parameters for qc.
 
 ### Upgraded dependencies
 - `nibabel` 2.3.3 → 3.0.1
