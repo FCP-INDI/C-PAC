@@ -41,6 +41,7 @@ COPY --from=AFNI /opt/afni/ /opt/afni/
 COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
+
 # Installing C-PAC resources into FSL and installing ANTs
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \

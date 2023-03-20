@@ -134,7 +134,6 @@ RUN conda update conda -y && \
       pandas==1.0.5 \
       scipy==1.6.3 \
       traits==4.6.0 \
-      wxpython \
       pip && \
     pip install \
       torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html && \
