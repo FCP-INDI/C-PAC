@@ -1,4 +1,5 @@
 FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
+FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
@@ -9,10 +10,14 @@ Standard software dependencies for C-PAC standard and lite images"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
-# Installing connectome-workbench & FSL
+# Installing connectome-workbench
+COPY --from=connectome-workbench /opt/workbench /opt/workbench
+ENV PATH $PATH:/opt/workbench/bin_linux64
+
+# Installing FSL
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      connectome-workbench=1.5.0-1~nd18.04+1 \
+      connectome-workbench \
       fsl-core \
       fsl-atlases \
       fsl-mni152-templates && \

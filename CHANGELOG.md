@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
 - `Torch` 1.2.0+cu92 → 1.13.1
 - `torchvision` 0.4.0+cu92 → 0.14.1
+- `wb_command` neurodebian latest → 1.5.0
 
 ## [1.8.5]
 
