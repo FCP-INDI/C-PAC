@@ -1028,7 +1028,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
 def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "surface_connectivity_matrix",
-     "config": ["timeseries_extraction", "surface_connectivity"],
+     "config": ["surface_connectivity"],
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
