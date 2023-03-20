@@ -43,7 +43,7 @@ def affine_file_from_params_file(params_file: str, affine_file: str = None
 
     ## load parameters file into array
     affine = affine_from_params(np.genfromtxt(params_file))
-
+    header = ''
     if affine_file:
         # grab comment(s), if any
         with open(affine_file, 'r', encoding='utf-8') as _f:
@@ -51,12 +51,12 @@ def affine_file_from_params_file(params_file: str, affine_file: str = None
                                 if line.lstrip().startswith('#')])
     basename = (os.path.basename(affine_file) if affine_file
                 else f'affine_{os.path.basename(params_file)}')
-    affine_file = f'filtered_{basename}.1D'
+    affine_file = f'filtered_{basename}'
 
     # drop bottom [0, 0, 0, 1] row from each matrix
     # insert original comments, if any, as header
     np.savetxt(affine_file, affine[:, :3].reshape(affine.shape[0], 12),
-               header=header if header else None, comments='')
+               header=header, comments='')
     return affine_file
 
 
