@@ -68,10 +68,11 @@ valid_options = {
     },
     'connectivity_matrix': {
         'using': {'AFNI', 'Nilearn', 'ndmg','Surface'},
-        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
+        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC'
                     # 'TangentEmbed'  # "Skip tangent embedding for now"
                     },
     },
+    'surface_connectivity': Any,
     'Regressors': {
         'CompCor': {
             'degree': int,
@@ -1024,6 +1025,8 @@ latest_schema = Schema({
             option: Maybe([In(valid_options['connectivity_matrix'][option])])
             for option in ['using', 'measure']
         },
+        'surface_connectivity': {
+            option: Maybe([In(valid_options['surface_connectivity'])]), 
     },
     'seed_based_correlation_analysis': {
         'run': bool,

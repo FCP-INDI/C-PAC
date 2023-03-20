@@ -21,6 +21,7 @@ import warnings
 import copy
 import yaml
 
+
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
@@ -1140,8 +1141,11 @@ class NodeBlock:
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg
         for key in key_list:
-            cfg_dct = cfg_dct.__getitem__(key)
-            #print(key)
+            try:
+                cfg_dct = cfg_dct.__getitem__(key)
+                #print(cfg_dct)
+            except KeyError:
+                raise Exception(f"[!] The config provided to the node block is not valid")  
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
@@ -1242,7 +1246,6 @@ class NodeBlock:
                         raise Exception("\n\n[!] Developer info: Docstring error "
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
-                    print(key_list)
                     switch = self.grab_tiered_dct(cfg, key_list)
                     
                 else:

@@ -1389,8 +1389,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Connect the entire pipeline!
     try:
+        
         wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
-        print(rpool)
+        
     except LookupError as lookup_error:
         errorstrings = lookup_error.args[0].split('\n')
         missing_key = errorstrings[

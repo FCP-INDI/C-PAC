@@ -958,17 +958,17 @@ def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
                                 output_names=['parcellation_file'],
                                 function=run_ciftiparcellate),
-                            name=f'connectivity_parcellation{pipe_num}')
+                            name=f'connectivity_parcellation_{pipe_num}')
 
     connectivity_parcellation.inputs.subject = cfg['subject_id'] 
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold')        
-    wf.connect(node, out, connectivity, 'dtseries') 
+    wf.connect(node, out, connectivity_parcellation, 'dtseries') 
     connectivity_parcellation.inputs.surf_atlaslabel = '/code/CPAC/resources/templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii'
 
     correlation_matrix = pe.Node(util.Function(input_names=['subject','ptseries'], 
                                 output_names=['correlation_matrix'],
                                 function=run_cifticorrelation),
-                            name=f'correlation_matrix{pipe_num}')
+                            name=f'correlation_matrix_{pipe_num}')
                 
     correlation_matrix.inputs.subject = cfg['subject_id'] 
     wf.connect(connectivity_parcellation, 'parcellation_file', correlation_matrix, 'ptseries') 
@@ -1028,16 +1028,17 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
 def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "surface_connectivity_matrix",
-     "config": ["timeseries_extraction","connectivity_matrix"],
-     "switch": ["None"],
-     "option_key": "using",
-     "option_val": "Surface",
+     "config": ["timeseries_extraction", "surface_connectivity"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
      "inputs": ["space-fsLR_den-32k_bold"],
      "outputs": ["space-fsLR_den-32k_bold_surf-correlation_matrix"]}
     '''
-    raise Exception("Hello")
+   
     wf, outputs = cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt)
     return (wf, outputs)
+
 
 def run_surf_falff(subject,dtseries):
     import os
