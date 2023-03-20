@@ -1,14 +1,27 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.4
+# Version 1.8.5
 #
 # http://fcp-indi.github.io for more info.
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
-
 FROM: monkey
 
-pipeline_setup: 
+pipeline_setup:
+
   # Name for this pipeline configuration - useful for identification.
+  # This string will be sanitized and used in filepaths
   pipeline_name: cpac_default_macaque_skullstrip
+
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off

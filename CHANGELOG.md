@@ -14,6 +14,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Added
+- Added the ability to downsample to 10K or 2K resolution for freesurfer runs
+- Added the ability to run AFNI 3dDespike on template-space BOLD data.
+- Added the ability to ingress TotalReadoutTime from epi field map meta-data from the JSON sidecars.
+- Added the ability to use TotalReadoutTime of epi field maps in the calculation of FSL topup distortion correction.
+- Difference method (`-`) for `CPAC.utils.configuration.Configuration` instances
+- Calculate reho and alff when timeseries in template space
+- Added new default pipeline that uses FSL-BET for brain extraction. Previous default pipleine is now called default-deprecated.
+- Added `fail_fast` configuration setting and CLI flag
+- Added abililty to fork on motion filter
+- Added [`sdcflows`](https://www.nipreps.org/sdcflows/2.0/) to CPAC requirements
+- Added NodeBlock information to `pypeline.log` when verbose debugging is on
+- Added the ability to ingress FreeSurfer data into CPAC
+- Added the ability to toggle FreeSurfer derived masks for brain extraction
+
+### Changed
+- Freesurfer output directory ingress moved to the data configuration YAML
+- Space labels in output filenames now contain specific template labels for MNI templates
+- Added a level of depth to `working` directories to match `log` and `output` directory structure
+- Renamed participant-pipeline-level `output` directory prefix to `pipeline_` to match `log` and `working` paths
+- Changed the 1mm atlases chosen in the rbc-options preconfig to the 2mm versions
+- For Nilearn-generated correlation matrices, diagonals are now set to all `1`s (were all `0`s)
+- Added ability to apply nusiance correction to template-space BOLD images
+- Removed ability to run single-step-resampling on motion-corrected BOLD data
+- Moved default pipeline config into directory with other preconfigs
+- Added crash messages from during and before graph building to logs
+- Added data-config-specific hash string to C-PAC-generated config files
+- Updated `rbc-options` preconfig to use `fmriprep-options` preprocessing
+- Changed minimized pipeline base from `default` to `blank`
+- Removed deprecated `--disable_file_logging` CLI flag
+- Improved flexibility of some pipeline options regarding the application of distortion correction transforms
+- Pinned AFNI to AFNI_21.1.00
+- Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
+- Changed motion filter from single dictionary to list of dictionaries
+- Changed CI logic to allow non-release tags
+
+### Upgraded dependencies
+- `nibabel` 2.3.3 → 3.0.1
+- `numpy` 1.16.4 → 1.21.0
+- `pandas` 0.23.4 → 1.0.5
+- `pybids` 0.13.2 → 0.15.1
+- `scipy` 1.4.1 → 1.6.0
+
+### Fixed
+- Fixed an issue where the distortion correction un-warps were not being applied to the final template-space BOLD time series data depending on pipeline configuration decisions.
+- Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
+- Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
+- Replaces `DwellTime` with `EffectiveEchoSpacing` for FSL usage of the term
+- Fixed an issue that was causing some epi field maps to not be ingressed if the BIDS tags were not in the correct order.
+- Fixed an issue where some phase-difference GRE field map files were not properly being ingressed if the filenames were not expected.
+- Fixed a bug where ALFF & f/ALFF would not run if frequency filtering was disabled earlier in the pipeline.
+- Fixed a bug where `surface_analysis.freesurfer.freesurfer_dir` in the pipeline config was not ingressed at runtime.
+- Added public read access to some overly restricted packaged templates
+- Fixed a bug where notch filter was always assuming the sampling frequency was `2.0`.
+
 ## [v1.8.4] - 2022-06-27
 
 ### Added

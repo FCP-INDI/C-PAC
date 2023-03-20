@@ -414,116 +414,6 @@ def create_seg_preproc_antsJointLabel_method(
     return preproc
 
 
-def create_seg_preproc_freesurfer(config=None,
-                                  wf_name='seg_preproc_freesurfer',
-                                  pipe_num=0):
-    """
-    Generate the subject's segmentations based on freesurfer.
-
-    Parameters
-    ----------
-    config : CPAC.utils.configuration.Configuration
-
-    wf_name : string
-        name of the workflow
-
-    pipe_num : int
-
-    Returns
-    -------
-    seg_preproc_freesurfer : workflow
-        workflow object for segmentation workflow
-
-    hemisphere_outputs : dict
-        hemisphere-specific FreeSurfer outputs
-
-    Notes
-    -----
-
-    Workflow Inputs: ::
-
-        inputspec.subject_dir : string (existing nifti file)
-            FreeSurfer autorecon1 dir
-
-    Workflow Outputs: ::
-
-        outputspec.wm_mask : string (nifti file)
-            outputs White Matter mask
-    """
-    preproc = pe.Workflow(name=wf_name)
-
-    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
-                        name='inputspec')
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask',
-                                                        'gm_mask',
-                                                        'csf_mask',
-                                                        'subject_id']),
-                         name='outputspec')
-
-    reconall2 = pe.Node(interface=freesurfer.ReconAll(),
-                        name='anat_autorecon2')
-
-    reconall2.inputs.directive = 'autorecon2'
-    reconall2.inputs.openmp = config.pipeline_setup['system_config'][
-        'num_omp_threads']
-
-    preproc.connect(inputnode, 'subject_dir',
-                    reconall2, 'subjects_dir')
-
-    preproc.connect(reconall2, 'subject_id',
-                    outputnode, 'subject_id')
-
-    # register FS segmentations (aseg.mgz) to native space
-    fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                                name='fs_aseg_to_native')
-
-    fs_aseg_to_native.inputs.reg_header = True
-    fs_aseg_to_native.inputs.interp = 'nearest'
-
-    preproc.connect(reconall2, 'aseg',
-                    fs_aseg_to_native, 'source_file')
-
-    preproc.connect(reconall2, 'rawavg',
-                    fs_aseg_to_native, 'target_file')
-
-    preproc.connect(inputnode, 'subject_dir',
-                    fs_aseg_to_native, 'subjects_dir')
-
-    # convert registered FS segmentations from .mgz to .nii.gz
-    fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
-                                             output_names=['out_file'],
-                                             function=mri_convert),
-                               name='fs_aseg_to_nifti')
-
-    fs_aseg_to_nifti.inputs.args = '-rt nearest'
-
-    preproc.connect(fs_aseg_to_native, 'transformed_file',
-                    fs_aseg_to_nifti, 'in_file')
-
-    pick_tissue = pe.Node(
-        pick_tissue_from_labels_file_interface(
-            input_names=['multiatlas_Labels']),
-        name=f'{wf_name}_tissue_mask')
-
-    preproc.connect(fs_aseg_to_nifti, 'out_file',
-                    pick_tissue, 'multiatlas_Labels')
-
-    preproc.connect(pick_tissue, 'wm_mask',
-                    outputnode, 'wm_mask')
-
-    preproc.connect(pick_tissue, 'gm_mask',
-                    outputnode, 'gm_mask')
-
-    preproc.connect(pick_tissue, 'csf_mask',
-                    outputnode, 'csf_mask')
-
-    preproc, hemisphere_outputs = freesurfer_hemispheres(preproc, reconall2,
-                                                         pipe_num)
-
-    return preproc, hemisphere_outputs
-
-
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "tissue_seg_fsl_fast",
@@ -907,39 +797,69 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FreeSurfer",
      "inputs": ["freesurfer-subject-dir"],
-     "outputs": ["hemi-L_desc-surface_curv",
-                 "hemi-R_desc-surface_curv",
-                 "hemi-L_desc-surfaceMesh_pial",
-                 "hemi-R_desc-surfaceMesh_pial",
-                 "hemi-L_desc-surfaceMesh_smoothwm",
-                 "hemi-R_desc-surfaceMesh_smoothwm",
-                 "hemi-L_desc-surfaceMesh_sphere",
-                 "hemi-R_desc-surfaceMesh_sphere",
-                 "hemi-L_desc-surfaceMap_sulc",
-                 "hemi-R_desc-surfaceMap_sulc",
-                 "hemi-L_desc-surfaceMap_thickness",
-                 "hemi-R_desc-surfaceMap_thickness",
-                 "hemi-L_desc-surfaceMap_volume",
-                 "hemi-R_desc-surfaceMap_volume",
-                 "hemi-L_desc-surfaceMesh_white",
-                 "hemi-R_desc-surfaceMesh_white",
+     "outputs": ["pipeline-fs_hemi-L_desc-surface_curv",
+                 "pipeline-fs_hemi-R_desc-surface_curv", 
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_sulc", 
+                 "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
+                 "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
+                 "pipeline-fs_hemi-L_desc-surfaceMap_volume",
+                 "pipeline-fs_hemi-R_desc-surfaceMap_volume",
+                 "pipeline-fs_hemi-L_desc-surfaceMesh_white",
+                 "pipeline-fs_hemi-R_desc-surfaceMesh_white",
                  "label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask"]}
     '''
 
-    fs_seg, hemisphere_outputs = create_seg_preproc_freesurfer(
-        config=cfg, wf_name=f'seg_preproc_freesurfer_{pipe_num}',
-        pipe_num=pipe_num)
+    fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+                                             output_names=['out_file'],
+                                             function=mri_convert),
+                               name=f'fs_aseg_to_nifti_{pipe_num}')
+    fs_aseg_to_nifti.inputs.args = '-rt nearest'
 
-    node, out = strat_pool.get_data('freesurfer-subject-dir')
-    wf.connect(node, out, fs_seg, 'inputspec.subject_dir')
+    pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
+                          name=f'select_fs_tissue_{pipe_num}')
 
-    outputs = {
-        'label-CSF_mask': (fs_seg, 'outputspec.csf_mask'),
-        'label-GM_mask': (fs_seg, 'outputspec.gm_mask'),
-        'label-WM_mask': (fs_seg, 'outputspec.wm_mask'),
-        **hemisphere_outputs
-    }
+    pick_tissue.inputs.csf_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['CSF_label']
+    pick_tissue.inputs.gm_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['GM_label']
+    pick_tissue.inputs.wm_label = cfg['segmentation'][
+        'tissue_segmentation']['FreeSurfer']['WM_label']
+
+    wf.connect(fs_aseg_to_nifti, 'out_file', pick_tissue, 'multiatlas_Labels')
+
+    erode_tissues = {}
+    if cfg['segmentation']['tissue_segmentation']['FreeSurfer']['erode'] > 0:
+        for tissue in ['csf', 'wm', 'gm']:
+            erode_tissues[tissue] = pe.Node(
+                interface=freesurfer.model.Binarize(),
+                name=f'erode_{tissue}_{pipe_num}')
+            erode_tissues[tissue].inputs.match = [1]
+            erode_tissues[tissue].inputs.erode = cfg['segmentation'][
+                'tissue_segmentation']['FreeSurfer']['erode']
+            wf.connect(pick_tissue, f'{tissue}_mask', erode_tissues[tissue],
+                       'in_file')
+
+    if erode_tissues:
+        outputs = {
+            'label-CSF_mask': (erode_tissues['csf'], 'binary_file'), 
+            'label-WM_mask': (erode_tissues['wm'], 'binary_file'),
+            'label-GM_mask': (erode_tissues['gm'], 'binary_file')
+            }
+
+    else:
+        outputs = {
+            'label-CSF_mask': (pick_tissue, 'csf_mask'),
+            'label-WM_mask': (pick_tissue, 'wm_mask'),
+            'label-GM_mask': (pick_tissue, 'gm_mask')
+        }
 
     return (wf, outputs)

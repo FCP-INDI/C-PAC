@@ -1,7 +1,22 @@
+# Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 '''Functions to set, check, and log random seed'''
 import os
 import random
-from logging import getLogger
 
 import numpy as np
 from nipype.interfaces.ants.registration import Registration
@@ -10,9 +25,8 @@ from nipype.interfaces.freesurfer.preprocess import ApplyVolTransform, ReconAll
 from nipype.interfaces.fsl.maths import MathsCommand
 from nipype.interfaces.fsl.utils import ImageMaths
 
-from CPAC.registration.utils import hardcoded_reg
 from CPAC.utils.interfaces.ants import AI
-from CPAC.utils.monitoring.custom_logging import set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, set_up_logger
 
 _seed = {'seed': None}
 
@@ -92,6 +106,7 @@ def random_seed_flags():
     ...     'functions', 'interfaces']])
     True
     '''
+    from CPAC.registration.utils import hardcoded_reg
     seed = random_seed()
     if seed is None:
         return {'functions': {}, 'interfaces': {}}
@@ -121,7 +136,7 @@ def random_seed_flags():
                       [f'--use-random-seed{one}', f'-r{one}']]),
             # FreeSurfer
             ReconAll: ['-norandomness', f'-rng-seed {seed}'],
-            ApplyVolTransform: _reusable_flags()['FSL'],
+            ApplyVolTransform: [f'--seed {seed}'],
             # FSL
             ImageMaths: _reusable_flags()['FSL'],
             MathsCommand: _reusable_flags()['FSL']
@@ -166,16 +181,15 @@ def set_up_random_state(seed):
     if seed is not None:
         if seed == 'random':
             seed = random_random_seed()
-        if (seed != 'random' and not (
-            isinstance(seed, int) and
-            (0 < int(seed) <= np.iinfo(np.int32).max)
-        )):
-            raise ValueError('Valid random seeds are positive integers up to '
-                             f'2147483647, "random", or None, not {seed}')
-    try:
-        _seed['seed'] = int(seed)
-    except (TypeError, ValueError):
-        _seed['seed'] = seed
+        else:
+            try:
+                seed = int(seed)
+                assert 0 < seed <= np.iinfo(np.int32).max
+            except(ValueError, TypeError, AssertionError):
+                raise ValueError('Valid random seeds are positive integers up to '
+                                    f'2147483647, "random", or None, not {seed}')
+    
+    _seed['seed'] = seed
     return random_seed()
 
 
@@ -186,5 +200,5 @@ def set_up_random_state_logger(log_dir):
     ----------
     log_dir : str
     '''
-    set_up_logger('random', level='info', log_dir=log_dir)
+    set_up_logger('random', level='info', log_dir=log_dir, mock=True)
     getLogger('random').info('seed: %s', random_seed())

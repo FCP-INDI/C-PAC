@@ -1,6 +1,10 @@
 """Funtions for logging.
 
+<<<<<<< HEAD
 Copyright (C) 2022  C-PAC Developers
+=======
+Copyright (C) 2022-2023  C-PAC Developers
+>>>>>>> 7f94c3a42f0c3eb7c76b15ac5591545d20e8a52f
 
 This file is part of C-PAC.
 
