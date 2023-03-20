@@ -72,7 +72,6 @@ valid_options = {
                     # 'TangentEmbed'  # "Skip tangent embedding for now"
                     },
     },
-    'surface_connectivity': Any,
     'Regressors': {
         'CompCor': {
             'degree': int,
@@ -1025,9 +1024,8 @@ latest_schema = Schema({
             option: Maybe([In(valid_options['connectivity_matrix'][option])])
             for option in ['using', 'measure']
         },
-        'surface_connectivity': {
-            option: Maybe([In(valid_options['surface_connectivity'])]), 
     },
+    'surface_connectivity': {'run': bool},
     'seed_based_correlation_analysis': {
         'run': bool,
         Optional('roi_paths_fully_specified'): bool,
