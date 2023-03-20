@@ -7,6 +7,17 @@ C-PAC is free software: you can redistribute it and/or modify it under the terms
 C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>. -->
+## Git branches, tags and continuous integration
+GitHub Actions builds C-PAC images for each branch and tag pushed to GitHub; these images are pushed to <span title="GitHub Container Registry">[GHCR](https://github.com/FCP-INDI/C-PAC/pkgs/container/c-pac/versions)</span> and deleted upon branch deletion on GitHub.
+
+If a commit is pushed or merged into [`develop` on GitHub](https://github.com/FCP-INDI/C-PAC/tree/develop), GitHub Actions will push [`nightly` and its variants to Docker Hub](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=nightly).
+
+If a tag is pushed to GitHub that matches the regular expression
+```Regular Expression
+^v[0-9]+\.[0-9]+\.[0-9]+$
+```
+GitHub Actions will push [`release-${TAG}` and its variants](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=release-) and [`latest` and its variants to Docker Hub](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=latest).
+
 ## Software dependencies and variant images
 We currently have one main and 3 variant images:
 * `ABCD-HCP`: dependency versions matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/releases/tag/v0.1.1) versions

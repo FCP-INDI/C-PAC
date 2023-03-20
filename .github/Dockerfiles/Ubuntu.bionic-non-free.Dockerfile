@@ -1,4 +1,6 @@
+FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
+
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -12,6 +14,7 @@ RUN apt-get update && \
 FROM neurodebian:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Bionic base image"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV TZ=America/New_York
@@ -105,9 +108,9 @@ RUN groupadd -r c-pac && \
       libxp-dev && \
     add-apt-repository --remove --yes ppa:zeehio/libxp && \
     apt-get update && \
-    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
-    bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
+    curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
+    bash Miniconda3-py37_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-py37_4.12.0-Linux-x86_64.sh && chmod -R 777 /usr/local/miniconda && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -144,9 +147,14 @@ RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y &
     git lfs install
 
 # Installing C-PAC templates and atlases
-COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
+COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
 COPY --from=ghcr.io/fcp-indi/c-pac/neuroparc:v1.0-human /ndmg_atlases /ndmg_atlases
+
+# Installing surface files for downsampling
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/ /opt/dcan-tools/pipeline/global/templates/standard_mesh_atlases/
+COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordinates/ /opt/dcan-tools/pipeline/global/templates/Greyordinates/
+
 
 ENTRYPOINT ["/bin/bash"]
 

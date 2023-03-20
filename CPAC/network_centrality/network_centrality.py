@@ -126,10 +126,14 @@ def create_centrality_wf(wf_name, method_option, weight_options,
                               afni_centrality_node, 'thresh')
 
     # Need to separate sub-briks
+    sep_nifti_imports = ["import os", "import nibabel as nib",
+                         "from CPAC.pipeline.schema import valid_options",
+                         "from CPAC.utils.docs import docstring_parameter"]
     sep_subbriks_node = \
         pe.Node(util.Function(input_names=['nifti_file', 'out_names'],
                               output_names=['output_niftis'],
-                              function=utils.sep_nifti_subbriks),
+                              function=utils.sep_nifti_subbriks,
+                              imports=sep_nifti_imports),
                 name='sep_nifti_subbriks')
 
     sep_subbriks_node.inputs.out_names = out_names

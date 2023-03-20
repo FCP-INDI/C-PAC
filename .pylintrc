@@ -291,7 +291,7 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=
+generated-members=CPAC.utils.configuration.configuration.Configuration.*
 
 # Tells whether missing members accessed in mixin class should be ignored. A
 # mixin class is detected if its name ends with "mixin" (case insensitive).
@@ -428,18 +428,25 @@ function-naming-style=snake_case
 # Good variable names which should always be accepted, separated by a comma.
 good-names=c,
            e,
+           f,
            i,
            j,
            k,
            ex,
            nb,
            Run,
+           TR,
+           v,
            wf,
            _,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
-good-names-rgxs=^_version_(extra|m[a-n]{2}[or]{2})$  # version parts in info.py
+good-names-rgxs=^_version_(extra|m[a-n]{2}[or]{2})$,  # version parts in info.py
+                .*EPI.*,
+                .*TE.*,
+                .*T1.*,
+                .*T2.*
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=yes
