@@ -40,6 +40,7 @@ def affine_file_from_params_file(params_file: str, affine_file: str = None
     """
     import os
     import numpy as np
+    from CPAC.generate_motion_statistics.utils import affine_from_params
 
     ## load parameters file into array
     affine = affine_from_params(np.genfromtxt(params_file))
