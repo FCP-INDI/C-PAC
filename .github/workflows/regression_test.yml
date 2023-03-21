@@ -1,0 +1,21 @@
+name: Run Regression Test
+
+on: 
+  pull_request:
+    types: [ready_for_review, closed]
+
+jobs: 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+      uses: actions/checkout@v2
+      - name: Run Regression Test
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
+          amygutierrez/reg-suite:v1.0.0 run --lite
+        elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
+          amygutierrez/reg-suite:v1.0.0 run --full
+        else
+          echo "Skipping regression tests"
+        fi
