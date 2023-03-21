@@ -10,12 +10,17 @@ jobs:
     steps:
       - name: Checkout Code
       uses: actions/checkout@v2
+      - name: Clone reg-suite
+      run: git clone https://github.com/amygutierrez/reg-suite.git
+
       - name: Run Regression Test
       run: |
         if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-          amygutierrez/reg-suite:v1.0.0 run --lite
+          echo "Running `lite` regression test"
+          python3 reg-suite/main.py run --lite
         elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-          amygutierrez/reg-suite:v1.0.0 run --full
+          echo "Running `full` regression test"
+          python3 reg-suite/main.py run --full
         else
           echo "Skipping regression tests"
         fi
