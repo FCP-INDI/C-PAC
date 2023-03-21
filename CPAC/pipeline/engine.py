@@ -55,8 +55,8 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
-verbose_logger = logging.getLogger('engine')
+logger = getLogger('nipype.workflow')
+verbose_logger = getLogger('engine')
 
 
 class ResourcePool:
