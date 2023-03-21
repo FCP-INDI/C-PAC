@@ -47,7 +47,7 @@ base-packages:
 # in the first stage (see base_packages
 # above) are installed in the second stage.
 packages:
- - boost-cpp 1.74.*
+ - boost-cpp 1.81.*
  - ciftilib 1.6.0
  - c-compiler
  - cxx-compiler
@@ -164,15 +164,15 @@ packages:
  - fsl-znzlib 2111.0
  - ghalton 0.6.1
  - hlsvdpropy 2.0.1
- - libopenblas 0.3.18 *openmp*
+ - libopenblas 0.3.21 *openmp*
  - make
  - nibabel 5.*
  - nidmresults 2.1.0
  - nidmresults-fsl 2.2.0
- - numpy 1.21.*
+ - numpy 1.24.*
  - openslide-python v1.1.2
  - pkg-config
- - python 3.10.*
+ - python 3.11.*
  - tk 8.6.*
  - vtk 9.1
  - wxpython 4.2.*
