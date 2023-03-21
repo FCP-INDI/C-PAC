@@ -24,28 +24,41 @@ channels:
 # channels list for development releases.
 internal-channel: https://${FSLCONDA_USERNAME}:${FSLCONDA_PASSWORD}@fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/internal/
 
-# The FSL installation may be created in two
-# stages.  First of all, the base_packages are
-# installed.  Versions of these packages are
-# specified in the main packages list below.
-base-packages:
+# Versions of certain core packages are pinned
+# when FSL packages are built. Their versions
+# may be specified here, or in the main packages
+# list below.
+#
+# This list may contain platform-specific pins
+# via sub-lists, e.g.:
+#   - some-package X.Y   # version X.Y used for all platforms
+#   - linux-64
+#     - some-package X.Z # except for linux, where version X.Z is used
+build-packages:
  - boost-cpp
- - fslpy
- - fsl-base
- - fsl_sub
- - fsl_sub_plugin_sge
- - fsl_sub_plugin_slurm
- - libopenblas
  - numpy
  - python
  - tk
  - vtk
  - zlib
 
-# List of all packages that comprise a FSL
-# installation. All packages not installed
-# in the first stage (see base_packages
-# above) are installed in the second stage.
+ # At build time, we ensure that the netlib BLAS
+ # implementations are used, as this means that different
+ # BLAS implementations can be selected at installation
+ # time. The version is fixed so as to be compatible with
+ # conda-forge-built packages.  See this page for more
+ # details:
+ #
+ # https://conda-forge.org/docs/maintainer/knowledge_base.html#blas
+ #
+ # The conda-forge version pinnings can be found here:
+ #
+ # https://github.com/conda-forge/conda-forge-pinning-feedstock/blob/main/recipe/conda_build_config.yaml
+ - liblapack 3.9 *netlib
+ - libblas   3.9 *netlib
+
+
+# List of all packages that comprise a FSL installation.
 packages:
  - boost-cpp 1.81.*
  - ciftilib 1.6.0
