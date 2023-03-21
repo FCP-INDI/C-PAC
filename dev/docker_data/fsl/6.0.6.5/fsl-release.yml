@@ -174,7 +174,7 @@ packages:
  - pkg-config
  - python 3.11.*
  - tk 8.6.*
- - vtk 9.1
+ - vtk 9.2.*
  - wxpython 4.2.*
  - zlib 1.2.*
 
