@@ -63,8 +63,6 @@
         //                     "linux-64", "macos-64", or "macos-M1"
         //   - "environment"   Conda environment.yml file
         //   - "sha256"        SHA256 checksum of environment.yml file
-        //   - "base_packages" List of "base" packages, which are
-        //                     installed before all other packages.
         //   - "output"        Dictionary containing number of lines of
         //                     output to expect when installing the FSL
         //                     environment ("install" : "100"), or when
@@ -81,7 +79,6 @@
                 "platform"      : "linux-64",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"}
@@ -91,7 +88,6 @@
                 "platform"      : "macos-64",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-64.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"}
@@ -101,7 +97,6 @@
                 "platform"      : "macos-M1",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-M1.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"}
@@ -113,7 +108,6 @@
                 "platform"      : "linux-64",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"},
@@ -124,7 +118,6 @@
                 "platform"      : "macos-64",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-64.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"},
@@ -135,7 +128,6 @@
                 "platform"      : "macos-M1",
                 "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-M1.yml",
                 "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "base_packages" : ["fsl-base", "libopenblas", "fslpy"],
                 "output"        : {
                     "install"   : {"value" : "92", "version" : "2"},
                     "6.0.6"     : {"value" : "11", "version" : "2"},
