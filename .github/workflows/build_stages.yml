@@ -46,16 +46,23 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - id: rebuild
+        name: Check for rebuild commit message
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          then
+            echo "rebuild=1" >> $GITHUB_OUTPUT
+          fi
       - name: Get changed files since fork point
         uses: tj-actions/changed-files@v34.0.0
-        if: github.event.inputs.base_ref != ''
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
           use_fork_point: "true"
           files: .github/Dockerfiles/*
       - name: Get changed files since last commit
         uses: tj-actions/changed-files@v34.0.0
-        if: github.event.inputs.base_ref == ''
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref == ''
         id: changed-files
         with:
           since_last_remote_commit: "true"
@@ -70,7 +77,7 @@ jobs:
           docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
       - name: Clear up some space on runner
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -78,14 +85,14 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.2.0
         with:
@@ -95,7 +102,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=min
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
   
   stages:
     name: Build Docker stage images
@@ -127,9 +134,16 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - id: rebuild
+        name: Check for rebuild commit message
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          then
+            echo "rebuild=1" >> $GITHUB_OUTPUT
+          fi
       - name: Get changed files since fork point
         uses: tj-actions/changed-files@v34.0.0
-        if: github.event.inputs.base_ref != ''
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref != ''
         id: changed-files-base
         with:
           use_fork_point: "true"
@@ -138,7 +152,7 @@ jobs:
             .github/Dockerfiles/*
       - name: Get changed files since last commit
         uses: tj-actions/changed-files@v34.0.0
-        if: github.event.inputs.base_ref == ''
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref == ''
         id: changed-files
         with:
           since_last_remote_commit: "true"
@@ -146,7 +160,7 @@ jobs:
             dev/docker_data/required_afni_pkgs.txt
             .github/Dockerfiles/*
       - name: Clear up some space on runner
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -154,14 +168,14 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Set tag & see if it exists
         continue-on-error: true
         id: docker_tag
@@ -171,15 +185,15 @@ jobs:
           echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
           docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Prep Dockerfiles for forked repository
-        if: github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
         run: |
             .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
             cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: See Dockerfile
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.2.0
         with:
@@ -190,7 +204,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=min
-        if: contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
 
   build-base:
     needs: stages
@@ -204,90 +218,97 @@ jobs:
           - ABCD-HCP
           - fMRIPrep-LTS
     steps:
-    - name: Maximize build space
-      uses: easimon/maximize-build-space@v4
-      with:
-        remove-dotnet: 'true'
-        remove-android: 'true'
-        remove-haskell: 'true'
-        overprovision-lvm: 'true'
-    - name: Check out C-PAC (depth 0)
-      if: github.event.inputs.base_ref != ''
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Check out C-PAC (depth 2)
-      if: github.event.inputs.base_ref == ''
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 2
-    - name: Prep source files
-      run: |
-          sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
-          echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
-          echo '.github/workflows/build_stages.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
-          echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Get changed files since fork point
-      uses: tj-actions/changed-files@v34.0.0
-      if: github.event.inputs.base_ref != ''
-      id: changed-files-base
-      with:
-        use_fork_point: "true"
-        files_from_source_file: |
-          .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Get changed files since last commit
-      uses: tj-actions/changed-files@v34.0.0
-      if: github.event.inputs.base_ref == ''
-      id: changed-files
-      with:
-        since_last_remote_commit: "true"
-        files_from_source_file: |
-          .github/stage_requirements/${{ matrix.variant }}.txt
-    - name: Set tag & see if it exists
-      continue-on-error: true
-      run: |
-        TAG="stage-base:${{ matrix.variant }}-$(cat version)"
-        DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
-        echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
-        docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
-        cat $GITHUB_OUTPUT
-      id: docker_tag
-    - name: Clear up some space on runner
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
-      run: |
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc
-        sudo rm -rf "/usr/local/share/boost"
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2.2.1
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
-    - name: Prep Dockerfiles for forked repository
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
-      run: |
-          .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
-          cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
-    - name: See Dockerfile
-      run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
-    - name: Build and push base image
-      uses: docker/build-push-action@v3.2.0
-      with:
-        context: .
-        file: .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
-        push: true
-        tags: |
-          ${{ env.DOCKER_TAG }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=min
-      if: always() && steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v4
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          overprovision-lvm: 'true'
+      - name: Check out C-PAC (depth 0)
+        if: github.event.inputs.base_ref != ''
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check out C-PAC (depth 2)
+        if: github.event.inputs.base_ref == ''
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Prep source files
+        run: |
+            sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
+            echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
+            echo '.github/workflows/build_stages.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
+            echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
+      - id: rebuild
+        name: Check for rebuild commit message
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          then
+            echo "rebuild=1" >> $GITHUB_OUTPUT
+          fi
+      - name: Get changed files since fork point
+        uses: tj-actions/changed-files@v34.0.0
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref != ''
+        id: changed-files-base
+        with:
+          use_fork_point: "true"
+          files_from_source_file: |
+            .github/stage_requirements/${{ matrix.variant }}.txt
+      - name: Get changed files since last commit
+        uses: tj-actions/changed-files@v34.0.0
+        if: steps.rebuild.outputs.rebuild != 1 && github.event.inputs.base_ref == ''
+        id: changed-files
+        with:
+          since_last_remote_commit: "true"
+          files_from_source_file: |
+            .github/stage_requirements/${{ matrix.variant }}.txt
+      - name: Set tag & see if it exists
+        continue-on-error: true
+        run: |
+          TAG="stage-base:${{ matrix.variant }}-$(cat version)"
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
+          echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
+          docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+        id: docker_tag
+      - name: Clear up some space on runner
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.2.1
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+      - name: Prep Dockerfiles for forked repository
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+            .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
+            cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+      - name: See Dockerfile
+        run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
+      - name: Build and push base image
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+        if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
 
   trigger-next-workflow:
     needs: build-base
