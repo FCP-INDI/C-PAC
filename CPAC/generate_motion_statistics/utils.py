@@ -52,7 +52,7 @@ def affine_file_from_params_file(params_file: str, affine_file: str = None
                                 if line.lstrip().startswith('#')])
     basename = (os.path.basename(affine_file) if affine_file
                 else f'affine_{os.path.basename(params_file)}')
-    affine_file = f'filtered_{basename}'
+    affine_file = f'{os.getcwd()}/filtered_{basename}'
 
     # drop bottom [0, 0, 0, 1] row from each matrix
     # insert original comments, if any, as header
