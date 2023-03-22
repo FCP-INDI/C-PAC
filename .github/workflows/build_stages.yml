@@ -1,6 +1,7 @@
 # Requires secret `ACTIONS_WORKFLOW_TOKEN` with `workflow` scope
 
 name: Build stages
+run-name: Build stages ($ {{ github.event.head_commit.id }} / ${{ inputs.base_ref }})
 
 on:
   workflow_dispatch:
@@ -9,7 +10,6 @@ on:
         description: 'Base reference if triggered by a pull request'
         required: false
         default: ""
-
 
 jobs:
   update-check:
