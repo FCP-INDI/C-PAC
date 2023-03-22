@@ -56,12 +56,12 @@ jobs:
     steps:
       - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref != ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Check out C-PAC (depth 2)
         if: github.event.inputs.base_ref == ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - id: rebuild
@@ -144,12 +144,12 @@ jobs:
     steps:
       - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref != ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Check out C-PAC (depth 2)
         if: github.event.inputs.base_ref == ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - id: rebuild
@@ -245,12 +245,12 @@ jobs:
           overprovision-lvm: 'true'
       - name: Check out C-PAC (depth 0)
         if: github.event.inputs.base_ref != ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Check out C-PAC (depth 2)
         if: github.event.inputs.base_ref == ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Prep source files
@@ -333,7 +333,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Build and test C-PAC

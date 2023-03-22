@@ -51,7 +51,7 @@ jobs:
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     steps:
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Participant-level smoke tests
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Trigger CircleCI tests
