@@ -310,4 +310,4 @@ atlas-Destrieux_space-fsLR_den-32k	surface_derived		func	CIFTI dlabel
 atlas-DesikanKilliany_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
 atlas-Destrieux_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
 surf_alff	surface_derived		func	CIFTI dscalar					
-surf_falff	surface_derived		func	CIFTI dscalar
+surf_falff	surface_derived		func	CIFTI dscalar					
