@@ -88,6 +88,7 @@ jobs:
       - name: Set tag & see if it exists
         continue-on-error: true
         id: docker_tag
+        if: always()
         run: |
           TAG=$(sed 's/\./:/' <(echo ${{ matrix.Dockerfile }}))
           DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
@@ -203,7 +204,7 @@ jobs:
           echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
           docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
-        if: steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
+        if: always()
       - name: Prep Dockerfiles for forked repository
         if: steps.rebuild.outputs.rebuild == 1 || github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt')))
         run: |
@@ -291,6 +292,7 @@ jobs:
           docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
         id: docker_tag
+        if: always()
       - name: Clear up some space on runner
         if: steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1
         run: |
