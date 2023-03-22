@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update check's target URL
-        uses: Sibz/github-status-action@v1.1.6
+        uses: gdonati78/github-status-action@1.0.0
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           context: "Build C-PAC images"
@@ -57,7 +57,7 @@ jobs:
       - trigger-next-workflow
     steps:
       - name: Fail check
-        uses: Sibz/github-status-action@v1.1.6
+        uses: gdonati78/github-status-action@1.0.0
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           context: "Build C-PAC images"

@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up check
-        uses: Sibz/github-status-action@v1.1.6
+        uses: gdonati78/github-status-action@1.0.0
         if: ${{ matrix.variant }} != ''
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
@@ -262,7 +262,7 @@ jobs:
         env:
           NEEDS_CONTEXT: ${{ toJson(needs) }}
       - name: Finish check
-        uses: Sibz/github-status-action@v1.1.6
+        uses: gdonati78/github-status-action@1.0.0
         with:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           context: "Smoke tests"
