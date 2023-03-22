@@ -17,7 +17,7 @@
 
 # Requires secret `ACTIONS_WORKFLOW_TOKEN` with `workflow` scope
 name: Build stages
-run-name: ${{ inputs.head_ref }} (${{ inputs.message }})
+run-name: ${{ github.server_url}}/${{ github.repository}}/commit/${{ inputs.head_ref }} (${{ inputs.message }})
 
 on:
   workflow_dispatch:
