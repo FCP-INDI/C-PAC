@@ -178,7 +178,6 @@ REQUIREMENTS = [
     "future",
     "INDI-Tools",
     "lockfile==0.12.2",
-    "joblib==1.0.1",
     "matplotlib==3.1.3",
     "networkx==2.4",
     "nibabel==3.2.1",

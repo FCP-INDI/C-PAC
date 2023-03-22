@@ -1605,7 +1605,6 @@ timeseries_extraction:
       - Pearson
       - Partial
 
-
 seed_based_correlation_analysis:
 
   # SCA - Seed-Based Correlation Analysis
