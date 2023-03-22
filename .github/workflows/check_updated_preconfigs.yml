@@ -121,11 +121,11 @@ jobs:
             for REF in $BASE_REFS
             do
               echo "Running against base $REF"
-              gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME} -f base_ref="$REF"
+              gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME} -f base_ref="$REF" -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
             done
           else
             echo "Running against last PR"
-            gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME}
+            gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME} -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
@@ -133,6 +133,6 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           pip install PyGithub
-          gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME}
+          gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME} -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
