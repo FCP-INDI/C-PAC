@@ -1,6 +1,7 @@
 FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
@@ -15,16 +16,20 @@ COPY --from=connectome-workbench /opt/workbench /opt/workbench
 ENV PATH $PATH:/opt/workbench/bin_linux64
 
 # Installing FSL
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      connectome-workbench \
-      fsl-core \
-      fsl-atlases \
-      fsl-mni152-templates && \
-    ldconfig && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ENV FSLDIR=/usr/share/fsl/6.0 \
+    FSLOUTPUTTYPE=NIFTI_GZ \
+    FSLMULTIFILEQUIT=TRUE \
+    POSSUMDIR=/usr/share/fsl/6.0 \
+    LD_LIBRARY_PATH=/usr/lib/fsl/6.0:$LD_LIBRARY_PATH \
+    FSLTCLSH=/usr/bin/tclsh \
+    FSLWISH=/usr/bin/wish \
+    PATH=/usr/lib/fsl/6.0:$PATH \
+    TZ=America/New_York
+COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
+COPY --from=FSL /usr/bin/wish /usr/bin/wish
+COPY --from=FSL /usr/share/fsl /usr/share/fsl
+# COPY --from=FSL /usr/lib /usr/lib
+COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 
 # Installing and setting up c3d
 RUN mkdir -p /opt/c3d && \

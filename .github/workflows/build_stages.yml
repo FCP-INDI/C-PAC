@@ -161,6 +161,7 @@ jobs:
         - connectome-workbench.1.5.0.neurodebian-bionic
         - FSL.5.0.9-5.neurodebian-xenial
         - FSL.5.0.10-bionic
+        - FSL.6.0.6.4-Python3.10-bionic
         - ICA-AROMA.0.4.5-xenial
         - msm.2.0-bionic
     runs-on: ubuntu-latest
