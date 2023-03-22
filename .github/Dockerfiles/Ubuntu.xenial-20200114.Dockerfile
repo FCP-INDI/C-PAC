@@ -133,9 +133,10 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
     PYTHONNOUSERSITE=1
 
 # install conda dependencies
-RUN conda update conda -y && \
-    conda install nomkl && \
-    conda install -y  \
+RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y && \
+    mamba update conda -y && \
+    mamba install nomkl -y && \
+    mamba  install -y  \
         blas \
         cython \
         matplotlib==2.2.2 \
@@ -143,7 +144,6 @@ RUN conda update conda -y && \
         nose==1.3.7 \
         numpy==1.15.4 \
         pandas==1.0.5 \
-        scipy==1.6.3 \
         traits==4.6.0 \
         pip
 
