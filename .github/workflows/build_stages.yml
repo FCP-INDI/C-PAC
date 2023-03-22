@@ -1,7 +1,7 @@
 # Requires secret `ACTIONS_WORKFLOW_TOKEN` with `workflow` scope
 
 name: Build stages
-run-name: Build stages ($ {{ github.event.head_commit.id }} / ${{ inputs.base_ref }})
+run-name: ${{ github.event.head_commit.id }} (${{ github.event.head_commit.message }})
 
 on:
   workflow_dispatch:
