@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [ready_for_review]
   workflow_call:
+<<<<<<< HEAD
+=======
+  #pull_request:
+  #  types: [ready_for_review, closed]
+  #adding comment for testing PR
+>>>>>>> 34ff00c3 (comment for testing)
 
 jobs: 
   test:
