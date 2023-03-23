@@ -116,9 +116,9 @@ jobs:
           BASE_REFS=$(python ${GITHUB_WORKSPACE}/.github/scripts/get_pr_base_shas.py)
           if [ -n "$BASE_REFS" ]
           then
-            echo "base_refs=$BASE_REFS" >> $GITHUB_OUTPUT
+            echo "base_refs=[$BASE_REFS]" >> $GITHUB_OUTPUT
           else
-            echo "base_refs=('')" >> $GITHUB_OUTPUT
+            echo "base_refs=['']" >> $GITHUB_OUTPUT
           fi
 
   build-stages_branch:
