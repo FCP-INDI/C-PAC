@@ -206,15 +206,15 @@ jobs:
           cat $GITHUB_OUTPUT
         if: always()
       - name: Prep Dockerfiles for forked repository
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || github.repository_owner != 'FCP-INDI' && contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
         run: |
             .github/scripts/local_ghcr .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
             cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
       - name: See Dockerfile
         run: cat .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
       - name: Clear up some space on runner
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -222,14 +222,14 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.2.0
         with:
@@ -240,7 +240,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=min
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || contains(steps.changed-files-base.outputs.all_changed_files, matrix.Dockerfile) || contains(steps.changed-files.outputs.all_changed_files, matrix.Dockerfile) || (startsWith(matrix.Dockerfile, 'AFNI') && (contains(steps.changed-files.outputs.all_changed_files, 'dev/docker_data/required_afni_pkgs.txt'))))
 
   build-base:
     needs: stages
@@ -311,7 +311,7 @@ jobs:
         id: docker_tag
         if: always()
       - name: Clear up some space on runner
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -319,22 +319,22 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
       - name: Prep Dockerfiles for forked repository
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
         run: |
             .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
             cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       - name: See Dockerfile
         run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
       - name: Build and push base image
         uses: docker/build-push-action@v3.2.0
         with:
@@ -345,7 +345,7 @@ jobs:
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=min
-        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
+        if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
 
   build_and_test:
     needs: build-base
