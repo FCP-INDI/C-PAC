@@ -1,14 +1,55 @@
 name: Run Regression Test
 
 on: 
-  pull_request:
-    types: [ready_for_review, closed]
+  workflow_dispatch:
+  #pull_request:
+  #  types: [ready_for_review, closed]
 
 jobs: 
-  test:
+  update-check:
+    name: Update GitHub check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Update check's target URL
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Regression Test"
+          state: pending
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
+
+
+  C-PAC:
+    needs: update-check
+    uses: ./.github/workflows/smoke_test_participant.yml
+    with:
+      variant: ''
+
+  test:
+    runs-on: ubuntu-latest
+    steps: 
+        - name: Get C-PAC branch
+        run: |
+          if [[ "${{ matrix.variant }}" != "" ]]
+          then
+            VARIANT=-${{ matrix.variant }}
+          fi
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: Checkout Reg-Suite
       uses: actions/checkout@v2
       - name: Clone reg-suite
       run: git clone https://github.com/amygutierrez/reg-suite.git
