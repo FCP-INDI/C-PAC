@@ -114,8 +114,13 @@ jobs:
         run: |
           pip install PyGithub
           BASE_REFS=$(python ${GITHUB_WORKSPACE}/.github/scripts/get_pr_base_shas.py)
-          echo "base_refs=$BASE_REFS >> $GITHUB_OUTPUTS"
-          echo "$GITHUB_OUTPUTS"
+          if [ -n "$BASE_REFS" ]
+          then
+            echo "base_refs=$BASE_REFS >> $GITHUB_OUTPUTS"
+          else
+            echo "base_refs=('') >> $GITHUB_OUTPUTS"
+          fi
+          echo "declare -p GITHUB_OUTPUTS"
 
   build-stages_branch:
     needs: get_branch_ref
