@@ -1,7 +1,7 @@
 name: Run Regression Test
 
 on: 
-  workflow_dispatch:
+  workflow_call:
   #pull_request:
   #  types: [ready_for_review, closed]
 
