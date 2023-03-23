@@ -295,7 +295,7 @@ hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	GIFTI shape
 space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	CIFTI dscalar					
 hemi-L_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
 hemi-R_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
-"space-fsLR_den-32k_sulc"""	surface_derived		func	CIFTI dscalar					
+space-fsLR_den-32k_sulc	surface_derived		func	CIFTI dscalar					
 hemi-L_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
 hemi-R_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
 space-fsLR_den-32k_thickness	surface_derived		func	CIFTI dscalar					

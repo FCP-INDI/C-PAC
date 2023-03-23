@@ -911,6 +911,7 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
+    
     ### ABCD harmonization - anatomical brain mask generation ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
 
@@ -921,8 +922,9 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                             function=mri_convert),
                               name=f'wmparc_to_nifti_{pipe_num}')
     wmparc_to_nifti.inputs.args = '-rt nearest'
-
+    
     node, out = strat_pool.get_data('pipeline-fs_wmparc')
+    
     wf.connect(node, out, wmparc_to_nifti, 'in_file')
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
