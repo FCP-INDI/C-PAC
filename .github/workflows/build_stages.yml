@@ -26,6 +26,10 @@ on:
         type: string
         required: false
         default: ""
+      message:
+        description: github.event.head_commit.message from push or PR
+        required: true
+        type: string
 
 jobs:
   Ubuntu:
@@ -314,8 +318,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=min
         if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.docker_tag.outputs.not_yet_exists == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
-
-  build_and_test:
-    name: Build and test C-PAC
-    needs: build-base
-    uses: ./.github/workflows/build_and_test.yml

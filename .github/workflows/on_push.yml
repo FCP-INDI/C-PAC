@@ -131,9 +131,12 @@ jobs:
     uses: ./.github/workflows/build_stages.yml
     with:
       base_ref: ${{ strategy.matrix.base_ref }}
+      message: ${{ github.event.head_commit.message }}
 
   build-stages_tag:
     if: github.ref_type == 'tag'
     name: Build multistage image stages
     needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
+    with:
+      message: ${{ github.event.head_commit.message }}
