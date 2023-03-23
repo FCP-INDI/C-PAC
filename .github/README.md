@@ -64,7 +64,7 @@ flowchart TD
         smoke-tests-participant[[smoke-tests-participant]]
       end
 
-      check_updated_preconfigs.yml-->build_stages.yml
+      on_push.yml-->build_stages.yml
 
       delete_images.yml
     end
@@ -80,8 +80,8 @@ flowchart TD
 
     build_stages.yml-->build_and_test.yml
 
-    check_updated_preconfigs.yml<-->get_pr_base_shas
-    check_updated_preconfigs.yml-->update_all_preconfigs
+    on_push.yml<-->get_pr_base_shas
+    on_push.yml-->update_all_preconfigs
 
     cpacdockerfiles<-->C-PAC
     cpacdockerfiles<-->C-PAC-ABCD-HCP
@@ -97,7 +97,7 @@ flowchart TD
     bCPAC<-->local_ghcr
     stages<-->local_ghcr
 
-    push>git push]-->check_updated_preconfigs.yml
+    push>git push]-->on_push.yml
 
     smoke-tests-participant-->smoke_test_human
     smoke-tests-participant-->smoke_test_nhp
