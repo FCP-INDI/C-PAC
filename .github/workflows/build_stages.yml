@@ -51,7 +51,7 @@ jobs:
       - id: rebuild
         name: Check for rebuild commit message
         run: |
-          if [[ "${{ inputs.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
           then
             echo "rebuild=1" >> $GITHUB_OUTPUT
           fi
@@ -141,7 +141,7 @@ jobs:
       - id: rebuild
         name: Check for rebuild commit message
         run: |
-          if [[ "${{ github.event.inputs.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
           then
             echo "rebuild=1" >> $GITHUB_OUTPUT
           fi
@@ -248,7 +248,7 @@ jobs:
       - id: rebuild
         name: Check for rebuild commit message
         run: |
-          if [[ "${{ github.event.inputs.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
+          if [[ "${{ github.event.head_commit.message }}" == *"[rebuild ${{ matrix.Dockerfile }}]"* ]]
           then
             echo "rebuild=1" >> $GITHUB_OUTPUT
           fi
