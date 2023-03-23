@@ -120,13 +120,13 @@ jobs:
           else
             echo "base_refs=('') >> $GITHUB_OUTPUTS"
           fi
-          echo "declare -p GITHUB_OUTPUTS"
+          declare -p GITHUB_OUTPUTS
 
   build-stages_branch:
     needs: get_branch_ref
     strategy:
       matrix:
-        base_ref: ${{ fromJson(needs.get_branch_ref.outputs.base_refs) }}
+        base_ref: ${{ needs.get_branch_ref.outputs.base_refs }}
     uses: ./.github/workflows/build_stages.yml
     with:
       base_ref: ${{ strategy.matrix.base_ref }}
