@@ -28,7 +28,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps: 
-        - name: Get C-PAC branch
+      - name: Get C-PAC branch
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
           then
@@ -49,19 +49,20 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
 
-      - name: Checkout Reg-Suite
-      uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v2
       - name: Clone reg-suite
-      run: git clone https://github.com/amygutierrez/reg-suite.git
+        run: |
+          git clone https://github.com/amygutierrez/reg-suite.git
 
       - name: Run Regression Test
-      run: |
-        if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-          echo "Running `lite` regression test"
-          python3 reg-suite/main.py run --lite
-        elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-          echo "Running `full` regression test"
-          python3 reg-suite/main.py run --full
-        else
-          echo "Skipping regression tests"
-        fi
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
+            echo "Running `lite` regression test"
+            python3 reg-suite/main.py run --lite
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
+            echo "Running `full` regression test"
+            python3 reg-suite/main.py run --full
+          else
+            echo "Skipping regression tests"
+          fi
