@@ -1,314 +1,3 @@
-<<<<<<< HEAD
-Resource	Type	Space	Sub-Directory	File	To Smooth	To z-std	4D Time Series	Optional: Debugging	Multi-File
-alff	alff	functional	func	NIfTI	Yes	Yes			
-desc-sm_alff	alff	functional	func	NIfTI		Yes			
-desc-sm-zstd_alff	alff	functional	func	NIfTI					
-desc-zstd_alff	alff	functional	func	NIfTI					
-space-template_alff	alff	template	func	NIfTI	Yes	Yes			
-space-template_desc-sm_alff	alff	template	func	NIfTI		Yes			
-space-template_desc-sm-zstd_alff	alff	template	func	NIfTI					
-space-template_desc-zstd_alff	alff	template	func	NIfTI					
-desc-brain_bold	bold	functional	func	NIfTI			Yes	Yes	
-desc-cleaned_bold	bold	functional	func	NifTI			Yes	Yes	
-desc-mean_bold	bold	functional	func	NIfTI					
-desc-motion_bold	bold	functional	func	NIfTI			Yes	Yes	
-desc-preproc_bold	bold	functional	func	NIfTI			Yes		
-desc-sm_bold	bold	functional	func	NIfTI			Yes	Yes	
-space-EPItemplate_bold	bold	EPI template	func	NIfTI			Yes		
-space-EPItemplate_desc-brain_bold	bold	EPI template	func	NIfTI			Yes		
-space-EPItemplate_desc-cleaned_bold	bold	EPI template	func	NIfTI			Yes		
-space-EPItemplate_desc-mean_bold	bold	EPI template	func	NIfTI					
-space-EPItemplate_desc-preproc_bold	bold	EPI template	func	NIfTI			Yes		
-space-symtemplate_desc-sm_bold	bold	symmetric template	func	NIfTI			Yes	Yes	
-space-T1w_desc-mean_bold	bold	T1w	func	NIfTI					
-space-template_bold	bold	template	func	NIfTI			Yes		
-space-template_desc-brain_bold	bold	template	func	NIfTI			Yes		
-space-template_desc-cleaned_bold	bold	template	func	NIfTI			Yes		
-space-template_desc-head_bold	bold	template	func	NIfTI			Yes		
-space-template_desc-mean_bold	bold	template	func	NIfTI					
-space-template_desc-preproc_bold	bold	template	func	NIfTI			Yes		
-space-template_desc-scout_bold	bold	template	func	NIfTI					
-desc-DualReg_correlations	correlation	template	func	NIfTI					
-desc-MeanSCA_correlations	correlation	template	func	NIfTI					
-desc-MultReg_correlations	correlation	template	func	NIfTI					
-desc-ndmg_correlations	correlation	template	func	NIfTI					
-desc-PearsonAfni_correlations	correlation	template	func	tsv					
-desc-PartialAfni_correlations	correlation	template	func	tsv					
-desc-PearsonNilearn_correlations	correlation	template	func	tsv					
-desc-PartialNilearn_correlations	correlation	template	func	tsv					
-space-template_desc-binarized_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-binarized-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-weighted_degree-centrality	degree-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_degree-centrality	degree-centrality	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-weighted-zstd_degree-centrality	degree-centrality	template	func	NIfTI					
-space-template_desc-binarized_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-space-template_desc-binarized-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-space-template_desc-weighted_eigen-centrality	eigen-centrality	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_eigen-centrality	eigen-centrality	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-space-template_desc-weighted-zstd_eigen-centrality	eigen-centrality	template	func	NIfTI					
-desc-sm_falff	falff	functional	func	NIfTI		Yes			
-desc-sm-zstd_falff	falff	functional	func	NIfTI					
-desc-zstd_falff	falff	functional	func	NIfTI					
-falff	falff	functional	func	NIfTI	Yes	Yes			
-space-template_desc-sm_falff	falff	template	func	NIfTI		Yes			
-space-template_desc-sm-zstd_falff	falff	template	func	NIfTI					
-space-template_desc-zstd_falff	falff	template	func	NIfTI					
-space-template_falff	falff	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized_lfcd	lfcd	template	func	NIfTI	Yes	Yes			
-space-template_desc-binarized-sm_lfcd	lfcd	template	func	NIfTI		Yes			
-space-template_desc-binarized-sm-zstd_lfcd	lfcd	template	func	NIfTI					
-space-template_desc-binarized-zstd_lfcd	lfcd	template	func	NIfTI					
-space-template_desc-weighted_lfcd	lfcd	template	func	NIfTI	Yes	Yes			
-space-template_desc-weighted-sm_lfcd	lfcd	template	func	NIfTI		Yes			
-space-template_desc-weighted-sm-zstd_lfcd	lfcd	template	func	NIfTI					
-space-template_desc-weighted-zstd_lfcd	lfcd	template	func	NIfTI					
-space-EPItemplate_desc-bold_mask	mask	EPI template	func	NIfTI					
-space-EPItemplate_res-derivative_desc-bold_mask	mask	EPI template	func	NIfTI					
-space-bold_desc-brain_mask	mask	functional	func	NIfTI					
-space-bold_desc-eroded_mask	mask	functional	func	NIfTI					
-space-bold_label-CSF_desc-eroded_mask	mask	functional	func	NIfTI					
-space-bold_label-CSF_mask	mask	functional	func	NIfTI					
-space-bold_label-GM_desc-eroded_mask	mask	functional	func	NIfTI					
-space-bold_label-GM_mask	mask	functional	func	NIfTI					
-space-bold_label-WM_desc-eroded_mask	mask	functional	func	NIfTI					
-space-bold_label-WM_mask	mask	functional	func	NIfTI					
-space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-CSF_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-CSF_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-GM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-GM_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-WM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-WM_mask	mask	longitudinal T1w	anat	NIfTI					
-label-CSF_desc-eroded_mask	mask	T1w	anat	NIfTI					
-label-CSF_desc-preproc_mask	mask	T1w	anat	NIfTI					
-label-CSF_mask	mask	T1w	anat	NIfTI					
-label-GM_desc-eroded_mask	mask	T1w	anat	NIfTI					
-label-GM_desc-preproc_mask	mask	T1w	anat	NIfTI					
-label-GM_mask	mask	T1w	anat	NIfTI					
-label-WM_desc-eroded_mask	mask	T1w	anat	NIfTI					
-label-WM_desc-preproc_mask	mask	T1w	anat	NIfTI					
-label-WM_mask	mask	T1w	anat	NIfTI					
-space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI					
-space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI					
-space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
-space-template_desc-bold_mask	mask	template	func	NIfTI					
-space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
-dvars	motion		func	text					
-framewise-displacement-jenkinson	motion		func	1D					
-framewise-displacement-power	motion		func	1D					
-max-displacement	motion		func	1D					
-motion-filter-info	motion		func	text					
-motion-filter-plot	motion		func	png					
-motion-params	motion		func	text					
-movement-parameters	motion		func	1D					
-power-params	motion		func	text					
-rels-displacement	motion		func	1D					
-label-CSF_probseg	probseg	T1w	anat	NIfTI					
-label-GM_probseg	probseg	T1w	anat	NIfTI					
-label-WM_probseg	probseg	T1w	anat	NIfTI					
-T1w-axial-qc	qc		anat	png					
-T1w-sagittal-qc	qc		anat	png					
-dseg-axial-qc	qc		anat	png					
-desg-sagittal-qc	qc		anat	png					
-bold-axial-qc	qc		func	png					
-bold-sagittal-qc	qc		func	png					
-bold-carpet-qc	qc		func	png					
-framewise-displacement-jenkinson-plot-qc	qc		func	png					
-movement-parameters-trans-qc	qc		func	png					
-movement-parameters-rot-qc	qc		func	png					
-bold-snr-axial-qc	qc		func	png					
-bold-snr-sagittal-qc	qc		func	png					
-bold-snr-hist-qc	qc		func	png					
-bold-snr-qc	qc		func	png					
-space-template_desc-xcp_quality	qc		func	tsv					
-regressors	regressors		func	1D					
-desc-sm_reho	reho	functional	func	NIfTI		Yes			
-desc-sm-zstd_reho	reho	functional	func	NIfTI					
-desc-zstd_reho	reho	functional	func	NIfTI					
-reho	reho	functional	func	NIfTI	Yes	Yes			
-space-template_desc-sm_reho	reho	template	func	NIfTI		Yes			
-space-template_desc-sm-zstd_reho	reho	template	func	NIfTI					
-space-template_desc-zstd_reho	reho	template	func	NIfTI					
-space-template_reho	reho	template	func	NIfTI	Yes	Yes			
-desc-DualReg_statmap	statistic	template	func	NIfTI					
-desc-MultReg_statmap	statistic	template	func	NIfTI					
-hemi-L_desc-surfaceMap_thickness	surface-derived		anat						Yes
-hemi-R_desc-surfaceMap_thickness	surface-derived		anat						Yes
-hemi-L_desc-surfaceMap_volume	surface-derived		anat						Yes
-hemi-R_desc-surfaceMap_volume	surface-derived		anat						Yes
-hemi-L_desc-surfaceMesh_pial	surface-derived		anat						
-hemi-R_desc-surfaceMesh_pial	surface-derived		anat						
-raw-average	surface-derived		anat						
-hemi-L_desc-surfaceMesh_smoothwm	surface-derived		anat						
-hemi-R_desc-surfaceMesh_smoothwm	surface-derived		anat						
-atlas-DesikanKilliany_space-fsLR_den-32k.dlabel	surface-derived		anat						
-atlas-Destrieux_space-fsLR_den-32k.dlabel	surface-derived		anat						
-atlas-DesikanKilliany_space-fsLR_den-164k.dlabel	surface-derived		anat						
-atlas-Destrieux_space-fsLR_den-164k.dlabel	surface-derived		anat						
-space-fsLR_den-32k_bold-dtseries	surface-derived		func						
-hemi-L_desc-surfaceMesh_sphere	surface-derived		anat						Yes
-hemi-R_desc-surfaceMesh_sphere	surface-derived		anat						Yes
-hemi-L_desc-surfaceMap_sulc	surface-derived		anat						Yes
-hemi-R_desc-surfaceMap_sulc	surface-derived		anat						Yes
-hemi-L_desc-surface_curv	surface-derived		anat						
-hemi-R_desc-surface_curv	surface-derived		anat						
-hemi-L_desc-surfaceMesh_white	surface-derived		anat						Yes
-hemi-R_desc-surfaceMesh_white	surface-derived		anat						Yes
-wmparc	surface-derived		anat						Yes
-space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI					
-desc-brain_T1w	T1w	T1w	anat	NIfTI					
-desc-preproc_T1w	T1w	T1w	anat	NIfTI					
-desc-reorient_T1w	T1w	T1w	anat	NIfTI					
-desc-restore_T1w	T1w	T1w	anat	NIfTI					
-desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
-space-template_desc-brain_T1w	T1w	template	anat	NIfTI					
-space-template_desc-head_T1w	T1w	template	anat	NIfTI					
-space-template_desc-T1w_mask	mask	template	anat	NIfTI					
-desc-Mean_timeseries	timeseries		func	1D					
-desc-MeanSCA_timeseries	timeseries		func	1D					
-desc-SpatReg_timeseries	timeseries		func	1D					
-desc-Voxel_timeseries	timeseries		func	1D					
-space-longitudinal_label-CSF_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-GM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
-space-longitudinal_label-WM_probseg	tissue probability	longitudinal T1w	anat	NIfTI					
-vmhc	vmhc	symmetric template	func	NIfTI					
-blip-warp	xfm		func	NIfTI					
-from-bold_to-EPItemplate_mode-image_desc-linear_xfm	xfm		func	NIfTI					
-from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI					
-from-bold_to-EPItemplate_mode-image_xfm	xfm		func	NIfTI					
-from-bold_to-symtemplate_mode-image_xfm	xfm		func	NIfTI					
-from-bold_to-T1w_mode-image_desc-linear_xfm	xfm		func	NIfTI					
-from-bold_to-template_mode-image_xfm	xfm		func	NIfTI					
-from-EPItemplate_to-bold_mode-image_desc-linear_xfm	xfm		func	NIfTI					
-from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI					
-from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-longitudinal_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
-from-longitudinal_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-longitudinal_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-longitudinal_to-template_mode-image_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-bold_mode-image_xfm	xfm		func	NIfTI					
-from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-symtemplate_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
-from-T1w_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-T1w_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
-from-T1w_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-T1w_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-T1w_to-template_mode-image_xfm	xfm		anat	NIfTI					
-from-template_to-bold_mode-image_xfm	xfm		func	NIfTI					
-from-template_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-template_to-longitudinal_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI					
-from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
-from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
-from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
-space-template_label-CSF_mask	mask	template	anat	NIfTI					
-space-template_label-WM_mask	mask	template	anat	NIfTI					
-space-template_label-GM_mask	mask	template	anat	NIfTI					
-space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI					
-space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
-space-EPItemplate_label-GM_mask	mask    template	func	NIfTI						
-AtlasSubcortical_s2	surface_derived		func						
-space-fsLR_den-32k_bold	surface_derived		func	CIFTI dtseries					
-goodvoxels	surface_derived		func						
-ribbon_only	surface_derived		func						
-hemi-L_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func    	GIFTI func					
-hemi-R_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func	GIFTI func					
-hemi-L_space-fsLR_den-32k_desc-atlasroi_mask	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-atlasroi_mask	surface_derived		func	GIFTI shape					
-hemi-L_space-native_bold	surface_derived		func	GIFTI func					
-hemi-R_space-native_bold	surface_derived		func	GIFTI func					
-space-fsLR_den-32k_wb-spec	surface_derived		func	GIFTI spec					
-space-native_wb-spec	surface_derived		func	GIFTI spec					
-hemi-L_space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_curv	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_curv	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_curv	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_flat	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_flat	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_inflated	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_inflated	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_veryinflated	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_veryinflated	surface_derived		func	GIFTI surf					
-hemi-L_space-native_inflated	surface_derived		func	GIFTI surf					
-hemi-R_space-native_inflated	surface_derived		func	GIFTI surf					
-hemi-L_space-native_veryinflated	surface_derived		func	GIFTI surf					
-hemi-R_space-native_veryinflated	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-native_midthickness	surface_derived		func	GIFTI surf					
-hemi-R_space-native_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_pial	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_pial	surface_derived		func	GIFTI surf					
-hemi-L_space-native_den-32k_pial	surface_derived		func	GIFTI surf					
-hemi-R_space-native_den-32k_pial	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-native_desc-MSMSulc_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-native_desc-MSMSulc_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-native_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-native_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-native_desc-reg_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-native_desc-reg_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-native_desc-reg-reg_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-native_desc-reg-reg_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-native_desc-rot_sphere	surface_derived		func	GIFTI surf					
-hemi-R_space-native_desc-rot_sphere	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
-"space-fsLR_den-32k_sulc"""	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
-hemi-R_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
-space-fsLR_den-32k_thickness	surface_derived		func	CIFTI dscalar					
-hemi-L_space-fsLR_den-164k_white	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-164k_white	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_white	surface_derived		func	GIFTI surf					
-hemi-R_space-fsLR_den-32k_white	surface_derived		func	GIFTI surf					
-hemi-L_space-native_white	surface_derived		func	GIFTI surf					
-hemi-R_space-native_white	surface_derived		func	GIFTI surf					
-atlas-DesikanKilliany_space-fsLR_den-32k	surface_derived		func	CIFTI dlabel					
-atlas-Destrieux_space-fsLR_den-32k	surface_derived		func	CIFTI dlabel					
-atlas-DesikanKilliany_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
-atlas-Destrieux_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
-surf_alff	surface_derived		func	CIFTI dscalar					
-surf_falff	surface_derived		func	CIFTI dscalar					
-=======
 Resource	Type	Space	Sub-Directory	File	To Smooth	To z-std	4D Time Series	Optional: Debugging	Multi-File
 alff	alff	functional	func	NIfTI	Yes	Yes			
 desc-sm_alff	alff	functional	func	NIfTI		Yes			
@@ -532,5 +221,93 @@ space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI
 space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
-desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
->>>>>>> 7f94c3a42f0c3eb7c76b15ac5591545d20e8a52f
+desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes		
+AtlasSubcortical_s2	surface_derived		func						
+space-fsLR_den-32k_bold	surface_derived		func	CIFTI dtseries					
+goodvoxels	surface_derived		func						
+ribbon_only	surface_derived		func						
+hemi-L_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func    	GIFTI func					
+hemi-R_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func	GIFTI func					
+hemi-L_space-fsLR_den-32k_desc-atlasroi_mask	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-atlasroi_mask	surface_derived		func	GIFTI shape					
+hemi-L_space-native_bold	surface_derived		func	GIFTI func					
+hemi-R_space-native_bold	surface_derived		func	GIFTI func					
+space-fsLR_den-32k_wb-spec	surface_derived		func	GIFTI spec					
+space-native_wb-spec	surface_derived		func	GIFTI spec					
+hemi-L_space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-FS_arealdistortion	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-MSMSulc_arealdistortion	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-FS_edgedistortion	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-MSMSulc_edgedistortion	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_curv	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_curv	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_curv	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_flat	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_flat	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_inflated	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_inflated	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_veryinflated	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_veryinflated	surface_derived		func	GIFTI surf					
+hemi-L_space-native_inflated	surface_derived		func	GIFTI surf					
+hemi-R_space-native_inflated	surface_derived		func	GIFTI surf					
+hemi-L_space-native_veryinflated	surface_derived		func	GIFTI surf					
+hemi-R_space-native_veryinflated	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
+hemi-L_space-native_midthickness	surface_derived		func	GIFTI surf					
+hemi-R_space-native_midthickness	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_pial	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_pial	surface_derived		func	GIFTI surf					
+hemi-L_space-native_den-32k_pial	surface_derived		func	GIFTI surf					
+hemi-R_space-native_den-32k_pial	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-native_desc-MSMSulc_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-native_desc-MSMSulc_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-native_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-native_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-native_desc-reg_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-native_desc-reg_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-native_desc-reg-reg_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-native_desc-reg-reg_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-native_desc-rot_sphere	surface_derived		func	GIFTI surf					
+hemi-R_space-native_desc-rot_sphere	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-FS_strainJ	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-MSMSulc_strainJ	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-FS_strainR	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_desc-MSMSulc_strainR	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_sulc	surface_derived		func	GIFTI shape					
+"space-fsLR_den-32k_sulc"""	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
+hemi-R_space-fsLR_den-32k_thickness	surface_derived		func	GIFTI shape					
+space-fsLR_den-32k_thickness	surface_derived		func	CIFTI dscalar					
+hemi-L_space-fsLR_den-164k_white	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-164k_white	surface_derived		func	GIFTI surf					
+hemi-L_space-fsLR_den-32k_white	surface_derived		func	GIFTI surf					
+hemi-R_space-fsLR_den-32k_white	surface_derived		func	GIFTI surf					
+hemi-L_space-native_white	surface_derived		func	GIFTI surf					
+hemi-R_space-native_white	surface_derived		func	GIFTI surf					
+atlas-DesikanKilliany_space-fsLR_den-32k	surface_derived		func	CIFTI dlabel					
+atlas-Destrieux_space-fsLR_den-32k	surface_derived		func	CIFTI dlabel					
+atlas-DesikanKilliany_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
+atlas-Destrieux_space-fsLR_den-164k	surface_derived		func	CIFTI dlabel					
+surf_alff	surface_derived		func	CIFTI dscalar					
+surf_falff	surface_derived		func	CIFTI dscalar					

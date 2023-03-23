@@ -36,9 +36,9 @@ def run_surface(post_freesurfer_folder,
 
     import os
     import subprocess
-    
+
     recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
-    
+
     if os.path.isdir(recon_all_path):
         freesurfer_folder = recon_all_path
 
@@ -568,7 +568,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
                                  function=run_surface),
                    name=f'post_freesurfer_{pipe_num}')
 
-    
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
@@ -754,21 +753,29 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-<<<<<<< HEAD
-     "inputs": ["freesurfer-subject-dir",
-                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
-                "space-longitudinal_desc-reorient_T1w"],
-                ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
-                ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
-                ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
-                ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
-                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
+     "inputs": [("freesurfer-subject-dir",
+                 ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w",
+                  "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"],
+                 ["space-template_desc-head_T1w",
+                  "space-template_desc-brain_T1w",
+                  "space-template_desc-T1w_mask"],
+                 ["from-T1w_to-template_mode-image_xfm",
+                  "from-T1w_to-template_mode-image_desc-linear_xfm"],
+                 ["from-template_to-T1w_mode-image_xfm",
+                  "from-template_to-T1w_mode-image_desc-linear_xfm"],
+                 ["space-template_desc-brain_bold",
+                  "space-template_desc-preproc_bold"],
+                 ["space-template_desc-scout_bold",
+                  "space-template_desc-cleaned_bold",
+                  "space-template_desc-brain_bold",
+                  "space-template_desc-motion_bold", "space-template_bold"])],
      "outputs": ["space-fsLR_den-32k_bold",
-                 "atlas-DesikanKilliany_space-fsLR_den-32k",
-                 "atlas-Destrieux_space-fsLR_den-32k",
-                 "atlas-DesikanKilliany_space-fsLR_den-164k",
-                 "atlas-Destrieux_space-fsLR_den-164k",
+                 "atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+                 "atlas-Destrieux_space-fsLR_den-32k_dlabel",
+                 "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
+                 "atlas-Destrieux_space-fsLR_den-164k_dlabel",
+                 "space-fsLR_den-32k_bold-dtseries",
                  "AtlasSubcortical_s2",
                  "goodvoxels",
                  "ribbon_only",
@@ -851,36 +858,12 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "hemi-R_space-fsLR_den-32k_white",
                  "hemi-L_space-native_white",
                  "hemi-R_space-native_white"]}
-=======
-     "inputs": [("freesurfer-subject-dir",
-                 ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w",
-                  "desc-reorient_T1w", "T1w",
-                  "space-longitudinal_desc-reorient_T1w"],
-                 ["space-template_desc-head_T1w",
-                  "space-template_desc-brain_T1w",
-                  "space-template_desc-T1w_mask"],
-                 ["from-T1w_to-template_mode-image_xfm",
-                  "from-T1w_to-template_mode-image_desc-linear_xfm"],
-                 ["from-template_to-T1w_mode-image_xfm",
-                  "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                 ["space-template_desc-brain_bold",
-                  "space-template_desc-preproc_bold"],
-                 ["space-template_desc-scout_bold",
-                  "space-template_desc-cleaned_bold",
-                  "space-template_desc-brain_bold",
-                  "space-template_desc-motion_bold", "space-template_bold"])],
-     "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
-                 "atlas-Destrieux_space-fsLR_den-32k_dlabel",
-                 "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
-                 "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-                 "space-fsLR_den-32k_bold-dtseries"]}
->>>>>>> 7f94c3a42f0c3eb7c76b15ac5591545d20e8a52f
     '''
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
 
-<<<<<<< HEAD
+
 def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
     falff = pe.Node(util.Function(input_names=['subject','dtseries'], 
@@ -1133,5 +1116,3 @@ def run_cifticorrelation(subject, ptseries):
     cmd = ['wb_command', '-cifti-correlation', ptseries , correlation_matrix]
     log_subprocess(cmd)
     return correlation_matrix
-=======
->>>>>>> 7f94c3a42f0c3eb7c76b15ac5591545d20e8a52f
