@@ -20,20 +20,8 @@ on:
   workflow_call:
 
 jobs:
-  update-check:
-    name: Update GitHub check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update check's target URL
-        uses: gdonati78/github-status-action@1.0.0
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: pending
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
 
   C-PAC:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ''
@@ -45,13 +33,11 @@ jobs:
       variant: lite
 
   C-PAC-ABCD-HCP:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: fMRIPrep-LTS
@@ -74,35 +60,6 @@ jobs:
         run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-
-  finish-build-check:
-    name: Finish GitHub check
-    needs:
-      - C-PAC
-      - C-PAC-lite
-      - C-PAC-ABCD-HCP
-      - C-PAC-fMRIPrep-LTS
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - env:
-          NEEDS_CONTEXT: ${{ toJson(needs) }}
-        name: Update check status
-        run: |
-          result_failure="\"result\": \"failure\""
-          result_cancelled="\"result\": \"cancelled\""
-          export STATUS=failure
-          if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
-          then export STATUS=success
-          fi
-          echo "STATUS=$STATUS" >> $GITHUB_ENV
-      - name: Finish check
-        uses: gdonati78/github-status-action@1.0.0
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: ${{ env.STATUS }}
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
 
   Circle_tests:
     name: Run tests on CircleCI

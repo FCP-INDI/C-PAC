@@ -28,40 +28,8 @@ on:
         default: ""
 
 jobs:
-  update-check:
-    name: Update GitHub check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update check's target URL
-        uses: gdonati78/github-status-action@1.0.0
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: pending
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-
-  fail-check:
-    name: Fail GitHub check
-    runs-on: ubuntu-latest
-    if: ${{ always() && contains(needs.*.result, 'failure') }}
-    needs:
-      - Ubuntu
-      - stages
-      - build-base
-      - build_and_test
-    steps:
-      - name: Fail check
-        uses: gdonati78/github-status-action@1.0.0
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: failure
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-
   Ubuntu:
     name: Build C-PAC Ubuntu
-    needs:
-      - update-check
     strategy:
       matrix:
         Dockerfile: 

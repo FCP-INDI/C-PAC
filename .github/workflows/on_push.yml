@@ -97,20 +97,9 @@ jobs:
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
 
-  set-up-check:
-    needs: check-updated-preconfigs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up check
-        uses: gdonati78/github-status-action@1.0.0
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: pending
-
   get_branch_ref:
     if: github.ref_type == 'branch'
-    needs: set-up-check
+    needs: check-updated-preconfigs
     outputs:
       base_refs:
         ${{ steps.base_refs.outputs.base_refs }}
@@ -138,5 +127,5 @@ jobs:
 
   build-stages_tag:
     if: github.ref_type == 'tag'
-    needs: set-up-check
+    needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
