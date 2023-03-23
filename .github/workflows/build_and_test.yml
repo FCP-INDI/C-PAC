@@ -20,7 +20,6 @@ on:
   workflow_call:
 
 jobs:
-
   C-PAC:
     uses: ./.github/workflows/build_C-PAC.yml
     with:
@@ -112,6 +111,7 @@ jobs:
             echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/workflows/${WORKFLOW_ID}
 
   Deploy_to_Docker_Hub:
+    name: Deploy to Docker Hub
     needs:
       - C-PAC
     if: github.ref_type == 'tag'
@@ -121,6 +121,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-lite:
+    name: Deploy 'lite' to Docker Hub
     needs:
       - C-PAC-lite
     if: github.ref_type == 'tag'
@@ -130,6 +131,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-ABCD-HCP:
+    name: Deploy 'ABCD-HCP' to Docker Hub
     needs:
       - C-PAC-ABCD-HCP
     if: github.ref_type == 'tag'
@@ -139,6 +141,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-fMRIPrep-LTS:
+    name: Deploy 'fMRIPrep-LTS' to Docker Hub
     needs:
       - C-PAC-fMRIPrep-LTS
     if: github.ref_type == 'tag'

@@ -99,6 +99,7 @@ jobs:
 
   get_branch_ref:
     if: github.ref_type == 'branch'
+    name: Get base SHAs for open PRs
     needs: check-updated-preconfigs
     outputs:
       base_refs:
@@ -122,6 +123,7 @@ jobs:
           fi
 
   build-stages_branch:
+    name: Build multistage image stages
     needs: get_branch_ref
     strategy:
       matrix:
@@ -132,5 +134,6 @@ jobs:
 
   build-stages_tag:
     if: github.ref_type == 'tag'
+    name: Build multistage image stages
     needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
