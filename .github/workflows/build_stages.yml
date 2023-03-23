@@ -17,21 +17,15 @@
 
 # Requires secret `ACTIONS_WORKFLOW_TOKEN` with `workflow` scope
 name: Build stages
-run-name: ${{ github.server_url}}/${{ github.repository}}/commit/${{ inputs.head_ref }} (${{ inputs.message }})
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       base_ref:
         description: 'Base reference if triggered by a pull request'
+        type: string
         required: false
         default: ""
-      head_ref:
-        description: github.event.head_commit.id from push or PR
-        required: true
-      message:
-        description: github.event.head_commit.message from push or PR
-        required: true
 
 jobs:
   update-check:
@@ -54,7 +48,7 @@ jobs:
       - Ubuntu
       - stages
       - build-base
-      - trigger-next-workflow
+      - build_and_test
     steps:
       - name: Fail check
         uses: gdonati78/github-status-action@1.0.0
@@ -353,15 +347,6 @@ jobs:
           cache-to: type=gha,mode=min
         if: always() && (steps.rebuild.outputs.rebuild == 1 || steps.changed-files-base.outputs.any_changed == 'true' || steps.changed-files.outputs.any_changed == 'true' || steps.docker_tag.outputs.not_yet_exists == 1)
 
-  trigger-next-workflow:
+  build_and_test:
     needs: build-base
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out C-PAC
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Build and test C-PAC
-        run: gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME}
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+    uses: ./.github/workflows/build_and_test.yml

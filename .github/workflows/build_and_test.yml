@@ -17,7 +17,7 @@
 name: Build and test C-PAC
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
   update-check:

@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-name: Check updated preconfigs
+name: Check updated preconfigs, build and test C-PAC
 
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
 
-  trigger-next-workflow:
+  set-up-check:
     needs: check-updated-preconfigs
     runs-on: ubuntu-latest
     steps:
@@ -107,32 +107,36 @@ jobs:
           authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
           context: "Build C-PAC images"
           state: pending
+
+  get_branch_ref:
+    if: github.ref_type == 'branch'
+    needs: set-up-check
+    outputs:
+      base_refs:
+        ${{ steps.base_refs.outputs.base_refs }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Check out C-PAC
         uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - name: Build stages
-        if: github.ref_type == 'branch'
+      - id: base_refs
+        name: Gather base_refs
         run: |
           pip install PyGithub
-          BASE_REFS=$(python .github/scripts/get_pr_base_shas.py)
-          if [ -n "$BASE_REFS" ]
-          then
-            for REF in $BASE_REFS
-            do
-              echo "Running against base $REF"
-              gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME} -f base_ref="$REF" -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
-            done
-          else
-            echo "Running against last PR"
-            gh workflow run build_stages.yml --ref ${GITHUB_REF_NAME} -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-      - name: Build, test, and push C-PAC
-        if: github.ref_type == 'tag'
-        run: |
-          pip install PyGithub
-          gh workflow run build_and_test.yml --ref ${GITHUB_REF_NAME} -f head_ref="${{ github.event.head_commit.id }}"  -f message="${{ github.event.head_commit.message }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          BASE_REFS=$(python ${GITHUB_WORKSPACE}/.github/scripts/get_pr_base_shas.py)
+          echo "base_refs=$BASE_REFS >> $GITHUB_OUTPUTS"
+
+  build-stages_branch:
+    needs: get_branch_ref
+    strategy:
+      matrix:
+        base_ref: ${{ fromJson(needs.get_branch_ref.outputs.base_refs) }}
+    uses: ./.github/workflows/build_stages.yml
+    with:
+      base_ref: ${{ strategy.matrix.base_ref }}
+
+  build-stages_tag:
+    if: github.ref_type == 'tag'
+    needs: set-up-check
+    uses: ./.github/workflows/build_stages.yml
