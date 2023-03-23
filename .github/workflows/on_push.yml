@@ -125,7 +125,7 @@ jobs:
     needs: get_branch_ref
     strategy:
       matrix:
-        base_ref: ${{ fromJson(needs.get_branch_ref.outputs.base_refs) }}
+        base_ref: ${{ fromJSON(needs.get_branch_ref.outputs.base_refs) }}
     uses: ./.github/workflows/build_stages.yml
     with:
       base_ref: ${{ strategy.matrix.base_ref }}
