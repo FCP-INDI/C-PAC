@@ -337,7 +337,48 @@ jobs:
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     if: github.ref_name == 'develop' || github.ref_name == 'main'
-    uses: ./.github/workflows/smoke_test_participant.yml
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Participant-level smoke tests
+        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME}
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+  
+  regtest:
+  name: Run lite regression test
+  needs:
+    - C-PAC
+  uses: ./.github/workflows/regression_test.yml
+
+  finish-build-check:
+    name: Finish GitHub check
+    needs:
+      - C-PAC
+      - C-PAC-lite
+      - C-PAC-ABCD-HCP
+      - C-PAC-fMRIPrep-LTS
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update check status
+        run: |
+          result_failure="\"result\": \"failure\""
+          result_cancelled="\"result\": \"cancelled\""
+          export STATUS=failure
+          if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
+          then export STATUS=success
+          fi
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
+      - name: Finish check
+        uses: Sibz/github-status-action@v1.1.6
+        with:
+          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+          context: "Build C-PAC images"
+          state: ${{ env.STATUS }}
+          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
 
   Circle_tests:
     name: Run tests on CircleCI
