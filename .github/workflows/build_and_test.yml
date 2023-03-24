@@ -58,6 +58,12 @@ jobs:
         run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+  
+  regtest:
+  name: Run lite regression test
+  needs:
+    - C-PAC
+  uses: ./.github/workflows/regression_test.yml
 
   finish-build-check:
     name: Finish GitHub check
