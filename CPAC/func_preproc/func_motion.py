@@ -37,9 +37,46 @@ except (AttributeError, KeyError, LookupError, IndexError):
     motion_correct_options = ['3dvolreg', 'mcflirt']
 
 
-def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
+def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "calc_motion_stats",
+    Calculate motion statistics for filtered motion parameters.
+
+    Node Block:
+    {"name": "calc_motion_stats_filtered",
+     "config": "None",
+     "switch": [["functional_preproc", "run"],
+                ["functional_preproc", "motion_estimates_and_correction",
+                "motion_estimates", "calculate_motion_after"]],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [("desc-preproc_bold",
+                 "space-bold_desc-brain_mask",
+                 "movement-parameters",
+                 "filtered-movement-parameters",
+                 "max-displacement",
+                 "rels-displacement",
+                 "coordinate-transformation",
+                 "filtered-coordinate-transformation"),
+                "subject",
+                "scan"],
+     "outputs": ["framewise-displacement-power",
+                 "framewise-displacement-jenkinson",
+                 "dvars",
+                 "power-params",
+                 "motion-params"]}
+    '''
+    if True in cfg['functional_preproc', 'motion_estimates_and_correction',
+                    'motion_estimate_filter', 'run']:
+        return calc_motion_stats(wf, strat_pool, pipe_num)
+    return wf, {}
+
+
+def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Calculate motion statistics for unfiltered motion parameters.
+
+    Node Block:
+    {"name": "calc_motion_stats_unfiltered",
      "config": "None",
      "switch": [["functional_preproc", "run"],
                 ["functional_preproc", "motion_estimates_and_correction",
@@ -52,8 +89,6 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "max-displacement",
                  "rels-displacement",
                  "coordinate-transformation"),
-                ("filtered-coordinate-transformation",
-                 "filtered-movement-parameters"),
                 "subject",
                 "scan"],
      "outputs": ["framewise-displacement-power",
@@ -61,6 +96,29 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars",
                  "power-params",
                  "motion-params"]}
+    '''
+    if False in cfg['functional_preproc', 'motion_estimates_and_correction',
+                    'motion_estimate_filter', 'run']:
+        return calc_motion_stats(wf, strat_pool, pipe_num)
+    return wf, {}
+
+
+def calc_motion_stats(wf, strat_pool, pipe_num):
+    '''Calculate motion statistics
+
+    Parameters
+    ----------
+    wf : pe.Workflow
+
+    strat_pool : CPAC.pipeline.engine.ResourcePool
+
+    pipe_num : int
+
+    Returns
+    -------
+    wf : pe.Workflow
+
+    outputs : dict
     '''
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
@@ -71,42 +129,27 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Special case where the workflow is not getting outputs from
     # resource pool but is connected to functional datasource
-    node, out_file = strat_pool.get_data('subject')
-    wf.connect(node, out_file,
+    wf.connect(*strat_pool.get_data('subject'),
                gen_motion_stats, 'inputspec.subject_id')
-
-    node, out_file = strat_pool.get_data('scan')
-    wf.connect(node, out_file,
+    wf.connect(*strat_pool.get_data('scan'),
                gen_motion_stats, 'inputspec.scan_id')
-
-    node, out_file = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out_file,
+    wf.connect(*strat_pool.get_data('desc-preproc_bold'),
                gen_motion_stats, 'inputspec.motion_correct')
-
-    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
-    wf.connect(node, out_file,
+    wf.connect(*strat_pool.get_data('space-bold_desc-brain_mask'),
                gen_motion_stats, 'inputspec.mask')
-
-    node, out_file = strat_pool.get_data('movement-parameters')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.movement_parameters')
-
-    node, out_file = strat_pool.get_data('max-displacement')
-    wf.connect(node, out_file,
-               gen_motion_stats,
-               'inputspec.max_displacement')
+    wf.connect(*strat_pool.get_data('movement-parameters'),
+               gen_motion_stats, 'inputspec.movement_parameters')
+    wf.connect(*strat_pool.get_data('max-displacement'),
+               gen_motion_stats, 'inputspec.max_displacement')
 
     if strat_pool.check_rpool('rels-displacement'):
-        node, out_file = strat_pool.get_data('rels-displacement')
-        wf.connect(node, out_file, gen_motion_stats,
-                   'inputspec.rels_displacement')
+        wf.connect(*strat_pool.get_data('rels-displacement'),
+                   gen_motion_stats, 'inputspec.rels_displacement')
 
     coordinate_transformation = ['filtered-coordinate-transformation',
                                  'coordinate-transformation']
     if strat_pool.check_rpool(coordinate_transformation):
-        node, out_file = strat_pool.get_data(coordinate_transformation)
-        wf.connect(node, out_file,
+        wf.connect(*strat_pool.get_data(coordinate_transformation),
                    gen_motion_stats, 'inputspec.transformations')
 
     outputs = {
@@ -119,7 +162,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'motion-params': (gen_motion_stats, 'outputspec.motion_params')
     }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def estimate_reference_image(in_file):

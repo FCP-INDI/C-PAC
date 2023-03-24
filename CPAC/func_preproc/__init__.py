@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing"""
-from .func_motion import calc_motion_stats, func_motion_correct, \
+from .func_motion import calc_motion_stats_filtered, \
+                         calc_motion_stats_unfiltered, func_motion_correct, \
                          func_motion_correct_only, func_motion_estimates, \
                          get_motion_ref, motion_estimate_filter
 from .func_preproc import slice_timing_wf, \
                           get_idx
 
-
-__all__ = ['calc_motion_stats', 'func_motion_correct',
-           'func_motion_correct_only', 'func_motion_estimates', 'get_idx',
-           'get_motion_ref', 'motion_estimate_filter', 'slice_timing_wf']
+__all__ = ['calc_motion_stats_filtered', 'calc_motion_stats_unfiltered',
+           'func_motion_correct', 'func_motion_correct_only',
+           'func_motion_estimates', 'get_idx', 'get_motion_ref',
+           'motion_estimate_filter', 'slice_timing_wf']

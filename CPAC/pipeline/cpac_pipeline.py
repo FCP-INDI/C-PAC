@@ -127,7 +127,8 @@ from CPAC.seg_preproc.seg_preproc import (
 )
 
 from CPAC.func_preproc import (
-    calc_motion_stats,
+    calc_motion_stats_filtered,
+    calc_motion_stats_unfiltered,
     func_motion_correct,
     func_motion_correct_only,
     func_motion_estimates,
@@ -1186,7 +1187,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 bold_masking]
 
         func_prep_blocks = [
-            calc_motion_stats,
+            calc_motion_stats_unfiltered,
+            calc_motion_stats_filtered,
             func_normalize,
             [coregistration_prep_vol,
              coregistration_prep_mean,
