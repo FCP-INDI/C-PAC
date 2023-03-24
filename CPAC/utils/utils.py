@@ -171,9 +171,18 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
                                       res_in_filename
     from CPAC.utils.outputs import Outputs
 
-    if resource in Outputs.motion:
-        resource = (
-            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
+    # set motion output resource suffixes to "motion"
+    for output in Outputs.motion:
+        if re.match(f'.*{output}.*', resource):
+            resource = re.sub('framewise-?[dD]isplacement', 'FD', resource)
+            if '_' in resource:
+                entities = [entity[::-1] for entity
+                            in resource[::-1].split('_', 1)[::-1]]
+                resource = '_'.join((entities[0], f'desc-{entities[1]}',
+                                     'motion'))
+            else:
+                resource = f'desc-{resource}_motion'
+            break  # only need to do this once, in case of more than one match
 
     if atlas_id:
         if '_desc-' in atlas_id:
