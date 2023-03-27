@@ -17,11 +17,7 @@
 name: Build and test C-PAC
 
 on:
-  workflow_run:
-    workflows:
-      - build_stages.yml
-    types:
-      - completed
+  workflow_call:
 
 jobs:
   C-PAC:
