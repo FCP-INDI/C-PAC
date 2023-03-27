@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/shnizzedy/c-pac/fsl:neurodebian-bionic as FSL-Neurodebian
+FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 
 USER root
@@ -24,10 +24,10 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
     POSSUMDIR=/usr/share/fsl/6.0 \
-    LD_LIBRARY_PATH=/usr/lib/fsl/6.0:$LD_LIBRARY_PATH \
+    LD_LIBRARY_PATH=/usr/share/fsl/6.0:$LD_LIBRARY_PATH \
     FSLTCLSH=/usr/bin/tclsh \
     FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/fsl/6.0:$PATH \
+    PATH=/usr/share/fsl/6.0/bin:$PATH \
     TZ=America/New_York
 
 # Installing and setting up FSL
@@ -52,12 +52,13 @@ ENTRYPOINT ["/bin/bash"]
 USER c-pac_user
 
 # Only keep what we need
-FROM scratch
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FSL 6.0.4 stage"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
-# COPY --from=FSL /usr/lib /usr/lib
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+# install C-PAC resources into FSL
+COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard

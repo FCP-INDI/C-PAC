@@ -1,4 +1,20 @@
-FROM ghcr.io/shnizzedy/c-pac/fsl:neurodebian-bionic as FSL-Neurodebian
+# Copyright (C) 2021-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 
 USER root
@@ -13,7 +29,6 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     FSLWISH=/usr/bin/wish \
     PATH=/usr/lib/fsl/5.0:$PATH \
     TZ=America/New_York
-
 
 # Installing and setting up FSL
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
@@ -45,4 +60,5 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/tissuepriors/*mm /usr/share/fsl/5.0/data/standard/tissuepriors/
+# install C-PAC resources into FSL
+COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard
