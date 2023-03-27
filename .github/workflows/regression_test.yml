@@ -2,8 +2,6 @@ name: Run Regression Test
 
 on: 
   workflow_call:
-  #pull_request:
-  #  types: [ready_for_review, closed]
 
 jobs: 
   update-check:
@@ -17,13 +15,6 @@ jobs:
           context: "Regression Test"
           state: pending
           target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-
-
-  C-PAC:
-    needs: update-check
-    uses: ./.github/workflows/smoke_test_participant.yml
-    with:
-      variant: ''
 
   test:
     runs-on: ubuntu-latest
