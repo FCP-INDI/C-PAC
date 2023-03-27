@@ -350,7 +350,7 @@ jobs:
   regtest:
     name: Run lite regression test
     needs:
-      - C-PAC
+      - smoke-tests-participant
     uses: ./.github/workflows/regression_test.yml
 
   finish-build-check:
