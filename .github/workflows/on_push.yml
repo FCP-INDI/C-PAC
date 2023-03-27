@@ -117,9 +117,9 @@ jobs:
           BASE_REFS=$(python ${GITHUB_WORKSPACE}/.github/scripts/get_pr_base_shas.py)
           if [ -n "$BASE_REFS" ]
           then
-            echo "base_refs=[$BASE_REFS]" >> $GITHUB_OUTPUT
+            echo "base_refs=$(jq --compact-output --null-input '$ARGS.positional' --args -- $BASE_REFS)" >> $GITHUB_OUTPUT
           else
-            echo "base_refs=['']" >> $GITHUB_OUTPUT
+            echo "base_refs=$(jq --compact-output --null-input '$ARGS.positional' --args -- '')" >> $GITHUB_OUTPUT
           fi
           cat $GITHUB_OUTPUT
 
@@ -132,12 +132,9 @@ jobs:
     uses: ./.github/workflows/build_stages.yml
     with:
       base_ref: ${{ strategy.matrix.base_ref }}
-      message: ${{ github.event.head_commit.message }}
 
   build-stages_tag:
     if: github.ref_type == 'tag'
     name: Build multistage image stages
     needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
-    with:
-      message: ${{ github.event.head_commit.message }}

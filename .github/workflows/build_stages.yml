@@ -26,10 +26,6 @@ on:
         type: string
         required: false
         default: ""
-      message:
-        description: github.event.head_commit.message from push or PR
-        required: true
-        type: string
 
 jobs:
   Ubuntu:
