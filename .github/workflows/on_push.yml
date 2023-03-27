@@ -121,6 +121,7 @@ jobs:
           else
             echo "base_refs=['']" >> $GITHUB_OUTPUT
           fi
+          cat $GITHUB_OUTPUT
 
   build-stages_branch:
     name: Build multistage image stages
