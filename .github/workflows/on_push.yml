@@ -22,6 +22,10 @@ on:
 jobs:
   check-updated-preconfigs:
     name: Check if preconfigs need updated
+    outputs:
+      phase_one: ${{ steps.rebuild.outputs.phase_one }}
+      phase_two: ${{ steps.rebuild.outputs.phase_two }}
+      phase_three: ${{ steps.rebuild.outputs.phase_three }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -106,6 +110,7 @@ jobs:
       - name: Determine stages to rebuild
         env:
           MESSAGE: ${{ github.event.head_commit.message }}
+        id: rebuild
         run: |
           # declare phase arrays
           declare -a PHASE_ONE PHASE_TWO PHASE_THREE
@@ -135,9 +140,9 @@ jobs:
             fi
           done
           # send stages to rebuild as JSON strings to job outputs
-          phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_ONE)
-          phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_TWO)
-          phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_THREE)
+          phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_ONE[@]})
+          phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_TWO[@]})
+          phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_THREE[@]})
           echo "phase_one=${phase_one}" >> $GITHUB_OUTPUT
           echo "phase_two=${phase_two}" >> $GITHUB_OUTPUT
           echo "phase_three=${phase_three}" >> $GITHUB_OUTPUT
@@ -150,6 +155,6 @@ jobs:
     needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
     with:
-      phase_one: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_one) }}
-      phase_two: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_two) }}
-      phase_three: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_three) }}
+      phase_one: ${{ needs.check-updated-preconfigs.outputs.phase_one }}
+      phase_two: ${{ needs.check-updated-preconfigs.outputs.phase_two }}
+      phase_three: ${{ needs.check-updated-preconfigs.outputs.phase_three }}
