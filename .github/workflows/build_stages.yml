@@ -235,6 +235,7 @@ jobs:
           cache-to: type=gha,mode=min
 
   build-and-test:
-    name: Build C-PAC base stage images
+    name: Build and test C-PAC images
     needs: build-base
     uses: ./.github/workflows/build_and_test.yml
+    secrets: inherit
