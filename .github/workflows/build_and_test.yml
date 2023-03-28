@@ -351,6 +351,12 @@ jobs:
       - smoke-tests-participant
     uses: ./.github/workflows/regression_test.yml
 
+  regtest-full:
+    name: Run full regression test
+    needs:
+      - smoke-tests-participant
+    uses: ./.github/workflows/regression_test.yml
+
   Circle_tests:
     name: Run tests on CircleCI
     needs:
