@@ -96,45 +96,54 @@ jobs:
             [skip ci]"
             git push origin HEAD:${GITHUB_BRANCH} || true
           fi
-
-  get_branch_ref:
-    if: github.ref_type == 'branch'
-    name: Get base SHAs for open PRs
-    needs: check-updated-preconfigs
-    outputs:
-      base_refs:
-        ${{ steps.base_refs.outputs.base_refs }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out C-PAC
-        uses: actions/checkout@v3
+      - name: Get changed files since last commit
+        uses: tj-actions/changed-files@v35.7.6
+        id: changed-files
         with:
-          fetch-depth: 2
-      - id: base_refs
-        name: Gather base_refs
+          since_last_remote_commit: "true"
+          files: .github/Dockerfiles/*
+          json: "true"
+      - name: Determine stages to rebuild
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          pip install PyGithub
-          BASE_REFS=$(python ${GITHUB_WORKSPACE}/.github/scripts/get_pr_base_shas.py)
-          if [ -n "$BASE_REFS" ]
-          then
-            echo "base_refs=$(jq --compact-output --null-input '$ARGS.positional' --args -- $BASE_REFS)" >> $GITHUB_OUTPUT
-          else
-            echo "base_refs=$(jq --compact-output --null-input '$ARGS.positional' --args -- '')" >> $GITHUB_OUTPUT
-          fi
-          cat $GITHUB_OUTPUT
+          # declare phase arrays
+          declare -a PHASE_ONE PHASE_TWO PHASE_THREE
+          # turn JSON array into BASH array
+          CHANGED_FILES=( $(echo ${{ steps.changed-files.outputs.all_changed_files }} | sed -e 's/\[//g' -e 's/\]//g' -e 's/\,/ /g') )
+          # loop through stages to maybe rebuild
+          for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_one.txt)
+          do
+            # check commit message for [rebuild STAGE] or if STAGE has changed
+            if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
+            then
+              PHASE_ONE+=($STAGE)
+            fi
+          done
+          for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_two.txt)
+          do
+            if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
+            then
+              PHASE_TWO+=($STAGE)
+            fi
+          done
+          for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_three.txt)
+          do
+            if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
+            then
+              PHASE_THREE+=($STAGE)
+            fi
+          done
+          # send stages to rebuild as JSON strings to job outputs
+          echo "phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_ONE)" >> $GITHUB_OUTPUT
+          echo "phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_TWO)" >> $GITHUB_OUTPUT
+          echo "phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_THREE)" >> $GITHUB_OUTPUT
 
-  build-stages_branch:
+  build-stages:
     name: Build multistage image stages
-    needs: get_branch_ref
-    strategy:
-      matrix:
-        base_ref: ${{ fromJSON(needs.get_branch_ref.outputs.base_refs) }}
+    needs: check-updated-preconfigs
     uses: ./.github/workflows/build_stages.yml
     with:
-      base_ref: ${{ strategy.matrix.base_ref }}
-
-  build-stages_tag:
-    if: github.ref_type == 'tag'
-    name: Build multistage image stages
-    needs: check-updated-preconfigs
-    uses: ./.github/workflows/build_stages.yml
+      phase_one: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_one) }}
+      phase_two: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_two) }}
+      phase_three: ${{ fromJSON(needs.check-updated-preconfigs.outputs.phase_three) }}

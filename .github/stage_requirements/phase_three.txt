@@ -1,0 +1,3 @@
+standard
+ABCD-HCP
+fMRIPrep-LTS
