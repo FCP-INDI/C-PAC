@@ -24,8 +24,11 @@ jobs:
     name: Check if preconfigs need updated
     outputs:
       phase_one: ${{ steps.rebuild.outputs.phase_one }}
+      rebuild_phase_one: ${{ steps.rebuild.outputs.rebuild_phase_one }}
       phase_two: ${{ steps.rebuild.outputs.phase_two }}
+      rebuild_phase_two: ${{ steps.rebuild.outputs.rebuild_phase_two }}
       phase_three: ${{ steps.rebuild.outputs.phase_three }}
+      rebuild_phase_three: ${{ steps.rebuild.outputs.rebuild_phase_three }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
@@ -112,43 +115,60 @@ jobs:
           MESSAGE: ${{ github.event.head_commit.message }}
         id: rebuild
         run: |
-          # declare phase arrays
-          declare -a PHASE_ONE PHASE_TWO PHASE_THREE
+          # initialize phase arrays
+          declare -a PHASE_ONE PHASE_TWO PHASE_THREE REBUILD_PHASE_ONE REBUILD_PHASE_TWO REBUILD_PHASE_THREE
           # turn JSON array into BASH array
           CHANGED_FILES=( $(echo ${{ steps.changed-files.outputs.all_changed_files }} | sed -e 's/\[//g' -e 's/\]//g' -e 's/\,/ /g') )
           # loop through stages to maybe rebuild
           for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_one.txt)
           do
+            PHASE_ONE+=($STAGE)
             # check commit message for [rebuild STAGE] or if STAGE has changed
             if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
             then
-              PHASE_ONE+=($STAGE)
+              REBUILD_PHASE_ONE+=($STAGE)
             fi
           done
           for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_two.txt)
           do
+            PHASE_TWO+=($STAGE)
             if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
             then
-              PHASE_TWO+=($STAGE)
+              REBUILD_PHASE_TWO+=($STAGE)
             fi
           done
           for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_three.txt)
           do
+            PHASE_THREE+=($STAGE)
             if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ "${MESSAGE}" == *"[rebuild base-${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
             then
-              PHASE_THREE+=($STAGE)
+              REBUILD_PHASE_THREE+=($STAGE)
             fi
+          done
+          # add base stages based on their dependencies
+          for BASE in $PHASE_THREE
+          do
+            for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/${BASE}.txt)
+            do
+              if ([[ " ${REBUILD_PHASE_ONE[*]} " =~ " ${STAGE} " ]] || [[ " ${REBUILD_PHASE_TWO[*]} " =~ " ${STAGE} " ]]) && [[ ! " ${REBUILD_PHASE_THREE[*]} " =~ " ${STAGE} " ]]
+              then
+                REBUILD_PHASE_THREE+=($STAGE)
+              fi
+            done
           done
           # send stages to rebuild as JSON strings to job outputs
           phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_ONE[@]})
+          rebuild_phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${REBUILD_PHASE_ONE[@]})
           phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_TWO[@]})
+          rebuild_phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${REBUILD_PHASE_TWO[@]})
           phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${PHASE_THREE[@]})
+          rebuild_phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${REBUILD_PHASE_THREE[@]})
           echo "phase_one=${phase_one}" >> $GITHUB_OUTPUT
+          echo "rebuild_phase_one=${rebuild_phase_one}" >> $GITHUB_OUTPUT
           echo "phase_two=${phase_two}" >> $GITHUB_OUTPUT
+          echo "rebuild_phase_two=${rebuild_phase_two}" >> $GITHUB_OUTPUT
           echo "phase_three=${phase_three}" >> $GITHUB_OUTPUT
-          echo "phase one: ${phase_one}"
-          echo "phase two: ${phase_two}"
-          echo "phase three: ${phase_three}"
+          echo "rebuild_phase_three=${rebuild_phase_three}" >> $GITHUB_OUTPUT
 
   build-stages:
     name: Build multistage image stages
@@ -156,5 +176,8 @@ jobs:
     uses: ./.github/workflows/build_stages.yml
     with:
       phase_one: ${{ needs.check-updated-preconfigs.outputs.phase_one }}
+      rebuild_phase_one: ${{ needs.check-updated-preconfigs.outputs.rebuild_phase_one }}
       phase_two: ${{ needs.check-updated-preconfigs.outputs.phase_two }}
+      rebuild_phase_two: ${{ needs.check-updated-preconfigs.outputs.rebuild_phase_two }}
       phase_three: ${{ needs.check-updated-preconfigs.outputs.phase_three }}
+      rebuild_phase_three: ${{ needs.check-updated-preconfigs.outputs.rebuild_phase_three }}
