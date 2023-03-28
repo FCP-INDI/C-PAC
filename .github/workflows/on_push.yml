@@ -135,9 +135,15 @@ jobs:
             fi
           done
           # send stages to rebuild as JSON strings to job outputs
-          echo "phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_ONE)" >> $GITHUB_OUTPUT
-          echo "phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_TWO)" >> $GITHUB_OUTPUT
-          echo "phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_THREE)" >> $GITHUB_OUTPUT
+          phase_one=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_ONE)
+          phase_two=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_TWO)
+          phase_three=$(jq --compact-output --null-input '$ARGS.positional' --args -- $PHASE_THREE)
+          echo "phase_one=${phase_one}" >> $GITHUB_OUTPUT
+          echo "phase_two=${phase_two}" >> $GITHUB_OUTPUT
+          echo "phase_three=${phase_three}" >> $GITHUB_OUTPUT
+          echo "phase one: ${phase_one}"
+          echo "phase two: ${phase_two}"
+          echo "phase three: ${phase_three}"
 
   build-stages:
     name: Build multistage image stages
