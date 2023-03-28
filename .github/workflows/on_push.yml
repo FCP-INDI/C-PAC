@@ -134,7 +134,7 @@ jobs:
           done
           for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/phase_three.txt)
           do
-            if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
+            if [[ "${MESSAGE}" == *"[rebuild ${STAGE}]"* ]] || [[ "${MESSAGE}" == *"[rebuild base-${STAGE}]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " ${STAGE} " ]]
             then
               PHASE_THREE+=($STAGE)
             fi
