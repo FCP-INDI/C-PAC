@@ -59,8 +59,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
   
-  regtest:
+  regtest-lite:
     name: Run lite regression test
+    needs:
+      - C-PAC
+    uses: ./.github/workflows/regression_test.yml
+
+  regtest-full:
+    name: Run full regression test
     needs:
       - smoke-tests-participant
     uses: ./.github/workflows/regression_test.yml
