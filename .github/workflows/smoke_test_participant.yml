@@ -1,26 +1,28 @@
+# Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 name: Run participant smoke test
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
-  set-up-check:
-    name: Set up GitHub check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up check
-        uses: Sibz/github-status-action@v1.1.6
-        if: ${{ matrix.variant }} != ''
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Smoke tests"
-          state: pending
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
   smoke_test_human:
     name: Human ${{ matrix.preconfig }} participant smoke tests
     runs-on: ubuntu-latest
-    needs:
-      - set-up-check
     strategy:
       fail-fast: false
       matrix:
@@ -110,8 +112,6 @@ jobs:
   smoke_test_nhp:
     name: Non-human primate ${{ matrix.preconfig }} participant smoke tests
     runs-on: ubuntu-latest
-    needs:
-      - set-up-check
     strategy:
       fail-fast: false
       matrix:
@@ -184,8 +184,6 @@ jobs:
   smoke_test_rodent:
     name: Rodent participant smoke tests
     runs-on: ubuntu-latest
-    needs:
-      - set-up-check
     strategy:
       fail-fast: false
       matrix:
@@ -241,30 +239,3 @@ jobs:
           name: expectedOutputs rodent ${{ matrix.variant }}
           path: outputs/log/pipeline_*/*/*_expectedOutputs.yml
           if-no-files-found: ignore
-  finish-check:
-    name: Finish GitHub check
-    runs-on: ubuntu-latest
-    if: always()
-    needs:
-      - smoke_test_human
-      - smoke_test_nhp
-      - smoke_test_rodent
-    steps:
-      - name: Update check status
-        run: |
-          result_failure="\"result\": \"failure\""
-          result_cancelled="\"result\": \"cancelled\""
-          export STATUS=failure
-          if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
-          then export STATUS=success
-          fi
-          echo "STATUS=$STATUS" >> $GITHUB_ENV
-        env:
-          NEEDS_CONTEXT: ${{ toJson(needs) }}
-      - name: Finish check
-        uses: Sibz/github-status-action@v1.1.6
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Smoke tests"
-          state: ${{ env.STATUS }}
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}

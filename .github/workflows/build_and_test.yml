@@ -1,23 +1,26 @@
+# Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 name: Build and test C-PAC
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
-  update-check:
-    name: Update GitHub check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update check's target URL
-        uses: Sibz/github-status-action@v1.1.6
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: pending
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-
   C-PAC:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ''
@@ -29,13 +32,11 @@ jobs:
       variant: lite
 
   C-PAC-ABCD-HCP:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
-    needs: update-check
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: fMRIPrep-LTS
@@ -51,14 +52,14 @@ jobs:
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     steps:
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Participant-level smoke tests
         run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-  
+
   regtest-lite:
     name: Run lite regression test
     needs:
@@ -71,33 +72,6 @@ jobs:
       - smoke-tests-participant
     uses: ./.github/workflows/regression_test.yml
 
-  finish-build-check:
-    name: Finish GitHub check
-    needs:
-      - C-PAC
-      - C-PAC-lite
-      - C-PAC-ABCD-HCP
-      - C-PAC-fMRIPrep-LTS
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update check status
-        run: |
-          result_failure="\"result\": \"failure\""
-          result_cancelled="\"result\": \"cancelled\""
-          export STATUS=failure
-          if [[ $NEEDS_CONTEXT != *$result_failure* && $NEEDS_CONTEXT != *$result_cancelled* ]]
-          then export STATUS=success
-          fi
-          echo "STATUS=$STATUS" >> $GITHUB_ENV
-      - name: Finish check
-        uses: Sibz/github-status-action@v1.1.6
-        with:
-          authToken: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
-          context: "Build C-PAC images"
-          state: ${{ env.STATUS }}
-          target_url: ${{ github.server_url }}/${{ github.repository}}/actions/runs/${{ github.run_id }}
-
   Circle_tests:
     name: Run tests on CircleCI
     needs:
@@ -109,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Trigger CircleCI tests
@@ -120,12 +94,14 @@ jobs:
             export DATA="{\"branch\":\"$GITHUB_REF_NAME\", \"parameters\": {\"run_tests\": true}}"
             echo "URL ${U1}"
             echo "data ${DATA}"
-            PIPELINE_NUMBER=$(curl \
+            RESPONSE=$(curl \
               --request POST \
               --url "${U1}" \
               -u ${{ secrets.CIRCLE_API_USER_TOKEN }}: \
               --header 'content-type: application/json' \
-              --data "${DATA}" |
+              --data "${DATA}")
+            echo "$RESPONSE"
+            PIPELINE_NUMBER=$(echo $RESPONSE |
               jq '.number')
             if [[ $PIPELINE_NUMBER == 'null' ]]
             then
@@ -149,6 +125,7 @@ jobs:
             echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/workflows/${WORKFLOW_ID}
 
   Deploy_to_Docker_Hub:
+    name: Deploy to Docker Hub
     needs:
       - C-PAC
     if: github.ref_type == 'tag'
@@ -158,6 +135,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-lite:
+    name: Deploy 'lite' to Docker Hub
     needs:
       - C-PAC-lite
     if: github.ref_type == 'tag'
@@ -167,6 +145,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-ABCD-HCP:
+    name: Deploy 'ABCD-HCP' to Docker Hub
     needs:
       - C-PAC-ABCD-HCP
     if: github.ref_type == 'tag'
@@ -176,6 +155,7 @@ jobs:
     secrets: inherit
 
   Deploy_to_Docker_Hub-fMRIPrep-LTS:
+    name: Deploy 'fMRIPrep-LTS' to Docker Hub
     needs:
       - C-PAC-fMRIPrep-LTS
     if: github.ref_type == 'tag'

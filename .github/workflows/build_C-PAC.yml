@@ -96,6 +96,7 @@ jobs:
         with:
           context: .
           file: ${{ env.DOCKERFILE }}
+          provenance: false
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
