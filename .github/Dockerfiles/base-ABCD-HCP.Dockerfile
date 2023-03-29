@@ -45,11 +45,6 @@ COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=FSL /usr/lib/lib*so* /usr/lib/
-
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/tissuepriors/2mm /usr/share/fsl/5.0/data/standard/tissuepriors
-COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=FSL-Neurodebian /usr/share/fsl/5.0/data/standard/tissuepriors/3mm /usr/share/fsl/5.0/data/standard/tissuepriors
-
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
     FSL_DIR=/usr/share/fsl/5.0 \
