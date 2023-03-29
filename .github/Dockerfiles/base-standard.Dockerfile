@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
+FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3.python3.10-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
@@ -44,7 +45,6 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
-# COPY --from=FSL /usr/lib /usr/lib
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 
 # Installing and setting up c3d
@@ -63,17 +63,10 @@ COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
-# Installing C-PAC resources into FSL and installing ANTs
-ENV PATH=/usr/lib/ants:/opt/afni:/usr/lib/fsl/5.0:$PATH
-RUN echo "Downloading ANTs ..." \
-    && mkdir -p /usr/lib/ants \
-    && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
-    | tar -xz -C /usr/lib/ants --strip-components 1 \
-    && mkdir /ants_template && \
-    curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
-    unzip /tmp/Oasis.zip -d /tmp &&\
-    mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
-    rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
+# Installing ANTs
+ENV PATH=/usr/lib/ants/bin:$PATH
+COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ANTs /ants_template/ /ants_template/
 
 # Installing ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

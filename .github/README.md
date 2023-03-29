@@ -165,3 +165,19 @@ in the commit message. For this to work, all of these must be true:
    ```
 
    is for the most recent commit when pushing to GitHub.
+
+## Dockerfile tips
+
+### COPY
+
+For multistage builds, a trailing slash is necessary for Docker to treat a path as a directory, so `COPY` commands for directories should look like
+
+```Dockerfile
+COPY --from=STAGE /src/path/ /dest/path/
+```
+
+and for files should look like
+
+```Dockerfile
+COPY --from=STAGE /src/path /dest/path
+```
