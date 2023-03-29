@@ -5,7 +5,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime, date
 from os import PathLike
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 
 import networkx
 import pathlib as pl
@@ -15,6 +15,7 @@ from traits.trait_errors import TraitError
 from nipype.pipeline.engine.utils import load_resultfile as nipype_load_resultfile
 
 from .core import workflow_container, WorkflowRaw, NodeRaw
+from .nipype_report_parser import read_report_rst, ReportSection
 from .. import Configuration
 
 
@@ -60,6 +61,14 @@ def _workflow_get_graph(wf: WorkflowRaw) -> networkx.DiGraph:
     return wf._graph  # noqa
 
 
+def _node_find_wd_path(node: NodeRaw, node_root: NodeRaw) -> pl.Path:
+    """
+    NiPype saves the wrong working dir location for nested nodes.
+    This constructs the real one.
+    """
+    return pl.Path(node_root.base_dir) / pl.Path(node.output_dir()).relative_to(node.base_dir)
+
+
 @dataclass
 class EdgeData:
     """Data class for serializing workflow edges."""
@@ -88,12 +97,13 @@ class NodeData:
     outputs: dict
     result_inputs: dict
     result_outputs: dict
+    runtime_info: dict
 
     nodes: List['NodeData'] = dataclasses.field(default_factory=lambda: [])
     edges: List['EdgeData'] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod
-    def from_obj(cls, obj, serialze_postex: bool = True):
+    def from_obj(cls, obj, serialze_postex: bool = True, root_workflow: Optional[WorkflowRaw] = None):
         node_data = cls(
             name=obj.name,  # There is name, fullname and itername
             fullname=obj.fullname,
@@ -103,51 +113,36 @@ class NodeData:
             outputs=_object_as_strdict(_serialize_inout(obj.outputs)),
             result_inputs=_object_as_strdict(None),
             result_outputs=_object_as_strdict(None),
+            runtime_info={},
             nodes=[],
             edges=[]
         )
 
         if isinstance(obj, NodeRaw):
             if serialze_postex:
-                try:
-                    res_file = pl.Path(obj.output_dir()) / f"result_{obj.name}.pklz"
-                    if res_file.exists():
-                        res = nipype_load_resultfile(res_file)
-
-                        node_data.result_inputs = \
-                            _object_as_strdict(_serialize_inout(res.inputs))
-                    else:
-                        node_data.result_inputs = \
-                            _object_as_strdict(f'resfile does not exist: {res_file}')
-                except:  # noqa
-                    node_data.result_inputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
-
-                try:
-                    res_file = pl.Path(obj.output_dir()) / f"result_{obj.name}.pklz"
-                    if res_file.exists():
-                        res = nipype_load_resultfile(res_file)
-
-                        node_data.result_outputs = \
-                            _object_as_strdict(_serialize_inout(res.outputs))
-                    else:
-                        node_data.result_outputs = \
-                            _object_as_strdict(f'resfile does not exist: {res_file}')
-
-                except:  # noqa
-                    node_data.result_outputs = _object_as_strdict(f'Error loading results:\n{traceback.format_exc()}')
+                root_node = obj if root_workflow is None else root_workflow
+                report_path = _node_find_wd_path(obj, root_node) / '_report' / 'report.rst'
+                if report_path.exists():
+                    report_data = read_report_rst(report_path)
+                    node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, default={})
+                    node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, default={})
+                    node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, default={})
 
             return node_data
 
         if isinstance(obj, WorkflowRaw):
+            if root_workflow is None:
+                root_workflow = obj
+
             node_data.type = 'workflow'
             graph = _workflow_get_graph(obj)
 
             for child_node in graph.nodes:
-                node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex)
+                node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex, root_workflow=root_workflow)
                 node_data.nodes.append(node_data_child)
 
-            for child_edgle in graph.edges:
-                edge_data_child = EdgeData.from_obj(child_edgle)
+            for child_edge in graph.edges:
+                edge_data_child = EdgeData.from_obj(child_edge)
                 node_data.edges.append(edge_data_child)
 
             return node_data
