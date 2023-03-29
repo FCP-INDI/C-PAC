@@ -20,13 +20,12 @@ on:
   workflow_call:
 
 jobs:
-  C-PAC:
-    uses: ./.github/workflows/build_C-PAC.yml
-    with:
-      variant: ''
+  # C-PAC:
+  #   uses: ./.github/workflows/build_C-PAC.yml
+  #   with:
+  #     variant: ''
 
   C-PAC-lite:
-    needs: C-PAC
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: lite
@@ -44,7 +43,7 @@ jobs:
   smoke-tests-participant:
     name: Run participant-level smoke tests
     needs:
-      - C-PAC
+      # - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
@@ -63,7 +62,7 @@ jobs:
   Circle_tests:
     name: Run tests on CircleCI
     needs:
-      - C-PAC
+      # - C-PAC
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
@@ -112,15 +111,15 @@ jobs:
               tr -d '"')
             echo ${TEXT}https://app.circleci.com/pipelines/github/${GITHUB_REPOSITORY}/${PIPELINE_NUMBER}/workflows/${WORKFLOW_ID}
 
-  Deploy_to_Docker_Hub:
-    name: Deploy to Docker Hub
-    needs:
-      - C-PAC
-    if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
-    with:
-      variant: ''
-    secrets: inherit
+  # Deploy_to_Docker_Hub:
+  #   name: Deploy to Docker Hub
+  #   needs:
+  #     - C-PAC
+  #   if: github.ref_type == 'tag'
+  #   uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+  #   with:
+  #     variant: ''
+  #   secrets: inherit
 
   Deploy_to_Docker_Hub-lite:
     name: Deploy 'lite' to Docker Hub

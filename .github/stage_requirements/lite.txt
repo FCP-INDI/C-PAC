@@ -1,0 +1,5 @@
+base-lite.Dockerfile
+AFNI.21.1.00-bionic.Dockerfile
+ica-aroma.0.4.3-beta-bionic
+msm.2.0-bionic.Dockerfile
+Ubuntu.bionic-non-free.Dockerfile
