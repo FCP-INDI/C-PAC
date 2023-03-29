@@ -16,12 +16,12 @@ def step(context, sfile):
 ## Defined in step_connectivity.py
 #@given('mask data from "{mfile}"')
 #def step(context, mfile):
-#    context.mask = nib.load(mfile).get_data().astype('bool')
+#    context.mask = nib.load(mfile).get_fdata().astype('bool')
 #    context.indices = np.where(context.mask)
 
 @given('the subjects data are masked')
 def step(context):
-    context.sdata = [ nib.load(sfile).get_data().astype('float64')[context.indices].T
+    context.sdata = [ nib.load(sfile).get_fdata().astype('float64')[context.indices].T
                         for sfile in context.slist ]
     context.ntpts = context.sdata[0].shape[0]
     context.nvoxs = context.sdata[0].shape[1]

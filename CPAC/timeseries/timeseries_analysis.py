@@ -533,11 +533,11 @@ def gen_roi_timeseries(data_file, template, output_type):
     import os
     import shutil
 
-    unit_data = nib.load(template).get_data()
+    unit_data = nib.load(template).get_fdata()
     # Cast as rounded-up integer
     unit_data = np.int64(np.ceil(unit_data))
     datafile = nib.load(data_file)
-    img_data = datafile.get_data()
+    img_data = datafile.get_fdata()
     vol = img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
@@ -666,9 +666,9 @@ def gen_voxel_timeseries(data_file, template):
     import os
 
     unit = nib.load(template)
-    unit_data = unit.get_data()
+    unit_data = unit.get_fdata()
     datafile = nib.load(data_file)
-    img_data = datafile.get_data()
+    img_data = datafile.get_fdata()
     header_data = datafile.get_header()
     qform = header_data.get_qform()
     sorted_list = []

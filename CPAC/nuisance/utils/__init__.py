@@ -132,10 +132,10 @@ def compute_threshold(in_file, mask, threshold):
 def compute_pct_threshold(in_file, mask, threshold_pct):
     import nibabel as nb
     import numpy as np
-    m = nb.load(mask).get_data().astype(bool)
+    m = nb.load(mask).get_fdata().astype(bool)
     if not np.any(m):
         return 0.0
-    d = nb.load(in_file).get_data()[m]
+    d = nb.load(in_file).get_fdata()[m]
     return np.percentile(
         d,
         100.0 - threshold_pct
@@ -145,10 +145,10 @@ def compute_pct_threshold(in_file, mask, threshold_pct):
 def compute_sd_threshold(in_file, mask, threshold_sd):
     import nibabel as nb
     import numpy as np
-    m = nb.load(mask).get_data().astype(bool)
+    m = nb.load(mask).get_fdata().astype(bool)
     if not np.any(m):
         return 0.0
-    d = nb.load(in_file).get_data()[m]
+    d = nb.load(in_file).get_fdata()[m]
     return d.mean() + threshold_sd * d.std()
 
 

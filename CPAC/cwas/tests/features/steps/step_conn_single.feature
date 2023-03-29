@@ -9,11 +9,11 @@ def step(context):
 
 @given('subject data from "{sfile}"')
 def step(context, sfile):
-    context.sdata = nib.load(sfile).get_data().astype('float64')
+    context.sdata = nib.load(sfile).get_fdata().astype('float64')
 
 @given('mask data from "{mfile}"')
 def step(context, mfile):
-    context.mask = nib.load(mfile).get_data().astype('bool')
+    context.mask = nib.load(mfile).get_fdata().astype('bool')
     context.indices = np.where(context.mask)
 
 @given('the subject data is masked')

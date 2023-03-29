@@ -15,13 +15,13 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         raise ValueError('Improper value for num_components ({0}), should be >= 1.'.format(num_components))
 
     try:
-        image_data = nb.load(data_filename).get_data().astype(np.float64)
+        image_data = nb.load(data_filename).get_fdata().astype(np.float64)
     except:
         print('Unable to load data from {0}'.format(data_filename))
         raise
 
     try:
-        binary_mask = nb.load(mask_filename).get_data().astype(np.int16)
+        binary_mask = nb.load(mask_filename).get_fdata().astype(np.int16)
     except:
         print('Unable to load data from {0}'.format(mask_filename))
 

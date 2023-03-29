@@ -24,9 +24,9 @@ def detect_qpp(datasets,
     from CPAC.qpp.qpp import detect_qpp
 
     joint_mask_img = nb.load(joint_mask)
-    joint_mask = joint_mask_img.get_data().astype(bool)
+    joint_mask = joint_mask_img.get_fdata().astype(bool)
     joint_datasets_img = nb.load(joint_datasets)
-    joint_datasets = joint_datasets_img.get_data()[joint_mask]
+    joint_datasets = joint_datasets_img.get_fdata()[joint_mask]
 
     correlation_threshold = lambda i: \
         higher_correlation_threshold \

@@ -612,8 +612,8 @@ def calculate_DVARS(func_brain, mask):
         path to file containing array of DVARS calculation for each voxel
     """
 
-    rest_data = nb.load(func_brain).get_data().astype(np.float32)
-    mask_data = nb.load(mask).get_data().astype('bool')
+    rest_data = nb.load(func_brain).get_fdata().astype(np.float32)
+    mask_data = nb.load(mask).get_fdata().astype('bool')
 
     # square of relative intensity value for each voxel across every timepoint
     data = np.square(np.diff(rest_data, axis=3))

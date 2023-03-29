@@ -1082,7 +1082,7 @@ def cal_snr_val(measure_file):
 
     """
 
-    data = nb.load(measure_file).get_data()
+    data = nb.load(measure_file).get_fdata()
     data_flat = data.flatten()
     data_no0 = data_flat[data_flat > 0]
     snr_val = ma.mean(data_no0)
@@ -1188,10 +1188,10 @@ def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
 
     carpet_plot_path = os.path.join(os.getcwd(), output + '.png')
 
-    func = nb.load(functional_to_standard).get_data()
-    gm_voxels = func[nb.load(gm_mask).get_data().astype(bool)]
-    wm_voxels = func[nb.load(wm_mask).get_data().astype(bool)]
-    csf_voxels = func[nb.load(csf_mask).get_data().astype(bool)]
+    func = nb.load(functional_to_standard).get_fdata()
+    gm_voxels = func[nb.load(gm_mask).get_fdata().astype(bool)]
+    wm_voxels = func[nb.load(wm_mask).get_fdata().astype(bool)]
+    csf_voxels = func[nb.load(csf_mask).get_fdata().astype(bool)]
     del func
 
     data = np.concatenate((gm_voxels, wm_voxels, csf_voxels))
@@ -1393,7 +1393,7 @@ def make_histogram(measure_file, measure):
     import nibabel as nb
     import os
 
-    data = nb.load(measure_file).get_data()
+    data = nb.load(measure_file).get_fdata()
     data_flat = data.flatten(order='F')
     y, binEdges = np.histogram(
         data_flat[
@@ -1454,7 +1454,7 @@ def drop_percent(measure_file, percent):
     import numpy as np
 
     img = nb.load(measure_file)
-    data = img.get_data()
+    data = img.get_fdata()
 
     max_val = np.percentile(data[data != 0.0], percent)
     data[data >= max_val] = 0.0
@@ -1674,8 +1674,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import nibabel as nb
     import numpy as np
 
-    Y = nb.load(underlay).get_data()
-    X = nb.load(overlay).get_data()
+    Y = nb.load(underlay).get_fdata()
+    X = nb.load(overlay).get_fdata()
     X = X.astype(np.float32)
     Y = Y.astype(np.float32)
 
@@ -1858,8 +1858,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     from CPAC.qc.utils import determine_start_and_end, get_spacing
 
-    Y = nb.load(underlay).get_data()
-    X = nb.load(overlay).get_data()
+    Y = nb.load(underlay).get_fdata()
+    X = nb.load(overlay).get_fdata()
     X = X.astype(np.float32)
     Y = Y.astype(np.float32)
 
@@ -2000,12 +2000,12 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     import nibabel as nb
     import matplotlib.cm as cm
 
-    Y = nb.load(underlay).get_data()
+    Y = nb.load(underlay).get_fdata()
     z1, z2 = determine_start_and_end(Y, 'axial', 0.0001)
     spacing = get_spacing(6, 3, z2 - z1)
-    X_csf = nb.load(overlay_csf).get_data()
-    X_wm = nb.load(overlay_wm).get_data()
-    X_gm = nb.load(overlay_gm).get_data()
+    X_csf = nb.load(overlay_csf).get_fdata()
+    X_wm = nb.load(overlay_wm).get_fdata()
+    X_gm = nb.load(overlay_gm).get_fdata()
     X_csf = X_csf.astype(np.float32)
     X_wm = X_wm.astype(np.float32)
     X_gm = X_gm.astype(np.float32)
@@ -2096,12 +2096,12 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     import matplotlib.cm as cm
     import nibabel as nb
 
-    Y = nb.load(underlay).get_data()
+    Y = nb.load(underlay).get_fdata()
     x1, x2 = determine_start_and_end(Y, 'sagittal', 0.0001)
     spacing = get_spacing(6, 3, x2 - x1)
-    X_csf = nb.load(overlay_csf).get_data()
-    X_wm = nb.load(overlay_wm).get_data()
-    X_gm = nb.load(overlay_gm).get_data()
+    X_csf = nb.load(overlay_csf).get_fdata()
+    X_wm = nb.load(overlay_wm).get_fdata()
+    X_gm = nb.load(overlay_gm).get_fdata()
     X_csf = X_csf.astype(np.float32)
     X_wm = X_wm.astype(np.float32)
     X_gm = X_gm.astype(np.float32)

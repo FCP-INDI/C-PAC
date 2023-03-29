@@ -57,10 +57,10 @@ def ndmg_roi_timeseries(func_file, label_file):
     # Adapted from ndmg v0.1.1
     # Copyright 2016 NeuroData (http://neurodata.io)
     """
-    labeldata = nb.load(label_file).get_data()
+    labeldata = nb.load(label_file).get_fdata()
     # rois are all the nonzero unique values the parcellation can take
     rois = np.sort(np.unique(labeldata[labeldata > 0]))
-    funcdata = nb.load(func_file).get_data()
+    funcdata = nb.load(func_file).get_fdata()
 
     # initialize time series to [numrois]x[numtimepoints]
     roi_ts = np.zeros((len(rois), funcdata.shape[3]))
@@ -110,7 +110,7 @@ class graph(object):
         self.N = N
         self.edge_dict = defaultdict(int)
 
-        self.rois = nb.load(rois).get_data()
+        self.rois = nb.load(rois).get_fdata()
         n_ids = np.unique(self.rois)
         self.n_ids = n_ids[n_ids > 0]
 

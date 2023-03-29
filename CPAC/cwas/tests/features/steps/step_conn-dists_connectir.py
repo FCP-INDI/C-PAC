@@ -12,13 +12,13 @@ def step(context, sdir):
     context.r_dmats = dmats.T.reshape(context.nvoxs, context.nobs, context.nobs)
     # Mask
     mfile           = op.join(sdir, "mask.nii.gz")
-    mask            = nib.load(mfile).get_data().astype('bool')
+    mask            = nib.load(mfile).get_fdata().astype('bool')
     mask_indices    = np.where(mask)
     context.mask    = mask
     context.indices = mask_indices
     # Convert from column to row major format (aka take R data to python)
     mfile           = op.join(sdir, "mask_r2py.nii.gz")
-    inds_r2py       = nib.load(mfile).get_data().astype('int')
+    inds_r2py       = nib.load(mfile).get_fdata().astype('int')
     inds_r2py       = inds_r2py[inds_r2py.nonzero()] - 1
     context.r_dmats = context.r_dmats[inds_r2py,:,:]
     
@@ -31,7 +31,7 @@ def step(context, sdir):
 #
 #@given('the subjects data are masked')
 #def step(context):
-#    context.sdata = [ nib.load(sfile).get_data().astype('float64')[context.indices].T
+#    context.sdata = [ nib.load(sfile).get_fdata().astype('float64')[context.indices].T
 #                        for sfile in context.slist ]
 #    context.sdata = np.array(context.sdata)
 #    context.ntpts = context.sdata.shape[1]

@@ -52,7 +52,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
         img_whole_y.to_filename(fname)
 
     nii = nb.load(realigned_file)
-    data = nii.get_data().astype(np.float64)
+    data = nii.get_fdata().astype(np.float64)
 
     mask = (data != 0).sum(-1) != 0
 
@@ -107,7 +107,7 @@ def calc_median_angle_params(subject):
     import numpy as np
     import nibabel as nb
     
-    data = nb.load(subject).get_data().astype('float64')
+    data = nb.load(subject).get_fdata().astype('float64')
     mask = (data != 0).sum(-1) != 0
     
     Y = data[mask].T

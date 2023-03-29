@@ -47,7 +47,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
         p_value = p_value / 2
 
     # Load in data and number of time pts
-    img = nb.load(datafile).get_data()
+    img = nb.load(datafile).get_fdata()
     t_pts = img.shape[-1]
 
     # N-2 degrees of freedom with Pearson correlation (two sample means)
@@ -127,7 +127,7 @@ def sep_nifti_subbriks(nifti_file, out_names):
     selected_options = {_[::-1].split('_', 1)[0][::-1]: _ for _ in out_names}
 
     nii_img = nib.load(nifti_file)
-    nii_arr = nii_img.get_data()
+    nii_arr = nii_img.get_fdata()
     nii_affine = nii_img.get_affine()
     nii_dims = nii_arr.shape
 

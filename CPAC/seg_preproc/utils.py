@@ -24,7 +24,7 @@ def check_if_file_is_empty(in_file):
     import nibabel as nb
     import numpy as np
     nii = nb.load(in_file)
-    data = nii.get_data()
+    data = nii.get_fdata()
     if data.size == 0 or np.all(data == 0) or np.all(data == np.nan):
         raise ValueError('File {0} is empty. Use a lower threshold or turn '
                          'off regressors.'.format(in_file))
@@ -428,7 +428,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
     import numpy as np
 
     img = nb.load(multiatlas_Labels)
-    data = img.get_data()
+    data = img.get_fdata()
 
     # pick tissue mask from multiatlas labels file
     # based off of FreeSurferColorLUT or user provided label values

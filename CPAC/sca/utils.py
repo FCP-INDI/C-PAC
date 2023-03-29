@@ -31,7 +31,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
         roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
     corr_img = nb.load(correlation_file)
-    corr_data = corr_img.get_data()
+    corr_data = corr_img.get_fdata()
 
     hdr = corr_img.get_header()
 

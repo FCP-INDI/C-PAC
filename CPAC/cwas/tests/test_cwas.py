@@ -209,7 +209,7 @@ class RegressionTester(object):
         ###
 
         mfile = conv_file
-        inds_r2py = nib.load(mfile).get_data().astype('int')
+        inds_r2py = nib.load(mfile).get_fdata().astype('int')
         inds_r2py = inds_r2py[inds_r2py.nonzero()] - 1
 
 
@@ -217,10 +217,10 @@ class RegressionTester(object):
         # Read in data
         ###
 
-        mask = nib.load(mask_file).get_data().nonzero()
+        mask = nib.load(mask_file).get_fdata().nonzero()
 
-        py_fs = nib.load(py_fs_file).get_data()[mask]
-        py_ps = nib.load(py_ps_file).get_data()[mask]
+        py_fs = nib.load(py_fs_file).get_fdata()[mask]
+        py_ps = nib.load(py_ps_file).get_fdata()[mask]
 
         bigmemory = importr('bigmemory')
         r_fs = np.array(robjects.r("attach.big.matrix('%s')[1,]" % r_fs_file))
@@ -300,10 +300,10 @@ def test_distances():
     subjects_list = subjects_list[:n]
     subjects_file_list = subjects_list
 
-    mask = nb.load(mask_file).get_data().astype('bool')
+    mask = nb.load(mask_file).get_fdata().astype('bool')
     mask_indices = np.where(mask)
 
-    subjects_data = [ nb.load(subject_file).get_data().astype('float64')[mask_indices].T
+    subjects_data = [ nb.load(subject_file).get_fdata().astype('float64')[mask_indices].T
                         for subject_file in subjects_file_list ]
     subjects_data = np.array(subjects_data)
 

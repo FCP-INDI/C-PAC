@@ -488,11 +488,11 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
 
     # Init variables
     raw_nii = nib.load(nii_file)
-    raw_arr = raw_nii.get_data()
+    raw_arr = raw_nii.get_fdata()
 
     # Check parameters
     if mask_file:
-        mask_arr = nib.load(mask_file).get_data()
+        mask_arr = nib.load(mask_file).get_fdata()
         # Check the mask shape matches the raw nifti
         if mask_arr.shape != raw_arr.shape:
             err_msg = 'Mask file has different dimensions than nifti.\n' \
@@ -596,8 +596,8 @@ def pearson_correlation(nii_1, nii_2):
     import nibabel as nb
     import numpy as np
 
-    data_1 = nb.load(nii_1).get_data()
-    data_2 = nb.load(nii_2).get_data()
+    data_1 = nb.load(nii_1).get_fdata()
+    data_2 = nb.load(nii_2).get_fdata()
     R = np.corrcoef(data_1.flatten(), data_2.flatten())
     return(R[0,1])
 

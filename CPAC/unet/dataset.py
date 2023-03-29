@@ -104,7 +104,7 @@ class VolumeDataset(data.Dataset):
         Out=list()
         if isinstance(self.rimg_files, list):
             rimg_nii=nib.load(os.path.join(self.rimg_dir, self.rimg_files[index]))
-            rimg=np.array(rimg_nii.get_data(), dtype=np.float32)
+            rimg=np.array(rimg_nii.get_fdata(), dtype=np.float32)
             # 0-1 Normalization
             rimg=(rimg-rimg.min())/(rimg.max()-rimg.min())
             rimg=torch.from_numpy(rimg)
@@ -114,7 +114,7 @@ class VolumeDataset(data.Dataset):
 
         if isinstance(self.cimg_files, list):
             cimg_nii=nib.load(os.path.join(self.cimg_dir, self.cimg_files[index]))
-            cimg=np.array(cimg_nii.get_data(), dtype=np.float32)
+            cimg=np.array(cimg_nii.get_fdata(), dtype=np.float32)
             # 0-1 Normalization
             cimg=(cimg-cimg.min())/(cimg.max()-cimg.min())
             cimg=torch.from_numpy(cimg)
@@ -132,7 +132,7 @@ class VolumeDataset(data.Dataset):
 
         if isinstance(self.bmsk_files, list):
             bmsk_nii=nib.load(os.path.join(self.bmsk_dir, self.bmsk_files[index]))
-            bmsk=np.array(bmsk_nii.get_data()>0, dtype=np.int64)
+            bmsk=np.array(bmsk_nii.get_fdata()>0, dtype=np.int64)
             bmsk=torch.from_numpy(bmsk)
             Out.append(bmsk)
 

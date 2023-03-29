@@ -65,7 +65,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
     
     """
     nii = nb.load(realigned_file)
-    data = nii.get_data().astype('float64')
+    data = nii.get_fdata().astype('float64')
     mask = (data != 0).sum(-1) != 0
     Y = data[mask].T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
@@ -94,7 +94,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
 
         if regressor_file.endswith('.nii.gz') or regressor_file.endswith('.nii'):
             nii = nb.load(regressor_file)
-            data = nii.get_data().astype('float64')
+            data = nii.get_fdata().astype('float64')
             mask = (data != 0).sum(-1) != 0
             Y = data[mask].T
             Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))

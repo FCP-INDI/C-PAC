@@ -53,7 +53,7 @@ def more_zeros_than_ones(image):
     else:
         raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
 
-    data = img.get_data()
+    data = img.get_fdata()
     nb_zeros = len(np.where(data == 0)[0])
     size = data.size
     more_zeros = nb_zeros > size - nb_zeros
@@ -83,7 +83,7 @@ def inverse_nifti_values(image):
     else:
         raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
 
-    data = img.get_data()
+    data = img.get_fdata()
     zeros = np.where(data)
     out_data = np.ones(data.shape)
     out_data[zeros] = 0
