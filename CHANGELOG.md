@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Upgraded dependencies
 
 - `AFNI` 21.1.00 'Domitian' → 23.0.07 'Commodus'
+- `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
 - `FSL` 5.0.10 (5.0.9) → 6.0.6 (6.0.4:ddd0a010c)
 - `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
