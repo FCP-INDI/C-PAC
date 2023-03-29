@@ -44,7 +44,11 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
     with open(filename, encoding='utf8') as file:
         rst = file.read()
 
-    doc = _parse_rst(rst).asdom()
+    try:
+        doc = _parse_rst(rst).asdom()
+    except:  # noqa
+        # ToDo: Report failure to parse with filepath?
+        return {}
 
     extract_sections = (
         ReportSection.EXECUTION_INPUTS,
