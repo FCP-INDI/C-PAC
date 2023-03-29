@@ -26,8 +26,6 @@ def test_pipeline():
 
     pheno = pheno[['FILE_ID', 'AGE_AT_SCAN', 'FIQ']]
 
-    pheno.FILE_ID = pheno.FILE_ID.apply(lambda b: b.decode())
-
     pheno.to_csv('/tmp/cwas/pheno.csv')
 
     # Sanity ordering check
@@ -36,7 +34,7 @@ def test_pipeline():
         for i, FID in enumerate(pheno.FILE_ID)
     )
     img = nb.load(cc['scorr_mean'])
-    img_data = np.copy(img.get_data()[:, :, :, 10])
+    img_data = np.copy(img.get_fdata()[:, :, :, 10])
     img_data[img_data != 2] = 0.0
     img = nb.Nifti1Image(img_data, img.affine)
     nb.save(img, '/tmp/cwas/roi.nii.gz')
