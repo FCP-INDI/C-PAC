@@ -876,7 +876,7 @@ def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, falff, 'dtseries')
     
     outputs = {
-        'surf_falff': (falff,'surf_falff')}
+        'space-fsLR_den-32k_bold_surf_falff': (falff,'surf_falff')}
     return wf, outputs
 
 def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
@@ -890,7 +890,7 @@ def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold') 
     wf.connect(node, out,alff, 'dtseries')
     outputs = {
-        'surf_alff': (alff,'surf_alff')}
+        'space-fsLR_den-32k_bold_surf_alff': (alff,'surf_alff')}
     return wf, outputs
 
 def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
@@ -1001,7 +1001,7 @@ def surface_falff(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-fsLR_den-32k_bold"],
-     "outputs": ["surf_falff"]}
+     "outputs": ["space-fsLR_den-32k_bold_surf_falff"]}
     '''
     wf, outputs = cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt)
 
@@ -1015,7 +1015,7 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-fsLR_den-32k_bold"],
-     "outputs": ["surf_alff"]}
+     "outputs": ["space-fsLR_den-32k_bold_surf_alff"]}
     '''
     wf, outputs = cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt)
 
