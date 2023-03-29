@@ -5,10 +5,12 @@ import nibabel as nb
 import nilearn.datasets
 import numpy as np
 import pandas as pd
+import pytest
 
 from CPAC.cwas.pipeline import create_cwas
 
-def test_pipeline():
+@pytest.mark.parametrize('z_score', [[0], [1], [0, 1], []])
+def test_pipeline(z_score):
     try:
         # pylint: disable=invalid-name
         cc = nilearn.datasets.fetch_atlas_craddock_2012()
@@ -60,5 +62,6 @@ def test_pipeline():
     workflow.inputs.inputspec.columns = columns
     workflow.inputs.inputspec.permutations = permutations
     workflow.inputs.inputspec.parallel_nodes = parallel_nodes
+    workflow.inputs.inputspec.z_score = z_score
 
     workflow.run(plugin='Linear')
