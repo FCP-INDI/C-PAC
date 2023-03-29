@@ -1,8 +1,9 @@
 coverage
 GitPython
-spython >= 0.0.81
 pytest
 pytest_bdd
 pytest_click
 pytest-timeout
 pyyaml
+semver
+spython >= 0.0.81

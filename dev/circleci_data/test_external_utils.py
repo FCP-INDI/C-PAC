@@ -3,12 +3,21 @@ import sys
 
 from pathlib import Path
 
+import click
+import semver
+
 CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
 DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 
 from CPAC.__main__ import utils as CPAC_main_utils \
     # noqa: E402  # pylint: disable=wrong-import-position
+
+_BACKPORT_CLICK = semver.compare(click.__version__, '8.0.0') < 0
+
+def _click_backport(key):
+    """Switch back to underscores for older versions of click"""
+    return key.replace('-', '_') if _BACKPORT_CLICK else key
 
 
 def test_build_data_config(cli_runner):
@@ -17,8 +26,8 @@ def test_build_data_config(cli_runner):
     _delete_test_yaml(test_yaml)
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands['data-config'].commands[
-            'new-settings-template'
+        CPAC_main_utils.commands[_click_backport('data-config')].commands[
+            _click_backport('new-settings-template')
         ]
     )
 
@@ -42,7 +51,8 @@ def test_new_settings_template(cli_runner):
         )
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands['data-config'].commands['build'],
+        CPAC_main_utils.commands[_click_backport('data-config')
+                                 ].commands['build'],
         [os.path.join(
             DATA_DIR,
             "data_settings_bids_examples_ds051_default_BIDS.yml"
