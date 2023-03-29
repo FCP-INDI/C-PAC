@@ -87,7 +87,7 @@ def mdmr(D, X, columns, permutations):
 
     regressors = X1.shape[1]
 
-    permutation_indexes = np.zeros((permutations, subjects), dtype=np.int)
+    permutation_indexes = np.zeros((permutations, subjects), dtype=int)
     permutation_indexes[0, :] = range(subjects)
     for i in range(1, permutations):
         permutation_indexes[i,:] = np.random.permutation(subjects)
