@@ -1,3 +1,19 @@
+# Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
@@ -23,7 +39,7 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     LD_LIBRARY_PATH=/usr/lib/fsl/6.0:$LD_LIBRARY_PATH \
     FSLTCLSH=/usr/bin/tclsh \
     FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/fsl/6.0:$PATH \
+    PATH=/usr/lib/fsl/6.0/bin:$PATH \
     TZ=America/New_York
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
@@ -48,31 +64,8 @@ COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 ENV PATH=/opt/afni:$PATH
 
 # Installing C-PAC resources into FSL and installing ANTs
-ENV LANG="en_US.UTF-8" \
-    LC_ALL="en_US.UTF-8" \
-    ANTSPATH=/usr/lib/ants \
-    FSLDIR=/usr/share/fsl/5.0 \
-    FSLOUTPUTTYPE=NIFTI_GZ \
-    FSLMULTIFILEQUIT=TRUE \
-    POSSUMDIR=/usr/share/fsl/5.0 \
-    LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH \
-    FSLTCLSH=/usr/bin/tclsh \
-    FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/ants:/opt/afni:/usr/lib/fsl/5.0:$PATH
-RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
-        ln -svf /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 /usr/lib/x86_64-linux-gnu/libGL.so.1; \
-    fi && \
-    ldconfig && \
-    curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
-    tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
-    cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
-    cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    chmod -R ugo+r $FSLDIR/data/standard && \
-    echo "Downloading ANTs ..." \
+ENV PATH=/usr/lib/ants:/opt/afni:/usr/lib/fsl/5.0:$PATH
+RUN echo "Downloading ANTs ..." \
     && mkdir -p /usr/lib/ants \
     && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
     | tar -xz -C /usr/lib/ants --strip-components 1 \
