@@ -1,18 +1,14 @@
 import dataclasses
 import json
-import re
-import traceback
+import pathlib as pl
 from dataclasses import dataclass
 from datetime import datetime, date
 from os import PathLike
 from typing import List, Dict, Union, Optional
 
 import networkx
-import pathlib as pl
 from traits.has_traits import HasTraits
-from traits.trait_base import _Undefined
-from traits.trait_errors import TraitError
-from nipype.pipeline.engine.utils import load_resultfile as nipype_load_resultfile
+from traits.trait_base import _Undefined  # noqa
 
 from .core import workflow_container, WorkflowRaw, NodeRaw
 from .nipype_report_parser import read_report_rst, ReportSection
@@ -124,9 +120,9 @@ class NodeData:
                 report_path = _node_find_wd_path(obj, root_node) / '_report' / 'report.rst'
                 if report_path.exists():
                     report_data = read_report_rst(report_path)
-                    node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, default={})
-                    node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, default={})
-                    node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, default={})
+                    node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
+                    node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
+                    node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
 
             return node_data
 
