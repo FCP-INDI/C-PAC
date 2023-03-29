@@ -61,7 +61,7 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
                 continue
             out_dict[section_title] = {}
             for bullet in section.childNodes[1].childNodes:
-                if len(section.childNodes) == 0 or len(section.childNodes.childNodes) == 0:
+                if len(bullet.childNodes) == 0 or len(bullet.firstChild.childNodes) == 0:
                     continue
                 item_text = bullet.firstChild.firstChild.nodeValue
                 if not isinstance(item_text, str) or ' : ' not in item_text:
