@@ -256,14 +256,14 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
         # pylint: disable=invalid-unary-operand-type
         roi_mask_data[~skullstrip_mask_data] = 0
 
-    hdr = roi_mask_img.get_header()
+    hdr = roi_mask_img.header
     output_roi_mask_img = nb.Nifti1Image(roi_mask_data, header=hdr,
                                          affine=roi_mask_img.get_affine())
     output_roi_mask = os.path.join(os.getcwd(),
                                    'segment_tissue_eroded_mask.nii.gz')
     output_roi_mask_img.to_filename(output_roi_mask)
 
-    hdr = skullstrip_mask_img.get_header()
+    hdr = skullstrip_mask_img.header
     output_skullstrip_mask_img = nb.Nifti1Image(
         skullstrip_mask_data, header=hdr,
         affine=skullstrip_mask_img.get_affine())
@@ -298,7 +298,7 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
     """
     roi_mask_img, _, roi_mask_data = _erode(roi_mask, erosion_mm, erosion_prop)
 
-    hdr = roi_mask_img.get_header()
+    hdr = roi_mask_img.header
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
                                 affine=roi_mask_img.get_affine())
     eroded_roi_mask = os.path.join(os.getcwd(), 'segment_tissue_mask.nii.gz')

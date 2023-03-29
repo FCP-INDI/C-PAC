@@ -1459,7 +1459,7 @@ def drop_percent(measure_file, percent):
     max_val = np.percentile(data[data != 0.0], percent)
     data[data >= max_val] = 0.0
 
-    save_img = nb.Nifti1Image(data, header=img.get_header(), affine=img.get_affine())
+    save_img = nb.Nifti1Image(data, header=img.header, affine=img.get_affine())
 
     if '.nii.gz' in measure_file:
         ext = '.nii.gz'

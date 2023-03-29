@@ -98,7 +98,7 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
 
     output_data = residuals.reshape(datashape)
 
-    hdr = input_img.get_header()
+    hdr = input_img.header
     output_img = nb.Nifti1Image(output_data, header=hdr,
                                 affine=input_img.get_affine())
 

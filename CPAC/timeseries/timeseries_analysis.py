@@ -669,7 +669,7 @@ def gen_voxel_timeseries(data_file, template):
     unit_data = unit.get_fdata()
     datafile = nib.load(data_file)
     img_data = datafile.get_fdata()
-    header_data = datafile.get_header()
+    header_data = datafile.header
     qform = header_data.get_qform()
     sorted_list = []
     vol_dict = {}

@@ -161,11 +161,11 @@ class TestAnatPreproc:
 
             np.testing.assert_equal(de_img_data, orig_image_data)
 
-#            de_image_header = nib.load(deobliqued_anat).get_header()
+#            de_image_header = nib.load(deobliqued_anat).header
 #
 #            de_vox_offset = de_image_header.get_data_offset()
 #
-#            orig_image_header = nib.load(self.input_anat).get_header()
+#            orig_image_header = nib.load(self.input_anat).header
 #
 #            orig_vox_offset = orig_image_header.get_data_offset()
 #

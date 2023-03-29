@@ -194,7 +194,7 @@ def volumize(mask_image, data):
     volume[np.where(mask_data == True)] = data
     return nb.Nifti1Image(
         volume,
-        header=mask_image.get_header(),
+        header=mask_image.header,
         affine=mask_image.get_affine()
     )
 

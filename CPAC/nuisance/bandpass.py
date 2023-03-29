@@ -71,7 +71,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
 
     if not sample_period:
-        hdr = nii.get_header()
+        hdr = nii.header
         sample_period = float(hdr.get_zooms()[3])
         # Sketchy check to convert TRs in millisecond units
         if sample_period > 20.0:
@@ -82,7 +82,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
         Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
 
     data[mask] = Y_bp.T
-    img = nb.Nifti1Image(data, header=nii.get_header(),
+    img = nb.Nifti1Image(data, header=nii.header,
                          affine=nii.get_affine())
     bandpassed_file = os.path.join(os.getcwd(),
                                    'bandpassed_demeaned_filtered.nii.gz')
@@ -103,7 +103,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
             data[mask] = Y_bp.T
             
-            img = nb.Nifti1Image(data, header=nii.get_header(),
+            img = nb.Nifti1Image(data, header=nii.header,
                             affine=nii.get_affine())
             regressor_bandpassed_file = os.path.join(os.getcwd(),
                                     'regressor_bandpassed_demeaned_filtered.nii.gz')
