@@ -48,7 +48,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
 
     def writeToFile(data, nii, fname):
         img_whole_y = nb.Nifti1Image(data,\
-            header=nii.header, affine=nii.get_affine())
+            header=nii.header, affine=nii.affine)
         img_whole_y.to_filename(fname)
 
     nii = nb.load(realigned_file)

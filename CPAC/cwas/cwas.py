@@ -195,7 +195,7 @@ def volumize(mask_image, data):
     return nb.Nifti1Image(
         volume,
         header=mask_image.header,
-        affine=mask_image.get_affine()
+        affine=mask_image.affine
     )
 
 

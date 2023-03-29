@@ -100,7 +100,7 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
 
     hdr = input_img.header
     output_img = nb.Nifti1Image(output_data, header=hdr,
-                                affine=input_img.get_affine())
+                                affine=input_img.affine)
 
     file_name = input_image_path[input_image_path.rindex('/')+1:]
 

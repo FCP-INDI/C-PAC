@@ -128,7 +128,7 @@ def sep_nifti_subbriks(nifti_file, out_names):
 
     nii_img = nib.load(nifti_file)
     nii_arr = nii_img.get_fdata()
-    nii_affine = nii_img.get_affine()
+    nii_affine = nii_img.affine
     nii_dims = nii_arr.shape
 
     if nii_dims[-1] != len(weight_options):

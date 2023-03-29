@@ -258,7 +258,7 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
 
     hdr = roi_mask_img.header
     output_roi_mask_img = nb.Nifti1Image(roi_mask_data, header=hdr,
-                                         affine=roi_mask_img.get_affine())
+                                         affine=roi_mask_img.affine)
     output_roi_mask = os.path.join(os.getcwd(),
                                    'segment_tissue_eroded_mask.nii.gz')
     output_roi_mask_img.to_filename(output_roi_mask)
@@ -266,7 +266,7 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
     hdr = skullstrip_mask_img.header
     output_skullstrip_mask_img = nb.Nifti1Image(
         skullstrip_mask_data, header=hdr,
-        affine=skullstrip_mask_img.get_affine())
+        affine=skullstrip_mask_img.affine)
     eroded_skullstrip_mask = os.path.join(os.getcwd(),
                                           'eroded_skullstrip_mask.nii.gz')
 
@@ -300,7 +300,7 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
 
     hdr = roi_mask_img.header
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
-                                affine=roi_mask_img.get_affine())
+                                affine=roi_mask_img.affine)
     eroded_roi_mask = os.path.join(os.getcwd(), 'segment_tissue_mask.nii.gz')
 
     output_img.to_filename(eroded_roi_mask)

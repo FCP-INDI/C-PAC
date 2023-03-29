@@ -274,7 +274,7 @@ def compute_reho(in_file, mask_file, cluster_size):
                     K[i, j, k] = f_kendall(mask_R_block)
 
     img = nb.Nifti1Image(K, header=res_img.header,
-                         affine=res_img.get_affine())
+                         affine=res_img.affine)
     reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
     img.to_filename(reho_file)
     out_file = reho_file

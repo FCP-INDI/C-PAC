@@ -83,7 +83,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
 
     data[mask] = Y_bp.T
     img = nb.Nifti1Image(data, header=nii.header,
-                         affine=nii.get_affine())
+                         affine=nii.affine)
     bandpassed_file = os.path.join(os.getcwd(),
                                    'bandpassed_demeaned_filtered.nii.gz')
     img.to_filename(bandpassed_file)
@@ -104,7 +104,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
             data[mask] = Y_bp.T
             
             img = nb.Nifti1Image(data, header=nii.header,
-                            affine=nii.get_affine())
+                            affine=nii.affine)
             regressor_bandpassed_file = os.path.join(os.getcwd(),
                                     'regressor_bandpassed_demeaned_filtered.nii.gz')
             img.to_filename(regressor_bandpassed_file)
