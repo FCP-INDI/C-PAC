@@ -193,7 +193,7 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
-from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
+from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta, save_workflow_pickle
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -474,6 +474,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             filename=os.path.join(log_dir, workflow_meta.filename()),
             workflow=workflow,
             meta=workflow_meta
+        )
+        save_workflow_pickle(
+            filename=os.path.join(log_dir, workflow_meta.filename()) + '.pkl',
+            workflow=workflow
         )
 
     if test_config:
@@ -789,6 +793,10 @@ CPAC run error:
                         filename=workflow_filename,
                         workflow=workflow,
                         meta=workflow_meta
+                    )
+                    save_workflow_pickle(
+                        filename=workflow_filename + '.pkl',
+                        workflow=workflow
                     )
 
                 # Remove working directory when done
