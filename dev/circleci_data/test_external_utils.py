@@ -17,8 +17,8 @@ def test_build_data_config(cli_runner):
     _delete_test_yaml(test_yaml)
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands['data_config'].commands[
-            'new_settings_template'
+        CPAC_main_utils.commands['data-config'].commands[
+            'new-settings-template'
         ]
     )
 
@@ -42,7 +42,7 @@ def test_new_settings_template(cli_runner):
         )
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands['data_config'].commands['build'],
+        CPAC_main_utils.commands['data-config'].commands['build'],
         [os.path.join(
             DATA_DIR,
             "data_settings_bids_examples_ds051_default_BIDS.yml"
