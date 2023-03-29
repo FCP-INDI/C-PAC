@@ -170,13 +170,6 @@ jobs:
       matrix:
         variant: ${{ fromJSON(inputs.phase_three) }}
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@v4
-        with:
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          overprovision-lvm: 'true'
       - name: Check out C-PAC
         uses: actions/checkout@v3
         with:
@@ -197,6 +190,14 @@ jobs:
           cat $GITHUB_OUTPUT
         id: docker_tag
         if: always()
+      - name: Maximize build space
+        if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
+        uses: easimon/maximize-build-space@v4
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          overprovision-lvm: 'true'
       - name: Clear up some space on runner
         if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
         run: |
