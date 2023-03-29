@@ -1,5 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:python3.10-bionic-non-free as ANTs
 
+USER root
 RUN curl -sL https://github.com/ANTsX/ANTs/releases/download/v2.4.3/ants-2.4.3-ubuntu-18.04-X64-gcc.zip -o /tmp/ANTs.zip \
   && unzip /tmp/ANTs.zip -d /tmp \
   && mkdir /usr/lib/ants \
