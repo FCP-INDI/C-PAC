@@ -38,7 +38,6 @@ build-packages:
  - boost-cpp
  - numpy
  - python
- - tk
  - vtk
  - zlib
 
