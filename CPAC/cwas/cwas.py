@@ -233,9 +233,11 @@ def merge_cwas_batches(cwas_batches, mask_file, z_score, permutations):
     if 1 in z_score:
         zvals = pval_to_zval(p_set, permutations)
         z_file = zstat_image(zvals, mask_file)
-    
+    else:
+        z_file = None
+
     return F_file, p_file, log_p_file, one_p_file, z_file
-    
+
 def zstat_image(zvals, mask_file):
     mask_image = nb.load(mask_file)
 
