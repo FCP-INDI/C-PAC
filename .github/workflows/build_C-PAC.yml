@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Maximize build space
-        uses: easimon/maximize-build-space@v4
+        uses: easimon/maximize-build-space@v6
         with:
           remove-dotnet: 'true'
           remove-android: 'true'

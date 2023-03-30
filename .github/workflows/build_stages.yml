@@ -171,7 +171,7 @@ jobs:
         variant: ${{ fromJSON(inputs.phase_three) }}
     steps:
       - name: Maximize build space
-        uses: easimon/maximize-build-space@v4
+        uses: easimon/maximize-build-space@v6
         with:
           remove-dotnet: 'true'
           remove-android: 'true'
@@ -236,8 +236,82 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=min,compression=zstd
 
+  build-base-standard:
+    name: Build C-PAC standard base stage image
+    needs: build-base
+    runs-on: ubuntu-latest
+    env:
+      BUILD_CACHE: /home/runner/.docker/buildkit
+      REBUILD: ${{ inputs.rebuild_phase_three }}
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v6
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          overprovision-lvm: 'true'
+      - name: Check out C-PAC
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Prep source files
+        run: |
+            sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/standard.txt
+            echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/standard.txt
+            echo '.github/workflows/build_stages.yml' >> .github/stage_requirements/standard.txt
+            echo '.github/stage_requirements/standard.txt' >> .github/stage_requirements/standard.txt
+      - name: Set tag & see if it exists
+        continue-on-error: true
+        run: |
+          TAG="stage-base:standard-$(cat version)"
+          DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}/$TAG" | tr '[:upper:]' '[:lower:]')
+          echo DOCKER_TAG=$DOCKER_TAG >> $GITHUB_ENV
+          docker buildx imagetools inspect $DOCKER_TAG >/dev/null || echo "not_yet_exists=1" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+        id: docker_tag
+        if: always()
+      - name: Prep Dockerfiles for forked repository
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+            .github/scripts/local_ghcr .github/Dockerfiles/base-standard.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
+            cat .github/Dockerfiles/base-standard.Dockerfile
+      - name: See Dockerfile
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        run: cat .github/Dockerfiles/base-standard.Dockerfile
+      - name: Clear up some space on runner
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Set up Docker Buildx
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        uses: docker/setup-buildx-action@v2.2.1
+      - name: Log in to GitHub Container Registry
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push base image
+        if: contains(fromJSON(env.REBUILD), 'standard') || steps.docker_tag.outputs.not_yet_exists == 1
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          file: .github/Dockerfiles/base-standard.Dockerfile
+          provenance: false
+          sbom: false
+          push: true
+          tags: |
+            ${{ env.DOCKER_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=min,compression=zstd
+
   build-and-test:
     name: Build and test C-PAC images
-    needs: build-base
+    needs: build-base-standard
     uses: ./.github/workflows/build_and_test.yml
     secrets: inherit
