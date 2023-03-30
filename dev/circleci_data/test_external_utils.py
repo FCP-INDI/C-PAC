@@ -13,7 +13,13 @@ DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 from CPAC.__main__ import utils as CPAC_main_utils \
     # noqa: E402  # pylint: disable=wrong-import-position
 
-_BACKPORT_CLICK = semver.compare(click.__version__, '8.0.0') < 0
+try:
+    _BACKPORT_CLICK = semver.compare(click.__version__, '8.0.0') < 0
+except ValueError:
+    try:
+        _BACKPORT_CLICK = semver.compare(f'{click.__version__}.0', '8.0.0') < 0
+    except ValueError:
+        _BACKPORT_CLICK = True
 
 def _click_backport(key):
     """Switch back to underscores for older versions of click"""
