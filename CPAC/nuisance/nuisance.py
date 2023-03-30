@@ -2177,7 +2177,6 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
     '''
@@ -2648,6 +2647,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-preproc_bold",
                  "space-template_res-derivative_desc-preproc_bold",
                  "movement-parameters",
+                 "filtered-movement-parameters",
                  "regressors",
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",
