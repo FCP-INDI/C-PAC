@@ -89,14 +89,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         if: contains(fromJSON(env.REBUILD), matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.0.0
         with:
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-to: type=gha,mode=min,compression=zstd
   
   stages:
     name: Build C-PAC Docker stage images for dependencies
@@ -149,7 +149,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         if: contains(fromJSON(env.REBUILD), matrix.Dockerfile) || steps.docker_tag.outputs.not_yet_exists == 1
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.0.0
         with:
           context: .
           file: .github/Dockerfiles/${{ matrix.Dockerfile }}.Dockerfile
@@ -157,7 +157,7 @@ jobs:
           tags: |
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-to: type=gha,mode=min,compression=zstd
 
   build-base:
     name: Build C-PAC base stage images
@@ -225,15 +225,17 @@ jobs:
         run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       - name: Build and push base image
         if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.0.0
         with:
           context: .
           file: .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
+          provenance: false
+          sbom: false
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-to: type=gha,mode=min,compression=zstd
 
   build-and-test:
     name: Build and test C-PAC images

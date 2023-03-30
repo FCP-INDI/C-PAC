@@ -92,11 +92,12 @@ jobs:
           echo $DOCKERFILE
           cat $DOCKERFILE
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.0.0
         with:
           context: .
           file: ${{ env.DOCKERFILE }}
           provenance: false
+          sbom: false
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
