@@ -146,7 +146,8 @@ jobs:
             fi
           done
           # add base stages based on their dependencies
-          for BASE in $PHASE_THREE
+          BASES=("${PHASE_THREE[@]}" standard)
+          for BASE in $BASES
           do
             for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/${BASE}.txt)
             do
