@@ -2211,7 +2211,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                 "TR"],
      "outputs": ["regressors", "censor-indices"]}
     '''
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
                                           'bold')
 
 
@@ -2243,15 +2243,14 @@ def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                 "TR"],
      "outputs": ["regressors", "censor-indices"]}
     '''
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
-                                          'T1w')
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, 'T1w')
 
 
-def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
+def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
     '''
     Parameters
     ----------
-    wf, cfg, strat_pool, pipe_num, opt
+    wf, strat_pool, pipe_num, opt
         pass through from Node Block
 
     space : str
