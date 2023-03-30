@@ -233,8 +233,6 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=min,compression=zstd
 
   build-base-standard:
     name: Build C-PAC standard base stage image
@@ -307,8 +305,6 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=min,compression=zstd
 
   build-and-test:
     name: Build and test C-PAC images
