@@ -65,7 +65,7 @@ ENTRYPOINT ["/bin/bash"]
 USER c-pac_user
 
 # Only keep what we need
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
+FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FSL 6.0.4 stage"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
