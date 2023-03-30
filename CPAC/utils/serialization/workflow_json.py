@@ -128,7 +128,6 @@ class NodeData:
                     print(f' > Node.base_dir: "{obj.base_dir}"')
                     print(f' > Node.output_dir: "{obj.output_dir()}"')
                     print(f' > Root.base_dir: "{root_node.base_dir}"')
-                    print(f' > Root.output_dir: "{root_node.output_dir()}"')
 
             return node_data
 
