@@ -190,6 +190,13 @@ jobs:
           cat $GITHUB_OUTPUT
         id: docker_tag
         if: always()
+      - name: Prep Dockerfiles for forked repository
+        if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
+        run: |
+            pwd
+            ls .
+            .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
+            cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       - name: Maximize build space
         if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
         uses: easimon/maximize-build-space@v4
@@ -215,11 +222,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Prep Dockerfiles for forked repository
-        if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
-        run: |
-            .github/scripts/local_ghcr .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile ${{ github.repository_owner }} $DOCKER_TAG
-            cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
       - name: See Dockerfile
         if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
         run: cat .github/Dockerfiles/base-${{ matrix.variant }}.Dockerfile
