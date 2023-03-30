@@ -35,12 +35,12 @@ ENV PATH $PATH:/opt/workbench/bin_linux64
 ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
-    POSSUMDIR=/usr/share/fsl/6.0 \
-    LD_LIBRARY_PATH=/usr/lib/fsl/6.0:$LD_LIBRARY_PATH \
     FSLTCLSH=/usr/bin/tclsh \
     FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/fsl/6.0/bin:$PATH \
     TZ=America/New_York
+ENV POSSUMDIR=${FSLDIR}/6.0 \
+    LD_LIBRARY_PATH=${FSLDIR}/6.0:$LD_LIBRARY_PATH \
+    PATH=${FSLDIR}/bin:$PATH
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
