@@ -26,6 +26,7 @@ from CPAC.func_preproc.utils import notch_filter_motion
 from CPAC.generate_motion_statistics import affine_file_from_params_file, \
                                             motion_power_statistics
 from CPAC.pipeline.schema import latest_schema
+from CPAC.pipeline.utils import present_outputs
 from CPAC.utils.docs import docstring_parameter, grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
@@ -312,9 +313,10 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
-    return (wf, {resource: wf_outputs[resource] for resource in [
-        'coordinate-transformation', 'max-displacement',
-        'movement-parameters', 'rels-displacement'] if resource in wf_outputs})
+    return (wf, present_outputs(wf_outputs, ['coordinate-transformation',
+                                             'max-displacement',
+                                             'movement-parameters',
+                                             'rels-displacement']))
 
 
 def get_mcflirt_rms_abs(rms_files):

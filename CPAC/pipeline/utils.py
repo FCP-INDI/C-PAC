@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2022  C-PAC Developers
+# Copyright (C) 2021-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,9 +18,29 @@
 from typing import Union
 
 
+def present_outputs(outputs: dict, keys: list) -> dict:
+    """
+    Given an outputs dictionary and a list of output keys, returns
+    the subset of `outputs` that includes all keys in `keys` that are
+    present.
+
+    Parameters
+    ----------
+    outputs : dict
+
+    keys : list of str
+
+    Returns
+    -------
+    dict
+        outputs filtered down to keys
+    """
+    return {key: outputs[key] for key in keys if key in outputs}
+
+
 def source_set(sources: Union[str, list, set]) -> set:
     """Given a CpacProvenance, return a set of {resource}:{source} strings
-  
+
     Parameters
     ----------
     sources: str, list, or set
