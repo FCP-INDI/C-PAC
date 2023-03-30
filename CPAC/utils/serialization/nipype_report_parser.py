@@ -47,6 +47,7 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
     try:
         doc = _parse_rst(rst).asdom()
     except:  # noqa
+        print(f'Could not parse RST file: "{filename}"')
         # ToDo: Report failure to parse with filepath?
         return {}
 

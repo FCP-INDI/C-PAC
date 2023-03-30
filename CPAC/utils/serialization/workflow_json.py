@@ -123,6 +123,8 @@ class NodeData:
                     node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
                     node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
                     node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
+                else:
+                    print(f'Report RST does not exist: "{report_path}"')
 
             return node_data
 
