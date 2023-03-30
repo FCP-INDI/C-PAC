@@ -125,6 +125,10 @@ class NodeData:
                     node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
                     print(f'Report RST does not exist: "{report_path}"')
+                    print(f' > Node.base_dir: "{obj.base_dir}"')
+                    print(f' > Node.output_dir: "{obj.output_dir()}"')
+                    print(f' > Root.base_dir: "{root_node.base_dir}"')
+                    print(f' > Root.output_dir: "{root_node.output_dir()}"')
 
             return node_data
 
