@@ -222,12 +222,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Move back to workspace
-        if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
-        run: |
-          cd ${GITHUB_WORKSPACE}
-          pwd
-          ls .
       - name: Build and push base image
         if: contains(fromJSON(env.REBUILD), matrix.variant) || steps.docker_tag.outputs.not_yet_exists == 1
         uses: docker/build-push-action@v4.0.0
