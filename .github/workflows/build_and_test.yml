@@ -336,17 +336,8 @@ jobs:
       - C-PAC-lite
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
-    runs-on: ubuntu-latest
     if: github.ref_name == 'develop' || github.ref_name == 'main'
-    steps:
-      - name: Check out C-PAC
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Participant-level smoke tests
-        run: gh workflow run smoke_test_participant.yml --ref ${GITHUB_REF_NAME}
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_WORKFLOW_TOKEN }}
+    uses: ./github/workflows/smoke_test_participant.yml
 
   Circle_tests:
     name: Run tests on CircleCI
