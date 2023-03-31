@@ -307,25 +307,25 @@ jobs:
 
   C-PAC:
     needs: build-base-standard
-    uses: ./.github/workflows/build_C-PAC.yml
+    uses: ./.github/workflows/build_C-PAC.yml@${GITHUB_REF}
     with:
       variant: ''
 
   C-PAC-lite:
     needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
+    uses: ./.github/workflows/build_C-PAC.yml@${GITHUB_REF}
     with:
       variant: lite
 
   C-PAC-ABCD-HCP:
     needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
+    uses: ./.github/workflows/build_C-PAC.yml@${GITHUB_REF}
     with:
       variant: ABCD-HCP
 
   C-PAC-fMRIPrep-LTS:
     needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
+    uses: ./.github/workflows/build_C-PAC.yml@${GITHUB_REF}
     with:
       variant: fMRIPrep-LTS
 
@@ -337,7 +337,7 @@ jobs:
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     if: github.ref_name == 'develop' || github.ref_name == 'main'
-    uses: ./github/workflows/smoke_test_participant.yml
+    uses: ./github/workflows/smoke_test_participant.yml@${GITHUB_REF}
 
   Circle_tests:
     name: Run tests on CircleCI
@@ -396,7 +396,7 @@ jobs:
     needs:
       - C-PAC
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml@${GITHUB_REF}
     with:
       variant: ''
     secrets: inherit
@@ -406,7 +406,7 @@ jobs:
     needs:
       - C-PAC-lite
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml@${GITHUB_REF}
     with:
       variant: 'lite'
     secrets: inherit
@@ -416,7 +416,7 @@ jobs:
     needs:
       - C-PAC-ABCD-HCP
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml@${GITHUB_REF}
     with:
       variant: 'ABCD-HCP'
     secrets: inherit
@@ -426,7 +426,7 @@ jobs:
     needs:
       - C-PAC-fMRIPrep-LTS
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml@${GITHUB_REF}
     with:
       variant: 'fMRIPrep-LTS'
     secrets: inherit
