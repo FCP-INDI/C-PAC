@@ -26,7 +26,6 @@ from CPAC.func_preproc.utils import notch_filter_motion
 from CPAC.generate_motion_statistics import affine_file_from_params_file, \
                                             motion_power_statistics
 from CPAC.pipeline.schema import latest_schema
-from CPAC.pipeline.utils import present_outputs
 from CPAC.utils.docs import docstring_parameter, grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
@@ -47,7 +46,7 @@ def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": "None",
      "switch": [["functional_preproc", "run"],
                 ["functional_preproc", "motion_estimates_and_correction",
-                "motion_estimates", "calculate_motion_after"]],
+                 "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
@@ -81,7 +80,7 @@ def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
      "config": "None",
      "switch": [["functional_preproc", "run"],
                 ["functional_preproc", "motion_estimates_and_correction",
-                "motion_estimates", "calculate_motion_after"]],
+                 "motion_estimates", "calculate_motion_after"]],
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
@@ -311,6 +310,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
          {_motion_param_outputs}
     }}}}
     '''
+    from CPAC.pipeline.utils import present_outputs
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
     return (wf, present_outputs(wf_outputs, ['coordinate-transformation',
