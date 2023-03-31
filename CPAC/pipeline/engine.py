@@ -1086,8 +1086,14 @@ class ResourcePool:
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
-                    node, out = self.rpool['scan']["['scan:func_ingress']"][
-                        'data']
+                    #if self.rpool['scan']["['scan:func_ingress']"]:
+                    #    node, out = self.rpool['scan']["['scan:func_ingress']"][
+                    #        'data']
+                    #else:
+                    
+                    node, out = self.rpool['scan']["['scan:outdir_ingress']"][
+                            'data']
+                    
                     wf.connect(node, out, id_string, 'scan_id')
 
                 self.back_propogate_template_name(resource_idx, json_info,
@@ -1151,7 +1157,6 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, 'out_filename', write_json, 'filename')
-
                 ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}_'
                                               f'{pipe_x}')
                 ds.inputs.parameterization = False
@@ -1645,18 +1650,21 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
 
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
+
     fmriprep_ingress = create_general_datasource('ingress_fmriprep')
     fmriprep_ingress.inputs.inputnode.set(
             unique_id=unique_id,
             data=data_paths['fmriprep_dir'],
-#            creds_path=data_paths['creds_path'], 
+            creds_path=data_paths['creds_path'], 
             dl_dir=cfg.pipeline_setup['working_directory']['path'])
     rpool.set_data("fmriprep-dir", fmriprep_ingress, 'outputspec.data',
                        {}, "", "fmriprep_config_ingress")
 
     fmriprep_path = os.path.join(data_paths['fmriprep_dir'], part_id, ses_id)
     fmriprep_outputs = os.listdir(fmriprep_path)
-    
+    jsons = {}
     # loop through func and anat subdirectories
     for subdirectory in fmriprep_outputs: 
         subdir = os.listdir(os.path.join(fmriprep_path, subdirectory))
@@ -1664,18 +1672,40 @@ def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
             fullpath = os.path.join(fmriprep_path, subdirectory,
                                     file)
             if os.path.exists(fullpath):
-                key = file.split(unique_id + '_')
+                key = file.split(unique_id + '_')[1]
                 key = key.split('.')[0]
+                if key.startswith('task'):
+                    labels = key.split('_')
+                    key = key.replace((labels[0] + '_'), '')
+                if key.startswith('acq'):
+                    labels = key.split('_')
+                    key = key.replace((labels[0] + '_'), '')
+                units = key.replace('_', ',').replace('-', ',')
+                labels = units.split(',')
+                for label in labels:
+                    if label.startswith('res'):
+                        key = key.replace((label + '_'), '')
+
+                    # rename to template 
+                    for label in labels: 
+                        units = label.split('-')
+                        for unit in units:
+                            if unit.startswith('MNI'):
+                                key = key.replace(unit, 'template')
                 fmriprep_ingress = create_general_datasource(f'gather_fmriprep_{key}_dir')
                 fmriprep_ingress.inputs.inputnode.set(
                     unique_id=unique_id,
                     data=fullpath,
-                    #creds_path=data_paths['creds_path'],
+                    creds_path=data_paths['creds_path'],
                     dl_dir=cfg.pipeline_setup['working_directory']['path'])
+                if file.endswith('.json'):
+                    jsons[key] = read_json(fullpath)
                 rpool.set_data(key, fmriprep_ingress, 'outputspec.data',
                                 {}, "", f"fmriprep_{key}_ingress")
+    return rpool, jsons
 
-    return rpool
+#def test_fmriprep_ingress (wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+#    #TODO
 
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
@@ -1786,8 +1816,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         dl_dir=cfg.pipeline_setup['working_directory']['path']
     )
     func_wf.get_node('inputnode').iterables = \
-        ("scan", list(func_paths_dct.keys()))
-    
+        ("scan", list(func_paths_dct.keys()))   
 
     rpool.set_data('subject', func_wf, 'outputspec.subject', {}, "",
                    "func_ingress")
@@ -1795,6 +1824,8 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
     rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
+    
+    # TODO: CHECK FOR PARAMETERS
 
     wf, rpool, diff, blip, fmap_rp_list = \
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
@@ -1817,82 +1848,84 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
-def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
+def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
 
-    out_dir = cfg.pipeline_setup['output_directory']['path']
-    source = False
+    #out_dir = cfg.pipeline_setup['output_directory']['path']
+    #source = False
 
-    if cfg.pipeline_setup['output_directory']['pull_source_once']:
-        if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
-            if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
-                if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-                    out_dir = cfg.pipeline_setup['output_directory'][
-                        'source_outputs_dir']
-                    source = True
-                else:
-                    out_dir = cfg.pipeline_setup['output_directory']['path']
-            else:
-                out_dir = cfg.pipeline_setup['output_directory']['path']
-        else:
-            if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-                out_dir = cfg.pipeline_setup['output_directory'][
-                    'source_outputs_dir']
-                source = True
-    else:
-        if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-            out_dir = cfg.pipeline_setup['output_directory'][
-                'source_outputs_dir']
-            source = True
-        else:
-            out_dir = cfg.pipeline_setup['output_directory']['path']
+    # if cfg.pipeline_setup['output_directory']['pull_source_once']:
+    #     if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
+    #         if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
+    #             if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+    #                 out_dir = cfg.pipeline_setup['output_directory'][
+    #                     'source_outputs_dir']
+    #                 source = True
+    #             else:
+    #                 out_dir = cfg.pipeline_setup['output_directory']['path']
+    #         else:
+    #             out_dir = cfg.pipeline_setup['output_directory']['path']
+    #     else:
+    #         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+    #             out_dir = cfg.pipeline_setup['output_directory'][
+    #                 'source_outputs_dir']
+    #             source = True
+    # else:
+    #     if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+    #         out_dir = cfg.pipeline_setup['output_directory'][
+    #             'source_outputs_dir']
+    #         source = True
+    #     else:
+    #         out_dir = cfg.pipeline_setup['output_directory']['path']
 
-    if not source:
-        if os.path.isdir(out_dir):
-            if not os.listdir(out_dir):
-                print(f"\nOutput directory {out_dir} does not exist yet, "
-                      f"initializing.")
-                return rpool
-        else:
-            print(f"\nOutput directory {out_dir} does not exist yet, "
-                  f"initializing.")
-            return rpool
+    # if not source:
+    #     if os.path.isdir(out_dir):
+    #         if not os.listdir(out_dir):
+    #             print(f"\nOutput directory {out_dir} does not exist yet, "
+    #                   f"initializing.")
+    #             return rpool
+    #     else:
+    #         print(f"\nOutput directory {out_dir} does not exist yet, "
+    #               f"initializing.")
+    #         return rpool
 
-        cpac_dir = os.path.join(out_dir, 'pipeline_'
-                                f'{cfg.pipeline_setup["pipeline_name"]}',
-                                unique_id)
-    else:
-        if os.path.isdir(out_dir):
-            if not os.listdir(out_dir):
-                raise Exception(f"\nSource directory {out_dir} does not exist!")
+    #     dir_path = os.path.join(out_dir, 'pipeline_'
+    #                             f'{cfg.pipeline_setup["pipeline_name"]}',
+    #                             unique_id)
+    # else:
+    #     if os.path.isdir(out_dir):
+    #         if not os.listdir(out_dir):
+    #             raise Exception(f"\nSource directory {out_dir} does not exist!")
         
-        cpac_dir = os.path.join(out_dir, unique_id)
-        if not os.path.isdir(cpac_dir):
-            unique_id = unique_id.split('_')[0]
-            cpac_dir = os.path.join(out_dir, unique_id)
+        # dir_path = os.path.join(out_dir, unique_id)
+        # if not os.path.isdir(dir_path):
+        #     unique_id = unique_id.split('_')[0]
+        #     dir_path = os.path.join(out_dir, unique_id)
 
-    print(f"\nPulling outputs from {cpac_dir}.\n")
+    dir_path = data_paths['derivatives_dir']
+
+    print(f"\nPulling outputs from {dir_path}.\n")
 
 
-    cpac_dir_anat = os.path.join(cpac_dir, 'anat')
-    cpac_dir_func = os.path.join(cpac_dir, 'func')
+    out_dir_anat = os.path.join(dir_path, 'anat')
+    out_dir_func = os.path.join(dir_path, 'func')
 
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.tsv']
 
     all_output_dir = []
-    if os.path.isdir(cpac_dir_anat):
-        for filename in os.listdir(cpac_dir_anat):
+    scan_iterables = []
+    if os.path.isdir(out_dir_anat):
+        for filename in os.listdir(out_dir_anat):
             for ext in exts:
                 if ext in filename:
-                    all_output_dir.append(os.path.join(cpac_dir_anat,
+                    all_output_dir.append(os.path.join(out_dir_anat,
                                                        filename))
 
-    if os.path.isdir(cpac_dir_func):
-        for filename in os.listdir(cpac_dir_func):
+    if os.path.isdir(out_dir_func):
+        for filename in os.listdir(out_dir_func):
             for ext in exts:
                 if ext in filename:
-                    all_output_dir.append(os.path.join(cpac_dir_func,
+                    all_output_dir.append(os.path.join(out_dir_func,
                                                        filename))
-
     for filepath in all_output_dir:
         filename = str(filepath)
         for ext in exts:
@@ -1903,26 +1936,23 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             raise Exception('\n\n[!] Possibly wrong participant or '
                             'session in this directory?\n\n'
                             f'Filepath: {filepath}\n\n')
-
-        if 'task-' in data_label:
-            for tag in data_label.split('_'):
-                if 'task-' in tag:
-                    break
-            runtag = None
-            if 'run-' in data_label:
-                for runtag in data_label.split('_'):
-                    if 'run-' in runtag:
-                        break
-            data_label = data_label.replace(f'{tag}_', '')
-            if runtag:
-                data_label = data_label.replace(f'{runtag}_', '')
-
+        tags = data_label.split('_')
+        bidstag = ''
+        for tag in tags:
+            for prefix in ['task-', 'run-', 'acq-']:
+                if tag.startswith(prefix):
+                    bidstag += f'{tag}_'
+                    #scan_iterables.append(tag.split('-')[1])
+                    data_label = data_label.replace(f'{tag}_', '')
+        #scan_iterables.append(bidstag)
+        print(bidstag)
+        data_label, json = strip_template(data_label, dir_path, filename)
         unique_data_label = str(data_label)
 
         #if 'sub-' in data_label or 'ses-' in data_label:
         #    raise Exception('\n\n[!] Possibly wrong participant or '
         #                    'session in this directory?\n\nDirectory: '
-        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
+        #                    f'{out_dir_anat}\nFilepath: {filepath}\n\n')
         suffix = data_label.split('_')[-1]
         desc_val = None
         for tag in data_label.split('_'):
@@ -1944,10 +1974,11 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
                                'automatically generated by C-PAC because a '
                                'JSON file was not supplied with the data.'
             }
+            json_info = {**json_info, **json}
             write_output_json(json_info, jsonpath)
         else:        
             json_info = read_json(jsonpath)
-            
+            json_info = {**json_info, **json}
         if 'CpacProvenance' in json_info:
             if desc_val:
                 # it's a C-PAC output, let's check for pipe_idx/strat integer
@@ -1988,21 +2019,42 @@ def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
             node_name = f"{data_label}_ingress"
 
         resource = data_label
-
-        ingress = create_general_datasource(f'gather_{unique_data_label}')
+        ingress = create_general_datasource(f'gather_outdir_{unique_data_label}')
         ingress.inputs.inputnode.set(
             unique_id=unique_id,
             data=filepath,
             creds_path=creds_path,
             dl_dir=cfg.pipeline_setup['working_directory']['path']
         )
+        ingress.get_node('inputnode').scan = ('scan', bidstag) 
         rpool.set_data(resource, ingress, 'outputspec.data', json_info,
-                       pipe_idx, node_name, inject=True)
+                       pipe_idx, node_name, f"outdir_{resource}_ingress", inject=True)
+
+        rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", "outdir_ingress")
 
     return rpool
 
+def strip_template(data_label, dir_path, filename):
+    
+    json = {}
+    # rename to template 
+    for prefix in ['space-', 'from-', 'to-']: 
+        for bidstag in data_label.split('_'):
+            if bidstag.startswith(prefix):
+                template_key, template_val = bidstag.split('-')
+                template_name, _template_desc = lookup_identifier(template_val)
+                if template_name:
+                    json['Template'] = f"{template_val}"
+                    data_label = data_label.replace((f'{template_val}_'), 'template')
+            elif bidstag.startswith('res-'):
+                res_key, res_val = bidstag.split('-')
+                json['Resolution'] = res_val
+                data_label = data_label.replace(bidstag, '')
+            
+    return data_label, json
 
-def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
+
+def ingress_pipeconfig_paths(cfg, rpool, unique_id, json_ingress, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
@@ -2072,6 +2124,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             #   other alternative would have been to ingress into the
             #   resampled_template node from the already existing entries, but we
             #   didn't do that here
+            json_info = {**json_info, **json_ingress}
             rpool.set_data(key,
                            resampled_template,
                            'resampled_template',
@@ -2087,9 +2140,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                     creds_path=creds_path,
                     dl_dir=cfg.pipeline_setup['working_directory']['path']
                 )
+                json_info = {**json_info, **json_ingress}
                 rpool.set_data(key, config_ingress, 'outputspec.data',
                                json_info, "", f"{key}_config_ingress")
-
     # templates, resampling from config
     '''
     template_keys = [
@@ -2198,7 +2251,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
        'site_id': 'site-ID',
        'subject_id': 'sub-01',
        'unique_id': 'ses-1',
-       'fmriprep_dir': '{fmriprep_dir path}'}
+       'derivatives_dir': '{derivatives_dir path}'}
     '''
 
     # TODO: refactor further, integrate with the ingress_data functionality
@@ -2213,30 +2266,32 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         else:
             creds_path = data_paths['creds_path']
         unique_id = f'{part_id}_{ses_id}'
+    
     elif part_id:
         unique_id = part_id
         creds_path = None
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
-    print('unique id: ', unique_id, ' part_id ', part_id, ' ses_id ', ses_id)
+    json_ingress = {}
+
     if data_paths:
 
         # ingress fmriprep
-        if data_paths['fmriprep_dir'] and cfg.pipeline_setup['ingress_fmriprep']:
-            #anat['fmriprep_dir'] = data_paths['anat']['fmriprep_dir']
-            #func['fmriprep_dir'] = data_paths['func']['fmriprep_dir']
-            rpool = ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id)
-        rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
-                                      part_id, ses_id)
-        if 'func' in data_paths:
-            wf, rpool, diff, blip, fmap_rp_list = \
-                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                      part_id, ses_id)
+        if data_paths['derivatives_dir'] and cfg.pipeline_setup['ingress_fmriprep']:
+            #rpool, json_ingress = ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id)
+            rpool = ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None)
+        else:
+            rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
+                                        part_id, ses_id)
+            if 'func' in data_paths:
+                wf, rpool, diff, blip, fmap_rp_list = \
+                    ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                        part_id, ses_id)
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
-    if rpool.check_rpool('desc-preproc_bold'):
-        raise exception("fmriprep outputs added to rpool :) ")
+    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, json_ingress, creds_path)
+
+    # output files with 4 different scans
 
     return (wf, rpool)
 

@@ -859,7 +859,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks = []
 
     # T1w Anatomical Preprocessing
-    if not rpool.check_rpool('desc-reorient_T1w'):
+    if not rpool.check_rpool('desc-reorient_T1w') and \
+        not rpool.check_rpool('desc-preproc_T1w'):
         anat_init_blocks = [
             anatomical_init
         ]

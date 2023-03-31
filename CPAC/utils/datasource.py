@@ -647,7 +647,7 @@ def create_general_datasource(wf_name):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['unique_id', 'data', 'creds_path',
+        fields=['unique_id', 'data', 'scan', 'creds_path',
                 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
@@ -667,7 +667,8 @@ def create_general_datasource(wf_name):
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['unique_id',
-                                                        'data']),
+                                                        'data',
+                                                        'scan']),
                          name='outputspec')
 
     wf.connect(inputnode, 'unique_id', outputnode, 'unique_id')
