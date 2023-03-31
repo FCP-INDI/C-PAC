@@ -148,9 +148,9 @@ jobs:
           # add base stages based on their dependencies
           BASES=("${PHASE_THREE[@]}" standard)
           if [[ "${MESSAGE}" == *"[rebuild standard]"* ]] || [[ "${MESSAGE}" == *"[rebuild base-standard]"* ]] || [[ " ${CHANGED_FILES[*]} " =~ " standard " ]]
-            then
-              REBUILD_PHASE_THREE+=(standard)
-            fi
+          then
+            REBUILD_PHASE_THREE+=(standard)
+          fi
           for BASE in $BASES
           do
             for STAGE in $(cat ${GITHUB_WORKSPACE}/.github/stage_requirements/${BASE}.txt)
