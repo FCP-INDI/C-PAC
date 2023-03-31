@@ -7,7 +7,7 @@ When updating these files, please update this README as necessary.
 [The `workflows` directory](./workflows) contains the configurations for the Actions themselves. The other directories support these configs.
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph Dockerfiles
       base[base-.*]
 
@@ -33,30 +33,31 @@ flowchart TD
       .*.txt
     end
     subgraph workflows
-      subgraph build_stages.yml
-
-        ubuntu[[Ubnutu]]-->stages[[stages]]-->build-base[[build-base]]
-
-      end
       subgraph build_C-PAC.yml
         bCPAC[[C-PAC]]
       end
       subgraph build_and_test.yml
+        ubuntu[[Ubnutu]]-->stages[[stages]]-->build-base[[build-base]]-->build-base-standard[[build-base-standard]]
+        
         Circle_tests[[Circle_tests]]
       
+        build-base-standard-->C-PAC
         C-PAC[[C-PAC]]-->bCPAC
         C-PAC-->Circle_tests
         C-PAC-->smoke-tests-participant
         C-PAC-->C-PAC-lite
 
+        build-base-->C-PAC-lite
         C-PAC-lite[[C-PAC-lite]]-->bCPAC
         C-PAC-lite-->Circle_tests
         C-PAC-lite-->smoke-tests-participant
 
+        build-base-->C-PAC-ABCD-HCP
         C-PAC-ABCD-HCP[[C-PAC-ABCD-HCP]]-->bCPAC
         C-PAC-ABCD-HCP-->Circle_tests
         C-PAC-ABCD-HCP-->smoke-tests-participant
 
+        build-base-->C-PAC-fMRIPREP
         C-PAC-fMRIPrep[[C-PAC-fMRIPrep-LTS]]-->bCPAC
         C-PAC-fMRIPrep-->Circle_tests
         C-PAC-fMRIPrep-->smoke-tests-participant
@@ -64,7 +65,7 @@ flowchart TD
         smoke-tests-participant[[smoke-tests-participant]]
       end
 
-      on_push.yml-->build_stages.yml
+      on_push.yml-->build_and_test.yml
 
       delete_images.yml
     end
@@ -74,11 +75,9 @@ flowchart TD
       update_all_preconfigs[[update_all_preconfigs]]
     end
 
-    base<-->build-base
+    build-base-standard<-->base<-->build-base
 
     Circle_tests-->CircleCI((Run tests on Circle CI))
-
-    build_stages.yml-->build_and_test.yml
 
     on_push.yml<-->get_pr_base_shas
     on_push.yml-->update_all_preconfigs

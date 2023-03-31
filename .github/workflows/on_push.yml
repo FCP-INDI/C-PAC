@@ -174,7 +174,7 @@ jobs:
   build-stages:
     name: Build multistage image stages
     needs: check-updated-preconfigs
-    uses: ./.github/workflows/build_stages.yml
+    uses: ./.github/workflows/build_and_test.yml
     secrets: inherit
     with:
       phase_one: ${{ needs.check-updated-preconfigs.outputs.phase_one }}
