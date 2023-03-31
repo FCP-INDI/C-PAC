@@ -337,7 +337,7 @@ jobs:
       - C-PAC-ABCD-HCP
       - C-PAC-fMRIPrep-LTS
     if: github.ref_name == 'develop' || github.ref_name == 'main'
-    uses: ./github/workflows/smoke_test_participant.yml
+    uses: ./.github/workflows/smoke_test_participant.yml
 
   Circle_tests:
     name: Run tests on CircleCI
