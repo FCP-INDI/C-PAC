@@ -36,11 +36,6 @@ ENV MINC_BIN_DIR="$MNI_DIR/bin" \
 COPY --from=FreeSurfer /opt/freesurfer/ /opt/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
-# install Multimodal Surface Matching
-COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
-ENV MSMBINDIR=/opt/msm/Ubuntu \
-    PATH=$PATH:/opt/msm/Ubuntu
-
 # link libraries & clean up
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ldconfig && \
