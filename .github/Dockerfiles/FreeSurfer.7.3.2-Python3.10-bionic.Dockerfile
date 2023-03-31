@@ -1,8 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:python3.10-bionic-non-free as FreeSurfer
 
 USER root
-RUN curl -sL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer_ubuntu18-7.3.2_amd64.deb -o /tmp/freesurfer_ubuntu18-7.3.2_amd64.deb \
-  && dpkg -i /tmp/freesurfer_ubuntu18-7.3.2_amd64.deb
 
 ENV FREESURFER_HOME=/opt/freesurfer \
     NO_FSFAST=1

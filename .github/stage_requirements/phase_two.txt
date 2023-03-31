@@ -6,6 +6,7 @@ c3d.1.0.0-xenial
 connectome-workbench.1.3.2-1.neurodebian-bionic
 connectome-workbench.1.3.2-2.neurodebian-xenial
 connectome-workbench.1.5.0.neurodebian-bionic
+FreeSurfer.7.3.2-Python3.10-bionic
 FSL.5.0.9-5.neurodebian-xenial
 FSL.5.0.10-bionic
 FSL.6.0.6.4-Python3.10-bionic
