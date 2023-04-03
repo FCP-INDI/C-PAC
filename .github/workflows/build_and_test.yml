@@ -311,31 +311,31 @@ jobs:
     with:
       variant: ''
 
-  C-PAC-lite:
-    needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
-    with:
-      variant: lite
+  #C-PAC-lite:
+  #  needs: build-base
+  #  uses: ./.github/workflows/build_C-PAC.yml
+  #  with:
+  #    variant: lite
 
-  C-PAC-ABCD-HCP:
-    needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
-    with:
-      variant: ABCD-HCP
+  #C-PAC-ABCD-HCP:
+  #  needs: build-base
+  #  uses: ./.github/workflows/build_C-PAC.yml
+  #  with:
+  #    variant: ABCD-HCP
 
-  C-PAC-fMRIPrep-LTS:
-    needs: build-base
-    uses: ./.github/workflows/build_C-PAC.yml
-    with:
-      variant: fMRIPrep-LTS
+  #C-PAC-fMRIPrep-LTS:
+  #  needs: build-base
+  #  uses: ./.github/workflows/build_C-PAC.yml
+  #  with:
+  #    variant: fMRIPrep-LTS
 
   smoke-tests-participant:
     name: Run participant-level smoke tests
     needs:
       - C-PAC
-      - C-PAC-lite
-      - C-PAC-ABCD-HCP
-      - C-PAC-fMRIPrep-LTS
+      #- C-PAC-lite
+      #- C-PAC-ABCD-HCP
+      #- C-PAC-fMRIPrep-LTS
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     steps:
       - name: Check out C-PAC
@@ -363,9 +363,9 @@ jobs:
     name: Run tests on CircleCI
     needs:
       - C-PAC
-      - C-PAC-lite
-      - C-PAC-ABCD-HCP
-      - C-PAC-fMRIPrep-LTS
+      #- C-PAC-lite
+      #- C-PAC-ABCD-HCP
+      #- C-PAC-fMRIPrep-LTS
     if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
@@ -421,32 +421,32 @@ jobs:
       variant: ''
     secrets: inherit
 
-  Deploy_to_Docker_Hub-lite:
-    name: Deploy 'lite' to Docker Hub
-    needs:
-      - C-PAC-lite
-    if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
-    with:
-      variant: 'lite'
-    secrets: inherit
+  #Deploy_to_Docker_Hub-lite:
+  #  name: Deploy 'lite' to Docker Hub
+  #  needs:
+  #    - C-PAC-lite
+  #  if: github.ref_type == 'tag'
+  #  uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+  #  with:
+  #    variant: 'lite'
+  #  secrets: inherit
 
-  Deploy_to_Docker_Hub-ABCD-HCP:
-    name: Deploy 'ABCD-HCP' to Docker Hub
-    needs:
-      - C-PAC-ABCD-HCP
-    if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
-    with:
-      variant: 'ABCD-HCP'
-    secrets: inherit
+  #Deploy_to_Docker_Hub-ABCD-HCP:
+  #  name: Deploy 'ABCD-HCP' to Docker Hub
+  #  needs:
+  #    - C-PAC-ABCD-HCP
+  #  if: github.ref_type == 'tag'
+  #  uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+  #  with:
+  #    variant: 'ABCD-HCP'
+  #  secrets: inherit
 
-  Deploy_to_Docker_Hub-fMRIPrep-LTS:
-    name: Deploy 'fMRIPrep-LTS' to Docker Hub
-    needs:
-      - C-PAC-fMRIPrep-LTS
-    if: github.ref_type == 'tag'
-    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
-    with:
-      variant: 'fMRIPrep-LTS'
-    secrets: inherit
+  #Deploy_to_Docker_Hub-fMRIPrep-LTS:
+  #  name: Deploy 'fMRIPrep-LTS' to Docker Hub
+  #  needs:
+  #    - C-PAC-fMRIPrep-LTS
+  #  if: github.ref_type == 'tag'
+  #  uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+  #  with:
+  #    variant: 'fMRIPrep-LTS'
+  #  secrets: inherit
