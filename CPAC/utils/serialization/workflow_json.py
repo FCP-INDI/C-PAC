@@ -62,7 +62,28 @@ def _node_find_wd_path(node: NodeRaw, node_root: NodeRaw) -> pl.Path:
     NiPype saves the wrong working dir location for nested nodes.
     This constructs the real one.
     """
-    return pl.Path(node_root.base_dir) / pl.Path(node.output_dir()).relative_to(node.base_dir)
+
+    base_path = pl.Path(node_root.base_dir)
+    relative_path = pl.Path(node.output_dir()).relative_to(node.base_dir)
+
+    naive_path = base_path / relative_path
+
+    if naive_path.exists():
+        return naive_path
+
+    search_path = base_path
+
+    for part in relative_path.parts:
+        if (search_path / part).exists():
+            search_path /= part
+        else:
+            for g in search_path.glob('_scan_*'):
+                if (g / part).exists():
+                    search_path = g / part
+                    continue
+            return naive_path
+
+    return search_path
 
 
 @dataclass
