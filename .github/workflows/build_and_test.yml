@@ -463,15 +463,15 @@ jobs:
       variant: ''
     secrets: inherit
 
-  #Deploy_to_Docker_Hub-lite:
-  #  name: Deploy 'lite' to Docker Hub
-  #  needs:
-  #    - C-PAC-lite
-  #  if: github.ref_type == 'tag'
-  #  uses: ./.github/workflows/deploy_to_Docker_Hub.yml
-  #  with:
-  #    variant: 'lite'
-  #  secrets: inherit
+  Deploy_to_Docker_Hub-lite:
+    name: Deploy 'lite' to Docker Hub
+    needs:
+      - C-PAC-lite
+    if: github.ref_type == 'tag'
+    uses: ./.github/workflows/deploy_to_Docker_Hub.yml
+    with:
+      variant: 'lite'
+    secrets: inherit
 
   Deploy_to_Docker_Hub-ABCD-HCP:
     name: Deploy 'ABCD-HCP' to Docker Hub
