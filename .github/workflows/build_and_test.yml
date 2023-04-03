@@ -354,6 +354,7 @@ jobs:
       - smoke-tests-participant
     uses: ./.github/workflows/regression_test.yml
 
+<<<<<<< HEAD
   finish-build-check:
     name: Finish GitHub check
     needs:
@@ -393,6 +394,8 @@ jobs:
       - smoke-tests-participant
     uses: ./.github/workflows/regression_test_full.yml
 
+=======
+>>>>>>> 2a9840f4 (deleted repeated block)
   Circle_tests:
     name: Run tests on CircleCI
     needs:
