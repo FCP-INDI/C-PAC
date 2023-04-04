@@ -2,13 +2,17 @@ name: Run Regression Test
 
 on: 
   pull_request:
-    - ready_for_review
-  workflow_call:
+    types: [ready_for_review]
+  #workflow_call:
 
 jobs: 
-
   test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Run my workflow_call
+        uses: FCP-INDI/C-PAC/.github/workflows/build_and_test.yml@${{ github.ref }}
+  #test:
+  #  runs-on: ubuntu-latest
     steps: 
       - name: Get C-PAC branch
         run: |
