@@ -802,6 +802,11 @@ CPAC run error:
                         filename=workflow_filename + '.result.pkl',
                         workflow=workflow_result
                     )
+                    save_workflow_json(
+                        filename=workflow_filename,
+                        workflow=workflow_result,
+                        meta=workflow_meta
+                    )
 
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
