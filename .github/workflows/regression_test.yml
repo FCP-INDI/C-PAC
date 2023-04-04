@@ -13,7 +13,7 @@ jobs:
         uses: FCP-INDI/C-PAC/.github/workflows/build_and_test.yml@${{ github.ref }}
   #test:
   #  runs-on: ubuntu-latest
-    steps: 
+    #steps: 
       - name: Get C-PAC branch
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
