@@ -38,7 +38,8 @@ jobs:
 
       - name: Run Regression Test
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
+          #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
+          if [ "${{ github.event_name }}" = "push" ]; then
             echo "Running `lite` regression test"
             python3 reg-suite/main.py run --lite
           elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
