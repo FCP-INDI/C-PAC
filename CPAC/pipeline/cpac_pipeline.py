@@ -568,7 +568,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             try:
                 # Actually run the pipeline now, for the current subject
-                workflow.run(plugin=plugin, plugin_args=plugin_args)
+                workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
             except UnicodeDecodeError:
                 raise EnvironmentError(
                     "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
@@ -797,6 +797,10 @@ CPAC run error:
                     save_workflow_pickle(
                         filename=workflow_filename + '.pkl',
                         workflow=workflow
+                    )
+                    save_workflow_pickle(
+                        filename=workflow_filename + '.result.pkl',
+                        workflow=workflow_result
                     )
 
                 # Remove working directory when done
