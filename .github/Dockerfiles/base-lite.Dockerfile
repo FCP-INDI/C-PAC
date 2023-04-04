@@ -18,7 +18,7 @@ FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3.python3.10-bionic as ANTs
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
-FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:python3.10-bionic-non-free
