@@ -1,31 +1,18 @@
+import re
 from abc import ABC
 from os import PathLike
-from typing import Union, Dict
-
-import docutils.frontend
-import docutils.nodes
-import docutils.parsers.rst
-import docutils.utils
+from typing import List, Tuple, Union, Dict
 
 
 class ReportSection(ABC):
-    EXECUTION_INPUTS = 'execution-inputs'
-    EXECUTION_OUTPUTS = 'execution-outputs'
-    EXECUTION_INFO = 'execution-info'
+    EXECUTION_INPUTS = 'Execution Inputs'
+    EXECUTION_OUTPUTS = 'Execution Outputs'
+    EXECUTION_INFO = 'Runtime info'
+    ENVIRONMENT = 'Environment'
+    ORIGINAL_INPUTS = 'Original Inputs'
 
 
-def _parse_rst(text: str) -> docutils.nodes.document:
-    """
-    Parse ReStructured Text
-    from:
-    https://stackoverflow.com/questions/12883428/how-to-parse-restructuredtext-in-python
-    """
-    parser = docutils.parsers.rst.Parser()
-    components = (docutils.parsers.rst.Parser,)
-    settings = docutils.frontend.OptionParser(components=components).get_default_values()
-    document = docutils.utils.new_document('<rst-doc>', settings=settings)
-    parser.parse(text, document)
-    return document
+rx_star_item = r"^\*\s(\S+)\s:\s(.*)$"
 
 
 def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]:
@@ -40,38 +27,68 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
     -------
     Nested dictionary of sections and key-value pairs.
     """
-
+    tokens: List[Tuple[str, str]] = []
     with open(filename, encoding='utf8') as file:
-        rst = file.read()
 
-    try:
-        doc = _parse_rst(rst).asdom()
-    except:  # noqa
-        print(f'Could not parse RST file: "{filename}"')
-        # ToDo: Report failure to parse with filepath?
-        return {}
+        # Lexer
 
-    extract_sections = (
-        ReportSection.EXECUTION_INPUTS,
-        ReportSection.EXECUTION_OUTPUTS,
-        ReportSection.EXECUTION_INFO
-    )
+        line = ''
+        skip = 0
 
-    out_dict = {}
-
-    for section in doc.getElementsByTagName('section'):
-        section_title = section.getAttribute('ids')
-        if section_title in extract_sections:
-            if len(section.childNodes) < 2:
+        while True:
+            last_line = line
+            line = file.readline()
+            if skip > 0:
+                skip -= 1
                 continue
-            out_dict[section_title] = {}
-            for bullet in section.childNodes[1].childNodes:
-                if len(bullet.childNodes) == 0 or len(bullet.firstChild.childNodes) == 0:
-                    continue
-                item_text = bullet.firstChild.firstChild.nodeValue
-                if not isinstance(item_text, str) or ' : ' not in item_text:
-                    continue
-                key, val = item_text.split(' : ', maxsplit=1)
-                out_dict[section_title][key] = val
+            if not line:
+                break
+            line = line[:-1]
 
-    return out_dict
+            # Headings
+            # More efficient with this order of expressions
+            # noinspection PyChainedComparisons
+            if len(line) > 3 and line[0] in ('=', '-', '~') and line.count(line[0]) == len(line):
+                tokens.pop()
+                if len(tokens) > 2:
+                    for _ in range(2):
+                        tokens.pop()
+                tokens.append(('header' + line[0], last_line))
+                skip = 2
+                continue
+
+            # Key value list
+            match_star = re.search(rx_star_item, line)
+            if match_star is not None:
+                tokens.append(('key*', match_star.group(1)))
+                tokens.append(('val*', match_star.group(2)))
+                continue
+
+            # Append to previous item
+            if len(tokens) > 0 and tokens[-1][0] == 'val*':
+                tokens[-1] = (tokens[-1][0], tokens[-1][1] + '\n' + line)
+                continue
+
+            tokens.append(('text', line))
+
+    # Parser
+
+    document = {}
+    section = {}
+    key = ''
+    # val = ''
+
+    for tok_name, tok_value in tokens:
+        if tok_name.startswith('header'):
+            section = {}
+            document[tok_value] = section
+            continue
+        if tok_name.startswith('key'):
+            key = tok_value
+            continue
+        if tok_name.startswith('val'):
+            val = tok_value
+            section[key] = val
+            continue
+
+    return document
