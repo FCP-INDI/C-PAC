@@ -58,8 +58,7 @@ def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
                  "filtered-coordinate-transformation"),
                 "subject",
                 "scan"],
-     "outputs": ["desc-preproc_bold",
-                 "framewise-displacement-power",
+     "outputs": ["framewise-displacement-power",
                  "framewise-displacement-jenkinson",
                  "dvars",
                  "power-params",
@@ -88,8 +87,7 @@ def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
                  "coordinate-transformation"),
                 "subject",
                 "scan"],
-     "outputs": ["desc-preproc_bold",
-                 "framewise-displacement-power",
+     "outputs": ["framewise-displacement-power",
                  "framewise-displacement-jenkinson",
                  "dvars",
                  "power-params",
@@ -131,8 +129,7 @@ def calc_motion_stats(wf, strat_pool, pipe_num):
                gen_motion_stats, 'inputspec.subject_id')
     wf.connect(*strat_pool.get_data('scan'),
                gen_motion_stats, 'inputspec.scan_id')
-    bold_node, bold_out = strat_pool.get_data('desc-preproc_bold')
-    wf.connect(bold_node, bold_out,
+    wf.connect(*strat_pool.get_data('desc-preproc_bold'),
                gen_motion_stats, 'inputspec.motion_correct')
     wf.connect(*strat_pool.get_data('space-bold_desc-brain_mask'),
                gen_motion_stats, 'inputspec.mask')
@@ -152,12 +149,7 @@ def calc_motion_stats(wf, strat_pool, pipe_num):
         wf.connect(*strat_pool.get_data(coordinate_transformation),
                    gen_motion_stats, 'inputspec.transformations')
 
-    preproc_bold = pe.Node(util.IdentityInterface(fields=['bold']),
-                           name='preproc')
-    wf.connect(bold_node, bold_out, preproc_bold, 'bold')
-
     outputs = {
-        'desc-preproc_bold': (preproc_bold, 'bold'),
         'framewise-displacement-power':
             (gen_motion_stats, 'outputspec.FDP_1D'),
         'framewise-displacement-jenkinson':
@@ -708,10 +700,13 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "filters",
      "option_val": "USER-DEFINED",
-     "inputs": ["coordinate-transformation",
-                "movement-parameters",
+     "inputs": [("desc-preproc_bold",
+                 "space-bold_desc-brain_mask",
+                 "coordinate-transformation",
+                 "movement-parameters"),
                 "TR"],
-     "outputs": {"filtered-coordinate-transformation": {
+     "outputs": {"desc-preproc_bold": {},
+                 "filtered-coordinate-transformation": {
                      "Description": "Affine matrix regenerated from"
                                     " filtered motion parameters. Note:"
                                     " the translation vector does not"
