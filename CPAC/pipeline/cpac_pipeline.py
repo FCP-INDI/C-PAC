@@ -193,7 +193,7 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
-from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta, save_workflow_pickle
+from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
 
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
@@ -475,10 +475,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             workflow=workflow,
             meta=workflow_meta
         )
-        save_workflow_pickle(
-            filename=os.path.join(log_dir, workflow_meta.filename()) + '.pkl',
-            workflow=workflow
-        )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -526,6 +522,7 @@ Please, make yourself aware of how it works and its assumptions:
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
+        workflow_result = None
         try:
             subject_info['resource_pool'] = []
 
@@ -783,24 +780,11 @@ CPAC run error:
                                  c['subject_id'])
                 ))
 
-                if workflow_save:
+                if workflow_save and workflow_result is not None:
                     workflow_meta.stage = "post"
                     workflow_filename = os.path.join(
                         log_dir,
                         workflow_meta.filename()
-                    )
-                    save_workflow_json(
-                        filename=workflow_filename,
-                        workflow=workflow,
-                        meta=workflow_meta
-                    )
-                    save_workflow_pickle(
-                        filename=workflow_filename + '.pkl',
-                        workflow=workflow
-                    )
-                    save_workflow_pickle(
-                        filename=workflow_filename + '.result.pkl',
-                        workflow=workflow_result
                     )
                     save_workflow_json(
                         filename=workflow_filename,

@@ -57,33 +57,11 @@ def _workflow_get_graph(wf: WorkflowRaw) -> networkx.DiGraph:
     return wf._graph  # noqa
 
 
-def _node_find_wd_path(node: NodeRaw, node_root: NodeRaw) -> pl.Path:
+def _node_get_wd_path(node: NodeRaw) -> pl.Path:
     """
-    NiPype saves the wrong working dir location for nested nodes.
-    This constructs the real one.
+    Get working directory path for a given node.
     """
-
-    base_path = pl.Path(node_root.base_dir)
-    relative_path = pl.Path(node.output_dir()).relative_to(node.base_dir)
-
-    naive_path = base_path / relative_path
-
-    if naive_path.exists():
-        return naive_path
-
-    search_path = base_path
-
-    for part in relative_path.parts:
-        if (search_path / part).exists():
-            search_path /= part
-        else:
-            for g in search_path.glob('_scan_*'):
-                if (g / part).exists():
-                    search_path = g / part
-                    continue
-            return naive_path
-
-    return search_path
+    return pl.Path(node.output_dir())  # noqa
 
 
 @dataclass
@@ -102,6 +80,15 @@ class EdgeData:
 
 
 @dataclass
+class NodeResultData:
+    result_inputs: dict
+    result_outputs: dict
+    runtime_info: dict
+    wd_path: str
+    read_success: bool
+
+
+@dataclass
 class NodeData:
     """Data class for serializing workflow nodes."""
 
@@ -112,64 +99,63 @@ class NodeData:
 
     inputs: dict
     outputs: dict
-    result_inputs: dict
-    result_outputs: dict
-    runtime_info: dict
+
+    result: Optional[NodeResultData] = None
 
     nodes: List['NodeData'] = dataclasses.field(default_factory=lambda: [])
     edges: List['EdgeData'] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod
-    def from_obj(cls, obj, serialze_postex: bool = True, root_workflow: Optional[WorkflowRaw] = None):
+    def from_obj(cls, obj, serialze_postex: bool = True):
         node_data = cls(
             name=obj.name,  # There is name, fullname and itername
             fullname=obj.fullname,
             type='node',
             repr=str(obj),
             inputs=_object_as_strdict(_serialize_inout(obj.inputs)),
-            outputs=_object_as_strdict(_serialize_inout(obj.outputs)),
-            result_inputs=_object_as_strdict(None),
-            result_outputs=_object_as_strdict(None),
-            runtime_info={},
-            nodes=[],
-            edges=[]
+            outputs=_object_as_strdict(_serialize_inout(obj.outputs))
         )
 
         if isinstance(obj, NodeRaw):
             if serialze_postex:
-                root_node = obj if root_workflow is None else root_workflow
-                report_path = _node_find_wd_path(obj, root_node) / '_report' / 'report.rst'
+                node_data.result = NodeResultData(
+                    result_inputs={},
+                    result_outputs={},
+                    runtime_info={},
+                    wd_path=_node_get_wd_path(obj).as_posix(),
+                    read_success=True
+                )
+                report_path = _node_get_wd_path(obj) / '_report' / 'report.rst'
                 if report_path.exists():
                     report_data = read_report_rst(report_path)
                     node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
                     node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
                     node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
+                    node_data.read_success = False
                     print(f'Report RST does not exist: "{report_path}"')
                     print(f' > Node.base_dir: "{obj.base_dir}"')
                     print(f' > Node.output_dir: "{obj.output_dir()}"')
-                    print(f' > Root.base_dir: "{root_node.base_dir}"')
 
             return node_data
 
         if isinstance(obj, WorkflowRaw):
-            if root_workflow is None:
-                root_workflow = obj
-
             node_data.type = 'workflow'
             graph = _workflow_get_graph(obj)
+        elif isinstance(obj, networkx.DiGraph):
+            graph = obj
+        else:
+            raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
 
-            for child_node in graph.nodes:
-                node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex, root_workflow=root_workflow)
-                node_data.nodes.append(node_data_child)
+        for child_node in graph.nodes:
+            node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex)
+            node_data.nodes.append(node_data_child)
 
-            for child_edge in graph.edges:
-                edge_data_child = EdgeData.from_obj(child_edge)
-                node_data.edges.append(edge_data_child)
+        for child_edge in graph.edges:
+            edge_data_child = EdgeData.from_obj(child_edge)
+            node_data.edges.append(edge_data_child)
 
-            return node_data
-
-        raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
+        return node_data
 
 
 @dataclass
