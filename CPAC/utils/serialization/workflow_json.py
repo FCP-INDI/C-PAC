@@ -137,11 +137,11 @@ class NodeData:
                 report_path = _node_get_wd_path(obj) / '_report' / 'report.rst'
                 if report_path.exists():
                     report_data = read_report_rst(report_path)
-                    node_data.inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
-                    node_data.outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
-                    node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
+                    node_data.result.inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
+                    node_data.result.outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
+                    node_data.result.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
-                    node_data.read_success = False
+                    node_data.result.read_success = False
                     print(f'Report RST does not exist: "{report_path}"')
                     print(f' > Node.base_dir: "{obj.base_dir}"')
                     print(f' > Node.output_dir: "{obj.output_dir()}"')
