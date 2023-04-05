@@ -1625,7 +1625,6 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["desc-preproc_bold"],
      "outputs": ["desc-preproc_bold"]}
     '''
-
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
                              name=f'func_normalize_{pipe_num}',
                              mem_gb=0.7,

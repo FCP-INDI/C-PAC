@@ -127,8 +127,8 @@ from CPAC.seg_preproc.seg_preproc import (
 )
 
 from CPAC.func_preproc import (
-    calc_motion_stats_filtered,
     calc_motion_stats_unfiltered,
+    calc_motion_stats_filtered,
     func_motion_correct,
     func_motion_correct_only,
     func_motion_estimates,

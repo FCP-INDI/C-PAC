@@ -51,24 +51,21 @@ def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask",
-                 "movement-parameters",
-                 "filtered-movement-parameters",
                  "max-displacement",
                  "rels-displacement",
-                 "coordinate-transformation",
+                 "filtered-movement-parameters",
+                 "movement-parameters",
                  "filtered-coordinate-transformation"),
                 "subject",
                 "scan"],
-     "outputs": ["framewise-displacement-power",
+     "outputs": ["desc-preproc_bold",
+                 "framewise-displacement-power",
                  "framewise-displacement-jenkinson",
                  "dvars",
                  "power-params",
                  "motion-params"]}
     '''
-    if True in cfg['functional_preproc', 'motion_estimates_and_correction',
-                    'motion_estimate_filter', 'run']:
-        return calc_motion_stats(wf, strat_pool, pipe_num)
-    return wf, {}
+    return calc_motion_stats(wf, strat_pool, pipe_num)
 
 
 def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -91,7 +88,8 @@ def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
                  "coordinate-transformation"),
                 "subject",
                 "scan"],
-     "outputs": ["framewise-displacement-power",
+     "outputs": ["desc-preproc_bold",
+                 "framewise-displacement-power",
                  "framewise-displacement-jenkinson",
                  "dvars",
                  "power-params",
@@ -133,11 +131,13 @@ def calc_motion_stats(wf, strat_pool, pipe_num):
                gen_motion_stats, 'inputspec.subject_id')
     wf.connect(*strat_pool.get_data('scan'),
                gen_motion_stats, 'inputspec.scan_id')
-    wf.connect(*strat_pool.get_data('desc-preproc_bold'),
+    bold_node, bold_out = strat_pool.get_data('desc-preproc_bold')
+    wf.connect(bold_node, bold_out,
                gen_motion_stats, 'inputspec.motion_correct')
     wf.connect(*strat_pool.get_data('space-bold_desc-brain_mask'),
                gen_motion_stats, 'inputspec.mask')
-    wf.connect(*strat_pool.get_data('movement-parameters'),
+    wf.connect(*strat_pool.get_data(['filtered-movement-parameters',
+                                     'movement-parameters']),
                gen_motion_stats, 'inputspec.movement_parameters')
     wf.connect(*strat_pool.get_data('max-displacement'),
                gen_motion_stats, 'inputspec.max_displacement')
@@ -152,7 +152,12 @@ def calc_motion_stats(wf, strat_pool, pipe_num):
         wf.connect(*strat_pool.get_data(coordinate_transformation),
                    gen_motion_stats, 'inputspec.transformations')
 
+    preproc_bold = pe.Node(util.IdentityInterface(fields=['bold']),
+                           name='preproc')
+    wf.connect(bold_node, bold_out, preproc_bold, 'bold')
+
     outputs = {
+        'desc-preproc_bold': (preproc_bold, 'bold'),
         'framewise-displacement-power':
             (gen_motion_stats, 'outputspec.FDP_1D'),
         'framewise-displacement-jenkinson':
@@ -713,7 +718,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
                                     " account for recentering inherent"
                                     " in rotation; this omission does"
                                     " not seem to affect framewise"
-                                    " displacement calculatoin, for which"
+                                    " displacement calculation, for which"
                                     " this matrix is used."},
                  "filtered-movement-parameters": {
                      "Description": "Filtered movement parameters"

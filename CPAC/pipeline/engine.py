@@ -55,7 +55,6 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
 logger = getLogger('nipype.workflow')
-verbose_logger = getLogger('engine')
 
 
 class ResourcePool:
@@ -447,6 +446,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -1294,7 +1294,6 @@ class NodeBlock:
             option_val = self.check_null(block_dct['option_val'])
             inputs = self.check_null(block_dct['inputs'])
             outputs = self.check_null(block_dct['outputs'])
-
             block_function = block_dct['block_function']
 
             opts = []
@@ -1321,7 +1320,6 @@ class NodeBlock:
                 # block functions - opts will be empty for non-selected
                 # options, and would waste the get_strats effort below
                 continue
-
             if not switch:
                 switch = [True]
             else:
@@ -1344,7 +1342,7 @@ class NodeBlock:
                                 # fork switches
                                 if True in val:
                                     switch_list.append(True)
-                                else:
+                                if False in val:
                                     switch_list.append(False)
                             else:
                                 switch_list.append(val)
@@ -1358,7 +1356,6 @@ class NodeBlock:
                         switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
-
             if True in switch:
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
@@ -1404,6 +1401,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1738,6 +1736,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 

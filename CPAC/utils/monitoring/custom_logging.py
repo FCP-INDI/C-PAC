@@ -57,6 +57,9 @@ def getLogger(name):  # pylint: disable=invalid-name
     """
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
+    # set up engine logger first time we encounter a call
+    if name == 'engine':
+        set_up_logger()
     logger = nipype_logging.getLogger(name)
     return logging.getLogger(name) if logger is None else logger
 
@@ -166,8 +169,9 @@ class MockLogger:
                           encoding='utf-8') as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
-                        print_exception(_lazy_sub(message, *items), value=value,
-                                        tb=traceback, file=log_file)
+                        print_exception(_lazy_sub(message, *items),
+                                        value=value, tb=traceback,
+                                        file=log_file)
                     else:
                         print(_lazy_sub(message, *items), file=log_file)
         return _log
