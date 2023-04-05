@@ -81,8 +81,8 @@ class EdgeData:
 
 @dataclass
 class NodeResultData:
-    result_inputs: dict
-    result_outputs: dict
+    inputs: dict
+    outputs: dict
     runtime_info: dict
     wd_path: str
     read_success: bool
@@ -95,7 +95,6 @@ class NodeData:
     name: str
     fullname: str
     type: str
-    repr: str
 
     inputs: dict
     outputs: dict
@@ -107,20 +106,30 @@ class NodeData:
 
     @classmethod
     def from_obj(cls, obj, serialze_postex: bool = True):
-        node_data = cls(
-            name=obj.name,  # There is name, fullname and itername
-            fullname=obj.fullname,
-            type='node',
-            repr=str(obj),
-            inputs=_object_as_strdict(_serialize_inout(obj.inputs)),
-            outputs=_object_as_strdict(_serialize_inout(obj.outputs))
-        )
+        if isinstance(obj, (NodeRaw, WorkflowRaw)):
+            node_data = cls(
+                name=obj.name,  # There is name, fullname and itername
+                fullname=obj.fullname,
+                type='node' if isinstance(obj, NodeRaw) else 'workflow',
+                inputs=_object_as_strdict(_serialize_inout(obj.inputs)),
+                outputs=_object_as_strdict(_serialize_inout(obj.outputs))
+            )
+        elif isinstance(obj, networkx.DiGraph):
+            node_data = cls(
+                name='exgraph',  # There is name, fullname and itername
+                fullname='exgraph',
+                type='exgraph',
+                inputs={},
+                outputs={}
+            )
+        else:
+            raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
 
         if isinstance(obj, NodeRaw):
             if serialze_postex:
                 node_data.result = NodeResultData(
-                    result_inputs={},
-                    result_outputs={},
+                    inputs={},
+                    outputs={},
                     runtime_info={},
                     wd_path=_node_get_wd_path(obj).as_posix(),
                     read_success=True
@@ -128,8 +137,8 @@ class NodeData:
                 report_path = _node_get_wd_path(obj) / '_report' / 'report.rst'
                 if report_path.exists():
                     report_data = read_report_rst(report_path)
-                    node_data.result_inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
-                    node_data.result_outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
+                    node_data.inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
+                    node_data.outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
                     node_data.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
                     node_data.read_success = False
@@ -139,13 +148,7 @@ class NodeData:
 
             return node_data
 
-        if isinstance(obj, WorkflowRaw):
-            node_data.type = 'workflow'
-            graph = _workflow_get_graph(obj)
-        elif isinstance(obj, networkx.DiGraph):
-            graph = obj
-        else:
-            raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
+        graph = _workflow_get_graph(obj) if isinstance(obj, WorkflowRaw) else obj
 
         for child_node in graph.nodes:
             node_data_child = cls.from_obj(child_node, serialze_postex=serialze_postex)
