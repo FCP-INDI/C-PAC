@@ -49,7 +49,6 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
             # More efficient with this order of expressions
             # noinspection PyChainedComparisons
             if len(line) > 3 and line[0] in ('=', '-', '~') and line.count(line[0]) == len(line):
-                tokens.pop()
                 tokens.append(('header' + line[0], last_line))
                 skip = 2
                 continue
@@ -61,19 +60,36 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
                 tokens.append(('val*', match_star.group(2)))
                 continue
 
-            # Append to previous item
-            if len(tokens) > 0 and tokens[-1][0] == 'val*':
-                tokens[-1] = (tokens[-1][0], tokens[-1][1] + '\n' + line)
-                continue
-
             tokens.append(('text', line))
+
+    # remove last three text tokens before header
+    tokens2 = []
+    for i in range(len(tokens)):
+        tok_name, tok_value = tokens[i]
+        if tok_name.startswith('header') and len(tokens2) > 0:
+            tokens2.pop()
+            for _ in range(2):
+                if len(tokens2) == 0:
+                    break
+                if tokens[-1][0].startswith('text'):
+                    tokens2.pop()
+        tokens2.append(tokens[i])
+    tokens = tokens2
+
+    # merge text tokens into preceding value tokens
+    tokens2 = []
+    for i in range(len(tokens)):
+        tok_name, tok_value = tokens[i]
+        if i > 0 and tok_name.startswith('text') and tokens[i-1][0].startswith('val'):
+            tokens[i - 1] = (tokens[i-1][0], tokens[i-1][1] + '\n' + tok_value)
+        tokens2.append(tokens[i])
+    tokens = tokens2
 
     # Parser
 
     document = {}
     section = {}
     key = ''
-    # val = ''
 
     for tok_name, tok_value in tokens:
         if tok_name.startswith('header'):
@@ -84,8 +100,7 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
             key = tok_value
             continue
         if tok_name.startswith('val'):
-            val = tok_value
-            section[key] = val
+            section[key] = tok_value
             continue
 
     return document
