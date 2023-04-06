@@ -69,16 +69,8 @@ def _node_get_wd_path(node: NodeRaw) -> pl.Path:
 @dataclass
 class EdgeData:
     """Data class for serializing workflow edges."""
-
-    fullname_origin: str
-    fullname_target: str
-
-    @classmethod
-    def from_obj(cls, obj):
-        return cls(
-            fullname_origin=obj[0].fullname,
-            fullname_target=obj[1].fullname
-        )
+    origin: str
+    target: str
 
 
 @dataclass
@@ -158,7 +150,16 @@ class NodeData:
             node_data.nodes.append(node_data_child)
 
         for child_edge in graph.edges:
-            edge_data_child = EdgeData.from_obj(child_edge)
+            node_origin, node_target = child_edge
+
+            if serialze_postex:
+                name_origin = node_origin.fullname.split('.', 1)[-1]
+                name_target = node_target.fullname.split('.', 1)[-1]
+            else:
+                name_origin = node_origin.name
+                name_target = node_target.name
+
+            edge_data_child = EdgeData(origin=name_origin, target=name_target)
             node_data.edges.append(edge_data_child)
 
         return node_data
