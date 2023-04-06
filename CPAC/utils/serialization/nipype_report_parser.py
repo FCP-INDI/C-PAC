@@ -50,9 +50,6 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
             # noinspection PyChainedComparisons
             if len(line) > 3 and line[0] in ('=', '-', '~') and line.count(line[0]) == len(line):
                 tokens.pop()
-                if len(tokens) > 2:
-                    for _ in range(2):
-                        tokens.pop()
                 tokens.append(('header' + line[0], last_line))
                 skip = 2
                 continue
