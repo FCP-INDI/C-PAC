@@ -57,9 +57,6 @@ def getLogger(name):  # pylint: disable=invalid-name
     """
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
-    # set up engine logger first time we encounter a call
-    if name == 'engine':
-        set_up_logger()
     logger = nipype_logging.getLogger(name)
     return logging.getLogger(name) if logger is None else logger
 
