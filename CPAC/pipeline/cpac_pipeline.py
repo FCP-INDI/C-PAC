@@ -467,14 +467,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                        f'{graph2use}, {graph_format})'
                                        ) from exception
 
-    workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
-    if workflow_save:
-        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
-        save_workflow_json(
-            filename=os.path.join(log_dir, workflow_meta.filename()),
-            workflow=workflow,
-            meta=workflow_meta
-        )
+    workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
+    save_workflow_json(
+        filename=os.path.join(log_dir, workflow_meta.filename()),
+        workflow=workflow,
+        meta=workflow_meta
+    )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -780,7 +778,7 @@ CPAC run error:
                                  c['subject_id'])
                 ))
 
-                if workflow_save and workflow_result is not None:
+                if workflow_result is not None:
                     workflow_meta.stage = "post"
                     workflow_filename = os.path.join(
                         log_dir,
