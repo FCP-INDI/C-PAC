@@ -75,6 +75,8 @@ class EdgeData:
 
 @dataclass
 class NodeResultData:
+    inputs: dict
+    outputs: dict
     runtime_info: dict
     wd_path: str
     read_success: bool
@@ -126,6 +128,8 @@ class NodeData:
                 node_data.name = obj.fullname.split('.', 1)[-1]  # Postex names are not unique
                 wd_path = _node_get_wd_path(obj)
                 node_data.result = NodeResultData(
+                    inputs={},
+                    outputs={},
                     runtime_info={},
                     wd_path=wd_path.as_posix(),
                     read_success=True
@@ -133,6 +137,8 @@ class NodeData:
                 report_path = wd_path / '_report' / 'report.rst'
                 if report_path.exists():
                     report_data = read_report_rst(report_path)
+                    node_data.result.inputs = report_data.get(ReportSection.EXECUTION_INPUTS, {})
+                    node_data.result.outputs = report_data.get(ReportSection.EXECUTION_OUTPUTS, {})
                     node_data.result.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
                     node_data.result.read_success = False
