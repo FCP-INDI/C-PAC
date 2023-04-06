@@ -7,6 +7,7 @@ from os import PathLike
 from typing import List, Dict, Union, Optional
 
 import networkx
+from nipype.interfaces.base.support import Bunch
 from traits.has_traits import HasTraits
 from traits.trait_base import _Undefined  # noqa
 
@@ -45,10 +46,11 @@ def _serialize_inout(obj: object):
         return '[Undefined]'
     elif isinstance(obj, Configuration):
         return '[C-PAC config]'
+    elif isinstance(obj, Bunch):
+        return {str(k): _serialize_inout(v) for k, v in obj.items()}
     elif obj is None:
         return None
     else:
-        print(type(obj))
         return str(obj)
 
 
@@ -93,7 +95,6 @@ class NodeData:
     """Data class for serializing workflow nodes."""
 
     name: str
-    fullname: str
     type: str
 
     inputs: dict
@@ -108,25 +109,30 @@ class NodeData:
     def from_obj(cls, obj, serialze_postex: bool = True):
         if isinstance(obj, (NodeRaw, WorkflowRaw)):
             node_data = cls(
-                name=obj.name,  # There is name, fullname and itername
-                fullname=obj.fullname,
+                name=obj.name,
                 type='node' if isinstance(obj, NodeRaw) else 'workflow',
                 inputs=_object_as_strdict(_serialize_inout(obj.inputs)),
                 outputs=_object_as_strdict(_serialize_inout(obj.outputs))
             )
         elif isinstance(obj, networkx.DiGraph):
             node_data = cls(
-                name='exgraph',  # There is name, fullname and itername
-                fullname='exgraph',
+                name='exgraph',
                 type='exgraph',
                 inputs={},
                 outputs={}
             )
+
+            # Infer name from first node
+            node_list: List[NodeRaw] = list(obj.nodes)
+            if len(node_list) > 0:
+                node_data.name = node_list[0].fullname.split('.', 1)[0]
+
         else:
             raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
 
         if isinstance(obj, NodeRaw):
             if serialze_postex:
+                node_data.name = obj.fullname.split('.', 1)[-1]  # Postex names are not unique
                 node_data.result = NodeResultData(
                     inputs={},
                     outputs={},
@@ -142,9 +148,6 @@ class NodeData:
                     node_data.result.runtime_info = report_data.get(ReportSection.EXECUTION_INFO, {})
                 else:
                     node_data.result.read_success = False
-                    print(f'Report RST does not exist: "{report_path}"')
-                    print(f' > Node.base_dir: "{obj.base_dir}"')
-                    print(f' > Node.output_dir: "{obj.output_dir()}"')
 
             return node_data
 
