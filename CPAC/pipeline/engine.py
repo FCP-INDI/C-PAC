@@ -33,7 +33,8 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import FilteredUnfilteredError, \
+                                MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -1014,11 +1015,10 @@ class ResourcePool:
                 resource_idx = resource
 
                 if isinstance(num_variant, int):
-                    resource_idx, out_dct = name_fork(resource_idx, cfg,
-                                                      json_info, out_dct)
-                    if ('_filt-none_' in resource_idx and
-                            '_filtered' in resource_idx):
-                        # this is a hack to drop the fake-filtered motion
+                    try:
+                        resource_idx, out_dct = name_fork(resource_idx, cfg,
+                                                          json_info, out_dct)
+                    except FilteredUnfilteredError:
                         continue
                     if unlabelled:
                         if 'desc-' in out_dct['filename']:
