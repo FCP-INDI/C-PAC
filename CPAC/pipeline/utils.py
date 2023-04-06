@@ -102,9 +102,9 @@ def present_outputs(outputs: dict, keys: list) -> dict:
 
     Examples
     --------
-    >>> preset_outputs({'a': 1, 'b': 2, 'c': 3}, ['b'])
+    >>> present_outputs({'a': 1, 'b': 2, 'c': 3}, ['b'])
     {'b': 2}
-    >>> preset_outputs({'a': 1, 'b': 2, 'c': 3}, ['d'])
+    >>> present_outputs({'a': 1, 'b': 2, 'c': 3}, ['d'])
     {}
     """
     return {key: outputs[key] for key in keys if key in outputs}
