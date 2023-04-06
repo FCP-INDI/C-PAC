@@ -81,7 +81,7 @@ def read_report_rst(filename: Union[str, PathLike]) -> Dict[str, Dict[str, str]]
     for i in range(len(tokens)):
         tok_name, tok_value = tokens[i]
         if i > 0 and tok_name.startswith('text') and tokens[i-1][0].startswith('val'):
-            tokens[i - 1] = (tokens[i-1][0], tokens[i-1][1] + '\n' + tok_value)
+            tokens2[i - 1] = (tokens2[i-1][0], tokens2[i-1][1] + '\n' + tok_value)
         tokens2.append(tokens[i])
     tokens = tokens2
 
