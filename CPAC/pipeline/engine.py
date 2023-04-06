@@ -1016,6 +1016,10 @@ class ResourcePool:
                 if isinstance(num_variant, int):
                     resource_idx, out_dct = name_fork(resource_idx, cfg,
                                                       json_info, out_dct)
+                    if ('_filt-none_' in resource_idx and
+                            '_filtered' in resource_idx):
+                        # this is a hack to drop the fake-filtered motion
+                        continue
                     if unlabelled:
                         if 'desc-' in out_dct['filename']:
                             for key in out_dct['filename'].split('_')[::-1]:

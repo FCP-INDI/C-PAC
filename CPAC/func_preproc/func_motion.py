@@ -37,12 +37,12 @@ except (AttributeError, KeyError, LookupError, IndexError):
     motion_correct_options = ['3dvolreg', 'mcflirt']
 
 
-def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
+def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    Calculate motion statistics for filtered motion parameters.
+    Calculate motion statistics for motion parameters.
 
     Node Block:
-    {"name": "calc_motion_stats_filtered",
+    {"name": "calc_motion_stats",
      "config": "None",
      "switch": [["functional_preproc", "run"],
                 ["functional_preproc", "motion_estimates_and_correction",
@@ -50,12 +50,13 @@ def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "max-displacement",
-                 "rels-displacement",
-                 "filtered-movement-parameters",
-                 "movement-parameters",
-                 "filtered-coordinate-transformation"),
+                 "space-bold_desc-brain_mask"),
+                 ("max-displacement",
+                  "rels-displacement",
+                  "movement-parameters"),
+                 (["filtered-movement-parameters", "movement-parameters"],
+                  ["filtered-coordinate-transformation",
+                  "coordinate-transformation"]),
                 "subject",
                 "scan"],
      "outputs": ["framewise-displacement-power",
@@ -63,58 +64,6 @@ def calc_motion_stats_filtered(wf, cfg, strat_pool, pipe_num, opt=None):
                  "dvars",
                  "power-params",
                  "motion-params"]}
-    '''
-    return calc_motion_stats(wf, strat_pool, pipe_num)
-
-
-def calc_motion_stats_unfiltered(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Calculate motion statistics for unfiltered motion parameters.
-
-    Node Block:
-    {"name": "calc_motion_stats_unfiltered",
-     "config": "None",
-     "switch": [["functional_preproc", "run"],
-                ["functional_preproc", "motion_estimates_and_correction",
-                 "motion_estimates", "calculate_motion_after"]],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "movement-parameters",
-                 "max-displacement",
-                 "rels-displacement",
-                 "coordinate-transformation"),
-                "subject",
-                "scan"],
-     "outputs": ["framewise-displacement-power",
-                 "framewise-displacement-jenkinson",
-                 "dvars",
-                 "power-params",
-                 "motion-params"]}
-    '''
-    if False in cfg['functional_preproc', 'motion_estimates_and_correction',
-                    'motion_estimate_filter', 'run']:
-        return calc_motion_stats(wf, strat_pool, pipe_num)
-    return wf, {}
-
-
-def calc_motion_stats(wf, strat_pool, pipe_num):
-    '''Calculate motion statistics
-
-    Parameters
-    ----------
-    wf : pe.Workflow
-
-    strat_pool : CPAC.pipeline.engine.ResourcePool
-
-    pipe_num : int
-
-    Returns
-    -------
-    wf : pe.Workflow
-
-    outputs : dict
     '''
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
@@ -219,8 +168,13 @@ _MOTION_CORRECTED_OUTPUTS = """"desc-preproc_bold": {
          "desc-motion_bold": {
              "Description": "Motion-corrected BOLD time-series."
          }"""
+# the "filtered" outputs here are just for maintaining expecting
+# forking and connections and will not be output
 _MOTION_PARAM_OUTPUTS = """"max-displacement": {},
          "rels-displacement": {},
+         "filtered-movement-parameters": {
+             "Description": "UNFILTERED"
+         },
          "movement-parameters": {
              "Description": "Each line contains for one timepoint a 6-DOF "
                             "rigid transform parameters in the format "
@@ -229,6 +183,9 @@ _MOTION_PARAM_OUTPUTS = """"max-displacement": {},
                             "posterior displacement]. Rotation parameters "
                             "are in degrees counterclockwise, and translation "
                             "parameters are in millimeters."
+         },
+         "filtered-coordinate-transformation": {
+             "Description": "UNFILTERED"
          },
          "coordinate-transformation": {
               "Description" : "Each row contains for one timepoint the first "
@@ -310,10 +267,13 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     from CPAC.pipeline.utils import present_outputs
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
-    return (wf, present_outputs(wf_outputs, ['coordinate-transformation',
-                                             'max-displacement',
-                                             'movement-parameters',
-                                             'rels-displacement']))
+    return (wf, present_outputs(wf_outputs,
+                                ['coordinate-transformation',
+                                 'filtered-coordinate-transformation',
+                                 'max-displacement',
+                                 'filtered-movement-parameters',
+                                 'movement-parameters',
+                                 'rels-displacement']))
 
 
 def get_mcflirt_rms_abs(rms_files):
@@ -607,7 +567,9 @@ def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
         'desc-motion_bold': (out_motion_A, 'out_file'),
         'max-displacement': (out_md1d, 'out_file'),
         'movement-parameters': (out_oned, 'out_file'),
-        'coordinate-transformation': (out_oned_matrix, 'out_file')
+        'coordinate-transformation': (out_oned_matrix, 'out_file'),
+        'filtered-movement-parameters': (out_oned, 'out_file'),
+        'filtered-coordinate-transformation': (out_oned_matrix, 'out_file')
     }
 
     return wf, outputs
@@ -702,11 +664,12 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "USER-DEFINED",
      "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask",
+                 "max-displacement",
+                 "rels-displacement",
                  "coordinate-transformation",
                  "movement-parameters"),
                 "TR"],
-     "outputs": {"desc-preproc_bold": {},
-                 "filtered-coordinate-transformation": {
+     "outputs": {"filtered-coordinate-transformation": {
                      "Description": "Affine matrix regenerated from"
                                     " filtered motion parameters. Note:"
                                     " the translation vector does not"
