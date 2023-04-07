@@ -118,14 +118,14 @@ class NodeData:
             # Infer name from first node
             node_list: List[NodeRaw] = list(obj.nodes)
             if len(node_list) > 0:
-                node_data.name = node_list[0].fullname.split('.', 1)[0]
+                node_data.name = node_list[0].itername.split('.', 1)[0]
 
         else:
             raise TypeError(f'Unknown Node type found in graph: {type(obj)}')
 
         if isinstance(obj, NodeRaw):
             if serialze_postex:
-                node_data.name = obj.fullname.split('.', 1)[-1]  # Postex names are not unique
+                node_data.name = obj.itername.split('.', 1)[-1]
                 wd_path = _node_get_wd_path(obj)
                 node_data.result = NodeResultData(
                     inputs={},
@@ -160,8 +160,8 @@ class NodeData:
             node_origin, node_target = child_edge
 
             if serialze_postex:
-                name_origin = node_origin.fullname.split('.', 1)[-1]
-                name_target = node_target.fullname.split('.', 1)[-1]
+                name_origin = node_origin.itername.split('.', 1)[-1]
+                name_target = node_target.itername.split('.', 1)[-1]
             else:
                 name_origin = node_origin.name
                 name_target = node_target.name
