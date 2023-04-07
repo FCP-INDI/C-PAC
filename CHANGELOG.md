@@ -18,23 +18,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed dependencies
 
-- bids-validator
-- Node
-- NVM
-- simplejson
-- wxpython
-- yamlordereddictloader
+- `bids-validator`
+- `Node`
+- `NVM`
+- `simplejson`
+- `wxpython`
+- `yamlordereddictloader`
 
 ### Upgraded dependencies
 
 - `AFNI` 21.1.00 'Domitian' → 23.0.07 'Commodus'
 - `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
+- `boto3` 1.7.37 → 1.26.91
+- `click` 6.7 → 8.1.3
+- `configparser` 3.7.4 → 5.3.0
 - `FSL` 5.0.10 (5.0.9) → 6.0.6 (6.0.4:ddd0a010c)
+- `future` 0.16.0 → 0.18.3
 - `ICA-AROMA` 0.4.3-beta → 0.4.4-beta
-- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `INDI-Tools` 0.0.7@`main` → 0.0.7@`998c246`
+- `joblib` 1.0.1 → 1.2.0
+- `matplotlib` 3.1.3 → 3.7.1
+- `networkx` 2.4 → 3.0
+- `nibabel` 3.0.1 → 5.0.1
+- `nilearn` 0.4.1 → 0.10.0
+- `nipype` 1.5.1 → 1.8.5
+- `numpy` 1.21.0 → 1.24.2
+- `pandas` 1.0.5 → 1.5.3
+- `patsy` 0.5.0 → 0.5.3
+- `prov` 1.5.2 → 2.0.0
+- `psutil` 5.6.6 → 5.9.4
+- `pybids` 0.15.1 → 0.15.6
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
-- `Torch` 1.2.0+cu92 → 1.13.1
+- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `python-dateutil` 2.7.3 → 2.8.2
+- `PyYAML` 5.4 → 6.0
+- `requests` 2.21.0 → 2.28.2
+- `scipy` 1.6.3 → 1.10.1
+- `sdcflows` 2.0.5 → 2.4.0
+- `torch` 1.2.0+cu92 → 1.13.1
 - `torchvision` 0.4.0+cu92 → 0.14.1
+- `traits` 4.6.0 → 6.3.2
+- `voluptuous` 0.12.0 → 0.13.1
 - `wb_command` neurodebian latest → 1.5.0
 
 ## [1.8.5]
