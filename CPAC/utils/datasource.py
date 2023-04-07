@@ -672,6 +672,7 @@ def create_general_datasource(wf_name):
                          name='outputspec')
 
     wf.connect(inputnode, 'unique_id', outputnode, 'unique_id')
+    wf.connect(inputnode, 'scan', outputnode, 'scan')
     wf.connect(check_s3_node, 'local_path', outputnode, 'data')
 
     return wf
