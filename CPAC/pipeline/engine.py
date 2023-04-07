@@ -1086,19 +1086,13 @@ class ResourcePool:
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
-                    #if self.rpool['scan']["['scan:func_ingress']"]:
-                    #    node, out = self.rpool['scan']["['scan:func_ingress']"][
-                    #        'data']
-                    #else:
-                    
-                    node, out = self.rpool['scan']["['scan:outdir_ingress']"][
+                    node, out = self.rpool['scan']["['scan:func_ingress']"][
                             'data']
                     
                     wf.connect(node, out, id_string, 'scan_id')
-
+                
                 self.back_propogate_template_name(resource_idx, json_info,
                                                   id_string)
-
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1850,57 +1844,6 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 
 def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
 
-    #out_dir = cfg.pipeline_setup['output_directory']['path']
-    #source = False
-
-    # if cfg.pipeline_setup['output_directory']['pull_source_once']:
-    #     if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
-    #         if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
-    #             if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-    #                 out_dir = cfg.pipeline_setup['output_directory'][
-    #                     'source_outputs_dir']
-    #                 source = True
-    #             else:
-    #                 out_dir = cfg.pipeline_setup['output_directory']['path']
-    #         else:
-    #             out_dir = cfg.pipeline_setup['output_directory']['path']
-    #     else:
-    #         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-    #             out_dir = cfg.pipeline_setup['output_directory'][
-    #                 'source_outputs_dir']
-    #             source = True
-    # else:
-    #     if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-    #         out_dir = cfg.pipeline_setup['output_directory'][
-    #             'source_outputs_dir']
-    #         source = True
-    #     else:
-    #         out_dir = cfg.pipeline_setup['output_directory']['path']
-
-    # if not source:
-    #     if os.path.isdir(out_dir):
-    #         if not os.listdir(out_dir):
-    #             print(f"\nOutput directory {out_dir} does not exist yet, "
-    #                   f"initializing.")
-    #             return rpool
-    #     else:
-    #         print(f"\nOutput directory {out_dir} does not exist yet, "
-    #               f"initializing.")
-    #         return rpool
-
-    #     dir_path = os.path.join(out_dir, 'pipeline_'
-    #                             f'{cfg.pipeline_setup["pipeline_name"]}',
-    #                             unique_id)
-    # else:
-    #     if os.path.isdir(out_dir):
-    #         if not os.listdir(out_dir):
-    #             raise Exception(f"\nSource directory {out_dir} does not exist!")
-        
-        # dir_path = os.path.join(out_dir, unique_id)
-        # if not os.path.isdir(dir_path):
-        #     unique_id = unique_id.split('_')[0]
-        #     dir_path = os.path.join(out_dir, unique_id)
-
     dir_path = data_paths['derivatives_dir']
 
     print(f"\nPulling outputs from {dir_path}.\n")
@@ -1936,16 +1879,14 @@ def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
             raise Exception('\n\n[!] Possibly wrong participant or '
                             'session in this directory?\n\n'
                             f'Filepath: {filepath}\n\n')
-        tags = data_label.split('_')
+
         bidstag = ''
-        for tag in tags:
+        for tag in data_label.split('_'):
             for prefix in ['task-', 'run-', 'acq-']:
                 if tag.startswith(prefix):
                     bidstag += f'{tag}_'
-                    #scan_iterables.append(tag.split('-')[1])
                     data_label = data_label.replace(f'{tag}_', '')
-        #scan_iterables.append(bidstag)
-        print(bidstag)
+
         data_label, json = strip_template(data_label, dir_path, filename)
         unique_data_label = str(data_label)
 
@@ -2026,11 +1967,18 @@ def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
             creds_path=creds_path,
             dl_dir=cfg.pipeline_setup['working_directory']['path']
         )
-        ingress.get_node('inputnode').scan = ('scan', bidstag) 
+        
         rpool.set_data(resource, ingress, 'outputspec.data', json_info,
                        pipe_idx, node_name, f"outdir_{resource}_ingress", inject=True)
-
-        rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", "outdir_ingress")
+        if not rpool.check_rpool(resource):
+            raise Exception("didn't load resource :( )")
+        if len(bidstag) > 1:
+            # Remove tail symbol
+            bidstag = bidstag[:-1]
+            if bidstag.startswith('task-'):
+                bidstag = bidstag.replace('task-', '')
+                ingress.get_node('inputnode').iterables = ("scan", [bidstag])
+                rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", "func_ingress")
 
     return rpool
 
