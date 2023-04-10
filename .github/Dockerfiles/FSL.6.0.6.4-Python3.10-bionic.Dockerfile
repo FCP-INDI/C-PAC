@@ -31,33 +31,26 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     TZ=America/New_York
 
 # Installing and setting up FSL
+COPY dev/docker_data/checksum/FSL.6.0.6.4.md5 /tmp/checksum.md5
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     &&  echo $TZ > /etc/timezone \
     && apt-get update \
     && apt-get install -y tclsh wish \
     && echo "Downloading FSL ..." \
     && mkdir -p /usr/share/fsl/6.0 \
-    && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos6_64.tar.gz \
-    | tar zx -C /usr/share/fsl/6.0 --strip-components=1 \
+    && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos6_64.tar.gz -o /tmp/fsl.tar.gz \
+    && md5sum --check /tmp/checksum.md5 \
+    && tar zx -C /usr/share/fsl/6.0 --strip-components=1 \
     --exclude=fsl/bin/mist \
     --exclude=fsl/bin/possum \
     --exclude=fsl/data/possum \
     --exclude=fsl/data/mist \
-    --exclude=fsl/data/first \
+    --exclude=fsl/data/first -f /tmp/fsl.tar.gz \
     && ln -s /usr/share/fsl/6.0 /usr/share/fsl/5.0 \
     && if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
         ln -svf /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 /usr/lib/x86_64-linux-gnu/libGL.so.1; \
     fi \
-    && ldconfig \
-    && curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz \
-    && tar xfz /tmp/cpac_resources.tar.gz -C /tmp \
-    && cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard \
-    && cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard \
-    && cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard \
-    && cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford \
-    && cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors \
-    && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors \
-    && chmod -R ugo+r $FSLDIR/data/standard
+    && ldconfig
 
 ENTRYPOINT ["/bin/bash"]
 

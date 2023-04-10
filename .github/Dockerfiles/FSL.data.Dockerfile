@@ -3,8 +3,10 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
 USER root
 
 # install CPAC resources into FSL
+COPY dev/docker_data/checksum/FSL.data.md5 /tmp/checksum.md5
 RUN mkdir -p /fsl_data/atlases/HarvordOxford fsl_data/standard/tissuepriors \
     && curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz \
+    && md5sum --check /tmp/checksum.md5 \
     && tar xfz /tmp/cpac_resources.tar.gz -C /tmp \
     && cp -n /tmp/cpac_image_resources/MNI_3mm/* /fsl_data/standard \
     && cp -n /tmp/cpac_image_resources/MNI_4mm/* /fsl_data/standard \

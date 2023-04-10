@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Changed
+
+- Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
+
 ### Removed dependencies
 
 - `bids-validator`
