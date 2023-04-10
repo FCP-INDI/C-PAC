@@ -21,6 +21,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+# Copied from https://bootstrap.pypa.io/get-pip.py on 2023-04-10.
+#
 # Hi There!
 #
 # You may be wondering what this giant blob of binary data here is, you might
