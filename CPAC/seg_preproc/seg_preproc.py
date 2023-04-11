@@ -796,7 +796,9 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": ["tissue_segmentation", "using"],
      "option_val": "FreeSurfer",
-     "inputs": ["freesurfer-subject-dir"],
+     "inputs": ["freesurfer-subject-dir", 
+                 "pipeline-fs_raw-average",
+                 "pipeline-fs_subcortical-seg"],
      "outputs": ["pipeline-fs_hemi-L_desc-surface_curv",
                  "pipeline-fs_hemi-R_desc-surface_curv", 
                  "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
@@ -817,13 +819,29 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-GM_mask",
                  "label-WM_mask"]}
     '''
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
+    
+    fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                                name=f'fs_aseg_to_native_{pipe_num}')
+    fs_aseg_to_native.inputs.reg_header = True
+    fs_aseg_to_native.inputs.interp = 'nearest'
+    
+    wf.connect(node, out, fs_aseg_to_native, 'subjects_dir')
 
+    node, out = strat_pool.get_data('pipeline-fs_subcortical-seg')
+    wf.connect(node, out, fs_aseg_to_native, 'source_file')
+    
+    node, out = strat_pool.get_data('pipeline-fs_raw-average')
+    wf.connect(node, out, fs_aseg_to_native, 'target_file')
+    
     fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
                                              output_names=['out_file'],
                                              function=mri_convert),
                                name=f'fs_aseg_to_nifti_{pipe_num}')
     fs_aseg_to_nifti.inputs.args = '-rt nearest'
-
+    wf.connect(fs_aseg_to_native, 'transformed_file',
+               fs_aseg_to_nifti, 'in_file')
+    
     pick_tissue = pe.Node(pick_tissue_from_labels_file_interface(),
                           name=f'select_fs_tissue_{pipe_num}')
 
