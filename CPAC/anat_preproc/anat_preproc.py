@@ -914,6 +914,24 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     ### ABCD harmonization - anatomical brain mask generation ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
 
+    wmparc_to_native = pe.Node(
+        interface=freesurfer.ApplyVolTransform(),
+        name='wmparc_to_native')
+    
+    wmparc_to_native.inputs.reg_header = True
+
+    node, out = strat_pool.get_data('pipeline-fs_wmparc') 
+    wf.connect(node, out, wmparc_to_native, 'source_file')
+
+    node, out = strat_pool.get_data('pipeline-fs_raw-average')
+    wf.connect(node, out, wmparc_to_native, 'target_file')
+
+    node, out = strat_pool.get_data('pipeline-fs_xfm')
+    wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
+
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
+
+    wf.connect(node, out, wmparc_to_native, 'subjects_dir')
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file',
                                                          'reslice_like',
                                                          'args'],
@@ -922,8 +940,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                               name=f'wmparc_to_nifti_{pipe_num}')
     wmparc_to_nifti.inputs.args = '-rt nearest'
 
-    node, out = strat_pool.get_data('pipeline-fs_wmparc')
-    wf.connect(node, out, wmparc_to_nifti, 'in_file')
+    wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, wmparc_to_nifti, 'reslice_like')
@@ -1772,6 +1789,8 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
                 "pipeline-fs_wmparc",
+                "pipeline-fs_raw-average",
+                "pipeline-fs_xfm",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1813,6 +1832,8 @@ def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
                 "pipeline-fs_wmparc",
+                "pipeline-fs_raw-average",
+                "pipeline-fs_xfm",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
@@ -2565,7 +2586,6 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "pipeline-fs_wmparc",
                  "freesurfer-subject-dir"]}
     '''
-
     # fnirt-based brain extraction
     brain_extraction = fnirt_based_brain_extraction(config=cfg,
                                                     wf_name=f'fnirt_based_brain_extraction_{pipe_num}')
@@ -2666,6 +2686,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         return (wf, outputs)
 
     else:
+        raise Exception('freesurfer_dir not found')
         ### recon-all -all step ###
         reconall = pe.Node(interface=freesurfer.ReconAll(),
                            name=f'anat_freesurfer_{pipe_num}',
