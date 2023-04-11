@@ -1,10 +1,19 @@
-# C-PAC/.github README
+<!-- Copyright (C) 2023  C-PAC Developers
 
-This directory contains Dockerfiles, scripts, requirements files, and workflow configurations for [this repository's GitHub Actions](https://github.com/FCP-INDI/C-PAC/actions).
+This file is part of C-PAC.
+
+C-PAC is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>. -->
+# C-PAC/.github/README/README.md
+
+The `.github` directory contains Dockerfiles, scripts, requirements files, and workflow configurations for [this repository's GitHub Actions](https://github.com/FCP-INDI/C-PAC/actions).
 
 When updating these files, please update this README as necessary.
 
-[The `workflows` directory](./workflows) contains the configurations for the Actions themselves. The other directories support these configs.
+[The `workflows` directory](../workflows) contains the configurations for the Actions themselves. The other directories support these configs.
 
 ```mermaid
 flowchart LR
@@ -155,7 +164,7 @@ in the commit message. For this to work, all of these must be true:
        Dockerfile: 
    ```
 
-   in a job in a [workflow](.workflows) file.
+   in a job in a [workflow](../workflows) file.
 2. The Dockerfile exists.
 3. The commit message including
 
