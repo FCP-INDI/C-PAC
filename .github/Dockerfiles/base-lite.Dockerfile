@@ -49,6 +49,8 @@ COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/
+ENV C3DPATH /opt/c3d/
+ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
