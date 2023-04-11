@@ -1721,6 +1721,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
             'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
             'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_xfm': 'mri/transforms/talairach.xfm'
         }
         
         for key, outfile in recon_outs.items():
