@@ -913,7 +913,25 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     ### ABCD harmonization - anatomical brain mask generation ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
+    
+    wmparc_to_native = pe.Node(
+        interface=freesurfer.ApplyVolTransform(),
+        name='wmparc_to_native')
+    
+    wmparc_to_native.inputs.reg_header = True
 
+    node, out = strat_pool.get_data('pipeline-fs_wmparc') 
+    wf.connect(node, out, wmparc_to_native, 'source_file')
+
+    node, out = strat_pool.get_data('pipeline-fs_raw-average')
+    wf.connect(node, out, wmparc_to_native, 'target_file')
+
+    node, out = strat_pool.get_data('pipeline-fs_xfm')
+    wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
+
+    node, out = strat_pool.get_data('freesurfer-subject-dir')
+
+    wf.connect(node, out, wmparc_to_native, 'subjects_dir')
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file',
                                                          'reslice_like',
                                                          'args'],
@@ -1772,6 +1790,8 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "FreeSurfer-ABCD",
      "inputs": ["desc-preproc_T1w",
                 "pipeline-fs_wmparc",
+                "pipeline-fs_raw-average",
+                "pipeline-fs_xfm",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1880,6 +1900,8 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
      "option_val": "FreeSurfer-BET-Loose",
      "inputs": ["pipeline-fs_brainmask",
                 "pipeline-fs_T1",
+                "pipeline-fs_raw-average",
+                "pipeline-fs_xfm",
                 "T1w-brain-template-mask-ccs",
                 "T1w-ACPC-template"],
      "outputs": ["space-T1w_desc-loose_acpcbrain_mask"]}
