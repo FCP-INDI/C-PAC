@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `INDI-Tools` 0.0.7@`main` → 0.0.7@`998c246`
 - `joblib` 1.0.1 → 1.2.0
 - `matplotlib` 3.1.3 → 3.7.1
-- `networkx` 2.4 → 3.0
+- `networkx` 2.4 → 3.1
 - `nibabel` 3.0.1 → 5.0.1
 - `nilearn` 0.4.1 → 0.10.0
 - `nipype` 1.5.1 → 1.8.5
