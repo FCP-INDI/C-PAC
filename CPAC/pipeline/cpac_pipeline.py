@@ -209,6 +209,7 @@ from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
+from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
@@ -552,11 +553,11 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.8.5'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.8.5\n" \
-                          % (CPAC.__version__)
-                logger.error(err_msg)
+            nipype_version = REQUIREMENTS['nipype']
+            if nipype.__version__ != nipype_version:
+                logger.warning('This version of Nipype may not be compatible '
+                               f'with CPAC v{CPAC.__version__}, please '
+                               f'install Nipype version {nipype_version}\n')
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
