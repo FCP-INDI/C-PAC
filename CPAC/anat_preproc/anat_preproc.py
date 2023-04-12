@@ -2686,7 +2686,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         return (wf, outputs)
 
     else:
-        raise Exception('freesurfer_dir not found')
+        
         ### recon-all -all step ###
         reconall = pe.Node(interface=freesurfer.ReconAll(),
                            name=f'anat_freesurfer_{pipe_num}',
