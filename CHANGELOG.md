@@ -60,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pybids` 0.15.1 → 0.15.6
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
 - `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `PyPEER` 1.0@`main` → 1.1@`6965d2b`
+- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
 - `python-dateutil` 2.7.3 → 2.8.2
 - `PyYAML` 5.4 → 6.0
 - `requests` 2.21.0 → 2.28.2
