@@ -157,7 +157,7 @@ jobs:
             do
               if ([[ " ${REBUILD_PHASE_ONE[*]} " =~ " ${STAGE} " ]] || [[ " ${REBUILD_PHASE_TWO[*]} " =~ " ${STAGE} " ]]) && [[ ! " ${REBUILD_PHASE_THREE[*]} " =~ " ${STAGE} " ]]
               then
-                REBUILD_PHASE_THREE+=($STAGE)
+                REBUILD_PHASE_THREE+=($BASE)
               fi
             done
           done
