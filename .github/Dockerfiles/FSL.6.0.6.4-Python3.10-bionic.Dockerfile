@@ -31,7 +31,7 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     TZ=America/New_York
 
 # Installing and setting up FSL
-COPY dev/docker_data/checksum/FSL.6.0.6.4.md5 /tmp/checksum.md5
+COPY dev/docker_data/checksum/FSL.6.0.6.4.sha384 /tmp/checksum.sha384
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     &&  echo $TZ > /etc/timezone \
     && apt-get update \
@@ -39,7 +39,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo "Downloading FSL ..." \
     && mkdir -p /usr/share/fsl/6.0 \
     && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.4-centos6_64.tar.gz -o /tmp/fsl.tar.gz \
-    && md5sum --check /tmp/checksum.md5 \
+    && sha384sum --check /tmp/checksum.sha384 \
     && tar zx -C /usr/share/fsl/6.0 --strip-components=1 \
     --exclude=fsl/bin/mist \
     --exclude=fsl/bin/possum \

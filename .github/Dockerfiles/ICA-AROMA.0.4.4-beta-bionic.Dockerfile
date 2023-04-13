@@ -2,10 +2,10 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS ICA-AROMA
 USER root
 
 # install ICA-AROMA
-COPY dev/docker_data/checksum/ICA-AROMA.0.4.4.md5 /tmp/checksum.md5
+COPY dev/docker_data/checksum/ICA-AROMA.0.4.4.sha384 /tmp/checksum.sha384
 RUN mkdir -p /opt/ICA-AROMA \
     && curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.4-beta.tar.gz -o /tmp/ICA-AROMA.tar.gz \
-    && md5sum --check /tmp/checksum.md5 \
+    && sha384sum --check /tmp/checksum.sha384 \
     && tar -xzC /opt/ICA-AROMA --strip-components 1 -f /tmp/ICA-AROMA.tar.gz \
     && chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH

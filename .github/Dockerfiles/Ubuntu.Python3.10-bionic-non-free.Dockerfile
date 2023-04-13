@@ -126,17 +126,17 @@ RUN apt-get update \
 COPY requirements.txt /opt/requirements.txt
 COPY dev/docker_data/get-pip_23.0.1.py /tmp/get-pip.py
 COPY dev/docker_data/github_git-lfs.list /etc/apt/sources.list.d/github_git-lfs.list
-COPY dev/docker_data/checksum/Python3.10-bionic.md5 /tmp/checksum.md5
+COPY dev/docker_data/checksum/Python3.10-bionic.sha384 /tmp/checksum.sha384
 RUN python3.10 /tmp/get-pip.py \
     && pip install --upgrade pip setuptools \
     && pip install -r /opt/requirements.txt \
     # install git-lfs
     && curl -fsSL https://packagecloud.io/github/git-lfs/gpgkey | gpg --dearmor > /etc/apt/trusted.gpg.d/github_git-lfs-archive-keyring.gpg \
-    && md5sum --check /tmp/checksum.md5 \
+    && sha384sum --check /tmp/checksum.sha384 \
     && apt-get update \
     && apt-get install -y --no-install-recommends git-lfs \
     && git lfs install \
-    && rm /tmp/get-pip.py /tmp/checksum.md5
+    && rm /tmp/get-pip.py /tmp/checksum.sha384
 
 COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global

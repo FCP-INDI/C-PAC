@@ -3,7 +3,7 @@ USER root
 
 # install AFNI
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
-COPY dev/docker_data/checksum/AFNI.23.0.07.md5 /tmp/AFNI.23.0.07.md5
+COPY dev/docker_data/checksum/AFNI.23.0.07.sha384 /tmp/AFNI.23.0.07.sha384
 RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 ]; then \
         ln -svf /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 /usr/lib/x86_64-linux-gnu/libGL.so.1; \
     fi \
@@ -22,7 +22,7 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 ]; then \
     && apt-get update && apt-get install -y libglw1-mesa-dev \
     && AFNI_VERSION="23.0.07" \
     && curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz \
-    && md5sum --check /tmp/AFNI.23.0.07.md5 \
+    && sha384sum --check /tmp/AFNI.23.0.07.sha384 \
     && mkdir /opt/afni \
     && tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 \
     && rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz \

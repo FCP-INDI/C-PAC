@@ -13,10 +13,10 @@ RUN apt-get update \
 #---------------------
 # Install MSM Binaries
 #---------------------
-COPY dev/docker_data/checksum/msm.2.0.md5 /tmp/checksum.md5
+COPY dev/docker_data/checksum/msm.2.0.sha384 /tmp/checksum.sha384
 RUN mkdir /opt/msm \
     && curl -ksSL --retry 5 https://www.doc.ic.ac.uk/~ecr05/MSM_HOCR_v2/MSM_HOCR_v2-download.tgz -o msm.tgz \
-    && md5sum --check /tmp/checksum.md5 \
+    && sha384sum --check /tmp/checksum.sha384 \
     && tar zx -C /opt -f msm.tgz \
     && mv /opt/homes/ecr05/MSM_HOCR_v2/* /opt/msm/ \
     && rm -rf /opt/homes /opt/msm/MacOSX /opt/msm/Centos \
