@@ -22,7 +22,6 @@ from typing import Optional, Tuple
 from warnings import warn
 import pkg_resources as p
 import yaml
-from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
