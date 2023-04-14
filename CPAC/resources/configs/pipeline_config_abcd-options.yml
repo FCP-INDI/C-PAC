@@ -37,7 +37,7 @@ surface_analysis:
     ingress_reconall: On
 
     # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
-    run_reconall: Off
+    run_reconall: On
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
