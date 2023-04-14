@@ -118,18 +118,6 @@ class Configuration:
                 # replace spaces with hyphens in Regressor 'Name's
                 regressor['Name'] = regressor['Name'].replace(' ', '-')
 
-        # Don't double-run FreeSurfer
-        try:
-            if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
-                    'brain_extraction']['using']:
-                self.set_nested(config_map,
-                                ['surface_analysis', 'freesurfer', 
-                                 'run_reconall'],
-                                False)
-                warn(DOUBLERUN_GUARD_MESSAGE)
-        except (KeyError, TypeError):
-            pass
-
         config_map = schema(config_map)
 
         # remove 'FROM' before setting attributes now that it's imported
