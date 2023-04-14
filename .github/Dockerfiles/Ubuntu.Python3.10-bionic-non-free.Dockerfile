@@ -66,6 +66,7 @@ RUN apt-get update \
       ca-certificates \
       cmake \
       curl \
+      dc \
       dh-autoreconf \
       git \
       gnupg \
