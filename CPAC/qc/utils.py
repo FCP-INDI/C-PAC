@@ -1730,11 +1730,11 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             break
 
         try:
-            if cbar_name is 'red_to_blue':
+            if cbar_name == 'red_to_blue':
                 im = grid[i].imshow(np.rot90(X[:, :, zz]),
                                     cmap=cm.get_cmap(cbar_name), alpha=0.82,
                                     vmin=0, vmax=max_)
-            elif cbar_name is 'green':
+            elif cbar_name == 'green':
                 im = grid[i].imshow(np.rot90(X[:, :, zz]),
                                     cmap=cm.get_cmap(cbar_name), alpha=0.82,
                                     vmin=0, vmax=max_)
@@ -1917,11 +1917,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         im = None
 
         try:
-            if cbar_name is 'red_to_blue':
+            if cbar_name == 'red_to_blue':
                 im = grid[i].imshow(np.rot90(X[xx, :, :]),
                                     cmap=cm.get_cmap(cbar_name), alpha=0.82,
                                     vmin=0, vmax=max_)
-            elif cbar_name is 'green':
+            elif cbar_name == 'green':
                 im = grid[i].imshow(np.rot90(X[xx, :, :]),
                                     cmap=cm.get_cmap(cbar_name), alpha=0.82,
                                     vmin=0, vmax=max_)
