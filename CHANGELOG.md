@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
+- Makes in-container root directory writable by all
 
 ### Added dependency
 

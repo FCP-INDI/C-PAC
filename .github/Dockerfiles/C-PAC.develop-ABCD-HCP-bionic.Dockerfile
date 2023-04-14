@@ -17,11 +17,12 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
-RUN ldconfig
-
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && chmod 777 / \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 # USER c-pac_user
