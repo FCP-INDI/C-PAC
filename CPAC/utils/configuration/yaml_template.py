@@ -118,10 +118,10 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             if 'pipeline_setup' not in new_dict:
                 new_dict['pipeline_setup'] = None
             # Insert automatically-changed value in original dict
-            if freesurfer_extraction:
-                new_dict = set_nested_value(
-                    new_dict, ['surface_analysis', 'freesurfer',
-                    'run_reconall'], False)
+            # if freesurfer_extraction:
+            #     new_dict = set_nested_value(
+            #         new_dict, ['surface_analysis', 'freesurfer',
+            #         'run_reconall'], False)
             ingress_keys = ['surface_analysis', 'freesurfer', 'ingress_reconall']
             try:
                 self.get_nested(new_dict, ingress_keys)
@@ -150,12 +150,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 value = self.get_nested(new_dict, keys)
             except KeyError:  # exclude unincluded keys
                 continue
-            # Add comment for automatically changed value
-            if (keys == ['surface_analysis', 'freesurfer', 'run_reconall'] and
-                    freesurfer_extraction):
-                if comment is None:
-                    comment = []
-                comment.append(f'# {DOUBLERUN_GUARD_MESSAGE}')
+            
             # Print comment if there's one above this key in the template
             if comment:
                 if key != 'pipeline_setup':
