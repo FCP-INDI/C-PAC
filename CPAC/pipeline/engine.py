@@ -1320,10 +1320,9 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)                
-            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+            else:  
                 opts = [None]
             all_opts += opts
-
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
@@ -1395,7 +1394,6 @@ class NodeBlock:
                         switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
-
             if True in switch:
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
@@ -1418,7 +1416,6 @@ class NodeBlock:
                                 input_name = interface[1]
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
-                        
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
@@ -1736,7 +1733,11 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                     dl_dir=cfg.pipeline_setup['working_directory']['path'])
                 rpool.set_data(key, fs_ingress, 'outputspec.data',
                                {}, "", f"fs_{key}_ingress")
-
+            else:
+                warnings.warn(str(
+                        LookupError("\n[!] Path does not exist for "
+                                        f"{fullpath}.\n")))
+                
     return rpool
 
 
