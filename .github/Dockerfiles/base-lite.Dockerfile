@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3.python3.10-bionic as ANTs
+FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-bionic as ICA-AROMA
@@ -43,14 +44,12 @@ ENV POSSUMDIR=${FSLDIR}/6.0 \
     PATH=${FSLDIR}/bin:$PATH
 COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
 COPY --from=FSL /usr/bin/wish /usr/bin/wish
-COPY --from=FSL /usr/share/fsl /usr/share/fsl
+COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 
 # Installing and setting up c3d
-RUN mkdir -p /opt/c3d && \
-    curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz" \
-    | tar -xzC /opt/c3d --strip-components 1
-ENV C3DPATH /opt/c3d
+COPY --from=c3d /opt/c3d/ opt/c3d/
+ENV C3DPATH /opt/c3d/
 ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
