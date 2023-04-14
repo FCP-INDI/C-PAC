@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Changed
+
+- Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
+- Makes in-container root directory writable by all
+
+### Added dependency
+
+- `dc`
+
 ### Removed dependencies
 
 - `bids-validator`
@@ -41,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `networkx` 2.4 → 3.1
 - `nibabel` 3.0.1 → 5.0.1
 - `nilearn` 0.4.1 → 0.10.0
-- `nipype` 1.5.1 → 1.8.5
+- `nipype` 1.5.1 → 1.8.6
 - `numpy` 1.21.0 → 1.24.2
 - `pandas` 1.0.5 → 1.5.3
 - `patsy` 0.5.0 → 0.5.3
