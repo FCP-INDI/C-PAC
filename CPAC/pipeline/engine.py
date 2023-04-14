@@ -55,7 +55,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
+logger = getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -448,6 +448,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -471,6 +472,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -498,6 +500,7 @@ class ResourcePool:
                                 f'NO-{val[0]}')
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -533,6 +536,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('len(strat_list_list): %s\n',
                                      len(strat_list_list))
             for strat_list in strat_list_list:
@@ -1320,10 +1324,11 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)                
-            else:  
+            else:                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1438,6 +1443,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1536,7 +1542,7 @@ class NodeBlock:
                                                               new_json_info,
                                                               pipe_idx,
                                                               pipe_x)
-
+        
         return wf
 
 
@@ -1777,6 +1783,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 

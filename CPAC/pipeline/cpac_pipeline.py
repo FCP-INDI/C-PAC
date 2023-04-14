@@ -23,7 +23,7 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
+from CPAC.utils.monitoring.custom_logging import getLogger
 from time import strftime
 
 import nipype
