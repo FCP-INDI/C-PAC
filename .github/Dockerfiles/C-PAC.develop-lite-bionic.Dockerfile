@@ -14,6 +14,7 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
     rm -Rf /code/run-with-freesurfer.sh
+WORKDIR /home/c-pac_user
 ENTRYPOINT ["/code/run.py"]
 
 # link libraries & clean up
