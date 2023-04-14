@@ -1886,7 +1886,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
                          direction="row")
     else:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
-                         aspect=True, cbar_mode="None", direction="row")
+                         aspect=True, cbar_mode=None, direction="row")
 
     xx = x1
     for i in range(6*3):
@@ -2021,10 +2021,10 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
 
     try:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
-                          aspect=True, cbar_mode="None", direction="row")
+                          aspect=True, cbar_mode=None, direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
-                         aspect=True, cbar_mode="None", direction="row")
+                         aspect=True, cbar_mode=None, direction="row")
 
     zz = z1
     for i in range(6*3):
@@ -2119,10 +2119,10 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
 
     try:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
-                          aspect=True, cbar_mode="None", direction="row")
+                          aspect=True, cbar_mode=None, direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
-                         aspect=True, cbar_mode="None", direction="row")
+                         aspect=True, cbar_mode=None, direction="row")
 
     zz = x1
     for i in range(6*3):
