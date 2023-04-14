@@ -14,6 +14,7 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
     chmod +x /code/run-with-freesurfer.sh
+WORKDIR /home/c-pac_user
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
@@ -21,7 +22,6 @@ RUN ldconfig \
     && apt-get clean \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && chmod 777 / \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user

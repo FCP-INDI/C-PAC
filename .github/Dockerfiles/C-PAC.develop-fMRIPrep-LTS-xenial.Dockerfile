@@ -14,6 +14,7 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
     chmod +x /code/run-with-freesurfer.sh
+WORKDIR /home/c-pac_user
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
@@ -23,7 +24,6 @@ RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && ldconfig \
-    && chmod 777 / \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
