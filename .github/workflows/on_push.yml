@@ -57,7 +57,7 @@ jobs:
           if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
           then
             cd CPAC
-            VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+            VERSION=$(python -c "from info import __version__; print(('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__).split('+', 1)[0])")
             cd ..
             echo "v${VERSION}" > version
             find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
