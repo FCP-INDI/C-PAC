@@ -987,7 +987,7 @@ latest_schema = Schema({
     },
     'surface_connectivity': {
         'run': bool,
-         'surface_parcellation_template':Maybe(str) },
+        'surface_parcellation_template':Maybe(str) },
     'seed_based_correlation_analysis': {
         'run': bool1_1,
         Optional('roi_paths_fully_specified'): bool1_1,
