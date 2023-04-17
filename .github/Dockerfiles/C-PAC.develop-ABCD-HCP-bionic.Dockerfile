@@ -14,7 +14,6 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
     chmod +x /code/run-with-freesurfer.sh
-WORKDIR /home/c-pac_user
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
@@ -26,3 +25,4 @@ RUN ldconfig \
 
 # set user
 # USER c-pac_user
+WORKDIR /home/c-pac_user
