@@ -359,7 +359,7 @@ jobs:
       #- C-PAC-ABCD-HCP
       #- C-PAC-fMRIPrep-LTS
     #if: github.ref_type == 'branch'
-    if: github.ref_type == 'branch' && github.ref_name != 'regression/reg-suite'
+    if: github.ref_type == 'branch' && github.ref_name != 'regression/reg-suite' && github.ref_name != 'regression/live-log'
     runs-on: ubuntu-latest
     steps:
       - name: Check out C-PAC
