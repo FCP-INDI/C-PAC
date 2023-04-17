@@ -985,7 +985,9 @@ latest_schema = Schema({
             for option in ['using', 'measure']
         },
     },
-    'surface_connectivity': {'run': bool},
+    'surface_connectivity': {
+        'run': bool,
+         'surface_parcellation_template':Maybe(str) },
     'seed_based_correlation_analysis': {
         'run': bool1_1,
         Optional('roi_paths_fully_specified'): bool1_1,
