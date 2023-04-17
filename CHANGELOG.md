@@ -18,11 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-<<<<<<< HEAD
-- Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}a{alpha}+{SHA}`
-=======
 - Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}.dev{integer}+{SHA}`
->>>>>>> ed53e73b (:alien: PEP440)
 - Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
 - Makes in-container root directory writable by all
 

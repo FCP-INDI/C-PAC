@@ -82,11 +82,7 @@ def get_cpac_gitversion():
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-<<<<<<< HEAD
-        _version_extra = f'a1+{gitversion}'
-=======
         _version_extra = f'.dev1+{gitversion}'
->>>>>>> ed53e73b (:alien: PEP440)
 
 
 __version__ = "%s.%s.%s" % (_version_major,
