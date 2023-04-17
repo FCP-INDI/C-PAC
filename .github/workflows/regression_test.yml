@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Clone reg-suite
         run: |
-          git clone https://github.com/amygutierrez/reg-suite.git
+          git clone https://github.com/shnizzedy/reg-suite.git
 
       - name: Run Regression Test
         run: |
