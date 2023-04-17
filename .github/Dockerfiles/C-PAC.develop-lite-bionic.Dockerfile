@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6..dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
