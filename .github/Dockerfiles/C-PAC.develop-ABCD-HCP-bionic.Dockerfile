@@ -21,7 +21,7 @@ RUN ldconfig \
     && apt-get clean \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && chmod 777 $(ls / | grep -v sys | grep -v proc)
+    && chmod 777 $(ls / | grep -v sys | grep -v proc) /home/c-pac_user
 
 # set user
 # USER c-pac_user

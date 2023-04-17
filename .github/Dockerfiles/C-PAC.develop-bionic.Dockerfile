@@ -19,7 +19,7 @@ ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 # link libraries & clean up
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && ldconfig \
-    && chmod 777 $(ls / | grep -v sys | grep -v proc)
+    && chmod 777 $(ls / | grep -v sys | grep -v proc) /home/c-pac_user
 
 # set user
 # USER c-pac_user
