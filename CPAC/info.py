@@ -82,7 +82,7 @@ def get_cpac_gitversion():
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-        _version_extra = gitversion + '-' + 'dev'
+        _version_extra = f'a1+{gitversion}'
 
 
 __version__ = "%s.%s.%s" % (_version_major,
