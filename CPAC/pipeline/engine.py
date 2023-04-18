@@ -1542,7 +1542,6 @@ class NodeBlock:
                                                               new_json_info,
                                                               pipe_idx,
                                                               pipe_x)
-        
         return wf
 
 
