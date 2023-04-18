@@ -90,7 +90,8 @@ def _version_sort(_version_item):
 
 
 PYTHON_PACKAGES = dict(sorted({
-  d.name: d.version for d in list(distributions())}.items(),
+  getattr(d, 'name', d.metadata['Name']): d.version for d in
+          list(distributions())}.items(),
   key=_version_sort))
 REPORTED = dict(sorted({
   **cli_version('ldd --version', formatting=first_line),
