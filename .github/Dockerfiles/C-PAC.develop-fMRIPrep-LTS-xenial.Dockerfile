@@ -23,8 +23,8 @@ RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && ldconfig \
-    && chmod 777 / \
-    && chmod 777 $(ls / | grep -v sys | grep -v proc)
+    && chmod 777 $(ls / | grep -v sys | grep -v proc) /home/c-pac_user
 
 # set user
 # USER c-pac_user
+WORKDIR /home/c-pac_user

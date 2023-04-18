@@ -48,3 +48,9 @@ jobs:
           else
             echo "Skipping regression tests"
           fi
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: logs
+          path: output/*/*/log/
