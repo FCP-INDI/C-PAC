@@ -961,8 +961,8 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, R_reho, 'dtseries')
 
     outputs = {
-        'surf-L_reho': (L_reho,'L_reho'),
-        'surf-R_reho': (R_reho,'R_reho')}
+        'space-fsLR_den-32k_bold_surf-L_reho': (L_reho,'L_reho'),
+        'space-fsLR_den-32k_bold_surf-R_reho': (R_reho,'R_reho')}
 
     return wf, outputs
 
@@ -1033,7 +1033,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
                 "hemi-L_space-fsLR_den-32k_desc-atlasroi_mask",
                 "hemi-R_space-fsLR_den-32k_midthickness",
                 "hemi-R_space-fsLR_den-32k_desc-atlasroi_mask"],
-     "outputs": ["surf-L_reho", "surf-R_reho"]}
+     "outputs": ["space-fsLR_den-32k_bold_surf-L_reho", "space-fsLR_den-32k_bold_surf-R_reho"]}
     '''
     wf, outputs = cal_reho(wf, cfg, strat_pool, pipe_num, opt)
     
