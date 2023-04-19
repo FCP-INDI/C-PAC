@@ -390,6 +390,29 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
     return out_file
 
 
+def find_volume_center(img_file):
+    """
+    Find the center of mass of a Nifti image volume
+
+    Parameters
+    ----------
+    img_file : string (nifti file)
+        path to nifti volume image
+
+    Returns
+    -------
+    center : ndarray 
+        volume center of mass vector
+    """
+    img = nb.load(img_file)
+    dim = np.array(img.header["dim"][1:4])
+    pixdim = np.array(img.header["pixdim"][1:4])
+    # Calculation follows MCFLIRT
+    # https://github.com/fithisux/FSL/blob/7aa2932949129f5c61af912ea677d4dbda843895/src/mcflirt/mcflirt.cc#L479
+    center = 0.5 * (dim - 1) * pixdim
+    return center
+
+
 def gen_motion_parameters(subject_id, scan_id, movement_parameters,
                           max_displacement, motion_correct_tool):
     """
