@@ -597,6 +597,10 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'vertical_gradient']),
         name=f'BET_options_{pipe_num}')
 
+    anat_robustfov = pe.Node(
+        interface=fsl.RobustFOV(), name=f'anat_RobustFOV_{pipe_num}')
+    anat_robustfov.inputs.output_type = 'NIFTI_GZ'
+    
     anat_skullstrip = pe.Node(
         interface=fsl.BET(), name=f'anat_BET_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
@@ -635,13 +639,15 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
             'FSL-BET']['vertical_gradient'],
     )
 
-    if strat_pool.check_rpool('desc-preproc_T1w'): 
+  if strat_pool.check_rpool('desc-preproc_T1w'): 
         node, out = strat_pool.get_data('desc-preproc_T1w')
-        wf.connect(node, out, anat_skullstrip, 'in_file')
+        wf.connect(node, out, anat_robustfov, 'in_file')
+        wf.connect(anat_robustfov, 'out_file', anat_skullstrip,'in_file')
 
     elif strat_pool.check_rpool('desc-preproc_T2w'):
         node, out = strat_pool.get_data('desc-preproc_T2w')
-        wf.connect(node, out, anat_skullstrip, 'in_file')
+        wf.connect(node, out, anat_robustfov, 'in_file')
+        wf.connect(anat_robustfov, 'out_file', anat_skullstrip,'in_file')
 
     wf.connect([
         (inputnode_bet, anat_skullstrip, [
