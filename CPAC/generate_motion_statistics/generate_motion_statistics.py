@@ -324,14 +324,20 @@ def calculate_FD_P(in_file):
     return out_file
 
 
-def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
+def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
 
     Parameters
     ----------
     in_file : string
-        matrix transformations from volume alignment file path
+        matrix transformations from volume alignment file path if
+        motion_correct_tool is '3dvolreg', or FDRMS (*_rel.rms) output if
+        motion_correct_tool is 'mcflirt'.
+    motion_correct_tool : string
+        motion correction tool used, '3dvolreg' or 'mcflirt'.
+    center : ndarray
+        optional volume center for the calculation.
 
     Returns
     -------
@@ -339,6 +345,10 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
         Frame-wise displacement file path
 
     """
+    if center is None:
+        center = np.zeros((3, 1))
+    else:
+        center = np.asarray(center).reshape((3, 1))
 
     if motion_correct_tool == '3dvolreg':
         pm_ = np.genfromtxt(in_file)
@@ -359,7 +369,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
 
             M = np.dot(T_rb, np.linalg.inv(T_rb_prev)) - np.eye(4)
             A = M[0:3, 0:3]
-            b = M[0:3, 3]
+            b = M[0:3, 3:4] + A @ center
 
             fd[i] = np.sqrt(
                 (rmax * rmax / 5) * np.trace(np.dot(A.T, A)) + np.dot(b.T, b)
@@ -370,6 +380,9 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     elif motion_correct_tool == 'mcflirt':
         rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
+    
+    else:
+        raise ValueError(f"motion_correct_tool {motion_correct_tool} not supported")
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
