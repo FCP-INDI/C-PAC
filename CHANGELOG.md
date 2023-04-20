@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added NodeBlock information to `pypeline.log` when verbose debugging is on
 - Added the ability to ingress FreeSurfer data into CPAC
 - Added the ability to toggle FreeSurfer derived masks for brain extraction
+- Added an optional volume center to FD-J calculation
 
 ### Changed
 - Freesurfer output directory ingress moved to the data configuration YAML
