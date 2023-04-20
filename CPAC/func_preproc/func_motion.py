@@ -68,9 +68,13 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
 
+    coordinate_transformation = ['filtered-coordinate-transformation',
+                                 'coordinate-transformation']
     gen_motion_stats = motion_power_statistics(
         name=f'gen_motion_stats_{pipe_num}',
-        motion_correct_tool=motion_correct_tool)
+        motion_correct_tool=motion_correct_tool,
+        filtered='motion_estimate_filter' in str(
+            strat_pool.get_cpac_provenance(coordinate_transformation)))
 
     # Special case where the workflow is not getting outputs from
     # resource pool but is connected to functional datasource
@@ -91,9 +95,6 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     if strat_pool.check_rpool('rels-displacement'):
         wf.connect(*strat_pool.get_data('rels-displacement'),
                    gen_motion_stats, 'inputspec.rels_displacement')
-
-    coordinate_transformation = ['filtered-coordinate-transformation',
-                                 'coordinate-transformation']
     if strat_pool.check_rpool(coordinate_transformation):
         wf.connect(*strat_pool.get_data(coordinate_transformation),
                    gen_motion_stats, 'inputspec.transformations')
