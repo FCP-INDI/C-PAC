@@ -37,17 +37,18 @@ jobs:
           git clone https://github.com/amygutierrez/reg-suite.git
 
       - name: Run Regression Test
+        if: github.event_name = push
         run: |
           #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "Running \`lite\` regression test"
-            python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
-          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-            echo "Running \`full\` regression test"
-            python3 reg-suite/main.py run --full --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
-          else
-            echo "Skipping regression tests"
-          fi
+          #if [ "${{ github.event_name }}" = "push" ]; then
+          echo "Running \`lite\` regression test"
+          python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
+          #elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
+          #  echo "Running \`full\` regression test"
+          #  python3 reg-suite/main.py run --full --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
+          #else
+          #  echo "Skipping regression tests"
+          #fi
 
       - uses: actions/upload-artifact@v3
         if: always()
