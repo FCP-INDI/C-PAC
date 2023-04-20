@@ -51,7 +51,7 @@ jobs:
           #fi
 
       - name: Run Full Regression Test
-        if: [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]
+        if: ${{ github.event_name }} == "pull_request" && ${{ github.event.pull_request.state }} == "closed" && ${{ github.event.pull_request.merged }} == "true" && ${{ github.event.pull_request.base.ref }} == "main"
         run: |
           echo "Running full regression test"
 
