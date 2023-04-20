@@ -55,9 +55,8 @@ jobs:
         run: |
           echo "Running full regression test"
 
-      - name: Logs
-        - uses: actions/upload-artifact@v3
-          if: always()
-          with:
-            name: logs
-            path: output/*/*/log/
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: logs
+          path: output/*/*/log/
