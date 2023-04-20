@@ -385,6 +385,12 @@ class ResourcePool:
     def get_cpac_provenance(self, resource, strat=None):
         # NOTE: resource_strat_dct has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
+        if isinstance(resource, list):
+            for _resource in resource:
+                try:
+                    return self.get_cpac_provenance(_resource, strat)
+                except KeyError:
+                    continue
         json_data = self.get_json(resource, strat)
         return json_data['CpacProvenance']
 
