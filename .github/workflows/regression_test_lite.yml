@@ -48,8 +48,14 @@ jobs:
           #  echo "Skipping regression tests"
           #fi
 
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: logs
-          path: output/*/*/log/
+      - name: Run Full Regression Test
+        if: [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]
+        run: |
+          echo "Running full regression test"
+
+      - name: Logs
+        - uses: actions/upload-artifact@v3
+          if: always()
+          with:
+            name: logs
+            path: output/*/*/log/
