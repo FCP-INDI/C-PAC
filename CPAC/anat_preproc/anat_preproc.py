@@ -914,33 +914,43 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     ### ABCD harmonization - anatomical brain mask generation ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
 
-    wmparc_to_native = pe.Node(
-        interface=freesurfer.ApplyVolTransform(),
-        name='wmparc_to_native')
     
-    wmparc_to_native.inputs.reg_header = True
-
-    node, out = strat_pool.get_data('pipeline-fs_wmparc') 
-    wf.connect(node, out, wmparc_to_native, 'source_file')
-
-    node, out = strat_pool.get_data('pipeline-fs_raw-average')
-    wf.connect(node, out, wmparc_to_native, 'target_file')
-
-    node, out = strat_pool.get_data('pipeline-fs_xfm')
-    wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
-
-    node, out = strat_pool.get_data('freesurfer-subject-dir')
-
-    wf.connect(node, out, wmparc_to_native, 'subjects_dir')
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file',
                                                          'reslice_like',
                                                          'args'],
                                             output_names=['out_file'],
                                             function=mri_convert),
                               name=f'wmparc_to_nifti_{pipe_num}')
-    wmparc_to_nifti.inputs.args = '-rt nearest'
+    
+    # Register wmparc file if ingressing FreeSurfer data
+    if strat_pool.check_rpool('pipeline-fs_xfm'):
 
-    wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
+        wmparc_to_native = pe.Node(
+            interface=freesurfer.ApplyVolTransform(),
+            name='wmparc_to_native')
+        
+        wmparc_to_native.inputs.reg_header = True
+
+        node, out = strat_pool.get_data('pipeline-fs_wmparc') 
+        wf.connect(node, out, wmparc_to_native, 'source_file')
+
+        node, out = strat_pool.get_data('pipeline-fs_raw-average')
+        wf.connect(node, out, wmparc_to_native, 'target_file')
+
+        node, out = strat_pool.get_data('pipeline-fs_xfm')
+        wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
+
+        node, out = strat_pool.get_data('freesurfer-subject-dir')
+        wf.connect(node, out, wmparc_to_native, 'subjects_dir')
+
+        wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
+    
+    else:
+        
+        node, out = strat_pool.get_data('pipeline-fs_wmparc')
+        wf.connect(node, out, wmparc_to_nifti, 'in_file')
+
+    wmparc_to_nifti.inputs.args = '-rt nearest'
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, wmparc_to_nifti, 'reslice_like')
@@ -2677,52 +2687,12 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(average_brain, 'out_stat',
                normalize_head, 'number')
 
-    if strat_pool.check_rpool('freesurfer-subject-dir'):
-        outputs = {
+    outputs = {
             'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
             'desc-restore-brain_T1w': (fast_correction,
                                        'outputspec.anat_brain_restore'),
             'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
-        return (wf, outputs)
-
-    else:
-        
-        ### recon-all -all step ###
-        reconall = pe.Node(interface=freesurfer.ReconAll(),
-                           name=f'anat_freesurfer_{pipe_num}',
-                           mem_gb=2.7)
-
-        sub_dir = cfg.pipeline_setup['working_directory']['path']
-        freesurfer_subject_dir = os.path.join(sub_dir,
-                                              'cpac_'+cfg['subject_id'],
-                                              f'anat_preproc_freesurfer_{pipe_num}',
-                                              'anat_freesurfer')
-
-        # create the directory for FreeSurfer node
-        if not os.path.exists(freesurfer_subject_dir):
-            os.makedirs(freesurfer_subject_dir)
-
-        reconall.inputs.directive = 'all'
-        reconall.inputs.subjects_dir = freesurfer_subject_dir
-        reconall.inputs.openmp = cfg.pipeline_setup['system_config']['num_OMP_threads']
-
-        wf.connect(normalize_head, 'out_file',
-                   reconall, 'T1_files')
-
-        wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
-
-        outputs = {
-        'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
-        'desc-restore-brain_T1w': (fast_correction,
-                                   'outputspec.anat_brain_restore'),
-        'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
-        'pipeline-fs_wmparc': (reconall, 'wmparc'),
-        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        **hemisphere_outputs
-    }
-
     return (wf, outputs)
-
 
 # we're grabbing the postproc outputs and appending them to
 # the reconall outputs
