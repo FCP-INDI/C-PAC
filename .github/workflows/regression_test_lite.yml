@@ -1,5 +1,6 @@
 name: Run Regression Lite Test
 
+
 on: 
   pull_request:
     types: [ready_for_review]
@@ -47,11 +48,6 @@ jobs:
           #else
           #  echo "Skipping regression tests"
           #fi
-
-      - name: Run Full Regression Test
-        if: ${{ github.event_name }} == "pull_request" && ${{ github.event.pull_request.state }} == "closed" && ${{ github.event.pull_request.merged }} == "true" && ${{ github.event.pull_request.base.ref }} == "main"
-        run: |
-          echo "Running full regression test"
 
       - uses: actions/upload-artifact@v3
         if: always()

@@ -346,13 +346,13 @@ jobs:
     name: Run lite regression test
     needs:
       - C-PAC
-    uses: ./.github/workflows/regression_test.yml
+    uses: ./.github/workflows/regression_test_lite.yml
 
   regtest-full:
     name: Run full regression test
     needs:
       - smoke-tests-participant
-    uses: ./.github/workflows/regression_test.yml
+    uses: ./.github/workflows/regression_test_full.yml
 
   finish-build-check:
     name: Finish GitHub check
