@@ -12,10 +12,6 @@ jobs:
     steps: 
       - name: Get C-PAC branch
         run: |
-          if [[ "${{ matrix.variant }}" != "" ]]
-          then
-            VARIANT=-${{ matrix.variant }}
-          fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
@@ -38,11 +34,12 @@ jobs:
           git clone https://github.com/amygutierrez/reg-suite.git
 
 
-      - name: Run Full Regression Test
-        if: ${{ github.event_name }} == "pull_request" && ${{ github.event.pull_request.state }} == "closed" && ${{ github.event.pull_request.merged }} == "true" && ${{ github.event.pull_request.base.ref }} == "main"
+      - name: Run Lite Regression Test
+        if: github.event_name == "push"
         run: |
           #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-          echo "Running full regression test"
+          echo "Running lite regression test"
+          echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
           #python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
           #elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
           #  echo "Running \`full\` regression test"
