@@ -51,12 +51,12 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
                  "space-bold_desc-brain_mask"),
-                 ("max-displacement",
-                  "rels-displacement",
-                  "movement-parameters"),
-                 (["filtered-movement-parameters", "movement-parameters"],
-                  ["filtered-coordinate-transformation",
-                  "coordinate-transformation"]),
+                 "max-displacement",
+                 "rels-displacement",
+                 "movement-parameters",
+                 ["filtered-movement-parameters", "movement-parameters"],
+                 ["filtered-coordinate-transformation",
+                 "coordinate-transformation"]),
                 "subject",
                 "scan"],
      "outputs": ["framewise-displacement-power",
@@ -601,13 +601,13 @@ def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num):
                 normalize_motion_params, 'in_file')
 
     get_rms_abs = pe.Node(Function(input_names=['rms_files'],
-                                    output_names=['abs_file',
-                                                    'rels_file'],
-                                    function=get_mcflirt_rms_abs),
-                            name=f'get_mcflirt_rms_abs_{pipe_num}')
+                                   output_names=['abs_file',
+                                                 'rels_file'],
+                                   function=get_mcflirt_rms_abs),
+                          name=f'get_mcflirt_rms_abs_{pipe_num}')
 
     wf.connect(func_motion_correct_A, 'rms_files',
-                get_rms_abs, 'rms_files')
+               get_rms_abs, 'rms_files')
 
     outputs = {
         'desc-preproc_bold': (func_motion_correct_A, 'out_file'),
@@ -615,7 +615,10 @@ def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num):
         'max-displacement': (get_rms_abs, 'abs_file'),
         'rels-displacement': (get_rms_abs, 'rels_file'),
         'movement-parameters': (normalize_motion_params, 'out_file'),
-        'coordinate-transformation': (func_motion_correct_A, 'mat_file')
+        'coordinate-transformation': (func_motion_correct_A, 'mat_file'),
+        'filtered-movement-parameters': (normalize_motion_params, 'out_file'),
+        'filtered-coordinate-transformation': (func_motion_correct_A,
+                                               'mat_file')
     }
 
     return wf, outputs
