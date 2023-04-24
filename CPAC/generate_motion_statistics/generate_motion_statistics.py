@@ -16,7 +16,11 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions to calculate motion statistics"""
 import os
-from typing import Literal, Optional
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+from typing import Optional
 import numpy as np
 import nibabel as nb
 from CPAC.pipeline import nipype_pipeline_engine as pe
