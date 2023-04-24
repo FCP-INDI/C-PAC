@@ -20,7 +20,7 @@ import numpy as np
 
 def affine_file_from_params_file(params_file: str, affine_file: str = None
                                  ) -> str:
-    """Convert a 6-DOF motion parameters array into a 4x4 affine matrix
+    """Convert a 6-DOF motion parameters array into a 4x4 affine matrix.
 
     Parameters
     ----------
@@ -81,7 +81,7 @@ def affine_from_params(params: np.ndarray) -> np.ndarray:
         the upper-left 3 x 3 matrix encoding rotation,
         the top three values in the fourth column encoding translation
         and the bottom row being [0, 0, 0, 1] for each timepoint
-"""
+    """
     from nipype.algorithms.rapidart import _get_affine_matrix
     from scipy.spatial.transform import Rotation
 
@@ -92,3 +92,29 @@ def affine_from_params(params: np.ndarray) -> np.ndarray:
                                              degrees=True).as_matrix()
         out.append(affine)
     return np.array(out)
+
+
+def load_mats(mat_dir: str) -> np.ndarray:
+    """
+    Given a directory of affince matrices as output by MCFLIRT, 
+    return an array of these matrices
+    
+    Parameters
+    ----------
+    mat_dir : str
+        path to MCFLIRT matrix output
+
+    Returns
+    -------
+    np.ndarray
+        t x 4 x 4 affine matrix
+    """
+    from pathlib import Path
+    import numpy as np
+    mats = []
+    mat_paths = sorted(list(Path(mat_dir).glob("MAT_*")))
+    for path in mat_paths:
+        mat = np.loadtxt(path)
+        mats.append(mat)
+    mats = np.stack(mats)
+    return mats
