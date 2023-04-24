@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions to calculate motion statistics"""
 import os
+import sys
 try:
     from typing import Literal
 except ImportError:
@@ -23,6 +24,7 @@ except ImportError:
 from typing import Optional
 import numpy as np
 import nibabel as nb
+import pytest
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -350,6 +352,8 @@ def calculate_FD_P(in_file):
     return out_file
 
 
+@pytest.mark.skipif(sys.version_info < (3, 10),
+                    reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
                    center: Optional[np.ndarray] = None) -> str:
     """
