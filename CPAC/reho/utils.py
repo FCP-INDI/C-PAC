@@ -110,8 +110,8 @@ def compute_reho(in_file, mask_file, cluster_size):
     res_img = nb.load(res_fname)
     res_mask_img = nb.load(res_mask_fname)
 
-    res_data = res_img.get_data()
-    res_mask_data = res_mask_img.get_data()
+    res_data = res_img.get_fdata()
+    res_mask_data = res_mask_img.get_fdata()
 
     print(res_data.shape)
     (n_x, n_y, n_z, n_t) = res_data.shape
@@ -273,8 +273,8 @@ def compute_reho(in_file, mask_file, cluster_size):
 
                     K[i, j, k] = f_kendall(mask_R_block)
 
-    img = nb.Nifti1Image(K, header=res_img.get_header(),
-                         affine=res_img.get_affine())
+    img = nb.Nifti1Image(K, header=res_img.header,
+                         affine=res_img.affine)
     reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
     img.to_filename(reho_file)
     out_file = reho_file

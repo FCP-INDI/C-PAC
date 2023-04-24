@@ -1,3 +1,20 @@
+# Copyright (C) 2021-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as FSL
 USER root
 
@@ -24,17 +41,6 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     AFNI_PLUGINPATH="/usr/lib/afni/plugins" \
     PATH=/usr/lib/fsl/5.0:$PATH
 
-# install CPAC resources into FSL
-RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
-    tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
-    cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
-    cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
-    cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    chmod -R ugo+r $FSLDIR/data/standard
-
 ENTRYPOINT ["/bin/bash"]
 
 # Link libraries for Singularity images
@@ -59,3 +65,5 @@ COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
 COPY --from=FSL /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
 COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
+# install C-PAC resources into FSL
+COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard

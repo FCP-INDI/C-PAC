@@ -115,17 +115,18 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.8.5
+            - pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.10.10
       - run:
           name: "Installing CI dependencies"
           command: |
-            pyenv global 3.8.5
+            pyenv install 3.10.10
+            pyenv global 3.10.10
             pip install --upgrade pip
             pip install -r dev/circleci_data/requirements.txt
       - save_cache:
-          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.8.5
+          key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.10.10
           paths: 
-            - /opt/circleci/.pyenv/versions/3.8.5
+            - /opt/circleci/.pyenv/versions/3.10.10
   set-up-variant:
     parameters:
       variant:
@@ -162,7 +163,7 @@ commands:
 jobs:
   combine-coverage:
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:2023.04.2
     steps:
       - checkout
       - restore_cache:
@@ -187,7 +188,7 @@ jobs:
         type: string
         default: ""
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:2023.04.2
     resource_class: medium
     steps:
       - checkout
@@ -209,7 +210,7 @@ jobs:
         type: string
         default: ""
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:2023.04.2
     resource_class: large
     steps:
       - checkout
@@ -231,7 +232,7 @@ jobs:
         type: string
         default: ""
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:2023.04.2
     resource_class: large
     steps:
       - checkout

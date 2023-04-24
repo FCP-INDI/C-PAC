@@ -329,7 +329,7 @@ def convert_afni_to_ants(afni_warp):
     afni_warp_hdr.set_data_dtype('<f4')
     afni_warp_hdr.set_intent('vector', (), '')
 
-    afni_warp_data = afni_warp_img.get_data().astype('<f4')
+    afni_warp_data = afni_warp_img.get_fdata().astype('<f4')
 
     ants_warp = os.path.join(os.getcwd(), os.path.basename(afni_warp))
     nb.Nifti1Image(afni_warp_data,

@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:fmriprep-lts-v1.8.6.dev
+FROM ghcr.io/fcp-indi/c-pac/stage-base:fmriprep-lts-v1.8.6.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [fMRIPrep LTS](https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
@@ -17,13 +17,14 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
-    locale-gen && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && ldconfig \
+    && chmod 777 / \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 # USER c-pac_user
