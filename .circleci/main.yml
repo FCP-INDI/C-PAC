@@ -119,7 +119,7 @@ commands:
       - run:
           name: "Installing CI dependencies"
           command: |
-            pyenv install 3.10.10
+            yes n | pyenv install 3.10.10 || true
             pyenv global 3.10.10
             pip install --upgrade pip
             pip install -r dev/circleci_data/requirements.txt
