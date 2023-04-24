@@ -41,13 +41,7 @@ jobs:
           #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
           echo "Running lite regression test"
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-          #python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
-          #elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-          #  echo "Running \`full\` regression test"
-          #  python3 reg-suite/main.py run --full --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
-          #else
-          #  echo "Skipping regression tests"
-          #fi
+          python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
 
       - uses: actions/upload-artifact@v3
         if: always()
