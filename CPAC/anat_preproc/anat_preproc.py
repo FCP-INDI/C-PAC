@@ -650,7 +650,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
             'FSL-BET']['vertical_gradient'],
     )
 
-  if strat_pool.check_rpool('desc-preproc_T1w'): 
+    if strat_pool.check_rpool('desc-preproc_T1w'): 
         node, out = strat_pool.get_data('desc-preproc_T1w')
         wf.connect(node, out, anat_robustfov, 'in_file')
         wf.connect(anat_robustfov, 'out_roi', anat_skullstrip,'in_file')
