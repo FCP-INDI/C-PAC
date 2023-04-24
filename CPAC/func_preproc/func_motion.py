@@ -50,7 +50,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask"),
+                 "space-bold_desc-brain_mask",
                  "max-displacement",
                  "rels-displacement",
                  "movement-parameters",
