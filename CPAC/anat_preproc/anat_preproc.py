@@ -2576,6 +2576,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "freesurfer-subject-dir"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
+                 "desc-ABCDpreproc_T1w",
                  "pipeline-fs_desc-fast_biasfield",
                  "pipeline-fs_hemi-L_desc-surface_curv",
                  "pipeline-fs_hemi-R_desc-surface_curv", 
@@ -2691,7 +2692,9 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
             'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
             'desc-restore-brain_T1w': (fast_correction,
                                        'outputspec.anat_brain_restore'),
-            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
+            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
+            'desc-ABCDpreproc_T1w': (normalize_head, 'out_file')
+            }
     return (wf, outputs)
 
 # we're grabbing the postproc outputs and appending them to
@@ -2706,7 +2709,8 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": ["run_reconall"],
       "option_key": "None",
       "option_val": "None",
-      "inputs": ["desc-preproc_T1w"],
+      "inputs": [["desc-ABCDpreproc_T1w",
+                 "desc-preproc_T1w"]],
       "outputs": ["freesurfer-subject-dir",
                   "pipeline-fs_raw-average",
                   "pipeline-fs_subcortical-seg",
@@ -2739,7 +2743,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
         reconall.inputs.args = cfg.surface_analysis['freesurfer'][
             'reconall_args']
 
-    node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data(["desc-ABCDpreproc_T1w","desc-preproc_T1w"])
     wf.connect(node, out, reconall, 'T1_files')
 
     wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
