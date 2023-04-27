@@ -1292,7 +1292,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, rpool, \
+                                    generate_only)
 
         pipeline_blocks += nuisance
 

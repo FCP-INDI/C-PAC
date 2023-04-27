@@ -1088,7 +1088,6 @@ class ResourcePool:
                 if out_dct['subdir'] == 'func':
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
                             'data']
-                    
                     wf.connect(node, out, id_string, 'scan_id')
                 
                 self.back_propogate_template_name(resource_idx, json_info,
@@ -1108,26 +1107,26 @@ class ResourcePool:
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
-                if resource.split('_')[-1] in atlas_suffixes:
-                    atlas_idx = pipe_idx.replace(resource, 'atlas_name')
-                    # need the single quote and the colon inside the double
-                    # quotes - it's the encoded pipe_idx
-                    #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
-                    #                            "'atlas_name:")
-                    if atlas_idx in self.rpool['atlas_name']:
-                        node, out = self.rpool['atlas_name'][atlas_idx][
-                            'data']
-                        wf.connect(node, out, id_string, 'atlas_id')
-                    elif 'atlas-' in resource:
-                        for tag in resource.split('_'):
-                            if 'atlas-' in tag:
-                                atlas_id = tag.replace('atlas-', '')
-                        id_string.inputs.atlas_id = atlas_id
-                    else:
-                        warnings.warn(str(
-                            LookupError("\n[!] No atlas ID found for "
+                if resource != 'desc-confounds_timeseries':
+                    if resource.split('_')[-1] in atlas_suffixes:
+                        atlas_idx = pipe_idx.replace(resource, 'atlas_name')
+                        # need the single quote and the colon inside the double
+                        # quotes - it's the encoded pipe_idx
+                        #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
+                        #                            "'atlas_name:")
+                        if atlas_idx in self.rpool['atlas_name']:
+                            node, out = self.rpool['atlas_name'][atlas_idx][
+                                'data']
+                            wf.connect(node, out, id_string, 'atlas_id')
+                        elif 'atlas-' in resource:
+                            for tag in resource.split('_'):
+                                if 'atlas-' in tag:
+                                    atlas_id = tag.replace('atlas-', '')
+                            id_string.inputs.atlas_id = atlas_id
+                        else:
+                            warnings.warn(str(
+                                LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
@@ -1917,7 +1916,8 @@ def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
             }
             json_info = {**json_info, **json}
             write_output_json(json_info, jsonpath)
-        else:        
+        else:
+            #if not jsonpath.endswith('desc-confounds_timeseries.json'):         
             json_info = read_json(jsonpath)
             json_info = {**json_info, **json}
         if 'CpacProvenance' in json_info:
@@ -1977,9 +1977,11 @@ def ingress_output_dir(cfg, rpool, unique_id, data_paths, creds_path=None):
             bidstag = bidstag[:-1]
             if bidstag.startswith('task-'):
                 bidstag = bidstag.replace('task-', '')
-                ingress.get_node('inputnode').iterables = ("scan", [bidstag])
-                rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", "func_ingress")
-
+                if bidstag not in scan_iterables:
+                    scan_iterables.append(bidstag)
+    if scan_iterables:
+        ingress.get_node('inputnode').iterables = ("scan", scan_iterables)
+        rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", "func_ingress")
     return rpool
 
 def strip_template(data_label, dir_path, filename):
