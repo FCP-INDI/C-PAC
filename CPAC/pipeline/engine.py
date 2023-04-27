@@ -1643,66 +1643,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
     return (wf, strat_pool)
 
-def ingress_fmriprep(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
-
-    if 'creds_path' not in data_paths:
-        data_paths['creds_path'] = None
-
-    fmriprep_ingress = create_general_datasource('ingress_fmriprep')
-    fmriprep_ingress.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=data_paths['fmriprep_dir'],
-            creds_path=data_paths['creds_path'], 
-            dl_dir=cfg.pipeline_setup['working_directory']['path'])
-    rpool.set_data("fmriprep-dir", fmriprep_ingress, 'outputspec.data',
-                       {}, "", "fmriprep_config_ingress")
-
-    fmriprep_path = os.path.join(data_paths['fmriprep_dir'], part_id, ses_id)
-    fmriprep_outputs = os.listdir(fmriprep_path)
-    jsons = {}
-    # loop through func and anat subdirectories
-    for subdirectory in fmriprep_outputs: 
-        subdir = os.listdir(os.path.join(fmriprep_path, subdirectory))
-        for file in subdir:
-            fullpath = os.path.join(fmriprep_path, subdirectory,
-                                    file)
-            if os.path.exists(fullpath):
-                key = file.split(unique_id + '_')[1]
-                key = key.split('.')[0]
-                if key.startswith('task'):
-                    labels = key.split('_')
-                    key = key.replace((labels[0] + '_'), '')
-                if key.startswith('acq'):
-                    labels = key.split('_')
-                    key = key.replace((labels[0] + '_'), '')
-                units = key.replace('_', ',').replace('-', ',')
-                labels = units.split(',')
-                for label in labels:
-                    if label.startswith('res'):
-                        key = key.replace((label + '_'), '')
-
-                    # rename to template 
-                    for label in labels: 
-                        units = label.split('-')
-                        for unit in units:
-                            if unit.startswith('MNI'):
-                                key = key.replace(unit, 'template')
-                fmriprep_ingress = create_general_datasource(f'gather_fmriprep_{key}_dir')
-                fmriprep_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=fullpath,
-                    creds_path=data_paths['creds_path'],
-                    dl_dir=cfg.pipeline_setup['working_directory']['path'])
-                if file.endswith('.json'):
-                    jsons[key] = read_json(fullpath)
-                rpool.set_data(key, fmriprep_ingress, 'outputspec.data',
-                                {}, "", f"fmriprep_{key}_ingress")
-    return rpool, jsons
-
-#def test_fmriprep_ingress (wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
-#    #TODO
-
-
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
 
