@@ -865,9 +865,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         ]
         pipeline_blocks += anat_init_blocks
         
-    brain_extraction = cfg.anatomical_preproc['brain_extraction']['using']
+    using_brain_extraction = cfg.anatomical_preproc['brain_extraction']['using']
 
-    if 'FreeSurfer-ABCD' not in brain_extraction:
+    if 'FreeSurfer-ABCD' not in using_brain_extraction:
         pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
@@ -915,7 +915,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += [freesurfer_abcd_preproc]
 
-    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' in brain_extraction:
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' in using_brain_extraction:
         pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     # Anatomical T1 brain masking
