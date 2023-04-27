@@ -1071,6 +1071,7 @@ class ResourcePool:
                                                                 newdesc_suff)
                 id_string = pe.Node(Function(input_names=['cfg', 'unique_id',
                                                           'resource',
+                                                          'json_info',
                                                           'scan_id',
                                                           'template_desc',
                                                           'atlas_id',
@@ -1083,6 +1084,7 @@ class ResourcePool:
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
+                id_string.inputs.json_info = json_info
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -1163,7 +1165,7 @@ class ResourcePool:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
                         'aws_output_bucket_credentials']
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    self.cfg, unique_id, resource_idx,
+                    self.cfg, unique_id, resource_idx, json_info,
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
                 wf.connect(nii_name, 'out_file',

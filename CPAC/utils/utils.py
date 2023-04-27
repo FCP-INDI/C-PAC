@@ -149,7 +149,7 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(cfg, unique_id, resource, scan_id=None,
+def create_id_string(cfg, unique_id, resource, json_info, scan_id=None,
                      template_desc=None, atlas_id=None, fwhm=None, subdir=None
                      ):
     """Create the unique key-value identifier string for BIDS-Derivatives
@@ -202,6 +202,11 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
             if prefix in bidstag and 'template' in bidstag:
                 out_filename = out_filename.replace(
                     bidstag, f'{prefix}{template_tag}')
+        if prefix == 'space-' and cfg.pipeline_setup['ingress_fmriprep'] and 'Resolution' in \
+                json_info:
+            res = json_info['Resolution']
+            out_filename = out_filename.replace(f'{template_tag}', \
+                f'{template_tag}_res-{res}')
 
     if fwhm:
         for tag in resource.split('_'):
