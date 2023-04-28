@@ -24,6 +24,23 @@ pipeline_setup:
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 10.0
 
+# PREPROCESSING
+# -------------
+surface_analysis:
+
+  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
+  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
+  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
+  freesurfer:
+    run_reconall: On
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer:
+    run: Off
+
 anatomical_preproc:
   run: On
   acpc_alignment:
@@ -62,8 +79,15 @@ anatomical_preproc:
     # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
     shrink_factor: 4
 
+segmentation:
+
+  # Automatically segment anatomical images into white matter, gray matter,
+  # and CSF based on prior probability maps.
+  run: On
+
 registration_workflows:
   anatomical_registration:
+    run: On
     registration:
       FSL-FNIRT:
 
