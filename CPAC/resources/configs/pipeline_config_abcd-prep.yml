@@ -24,23 +24,6 @@ pipeline_setup:
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 10.0
 
-# PREPROCESSING
-# -------------
-surface_analysis:
-
-  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
-  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
-  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  freesurfer:
-    run_reconall: Off
-
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
-
-  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer:
-    run: Off
-
 anatomical_preproc:
   run: On
   acpc_alignment:
@@ -79,15 +62,8 @@ anatomical_preproc:
     # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
     shrink_factor: 4
 
-segmentation:
-
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: Off
-
 registration_workflows:
   anatomical_registration:
-    run: Off
     registration:
       FSL-FNIRT:
 
@@ -165,9 +141,6 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
-    overwrite_transform:
-      run: Off
-
     # The resolution to which anatomical images should be transformed during registration.
     # This is the resolution at which processed anatomical files will be output.
     resolution_for_anat: 1mm
@@ -182,13 +155,7 @@ registration_workflows:
 
   functional_registration:
     coregistration:
-
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-      run: Off
       func_input_prep:
-
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
@@ -205,11 +172,6 @@ registration_workflows:
       dof: 12
 
     func_registration_to_template:
-
-      # these options modify the application (to the functional data), not the calculation, of the
-      # T1-to-template and EPI-to-template transforms calculated earlier during registration
-      # apply the functional-to-template (T1 template) registration transform to the functional data
-      run: Off
       apply_transform:
 
         # options: 'default', 'abcd', 'single_step_resampling_from_stc', 'dcan_nhp'
@@ -258,22 +220,13 @@ registration_workflows:
         interpolation: Linear
 
 functional_preproc:
-  run: Off
   motion_estimates_and_correction:
-    run: Off
     motion_estimates:
-
-      # calculate motion statistics BEFORE slice-timing correction
-      calculate_motion_first: Off
 
       # calculate motion statistics AFTER motion correction
       calculate_motion_after: Off
 
   distortion_correction:
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
 
     # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
@@ -294,54 +247,3 @@ functional_preproc:
     # CCS_Anatomical_Refined: Generate the BOLD mask by basing it off of the anatomical brain. Adapted from the BOLD mask method from the CCS pipeline.
     # this is a fork point
     using: [Anatomical_Resampled]
-
-  generate_func_mean:
-
-    # Generate mean functional image
-    run: Off
-
-nuisance_corrections:
-  2-nuisance_regression:
-
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [Off]
-    # Select which nuisance signal corrections to apply
-    Regressors:
-
-timeseries_extraction:
-  run: Off
-
-amplitude_low_frequency_fluctuation:
-  run: Off
-
-regional_homogeneity:
-  run: Off
-
-voxel_mirrored_homotopic_connectivity:
-  run: Off
-
-network_centrality:
-  run: Off
-
-longitudinal_template_generation:
-  run: Off
-
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing:
-  spatial_smoothing:
-    run: Off
-
-  z-scoring:
-    run: Off
-
-seed_based_correlation_analysis:
-  run: Off
-
-# PACKAGE INTEGRATIONS
-# --------------------
-PyPEER:
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: Off
