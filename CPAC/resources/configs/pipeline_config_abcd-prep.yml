@@ -12,7 +12,7 @@ pipeline_setup:
 
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
-  pipeline_name: cpac_abcd-options-prep
+  pipeline_name: cpac_abcd-prep
   system_config:
 
     # The maximum amount of memory each participant's workflow can allocate.
