@@ -34,13 +34,6 @@ surface_analysis:
   freesurfer:
     run_reconall: On
 
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
-
-  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer:
-    run: Off
-
 anatomical_preproc:
   run: On
   acpc_alignment:
