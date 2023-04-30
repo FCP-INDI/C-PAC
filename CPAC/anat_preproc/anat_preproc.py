@@ -2564,10 +2564,10 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_abcd_preproc",
-     "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
-     "option_key": "using",
-     "option_val": "FreeSurfer-ABCD",
+     "config": ["surface_analysis", "abcd_prefreesurfer_prep"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
      "inputs": ["desc-preproc_T1w",
                 "T1w-template",
                 "T1w-brain-template-mask",
@@ -2978,9 +2978,9 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "correct_restore_brain_intensity_abcd",
-     "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["anatomical_preproc", "brain_extraction", "run"],
+     "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-ABCD",
      "inputs": [("desc-preproc_T1w",
                  "desc-n4_T1w",
