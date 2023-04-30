@@ -27,24 +27,8 @@ pipeline_setup:
 # PREPROCESSING
 # -------------
 surface_analysis:
-
-  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
-  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
-  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-
-  # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
-  abcd_prefreesurfer_prep: 
+  abcd_prefreesurfer_prep:
     run: On
-
-  freesurfer:
-    run_reconall: Off
-
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off
-
-  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer:
-    run: Off
 
 anatomical_preproc:
   run: On
@@ -60,11 +44,10 @@ anatomical_preproc:
     T1w_ACPC_template: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_1mm.nii.gz
 
   brain_extraction:
-    run: Off
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
-    using: ['FreeSurfer-ABCD']
+    using: [FreeSurfer-ABCD]
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
@@ -84,15 +67,8 @@ anatomical_preproc:
     # An integer to resample the input image to save computation time. Shrink factors <= 4 are commonly used.
     shrink_factor: 4
 
-segmentation:
-
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: Off
-
 registration_workflows:
   anatomical_registration:
-    run: Off
     registration:
       FSL-FNIRT:
 
@@ -184,7 +160,6 @@ registration_workflows:
 
   functional_registration:
     coregistration:
-      run: Off
       func_input_prep:
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
@@ -202,7 +177,6 @@ registration_workflows:
       dof: 12
 
     func_registration_to_template:
-      run: Off
       apply_transform:
 
         # options: 'default', 'abcd', 'single_step_resampling_from_stc', 'dcan_nhp'
@@ -251,16 +225,13 @@ registration_workflows:
         interpolation: Linear
 
 functional_preproc:
-  run: Off
   motion_estimates_and_correction:
-    run: Off
     motion_estimates:
 
       # calculate motion statistics AFTER motion correction
       calculate_motion_after: Off
 
   distortion_correction:
-    run: [Off]
 
     # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
