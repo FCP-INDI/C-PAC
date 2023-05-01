@@ -512,6 +512,7 @@ latest_schema = Schema({
             },
             'FSL-BET': {
                 'frac': Number,
+                'Robustfov': bool1_1,
                 'mask_boolean': bool1_1,
                 'mesh_boolean': bool1_1,
                 'outline': bool1_1,
