@@ -1285,7 +1285,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                 mask=False,
                                 wf_name=f'acpc_align_{pipe_num}')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w",'desc-head_T1w'])
+    node, out = strat_pool.get_data(['desc-preproc_T1w','desc-head_T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
