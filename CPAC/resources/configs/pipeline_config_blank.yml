@@ -197,6 +197,8 @@ pipeline_setup:
 # PREPROCESSING
 # -------------
 surface_analysis:
+
+  # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: Off
 
