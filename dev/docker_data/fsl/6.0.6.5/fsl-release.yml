@@ -83,7 +83,7 @@ packages:
  - fsl-dpm 2111.0
  - fsl-dwssfp 2111.0
  - fsl-eddy 2111.0
- - fsl-eddy_qc v1.2.1
+ - fsl-eddy_qc v1.2.3
  - fsl-fabber_core v4.0.10
  - fsl-fabber_models_asl v2.0.8
  - fsl-fabber_models_cest v2.1.6
