@@ -923,32 +923,32 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                               name=f'wmparc_to_nifti_{pipe_num}')
     
     # Register wmparc file if ingressing FreeSurfer data
-    if strat_pool.check_rpool('pipeline-fs_xfm'):
-
-        wmparc_to_native = pe.Node(
-            interface=freesurfer.ApplyVolTransform(),
-            name='wmparc_to_native')
+#    if strat_pool.check_rpool('pipeline-fs_xfm'):
+#
+#        wmparc_to_native = pe.Node(
+#            interface=freesurfer.ApplyVolTransform(),
+#            name='wmparc_to_native')
+#        
+#        wmparc_to_native.inputs.reg_header = True
+#
+#        node, out = strat_pool.get_data('pipeline-fs_wmparc') 
+#        wf.connect(node, out, wmparc_to_native, 'source_file')
+#
+#        node, out = strat_pool.get_data('pipeline-fs_raw-average')
+#        wf.connect(node, out, wmparc_to_native, 'target_file')
+#
+#        node, out = strat_pool.get_data('pipeline-fs_xfm')
+#        wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
+#
+#        node, out = strat_pool.get_data('freesurfer-subject-dir')
+#        wf.connect(node, out, wmparc_to_native, 'subjects_dir')
+#
+#        wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
+#   
+#    else:
         
-        wmparc_to_native.inputs.reg_header = True
-
-        node, out = strat_pool.get_data('pipeline-fs_wmparc') 
-        wf.connect(node, out, wmparc_to_native, 'source_file')
-
-        node, out = strat_pool.get_data('pipeline-fs_raw-average')
-        wf.connect(node, out, wmparc_to_native, 'target_file')
-
-        node, out = strat_pool.get_data('pipeline-fs_xfm')
-        wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
-
-        node, out = strat_pool.get_data('freesurfer-subject-dir')
-        wf.connect(node, out, wmparc_to_native, 'subjects_dir')
-
-        wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
-    
-    else:
-        
-        node, out = strat_pool.get_data('pipeline-fs_wmparc')
-        wf.connect(node, out, wmparc_to_nifti, 'in_file')
+    node, out = strat_pool.get_data('pipeline-fs_wmparc')
+    wf.connect(node, out, wmparc_to_nifti, 'in_file')
 
     wmparc_to_nifti.inputs.args = '-rt nearest'
 
@@ -1800,7 +1800,6 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["desc-preproc_T1w",
                 "pipeline-fs_wmparc",
                 "pipeline-fs_raw-average",
-                "pipeline-fs_xfm",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-brain_mask"]}
     '''
@@ -1843,7 +1842,6 @@ def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["desc-preproc_T1w",
                 "pipeline-fs_wmparc",
                 "pipeline-fs_raw-average",
-                "pipeline-fs_xfm",
                 "freesurfer-subject-dir"],
      "outputs": ["space-T1w_desc-acpcbrain_mask"]}
     '''
