@@ -597,9 +597,6 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'vertical_gradient']),
         name=f'BET_options_{pipe_num}')
 
-    anat_robustfov = pe.Node(
-        interface=fsl.RobustFOV(), name=f'anat_RobustFOV_{pipe_num}')
-    anat_robustfov.inputs.output_type = 'NIFTI_GZ'
     
     anat_skullstrip = pe.Node(
         interface=fsl.BET(), name=f'anat_BET_skullstrip_{pipe_num}')
@@ -638,10 +635,15 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['vertical_gradient'],
     )
+    
+    anat_robustfov = pe.Node(
+        interface=fsl.RobustFOV(), name=f'anat_RobustFOV_{pipe_num}')
+    anat_robustfov.inputs.output_type = 'NIFTI_GZ'
 
     if strat_pool.check_rpool('desc-preproc_T1w'): 
         node, out = strat_pool.get_data('desc-preproc_T1w')
-        if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov'] == 'True':
+        
+        if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
            wf.connect(anat_robustfov, 'out_roi', anat_skullstrip,'in_file')
         else :
@@ -649,7 +651,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     elif strat_pool.check_rpool('desc-preproc_T2w'):
         node, out = strat_pool.get_data('desc-preproc_T2w')
-        if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov'] == 'True':
+        if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
            wf.connect(anat_robustfov, 'out_roi', anat_skullstrip,'in_file')
         else :
