@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to ingress FreeSurfer data into CPAC
 - Added the ability to toggle FreeSurfer derived masks for brain extraction
 - Added an optional volume center to FD-J calculation
+- Added new preconfig `abcd-prep`, which performs minimal preprocessing on the T1w data in preparation for Freesurfer Recon-All
 
 ### Changed
 - Freesurfer output directory ingress moved to the data configuration YAML

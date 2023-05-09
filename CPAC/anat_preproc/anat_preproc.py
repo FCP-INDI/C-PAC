@@ -16,7 +16,8 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     mri_convert, \
     wb_command, \
     fslmaths_command, \
-    VolumeRemoveIslands
+    VolumeRemoveIslands, \
+    normalize_wmparc
 from CPAC.pipeline.engine import flatten_list
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
@@ -925,23 +926,24 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # Register wmparc file if ingressing FreeSurfer data
     if strat_pool.check_rpool('pipeline-fs_xfm'):
 
-        wmparc_to_native = pe.Node(
-            interface=freesurfer.ApplyVolTransform(),
-            name='wmparc_to_native')
+        wmparc_to_native = pe.Node(util.Function(input_names=['source_file',
+                                                            'target_file',
+                                                            'xfm',
+                                                            'out_file'],
+                                                output_names=['transformed_file'],
+                                                function=normalize_wmparc),
+                                        name=f'wmparc_to_native_{pipe_num}')
         
-        wmparc_to_native.inputs.reg_header = True
+        wmparc_to_native.inputs.out_file = 'wmparc_warped.mgz'
 
-        node, out = strat_pool.get_data('pipeline-fs_wmparc') 
+        node, out = strat_pool.get_data('pipeline-fs_wmparc')
         wf.connect(node, out, wmparc_to_native, 'source_file')
 
         node, out = strat_pool.get_data('pipeline-fs_raw-average')
         wf.connect(node, out, wmparc_to_native, 'target_file')
 
         node, out = strat_pool.get_data('pipeline-fs_xfm')
-        wf.connect(node, out, wmparc_to_native, 'xfm_reg_file')
-
-        node, out = strat_pool.get_data('freesurfer-subject-dir')
-        wf.connect(node, out, wmparc_to_native, 'subjects_dir')
+        wf.connect(node, out, wmparc_to_native, 'xfm')
 
         wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
     
@@ -1271,8 +1273,8 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-head_T1w",
-                "desc-preproc_T1w",
+     "inputs": [["desc-preproc_T1w",
+                "desc-head_T1w"],
                 "T1w-ACPC-template"],
      "outputs": ["desc-head_T1w",
                  "desc-preproc_T1w",
@@ -1285,7 +1287,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                 mask=False,
                                 wf_name=f'acpc_align_{pipe_num}')
 
-    node, out = strat_pool.get_data(['desc-head_T1w', 'desc-preproc_T1w'])
+    node, out = strat_pool.get_data(['desc-preproc_T1w','desc-head_T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
@@ -2564,10 +2566,10 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "freesurfer_abcd_preproc",
-     "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
-     "option_key": "using",
-     "option_val": "FreeSurfer-ABCD",
+     "config": ["surface_analysis", "abcd_prefreesurfer_prep"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
      "inputs": ["desc-preproc_T1w",
                 "T1w-template",
                 "T1w-brain-template-mask",
@@ -2576,16 +2578,17 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
                 "freesurfer-subject-dir"],
      "outputs": ["desc-restore_T1w",
                  "desc-restore-brain_T1w",
+                 "desc-ABCDpreproc_T1w",
                  "pipeline-fs_desc-fast_biasfield",
                  "pipeline-fs_hemi-L_desc-surface_curv",
-                 "pipeline-fs_hemi-R_desc-surface_curv", 
+                 "pipeline-fs_hemi-R_desc-surface_curv",
                  "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
                  "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
                  "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
                  "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
                  "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
                  "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
-                 "pipeline-fs_hemi-L_desc-surfaceMap_sulc", 
+                 "pipeline-fs_hemi-L_desc-surfaceMap_sulc",
                  "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
                  "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
                  "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
@@ -2691,7 +2694,9 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
             'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
             'desc-restore-brain_T1w': (fast_correction,
                                        'outputspec.anat_brain_restore'),
-            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
+            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
+            'desc-ABCDpreproc_T1w': (normalize_head, 'out_file')
+            }
     return (wf, outputs)
 
 # we're grabbing the postproc outputs and appending them to
@@ -2706,7 +2711,8 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
       "switch": ["run_reconall"],
       "option_key": "None",
       "option_val": "None",
-      "inputs": ["desc-preproc_T1w"],
+      "inputs": [["desc-ABCDpreproc_T1w",
+                 "desc-preproc_T1w"]],
       "outputs": ["freesurfer-subject-dir",
                   "pipeline-fs_raw-average",
                   "pipeline-fs_subcortical-seg",
@@ -2739,7 +2745,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
         reconall.inputs.args = cfg.surface_analysis['freesurfer'][
             'reconall_args']
 
-    node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data(["desc-ABCDpreproc_T1w","desc-preproc_T1w"])
     wf.connect(node, out, reconall, 'T1_files')
 
     wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
@@ -2974,9 +2980,9 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "correct_restore_brain_intensity_abcd",
-     "config": ["anatomical_preproc", "brain_extraction"],
-     "switch": "None",
-     "option_key": "using",
+     "config": "None",
+     "switch": ["anatomical_preproc", "brain_extraction", "run"],
+     "option_key": ["anatomical_preproc", "brain_extraction", "using"],
      "option_val": "FreeSurfer-ABCD",
      "inputs": [("desc-preproc_T1w",
                  "desc-n4_T1w",

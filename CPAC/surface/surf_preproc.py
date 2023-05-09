@@ -1,5 +1,3 @@
-from logging import raiseExceptions
-from CPAC.utils.monitoring.custom_logging import log_subprocess
 import os
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -36,7 +34,8 @@ def run_surface(post_freesurfer_folder,
     destrieux : str
         Path to the Destrieux parcellation file.
     """
-
+    
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
     import os
     
     recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
