@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to ingress FreeSurfer data into CPAC
 - Added the ability to toggle FreeSurfer derived masks for brain extraction
 - Added an optional volume center to FD-J calculation
-- Added new preconfig `abcd-prep`, which runs `abcd-options` version of anatomical preprocessing, without brain extraction and Recon-all
+- Added new preconfig `abcd-prep`, which performs minimal preprocessing on the T1w data in preparation for Freesurfer Recon-All
 
 ### Changed
 - Freesurfer output directory ingress moved to the data configuration YAML
@@ -53,7 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
-- `desc-preproc_T1w` file in the output/anat directory now goes through brain_extraction.
 
 ### Upgraded dependencies
 - `nibabel` 2.3.3 → 3.0.1
