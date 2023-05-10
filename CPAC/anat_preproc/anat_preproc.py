@@ -1273,14 +1273,17 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                 ["anatomical_preproc", "run"]],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w",
-                "desc-head_T1w"],
+     "inputs": ["desc-preproc_T1w",
+                "desc-head_T1w",
                 "T1w-ACPC-template"],
      "outputs": ["desc-head_T1w",
                  "desc-preproc_T1w",
                  "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"]}
     '''
-
+    
+    # NOTE: desc-preproc_T1w and desc-head_T1w are both needed in this 
+    # nodeblock despite the list called in get_data() below
+    
     acpc_align = acpc_alignment(config=cfg,
                                 acpc_target=cfg.anatomical_preproc[
                                     'acpc_alignment']['acpc_target'],
