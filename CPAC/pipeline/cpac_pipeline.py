@@ -23,7 +23,7 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
+from CPAC.utils.monitoring.custom_logging import getLogger
 from time import strftime
 
 import nipype
@@ -864,8 +864,10 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anatomical_init
         ]
         pipeline_blocks += anat_init_blocks
+        
+    using_brain_extraction = cfg.anatomical_preproc['brain_extraction']['using']
 
-    if not rpool.check_rpool('freesurfer-subject-dir'):
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' not in using_brain_extraction:
         pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
@@ -887,8 +889,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
         elif cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'whole-head':
             if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
-                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
-                    cfg.surface_analysis['freesurfer']['run_reconall']:
+                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']):
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -913,6 +914,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_blocks
 
         pipeline_blocks += [freesurfer_abcd_preproc]
+
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' in using_brain_extraction:
+        pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     # Anatomical T1 brain masking
 

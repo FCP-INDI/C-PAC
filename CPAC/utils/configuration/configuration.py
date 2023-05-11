@@ -22,7 +22,6 @@ from typing import Optional, Tuple
 from warnings import warn
 import pkg_resources as p
 import yaml
-from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
 from CPAC.utils.utils import load_preconfig
 from .diff import dct_diff
 
@@ -117,18 +116,6 @@ class Configuration:
                     regressor['Name'] = f'Regressor-{str(i + 1)}'
                 # replace spaces with hyphens in Regressor 'Name's
                 regressor['Name'] = regressor['Name'].replace(' ', '-')
-
-        # Don't double-run FreeSurfer
-        try:
-            if 'FreeSurfer-ABCD' in config_map['anatomical_preproc'][
-                    'brain_extraction']['using']:
-                self.set_nested(config_map,
-                                ['surface_analysis', 'freesurfer', 
-                                 'run_reconall'],
-                                False)
-                warn(DOUBLERUN_GUARD_MESSAGE)
-        except (KeyError, TypeError):
-            pass
 
         config_map = schema(config_map)
 
