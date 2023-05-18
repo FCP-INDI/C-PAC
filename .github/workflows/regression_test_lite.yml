@@ -32,8 +32,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Clone reg-suite
         run: |
-          git clone https://github.com/amygutierrez/reg-suite.git
-
+          git clone https://github.com/FCP-INDI/reg-suite.git
 
       - name: Run Lite Regression Test
         if: github.event_name == 'push'
@@ -42,6 +41,13 @@ jobs:
           echo "Running lite regression test"
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
           python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
+
+      - name: Correlating
+        run: |
+          echo "Correlating lite regression runs"
+          echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
+          echo $(ls outputs)
+          python3 reg-suite/main.py correlate --outdir outputs --workspace $GITHUB_WORKSPACE
 
       - uses: actions/upload-artifact@v3
         if: always()
