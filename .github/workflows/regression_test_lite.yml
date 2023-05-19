@@ -47,7 +47,7 @@ jobs:
           echo "Correlating lite regression runs"
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
           echo $(ls outputs)
-          python3 reg-suite/main.py correlate --outdir outputs --workspace $GITHUB_WORKSPACE
+          python3 reg-suite/main.py correlate --outdir $GITHUB_WORKSPACE/output/default/HNU_1 --workspace $GITHUB_WORKSPACE
 
       - uses: actions/upload-artifact@v3
         if: always()
