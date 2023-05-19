@@ -405,7 +405,7 @@ anatomical_preproc:
       monkey: False
 
     FSL-BET:
-
+      Robustfov : On
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
 
