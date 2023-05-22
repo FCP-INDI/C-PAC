@@ -223,3 +223,4 @@ space-EPItemplate_label-GM_mask	mask	template	func	NIfTI
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
 dseg			anat
+desc-confounds_timeseries			func	tsv	
