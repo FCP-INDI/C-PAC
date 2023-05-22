@@ -82,8 +82,6 @@ def choose_nuisance_blocks(cfg, rpool, generate_only=False):
                                             "desc-stc_bold")
     }.get(apply_transform_using)
     if input_interface is not None:
-        if rpool.check_rpool('desc-confounds_timeseries'):
-            ingress_regressors(rpool)
         if 'T1_template' in to_template_cfg['target_template']['using']:
             nuisance.append((nuisance_regressors_generation_T1w,
                              input_interface))
@@ -210,10 +208,7 @@ def gather_nuisance(functional_file_path,
     """
 
     # Basic checks for the functional image
-    if functional_file_path == 'outdir_ingress':
-        continue
-    
-    elif not functional_file_path or \
+    if not functional_file_path or \
         (not functional_file_path.endswith(".nii") and
          not functional_file_path.endswith(".nii.gz")):
 
@@ -1516,22 +1511,6 @@ def create_regressor_workflow(nuisance_selectors,
 
     return nuisance_wf
 
-def ingress_regressors(rpool):
-    regressors_dict = rpool.get_data('desc-confounds')
-    regressors_csv = dict()
-    for regressor in ['global_signal', 'csf', 'white_matter']:
-        try:
-            regressors_csv[regressor] = regressors_dict[regressor]
-        except:
-            raise Exception(f'regressor {regressor} not found')
-
-    # pass dict of paths into gather_regressors
-    
-    print(regressors_dict)
-
-
-
-
 def create_nuisance_regression_workflow(nuisance_selectors,
                                         name='nuisance_regression'):
 
@@ -2476,11 +2455,19 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     outputs : dict
     '''
-    regressor_prov = strat_pool.get_cpac_provenance('regressors')
-    regressor_strat_name = regressor_prov[-1].split('_')[-1]
-
+    ingress = strat_pool.check_rpool('parsed_regressors')
+    if not ingress:
+        regressor_prov = strat_pool.get_cpac_provenance('regressors')
+        regressor_strat_name = regressor_prov[-1].split('_')[-1]
+   
+    # TODO
     for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
             'Regressors']:
+        
+        # name regressor workflow without regressor_prov
+        if ingress:
+            regressor_strat_name = cfg.nuisance_corrections['2-nuisance_regression'][
+                'ingress_regressors']['Regressors']['Name']
         if regressor_dct['Name'] == regressor_strat_name:
             opt = regressor_dct
             break
@@ -2534,7 +2521,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                        nofilter_nuis,
                        'inputspec.functional_brain_mask_file_path')
 
-    node, out = strat_pool.get_data('regressors')
+    node, out = strat_pool.get_data(['regressors', 'parsed_regressors'])
     wf.connect(node, out, nuis, 'inputspec.regressor_file')
     if bandpass_before:
         wf.connect(node, out, nofilter_nuis, 'inputspec.regressor_file')
@@ -2562,7 +2549,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                              f'regressors_{name_suff}')
         filt.inputs.inputspec.nuisance_selectors = opt
 
-        node, out = strat_pool.get_data('regressors')
+        node, out = strat_pool.get_data(['regressors', 'parsed_regressors'])
         wf.connect(node, out, filt, 'inputspec.regressors_file_path')
 
         if space == 'template':
@@ -2618,6 +2605,101 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     return (wf, outputs)
 
+def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "ingress_regressors",
+     "config": ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors"],
+     "switch": ["run"],
+     "option_key": None,
+     "option_val": None,
+     "inputs": ['desc-confounds_timeseries'],
+     "outputs": ['parsed_regressors']}
+    '''
+    # option val!!
+
+    regressors_list = cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'][
+        'Regressors']['Columns']
+    
+    # Will need to generalize the name
+    node, out = strat_pool.get_data('desc-confounds_timeseries')
+    if not regressors_list:
+        logger.warning("\n[!] Ingress regressors is on, but no regressors provided. "  
+                                            "The whole regressors file will be applied, but it may be" 
+                                            "too large for the timeseries data!")
+        outputs = {
+            'parsed_regressors': (node, out)
+        }
+    else:
+        ingress_imports = ['import numpy as np',
+                   'import numpy as np', 'import os',
+                   'import CPAC', 'from nipype import logging',
+                   'logger = logging.getLogger("nipype.workflow")']
+        ingress_regressors = pe.Node(Function(
+                input_names=['regressors_file',
+                            'regressors_list'],
+                output_names=['parsed_regressors'],
+                function=parse_regressors,
+                imports=ingress_imports
+            ), name="parse_regressors_file")
+
+        wf.connect(node, out, ingress_regressors, 'regressors_file')
+        ingress_regressors.inputs.regressors_list = regressors_list
+
+        outputs = {
+            'parsed_regressors': (ingress_regressors, 'parsed_regressors')
+        }
+    
+    return wf, outputs
+
+def parse_regressors(regressors_file, regressors_list):
+
+    """
+    
+    Parses regressors file from outdir ingress.
+    
+    Parameters
+    ----------
+    confounds / regressors file : string
+        Path of regressors / confounds file.
+    regressors list : list, can be empty
+        List containing names of regressors to select
+
+        
+    Returns
+    -------
+    parsed_regressors: dataframe
+        Regressors 
+    
+    """
+    import pandas as pd
+
+    with open(regressors_file, 'r') as f:
+        full_file = pd.read_table(regressors_file)
+        parsed_regressors = pd.DataFrame()
+        header = []
+        for regressor in regressors_list:
+            # Look through first 3 rows in case the header is nonstandard
+            if regressor in full_file.iloc[:3]:
+                header.append(regressor)
+                parsed_regressors[regressor] = full_file.loc[:,regressor]
+            else:
+                logger.warning(f"\n[!] Regressor {regressor} not found in {regressors_file}")
+    if parsed_regressors.empty:
+        raise Exception(f"Regressors not found in {regressors_file}")
+
+    regressors_path = os.path.join(os.getcwd(), "parsed_regressors.1D")
+
+    with open(regressors_path, "w") as ofd:
+
+        # write out the header information
+        ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
+        ofd.write("# Ingressed nuisance regressors:\n")
+
+        parsed_regressors = parsed_regressors.to_numpy()
+        np.savetxt(ofd, parsed_regressors, fmt='%.18f', delimiter='\t')
+
+    return regressors_path
 
 def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Apply nuisance regression to native-space image
@@ -2629,7 +2711,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "space",
      "option_val": "native",
      "inputs": [("desc-preproc_bold",
-                 "regressors",
+                 ["regressors", "parsed_regressors"],
                  "space-bold_desc-brain_mask",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
@@ -2664,7 +2746,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-preproc_bold",
                  "space-template_res-derivative_desc-preproc_bold",
                  "movement-parameters",
-                 "regressors",
+                 ["regressors", "parsed_regressors"],
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
