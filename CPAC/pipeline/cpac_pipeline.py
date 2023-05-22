@@ -173,7 +173,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldCSF,
     erode_mask_boldGM,
     erode_mask_boldWM,
-    nuisance_regression_template
+    nuisance_regression_template,
+    ingress_regressors
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -1296,7 +1297,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                     generate_only)
 
         pipeline_blocks += nuisance
-
+        
+    pipeline_blocks.append(ingress_regressors)
     apply_func_warp = {}
     _r_w_f_r = cfg.registration_workflows['functional_registration']
     # Warp the functional time series to template space
@@ -1379,8 +1381,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'nuisance_corrections', '2-nuisance_regression', 'space'
     ] and not generate_only
     if nuisance_template:
-        pipeline_blocks += [(nuisance_regression_template,
-                            ("desc-preproc_bold", "desc-stc_bold"))]
+        pipeline_blocks += [nuisance_regression_template]
+        # pipeline_blocks += [(nuisance_regression_template,
+        #                     ("desc-preproc_bold", "desc-stc_bold"))]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
