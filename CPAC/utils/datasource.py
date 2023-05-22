@@ -165,7 +165,7 @@ def check_func_scan(func_scan_dct, scan):
                         '\n\n'.format(scan))
 
 
-def create_func_datasource(rest_dict, wf_name='func_datasource'):
+def create_func_datasource(rest_dict, rpool, wf_name='func_datasource'):
     """Return the functional timeseries-related file paths for each
     series/scan, from the dictionary of functional files described in the data
     configuration (sublist) YAML file.
@@ -189,16 +189,19 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='outputspec')
 
     # have this here for now because of the big change in the data
-    # configuration format
-    check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
+    # configuration format 
+    # (Not necessary with ingress - format does not comply)
+    if not rpool.check_rpool('derivatives-dir'):
+        check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
                                                         'scan'],
                                            output_names=[],
                                            function=check_func_scan,
                                            as_module=True),
                          name='check_func_scan')
 
-    check_scan.inputs.func_scan_dct = rest_dict
-    wf.connect(inputnode, 'scan', check_scan, 'scan')
+        check_scan.inputs.func_scan_dct = rest_dict
+        wf.connect(inputnode, 'scan', check_scan, 'scan')
+
 
     # get the functional scan itself
     selectrest = pe.Node(function.Function(input_names=['scan',

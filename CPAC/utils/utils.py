@@ -202,7 +202,7 @@ def create_id_string(cfg, unique_id, resource, json_info, scan_id=None,
             if prefix in bidstag and 'template' in bidstag:
                 out_filename = out_filename.replace(
                     bidstag, f'{prefix}{template_tag}')
-        if prefix == 'space-' and cfg.pipeline_setup['ingress_fmriprep'] and 'Resolution' in \
+        if prefix == 'space-' and cfg.pipeline_setup['outdir_ingress'] and 'Resolution' in \
                 json_info:
             res = json_info['Resolution']
             out_filename = out_filename.replace(f'{template_tag}', \
