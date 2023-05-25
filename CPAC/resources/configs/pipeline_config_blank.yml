@@ -182,7 +182,6 @@ pipeline_setup:
     path: /outputs/crash
 
   outdir_ingress: On
-
   Amazon-AWS:
 
     # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -1256,16 +1255,11 @@ nuisance_corrections:
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
     #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
     space: [native]
-
-    # Switch to ingress regressors. outdir_ingress must be 'On'
     ingress_regressors:
-      run: [On]
+      run: On
       Regressors:
-        Name: 'default'
-
-        # List the column / regressor names from ingressed file
-        Columns:
-          - global_signal
+        Name: default
+        Columns: [global_signal]
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On
