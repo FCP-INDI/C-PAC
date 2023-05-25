@@ -1000,7 +1000,8 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
+                ("space-template_desc-bold_mask", 
+                "space-template_desc-brain_mask")],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''
@@ -1044,7 +1045,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(resample_spatial_map_to_native_space, 'out_file',
                spatial_map_timeseries, 'inputspec.spatial_map')
 
-    node, out = strat_pool.get_data('space-template_desc-bold_mask')
+    node, out = strat_pool.get_data(['space-template_desc-bold_mask', 'space-template_desc-brain_mask'])
     wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_mask')
 
     # 'atlas_name' will be an iterable and will carry through
