@@ -117,10 +117,6 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 # loop over the whole file
                 for i in range(5):
                     line = f.readline()
-                    if 'n/a' in line or 'N/A' in line:
-                        raise Exception('This regressors file contains "N/A" values.' 
-                                            'Please choose a different dataset or ' 
-                                            'remove regressors with those values')
                     if line.startswith('#') or isinstance(line[0], str):
                         header.append(line)
             
@@ -128,7 +124,10 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
             regressor = np.loadtxt(regressor_file, skiprows=len(header))
             Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
             Y_bp = np.zeros_like(Yc)
-            for j in range(regressor.shape[1]):
+
+            # Modify to allow just 1 regressor column
+            shape = regressors.shape[0] if len(regressor.shape) < 1 else regressor.shape[0]
+            for j in range(shape):
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
                                             bandpass_freqs)
 
@@ -142,7 +141,6 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 nuisance_regressors = np.array(Y_bp)
                 np.savetxt(ofd, nuisance_regressors, fmt='%.18f',
                         delimiter='\t')
-
     return bandpassed_file, regressor_bandpassed_file
 
 
