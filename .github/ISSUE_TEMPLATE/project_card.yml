@@ -1,7 +1,7 @@
 name: Project card
 description: C-PAC Engineer's process template
-title: ""
-labels: []
+title: "Project Card"
+labels: [feature]
 body:
   - type: markdown
     attributes:
