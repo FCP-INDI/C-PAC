@@ -5,13 +5,7 @@ labels: [feature]
 body:
   - type: markdown
     attributes:
-      value: |
-        *Planning*
-        If modifying an existing function:
-          - [ ] Diagram in the flowchart library exists?
-          - [ ] Is the current diagram accurate and up to date?
-        If the function is new:
-          - [ ] Create a proposed diagram.
+      value: *Planning*
   - type: textarea
     id: user-interface
     attributes:
