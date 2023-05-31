@@ -5,7 +5,7 @@ labels: [feature]
 body:
   - type: markdown
     attributes:
-    value: *Planning*
+      value: Planning
   - type: textarea
     id: user-interface
     attributes:
