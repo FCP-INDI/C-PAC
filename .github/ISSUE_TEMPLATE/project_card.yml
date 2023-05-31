@@ -1,0 +1,52 @@
+name: Project card
+description: C-PAC Engineer's process template
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: *Planning*
+             If modifying an existing function:
+               - [ ] Diagram in the flowchart library exists?
+               - [ ] Is the current diagram accurate and up to date?
+             If the function is new:
+               - [ ] Create a proposed diagram.
+  - type: textarea
+    id: user-interface
+    attributes:
+      label: User interface changes
+      description: What will the user need this function for?
+  - type: textarea
+    id: project-stages
+    attributes:
+      label: Project sub-parts and estimates
+      description: Can this project be broken down into smaller sub-projects? What are your timeline estimates for each?
+      placeholder: |
+        - Functionality 1
+          - Time estimate: ...
+        - Functionality 2
+          - Time estimate: ...
+   - type: textarea
+    id: time-notes
+    attributes:
+      label: Timeline notes
+      description: Take notes about what unexpected factors cause a difference between the time estimate and the actual length of completion.
+- type: textarea
+    id: long-notes
+    attributes:
+      label: Timesink notes
+      description: Which parts of the project or tasks ended up taking the longest?
+- type: textarea
+    id: hard-notes
+    attributes:
+      label: Frustration notes
+      description: |
+        Take notes about:
+          - what you don't like about the process or the project
+          - what is frustrating
+          - what seems unnecessarily difficult
+- type: textarea
+    id: design-decisions
+    attributes:
+      label: Design decisions and notes
+      description: Take notes here regarding design decisions and rationales that will be useful to remember later.
