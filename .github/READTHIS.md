@@ -1,3 +1,5 @@
+<!-- Don't rename to '.github/README.md' or it will override the root readme. -->
+
 # C-PAC/.github README
 
 This directory contains Dockerfiles, scripts, requirements files, and workflow configurations for [this repository's GitHub Actions](https://github.com/FCP-INDI/C-PAC/actions).
