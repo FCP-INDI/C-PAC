@@ -21,17 +21,17 @@ body:
           - Time estimate: ...
         - Functionality 2
           - Time estimate: ...
-   - type: textarea
+  - type: textarea
     id: time-notes
     attributes:
       label: Timeline notes
       description: Take notes about what unexpected factors cause a difference between the time estimate and the actual length of completion.
-- type: textarea
+  - type: textarea
     id: long-notes
     attributes:
       label: Timesink notes
       description: Which parts of the project or tasks ended up taking the longest?
-- type: textarea
+  - type: textarea
     id: hard-notes
     attributes:
       label: Frustration notes
@@ -40,7 +40,7 @@ body:
           - what you don't like about the process or the project
           - what is frustrating
           - what seems unnecessarily difficult
-- type: textarea
+  - type: textarea
     id: design-decisions
     attributes:
       label: Design decisions and notes
