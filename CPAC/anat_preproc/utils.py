@@ -420,6 +420,15 @@ def fslmaths_command(in_file, number, out_file_suffix):
 
     return out_file
 
+def normalize_wmparc(source_file, target_file, xfm, out_file):
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
+    import os
+
+    cmd = ['mri_vol2vol', '--mov', source_file, \
+                '--targ', target_file, '--o', out_file, '--lta', xfm]
+    log_subprocess(cmd)
+    output = os.path.join(os.getcwd(), out_file)
+    return output
 
 """This module provides interfaces for workbench -volume-remove-islands commands"""
 from nipype.interfaces.base import TraitedSpec, File, traits, CommandLineInputSpec

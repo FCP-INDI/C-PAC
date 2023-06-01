@@ -122,14 +122,6 @@ jobs:
           - ''
         participant:
           - 032102 032106 032164 032167 032130 032128 2215 2312 032191 032195
-        include:
-          # requires T2w
-          - preconfig: monkey-ABCD
-            variant: ''
-            participant: 032102 032106 032130 032128 032191 032195
-          - preconfig: monkey-ABCD
-            variant: ABCD-HCP
-            participant: 032102 032106 032130 032128 032191 032195
     steps:
       - name: Get C-PAC
         run: |

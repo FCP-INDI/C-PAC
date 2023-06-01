@@ -1,4 +1,3 @@
-from logging import raiseExceptions
 import os
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -35,9 +34,9 @@ def run_surface(post_freesurfer_folder,
     destrieux : str
         Path to the Destrieux parcellation file.
     """
-
+    
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
     import os
-    import subprocess
     
     recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
     
@@ -54,7 +53,7 @@ def run_surface(post_freesurfer_folder,
         '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
         '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
@@ -64,7 +63,7 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
