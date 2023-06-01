@@ -198,6 +198,10 @@ pipeline_setup:
 # -------------
 surface_analysis:
 
+  # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
+  abcd_prefreesurfer_prep:
+    run: Off
+
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
@@ -206,6 +210,9 @@ surface_analysis:
 
     # Add extra arguments to recon-all command
     reconall_args:
+
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
@@ -261,7 +268,7 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
-    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose']
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [3dSkullStrip]
 

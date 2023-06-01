@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2022  C-PAC Developers
+# Copyright (C) 2021-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -26,9 +26,10 @@ import warnings
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype import config, logging  # pylint: disable=wrong-import-order
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-
+from CPAC.func_preproc.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
@@ -54,7 +55,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
+logger = getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -447,6 +448,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -470,6 +472,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -497,6 +500,7 @@ class ResourcePool:
                                 f'NO-{val[0]}')
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -532,6 +536,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('len(strat_list_list): %s\n',
                                      len(strat_list_list))
             for strat_list in strat_list_list:
@@ -853,6 +858,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
+        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
+            'outputs', [])
 
         if add_excl:
             excl += add_excl
@@ -966,7 +973,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in ('movement-parameters', 'regressors'))
+                             key not in (*movement_filter_keys, 'regressors'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1012,20 +1019,23 @@ class ResourcePool:
 
                 unique_id = out_dct['unique_id']
                 resource_idx = resource
+
                 if isinstance(num_variant, int):
                     if True in cfg['functional_preproc',
                                    'motion_estimates_and_correction',
                                    'motion_estimate_filter', 'run']:
                         filt_value = None
-                        if ('movement-parameters' in json_info.get(
-                            'CpacVariant', {}) and json_info['CpacVariant'][
-                                'movement-parameters']):
-                            filt_value = json_info['CpacVariant'][
-                                'movement-parameters'][0].replace(
-                                    'motion_estimate_filter_', '')
-                        elif False in cfg['functional_preproc',
-                                          'motion_estimates_and_correction',
-                                          'motion_estimate_filter', 'run']:
+                        _motion_variant = {
+                            _key: json_info['CpacVariant'][_key]
+                            for _key in movement_filter_keys
+                            if _key in json_info.get('CpacVariant', {})}
+                        try:
+                            filt_value = [
+                                json_info['CpacVariant'][_k][0].replace(
+                                    'motion_estimate_filter_', ''
+                                ) for _k, _v in _motion_variant.items()
+                                if _v][0]
+                        except IndexError:
                             filt_value = 'none'
                         if filt_value is not None:
                             resource_idx = insert_entity(resource_idx, 'filt',
@@ -1127,7 +1137,7 @@ class ResourcePool:
                 nii_name.inputs.keep_ext = True
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
-
+                
                 node, out = self.rpool[resource][pipe_idx]['data']
                 try:
                     wf.connect(node, out, nii_name, 'in_file')
@@ -1183,8 +1193,7 @@ class ResourcePool:
 
 
 class NodeBlock:
-    def __init__(self, node_block_functions):
-
+    def __init__(self, node_block_functions, debug=False):
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -1232,6 +1241,19 @@ class NodeBlock:
             self.options = ['base']
             if 'options' in init_dct:
                 self.options = init_dct['options']
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             init_dct["inputs"], list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
 
     def get_name(self):
         return self.name
@@ -1302,11 +1324,11 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)                
-            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+            else:                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
-
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1377,9 +1399,7 @@ class NodeBlock:
                         switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
-
             if True in switch:
-                logger.info('Connecting %s...', name)
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
@@ -1401,7 +1421,6 @@ class NodeBlock:
                                 input_name = interface[1]
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
-                        
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
@@ -1424,6 +1443,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1522,7 +1542,6 @@ class NodeBlock:
                                                               new_json_info,
                                                               pipe_idx,
                                                               pipe_x)
-
         return wf
 
 
@@ -1668,7 +1687,9 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
 
-    if 'freesurfer_dir' in data_paths['anat']:
+    ingress_fs = cfg.surface_analysis['freesurfer']['ingress_reconall']
+    
+    if 'freesurfer_dir' in data_paths['anat'] and ingress_fs:
         anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
 
         fs_ingress = create_general_datasource('gather_freesurfer_dir')
@@ -1681,27 +1702,28 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                        {}, "", "freesurfer_config_ingress")
 
         recon_outs = {
-            'raw-average': 'mri/rawavg.mgz',
-            'subcortical-seg': 'mri/aseg.mgz',
-            'brainmask': 'mri/brainmask.mgz',
-            'wmparc': 'mri/wmparc.mgz',
-            'T1': 'mri/T1.mgz',
-            'hemi-L_desc-surface_curv': 'surf/lh.curv',
-            'hemi-R_desc-surface_curv': 'surf/rh.curv',
-            'hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
-            'hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
-            'hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
-            'hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
-            'hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
-            'hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
-            'hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
-            'hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
-            'hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
-            'hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
-            'hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
-            'hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
-            'hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
-            'hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_raw-average': 'mri/rawavg.mgz',
+            'pipeline-fs_subcortical-seg': 'mri/aseg.mgz',
+            'pipeline-fs_brainmask': 'mri/brainmask.mgz',
+            'pipeline-fs_wmparc': 'mri/wmparc.mgz',
+            'pipeline-fs_T1': 'mri/T1.mgz',
+            'pipeline-fs_hemi-L_desc-surface_curv': 'surf/lh.curv',
+            'pipeline-fs_hemi-R_desc-surface_curv': 'surf/rh.curv',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
+            'pipeline-fs_hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
+            'pipeline-fs_hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
+            'pipeline-fs_hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
+            'pipeline-fs_hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
+            'pipeline-fs_hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
+            'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
+            'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
+            'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_xfm': 'mri/transforms/talairach.lta'
         }
         
         for key, outfile in recon_outs.items():
@@ -1716,7 +1738,11 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                     dl_dir=cfg.pipeline_setup['working_directory']['path'])
                 rpool.set_data(key, fs_ingress, 'outputspec.data',
                                {}, "", f"fs_{key}_ingress")
-
+            else:
+                warnings.warn(str(
+                        LookupError("\n[!] Path does not exist for "
+                                        f"{fullpath}.\n")))
+                
     return rpool
 
 
@@ -1756,6 +1782,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
@@ -2195,7 +2222,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         }
 
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
-    rpool = initiate_rpool(cfg, data_paths)
+    _, rpool = initiate_rpool(cfg, data_paths)
 
     wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
@@ -2215,7 +2242,9 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         run_blocks += blocks[1]
 
     for block in run_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        wf = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                        'verbose']).connect_block(
+                                            wf, cfg, rpool)
     rpool.gather_pipes(wf, cfg)
 
     wf.run()

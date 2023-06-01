@@ -1,3 +1,19 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni, fsl
 from nipype.interfaces.utility import Function
@@ -759,6 +775,21 @@ def gen_vertices_timeseries(rh_surface_file,
     return out_list
 
 
+def resample_function() -> 'Function':
+    """
+    Returns a Function interface for
+    `CPAC.utils.datasource.resample_func_roi`
+
+    Returns
+    -------
+    Function
+    """
+    return Function(input_names=['in_func', 'in_roi', 'realignment',
+                                 'identity_matrix'],
+                    output_names=['out_func', 'out_roi'],
+                    function=resample_func_roi, as_module=True)
+
+
 def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     {"name": "timeseries_extraction_AVG",
@@ -766,28 +797,21 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
+     "inputs": ["space-template_desc-preproc_bold",
+                "space-template_desc-brain_mask"],
      "outputs": ["space-template_desc-Mean_timeseries",
-                 "space-template_space-template_desc-ndmg_correlations",
+                 "space-template_desc-ndmg_correlations",
                  "atlas_name",
                  "space-template_desc-PearsonAfni_correlations",
                  "space-template_desc-PartialAfni_correlations",
                  "space-template_desc-PearsonNilearn_correlations",
                  "space-template_desc-PartialNilearn_correlations"]}
     '''
-    resample_functional_roi = pe.Node(Function(input_names=['in_func',
-                                                            'in_roi',
-                                                            'realignment',
-                                                            'identity_matrix'],
-                                               output_names=['out_func',
-                                                             'out_roi'],
-                                               function=resample_func_roi,
-                                               as_module=True),
-                                      name=f'resample_functional_roi_'
+    resample_functional_roi = pe.Node(resample_function(),
+                                      name='resample_functional_roi_'
                                            f'{pipe_num}')
-
-    resample_functional_roi.inputs.realignment = cfg.timeseries_extraction[
-        'realignment']
+    realignment = cfg.timeseries_extraction['realignment']
+    resample_functional_roi.inputs.realignment = realignment
     resample_functional_roi.inputs.identity_matrix = \
     cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
@@ -842,9 +866,26 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     pipe_num=pipe_num
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-preproc_bold'])
-                wf.connect(brain_mask_node, brain_mask_out,
-                           timeseries_correlation, 'inputspec.mask')
+                    'space-template_desc-brain_mask'])
+                if 'func_to_ROI' in realignment:
+                    resample_brain_mask_roi = pe.Node(
+                        resample_function(),
+                        name=f'resample_brain_mask_roi_{pipe_num}')
+                    resample_brain_mask_roi.inputs.realignment = realignment
+                    resample_brain_mask_roi.inputs.identity_matrix = (
+                        cfg.registration_workflows['functional_registration'][
+                            'func_registration_to_template'
+                        ]['FNIRT_pipelines']['identity_matrix'])
+                    wf.connect([
+                        (brain_mask_node, resample_brain_mask_roi, [
+                            (brain_mask_out, 'in_func')]),
+                        (roi_dataflow, resample_brain_mask_roi, [
+                            ('outputspec.out_file', 'in_roi')]),
+                        (resample_brain_mask_roi, timeseries_correlation, [
+                            ('out_func', 'inputspec.mask')])])
+                else:
+                    wf.connect(brain_mask_node, brain_mask_out,
+                               timeseries_correlation, 'inputspec.mask')
 
             timeseries_correlation.inputs.inputspec.method = cm_measure
             wf.connect([
@@ -884,7 +925,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
         wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
         wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
-        outputs['space-template_space-template_desc-ndmg_correlations'
+        outputs['space-template_desc-ndmg_correlations'
                 ] = (ndmg_graph, 'out_file')
 
     return (wf, outputs)
@@ -902,15 +943,8 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
                  "atlas_name"]}
     '''
 
-    resample_functional_to_mask = pe.Node(Function(input_names=['in_func',
-                                                                'in_roi',
-                                                                'realignment',
-                                                                'identity_matrix'],
-                                                   output_names=['out_func',
-                                                                 'out_roi'],
-                                                   function=resample_func_roi,
-                                                   as_module=True),
-                                          name=f'resample_functional_to_mask_'
+    resample_functional_to_mask = pe.Node(resample_function(),
+                                          name='resample_functional_to_mask_'
                                                f'{pipe_num}')
 
     resample_functional_to_mask.inputs.realignment = cfg.timeseries_extraction[

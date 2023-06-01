@@ -1,4 +1,3 @@
-from logging import raiseExceptions
 import os
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
@@ -35,12 +34,14 @@ def run_surface(post_freesurfer_folder,
     destrieux : str
         Path to the Destrieux parcellation file.
     """
-
-    import os
-    import subprocess
-
-    freesurfer_folder = os.path.join(freesurfer_folder, 'recon_all')
     
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
+    import os
+    
+    recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
+    
+    if os.path.isdir(recon_all_path):
+        freesurfer_folder = recon_all_path
 
     # DCAN-HCP PostFreeSurfer
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
@@ -52,7 +53,7 @@ def run_surface(post_freesurfer_folder,
         '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
         '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
@@ -62,7 +63,7 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
@@ -131,9 +132,9 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     surf.inputs.fmri_res = str(cfg.surface_analysis['post_freesurfer']['fmri_res'])
     surf.inputs.smooth_fwhm = str(cfg.surface_analysis['post_freesurfer']['smooth_fwhm'])
 
-    restore = ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
+    restore = ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w",
                   "space-longitudinal_desc-reorient_T1w"]
-    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask",]
+    space_temp = ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"]
     atlas_xfm = ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"]
     atlas_xfm_inv = ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"]
     atlas_space_bold = ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"]
@@ -180,20 +181,28 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "surface_preproc",
+    {"name": "surface_postproc",
      "config": ["surface_analysis", "post_freesurfer"],
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["freesurfer-subject-dir",
-                ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w", 
-                "space-longitudinal_desc-reorient_T1w"],
-                ["space-template_desc-head_T1w", "space-template_desc-brain_T1w", "space-template_desc-T1w_mask"],
-                ["from-T1w_to-template_mode-image_xfm", "from-T1w_to-template_mode-image_desc-linear_xfm"],
-                ["from-template_to-T1w_mode-image_xfm", "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
-                ["space-template_desc-scout_bold", "space-template_desc-cleaned_bold", "space-template_desc-brain_bold", 
-                "space-template_desc-preproc_bold", "space-template_desc-motion_bold", "space-template_bold"]],
+     "inputs": [("freesurfer-subject-dir",
+                 ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w",
+                  "desc-reorient_T1w", "T1w",
+                  "space-longitudinal_desc-reorient_T1w"],
+                 ["space-template_desc-head_T1w",
+                  "space-template_desc-brain_T1w",
+                  "space-template_desc-T1w_mask"],
+                 ["from-T1w_to-template_mode-image_xfm",
+                  "from-T1w_to-template_mode-image_desc-linear_xfm"],
+                 ["from-template_to-T1w_mode-image_xfm",
+                  "from-template_to-T1w_mode-image_desc-linear_xfm"],
+                 ["space-template_desc-brain_bold",
+                  "space-template_desc-preproc_bold"],
+                 ["space-template_desc-scout_bold",
+                  "space-template_desc-cleaned_bold",
+                  "space-template_desc-brain_bold",
+                  "space-template_desc-motion_bold", "space-template_bold"])],
      "outputs": ["atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
                  "atlas-Destrieux_space-fsLR_den-32k_dlabel",
                  "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
@@ -203,3 +212,4 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
+
