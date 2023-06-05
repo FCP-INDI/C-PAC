@@ -50,7 +50,7 @@ unset POSIXLY_CORRECT
 #hj edit: make a temp dir
 TempSubjectDIR="$ResultsFolder/TempSubjectDIR"
 mkdir -p $TempSubjectDIR
-chmod 770 $TempSubjectDIR
+chmod 775 $TempSubjectDIR
 
 #function clean_up {
 #    echo Exit code caught. Removing temp scratch space directory
