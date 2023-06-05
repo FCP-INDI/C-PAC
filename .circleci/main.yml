@@ -73,7 +73,7 @@ commands:
       version:
         description: "Version of Singularity to clone"
         type: string
-        default: v3.7.2
+        default: v3.8.7
     steps:
       - install-singularity-requirements
       - restore_cache:
@@ -84,7 +84,7 @@ commands:
           command: |
             if [[ ! -d singularity-<< parameters.version >> ]]
             then
-              git clone -b << parameters.version >> https://github.com/sylabs/singularity singularity-<< parameters.version >>
+              git clone -b << parameters.version >> https://github.com/apptainer/singularity singularity-<< parameters.version >>
             fi
       - save_cache:
           key: singularity-<< parameters.version >>
