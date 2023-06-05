@@ -1,3 +1,4 @@
+FROM ghcr.io/fcp-indi/c-pac/afni:21.1.00-bionic as AFNI
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.3-beta-bionic as ICA-AROMA
 FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
@@ -5,6 +6,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard and lite images"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench & FSL
@@ -27,9 +29,14 @@ ENV C3DPATH /opt/c3d
 ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
-# Installing C-PAC resources into FSL
-# Installing ANTs
-COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
+COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=AFNI /lib64/ld* /lib64/
+COPY --from=AFNI /opt/afni/ /opt/afni/
+COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
+# set up AFNI
+ENV PATH=/opt/afni:$PATH
+# Installing C-PAC resources into FSL and installing ANTs
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
     ANTSPATH=/usr/lib/ants \
@@ -44,20 +51,6 @@ ENV LANG="en_US.UTF-8" \
 RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
         ln -svf /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0 /usr/lib/x86_64-linux-gnu/libGL.so.1; \
     fi && \
-    libs_path=/usr/lib/x86_64-linux-gnu && \
-    if [ -f $libs_path/libgsl.so.23 ]; then \
-        ln -svf $libs_path/libgsl.so.23 $libs_path/libgsl.so.19 && \
-        ln -svf $libs_path/libgsl.so.23 $libs_path/libgsl.so.0; \
-    elif [ -f $libs_path/libgsl.so.23.0.0 ]; then \
-        ln -svf $libs_path/libgsl.so.23.0.0 $libs_path/libgsl.so.19 && \
-        ln -svf $libs_path/libgsl.so.23.0.0 $libs_path/libgsl.so.0; \
-    elif [ -f $libs_path/libgsl.so ]; then \
-        ln -svf $libs_path/libgsl.so $libs_path/libgsl.so.0; \
-    fi && \
-    LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
-    export LD_LIBRARY_PATH && \
-    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_openmp_64/@update.afni.binaries && \
-    tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt) && \
     ldconfig && \
     curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
     tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
@@ -67,6 +60,7 @@ RUN if [ -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1.2.0]; then \
     cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+    chmod -R ugo+r $FSLDIR/data/standard && \
     echo "Downloading ANTs ..." \
     && mkdir -p /usr/lib/ants \
     && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \

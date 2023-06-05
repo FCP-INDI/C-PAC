@@ -1,4 +1,20 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2020-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import copy
 import time
@@ -44,14 +60,12 @@ from CPAC.longitudinal_pipeline.longitudinal_preproc import (
     subject_specific_template
 )
 
-from CPAC.utils import Strategy, find_files, function, Outputs
-from CPAC.utils.utils import check_prov_for_regtool
-
+from CPAC.utils import find_files, function
+from CPAC.utils.outputs import Outputs
+from CPAC.utils.strategy import Strategy
 from CPAC.utils.utils import (
     check_config_resources,
-    check_system_deps,
-    get_scan_params,
-    get_tr
+    check_prov_for_regtool
 )
 
 logger = logging.getLogger('nipype.workflow')
@@ -446,7 +460,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         workflow.run()
 
-        cpac_dir = os.path.join(out_dir, f'cpac_{orig_pipe_name}',
+        cpac_dir = os.path.join(out_dir, f'pipeline_{orig_pipe_name}',
                                 f'{subject_id}_{unique_id}')
         cpac_dirs.append(os.path.join(cpac_dir, 'anat'))
 

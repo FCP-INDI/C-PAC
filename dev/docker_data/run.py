@@ -1,20 +1,20 @@
 #!/usr/bin/env python
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2018-2023  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import argparse
 import datetime
 import os
@@ -22,37 +22,33 @@ import subprocess
 import sys
 import time
 import shutil
+from warnings import simplefilter
+from nipype import logging
 import yaml
-
 from CPAC import license_notice, __version__
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
 from CPAC.pipeline.random_state import set_up_random_state
-from CPAC.utils.bids_utils import create_cpac_data_config, \
+from CPAC.pipeline.schema import str_to_bool1_1
+from CPAC.utils.bids_utils import cl_strip_brackets, \
+                                  create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   load_yaml_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.configuration import Configuration
+from CPAC.utils.configuration import Configuration, preconfig_yaml, set_subject
 from CPAC.utils.docs import DOCS_URL_PREFIX
-from CPAC.utils.monitoring import log_nodes_cb
-from CPAC.utils.yaml_template import create_yaml_from_template, \
-                                     upgrade_pipeline_to_1_8
-from CPAC.utils.utils import cl_strip_brackets, load_preconfig, \
-                             update_nested_dict
-
-import yamlordereddictloader
-from warnings import simplefilter, warn
+from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
+from CPAC.utils.configuration.yaml_template import create_yaml_from_template, \
+                                                   hash_data_config, \
+                                                   upgrade_pipeline_to_1_8
+from CPAC.utils.utils import load_preconfig, update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
-
+logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
-if not os.path.exists(DEFAULT_PIPELINE):
-    DEFAULT_PIPELINE = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yml"
-    )
 
 
-def run(command, env={}):
+def run(command, env=None):
+    if env is None:
+        env = {}
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
                                shell=True, env=env)
@@ -66,11 +62,12 @@ def run(command, env={}):
 def parse_yaml(value):
     try:
         config = yaml.safe_load(value)
-        if type(config) != dict:
-            raise
+        if not isinstance(config, dict):
+            raise TypeError("config must be a dictionary")
         return config
-    except:
-        raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+    except Exception:
+        # pylint: disable=raise-missing-from
+        raise argparse.ArgumentTypeError(f"Invalid configuration: '{value}'")
 
 
 def resolve_aws_credential(source):
@@ -139,7 +136,7 @@ def run_main():
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
-                        default=DEFAULT_PIPELINE)
+                        default=preconfig_yaml('default'))
     parser.add_argument('--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
@@ -251,11 +248,14 @@ def run_main():
     parser.add_argument('--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
-    parser.add_argument('--disable_file_logging', action='store_true',
-                        help='Disable file logging, this is useful for '
-                             'clusters that have disabled file locking.',
-                        default=False)
+    parser.add_argument('--save_workflow',
+                        help='Save a serialized version of the workflow. '
+                             'Can be used with `test_config` to save workflow '
+                             'without running the pipeline.',
+                        action='store_true')
 
+    parser.add_argument('--fail_fast', type=str.title,
+                        help='Stop worklow execution on first crash?')
     parser.add_argument('--participant_label',
                         help='The label of the participant that should be '
                              'analyzed. The label corresponds to '
@@ -361,7 +361,7 @@ def run_main():
     output_dir_is_s3 = args.output_dir.lower().startswith("s3://")
     output_dir = args.output_dir if output_dir_is_s3 else os.path.realpath(
         args.output_dir)
-
+    exitcode = 0
     if args.analysis_level == "cli":
         from CPAC.__main__ import main
         main.main(args=sys.argv[sys.argv.index('--') + 1:])
@@ -470,9 +470,8 @@ def run_main():
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
                     '1.7-1.8-nesting-mappings')
 
-            warn('\nC-PAC changed its pipeline configuration format in '
-                 f'v1.8.0.\nSee {_url} for details.\n',
-                 category=DeprecationWarning)
+            logger.warning('\nC-PAC changed its pipeline configuration '
+                           'format in v1.8.0.\nSee %s for details.\n', _url)
 
             updated_config = os.path.join(
                 output_dir,
@@ -599,8 +598,6 @@ def run_main():
             c['pipeline_setup']['system_config']['observed_usage'][
                 'buffer'] = args.runtime_buffer
 
-        c['disable_log'] = args.disable_file_logging
-
         if args.save_working_dir is not False:
             c['pipeline_setup']['working_directory'][
                 'remove_working_dir'] = False
@@ -611,10 +608,17 @@ def run_main():
             c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(output_dir, "working")
         else:
-            warn('Cannot write working directory to S3 bucket. '
-                 'Either change the output directory to something '
-                 'local or turn off the --save_working_dir flag',
-                 category=UserWarning)
+            logger.warning('Cannot write working directory to S3 bucket. '
+                           'Either change the output directory to something '
+                           'local or turn off the --save_working_dir flag')
+
+        c['pipeline_setup']['log_directory']['save_workflow'] = \
+            args.save_workflow or \
+            c['pipeline_setup']['log_directory'].get('save_workflow', False)
+
+        if args.fail_fast is not None:
+            c['pipeline_setup', 'system_config',
+              'fail_fast'] = str_to_bool1_1(args.fail_fast)
 
         if c['pipeline_setup']['output_directory']['quality_control'][
                 'generate_xcpqc_files']:
@@ -655,22 +659,8 @@ def run_main():
             c['pipeline_setup']['system_config']['num_ants_threads']))
 
         # create a timestamp for writing config files
+        # pylint: disable=invalid-name
         st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
-
-        # update config file
-        if not output_dir_is_s3:
-            pipeline_config_file = os.path.join(
-                output_dir, "cpac_pipeline_config_{0}.yml".format(st)
-            )
-        else:
-            pipeline_config_file = os.path.join(
-                DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
-            )
-
-        open(pipeline_config_file, 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, True))
-        open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
-            create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
         if args.participant_label:
             args.participant_label = cl_strip_brackets(args.participant_label)
@@ -721,8 +711,9 @@ def run_main():
                     sub_list[participant_ndx]["subject_id"]
                 ))
                 sub_list = [sub_list[participant_ndx]]
-                data_config_file = "cpac_data_config_idx-%s_%s.yml" % (
-                    args.participant_ndx, st)
+                data_hash = hash_data_config(sub_list)
+                data_config_file = (f"cpac_data_config_{data_hash}_idx-"
+                                    f"{args.participant_ndx}_{st}.yml")
             else:
                 print("Participant ndx {0} is out of bounds [0, {1})".format(
                     participant_ndx,
@@ -730,19 +721,39 @@ def run_main():
                 ))
                 sys.exit(1)
         else:
-            # write out the data configuration file
-            data_config_file = "cpac_data_config_{0}.yml".format(st)
+            data_hash = hash_data_config(sub_list)
+            data_config_file = (f"cpac_data_config_{data_hash}_{st}.yml")
 
-        if not output_dir_is_s3:
-            data_config_file = os.path.join(output_dir, data_config_file)
-        else:
-            data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
-
-        with open(data_config_file, 'w') as f:
+        sublogdirs = [set_subject(sub, c)[2] for sub in sub_list]
+        # write out the data configuration file
+        data_config_file = os.path.join(sublogdirs[0], data_config_file)
+        with open(data_config_file, 'w', encoding='utf-8') as _f:
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
-            yaml.dump(sub_list, f, default_flow_style=False,
+            yaml.dump(sub_list, _f, default_flow_style=False,
                       Dumper=noalias_dumper)
+
+        # update and write out pipeline config file
+        pipeline_config_file = os.path.join(
+            sublogdirs[0], f"cpac_pipeline_config_{data_hash}_{st}.yml")
+        with open(pipeline_config_file, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c))
+        minimized_config = f'{pipeline_config_file[:-4]}_min.yml'
+        with open(minimized_config, 'w', encoding='utf-8') as _f:
+            _f.write(create_yaml_from_template(c, import_from='blank'))
+        for config_file in (data_config_file, pipeline_config_file,
+                            minimized_config):
+            os.chmod(config_file, 0o444)  # Make config files readonly
+
+        if len(sublogdirs) > 1:
+            # If more than one run is included in the given data config
+            # file, an identical copy of the data and pipeline config
+            # will be included in the log directory for each run
+            for sublogdir in sublogdirs[1:]:
+                for config_file in (data_config_file, pipeline_config_file,
+                                    minimized_config):
+                    os.link(config_file, config_file.replace(
+                        sublogdirs[0], sublogdir))
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way
@@ -777,7 +788,7 @@ def run_main():
                         'observed_usage']['buffer']}
 
             print("Starting participant level processing")
-            CPAC.pipeline.cpac_runner.run(
+            exitcode = CPAC.pipeline.cpac_runner.run(
                 data_config_file,
                 pipeline_config_file,
                 plugin='MultiProc' if plugin_args[
@@ -792,16 +803,26 @@ def run_main():
                 monitoring.join(10)
 
             if args.analysis_level == "test_config":
-                print(
-                    '\nPipeline and data configuration files should'
-                    ' have been written to {0} and {1} respectively.'.format(
-                        pipeline_config_file,
-                        data_config_file
-                    )
-                )
+                if exitcode == 0:
+                    logger.info(
+                        '\nPipeline and data configuration files should'
+                        ' have been written to %s and %s respectively.\n',
+                        pipeline_config_file, data_config_file)
 
-    sys.exit(0)
+            # wait to import `LOGTAIL` here so it has any runtime updates
+            from CPAC.utils.monitoring import LOGTAIL
+            for warning in LOGTAIL['warnings']:
+                logger.warning('%s\n', warning.rstrip())
+
+    sys.exit(exitcode)
 
 
 if __name__ == '__main__':
-    run_main()
+    try:
+        run_main()
+    except Exception as exception:
+        # if we hit an exception before the pipeline starts to build but
+        # we're still able to create a logfile, log the error in the file
+        failed_to_start(sys.argv[2] if len(sys.argv) > 2 else os.getcwd(),
+                        exception)
+        raise exception

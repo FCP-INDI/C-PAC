@@ -163,7 +163,7 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         bandwidth = fa[1] - fa[0]
 
         Q = Wn/bw
-        [b_filt, a_filt] = iirnotch(Wn, Q)
+        [b_filt, a_filt] = iirnotch(Wn, Q, fs)
         num_f_apply = np.floor(filter_order / 2)
 
         filter_info = f"Motion estimate filter information\n\nType: Notch\n" \

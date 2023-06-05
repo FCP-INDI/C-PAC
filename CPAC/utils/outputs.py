@@ -27,7 +27,7 @@ class Outputs():
     functional_timeseries = list(
         reference[reference['4D Time Series'] == 'Yes']['Resource']
     )
-    
+
     anat = list(reference[reference['Sub-Directory'] == 'anat']['Resource'])
     func = list(reference[reference['Sub-Directory'] == 'func']['Resource'])
 
@@ -42,12 +42,16 @@ class Outputs():
     _nonsmoothed_filter = reference['To Smooth'] == 'Yes'
     _zstd_filter = reference['To z-std'] == 'Yes'
     _corr_filter = reference['Type'] == 'correlation'
-    
-    all_template_filter = _template_filter | _epitemplate_filter | _symtemplate_filter
-    all_native_filter = _T1w_native_filter | _bold_native_filter | _long_native_filter
 
-    native_nonsmooth = list(reference[all_native_filter & _nonsmoothed_filter]['Resource'])
-    template_nonsmooth = list(reference[all_template_filter & _nonsmoothed_filter]['Resource'])
+    all_template_filter = (_template_filter | _epitemplate_filter |
+                           _symtemplate_filter)
+    all_native_filter = (_T1w_native_filter | _bold_native_filter |
+                         _long_native_filter)
+
+    native_nonsmooth = list(reference[all_native_filter &
+                                      _nonsmoothed_filter]['Resource'])
+    template_nonsmooth = list(reference[all_template_filter &
+                                        _nonsmoothed_filter]['Resource'])
 
     to_smooth = list(reference[_nonsmoothed_filter]['Resource'])
     to_zstd = list(reference[_zstd_filter & ~_corr_filter]['Resource'])
@@ -65,10 +69,11 @@ class Outputs():
 
     # outputs to send into z-scoring, if z-scoring is enabled, and
     # outputs to write out if user selects to write non-z-scored outputs
-    native_raw = list(
-        reference[all_native_filter &
-        (reference['To z-std'] == 'Yes')]['Resource'])
+    native_raw = list(reference[all_native_filter &
+                      (reference['To z-std'] == 'Yes')]['Resource'])
 
-    template_raw = list(
-        reference[all_template_filter &  
-        (reference['To z-std'] == 'Yes')]['Resource'])
+    template_raw = list(reference[all_template_filter &
+                        (reference['To z-std'] == 'Yes')]['Resource'])
+
+    # motion parameters to rename until FCP-INDI/CPAC#1624 is merged
+    motion = list(reference[reference['Type'] == 'motion']['Resource'])

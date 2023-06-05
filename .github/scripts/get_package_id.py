@@ -11,18 +11,18 @@ import sys
 
 def get_packages(owner, tag, api_token=None):
     """Function to collect GHCR packages for a given owner & tag
-    
+
     Parameters
     ----------
     owner : str
         username or org name
-    
+
     tag : str
         image tag (part left of the colon)
 
     api_token : str or None
         GitHub API personal access token with read.packages permission
-    
+
     Returns
     -------
     list
@@ -32,11 +32,11 @@ def get_packages(owner, tag, api_token=None):
 
     def fetch(url):
         """Method to make API call and return response, given a URL
-        
+
         Parameters
         ----------
         url : str
-        
+
         Returns
         -------
         dict or list
@@ -59,34 +59,36 @@ def get_packages(owner, tag, api_token=None):
                 '$VERSION_TAG $GITHUB_TOKEN`'
             ]))
         return response
-    packages = fetch(
+    _packages = fetch(
         f'https://api.github.com/orgs/{owner}/packages/container/'
         f'{tag}/versions')
-    if packages.get('message', 'Not Found') == 'Not Found':
-        packages = fetch(
-            f'https://api.github.com/users/{owner}/packages/container/'
-            f'{tag}/versions')
+    packages = []
+    for _package in _packages:
+        if _package.get('message', 'Not Found') == 'Not Found':
+            packages += fetch(
+                f'https://api.github.com/users/{owner}/packages/container/'
+                f'{tag}/versions')
     return packages
 
 
 def id_from_tag(owner, image, tag, api_token=None):
     """Function to return a package ID given an image version tag
-    
+
     Parameters
     ----------
     owner : str
         GitHub username or org name
-    
+
     image : str
         Image tag (the part to the left of the colon)
-    
+
     tag : str
         Image version tag (the part to the right of the colon)
 
     api_token: str or None
         GitHub API personal access token with read.packages permission
     """
-    packages = get_packages(owner, image)
+    packages = get_packages(owner, image, api_token)
     versions = [image['id'] for image in packages if tag in image.get(
         'metadata', {}
     ).get('container', {}).get('tags', [])]

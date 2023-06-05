@@ -12,6 +12,7 @@ FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Software dependencies version-matched to `fMRIPrep LTS <https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts->`_"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # allow users to update / create themselves
@@ -101,7 +102,6 @@ COPY --from=FSL /usr/lib/libznz.so.2 /usr/lib/libznz.so.2
 COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
 COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
 COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
-# COPY --from=FSL /usr/share/man/man1/fsl5.0-* /usr/share/man/man1/  # These are all broken symlinks to `fsl-5.0.1.gz`
 COPY --from=FSL /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
 COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
 COPY --from=FSL /usr/share/fsl /usr/share/fsl

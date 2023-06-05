@@ -1,0 +1,4 @@
+seed_based_correlation_analysis:
+  run: true
+  sca_roi_paths:
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg

@@ -7,6 +7,7 @@ from CPAC import __version__
 
 def docstring_parameter(*args, **kwargs):
     """Decorator to parameterize docstrings.
+    Use double-curly-braces ({{}}) for literal curly braces.
 
     Examples
     --------
@@ -16,8 +17,16 @@ def docstring_parameter(*args, **kwargs):
     ...     pass
     >>> print(do_nothing.__doc__)
     Does this test do anything? Yes it does.
+    >>> @docstring_parameter('test', answer='It should not.')
+    ... def how_about_now():
+    ...     '''How about {{ this }}?'''
+    ...     pass
+    >>> print(how_about_now.__doc__)
+    How about { this }?
     """
     def dec(obj):
+        if obj.__doc__ is None:
+            obj.__doc__ = ''
         obj.__doc__ = obj.__doc__.format(*args, **kwargs)
         return obj
     return dec
@@ -57,7 +66,7 @@ def grab_docstring_dct(fn):
                        'option_val', 'inputs', 'outputs']
     if 'Node Block:' in fn_docstring:
         fn_docstring = fn_docstring.split('Node Block:')[1]
-    fn_docstring = fn_docstring.lstrip().replace('\n', '')
+    fn_docstring = fn_docstring.lstrip().replace('\n', '').rstrip()
     dct = ast.literal_eval(fn_docstring)
     for key in init_dct_schema:
         if key not in dct.keys():

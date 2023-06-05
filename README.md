@@ -40,7 +40,7 @@ Documentation pertaining to this latest release can be found here: https://fcp-i
 Discussion Forum
 ---------------
 
-If you are stuck and need help or have any other questions or comments about C-PAC, there is a C-PAC discussion forum here: ttps://neurostars.org/tag/cpac
+If you are stuck and need help or have any other questions or comments about C-PAC, there is a C-PAC discussion forum here: https://neurostars.org/tag/cpac
 
 Issue Tracker and Bugs
 ----------------------

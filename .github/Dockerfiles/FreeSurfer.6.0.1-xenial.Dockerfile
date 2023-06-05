@@ -50,6 +50,7 @@ RUN apt-get clean && \
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FreeSurfer 6.0.1 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=FreeSurfer /opt/freesurfer /opt/freesurfer
 
 # set user

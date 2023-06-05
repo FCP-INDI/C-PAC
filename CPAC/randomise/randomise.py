@@ -1,6 +1,5 @@
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 
 def select(input_list):
@@ -122,6 +121,7 @@ def run(group_config_path):
     import sys
     import pickle
     import yaml
+    from CPAC.pipeline.cpac_group_runner import load_config_yml
 
     group_config_obj = load_config_yml(group_config_path)
     pipeline_output_folder = group_config_obj.pipeline_dir

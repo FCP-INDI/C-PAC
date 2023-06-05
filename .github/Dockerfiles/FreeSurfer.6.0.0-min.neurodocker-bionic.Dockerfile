@@ -1,9 +1,7 @@
 # we need mri_vol2vol which is not included in neurodocker freesurfer 6.0.0-min
 FROM freesurfer/freesurfer:6.0 as FreeSurfer
 
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-FreeSurfer 6.0.0-min stage"
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as FreeSurfer6
 USER root
 
 # install FreeSurfer
@@ -33,5 +31,8 @@ RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# set user
-USER c-pac_user
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FreeSurfer 6.0.0-min stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+COPY --from=FreeSurfer6 /usr/lib/freesurfer/ /usr/lib/freesurfer/

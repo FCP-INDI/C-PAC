@@ -1,15 +1,29 @@
-import os
-import six
-import warnings
-import logging
+# Copyright (C) 2018-2022  C-PAC Developers
 
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import logging
+import six
+from CPAC.pipeline.engine import ResourcePool
 logger = logging.getLogger('nipype.workflow')
 
 
-class Strategy(object):
+class Strategy:
 
     def __init__(self):
-        self.resource_pool = {}
+        self._resource_pool = ResourcePool({})
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []
@@ -41,6 +55,16 @@ class Strategy(object):
         except:
             logger.error('No node for output: %s', resource_key)
             raise
+
+    @property
+    def resource_pool(self):
+        '''Strategy's ResourcePool dict'''
+        return self._resource_pool.get_entire_rpool()
+
+    @property
+    def rpool(self):
+        '''Strategy's ResourcePool'''
+        return self._resource_pool
 
     def update_resource_pool(self, resources, override=False):
         for key, value in resources.items():

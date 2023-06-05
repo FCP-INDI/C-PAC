@@ -1,6 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-ANTs 2.2.0 stage"
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free as ANTs
 USER root
 
 # install ANTs from Neurodocker
@@ -42,5 +40,9 @@ RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# set user
-USER c-pac_user
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+ANTs 2.2.0 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ANTs /ants_template /ants_template

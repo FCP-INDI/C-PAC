@@ -1,8 +1,22 @@
-import nipype.interfaces.fsl as fsl
+# Copyright (C) 2018-2022  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from nipype.interfaces import fsl, utility as util
 from nipype.interfaces.afni import preprocess as afni
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from CPAC.utils import Outputs
 
 
 def set_gauss(fwhm):
@@ -64,17 +78,17 @@ def spatial_smoothing(wf_name, fwhm, input_image_type='func_derivative',
 
     elif opt == 'AFNI':
         if input_image_type == 'func_derivative_multi':
-            output_smooth = pe.MapNode(interface= afni.BlurToFWHM(),
+            output_smooth = pe.MapNode(interface=afni.BlurToFWHM(),
                                        name='smooth_multi',
                                        iterfield=['in_file'])
         else:
-            output_smooth = pe.Node(interface= afni.BlurToFWHM(),
+            output_smooth = pe.Node(interface=afni.BlurToFWHM(),
                                     name='smooth',
                                     iterfield=['in_file'])
         output_smooth.inputs.outputtype = 'NIFTI_GZ'
 
-    if opt =='FSL':
-         # wire in the resource to be smoothed
+    if opt == 'FSL':
+        # wire in the resource to be smoothed
         wf.connect(inputnode, 'in_file', output_smooth, 'in_file')
         # get the parameters for fwhm
         wf.connect(inputnode_fwhm, ('fwhm', set_gauss),

@@ -1,3 +1,44 @@
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Resolves bugs preventing the original from generating the chart
+#     * Handles when chart-drawing is called but no nodes were run (all cached)
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2015-2019, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2021-2023 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 '''Module to draw an html gantt chart from logfile produced by
 ``CPAC.utils.monitoring.log_nodes_cb()``.
 
@@ -358,7 +399,11 @@ def generate_gantt_chart(
 
     # Only include nodes with timing information, and covert timestamps
     # from strings to datetimes
-    nodes_list = _timing(nodes_list)
+    try:
+        nodes_list = _timing(nodes_list)
+    except ProcessLookupError:
+        warn(str(ProcessLookupError))
+        nodes_list = []
 
     if not nodes_list:
         return
@@ -605,6 +650,8 @@ def _timing_timestamp(node):
     -------
     dict
     """
+    if node is None:
+        raise ProcessLookupError('No logged nodes have timing information.')
     return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
             '.' in v else datetime.fromisoformat(v)) if
             k in {"start", "finish"} else v for k, v in node.items()}

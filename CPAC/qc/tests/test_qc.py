@@ -1,14 +1,13 @@
 import os
 import pytest
-
+from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-
+from CPAC.pipeline.cpac_group_runner import gather_outputs
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
-from CPAC.utils import Configuration, Strategy, Outputs
-
-from CPAC.pipeline.cpac_group_runner import gather_outputs
+from CPAC.utils.configuration import Configuration
+from CPAC.utils.outputs import Outputs
+from CPAC.utils.strategy import Strategy
 
 
 def file_node(path):

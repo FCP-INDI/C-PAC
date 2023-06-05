@@ -1,0 +1,293 @@
+---
+# CPAC Pipeline Configuration YAML file
+# Version 1.8.4.dev
+#
+# http://fcp-indi.github.io for more info.
+#
+
+# OUTPUTS AND DERIVATIVES
+# -----------------------
+post_processing:
+
+  spatial_smoothing:
+
+    # Smooth the derivative outputs.
+    # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
+    #
+    # Options:
+    #     ['smoothed', 'nonsmoothed']
+    output: ['smoothed']
+
+    # Tool to use for smoothing.
+    # 'FSL' for FSL MultiImageMaths for FWHM provided
+    # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
+    smoothing_method: ['FSL']
+
+    # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
+    # this is a fork point
+    #   i.e. multiple kernels - fwhm: [4,6,8]
+    fwhm: [4]
+
+  z-scoring:
+
+    # z-score standardize the derivatives. This may be needed for group-level analysis.
+    # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
+    #
+    # Options:
+    #     ['z-scored', 'raw']
+    output: ['z-scored']
+
+
+timeseries_extraction:
+  roi_paths_fully_specified: False
+
+  run: On
+
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
+  # available analyses:
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg
+  tse_roi_paths:
+    /cpac_templates/CC400.nii.gz: Avg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg
+    /cpac_templates/CC200.nii.gz: Avg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg
+    /cpac_templates/rois_3mm.nii.gz: Avg
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/CAPRSC_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/DKT_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/DesikanKlein_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/MICCAI_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer1000_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer200_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer300_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer400_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Talairach_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+
+  # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+  # 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+  # 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+  #
+  #     NOTE: in rare cases, realigning the ROI to the functional space may
+  #           result in small misalignments for very small ROIs - please double
+  #           check your data if you see issues
+  realignment: 'ROI_to_func'
+
+  connectivity_matrix:
+    # Create a connectivity matrix from timeseries data
+
+    # Options:
+    #  ['AFNI', 'Nilearn', 'ndmg']
+    using:
+      - Nilearn
+      - ndmg
+    # Options:
+    #  ['Pearson', 'Partial']
+    # Note: These options are not configurable for ndmg, which will ignore these options
+    measure:
+      - Pearson
+      - Partial
+
+
+seed_based_correlation_analysis:
+
+  roi_paths_fully_specified: False
+
+  # SCA - Seed-Based Correlation Analysis
+  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
+  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
+  run: On
+
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for seed-based correlation analysis, and then select which types of analyses to run.
+  # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
+  # available analyses:
+  #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
+  sca_roi_paths:
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
+    /cpac_templates/CC400.nii.gz: Avg, MultReg
+    /cpac_templates/ez_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/CC200.nii.gz: Avg, MultReg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/rois_3mm.nii.gz: Avg, MultReg
+
+  # Normalize each time series before running Dual Regression SCA.
+  norm_timeseries_for_DR: True
+
+
+amplitude_low_frequency_fluctuation:
+
+  # ALFF & f/ALFF
+  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
+  run: On
+
+  # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
+  highpass_cutoff: [0.01]
+
+  # Frequency cutoff (in Hz) for the low-pass filter used when calculating f/ALFF
+  lowpass_cutoff: [0.1]
+
+
+regional_homogeneity:
+
+  # ReHo
+  # Calculate Regional Homogeneity (ReHo) for all voxels.
+  run: On
+
+  # Number of neighboring voxels used when calculating ReHo
+  # 7 (Faces)
+  # 19 (Faces + Edges)
+  # 27 (Faces + Edges + Corners)
+  cluster_size: 27
+
+
+voxel_mirrored_homotopic_connectivity:
+
+  # VMHC
+  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
+  run: On
+
+  symmetric_registration:
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+
+    # A reference symmetric brain template for resampling
+    T1w_brain_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_symmetric.nii.gz
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    T1w_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+
+    # A reference symmetric skull template for resampling
+    T1w_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_symmetric.nii.gz
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+
+    # A reference symmetric brain mask template for resampling
+    dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
+
+
+network_centrality:
+
+  # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
+  run: On
+
+  # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
+  # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
+  memory_allocation:  1.0
+
+  # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
+  template_specification_file:  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
+
+  degree_centrality:
+
+    # Enable/Disable degree centrality by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options:  ['Binarized', 'Weighted']
+
+    # Select the type of threshold used when creating the degree centrality adjacency matrix.
+    # options:
+    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
+    correlation_threshold_option: 'Sparsity threshold'
+
+    # Based on the Threshold Type selected above, enter a Threshold Value.
+    # P-value for Significance Threshold
+    # Sparsity value for Sparsity Threshold
+    # Pearson's r value for Correlation Threshold
+    correlation_threshold: 0.001
+
+  eigenvector_centrality:
+
+    # Enable/Disable eigenvector centrality by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: ['Weighted']
+
+    # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
+    # options:
+    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
+    correlation_threshold_option: 'Sparsity threshold'
+
+    # Based on the Threshold Type selected above, enter a Threshold Value.
+    # P-value for Significance Threshold
+    # Sparsity value for Sparsity Threshold
+    # Pearson's r value for Correlation Threshold
+    correlation_threshold: 0.001
+
+  local_functional_connectivity_density:
+
+    # Enable/Disable lFCD by selecting the connectivity weights
+    #   weight_options: ['Binarized', 'Weighted']
+    # disable this type of centrality with:
+    #   weight_options: []
+    weight_options: ['Binarized', 'Weighted']
+
+    # Select the type of threshold used when creating the lFCD adjacency matrix.
+    # options:
+    #   'Significance threshold', 'Correlation threshold'
+    correlation_threshold_option: 'Correlation threshold'
+
+    # Based on the Threshold Type selected above, enter a Threshold Value.
+    # P-value for Significance Threshold
+    # Sparsity value for Sparsity Threshold
+    # Pearson's r value for Correlation Threshold
+    correlation_threshold: 0.6
+
+
+# PACKAGE INTEGRATIONS
+# --------------------
+PyPEER:
+
+  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
+  run: Off
+
+  # PEER scan names to use for training
+  # Example: ['peer_run-1', 'peer_run-2']
+  eye_scan_names: []
+
+  # Naturalistic viewing data scan names to use for eye estimation
+  # Example: ['movieDM']
+  data_scan_names: []
+
+  # Template-space eye mask
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
+
+  # PyPEER Stimulus File Path
+  # This is a file describing the stimulus locations from the calibration sequence.
+  stimulus_path: None
+
+  minimal_nuisance_correction:
+
+    # PyPEER Minimal nuisance regression
+    # Note: PyPEER employs minimal preprocessing - these choices do not reflect what runs in the main pipeline.
+    #       PyPEER uses non-nuisance-regressed data from the main pipeline.
+
+    # Global signal regression (PyPEER only)
+    peer_gsr: True
+
+    # Motion scrubbing (PyPEER only)
+    peer_scrub: False
+
+    # Motion scrubbing threshold (PyPEER only)
+    scrub_thresh: 0.2

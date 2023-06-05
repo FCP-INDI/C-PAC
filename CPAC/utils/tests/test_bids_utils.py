@@ -3,11 +3,11 @@ import os
 import pytest
 import yaml
 from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
+                                  cl_strip_brackets, \
                                   collect_bids_files_configs, \
                                   create_cpac_data_config, \
                                   load_cpac_data_config, \
                                   sub_list_filter_by_labels
-from CPAC.utils.utils import cl_strip_brackets
 
 
 def create_sample_bids_structure(root_dir):
