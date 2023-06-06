@@ -94,7 +94,7 @@ commands:
          name: "Setting up Singularity"
          command: |
            cd singularity-<< parameters.version >>
-           ./mconfig
+           ./mconfig -p /usr/local
            make -C builddir
            sudo make -C builddir install
            cd ..
@@ -102,8 +102,21 @@ commands:
     steps:
       - run:
           name: "Installing Singularity requirements"
+          # https://github.com/apptainer/apptainer/blob/release-1.1/INSTALL.md
           command: |
-           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
+            sudo apt-get update -y && \
+            sudo apt-get install -y \
+              build-essential \
+              libseccomp-dev \
+              pkg-config \
+              uidmap \
+              squashfs-tools \
+              squashfuse \
+              fuse2fs \
+              fuse-overlayfs \
+              fakeroot \
+              cryptsetup \
+              curl wget git
   run-pytest-docker:
     steps:
       - create-docker-test-container:
