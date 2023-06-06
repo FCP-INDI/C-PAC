@@ -2689,14 +2689,17 @@ def parse_regressors(regressors_file, regressors_list):
         raise Exception(f"Regressors not found in {regressors_file}")
 
     regressors_path = os.path.join(os.getcwd(), "parsed_regressors.1D")
-
+    parsed_regressors = parsed_regressors.to_numpy()
+    check_vals = np.any(np.isnan(parsed_regressors))
+    if check_vals:
+        raise Exception('\n[!] This regressors file contains "N/A" values.\n' 
+                            '[!] Please choose a different dataset or ' 
+                                        'remove regressors with those values.')
     with open(regressors_path, "w") as ofd:
 
         # write out the header information
         ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
         ofd.write("# Ingressed nuisance regressors:\n")
-
-        parsed_regressors = parsed_regressors.to_numpy()
         np.savetxt(ofd, parsed_regressors, fmt='%.18f', delimiter='\t')
 
     return regressors_path
