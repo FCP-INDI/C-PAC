@@ -1260,7 +1260,7 @@ nuisance_corrections:
     #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
     space: [native]
     ingress_regressors:
-      run: On
+      run: Off
       Regressors:
         Name: default
         Columns: [global_signal]
