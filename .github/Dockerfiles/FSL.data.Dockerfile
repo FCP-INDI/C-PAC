@@ -14,7 +14,8 @@ RUN mkdir -p /fsl_data/atlases/HarvordOxford fsl_data/standard/tissuepriors \
     && cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz /fsl_data/atlases/HarvardOxford \
     && cp -nr /tmp/cpac_image_resources/tissuepriors/2mm /fsl_data/standard/tissuepriors \
     && cp -nr /tmp/cpac_image_resources/tissuepriors/3mm /fsl_data/standard/tissuepriors \
-    && chmod -R ugo+r /fsl_data/standard
+    && chmod -R ugo+r /fsl_data/standard \
+    && chmod -R ugo+r /fsl_data/atlases
 
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
