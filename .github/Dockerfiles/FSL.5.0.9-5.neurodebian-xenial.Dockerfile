@@ -67,3 +67,4 @@ COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-te
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
 # install C-PAC resources into FSL
 COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard
+COPY --from=data /fsl_data/atlases fsl_data/atlases

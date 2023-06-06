@@ -22,3 +22,4 @@ FSL data"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 
 COPY --from=FSL /fsl_data/standard fsl_data/standard
+COPY --from=FSL /fsl_data/atlases fsl_data/atlases

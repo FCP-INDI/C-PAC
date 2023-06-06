@@ -62,3 +62,4 @@ COPY --from=FSL /usr/lib/ /usr/lib/
 COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 # install C-PAC resources into FSL
 COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard
+COPY --from=data /fsl_data/atlases fsl_data/atlases
