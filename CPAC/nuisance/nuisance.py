@@ -215,17 +215,16 @@ def gather_nuisance(functional_file_path,
         raise ValueError("Invalid value for input_file ({}). Should be a nifti "
                          "file and should exist".format(functional_file_path))
 
-        try:
-            functional_image = nb.load(functional_file_path)
-        except:
-            raise ValueError("Invalid value for input_file ({}). Should be a nifti "
-                         "file and should exist".format(functional_file_path))
+    try:
+        functional_image = nb.load(functional_file_path)
+    except:
+        raise ValueError("Invalid value for input_file ({}). Should be a nifti "
+                        "file and should exist".format(functional_file_path))
 
-        if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:
-            raise ValueError("Invalid input_file ({}). Expected 4D file."
-                         .format(functional_file_path))
-
-        regressor_length = functional_image.shape[3]
+    if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:
+        raise ValueError("Invalid input_file ({}). Expected 4D file."
+                        .format(functional_file_path))
+    regressor_length = functional_image.shape[3]
 
     #selector = selector.selector
 
@@ -2457,17 +2456,18 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
     '''
     ingress = strat_pool.check_rpool('parsed_regressors')
     if not ingress:
-        regressor_prov = strat_pool.get_cpac_provenance('regressors')
-        regressor_strat_name = regressor_prov[-1].split('_')[-1]
-   
-    # TODO
+        try:
+            regressor_prov = strat_pool.get_cpac_provenance('regressors')
+            regressor_strat_name = regressor_prov[-1].split('_')[-1]
+        except KeyError:
+            raise Exception("[!] No regressors in resource pool. \n\n Try turning " \
+                            "on create_regressors or ingress_regressors.")
+    else:
+        # name regressor workflow without regressor_prov
+        regressor_strat_name = cfg.nuisance_corrections['2-nuisance_regression'][
+                'ingress_regressors']['Regressors']['Name']
     for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
             'Regressors']:
-        
-        # name regressor workflow without regressor_prov
-        if ingress:
-            regressor_strat_name = cfg.nuisance_corrections['2-nuisance_regression'][
-                'ingress_regressors']['Regressors']['Name']
         if regressor_dct['Name'] == regressor_strat_name:
             opt = regressor_dct
             break
