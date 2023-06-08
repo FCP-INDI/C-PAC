@@ -52,7 +52,7 @@ registration_workflows:
 
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
-        run: [On]
+        run: [Off]
 
 functional_preproc:
   slice_timing_correction:
@@ -60,7 +60,7 @@ functional_preproc:
     # Interpolate voxel time courses so they are sampled at the same time points.
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+    run: [Off]
 
 nuisance_corrections:
   2-nuisance_regression:
@@ -159,6 +159,11 @@ nuisance_corrections:
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off
+    ingress_regressors:
+      run: On
+      Regressors:
+        Name: default
+        Columns: [global_signal]
 
 timeseries_extraction:
   run: On
@@ -219,3 +224,23 @@ network_centrality:
     # disable this type of centrality with:
     #   weight_options: []
     weight_options: [Binarized, Weighted]
+
+post_processing:
+  spatial_smoothing:
+    run: Off
+
+    # Smooth the derivative outputs.
+    # Set as ['nonsmoothed'] to disable smoothing. Set as ['smoothed', 'nonsmoothed'] to get both.
+    #
+    # Options:
+    #     ['smoothed', 'nonsmoothed']
+    output: [nonsmoothed]
+  z-scoring:
+    run: Off
+
+    # z-score standardize the derivatives. This may be needed for group-level analysis.
+    # Set as ['raw'] to disable z-scoring. Set as ['z-scored', 'raw'] to get both.
+    #
+    # Options:
+    #     ['z-scored', 'raw']
+    output: [raw]
