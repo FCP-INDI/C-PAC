@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 3.4.1
+installer: 3.5.0
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -63,18 +63,18 @@ packages:
  - ciftilib 1.6.0
  - c-compiler
  - cxx-compiler
- - fmrib-unpack 3.6.0
+ - fmrib-unpack 3.7.0
  - fsleyes 1.6.1
- - fslpy 3.11.3
- - fsl-add_module 0.4.0
+ - fslpy 3.12.1
+ - fsl-add_module 0.5.0
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2303.2
+ - fsl-base 2303.4
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
- - fsl-bet2 2111.2
+ - fsl-bet2 2111.3
  - fsl-bianca 2209.2
  - fsl-biancadata 2006.0
  - fsl-bint 2111.0
@@ -108,19 +108,19 @@ packages:
  - fsl-fast4 2111.3
  - fsl-fastpdlib 2111.1
  - fsl-fdt 2202.6
- - fsl-feat5 2201.4
+ - fsl-feat5 2201.5
  - fsl-film 2111.0
  - fsl-filmbabe 2111.0
  - fsl-first 2203.0
  - fsl-first_lib 2111.0
  - fsl-flameo 2111.0
- - fsl-flirt 2111.1
+ - fsl-flirt 2111.2
  - fsl-fnirt 2203.0
  - fsl-fugue 2201.2
- - fsl-get_standard 0.1.0
- - fsl-giftiio 2111.0
+ - fsl-get_standard 0.2.0
+ - fsl-giftiio 2111.1
  - fsl-gps 2211.0
- - fsl-installer 3.4.1
+ - fsl-installer 3.5.0
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
  - fsl-libmeshutils 2111.0
@@ -135,9 +135,9 @@ packages:
  - fsl-misc_tcl 2303.0
  - fsl-miscmaths 2203.2
  - fsl-miscvis 2201.1
- - fsl-mist 2111.3
+ - fsl-mist 2111.5
  - fsl-mm 2111.0
- - fsl_mrs 2.1.0
+ - fsl_mrs 2.1.6
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
@@ -156,22 +156,22 @@ packages:
  - fsl-shapemodel 2111.0
  - fsl-siena 2111.1
  - fsl-slicetimer 2111.0
- - fsl_sub 2.7.5
- - fsl_sub_plugin_sge 1.5.2
- - fsl_sub_plugin_slurm 1.4.4
- - fsl-surface 2111.0
+ - fsl_sub 2.8.3
+ - fsl_sub_plugin_sge 1.5.4
+ - fsl_sub_plugin_slurm 1.6.0
+ - fsl-surface 2111.1
  - fsl-susan 2111.0
  - fsl-swe v1.1.0
  - fsl-tbss 2111.1
  - fsl-tirl v2.2.1
- - fsl-topup 2203.1
+ - fsl-topup 2203.2
  - fsl-utils 2203.2
  - fsl-vbm 2006.0
  - fsl-verbena v4.0.3
  - fsl-vtkio 2111.0
  - fsl-warpfns 2203.0
  - fsl-wire 1.0.0
- - fsl-xtract 1.6.2
+ - fsl-xtract 1.6.4.1
  - fsl-xtract_data 2.0.1
  - fsl-znzlib 2111.0
  - ghalton 0.6.1
