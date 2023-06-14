@@ -64,8 +64,8 @@ packages:
  - c-compiler
  - cxx-compiler
  - fmrib-unpack 3.7.0
- - fsleyes 1.6.1
- - fslpy 3.12.1
+ - fsleyes 1.7.0
+ - fslpy 3.13.0
  - fsl-add_module 0.5.0
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
