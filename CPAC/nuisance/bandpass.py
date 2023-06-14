@@ -126,7 +126,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
             Y_bp = np.zeros_like(Yc)
 
             # Modify to allow just 1 regressor column
-            shape = regressors.shape[0] if len(regressor.shape) < 1 else regressor.shape[0]
+            shape = regressors.shape[0] if len(regressor.shape) < 1 else regressor.shape[1]
             for j in range(shape):
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
                                             bandpass_freqs)
