@@ -502,9 +502,9 @@ def format_incl_excl_dct(incl_list, info_type='participants'):
 
 
 def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
-                      aws_creds_path=None, brain_mask_template=None,
-                      inclusion_dct=None, exclusion_dct=None,
-                      config_dir=None):
+                      aws_creds_path=None, freesurfer_dir=None, 
+                      brain_mask_template=None,inclusion_dct=None, 
+                      exclusion_dct=None, config_dir=None):
     """Return a data dictionary mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
     directory.
@@ -899,6 +899,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
                                     fmap_pedir_template=fmap_pedir_sess,
+                                    freesurfer_dir=freesurfer_dir,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
                                     exclusion_dct=exclusion_dct,
@@ -912,6 +913,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
                                     fmap_pedir_template=fmap_pedir,
+                                    freesurfer_dir=freesurfer_dir,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
                                     exclusion_dct=exclusion_dct,
@@ -979,7 +981,7 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
 
 def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                     anat_scan=None, sites_dct=None, scan_params_dct=None,
-                    inclusion_dct=None, exclusion_dct=None,
+                    inclusion_dct=None, exclusion_dct=None, fs_path=None,
                     aws_creds_path=None, verbose=True):
     """Return a data dictionary with a new file path parsed and added in,
     keyed with its appropriate ID labels."""
@@ -1227,7 +1229,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat': file_path}
+                        'anat':
+                            {"T1w": file_path, 
+                             "freesurfer_dir": fs_path}
+                        }
 
         if aws_creds_path:
             temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
@@ -1388,8 +1393,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
                      brain_mask_template=None, fmap_phase_template=None,
                      fmap_mag_template=None, fmap_pedir_template=None,
-                     aws_creds_path=None, inclusion_dct=None,
-                     exclusion_dct=None, sites_dct=None, verbose=False):
+                     freesurfer_dir=None, aws_creds_path=None, 
+                     inclusion_dct=None, exclusion_dct=None, 
+                     sites_dct=None, verbose=False):
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""
 
@@ -1483,7 +1489,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     for anat_path in anat_pool:
         data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                    anat_scan, sites_dct, None, inclusion_dct,
-                                   exclusion_dct, aws_creds_path)
+                                   exclusion_dct, aws_creds_path, fs_path=freesurfer_dir)
 
     if not data_dct:
         # this fires if no anatomicals were found
@@ -1796,6 +1802,7 @@ def run(data_settings_yml):
                                     brain_mask_template=settings_dct['brain_mask_template'],
                                     fmap_phase_template=settings_dct['fieldMapPhase'],
                                     fmap_mag_template=settings_dct['fieldMapMagnitude'],
+                                    freesurfer_dir=settings_dct['freesurfer_dir'],
                                     aws_creds_path=settings_dct['awsCredentialsFile'],
                                     inclusion_dct=incl_dct,
                                     exclusion_dct=excl_dct)
