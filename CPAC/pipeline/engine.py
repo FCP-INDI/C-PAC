@@ -864,7 +864,7 @@ class ResourcePool:
         if add_excl:
             excl += add_excl
 
-        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing'][
+        if 'nonsmoothed' not in cfg.post_processing['spatial_smoothing'][
                 'output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
@@ -878,7 +878,6 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-
             if resource not in Outputs.any:
                 continue
 
@@ -1075,7 +1074,6 @@ class ResourcePool:
                                                                 newdesc_suff)
                 id_string = pe.Node(Function(input_names=['cfg', 'unique_id',
                                                           'resource',
-                                                          'json_info',
                                                           'scan_id',
                                                           'template_desc',
                                                           'atlas_id',
@@ -1088,7 +1086,6 @@ class ResourcePool:
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
-                id_string.inputs.json_info = json_info
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -1113,7 +1110,7 @@ class ResourcePool:
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
-                if resource != 'desc-confounds_timeseries':
+                if resource != 'pipeline-ingress_desc-confounds_timeseries':
                     if resource.split('_')[-1] in atlas_suffixes:
                         atlas_idx = pipe_idx.replace(resource, 'atlas_name')
                         # need the single quote and the colon inside the double
@@ -1169,7 +1166,7 @@ class ResourcePool:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS'][
                         'aws_output_bucket_credentials']
                 expected_outputs += (out_dct['subdir'], create_id_string(
-                    self.cfg, unique_id, resource_idx, json_info,
+                    self.cfg, unique_id, resource_idx,
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
                 wf.connect(nii_name, 'out_file',
@@ -1686,11 +1683,20 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
 
-    ingress_fs = cfg.surface_analysis['freesurfer']['ingress_reconall']
-    
-    if 'freesurfer_dir' in data_paths['anat'] and ingress_fs:
-        anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
+    if cfg.surface_analysis['freesurfer']['ingress_reconall']:
+        rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id)
+                
+    return rpool
 
+def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id):
+    
+    if 'anat' not in data_paths:
+        print('No anatomical data present.')
+        return rpool
+    
+    if 'freesurfer_dir' in data_paths['anat']:
         fs_ingress = create_general_datasource('gather_freesurfer_dir') 
         fs_ingress.inputs.inputnode.set(
             unique_id=unique_id,
@@ -1743,7 +1749,6 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                                         f"{fullpath}.\n")))
                 
     return rpool
-
 
 def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
@@ -1865,6 +1870,10 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
                     bidstag = bidstag.replace('task-', '')
                     if bidstag not in scan_iterables:
                         scan_iterables.append(bidstag)
+
+            # Rename confounds to avoid confusion in nuisance regression
+            if resource == 'desc-confounds_timeseries':
+                resource = 'pipeline-ingress_desc-confounds_timeseries'
             if filepath in outdir_func:
                 try:
                     func_dict[resource][bidstag] = {}
@@ -1896,6 +1905,9 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
         #         json = func_dict[key][val]['scan_parameters']
         #         rpool.set_json_info(key, func_dict[key][val]['pipe_idx'], val, json)
 
+    if cfg.surface_analysis['freesurfer']['ingress_reconall']:
+        rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id)
     return wf, rpool
 
 def json_outdir_ingress(rpool, filepath, exts, unique_data_label, data_label, json):
