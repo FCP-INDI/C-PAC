@@ -24,7 +24,7 @@ def check_if_file_is_empty(in_file):
     import nibabel as nb
     import numpy as np
     nii = nb.load(in_file)
-    data = nii.get_data()
+    data = nii.get_fdata()
     if data.size == 0 or np.all(data == 0) or np.all(data == np.nan):
         raise ValueError('File {0} is empty. Use a lower threshold or turn '
                          'off regressors.'.format(in_file))
@@ -256,17 +256,17 @@ def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
         # pylint: disable=invalid-unary-operand-type
         roi_mask_data[~skullstrip_mask_data] = 0
 
-    hdr = roi_mask_img.get_header()
+    hdr = roi_mask_img.header
     output_roi_mask_img = nb.Nifti1Image(roi_mask_data, header=hdr,
-                                         affine=roi_mask_img.get_affine())
+                                         affine=roi_mask_img.affine)
     output_roi_mask = os.path.join(os.getcwd(),
                                    'segment_tissue_eroded_mask.nii.gz')
     output_roi_mask_img.to_filename(output_roi_mask)
 
-    hdr = skullstrip_mask_img.get_header()
+    hdr = skullstrip_mask_img.header
     output_skullstrip_mask_img = nb.Nifti1Image(
         skullstrip_mask_data, header=hdr,
-        affine=skullstrip_mask_img.get_affine())
+        affine=skullstrip_mask_img.affine)
     eroded_skullstrip_mask = os.path.join(os.getcwd(),
                                           'eroded_skullstrip_mask.nii.gz')
 
@@ -298,9 +298,9 @@ def erosion(roi_mask=None, erosion_mm=None, erosion_prop=None):
     """
     roi_mask_img, _, roi_mask_data = _erode(roi_mask, erosion_mm, erosion_prop)
 
-    hdr = roi_mask_img.get_header()
+    hdr = roi_mask_img.header
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
-                                affine=roi_mask_img.get_affine())
+                                affine=roi_mask_img.affine)
     eroded_roi_mask = os.path.join(os.getcwd(), 'segment_tissue_mask.nii.gz')
 
     output_img.to_filename(eroded_roi_mask)
@@ -428,7 +428,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=[4,14,15,24,43],
     import numpy as np
 
     img = nb.load(multiatlas_Labels)
-    data = img.get_data()
+    data = img.get_fdata()
 
     # pick tissue mask from multiatlas labels file
     # based off of FreeSurferColorLUT or user provided label values

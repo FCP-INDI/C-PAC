@@ -116,9 +116,6 @@ COPY --from=connectome-workbench /lib64/* /lib64/
 COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
 COPY --from=connectome-workbench /usr/* /usr/
 
-# Allow users to install Python packages
-RUN chmod -R ugo+w /usr/local/miniconda
-
 # link libraries & clean up
 RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
