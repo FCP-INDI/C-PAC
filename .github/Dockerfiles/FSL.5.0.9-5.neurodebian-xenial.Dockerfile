@@ -20,12 +20,15 @@ USER root
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+COPY .github/scripts/make_real.sh /
+
 # install FSL
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       fsl-core=5.0.9-5~nd16.04+1 \
       fsl-atlases \
-      fsl-mni152-templates=5.0.7-2
+      fsl-mni152-templates=5.0.7-2 && \
+    /make_real.sh "/usr/share/fsl/5.0/data"
 
 # setup FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
@@ -62,8 +65,8 @@ COPY --from=FSL /usr/lib/libznz.so.2 /usr/lib/libznz.so.2
 COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
 COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
 COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
-COPY --from=FSL /usr/share/data/fsl-mni152-templates /usr/share/data/fsl-mni152-templates
-COPY --from=FSL /usr/share/doc/fsl-mni152-templates /usr/share/doc/fsl-mni152-templates
+COPY --from=FSL /usr/share/data/fsl-* /usr/share/data/
+COPY --from=FSL /usr/share/doc/fsl-* /usr/share/doc/
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
 # install C-PAC resources into FSL
 COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard
