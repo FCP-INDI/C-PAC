@@ -1422,6 +1422,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # only paths that will work with the templates
     anat_glob = anat_template
     func_glob = func_template
+    freesurfer_glob = freesurfer_dir
 
     # backwards compatibility
     if '{series}' in anat_glob:
@@ -1450,6 +1451,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             anat_glob = anat_glob.replace(keyword, '*')
         if keyword in func_glob:
             func_glob = func_glob.replace(keyword, '*')
+        if keyword in freesurfer_glob:
+            freesurfer_glob = freesurfer_glob.replace(keyword, '*')
 
     # presumably, the paths contained in each of these pools should be anat
     # and func files only, respectively, if the templates were set up properly
@@ -1468,11 +1471,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # vice versa - and if there is no file_list, this will run normally
     anat_local_pool = glob.glob(anat_glob)
     func_local_pool = glob.glob(func_glob)
+    freesurfer_local_pool = glob.glob(freesurfer_glob)
 
     # anat_pool and func_pool are now lists with (presumably) all of the file
     # paths that match the templates entered
     anat_pool = anat_pool + [x for x in anat_local_pool if x not in anat_pool]
     func_pool = func_pool + [x for x in func_local_pool if x not in func_pool]
+    freesurfer_pool = freesurfer_pool + [x for x in freesurfer_local_pool if x not in freesurfer_pool]
 
     if not anat_pool:
         err = "\n\n[!] No anatomical input file paths found given the data " \
@@ -1487,9 +1492,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
-        data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
-                                   anat_scan, sites_dct, None, inclusion_dct,
-                                   exclusion_dct, freesurfer_dir, aws_creds_path)
+        for freesurfer_path in freesurfer_pool:
+            data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
+                                    anat_scan, sites_dct, None, inclusion_dct,
+                                    exclusion_dct, freesurfer_path, aws_creds_path)
 
     if not data_dct:
         # this fires if no anatomicals were found
