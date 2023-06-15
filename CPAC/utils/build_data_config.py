@@ -1458,6 +1458,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # and func files only, respectively, if the templates were set up properly
     anat_pool = []
     func_pool = []
+    freesurfer_pool = []
 
     if file_list:
         # mainly for AWS S3-stored data sets
