@@ -1489,7 +1489,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     for anat_path in anat_pool:
         data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                    anat_scan, sites_dct, None, inclusion_dct,
-                                   exclusion_dct, aws_creds_path, fs_path=freesurfer_dir)
+                                   exclusion_dct, freesurfer_dir, aws_creds_path)
 
     if not data_dct:
         # this fires if no anatomicals were found
@@ -1541,7 +1541,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     for func_path in func_pool:
         data_dct = update_data_dct(func_path, func_template, data_dct, "func",
                                    None, sites_dct, scan_params_dct,
-                                   inclusion_dct, exclusion_dct,
+                                   inclusion_dct, exclusion_dct, None,
                                    aws_creds_path)
 
     if brain_mask_template:
@@ -1568,7 +1568,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             data_dct = update_data_dct(brain_mask, brain_mask_template,
                                        data_dct, "brain_mask", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
+                                       inclusion_dct, exclusion_dct, None,
                                        aws_creds_path)
 
     # do the same for the fieldmap files, if applicable
@@ -1613,14 +1613,14 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             data_dct = update_data_dct(fmap_phase, fmap_phase_template,
                                        data_dct, "diff_phase", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
+                                       inclusion_dct, exclusion_dct, None,
                                        aws_creds_path)
 
         for fmap_mag in fmap_mag_pool:
             data_dct = update_data_dct(fmap_mag, fmap_mag_template,
                                        data_dct, "diff_mag", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
+                                       inclusion_dct, exclusion_dct, None,
                                        aws_creds_path)
 
     if fmap_pedir_template:
