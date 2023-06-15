@@ -2206,7 +2206,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                  "from-bold_to-EPItemplate_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors", "censor-indices"]}
+     "outputs": ["desc-confounds_timeseries", "censor-indices"]}
     '''
     return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
                                           'bold')
@@ -2236,7 +2236,7 @@ def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                  "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral-ventricles-mask",
                 "TR"],
-     "outputs": ["regressors", "censor-indices"]}
+     "outputs": ["desc-confounds_timeseries", "censor-indices"]}
     '''
     return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
                                           'T1w')
@@ -2430,7 +2430,7 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'desc-confounds_timeseries': (regressors, 'outputspec.regressors_file_path'),
         'censor-indices': (regressors, 'outputspec.censor_indices')
     }
 
@@ -2457,7 +2457,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
     ingress = strat_pool.check_rpool('parsed_regressors')
     if not ingress:
         try:
-            regressor_prov = strat_pool.get_cpac_provenance('regressors')
+            regressor_prov = strat_pool.get_cpac_provenance('desc-confounds_timeseries')
             regressor_strat_name = regressor_prov[-1].split('_')[-1]
         except KeyError:
             raise Exception("[!] No regressors in resource pool. \n\n Try turning " \
@@ -2521,7 +2521,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                        nofilter_nuis,
                        'inputspec.functional_brain_mask_file_path')
 
-    node, out = strat_pool.get_data(['regressors', 'parsed_regressors'])
+    node, out = strat_pool.get_data(['desc-confounds_timeseries', 'parsed_regressors'])
     wf.connect(node, out, nuis, 'inputspec.regressor_file')
     if bandpass_before:
         wf.connect(node, out, nofilter_nuis, 'inputspec.regressor_file')
@@ -2549,7 +2549,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                              f'regressors_{name_suff}')
         filt.inputs.inputspec.nuisance_selectors = opt
 
-        node, out = strat_pool.get_data(['regressors', 'parsed_regressors'])
+        node, out = strat_pool.get_data(['desc-confounds_timeseries', 'parsed_regressors'])
         wf.connect(node, out, filt, 'inputspec.regressors_file_path')
 
         if space == 'template':
@@ -2576,7 +2576,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                 desc_keys[0]: (filt, 'outputspec.residual_file_path'),
                 desc_keys[1]: (filt, 'outputspec.residual_file_path'),
                 desc_keys[2]: (nuis, 'outputspec.residual_file_path'),
-                'regressors': (filt, 'outputspec.residual_regressor')
+                'desc-confounds_timeseries': (filt, 'outputspec.residual_regressor')
             }
 
         elif bandpass_before:
@@ -2594,7 +2594,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                 desc_keys[0]: (nuis, 'outputspec.residual_file_path'),
                 desc_keys[1]: (nuis, 'outputspec.residual_file_path'),
                 desc_keys[2]: (nofilter_nuis, 'outputspec.residual_file_path'),
-                'regressors': (filt, 'outputspec.residual_regressor')}
+                'desc-confounds_timeseries': (filt, 'outputspec.residual_regressor')}
 
     else:
         node, out = strat_pool.get_data(desc_keys[0])
@@ -2613,7 +2613,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": None,
      "option_val": None,
-     "inputs": ['desc-confounds_timeseries'],
+     "inputs": ['pipeline-ingress_desc-confounds_timeseries'],
      "outputs": ['parsed_regressors']}
     '''
     # option val!!
@@ -2622,7 +2622,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
         'Regressors']['Columns']
     
     # Will need to generalize the name
-    node, out = strat_pool.get_data('desc-confounds_timeseries')
+    node, out = strat_pool.get_data('pipeline-ingress_desc-confounds_timeseries')
     if not regressors_list:
         logger.warning("\n[!] Ingress regressors is on, but no regressors provided. "  
                                             "The whole regressors file will be applied, but it may be" 
@@ -2714,7 +2714,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "space",
      "option_val": "native",
      "inputs": [("desc-preproc_bold",
-                 ["regressors", "parsed_regressors"],
+                 ["desc-confounds_timeseries", "parsed_regressors"],
                  "space-bold_desc-brain_mask",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
@@ -2730,7 +2730,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in native space, but without "
                        "frequency filtering."},
-                 "regressors": {
+                 "desc-confounds_timeseries": {
         "Description": "Regressors that were applied in native space"}}}
     '''
     return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'native')
@@ -2749,7 +2749,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_desc-preproc_bold",
                  "space-template_res-derivative_desc-preproc_bold",
                  "movement-parameters",
-                 ["regressors", "parsed_regressors"],
+                 ["desc-confounds_timeseries", "parsed_regressors"],
                  "FSL-AFNI-brain-mask",
                  "framewise-displacement-jenkinson",
                  "framewise-displacement-power",
@@ -2775,7 +2775,7 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "Description": "Preprocessed BOLD image that was nuisance-"
                        "regressed in template space, but without "
                        "frequency filtering."},
-                 "regressors": {
+                 "desc-confounds_timeseries": {
         "Description": "Regressors that were applied in template space"}}}
     '''
     wf, outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 
