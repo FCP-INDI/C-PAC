@@ -1,5 +1,6 @@
 --- 
 version: 2.1
+# Singularity started failing to set up on Circle circa May 2023, so those tests are currently disabled
 
 parameters:
   branch:
@@ -181,16 +182,16 @@ jobs:
       - checkout
       - restore_cache:
           key: coverage-docker--{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity--{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity--{{ .Revision }}
       - restore_cache:
           key: coverage-docker-ABCD-HCP-{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity-ABCD-HCP-{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity-ABCD-HCP-{{ .Revision }}
       - restore_cache:
           key: coverage-docker-lite-{{ .Revision }}
-      - restore_cache:
-          key: coverage-singularity-lite-{{ .Revision }}
+      # - restore_cache:
+      #     key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
       - store_artifacts:
@@ -276,11 +277,11 @@ workflows:
           name: "Combine coverage"
           requires:
             - "Test in Docker"
-            - "Test in Singularity"
+            # - "Test in Singularity"
             - "Test lite variant in Docker"
-            - "Test lite variant in Singularity"
+            # - "Test lite variant in Singularity"
             - "Test ABCD-HCP variant in Docker"
-            - "Test ABCD-HCP variant in Singularity"
+            # - "Test ABCD-HCP variant in Singularity"
             - "Test fMRIPrep-LTS variant in Docker"
       - push-branch-to-docker-hub:
           filters:
@@ -306,11 +307,11 @@ workflows:
           variant: fMRIPrep-LTS
       - pytest-docker:
           name: "Test lite variant in Docker"
-      - pytest-singularity:
-          name: "Test in Singularity"
-      - pytest-singularity:
-          name: "Test ABCD-HCP variant in Singularity"
-          variant: ABCD-HCP
-      - pytest-singularity:
-          name: "Test lite variant in Singularity"
-          variant: lite
+      # - pytest-singularity:
+      #     name: "Test in Singularity"
+      # - pytest-singularity:
+      #     name: "Test ABCD-HCP variant in Singularity"
+      #     variant: ABCD-HCP
+      # - pytest-singularity:
+      #     name: "Test lite variant in Singularity"
+      #     variant: lite
