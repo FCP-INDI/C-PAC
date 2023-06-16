@@ -206,9 +206,6 @@ jobs:
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - set-python-version
-      - singularity/build_container_docker_base:
-          from-uri: docker://${DOCKER_TAG}
-          image: cpac-singularity-image${VARIANT}.sif
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.sif /code/dev/circleci_data/test_in_image.sh"
@@ -260,9 +257,8 @@ workflows:
           name: "Test lite variant in Docker"
       - pytest-singularity:
           name: "Test in Singularity"
-      - pytest-singularity:
-          name: "Test ABCD-HCP variant in Singularity"
-          variant: ABCD-HCP
-      - pytest-singularity:
-          name: "Test lite variant in Singularity"
-          variant: lite
+          requires:
+            - singularity/build_container_docker_base
+      - singularity/build_container_docker_base:
+          from-uri: "docker://ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${CIRCLE_BRANCH//\//_,,}"
+          image: cpac-singularity-image.sif
