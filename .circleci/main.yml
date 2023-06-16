@@ -1,5 +1,8 @@
 --- 
 version: 2.1
+setup: true
+orbs:
+  singularity: singularity/singularity@1.0.11
 
 parameters:
   branch:
@@ -68,55 +71,6 @@ commands:
       - run:
           name: Getting Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
-  get-singularity:
-    parameters:
-      version:
-        description: "Version of Singularity to clone"
-        type: string
-        default: v3.8.7
-    steps:
-      - install-singularity-requirements
-      - restore_cache:
-          keys:
-            - singularity-<< parameters.version >>
-      - run:
-          name: "Cloning Singularity << parameters.version >>"
-          command: |
-            if [[ ! -d singularity-<< parameters.version >> ]]
-            then
-              git clone -b << parameters.version >> https://github.com/apptainer/singularity singularity-<< parameters.version >>
-            fi
-      - save_cache:
-          key: singularity-<< parameters.version >>
-          paths:
-            - singularity-<< parameters.version >>
-      - run:
-         name: "Setting up Singularity"
-         command: |
-           cd singularity-<< parameters.version >>
-           ./mconfig -p /usr/local
-           make -C builddir
-           sudo make -C builddir install
-           cd ..
-  install-singularity-requirements:
-    steps:
-      - run:
-          name: "Installing Singularity requirements"
-          # https://github.com/apptainer/apptainer/blob/release-1.1/INSTALL.md
-          command: |
-            sudo apt-get update -y && \
-            sudo apt-get install -y \
-              build-essential \
-              libseccomp-dev \
-              pkg-config \
-              uidmap \
-              squashfs-tools \
-              squashfuse \
-              fuse2fs \
-              fuse-overlayfs \
-              fakeroot \
-              cryptsetup \
-              curl wget git
   run-pytest-docker:
     steps:
       - create-docker-test-container:
@@ -252,11 +206,9 @@ jobs:
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - set-python-version
-      - get-singularity
-      - run:
-          command: singularity pull cpac-singularity-image${VARIANT}.sif docker://${DOCKER_TAG}
-          name: "Pull Singularity image"
-          no_output_timeout: 1h
+      - singularity/build_container_docker_base:
+          from-uri: docker://${DOCKER_TAG}
+          image: cpac-singularity-image${VARIANT}.sif
       - test-singularity-installation
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity${VARIANT} singularity exec -B $PWD:/code cpac-singularity-image${VARIANT}.sif /code/dev/circleci_data/test_in_image.sh"

@@ -2,6 +2,7 @@ setup: true
 version: 2.1
 orbs:
   continuation: circleci/continuation@0.3.1
+  singularity: singularity/singularity@1.0.11
 
 parameters:
   run_tests:
