@@ -65,8 +65,6 @@ COPY --from=FSL /usr/lib/libznz.so.2 /usr/lib/libznz.so.2
 COPY --from=FSL /usr/share/doc/fsl-core /usr/share/doc/fsl-core
 COPY --from=FSL /usr/share/man/man1/fsl-5.0-core.1.gz /usr/share/man/man1/
 COPY --from=FSL /usr/share/man/man1/fsl.1.gz /usr/share/man/man1/
-COPY --from=FSL /usr/share/data/fsl-* /usr/share/data/
-COPY --from=FSL /usr/share/doc/fsl-* /usr/share/doc/
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
 # install C-PAC resources into FSL
 COPY --from=data /fsl_data/standard /usr/share/fsl/5.0/data/standard
