@@ -260,5 +260,6 @@ workflows:
           requires:
             - singularity/build_container_docker_base
       - singularity/build_container_docker_base:
-          from-uri: "docker://ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${CIRCLE_BRANCH//\//_}"
+          from-uri: >-
+            docker://ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${CIRCLE_BRANCH//\//_,,}
           image: cpac-singularity-image.sif
