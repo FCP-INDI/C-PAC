@@ -981,7 +981,7 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
 
 def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                     anat_scan=None, sites_dct=None, scan_params_dct=None,
-                    inclusion_dct=None, exclusion_dct=None, fs_path=None,
+                    inclusion_dct=None, exclusion_dct=None,
                     aws_creds_path=None, verbose=True):
     """Return a data dictionary with a new file path parsed and added in,
     keyed with its appropriate ID labels."""
@@ -1068,6 +1068,8 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
     if data_type == "anat" or data_type == "brain_mask":
         parts = ses_parts
+    elif data_type == 'freesurfer_dir':
+        parts = partic_parts
     else:
         # if functional, or field map files
         parts = []
@@ -1229,9 +1231,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat':
-                            {"T1w": file_path, 
-                             "freesurfer_dir": fs_path}
+                        'anat': file_path,
                         }
 
         if aws_creds_path:
@@ -1252,6 +1252,26 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                    "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
                                  str(temp_sub_dct))
             print(warn)
+
+    elif data_type == "freesurfer_dir":
+        if site_id not in data_dct.keys():
+            if verbose:
+                print("No anatomical entries found for freesurfer for " \
+                      "site {0}:" \
+                      "\n{1}\n".format(site_id, file_path))
+            return data_dct
+        if sub_id not in data_dct[site_id]:
+            if verbose:
+                print("No anatomical found for freesurfer for participant " \
+                      "{0}:\n{1}\n".format(sub_id, file_path))
+            return data_dct
+        if ses_id not in data_dct[site_id][sub_id]:
+            if verbose:
+                print("No anatomical found for freesurfer for session {0}:" \
+                      "\n{1}\n".format(ses_id, file_path))
+            return data_dct
+
+        data_dct[site_id][sub_id][ses_id]['freesurfer_dir'] = file_path
 
     elif data_type == "brain_mask":
         if site_id not in data_dct.keys():
@@ -1422,7 +1442,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # only paths that will work with the templates
     anat_glob = anat_template
     func_glob = func_template
-    freesurfer_glob = freesurfer_dir
 
     # backwards compatibility
     if '{series}' in anat_glob:
@@ -1458,7 +1477,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # and func files only, respectively, if the templates were set up properly
     anat_pool = []
     func_pool = []
-    freesurfer_pool = []
 
     if file_list:
         # mainly for AWS S3-stored data sets
@@ -1472,13 +1490,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # vice versa - and if there is no file_list, this will run normally
     anat_local_pool = glob.glob(anat_glob)
     func_local_pool = glob.glob(func_glob)
-    freesurfer_local_pool = glob.glob(freesurfer_glob)
 
     # anat_pool and func_pool are now lists with (presumably) all of the file
     # paths that match the templates entered
     anat_pool = anat_pool + [x for x in anat_local_pool if x not in anat_pool]
     func_pool = func_pool + [x for x in func_local_pool if x not in func_pool]
-    freesurfer_pool = freesurfer_pool + [x for x in freesurfer_local_pool if x not in freesurfer_pool]
 
     if not anat_pool:
         err = "\n\n[!] No anatomical input file paths found given the data " \
@@ -1493,10 +1509,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
-        for freesurfer_path in freesurfer_pool:
-            data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
+        data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                     anat_scan, sites_dct, None, inclusion_dct,
-                                    exclusion_dct, freesurfer_path, aws_creds_path)
+                                    exclusion_dct, aws_creds_path)
 
     if not data_dct:
         # this fires if no anatomicals were found
@@ -1548,10 +1563,37 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     for func_path in func_pool:
         data_dct = update_data_dct(func_path, func_template, data_dct, "func",
                                    None, sites_dct, scan_params_dct,
-                                   inclusion_dct, exclusion_dct, None,
+                                   inclusion_dct, exclusion_dct,
                                    aws_creds_path)
 
-    if brain_mask_template:
+    if freesurfer_dir:
+        # make globby templates, to use them to filter down the path_list into
+        # only paths that will work with the templates
+        freesurfer_glob = freesurfer_dir
+
+        for keyword in keywords:
+            if keyword in freesurfer_glob:
+                freesurfer_glob = freesurfer_glob.replace(keyword, '*')
+
+        # presumably, the paths contained in each of these pools should be
+        # field map files only, if the templates were set up properly
+        if file_list:
+            # mainly for AWS S3-stored data sets
+            freesurfer_pool = []
+            for filepath in file_list:
+                if fnmatch.fnmatch(filepath, freesurfer_glob):
+                    freesurfer_pool.append(filepath)
+        else:
+            freesurfer_pool = glob.glob(freesurfer_glob)
+
+        for freesurfer_path in freesurfer_pool:
+            data_dct = update_data_dct(freesurfer_path, freesurfer_dir,
+                                       data_dct, "freesurfer_dir", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
+
+    if brain_mask:
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
         brain_mask_glob = brain_mask_template
@@ -1575,7 +1617,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             data_dct = update_data_dct(brain_mask, brain_mask_template,
                                        data_dct, "brain_mask", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct, None,
+                                       inclusion_dct, exclusion_dct,
                                        aws_creds_path)
 
     # do the same for the fieldmap files, if applicable
@@ -1620,14 +1662,14 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             data_dct = update_data_dct(fmap_phase, fmap_phase_template,
                                        data_dct, "diff_phase", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct, None,
+                                       inclusion_dct, exclusion_dct,
                                        aws_creds_path)
 
         for fmap_mag in fmap_mag_pool:
             data_dct = update_data_dct(fmap_mag, fmap_mag_template,
                                        data_dct, "diff_mag", None,
                                        sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct, None,
+                                       inclusion_dct, exclusion_dct,
                                        aws_creds_path)
 
     if fmap_pedir_template:
