@@ -1066,10 +1066,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #   ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
     #    '_task-{scan}_bold.nii.gz']
 
-    if data_type == "anat" or data_type == "brain_mask":
+    if data_type == "anat" or data_type == "brain_mask" \
+        or data_type == 'freesufer_dir':
         parts = ses_parts
-    elif data_type == 'freesurfer_dir':
-        parts = partic_parts
     else:
         # if functional, or field map files
         parts = []
