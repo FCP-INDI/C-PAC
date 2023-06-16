@@ -1470,8 +1470,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             anat_glob = anat_glob.replace(keyword, '*')
         if keyword in func_glob:
             func_glob = func_glob.replace(keyword, '*')
-        if keyword in freesurfer_glob:
-            freesurfer_glob = freesurfer_glob.replace(keyword, '*')
 
     # presumably, the paths contained in each of these pools should be anat
     # and func files only, respectively, if the templates were set up properly
