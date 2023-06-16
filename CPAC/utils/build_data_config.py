@@ -1591,7 +1591,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
 
-    if brain_mask:
+    if brain_mask_template:
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
         brain_mask_glob = brain_mask_template
