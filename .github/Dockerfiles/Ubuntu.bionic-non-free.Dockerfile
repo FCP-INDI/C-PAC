@@ -1,7 +1,6 @@
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
-
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Adding DCAN dependencies & HCP code
@@ -122,10 +121,11 @@ RUN groupadd -r c-pac && \
 ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
 
 # Installing conda dependencies, torch & Python dependencies
-COPY requirements.txt /opt/requirements.txt
-RUN conda update conda -y && \
-    conda install nomkl && \
-    conda install -y  \
+COPY dev/docker_data/unpinned_requirements.txt /opt/requirements.txt
+RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y && \
+    mamba update conda -y && \
+    mamba install nomkl -y && \
+    mamba  install -y  \
       blas \
       cython \
       matplotlib==3.1.3 \
@@ -133,9 +133,7 @@ RUN conda update conda -y && \
       nose==1.3.7 \
       numpy==1.16.4 \
       pandas==1.0.5 \
-      scipy==1.6.3 \
       traits==4.6.0 \
-      wxpython \
       pip && \
     pip install \
       torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html && \

@@ -456,7 +456,7 @@ def get_standard_background_img(in_file, file_parameters):
     try:
 
         img = nib.load(in_file)
-        hdr = img.get_header()
+        hdr = img.header
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
         standard_path = \
