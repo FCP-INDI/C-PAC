@@ -23,7 +23,8 @@ import re
 import warnings
 
 from CPAC.pipeline import \
-    nipype_pipeline_engine as pe
+    nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
+from nipype import config, logging  # pylint: disable=wrong-import-order
 from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
@@ -52,7 +53,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
+logger = getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -445,6 +446,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -468,6 +470,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -495,6 +498,7 @@ class ResourcePool:
                                 f'NO-{val[0]}')
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -530,6 +534,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('len(strat_list_list): %s\n',
                                      len(strat_list_list))
             for strat_list in strat_list_list:
@@ -1186,8 +1191,7 @@ class ResourcePool:
 
 
 class NodeBlock:
-    def __init__(self, node_block_functions):
-
+    def __init__(self, node_block_functions, debug=False):
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -1241,6 +1245,32 @@ class NodeBlock:
             self.options = ['base']
             if node_block_function.outputs is not None:
                 self.options = node_block_function.outputs
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             node_block_function.inputs, list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             init_dct["inputs"], list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
 
     def get_name(self):
         return self.name
@@ -1311,11 +1341,11 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)                
-            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+            else:                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
-
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1386,9 +1416,7 @@ class NodeBlock:
                         switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
-
             if True in switch:
-                logger.info('Connecting %s...', name)
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
@@ -1410,7 +1438,6 @@ class NodeBlock:
                                 input_name = interface[1]
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
-                        
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
@@ -1433,6 +1460,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1531,7 +1559,6 @@ class NodeBlock:
                                                               new_json_info,
                                                               pipe_idx,
                                                               pipe_x)
-
         return wf
 
 
@@ -1679,6 +1706,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
             'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
             'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_xfm': 'mri/transforms/talairach.lta'
         }
         
         for key, outfile in recon_outs.items():
@@ -1693,7 +1721,11 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                     dl_dir=cfg.pipeline_setup['working_directory']['path'])
                 rpool.set_data(key, fs_ingress, 'outputspec.data',
                                {}, "", f"fs_{key}_ingress")
-
+            else:
+                warnings.warn(str(
+                        LookupError("\n[!] Path does not exist for "
+                                        f"{fullpath}.\n")))
+                
     return rpool
 
 
@@ -1733,6 +1765,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
@@ -2172,7 +2205,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         }
 
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
-    rpool = initiate_rpool(cfg, data_paths)
+    _, rpool = initiate_rpool(cfg, data_paths)
 
     wf = pe.Workflow(name='node_blocks')
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
@@ -2192,7 +2225,9 @@ def run_node_blocks(blocks, data_paths, cfg=None):
         run_blocks += blocks[1]
 
     for block in run_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        wf = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                        'verbose']).connect_block(
+                                            wf, cfg, rpool)
     rpool.gather_pipes(wf, cfg)
 
     wf.run()

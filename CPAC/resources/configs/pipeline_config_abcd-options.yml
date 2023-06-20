@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -28,17 +28,22 @@ pipeline_setup:
 # -------------
 surface_analysis:
 
-  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer:
+  # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
+  abcd_prefreesurfer_prep:
     run: On
 
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
+    run_reconall: On
 
-    # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
-    run_reconall: Off
+    # Ingress freesurfer recon-all folder
+    ingress_reconall: On
+
+  # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
+  post_freesurfer:
+    run: On
 
 anatomical_preproc:
   run: On

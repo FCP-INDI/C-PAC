@@ -250,7 +250,7 @@ def run_main():
                         default=False)
     parser.add_argument('--save_workflow',
                         help='Save a serialized version of the workflow. '
-                             'Can be used with `test_config` save workflow '
+                             'Can be used with `test_config` to save workflow '
                              'without running the pipeline.',
                         action='store_true')
 

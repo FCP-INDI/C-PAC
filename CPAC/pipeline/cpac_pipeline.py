@@ -23,7 +23,7 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
+from CPAC.utils.monitoring.custom_logging import getLogger
 from time import strftime
 
 import nipype
@@ -208,7 +208,8 @@ from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
-
+from CPAC.utils.docs import version_report
+from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
@@ -290,7 +291,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'resource_monitor_frequency': 0.2,
             'stop_on_first_crash': c['pipeline_setup', 'system_config',
                                      'fail_fast']}})
-
     config.enable_resource_monitor()
     logging.update_logging(config)
 
@@ -360,6 +360,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Environment
+    ===========
+    {dependency_versions}
+
     Run command: {run_command}
 
     C-PAC version: {cpac_version}
@@ -393,6 +397,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
+        dependency_versions=version_report().replace('\n', '\n    '),
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
             'num_participants_at_once'],
@@ -548,11 +553,11 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.5.1'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.5.1\n" \
-                          % (CPAC.__version__)
-                logger.error(err_msg)
+            nipype_version = REQUIREMENTS['nipype']
+            if nipype.__version__ != nipype_version:
+                logger.warning('This version of Nipype may not be compatible '
+                               f'with CPAC v{CPAC.__version__}, please '
+                               f'install Nipype version {nipype_version}\n')
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
@@ -865,8 +870,10 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anatomical_init
         ]
         pipeline_blocks += anat_init_blocks
+        
+    using_brain_extraction = cfg.anatomical_preproc['brain_extraction']['using']
 
-    if not rpool.check_rpool('freesurfer-subject-dir'):
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' not in using_brain_extraction:
         pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
@@ -879,7 +886,6 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                      brain_mask_acpc_niworkflows_ants,
                      brain_mask_acpc_unet,
                      brain_mask_acpc_freesurfer_abcd,
-                     brain_mask_acpc,
                      brain_mask_acpc_freesurfer,
                      brain_mask_acpc_freesurfer_fsl_tight,
                      brain_mask_acpc_freesurfer_fsl_loose],
@@ -889,8 +895,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 ]
         elif cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'whole-head':
             if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
-                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
-                    cfg.surface_analysis['freesurfer']['run_reconall']:
+                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']):
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -915,6 +920,9 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks += anat_blocks
 
         pipeline_blocks += [freesurfer_abcd_preproc]
+
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' in using_brain_extraction:
+        pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     # Anatomical T1 brain masking
 
@@ -1041,7 +1049,8 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             not rpool.check_rpool('label-WM_mask'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
-             tissue_seg_ants_prior]
+             tissue_seg_ants_prior,
+	     tissue_seg_freesurfer]
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -1094,7 +1103,8 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     previous_nb = None
     for block in pipeline_blocks:
         try:
-            nb = NodeBlock(block)
+            nb = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                            'verbose'])
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
@@ -1347,10 +1357,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
-	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+        apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and
+                                  _r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
     else:
-        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
-    
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
+
     del _r_w_f_r
 
     template_funcs = [

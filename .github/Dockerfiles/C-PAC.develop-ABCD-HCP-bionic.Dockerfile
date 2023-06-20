@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.6.dev
+FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.6.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
@@ -17,11 +17,12 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
-RUN ldconfig
-
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && chmod 777 / \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 # USER c-pac_user

@@ -560,7 +560,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     # Init variables
     img = load(in_files)
-    hdr = img.get_header()
+    hdr = img.header
     shape = hdr.get_data_shape()
 
     # Check to make sure the input file is 4-dimensional

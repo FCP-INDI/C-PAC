@@ -4696,6 +4696,7 @@ def warp_sbref_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+
     xfm = 'from-bold_to-template_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,

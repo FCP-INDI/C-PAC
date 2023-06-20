@@ -17,7 +17,9 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     mri_convert, \
     wb_command, \
     fslmaths_command, \
-    VolumeRemoveIslands
+    VolumeRemoveIslands, \
+    normalize_wmparc
+from CPAC.pipeline.engine import flatten_list
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function.seg_preproc import \
@@ -913,17 +915,44 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     ### ABCD harmonization - anatomical brain mask generation ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
-
+    
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file',
                                                          'reslice_like',
                                                          'args'],
                                             output_names=['out_file'],
                                             function=mri_convert),
                               name=f'wmparc_to_nifti_{pipe_num}')
-    wmparc_to_nifti.inputs.args = '-rt nearest'
+    
+    # Register wmparc file if ingressing FreeSurfer data
+    if strat_pool.check_rpool('pipeline-fs_xfm'):
 
-    node, out = strat_pool.get_data('pipeline-fs_wmparc')
-    wf.connect(node, out, wmparc_to_nifti, 'in_file')
+        wmparc_to_native = pe.Node(util.Function(input_names=['source_file',
+                                                            'target_file',
+                                                            'xfm',
+                                                            'out_file'],
+                                                output_names=['transformed_file'],
+                                                function=normalize_wmparc),
+                                        name=f'wmparc_to_native_{pipe_num}')
+        
+        wmparc_to_native.inputs.out_file = 'wmparc_warped.mgz'
+
+        node, out = strat_pool.get_data('pipeline-fs_wmparc')
+        wf.connect(node, out, wmparc_to_native, 'source_file')
+
+        node, out = strat_pool.get_data('pipeline-fs_raw-average')
+        wf.connect(node, out, wmparc_to_native, 'target_file')
+
+        node, out = strat_pool.get_data('pipeline-fs_xfm')
+        wf.connect(node, out, wmparc_to_native, 'xfm')
+
+        wf.connect(wmparc_to_native, 'transformed_file', wmparc_to_nifti, 'in_file')
+    
+    else:
+        
+        node, out = strat_pool.get_data('pipeline-fs_wmparc')
+        wf.connect(node, out, wmparc_to_nifti, 'in_file')
+
+    wmparc_to_nifti.inputs.args = '-rt nearest'
 
     node, out = strat_pool.get_data('desc-preproc_T1w')
     wf.connect(node, out, wmparc_to_nifti, 'reslice_like')
@@ -1231,7 +1260,6 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
-
 @nodeblock(
     name="acpc_alignment_head",
     switch=[
@@ -1253,7 +1281,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
                                 mask=False,
                                 wf_name=f'acpc_align_{pipe_num}')
 
-    node, out = strat_pool.get_data(['desc-head_T1w', 'desc-preproc_T1w'])
+    node, out = strat_pool.get_data(['desc-preproc_T1w','desc-head_T1w'])
     wf.connect(node, out, acpc_align, 'inputspec.anat_leaf')
 
     node, out = strat_pool.get_data('T1w-ACPC-template')
@@ -1785,7 +1813,13 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     option_key=["anatomical_preproc", "brain_extraction", "using"],
     option_val="FreeSurfer-ABCD",
-    inputs=["desc-preproc_T1w", "pipeline-fs_wmparc", "freesurfer-subject-dir"],
+    inputs=[
+        "desc-preproc_T1w",
+        "pipeline-fs_wmparc",
+        "pipeline-fs_raw-average",
+        "pipeline-fs_xfm",
+        "freesurfer-subject-dir",
+    ],
     outputs=["space-T1w_desc-brain_mask"],
 )
 def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1828,7 +1862,13 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     option_key=["anatomical_preproc", "brain_extraction", "using"],
     option_val="FreeSurfer-ABCD",
-    inputs=["desc-preproc_T1w", "pipeline-fs_wmparc", "freesurfer-subject-dir"],
+    inputs=[
+        "desc-preproc_T1w",
+        "pipeline-fs_wmparc",
+        "pipeline-fs_raw-average",
+        "pipeline-fs_xfm",
+        "freesurfer-subject-dir",
+    ],
     outputs=["space-T1w_desc-acpcbrain_mask"],
 )
 def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2536,12 +2576,150 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+@nodeblock(
+    name="freesurfer_abcd_preproc",
+    config=["surface_analysis", "abcd_prefreesurfer_prep"],
+    switch=["run"],
+    inputs=[
+        "desc-preproc_T1w",
+        "T1w-template",
+        "T1w-brain-template-mask",
+        "template-ref-mask-res-2",
+        "T1w-template-res-2",
+        "freesurfer-subject-dir",
+    ],
+    outputs=[
+        "desc-restore_T1w",
+        "desc-restore-brain_T1w",
+        "desc-ABCDpreproc_T1w",
+        "pipeline-fs_desc-fast_biasfield",
+        "pipeline-fs_hemi-L_desc-surface_curv",
+        "pipeline-fs_hemi-R_desc-surface_curv",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
+        "pipeline-fs_hemi-L_desc-surfaceMap_sulc",
+        "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
+        "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
+        "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
+        "pipeline-fs_hemi-L_desc-surfaceMap_volume",
+        "pipeline-fs_hemi-R_desc-surfaceMap_volume",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_white",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_white",
+        "pipeline-fs_wmparc",
+        "freesurfer-subject-dir",
+    ],
+)
+def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
+    
+    # fnirt-based brain extraction
+    brain_extraction = fnirt_based_brain_extraction(config=cfg,
+                                                    wf_name=f'fnirt_based_brain_extraction_{pipe_num}')
+
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, brain_extraction, 'inputspec.anat_data')
+
+    node, out = strat_pool.get_data('template-ref-mask-res-2')
+    wf.connect(node, out, brain_extraction, 'inputspec.template-ref-mask-res-2')
+
+    node, out = strat_pool.get_data('T1w-template')
+    wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat')
+
+    node, out = strat_pool.get_data('T1w-template-res-2')
+    wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat_2mm')
+
+    node, out = strat_pool.get_data('T1w-brain-template-mask')
+    wf.connect(node, out, brain_extraction, 'inputspec.template_brain_mask_for_anat')
+
+    # fast bias field correction
+    fast_correction = fast_bias_field_correction(config=cfg,
+                                                 wf_name=f'fast_bias_field_correction_{pipe_num}')
+
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, fast_correction, 'inputspec.anat_data')
+
+    wf.connect(brain_extraction, 'outputspec.anat_brain', fast_correction, 'inputspec.anat_brain')
+
+    wf.connect(brain_extraction, 'outputspec.anat_brain_mask', fast_correction, 'inputspec.anat_brain_mask')
+
+    ### ABCD Harmonization ###
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
+
+    # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
+    resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
+                                name=f'resample_anat_head_1mm_{pipe_num}')
+    resample_head_1mm.inputs.interp = 'spline'
+    resample_head_1mm.inputs.apply_isoxfm = 1
+
+    node, out = strat_pool.get_data('desc-preproc_T1w')
+    wf.connect(node, out, resample_head_1mm, 'in_file')
+
+    wf.connect(node, out, resample_head_1mm, 'reference')
+
+    # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
+    applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
+                                         name=f'applywarp_head_to_head_1mm_{pipe_num}')
+    applywarp_head_to_head_1mm.inputs.relwarp = True
+    applywarp_head_to_head_1mm.inputs.interp = 'spline'
+    applywarp_head_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    wf.connect(node, out, applywarp_head_to_head_1mm, 'in_file')
+
+    wf.connect(resample_head_1mm, 'out_file',
+               applywarp_head_to_head_1mm, 'ref_file')
+
+    # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
+    applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
+                name=f'applywarp_brain_to_head_1mm_{pipe_num}')
+    applywarp_brain_to_head_1mm.inputs.relwarp = True
+    applywarp_brain_to_head_1mm.inputs.interp = 'nn'
+    applywarp_brain_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
+
+    wf.connect(fast_correction, 'outputspec.anat_brain_restore',
+                    applywarp_brain_to_head_1mm, 'in_file')
+
+    wf.connect(resample_head_1mm, 'out_file',
+                    applywarp_brain_to_head_1mm, 'ref_file')
+
+    # fslstats $T1wImageBrain -M
+    average_brain = pe.Node(interface=fsl.ImageStats(),
+                name=f'average_brain_{pipe_num}')
+    average_brain.inputs.op_string = '-M'
+    average_brain.inputs.output_type = 'NIFTI_GZ'
+
+    wf.connect(fast_correction, 'outputspec.anat_brain_restore',
+               average_brain, 'in_file')
+
+    # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
+    normalize_head = pe.Node(util.Function(input_names=['in_file', 'number', 'out_file_suffix'],
+                                           output_names=['out_file'],
+                                           function=fslmaths_command),
+                             name=f'normalize_head_{pipe_num}')
+    normalize_head.inputs.out_file_suffix = '_norm'
+
+    wf.connect(applywarp_head_to_head_1mm, 'out_file', 
+               normalize_head, 'in_file')
+
+    wf.connect(average_brain, 'out_stat',
+               normalize_head, 'number')
+
+    outputs = {
+            'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
+            'desc-restore-brain_T1w': (fast_correction,
+                                       'outputspec.anat_brain_restore'),
+            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
+            'desc-ABCDpreproc_T1w': (normalize_head, 'out_file')
+            }
+    return (wf, outputs)
 
 @nodeblock(
     name="freesurfer_reconall",
     config=["surface_analysis", "freesurfer"],
     switch=["run_reconall"],
-    inputs=["desc-preproc_T1w"],
+    inputs=[["desc-ABCDpreproc_T1w", "desc-preproc_T1w"]],
     outputs=[
         "freesurfer-subject-dir",
         "pipeline-fs_raw-average",
@@ -2549,7 +2727,9 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         "pipeline-fs_brainmask",
         "pipeline-fs_wmparc",
         "pipeline-fs_T1",
-        *brain_mask_freesurfer.outputs
+        *freesurfer_abcd_preproc.outputs
+        # we're grabbing the postproc outputs and appending them to
+        # the reconall outputs
     ],
 )
 def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2577,7 +2757,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
         reconall.inputs.args = cfg.surface_analysis['freesurfer'][
             'reconall_args']
 
-    node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data(["desc-ABCDpreproc_T1w","desc-preproc_T1w"])
     wf.connect(node, out, reconall, 'T1_files')
 
     wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
@@ -2808,181 +2988,6 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
 
     return preproc
 
-
-@nodeblock(
-    name="freesurfer_abcd_preproc",
-    config=["anatomical_preproc", "brain_extraction"],
-    option_key="using",
-    option_val="FreeSurfer-ABCD",
-    inputs=[
-        "desc-preproc_T1w",
-        "T1w-template",
-        "T1w-brain-template-mask",
-        "template-ref-mask-res-2",
-        "T1w-template-res-2",
-        "freesurfer-subject-dir",
-    ],
-    outputs=[
-        "desc-restore_T1w",
-        "desc-restore-brain_T1w",
-        "pipeline-fs_desc-fast_biasfield",
-        "pipeline-fs_hemi-L_desc-surface_curv",
-        "pipeline-fs_hemi-R_desc-surface_curv",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-L_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-L_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-R_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_white",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_white",
-        "pipeline-fs_wmparc",
-        "freesurfer-subject-dir",
-    ],
-)
-def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    # fnirt-based brain extraction
-    brain_extraction = fnirt_based_brain_extraction(config=cfg,
-                                                    wf_name=f'fnirt_based_brain_extraction_{pipe_num}')
-
-    node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, brain_extraction, 'inputspec.anat_data')
-
-    node, out = strat_pool.get_data('template-ref-mask-res-2')
-    wf.connect(node, out, brain_extraction, 'inputspec.template-ref-mask-res-2')
-
-    node, out = strat_pool.get_data('T1w-template')
-    wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat')
-
-    node, out = strat_pool.get_data('T1w-template-res-2')
-    wf.connect(node, out, brain_extraction, 'inputspec.template_skull_for_anat_2mm')
-
-    node, out = strat_pool.get_data('T1w-brain-template-mask')
-    wf.connect(node, out, brain_extraction, 'inputspec.template_brain_mask_for_anat')
-
-    # fast bias field correction
-    fast_correction = fast_bias_field_correction(config=cfg,
-                                                 wf_name=f'fast_bias_field_correction_{pipe_num}')
-
-    node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, fast_correction, 'inputspec.anat_data')
-
-    wf.connect(brain_extraction, 'outputspec.anat_brain', fast_correction, 'inputspec.anat_brain')
-
-    wf.connect(brain_extraction, 'outputspec.anat_brain_mask', fast_correction, 'inputspec.anat_brain_mask')
-
-    ### ABCD Harmonization ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
-
-    # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
-    resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
-                                name=f'resample_anat_head_1mm_{pipe_num}')
-    resample_head_1mm.inputs.interp = 'spline'
-    resample_head_1mm.inputs.apply_isoxfm = 1
-
-    node, out = strat_pool.get_data('desc-preproc_T1w')
-    wf.connect(node, out, resample_head_1mm, 'in_file')
-
-    wf.connect(node, out, resample_head_1mm, 'reference')
-
-    # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
-    applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
-                                         name=f'applywarp_head_to_head_1mm_{pipe_num}')
-    applywarp_head_to_head_1mm.inputs.relwarp = True
-    applywarp_head_to_head_1mm.inputs.interp = 'spline'
-    applywarp_head_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
-
-    wf.connect(node, out, applywarp_head_to_head_1mm, 'in_file')
-
-    wf.connect(resample_head_1mm, 'out_file',
-               applywarp_head_to_head_1mm, 'ref_file')
-
-    # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
-    applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
-                name=f'applywarp_brain_to_head_1mm_{pipe_num}')
-    applywarp_brain_to_head_1mm.inputs.relwarp = True
-    applywarp_brain_to_head_1mm.inputs.interp = 'nn'
-    applywarp_brain_to_head_1mm.inputs.premat = cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['identity_matrix']
-
-    wf.connect(fast_correction, 'outputspec.anat_brain_restore',
-                    applywarp_brain_to_head_1mm, 'in_file')
-
-    wf.connect(resample_head_1mm, 'out_file',
-                    applywarp_brain_to_head_1mm, 'ref_file')
-
-    # fslstats $T1wImageBrain -M
-    average_brain = pe.Node(interface=fsl.ImageStats(),
-                name=f'average_brain_{pipe_num}')
-    average_brain.inputs.op_string = '-M'
-    average_brain.inputs.output_type = 'NIFTI_GZ'
-
-    wf.connect(fast_correction, 'outputspec.anat_brain_restore',
-               average_brain, 'in_file')
-
-    # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
-    normalize_head = pe.Node(util.Function(input_names=['in_file', 'number', 'out_file_suffix'],
-                                           output_names=['out_file'],
-                                           function=fslmaths_command),
-                             name=f'normalize_head_{pipe_num}')
-    normalize_head.inputs.out_file_suffix = '_norm'
-
-    wf.connect(applywarp_head_to_head_1mm, 'out_file', 
-               normalize_head, 'in_file')
-
-    wf.connect(average_brain, 'out_stat',
-               normalize_head, 'number')
-
-    if strat_pool.check_rpool('freesurfer-subject-dir'):
-        outputs = {
-            'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
-            'desc-restore-brain_T1w': (fast_correction,
-                                       'outputspec.anat_brain_restore'),
-            'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field')}
-        return (wf, outputs)
-
-    else:
-        ### recon-all -all step ###
-        reconall = pe.Node(interface=freesurfer.ReconAll(),
-                           name=f'anat_freesurfer_{pipe_num}',
-                           mem_gb=2.7)
-
-        sub_dir = cfg.pipeline_setup['working_directory']['path']
-        freesurfer_subject_dir = os.path.join(sub_dir,
-                                              'cpac_'+cfg['subject_id'],
-                                              f'anat_preproc_freesurfer_{pipe_num}',
-                                              'anat_freesurfer')
-
-        # create the directory for FreeSurfer node
-        if not os.path.exists(freesurfer_subject_dir):
-            os.makedirs(freesurfer_subject_dir)
-
-        reconall.inputs.directive = 'all'
-        reconall.inputs.subjects_dir = freesurfer_subject_dir
-        reconall.inputs.openmp = cfg.pipeline_setup['system_config']['num_OMP_threads']
-
-        wf.connect(normalize_head, 'out_file',
-                   reconall, 'T1_files')
-
-        wf, hemisphere_outputs = freesurfer_hemispheres(wf, reconall, pipe_num)
-
-        outputs = {
-        'desc-restore_T1w': (fast_correction, 'outputspec.anat_restore'),
-        'desc-restore-brain_T1w': (fast_correction,
-                                   'outputspec.anat_brain_restore'),
-        'pipeline-fs_desc-fast_biasfield': (fast_correction, 'outputspec.bias_field'),
-        'pipeline-fs_wmparc': (reconall, 'wmparc'),
-        'freesurfer-subject-dir': (reconall, 'subjects_dir'),
-        **hemisphere_outputs
-    }
-
-    return (wf, outputs)
 
 
 @nodeblock(

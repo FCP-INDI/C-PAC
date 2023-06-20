@@ -711,6 +711,9 @@ latest_schema = Schema({
         },
     },
     'surface_analysis': {
+        'abcd_prefreesurfer_prep':{
+            'run': bool1_1,
+        },
         'freesurfer': {
             'run_reconall': bool1_1,
             'reconall_args': Maybe(str),
