@@ -48,6 +48,14 @@ class NodeBlockFunction(object):
         for the outputs' respective sidecars.
         """
 
+        # Forward function attributes similar to functools.update_wrapper:
+        # https://docs.python.org/3/library/functools.html#functools.update_wrapper
+        self.__module__ = func.__module__
+        self.__name__ = func.__name__
+        self.__qualname__ = func.__qualname__
+        self.__annotations__ = func.__annotations__
+        self.__doc__ = func.__doc__
+
     # all node block functions have this signature
     def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
