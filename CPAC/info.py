@@ -1,43 +1,42 @@
+# Copyright (c) 2009-2013, NIPY Developers
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+
+#     * Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+
+#     * Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+
+#     * Neither the name of the NIPY Developers nor the names of any
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Modifications Copyright (C) 2022-2023  C-PAC Developers
+
+# This file is part of C-PAC.
 """This file contains defines parameters for CPAC that we use to fill
 settings in setup.py, the CPAC top-level docstring, and for building the
 docs.  In setup.py in particular, we exec this file, so it cannot import CPAC.
 This script was borrowed from and inspired by nipype's info.py file
-(https://github.com/nipy/nipype/blob/08391871/nipype/info.py).
-
-Copyright (c) 2009-2013, NIPY Developers
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-    * Redistributions of source code must retain the above copyright
-       notice, this list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above
-       copyright notice, this list of conditions and the following
-       disclaimer in the documentation and/or other materials provided
-       with the distribution.
-
-    * Neither the name of the NIPY Developers nor the names of any
-       contributors may be used to endorse or promote products derived
-       from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-Modifications Copyright (C) 2022  C-PAC Developers
-
-This file is part of C-PAC."""
+(https://github.com/nipy/nipype/blob/08391871/nipype/info.py)."""
 # CPAC version information.  An empty _version_extra corresponds to a
 # full release.  'dev' as a _version_extra string means this is a development
 # version
@@ -83,7 +82,7 @@ def get_cpac_gitversion():
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-        _version_extra = gitversion + '-' + 'dev'
+        _version_extra = f'dev1+{gitversion}'
 
 
 __version__ = "%s.%s.%s" % (_version_major,
@@ -170,37 +169,36 @@ ISRELEASE = _version_extra == ''
 VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
-    "boto3==1.7.37",
-    "click==6.7",
-    "configparser==3.7.4",
+    "boto3",
+    "click",
+    "configparser",
     "cython",
     "future",
-    "INDI-Tools",
-    "lockfile==0.12.2",
-    "joblib==1.0.1",
-    "matplotlib==3.1.3",
-    "networkx==2.4",
-    "nibabel==3.0.1",
-    "nilearn==0.4.1",
-    "nipype==1.5.1",
-    "nose==1.3.7",
-    "numpy==1.21.0",
-    "pandas==1.0.5",
-    "pathvalidate==2.5.2",
-    "patsy==0.5.0",
-    "prov==1.5.2",
-    "psutil==5.6.6",
-    "pybids==0.15.1",
-    "pygraphviz==1.3.1",
-    "PyPEER",
-    "python-dateutil==2.7.3",
-    "pyyaml==5.4",
-    "scikit-learn==0.22.1",
-    "scipy==1.6.3",
-    "sdcflows==2.0.5",
-    "simplejson==3.15.0",
-    "traits==4.6.0",
-    "PyBASC==0.4.5",
+    "INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git#egg=INDI-Tools",
+    "lockfile",
+    "joblib",
+    "matplotlib",
+    "networkx",
+    "nibabel",
+    "nilearn",
+    "nipype",
+    "nose",
+    "numpy",
+    "pandas",
+    "pathvalidate",
+    "patsy",
+    "prov",
+    "psutil",
+    "pybids",
+    "pygraphviz",
+    "PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97#egg=PyPEER",
+    "python-dateutil",
+    "pyyaml",
+    "scikit-learn",
+    "scipy",
+    "sdcflows",
+    "traits",
+    "PyBASC",
     "voluptuous>=0.12.0",
     "ciftify",
 ]

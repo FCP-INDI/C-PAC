@@ -20,7 +20,7 @@ import re
 from datetime import datetime
 from hashlib import sha1
 import yaml
-from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
+
 from CPAC.utils.configuration import Configuration, Preconfiguration, \
                                      preconfig_yaml
 from CPAC.utils.utils import set_nested_value, update_config_dict, \
@@ -87,18 +87,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
         -------
         str
         """
-        # Initialize variable for automatically updated value
-        if parents == ['surface_analysis', 'freesurfer'] or parents is None:
-            freesurfer_extraction = False
-            try:
-                brain_extractions = self.get_nested(
-                    new_dict, ['anatomical_preproc', 'brain_extraction',
-                               'using'])
-            except KeyError:
-                brain_extractions = []
-            if (brain_extractions is not None and
-                    'FreeSurfer-ABCD' in brain_extractions):
-                freesurfer_extraction = True
+    
         # SSOT FSLDIR
         try:  # Get from current config
             fsldir = self.get_nested(new_dict,
@@ -108,6 +97,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             fsldir = self.get_nested(self._dict,
                                      ['pipeline_setup', 'system_config',
                                       'FSLDIR'])
+
         # Add YAML version directive to top of document and ensure
         # C-PAC version comment and 'FROM' are at the top of the YAML
         # output
@@ -116,11 +106,6 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             _dump = ['%YAML 1.1', '---']
             if 'pipeline_setup' not in new_dict:
                 new_dict['pipeline_setup'] = None
-            # Insert automatically-changed value in original dict
-            if freesurfer_extraction:
-                new_dict = set_nested_value(
-                    new_dict, ['surface_analysis', 'freesurfer', 
-                    'run_reconall'], False)
         else:
             _dump = []
         # Prepare for indentation
@@ -143,12 +128,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 value = self.get_nested(new_dict, keys)
             except KeyError:  # exclude unincluded keys
                 continue
-            # Add comment for automatically changed value
-            if (keys == ['surface_analysis', 'freesurfer', 'run_reconall'] and
-                    freesurfer_extraction):
-                if comment is None:
-                    comment = []
-                comment.append(f'# {DOUBLERUN_GUARD_MESSAGE}')
+
             # Print comment if there's one above this key in the template
             if comment:
                 if key != 'pipeline_setup':

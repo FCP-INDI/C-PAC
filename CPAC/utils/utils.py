@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -117,30 +117,7 @@ def check_prov_for_motion_tool(prov):
             return None
 
 
-def cl_strip_brackets(arg_list):
-    """Removes '[' from before first and ']' from after final
-    arguments in a list of commandline arguments
 
-    Parameters
-    ----------
-    arg_list : list
-
-    Returns
-    -------
-    list
-
-    Examples
-    --------
-    >>> cl_strip_brackets('[a b c]'.split(' '))
-    ['a', 'b', 'c']
-    >>> cl_strip_brackets('a b c'.split(' '))
-    ['a', 'b', 'c']
-    >>> cl_strip_brackets('[ a b c ]'.split(' '))
-    ['a', 'b', 'c']
-    """
-    arg_list[0] = arg_list[0].lstrip('[')
-    arg_list[-1] = arg_list[-1].rstrip(']')
-    return [arg for arg in arg_list if arg]
 
 
 def get_flag(in_flag):
@@ -475,15 +452,15 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
         filename = filename.replace(".gz", "")
 
     corr_img = nb.load(correlation_file)
-    corr_data = corr_img.get_data()
+    corr_data = corr_img.get_fdata()
 
-    hdr = corr_img.get_header()
+    hdr = corr_img.header
 
     # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
     z_score_img = nb.Nifti1Image(corr_data, header=hdr,
-                                 affine=corr_img.get_affine())
+                                 affine=corr_img.affine)
 
     out_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
@@ -1012,7 +989,7 @@ def check_tr(tr, in_file):
 
     # get header from image data, then extract TR information, TR is fourth
     # item in list returned by get_zooms()
-    imageHeader = img.get_header()
+    imageHeader = img.header
     imageZooms = imageHeader.get_zooms()
     header_tr = imageZooms[3]
 

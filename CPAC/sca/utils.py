@@ -31,9 +31,9 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
         roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
     corr_img = nb.load(correlation_file)
-    corr_data = corr_img.get_data()
+    corr_data = corr_img.get_fdata()
 
-    hdr = corr_img.get_header()
+    hdr = corr_img.header
 
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
@@ -53,13 +53,13 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
             if len(dims) == 5:
                 sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
-            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+            sub_img = nb.Nifti1Image(sub_data, header=corr_img.header, affine=corr_img.affine)
             sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
             sub_img.to_filename(sub_z_score_file)
             out_file.append(sub_z_score_file)
 
     else:
-        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
+        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.affine)
         z_score_file = os.path.join(os.getcwd(), 'z_score.nii.gz')
         z_score_img.to_filename(z_score_file)
         out_file.append(z_score_file)

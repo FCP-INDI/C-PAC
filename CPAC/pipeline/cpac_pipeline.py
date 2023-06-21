@@ -1,19 +1,19 @@
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 import time
@@ -23,7 +23,7 @@ import pickle
 import copy
 import faulthandler
 
-from logging import getLogger
+from CPAC.utils.monitoring.custom_logging import getLogger
 from time import strftime
 
 import nipype
@@ -42,7 +42,6 @@ from CPAC.pipeline.check_outputs import check_outputs
 from CPAC.pipeline.engine import NodeBlock, initiate_rpool
 from CPAC.anat_preproc.anat_preproc import (
     freesurfer_reconall,
-    freesurfer_postproc,
     freesurfer_abcd_preproc,
     anatomical_init,
     acpc_align_head,
@@ -82,7 +81,7 @@ from CPAC.anat_preproc.anat_preproc import (
     brain_mask_T2,
     brain_mask_acpc_T2,
     brain_extraction_temp_T2,
-    brain_extraction_T2
+    brain_extraction_T2,
 )
 
 from CPAC.registration.registration import (
@@ -209,7 +208,8 @@ from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
-
+from CPAC.utils.docs import version_report
+from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
@@ -291,7 +291,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
             'resource_monitor_frequency': 0.2,
             'stop_on_first_crash': c['pipeline_setup', 'system_config',
                                      'fail_fast']}})
-
     config.enable_resource_monitor()
     logging.update_logging(config)
 
@@ -361,6 +360,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Environment
+    ===========
+    {dependency_versions}
+
     Run command: {run_command}
 
     C-PAC version: {cpac_version}
@@ -394,6 +397,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
+        dependency_versions=version_report().replace('\n', '\n    '),
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
             'num_participants_at_once'],
@@ -549,11 +553,11 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.5.1'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.5.1\n" \
-                          % (CPAC.__version__)
-                logger.error(err_msg)
+            nipype_version = REQUIREMENTS['nipype']
+            if nipype.__version__ != nipype_version:
+                logger.warning('This version of Nipype may not be compatible '
+                               f'with CPAC v{CPAC.__version__}, please '
+                               f'install Nipype version {nipype_version}\n')
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
@@ -866,44 +870,32 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
             anatomical_init
         ]
         pipeline_blocks += anat_init_blocks
+        
+    using_brain_extraction = cfg.anatomical_preproc['brain_extraction']['using']
 
-    if rpool.check_rpool('freesurfer-subject-dir'):
-        pipeline_blocks += [freesurfer_postproc]
-    else:
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' not in using_brain_extraction:
         pipeline_blocks += [freesurfer_reconall]  # includes postproc
 
     if not rpool.check_rpool('desc-preproc_T1w'):
 
         # brain masking for ACPC alignment
         if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
-            if rpool.check_rpool('space-T1w_desc-brain_mask') or \
-                    cfg.surface_analysis['freesurfer']['run_reconall']:
-                acpc_blocks = [
-                    brain_extraction_temp,
-                    acpc_align_brain_with_mask
-                    # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
-                ]
-                acpc_blocks.append(
-                    [brain_mask_acpc_freesurfer_fsl_tight,
-                     brain_mask_acpc_freesurfer_fsl_loose]
-                )
-            else:
                 acpc_blocks = [
                     [brain_mask_acpc_afni,
                      brain_mask_acpc_fsl,
                      brain_mask_acpc_niworkflows_ants,
                      brain_mask_acpc_unet,
-                     brain_mask_acpc_freesurfer_abcd],
-                    #  brain_mask_acpc_freesurfer
-                    # we don't want these masks to be used later
+                     brain_mask_acpc_freesurfer_abcd,
+                     brain_mask_acpc_freesurfer,
+                     brain_mask_acpc_freesurfer_fsl_tight,
+                     brain_mask_acpc_freesurfer_fsl_loose],
+                    acpc_align_brain_with_mask,
                     brain_extraction_temp,
                     acpc_align_brain
                 ]
-        elif cfg.anatomical_preproc['acpc_alignment'][
-            'acpc_target'] == 'whole-head':
+        elif cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'whole-head':
             if (rpool.check_rpool('space-T1w_desc-brain_mask') and \
-                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']) or \
-                    cfg.surface_analysis['freesurfer']['run_reconall']:
+                cfg.anatomical_preproc['acpc_alignment']['align_brain_mask']):
                 acpc_blocks = [
                     acpc_align_head_with_mask
                     # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
@@ -912,6 +904,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
                 acpc_blocks = [
                     acpc_align_head  # does not output nor generate a mask
                 ]
+        
 
         anat_preproc_blocks = [
             (non_local_means, ('T1w', ['desc-preproc_T1w',
@@ -928,19 +921,22 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
         pipeline_blocks += [freesurfer_abcd_preproc]
 
+    if not rpool.check_rpool('freesurfer-subject-dir') and 'FreeSurfer-ABCD' in using_brain_extraction:
+        pipeline_blocks += [freesurfer_reconall]  # includes postproc
+
     # Anatomical T1 brain masking
-    if not rpool.check_rpool('space-T1w_desc-brain_mask') or \
-        cfg.surface_analysis['freesurfer']['run_reconall']:
-        anat_brain_mask_blocks = [
-            [brain_mask_afni,
-             brain_mask_fsl,
-             brain_mask_niworkflows_ants,
-             brain_mask_unet,
-             brain_mask_freesurfer_abcd,
-             brain_mask_freesurfer_fsl_tight,
-             brain_mask_freesurfer_fsl_loose]
-        ]
-        pipeline_blocks += anat_brain_mask_blocks
+
+    anat_brain_mask_blocks = [
+        [brain_mask_afni,
+        brain_mask_fsl,
+        brain_mask_niworkflows_ants,
+        brain_mask_unet,
+        brain_mask_freesurfer_abcd,
+        brain_mask_freesurfer,
+        brain_mask_freesurfer_fsl_tight,
+        brain_mask_freesurfer_fsl_loose]
+    ]
+    pipeline_blocks += anat_brain_mask_blocks
 
     # T2w Anatomical Preprocessing
     if rpool.check_rpool('T2w'):
@@ -1032,7 +1028,6 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
             warp_T1mask_to_template
         ]
 
-
     if not rpool.check_rpool('desc-restore-brain_T1w'):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 
@@ -1054,7 +1049,8 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
             not rpool.check_rpool('label-WM_mask'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
-             tissue_seg_ants_prior]
+             tissue_seg_ants_prior,
+	     tissue_seg_freesurfer]
         ]
         if 'T1_Template' in cfg.segmentation['tissue_segmentation'][
             'Template_Based']['template_for_segmentation']:
@@ -1107,7 +1103,8 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     previous_nb = None
     for block in pipeline_blocks:
         try:
-            nb = NodeBlock(block)
+            nb = NodeBlock(block, debug=cfg['pipeline_setup', 'Debugging',
+                                            'verbose'])
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == 'freesurfer_postproc':
@@ -1360,9 +1357,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
-	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+        apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and
+                                  _r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
     else:
-        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
+
     del _r_w_f_r
 
     template_funcs = [
@@ -1394,6 +1395,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
+        
         pipeline_blocks += [surface_postproc]
 
     # Extractions and Derivatives
