@@ -93,12 +93,12 @@ def nodeblock(
         Used in the graph and logging to identify the NodeBlock and its component nodes.
     config
         Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this
-        function. If config is sct to "None", then all other configuration-related entities must be specified from the
+        function. If config is set to ``None``, then all other configuration-related entities must be specified from the
         root of the configuration.
     switch
         Indicates any keys that should evaluate to True for this NodeBlock to be active. A list of lists of strings
         indicates multiple switches that must all be True to run, and is currently only an option if config is set to
-        "None".
+        ``None``.
     option_key
         Indicates the nested keys (starting at the nested key indicated by config) that should configure this NodeBlock.
     option_val
