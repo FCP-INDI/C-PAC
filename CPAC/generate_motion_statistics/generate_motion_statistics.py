@@ -24,13 +24,12 @@ except ImportError:
 from typing import Optional
 import numpy as np
 import nibabel as nb
-#import pytest
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from CPAC.utils.interfaces.function import Function
-
 from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
-from nipype.interfaces.base import (TraitedSpec, traits, isdefined, File)
+from nipype.interfaces.base import (TraitedSpec, traits, File)
+import nipype.interfaces.utility as util
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.pytest import skipif
 
 
 def motion_power_statistics(name='motion_stats',
@@ -352,8 +351,8 @@ def calculate_FD_P(in_file):
     return out_file
 
 
-#@pytest.mark.skipif(sys.version_info < (3, 10),
-#                    reason="Test requires Python 3.10 or higher")
+@skipif(sys.version_info < (3, 10),
+        reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
                    center: Optional[np.ndarray] = None) -> str:
     """
