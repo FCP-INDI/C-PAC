@@ -19,12 +19,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fslmaths_command, \
     VolumeRemoveIslands, \
     normalize_wmparc
-from CPAC.pipeline.engine import flatten_list
-from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.interfaces.function.seg_preproc import \
-    pick_tissue_from_labels_file_interface
-from CPAC.utils.monitoring import WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.unet.function import predict_volumes
 
 
@@ -1448,7 +1443,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
         'desc-acpcbrain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
         'space-T1w_desc-brain_mask': (acpc_align, 'outputspec.acpc_brain_mask'),
-        'space-T1w_desc-prebrain_mask': (strat_pool.get_data(desc_brain_mask))
+        'space-T1w_desc-prebrain_mask': (strat_pool.get_data('space-T1_desc-brain_mask'))
     }
 
     return (wf, outputs)
