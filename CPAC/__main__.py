@@ -356,7 +356,7 @@ def build(data_settings_file):
     run(data_settings_file)
 
 
-@utils.group(aliases=['pipe_config'])
+@utils.group(aliases=['pipe_config'], cls=ClickAliasedGroup)
 @click.option('--tracking-opt-out', '--tracking_opt-out', is_flag=True,
               help='Disable usage tracking.')
 def pipe_config(tracking_opt_out):
