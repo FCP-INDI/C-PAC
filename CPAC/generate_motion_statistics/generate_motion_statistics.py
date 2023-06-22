@@ -382,8 +382,9 @@ def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
     >>> with gzip.open('/code/CPAC/generate_motion_statistics/test/'
     ...                'fdj_test_data.pklz') as _pickle:
     ...     test_data = pickle.load(_pickle)
-    >>> with mock.patch('nibabel.load', return_value=test_data.img), \
-    ...         mock.patch('numpy.genfromtxt', return_value=test_data.affine):
+    >>> with mock.patch('nibabel.load',
+    ...                 return_value=test_data.img), mock.patch(
+    ...        'numpy.genfromtxt', return_value=test_data.affine):
     ...     fdj_file = calculate_FD_J(test_data.affine, calc_from='affine',
     ...                               center=find_volume_center(test_data.img))
     >>> all(np.isclose(np.genfromtxt(fdj_file),
