@@ -23,9 +23,16 @@ except ValueError:
         _BACKPORT_CLICK = True
 
 
-def _click_backport(key):
+def _click_backport(command, key):
     """Switch back to underscores for older versions of click"""
-    return key.replace('-', '_').replace('opt_out', 'opt-out')
+    return _resolve_alias(command,
+                          key.replace('-', '_').replace('opt_out', 'opt-out'))
+
+
+def _resolve_alias(command, key):
+    """Resolve alias if possible"""
+    return command.resolve_alias(key) if hasattr(command,
+                                                'resolve_alias') else key
 
 
 @pytest.mark.parametrize('multiword_connector', ['-', '_'])
@@ -38,11 +45,11 @@ def test_build_data_config(cli_runner, multiword_connector):
     test_yaml = os.path.join(DATA_DIR, "data_settings.yml")
     _delete_test_yaml(test_yaml)
     if multiword_connector == '_':
+        data_config = CPAC_main_utils.commands[
+            _click_backport(CPAC_main_utils, 'data-config')]
         result = cli_runner.invoke(
-            CPAC_main_utils.commands[_click_backport('data-config')].commands[
-                _click_backport('new-settings-template')
-            ]
-        )
+            data_config.commands[
+                _click_backport(data_config, 'new-settings-template')])
     else:
         result = cli_runner.invoke(CPAC_main_utils.commands[
             'data-config'].commands['new-settings-template'])
@@ -67,7 +74,8 @@ def test_new_settings_template(cli_runner):
         )
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands[_click_backport('data-config')
+        CPAC_main_utils.commands[
+            _click_backport(CPAC_main_utils, 'data-config')
                                  ].commands['build'],
         [os.path.join(
             DATA_DIR,
