@@ -21,9 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}.dev{integer}+{SHA}`
 - Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
 - Makes in-container root directory writable by all
+- Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
 
-### Added dependency
+### Added dependencies
 
+- `click-aliases`
 - `dc`
 
 ### Removed dependencies

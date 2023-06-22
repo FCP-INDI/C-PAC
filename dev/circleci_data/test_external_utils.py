@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import click
+import pytest
 import semver
 
 CPAC_DIR = str(Path(__file__).parent.parent.parent)
@@ -21,21 +22,30 @@ except ValueError:
     except ValueError:
         _BACKPORT_CLICK = True
 
+
 def _click_backport(key):
     """Switch back to underscores for older versions of click"""
-    return key.replace('-', '_') if _BACKPORT_CLICK else key
+    return key.replace('-', '_').replace('opt_out', 'opt-out')
 
 
-def test_build_data_config(cli_runner):
+@pytest.mark.parametrize('multiword_connector', ['-', '_'])
+def test_build_data_config(cli_runner, multiword_connector):
+    """Test CLI ``utils data-config new-settings-template`` and
+    ``utils data_config new_settings_template``"""
+    if multiword_connector == '-' and _BACKPORT_CLICK:
+        return
     os.chdir(DATA_DIR)
     test_yaml = os.path.join(DATA_DIR, "data_settings.yml")
     _delete_test_yaml(test_yaml)
-
-    result = cli_runner.invoke(
-        CPAC_main_utils.commands[_click_backport('data-config')].commands[
-            _click_backport('new-settings-template')
-        ]
-    )
+    if multiword_connector == '_':
+        result = cli_runner.invoke(
+            CPAC_main_utils.commands[_click_backport('data-config')].commands[
+                _click_backport('new-settings-template')
+            ]
+        )
+    else:
+        result = cli_runner.invoke(CPAC_main_utils.commands[
+            'data-config'].commands['new-settings-template'])
 
     assert result.exit_code == 0
     assert result.output.startswith(
