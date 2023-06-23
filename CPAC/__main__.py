@@ -147,7 +147,7 @@ def group():
 
 
 # Group analysis - FSL FEAT
-@group.group()
+@group.group(cls=ClickAliasedGroup)
 def feat():
     pass
 
@@ -173,7 +173,7 @@ def randomise(group_config):
     cgr.run_feat(group_config, feat=False)
 
 
-@feat.group(cls=ClickAliasedGroup)
+@feat.group(aliases=['load_preset'], cls=ClickAliasedGroup)
 def load_preset():
     pass
 
