@@ -128,7 +128,7 @@ def run_main():
                              'entire configuration process but will not '
                              'execute the pipeline.',
                         choices=['participant', 'group', 'test_config', 'cli'],
-                        type=str.lower)
+                        type=lambda choice: choice.replace('-', '_').lower())
 
     parser.add_argument('--pipeline-file', '--pipeline_file',
                         help='Path for the pipeline configuration file to '
