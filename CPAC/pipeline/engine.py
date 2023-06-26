@@ -16,6 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
 import copy
+import hashlib
+import json
 from itertools import chain
 import logging
 import os
@@ -1344,6 +1346,15 @@ class NodeBlock:
             else:                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
+
+        sidecar_additions = {
+            'CpacConfigHash': hashlib.sha1(json.dumps(cfg.dict(), sort_keys=True).encode('utf-8')).hexdigest(),
+            'CpacConfig': cfg.dict()
+        }
+
+        if cfg['pipeline_setup']['output_directory'].get('user_defined'):
+            sidecar_additions['UserDefined'] = cfg['pipeline_setup']['output_directory']['user_defined']
+
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
             
             switch = self.check_null(block_dct['switch'])
@@ -1527,6 +1538,10 @@ class NodeBlock:
 
                             if 'Description' in new_json_info:
                                 new_json_info['Description'] = ' '.join(new_json_info['Description'].split())
+
+                            for sidecar_key, sidecar_value in sidecar_additions.items():
+                                if sidecar_key not in new_json_info:
+                                    new_json_info[sidecar_key] = sidecar_value
 
                             try:
                                 del new_json_info['subjson']
