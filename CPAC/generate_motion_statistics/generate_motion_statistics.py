@@ -183,7 +183,7 @@ def motion_power_statistics(name='motion_stats',
                                                          'power_params',
                                                          'motion_params',
                                                          'motion',
-                                                         'summary-motion']),
+                                                         'desc-summary-motion']),
                           name='outputspec')
 
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
@@ -280,7 +280,7 @@ def motion_power_statistics(name='motion_stats',
     wf.connect(get_all_motion_parameters, 'all_motion_val',
                output_node, 'motion')
     wf.connect(get_all_motion_parameters, 'summary_motion_power',
-               output_node, 'summary-motion')
+               output_node, 'desc-summary-motion')
 
     calc_power_parameters = pe.Node(Function(input_names=['fdp',
                                                           'fdj',
@@ -726,7 +726,7 @@ def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion,
         path to file containing all motion parameters appended
     """
     all_motion_val = os.path.join(os.getcwd(), 'motion.tsv')
-    summary_motion_power = os.path.join(os.getcwd(), 'summary-motion.tsv')
+    summary_motion_power = os.path.join(os.getcwd(), 'desc-summary-motion.tsv')
 
     df_FDJ = pd.DataFrame(in_file_FDJ)
     df_FDJ.columns = ['Framewise displacement Jenkinson']

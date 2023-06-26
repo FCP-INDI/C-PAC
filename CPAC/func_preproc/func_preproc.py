@@ -1372,7 +1372,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                  "power-params",
                  "motion-params",
                  "motion",
-                 "summary-motion"]}
+                 "desc-summary-motion"]}
     '''
 
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
@@ -1423,7 +1423,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         'power-params': (gen_motion_stats, 'outputspec.power_params'),
         'motion-params': (gen_motion_stats, 'outputspec.motion_params'),
         'motion': (gen_motion_stats, 'outputspec.motion'),
-        'summary-motion': (gen_motion_stats, 'outputspec.summary-motion')}
+        'desc-summary-motion': (gen_motion_stats, 'outputspec.summary-motion')}
 
     return (wf, outputs)
 

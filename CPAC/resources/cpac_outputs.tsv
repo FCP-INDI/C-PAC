@@ -214,4 +214,4 @@ space-EPItemplate_label-GM_mask	mask	template	func	NIfTI
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes	
 motion	motion		func	TSV					
-summary-motion	motion		func	TSV			
+desc-summary-motion	motion		func	TSV			
