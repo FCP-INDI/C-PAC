@@ -1067,7 +1067,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #    '_task-{scan}_bold.nii.gz']
 
     if data_type == "anat" or data_type == "brain_mask" \
-        or data_type == 'freesufer_dir':
+        or data_type == "fs_dir":
         parts = ses_parts
     else:
         # if functional, or field map files
@@ -1219,7 +1219,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 if scan_id in exclusion_dct['scans']:
                     return data_dct
     # start the data dictionary updating
-    if data_type == "anat":
+    if 'anat' in data_type:
         if "*" in file_path:
             if "s3://" in file_path:
                 err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
@@ -1230,9 +1230,11 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat': file_path,
+                        'anat': {
+                            'T1w': file_path,
+                            'freesurfer_dir': None
+                            }
                         }
-
         if aws_creds_path:
             temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
 
@@ -1252,7 +1254,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                                  str(temp_sub_dct))
             print(warn)
 
-    elif data_type == "freesurfer_dir":
+    elif 'fs_dir' in data_type:
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for freesurfer for " \
@@ -1269,10 +1271,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 print("No anatomical found for freesurfer for session {0}:" \
                       "\n{1}\n".format(ses_id, file_path))
             return data_dct
+        data_dct['anat']['freesurfer_dir'] = file_path
 
-        data_dct[site_id][sub_id][ses_id]['freesurfer_dir'] = file_path
-
-    elif data_type == "brain_mask":
+    elif 'brain_mask' in data_type:
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for brain mask for " \
@@ -1292,8 +1293,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         data_dct[site_id][sub_id][ses_id]['brain_mask'] = file_path
 
-    elif data_type == "func":
-
+    elif 'func' in data_type:
         temp_func_dct = {scan_id: {"scan": file_path}}
 
         # scan parameters time
@@ -1418,6 +1418,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""
 
+    import os
     import glob
     import fnmatch
 
@@ -1566,26 +1567,27 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     if freesurfer_dir:
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
-        freesurfer_glob = freesurfer_dir
 
         for keyword in keywords:
-            if keyword in freesurfer_glob:
-                freesurfer_glob = freesurfer_glob.replace(keyword, '*')
+            if keyword in freesurfer_dir:
+                freesurfer_glob = freesurfer_dir.replace(keyword, '*')
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
+        freesurfer_pool = []
         if file_list:
             # mainly for AWS S3-stored data sets
-            freesurfer_pool = []
             for filepath in file_list:
                 if fnmatch.fnmatch(filepath, freesurfer_glob):
                     freesurfer_pool.append(filepath)
         else:
-            freesurfer_pool = glob.glob(freesurfer_glob)
+            for dir in os.listdir(str(os.path.dirname(freesurfer_glob))):
+                freesurfer_pool.append(freesurfer_glob.replace('*', dir))
+
 
         for freesurfer_path in freesurfer_pool:
             data_dct = update_data_dct(freesurfer_path, freesurfer_dir,
-                                       data_dct, "freesurfer_dir", None,
+                                       data_dct, "fs_dir", None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
