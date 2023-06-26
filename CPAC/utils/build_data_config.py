@@ -993,7 +993,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         data_dct = {}
 
     # NIFTIs only
-    if '.nii' not in file_path:
+    if '.nii' not in file_path and 'freesurfer' not in data_type:
         return data_dct
 
     if data_type == "anat":
@@ -1067,7 +1067,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #    '_task-{scan}_bold.nii.gz']
 
     if data_type == "anat" or data_type == "brain_mask" \
-        or data_type == "fs_dir":
+        or data_type == "freesurfer_dir":
         parts = ses_parts
     else:
         # if functional, or field map files
@@ -1098,9 +1098,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             part2 = parts[idx + 1]
         except IndexError:
             break
-
         label = new_template.split(part1, 1)[1]
-        label = label.split(part2, 1)[0]
+        if 'freesurfer' not in data_type:
+            label = label.split(part2, 1)[0]
 
         if label in path_dct.keys():
             continue
@@ -1127,15 +1127,15 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         else:
             if path_dct[label] != id:
                 warn = "\n\n[!] WARNING: While parsing your input data " \
-                       "files, a file path was found with conflicting " \
-                       "IDs for the same data level.\n\n" \
-                       "File path: {0}\n" \
-                       "Level: {1}\n" \
-                       "Conflicting IDs: {2}, {3}\n\n" \
-                       "Thus, we can't tell which {4} it belongs to, and " \
-                       "whether this file should be included or excluded! " \
-                       "Therefore, this file has not been added to the " \
-                       "data configuration.".format(file_path, label,
+                    "files, a file path was found with conflicting " \
+                    "IDs for the same data level.\n\n" \
+                    "File path: {0}\n" \
+                    "Level: {1}\n" \
+                    "Conflicting IDs: {2}, {3}\n\n" \
+                    "Thus, we can't tell which {4} it belongs to, and " \
+                    "whether this file should be included or excluded! " \
+                    "Therefore, this file has not been added to the " \
+                    "data configuration.".format(file_path, label,
                                                     path_dct[label], id,
                                                     label.replace("{", "").replace("}", ""))
                 print(warn)
@@ -1254,7 +1254,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                                  str(temp_sub_dct))
             print(warn)
 
-    elif 'fs_dir' in data_type:
+    elif 'freesurfer' in data_type:
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for freesurfer for " \
@@ -1271,7 +1271,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 print("No anatomical found for freesurfer for session {0}:" \
                       "\n{1}\n".format(ses_id, file_path))
             return data_dct
-        data_dct['anat']['freesurfer_dir'] = file_path
+        data_dct[site_id][sub_id][ses_id]['anat']['freesurfer_dir'] = file_path
 
     elif 'brain_mask' in data_type:
         if site_id not in data_dct.keys():
@@ -1587,7 +1587,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         for freesurfer_path in freesurfer_pool:
             data_dct = update_data_dct(freesurfer_path, freesurfer_dir,
-                                       data_dct, "fs_dir", None,
+                                       data_dct, "freesurfer_dir", None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
