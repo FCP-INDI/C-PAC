@@ -233,7 +233,8 @@ def motion_power_statistics(name='motion_stats',
     calc_motion_parameters = pe.Node(Function(input_names=[
                                                   'movement_parameters',
                                                   'max_displacement',
-                                                  'motion_correct_tool'],
+                                                  'motion_correct_tool',
+                                                  'rels_displacement'],
                                               output_names=['out_file',
                                                             'info',
                                                             'maxdisp',
@@ -272,6 +273,8 @@ def motion_power_statistics(name='motion_stats',
                calc_motion_parameters, 'movement_parameters')
     wf.connect(input_node, 'max_displacement',
                calc_motion_parameters, 'max_displacement')
+    wf.connect(input_node, 'rels_displacement',
+               calc_motion_parameters, 'rels_displacement')
     wf.connect(calc_motion_parameters, 'out_file',
                output_node, 'motion_params')
     wf.connect(get_all_motion_parameters, 'all_motion_val',
