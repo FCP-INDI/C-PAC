@@ -25,8 +25,8 @@ from CPAC.func_preproc.utils import chunk_ts, oned_text_concat, \
 from CPAC.func_preproc.utils import notch_filter_motion
 from CPAC.generate_motion_statistics import affine_file_from_params_file, \
                                             motion_power_statistics
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.pipeline.schema import latest_schema
-from CPAC.utils.docs import docstring_parameter, grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 try:
@@ -37,34 +37,28 @@ except (AttributeError, KeyError, LookupError, IndexError):
     motion_correct_options = ['3dvolreg', 'mcflirt']
 
 
+@nodeblock(
+    name="calc_motion_stats",
+    switch=[["functional_preproc", "run"],
+            ["functional_preproc", "motion_estimates_and_correction",
+             "motion_estimates", "calculate_motion_after"]],
+    inputs=[("desc-preproc_bold",
+             "space-bold_desc-brain_mask",
+             "max-displacement",
+             "rels-displacement",
+             "movement-parameters",
+             ["filtered-movement-parameters", "movement-parameters"],
+             ["filtered-coordinate-transformation",
+             "coordinate-transformation"]),
+            "subject",
+            "scan"],
+     outputs=["framewise-displacement-power",
+              "framewise-displacement-jenkinson",
+              "dvars",
+              "power-params",
+              "motion-params"])
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Calculate motion statistics for motion parameters.
-
-    Node Block:
-    {"name": "calc_motion_stats",
-     "config": "None",
-     "switch": [["functional_preproc", "run"],
-                ["functional_preproc", "motion_estimates_and_correction",
-                 "motion_estimates", "calculate_motion_after"]],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "max-displacement",
-                 "rels-displacement",
-                 "movement-parameters",
-                 ["filtered-movement-parameters", "movement-parameters"],
-                 ["filtered-coordinate-transformation",
-                 "coordinate-transformation"]),
-                "subject",
-                "scan"],
-     "outputs": ["framewise-displacement-power",
-                 "framewise-displacement-jenkinson",
-                 "dvars",
-                 "power-params",
-                 "motion-params"]}
-    '''
+    '''Calculate motion statistics for motion parameters.'''
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
 
@@ -163,78 +157,54 @@ def estimate_reference_image(in_file):
     return out_file
 
 
-_MOTION_CORRECTED_OUTPUTS = """"desc-preproc_bold": {
-             "Description": "Motion-corrected BOLD time-series."
-         },
-         "desc-motion_bold": {
-             "Description": "Motion-corrected BOLD time-series."
-         }"""
+_MOTION_CORRECTED_OUTPUTS = {
+    "desc-preproc_bold": {"Description": "Motion-corrected BOLD time-series."},
+    "desc-motion_bold": {"Description": "Motion-corrected BOLD time-series."}}
 # the "filtered" outputs here are just for maintaining expecting
 # forking and connections and will not be output
-_MOTION_PARAM_OUTPUTS = """"max-displacement": {},
-         "rels-displacement": {},
-         "filtered-movement-parameters": {
-             "Description": "UNFILTERED"
-         },
-         "movement-parameters": {
-             "Description": "Each line contains for one timepoint a 6-DOF "
-                            "rigid transform parameters in the format "
-                            "defined by AFNI's 3dvolreg: [roll, pitch, yaw, "
-                            "superior displacement, left displacement, "
-                            "posterior displacement]. Rotation parameters "
-                            "are in degrees counterclockwise, and translation "
-                            "parameters are in millimeters."
-         },
-         "filtered-coordinate-transformation": {
-             "Description": "UNFILTERED"
-         },
-         "coordinate-transformation": {
-              "Description" : "Each row contains for one timepoint the first "
-                              "12 values of a 4x4 affine matrix"
-         }"""
+_MOTION_PARAM_OUTPUTS = {
+    "max-displacement": {},
+    "rels-displacement": {},
+    "filtered-movement-parameters": {"Description": "UNFILTERED"},
+    "movement-parameters": {
+        "Description": "Each line contains for one timepoint a 6-DOF "
+                       "rigid transform parameters in the format "
+                       "defined by AFNI's 3dvolreg: [roll, pitch, yaw, "
+                       "superior displacement, left displacement, "
+                       "posterior displacement]. Rotation parameters "
+                       "are in degrees counterclockwise, and translation "
+                       "parameters are in millimeters."
+    },
+    "filtered-coordinate-transformation": {"Description": "UNFILTERED"},
+    "coordinate-transformation": {
+        "Description" : "Each row contains for one timepoint the first "
+                        "12 values of a 4x4 affine matrix"}}
 
 
-@docstring_parameter(_motion_corrected_outputs=_MOTION_CORRECTED_OUTPUTS,
-                     _motion_param_outputs=_MOTION_PARAM_OUTPUTS)
+@nodeblock(
+    name="motion_correction",
+    switch=["functional_preproc", "motion_estimates_and_correction", "run"],
+    option_key=["functional_preproc", "motion_estimates_and_correction",
+                "motion_correction", "using"],
+    option_val=["3dvolreg", "mcflirt"],
+    inputs=[("desc-preproc_bold", "motion-basefile")],
+    outputs={**_MOTION_CORRECTED_OUTPUTS, **_MOTION_PARAM_OUTPUTS})
 def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {{"name": "motion_correction",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": {{
-         {_motion_corrected_outputs},
-         {_motion_param_outputs}
-    }}}}
-    '''
     wf, outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                              opt)
 
     return wf, outputs
 
 
-@docstring_parameter(_motion_corrected_outputs=_MOTION_CORRECTED_OUTPUTS)
+@nodeblock(
+    name="motion_correction_only",
+    switch=["functional_preproc", "motion_estimates_and_correction", "run"],
+    option_key=["functional_preproc", "motion_estimates_and_correction",
+                "motion_correction", "using"],
+    option_val=["3dvolreg", "mcflirt"],
+    inputs=[("desc-preproc_bold", "motion-basefile")],
+    outputs=_MOTION_CORRECTED_OUTPUTS)
 def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {{"name": "motion_correction_only",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": {{
-         {_motion_corrected_outputs}
-    }}}}
-    '''
-
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
 
@@ -246,25 +216,16 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-@docstring_parameter(_motion_param_outputs=_MOTION_PARAM_OUTPUTS)
+@nodeblock(
+    name="motion_estimates",
+    switch=["functional_preproc", "motion_estimates_and_correction", "run"],
+    option_key=["functional_preproc", "motion_estimates_and_correction",
+                "motion_correction", "using"],
+    option_val=["3dvolreg", "mcflirt"],
+    inputs=[("desc-preproc_bold", "motion-basefile")],
+    outputs=_MOTION_PARAM_OUTPUTS)
 def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Calculate motion estimates using 3dVolReg or MCFLIRT.
-
-    Node Block:
-    {{"name": "motion_estimates",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "using"],
-     "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [("desc-preproc_bold",
-                 "motion-basefile")],
-     "outputs": {{
-         {_motion_param_outputs}
-    }}}}
-    '''
+    '''Calculate motion estimates using 3dVolReg or MCFLIRT.'''
     from CPAC.pipeline.utils import present_outputs
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
@@ -286,26 +247,23 @@ def get_mcflirt_rms_abs(rms_files):
     return abs_file, rels_file
 
 
+@nodeblock(
+    name='get_motion_ref',
+    switch=['functional_preproc', 'motion_estimates_and_correction', 'run'],
+    option_key=['functional_preproc', 'motion_estimates_and_correction',
+                'motion_correction', 'motion_correction_reference'],
+    option_val=['mean', 'median', 'selected_volume', 'fmriprep_reference'],
+    inputs=['desc-preproc_bold', 'desc-reorient_bold'],
+    outputs=['motion-basefile']
+)
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "get_motion_ref",
-     "config": "None",
-     "switch": ["functional_preproc", "motion_estimates_and_correction",
-                "run"],
-     "option_key": ["functional_preproc", "motion_estimates_and_correction",
-                    "motion_correction", "motion_correction_reference"],
-     "option_val": ["mean", "median", "selected_volume", "fmriprep_reference"],
-     "inputs": ["desc-preproc_bold",
-                "desc-reorient_bold"],
-     "outputs": ["motion-basefile"]}
-    '''
-    option_vals = grab_docstring_dct(get_motion_ref).get('option_val')
-    if opt not in option_vals:
+    if opt not in get_motion_ref.option_val:
         raise ValueError('\n\n[!] Error: The \'motion_correction_reference\' '
                          'parameter of the \'motion_correction\' workflow '
                          'must be one of:\n\t{0}.\n\nTool input: \'{1}\''
                          '\n\n'.format(
-                             ' or '.join([f"'{val}'" for val in option_vals]),
+                             ' or '.join([f"'{val}'" for val in
+                                          get_motion_ref.option_val]),
                              opt))
 
     if opt == 'mean':
@@ -649,6 +607,34 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     return motion_correct[opt](wf, cfg, strat_pool, pipe_num)
 
 
+@nodeblock(
+    name="motion_estimate_filter",
+    config=["functional_preproc", "motion_estimates_and_correction",
+            "motion_estimate_filter"],
+    switch=["run"],
+    option_key="filters",
+    option_val="USER-DEFINED",
+    inputs=[("desc-preproc_bold",
+             "space-bold_desc-brain_mask",
+             "max-displacement",
+             "rels-displacement",
+             "coordinate-transformation",
+             "movement-parameters"),
+            "TR"],
+     outputs={"filtered-coordinate-transformation": {
+                  "Description": "Affine matrix regenerated from"
+                                  " filtered motion parameters. Note:"
+                                  " the translation vector does not"
+                                  " account for recentering inherent"
+                                  " in rotation; this omission does"
+                                  " not seem to affect framewise"
+                                  " displacement calculation, for which"
+                                  " this matrix is used."},
+              "filtered-movement-parameters": {
+                  "Description": "Filtered movement parameters"
+                                 " (3 rotation, 3 translation)."},
+              "motion-filter-info": {},
+              "motion-filter-plot": {}})
 def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Filter motion parameters.
@@ -658,35 +644,6 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
        and the filtered motion parameters and uses the unfiltered
        parameters in QC. Previous versions only reported the filtered
        parameters and used the filtered parameters for QC.
-
-    Node Block:
-    {"name": "motion_estimate_filter",
-     "config": ["functional_preproc", "motion_estimates_and_correction",
-                "motion_estimate_filter"],
-     "switch": ["run"],
-     "option_key": "filters",
-     "option_val": "USER-DEFINED",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask",
-                 "max-displacement",
-                 "rels-displacement",
-                 "coordinate-transformation",
-                 "movement-parameters"),
-                "TR"],
-     "outputs": {"filtered-coordinate-transformation": {
-                     "Description": "Affine matrix regenerated from"
-                                    " filtered motion parameters. Note:"
-                                    " the translation vector does not"
-                                    " account for recentering inherent"
-                                    " in rotation; this omission does"
-                                    " not seem to affect framewise"
-                                    " displacement calculation, for which"
-                                    " this matrix is used."},
-                 "filtered-movement-parameters": {
-                     "Description": "Filtered movement parameters"
-                                    " (3 rotation, 3 translation)."},
-                 "motion-filter-info": {},
-                 "motion-filter-plot": {}}}
     '''
     notch_imports = ['import os', 'import numpy as np',
                      'from scipy.signal import iirnotch, filtfilt, firwin, '

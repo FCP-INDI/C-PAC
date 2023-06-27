@@ -18,6 +18,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import subprocess
+from CPAC.pipeline.nodeblock import nodeblock
 
 import nibabel as nb
 
@@ -49,6 +50,25 @@ def create_afni_arg(shrink_fac):
     return expr
 
 
+@nodeblock(
+    name="distcor_phasediff_fsl_fugue",
+    config=["functional_preproc", "distortion_correction"],
+    switch=["run"],
+    option_key="using",
+    option_val="PhaseDiff",
+    inputs=[
+        "phasediff",
+        "phase1",
+        "phase2",
+        "magnitude",
+        "magnitude1",
+        "magnitude2",
+        "deltaTE",
+        "effectiveEchoSpacing",
+        "ees-asym-ratio",
+    ],
+    outputs=["despiked-fieldmap", "fieldmap-mask"],
+)
 def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
     Fieldmap correction takes in an input magnitude image which is
@@ -110,24 +130,6 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
                                  in_file = field map which is a 4D
                                            image (containing 2
                                            unwarped image)
-
-    Node Block:
-    {"name": "distcor_phasediff_fsl_fugue",
-     "config": ["functional_preproc", "distortion_correction"],
-     "switch": ["run"],
-     "option_key": "using",
-     "option_val": "PhaseDiff",
-     "inputs": ["phasediff",
-                "phase1",
-                "phase2",
-                "magnitude",
-                "magnitude1",
-                "magnitude2",
-                "deltaTE",
-                "effectiveEchoSpacing",
-                "ees-asym-ratio"],
-     "outputs": ["despiked-fieldmap",
-                 "fieldmap-mask"]}
     '''
 
     # Skull-strip, outputs a masked image file
@@ -339,6 +341,22 @@ def convert_afni_to_ants(afni_warp):
     return ants_warp
 
 
+@nodeblock(
+    name="distcor_blip_afni_qwarp",
+    config=["functional_preproc", "distortion_correction"],
+    switch=["run"],
+    option_key="using",
+    option_val="Blip",
+    inputs=[
+        ("sbref", "space-bold_desc-brain_mask"),
+        "epi-1",
+        "epi-1-scan-params",
+        "epi-2",
+        "epi-2-scan-params",
+        "pe-direction",
+    ],
+    outputs=["sbref", "space-bold_desc-brain_mask", "ants-blip-warp"],
+)
 def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Execute AFNI 3dQWarp to calculate the distortion "unwarp" for
     phase encoding direction EPI field map distortion correction.
@@ -358,23 +376,6 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
            both the input and the reference, and apply the warp from
            3dQWarp. The output of this can then proceed to
            func_preproc.
-
-    Node Block:
-    {"name": "distcor_blip_afni_qwarp",
-     "config": ["functional_preproc", "distortion_correction"],
-     "switch": ["run"],
-     "option_key": "using",
-     "option_val": "Blip",
-     "inputs": [("sbref",
-                 "space-bold_desc-brain_mask"),
-                "epi-1",
-                "epi-1-scan-params",
-                "epi-2",
-                "epi-2-scan-params",
-                "pe-direction"],
-     "outputs": ["sbref",
-                 "space-bold_desc-brain_mask",
-                 "ants-blip-warp"]}
     '''
 
     match_epi_imports = ['import json']
@@ -510,32 +511,31 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="distcor_blip_fsl_topup",
+    config=["functional_preproc", "distortion_correction"],
+    switch=["run"],
+    option_key="using",
+    option_val="Blip-FSL-TOPUP",
+    inputs=[
+        ("sbref", "space-bold_desc-brain_mask"),
+        "pe-direction",
+        "epi-1",
+        "epi-1-pedir",
+        "epi-1-TE",
+        "epi-1-dwell",
+        "epi-1-total-readout",
+        "epi-2",
+        "epi-2-pedir",
+        "epi-2-TE",
+        "epi-2-dwell",
+        "epi-2-total-readout",
+    ],
+    outputs=["sbref", "space-bold_desc-brain_mask", "fsl-blip-warp"],
+)
 def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Execute FSL TOPUP to calculate the distortion "unwarp" for
     phase encoding direction EPI field map distortion correction.
-
-    Node Block:
-    {"name": "distcor_blip_fsl_topup",
-     "config": ["functional_preproc", "distortion_correction"],
-     "switch": ["run"],
-     "option_key": "using",
-     "option_val": "Blip-FSL-TOPUP",
-     "inputs": [("sbref", 
-                 "space-bold_desc-brain_mask"),
-                "pe-direction",
-                "epi-1",
-                "epi-1-pedir",
-                "epi-1-TE",
-                "epi-1-dwell",
-                "epi-1-total-readout",
-                "epi-2",
-                "epi-2-pedir",
-                "epi-2-TE",
-                "epi-2-dwell",
-                "epi-2-total-readout"],
-     "outputs": ["sbref",
-                 "space-bold_desc-brain_mask",
-                 "fsl-blip-warp"]}
     '''
 
     # TODO: re-integrate gradient distortion coefficient usage at a later date
