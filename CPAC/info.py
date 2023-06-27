@@ -169,40 +169,6 @@ ISRELEASE = _version_extra == ''
 VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
-<<<<<<< HEAD
-    "boto3==1.7.37",
-    "click==6.7",
-    "ciftify",
-    "configparser==3.7.4",
-    "cython",
-    "future",
-    "INDI-Tools",
-    "lockfile==0.12.2",
-    "joblib==1.1.0",
-    "matplotlib==3.1.3",
-    "networkx==2.4",
-    "nibabel==3.2.1",
-    "nilearn==0.4.1",
-    "nipype==1.5.1",
-    "nose==1.3.7",
-    "numpy==1.21.0",
-    "pandas==1.0.5",
-    "pathvalidate==2.5.2",
-    "patsy==0.5.0",
-    "prov==1.5.2",
-    "psutil==5.6.6",
-    "pybids==0.15.1",
-    "pygraphviz==1.3.1",
-    "PyPEER",
-    "python-dateutil==2.7.3",
-    "pyyaml==5.4",
-    "scikit-learn==0.22.1",
-    "scipy==1.6.3",
-    "sdcflows==2.0.5",
-    "simplejson==3.15.0",
-    "traits==4.6.0",
-    "PyBASC==0.4.5",
-=======
     "boto3",
     "click",
     "configparser",
@@ -233,7 +199,6 @@ REQUIREMENTS = [
     "sdcflows",
     "traits",
     "PyBASC",
->>>>>>> origin/develop
     "voluptuous>=0.12.0",
     "ciftify",
 ]
