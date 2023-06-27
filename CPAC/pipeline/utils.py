@@ -18,10 +18,8 @@
 from typing import Union
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
-from CPAC.utils.docs import grab_docstring_dct
 
-MOVEMENT_FILTER_KEYS = grab_docstring_dct(motion_estimate_filter).get(
-            'outputs', [])
+MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
 class FilteredUnfilteredError(ValueError):
