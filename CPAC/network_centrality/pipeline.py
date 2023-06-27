@@ -4,6 +4,7 @@ import nipype.interfaces.utility as util
 
 from nipype import logging
 
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
@@ -70,30 +71,25 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
                      merge_node, out_list)
 
 
+@nodeblock(
+    name="network_centrality",
+    config=["network_centrality"],
+    switch=["run"],
+    inputs=[
+        ("space-template_desc-preproc_bold", "T1w-brain-template-funcreg"),
+        "template-specification-file",
+    ],
+    outputs={
+        "space-template_dcw": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_dcb": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_ecw": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_ecb": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_lfcdw": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_lfcdb": {"Template": "T1w-brain-template-funcreg"},
+    },
+)
 def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Run Network Centrality.
-
-    Node Block:
-    {"name": "network_centrality",
-     "config": ["network_centrality"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("space-template_desc-preproc_bold",
-                 "T1w-brain-template-funcreg"),
-                "template-specification-file"],
-     "outputs": {"space-template_dcw": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_dcb": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_ecw": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_ecb": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_lfcdw": {
-                     "Template": "T1w-brain-template-funcreg"},
-                 "space-template_lfcdb": {
-                     "Template": "T1w-brain-template-funcreg"}}}
     '''
 
     # Resample the functional mni to the centrality mask resolution
