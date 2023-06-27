@@ -740,12 +740,13 @@ def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion,
     df_maxdisp.columns = ['Rels Displacement']
     data_frames = [df_FDJ, df_FDP, df_DVARS, df_maxdisp, df_relsdisp]
     all_motion_val_df = pd.concat(data_frames, axis=1)
-    if len(all_motion_val_df.columns) == 4:
+    #raise Exception(len(all_motion_val_df.columns))
+    if len(all_motion_val_df.columns) == 5:
         np.savetxt(all_motion_val, all_motion_val_df, delimiter="\t",
                    header="Framewise displacement Jenkinson\tFramewise "
                           "displacement power\tDVARS\tMax Displacement"
                           "\tRels Displacement", comments='')
-    if len(all_motion_val_df.columns) == 3:
+    if len(all_motion_val_df.columns) == 4:
         np.savetxt(all_motion_val, all_motion_val_df, delimiter="\t",
                    header="Framewise displacement Jenkinson\tFramewise "
                           "displacement power\tDVARS\tMax Displacement",
