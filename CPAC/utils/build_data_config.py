@@ -1295,12 +1295,17 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
     elif 'func' in data_type:
         temp_func_dct = {scan_id: {"scan": file_path}}
+        contents = os.listdir(os.path.dirname(file_path))
 
         # scan parameters time
         scan_params = None
         if scan_params_dct:
             scan_params = find_unique_scan_params(scan_params_dct, site_id,
                                                   sub_id, ses_id, scan_id)
+        for file in contents:
+            if '.json' in file:
+                scan_params = os.path.join(os.path.dirname(file_path), file)
+
         if scan_params:
             temp_func_dct[scan_id].update({'scan_parameters': str(scan_params)})
 
