@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.6.dev1
+=======
+FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.6.dev
+>>>>>>> 5ab54c88b12c8f704c701dd90de7d5897d0adf34
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root

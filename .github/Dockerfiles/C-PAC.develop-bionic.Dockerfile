@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.6.dev1
+=======
+FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.6.dev
+>>>>>>> 5ab54c88b12c8f704c701dd90de7d5897d0adf34
 LABEL org.opencontainers.image.description "Full C-PAC image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
