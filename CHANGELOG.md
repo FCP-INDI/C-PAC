@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022  C-PAC Developers
+<!-- Copyright (C) 2022-2023  C-PAC Developers
 
 This file is part of C-PAC.
 
@@ -16,7 +16,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Changed
+
+- Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}.dev{integer}+{SHA}`
+- Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
+- Makes in-container root directory writable by all
+
+### Added dependency
+
+- `dc`
+
+### Removed dependencies
+
+- `bids-validator`
+- `Node`
+- `NVM`
+- `simplejson`
+- `wxpython`
+- `yamlordereddictloader`
+
+### Upgraded dependencies
+
+- `AFNI` 21.1.00 'Domitian' → 23.0.07 'Commodus'
+- `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
+- `boto3` 1.7.37 → 1.26.91
+- `click` 6.7 → 8.1.3
+- `configparser` 3.7.4 → 5.3.0
+- `FSL` 5.0.10 (5.0.9) → 6.0.6 (6.0.4:ddd0a010c)
+- `future` 0.16.0 → 0.18.3
+- `ICA-AROMA` 0.4.3-beta → 0.4.4-beta
+- `INDI-Tools` 0.0.7@`main` → 0.0.7@`998c246`
+- `joblib` 1.0.1 → 1.2.0
+- `matplotlib` 3.1.3 → 3.7.1
+- `networkx` 2.4 → 3.1
+- `nibabel` 3.0.1 → 5.0.1
+- `nilearn` 0.4.1 → 0.10.0
+- `nipype` 1.5.1 → 1.8.6
+- `numpy` 1.21.0 → 1.24.2
+- `pandas` 1.0.5 → 1.5.3
+- `patsy` 0.5.0 → 0.5.3
+- `prov` 1.5.2 → 2.0.0
+- `psutil` 5.6.6 → 5.9.4
+- `pybids` 0.15.1 → 0.15.6
+- `PyPEER` 1.0@`main` → 1.1@`6965d2b`
+- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `python-dateutil` 2.7.3 → 2.8.2
+- `PyYAML` 5.4 → 6.0
+- `requests` 2.21.0 → 2.28.2
+- `scipy` 1.6.3 → 1.10.1
+- `sdcflows` 2.0.5 → 2.4.0
+- `torch` 1.2.0+cu92 → 1.13.1
+- `torchvision` 0.4.0+cu92 → 0.14.1
+- `traits` 4.6.0 → 6.3.2
+- `voluptuous` 0.12.0 → 0.13.1
+- `wb_command` neurodebian latest → 1.5.0
+
+## [1.8.5]
+
 ### Added
+
 - Added the ability to downsample to 10K or 2K resolution for freesurfer runs
 - Added the ability to run AFNI 3dDespike on template-space BOLD data.
 - Added the ability to ingress TotalReadoutTime from epi field map meta-data from the JSON sidecars.
@@ -30,8 +88,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added NodeBlock information to `pypeline.log` when verbose debugging is on
 - Added the ability to ingress FreeSurfer data into CPAC
 - Added the ability to toggle FreeSurfer derived masks for brain extraction
+- Added an optional volume center to FD-J calculation
+- Added new preconfig `abcd-prep`, which performs minimal preprocessing on the T1w data in preparation for Freesurfer Recon-All
 
 ### Changed
+
 - Freesurfer output directory ingress moved to the data configuration YAML
 - Space labels in output filenames now contain specific template labels for MNI templates
 - Added a level of depth to `working` directories to match `log` and `output` directory structure
@@ -53,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed CI logic to allow non-release tags
 
 ### Upgraded dependencies
+
 - `nibabel` 2.3.3 → 3.0.1
 - `numpy` 1.16.4 → 1.21.0
 - `pandas` 0.23.4 → 1.0.5
@@ -60,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scipy` 1.4.1 → 1.6.0
 
 ### Fixed
+
 - Fixed an issue where the distortion correction un-warps were not being applied to the final template-space BOLD time series data depending on pipeline configuration decisions.
 - Fixed [a bug](https://github.com/FCP-INDI/C-PAC/issues/1779) in which generated pipeline configs were not 100% accurate. The only affected configurable option discovered in testing was seed-based correlation analysis always reverting to the default configuration.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1795) that was causing `cpac run` to fail when passing a manual random seed via `--random_seed`.
@@ -71,9 +134,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added public read access to some overly restricted packaged templates
 - Fixed a bug where notch filter was always assuming the sampling frequency was `2.0`.
 
-## [v1.8.4] - 2022-06-27
+## [1.8.4] - 2022-06-27
 
 ### Added
+
 - Added the ability to follow symlinks for BIDS directories
 - Added log of expected outputs, generated at the beginning of the run
 - Added additional surface derivatives to outputs directory
@@ -87,6 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added CI smoke tests for preconfigs
 
 ### Changed
+
 - Made ndmg correlation matrices a configurable option
 - Made surface output filenames BIDSier
 - Uses max instead of sum for intial memory estimation
@@ -97,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relicensed C-PAC from BSD-3-Clause to LGPL-3.0-or-later
 
 ### Fixed
+
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1741) that was causing `single_step_resampling` to inadvertently cause unexpected forks in the pipeline past transform application.
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1702) that was causing `single_step_resampling` to crash with `3dVolReg`
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1686) that was causing datasets containing phase-difference field maps to crash.
@@ -111,28 +177,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.3] - 2022-02-11
 
 ### Added
+
 - Added XCP-style quality control file
 - Added RBC-options pipeline preconfiguration
 - Added `engine.log` (when verbose debugging is on)
 - Added ability to fix random seed for
-    - `antsAI`
-    - `antsRegistration`
-    - `Atropos` (fixed but not specified)
-    - `fslmaths`
-    - `mri_vol2vol`
-    - `recon-all`
+  - `antsAI`
+  - `antsRegistration`
+  - `Atropos` (fixed but not specified)
+  - `fslmaths`
+  - `mri_vol2vol`
+  - `recon-all`
 - Added ability to use lateral ventricles mask in place of cerebrospinal fluid mask when when segmentation is Off, specifically for the rodent pipeline, but works on any dataset when segmentation is off
 
 ### Changed
+
 - In a given pipeline configuration, segmentation probability maps and binary tissue masks are warped to template space, and those warped masks are included in the output directory
-    - if `registration_workflows['functional_registration']['EPI_registration']['run segmentation']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `EPI_Template`
-    
-      and/or
-    - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
+  - if `registration_workflows['functional_registration']['EPI_registration']['run segmentation']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `EPI_Template`
+  
+    and/or
+  - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
 - Moved some ephemeral logging statements into `pypeline.log`
 
 ### Fixed
+
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1638) in which working connectivity matrix filepaths were generated incorrectly, preventing generating matrices depending on container bindings
 - Fixed broken links in README
 - Fixed [bug](https://github.com/FCP-INDI/C-PAC/issues/1575) in which anatomical-only configurations required functional data directories
@@ -140,11 +209,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.2] - 2021-12-02
 
-### Added 
+### Added
 
 - Added FSL-TOPUP as an option for distortion correction.
 - Added changelog
-- Added CHD8 mouse template (`/cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz`) 
+- Added CHD8 mouse template (`/cpac_templates/chd8_functional_template_noise_mask_ag.nii.gz`)
 - Added commandline flags `--T1w_label` and `--bold_label`
 - Added the ability to ingress an entire FreeSurfer output directory to bypass surface analysis if already completed elsewhere
 - Added AFNI and Nilearn implementations of Pearson and partial correlation matrices
@@ -154,7 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded meta-data ingress for EPI field maps to include more fields when parsing BIDS sidecar JSONs.
 - Updated possible inputs for T2w processing and ACPC-alignment blocks to increase the modularity of these pipeline options.
 - `master` branch renamed `main`
-- Packaged templates in https://github.com/FCP-INDI/C-PAC_templates
+- Packaged templates in [:octocat:/FCP-INDI/C-PAC_templates](https://github.com/FCP-INDI/C-PAC_templates)
 
 ### Deprecated
 

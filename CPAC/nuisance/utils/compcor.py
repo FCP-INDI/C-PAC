@@ -15,13 +15,13 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         raise ValueError('Improper value for num_components ({0}), should be >= 1.'.format(num_components))
 
     try:
-        image_data = nb.load(data_filename).get_data().astype(np.float64)
+        image_data = nb.load(data_filename).get_fdata().astype(np.float64)
     except:
         print('Unable to load data from {0}'.format(data_filename))
         raise
 
     try:
-        binary_mask = nb.load(mask_filename).get_data().astype(np.int16)
+        binary_mask = nb.load(mask_filename).get_fdata().astype(np.int16)
     except:
         print('Unable to load data from {0}'.format(mask_filename))
 
@@ -98,9 +98,9 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
 
     output_data = residuals.reshape(datashape)
 
-    hdr = input_img.get_header()
+    hdr = input_img.header
     output_img = nb.Nifti1Image(output_data, header=hdr,
-                                affine=input_img.get_affine())
+                                affine=input_img.affine)
 
     file_name = input_image_path[input_image_path.rindex('/')+1:]
 
@@ -181,9 +181,32 @@ def fallback_svd(a, full_matrices=True, compute_uv=True):
 
 
 def TR_string_to_float(tr):
-    if 'ms' in tr:
-        tr = float(tr.replace('ms', '')) / 1000
-    else:
-        tr = float(tr.replace('s', ''))
+    """
+    Convert TR string to seconds (float). Suffixes 's' or 'ms' to indicate
+    seconds or milliseconds.
 
-    return tr
+    Parameters
+    ----------
+    tr : TR string representation. May use suffixes 's' or 'ms' to indicate
+    seconds or milliseconds.
+
+    Returns
+    -------
+    tr in seconds (float)
+    """
+    if not isinstance(tr, str):
+        raise TypeError(f'Improper type for TR_string_to_float ({tr}).')
+
+    tr_str = tr.replace(' ', '')
+
+    try:
+        if tr_str.endswith('ms'):
+            tr_numeric = float(tr_str[:-2]) * 0.001
+        elif tr.endswith('s'):
+            tr_numeric = float(tr_str[:-1])
+        else:
+            tr_numeric = float(tr_str)
+    except Exception as exc:
+        raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
+
+    return tr_numeric

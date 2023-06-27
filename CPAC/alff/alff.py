@@ -2,6 +2,7 @@
 
 import os
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
@@ -239,19 +240,19 @@ def create_alff(wf_name='alff_workflow'):
     return wf
 
 
+@nodeblock(
+    name="alff_falff",
+    config=["amplitude_low_frequency_fluctuation"],
+    switch=["run"],
+    inputs=[
+        (
+            ["desc-denoisedNofilt_bold", "desc-preproc_bold"],
+            "space-bold_desc-brain_mask",
+        )
+    ],
+    outputs=["alff", "falff"],
+)
 def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "alff_falff",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [(["desc-denoisedNofilt_bold",
-                  "desc-preproc_bold"],
-                 "space-bold_desc-brain_mask")],
-     "outputs": ["alff",
-                 "falff"]}
-    '''
 
     alff = create_alff(f'alff_falff_{pipe_num}')
 
@@ -277,19 +278,23 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="alff_falff_space_template",
+    config=["amplitude_low_frequency_fluctuation"],
+    switch=["run"],
+    inputs=[
+        (
+            [
+                "space-template_res-derivative_desc-denoisedNofilt_bold",
+                "space-template_res-derivative_desc-preproc_bold",
+            ],
+            "space-template_res-derivative_desc-bold_mask",
+        )
+    ],
+    outputs=["space-template_alff", "space-template_falff"],
+)
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "alff_falff_space_template",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [(["space-template_res-derivative_desc-denoisedNofilt_bold",
-                  "space-template_res-derivative_desc-preproc_bold"],
-                 "space-template_res-derivative_desc-bold_mask")],
-     "outputs": ["space-template_alff",
-                 "space-template_falff"]}
-    '''
+
     alff = create_alff(f'alff_falff_{pipe_num}')
 
     alff.inputs.hp_input.hp = \

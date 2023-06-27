@@ -360,6 +360,7 @@ latest_schema = Schema({
                 'generate_quality_control_images': bool1_1,
                 'generate_xcpqc_files': bool1_1,
             },
+            'user_defined': Maybe(str),
         },
         'working_directory': {
             'path': str,
@@ -711,6 +712,9 @@ latest_schema = Schema({
         },
     },
     'surface_analysis': {
+        'abcd_prefreesurfer_prep':{
+            'run': bool1_1,
+        },
         'freesurfer': {
             'run_reconall': bool1_1,
             'reconall_args': Maybe(str),

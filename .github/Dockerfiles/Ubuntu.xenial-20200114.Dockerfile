@@ -151,7 +151,7 @@ RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y &
 RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # install python dependencies
-COPY requirements.txt /opt/requirements.txt
+COPY dev/docker_data/unpinned_requirements.txt /opt/requirements.txt
 RUN pip install --upgrade setuptools
 RUN pip install --upgrade pip
 RUN pip install -r /opt/requirements.txt

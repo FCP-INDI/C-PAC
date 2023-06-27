@@ -1,5 +1,5 @@
-from logging import raiseExceptions
 import os
+from CPAC.pipeline.nodeblock import nodeblock
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -33,10 +33,15 @@ def run_surface(post_freesurfer_folder,
     destrieux : str
         Path to the Destrieux parcellation file.
     """
-
+    
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
     import os
+<<<<<<< HEAD
     import subprocess
 
+=======
+    
+>>>>>>> origin/develop
     recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
 
     if os.path.isdir(recon_all_path):
@@ -65,7 +70,7 @@ def run_surface(post_freesurfer_folder,
           subcortical_gray_labels, freesurfer_labels]
 
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
        # DCAN-HCP PostFreeSurfer Block2
 
@@ -145,8 +150,12 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
+<<<<<<< HEAD
    
     subprocess.check_output(cmd)
+=======
+    log_subprocess(cmd)
+>>>>>>> origin/develop
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
@@ -746,7 +755,54 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
+
+@nodeblock(
+    name="surface_postproc",
+    config=["surface_analysis", "post_freesurfer"],
+    switch=["run"],
+    inputs=[
+        (
+            "freesurfer-subject-dir",
+            [
+                "pipeline-fs_desc-restore_T1w",
+                "desc-preproc_T1w",
+                "desc-reorient_T1w",
+                "T1w",
+                "space-longitudinal_desc-reorient_T1w",
+            ],
+            [
+                "space-template_desc-head_T1w",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask",
+            ],
+            [
+                "from-T1w_to-template_mode-image_xfm",
+                "from-T1w_to-template_mode-image_desc-linear_xfm",
+            ],
+            [
+                "from-template_to-T1w_mode-image_xfm",
+                "from-template_to-T1w_mode-image_desc-linear_xfm",
+            ],
+            ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
+            [
+                "space-template_desc-scout_bold",
+                "space-template_desc-cleaned_bold",
+                "space-template_desc-brain_bold",
+                "space-template_desc-motion_bold",
+                "space-template_bold",
+            ],
+        )
+    ],
+    outputs=[
+        "atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
+        "atlas-Destrieux_space-fsLR_den-32k_dlabel",
+        "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
+        "atlas-Destrieux_space-fsLR_den-164k_dlabel",
+        "space-fsLR_den-32k_bold-dtseries",
+    ],
+)
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
+<<<<<<< HEAD
     '''
     {"name": "surface_postproc",
      "config": ["surface_analysis", "post_freesurfer"],
@@ -859,6 +915,8 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "hemi-L_space-native_white",
                  "hemi-R_space-native_white"]}
     '''
+=======
+>>>>>>> origin/develop
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)

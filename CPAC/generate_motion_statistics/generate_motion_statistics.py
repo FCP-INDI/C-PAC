@@ -324,14 +324,20 @@ def calculate_FD_P(in_file):
     return out_file
 
 
-def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
+def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
 
     Parameters
     ----------
     in_file : string
-        matrix transformations from volume alignment file path
+        matrix transformations from volume alignment file path if
+        motion_correct_tool is '3dvolreg', or FDRMS (*_rel.rms) output if
+        motion_correct_tool is 'mcflirt'.
+    motion_correct_tool : string
+        motion correction tool used, '3dvolreg' or 'mcflirt'.
+    center : ndarray
+        optional volume center for the calculation.
 
     Returns
     -------
@@ -339,6 +345,10 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
         Frame-wise displacement file path
 
     """
+    if center is None:
+        center = np.zeros((3, 1))
+    else:
+        center = np.asarray(center).reshape((3, 1))
 
     if motion_correct_tool == '3dvolreg':
         pm_ = np.genfromtxt(in_file)
@@ -359,7 +369,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
 
             M = np.dot(T_rb, np.linalg.inv(T_rb_prev)) - np.eye(4)
             A = M[0:3, 0:3]
-            b = M[0:3, 3]
+            b = M[0:3, 3:4] + A @ center
 
             fd[i] = np.sqrt(
                 (rmax * rmax / 5) * np.trace(np.dot(A.T, A)) + np.dot(b.T, b)
@@ -370,11 +380,37 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     elif motion_correct_tool == 'mcflirt':
         rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
+    
+    else:
+        raise ValueError(f"motion_correct_tool {motion_correct_tool} not supported")
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
 
     return out_file
+
+
+def find_volume_center(img_file):
+    """
+    Find the center of mass of a Nifti image volume
+
+    Parameters
+    ----------
+    img_file : string (nifti file)
+        path to nifti volume image
+
+    Returns
+    -------
+    center : ndarray 
+        volume center of mass vector
+    """
+    img = nb.load(img_file)
+    dim = np.array(img.header["dim"][1:4])
+    pixdim = np.array(img.header["pixdim"][1:4])
+    # Calculation follows MCFLIRT
+    # https://github.com/fithisux/FSL/blob/7aa2932949129f5c61af912ea677d4dbda843895/src/mcflirt/mcflirt.cc#L479
+    center = 0.5 * (dim - 1) * pixdim
+    return center
 
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters,
@@ -612,8 +648,8 @@ def calculate_DVARS(func_brain, mask):
         path to file containing array of DVARS calculation for each voxel
     """
 
-    rest_data = nb.load(func_brain).get_data().astype(np.float32)
-    mask_data = nb.load(mask).get_data().astype('bool')
+    rest_data = nb.load(func_brain).get_fdata().astype(np.float32)
+    mask_data = nb.load(mask).get_fdata().astype('bool')
 
     # square of relative intensity value for each voxel across every timepoint
     data = np.square(np.diff(rest_data, axis=3))
