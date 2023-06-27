@@ -1693,7 +1693,7 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
     
     if 'anat' not in data_paths:
-        print('No anatomical data present.')
+        print('No FreeSurfer data present.')
         return rpool
     
     if 'freesurfer_dir' in data_paths['anat']:
@@ -1811,7 +1811,6 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
     outdir_anat = []
     outdir_func = []
     func_dict = {}
-    func_json = {}
 
     for subdir in [anat, func]:
         if os.path.isdir(subdir):
