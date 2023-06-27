@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac_templates:lfs-update as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive

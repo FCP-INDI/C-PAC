@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac_templates:lfs-update as c-pac_templates
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive
