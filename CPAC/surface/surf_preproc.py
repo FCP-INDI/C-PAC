@@ -36,12 +36,7 @@ def run_surface(post_freesurfer_folder,
     
     from CPAC.utils.monitoring.custom_logging import log_subprocess
     import os
-<<<<<<< HEAD
-    import subprocess
-
-=======
     
->>>>>>> origin/develop
     recon_all_path = os.path.join(freesurfer_folder, 'recon_all')
 
     if os.path.isdir(recon_all_path):
@@ -150,12 +145,7 @@ def run_surface(post_freesurfer_folder,
            scout_bold, '--lowresmesh', low_res_mesh, '--grayordinatesres',
            gray_ordinates_res, '--fmrires', fmri_res, '--smoothingFWHM',
            smooth_fwhm]
-<<<<<<< HEAD
-   
-    subprocess.check_output(cmd)
-=======
     log_subprocess(cmd)
->>>>>>> origin/develop
 
     dtseries = os.path.join(post_freesurfer_folder,
                             'MNINonLinear/Results/task-rest01/'
@@ -802,7 +792,6 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     ],
 )
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
-<<<<<<< HEAD
     '''
     {"name": "surface_postproc",
      "config": ["surface_analysis", "post_freesurfer"],
@@ -915,8 +904,6 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
                  "hemi-L_space-native_white",
                  "hemi-R_space-native_white"]}
     '''
-=======
->>>>>>> origin/develop
     wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
