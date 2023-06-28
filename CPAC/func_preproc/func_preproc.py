@@ -1292,7 +1292,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='calc_motion_stats',
-    switch=[['functional_preproc', 'run'],
+    switch=[['functional_preproc', 'motion_estimates_and_correction', 'run'],
             ['functional_preproc', 'motion_estimates_and_correction', 'motion_estimates', 'calculate_motion_after']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask', 'movement-parameters', 'max-displacement',
              'rels-displacement', 'coordinate-transformation'), 'subject', 'scan'],
@@ -1361,7 +1361,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_afni',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='AFNI',
@@ -1387,7 +1387,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_fsl',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='FSL',
@@ -1540,7 +1540,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_fsl_afni',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='FSL_AFNI',
@@ -1719,7 +1719,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_anatomical_refined',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='Anatomical_Refined',
@@ -1838,7 +1838,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_anatomical_based',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='Anatomical_Based',
@@ -1930,7 +1930,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_anatomical_resampled',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='Anatomical_Resampled',
@@ -1999,7 +1999,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_mask_ccs',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'func_masking'],
     switch=['run'],
     option_key=['func_masking', 'using'],
     option_val='CCS_Anatomical_Refined',
@@ -2142,7 +2142,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
 @nodeblock(
     name='bold_masking',
     config=None,
-    switch=[['functional_preproc', 'run'], ['functional_preproc', 'func_masking', 'apply_func_mask_in_native_space']],
+    switch=[['functional_preproc', 'func_masking', 'run'], ['functional_preproc', 'func_masking', 'apply_func_mask_in_native_space']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask')],
     outputs={'desc-preproc_bold': {'Description': 'The skull-stripped BOLD time-series.', 'SkullStripped': True},
              'desc-brain_bold': {'Description': 'The skull-stripped BOLD time-series.', 'SkullStripped': True}}
