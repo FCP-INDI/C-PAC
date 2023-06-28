@@ -19,8 +19,9 @@
 from in-container template paths"""
 from os import path as op
 from re import search
-from typing import Optional, Tuple
+from typing import Optional
 from numpy import loadtxt
+from CPAC.utils.typing import TUPLE
 
 LOOKUP_TABLE = {row[0]: (row[1], str(row[2]) if row[2] else None) for row in
                 loadtxt(op.join(op.dirname(__file__), 'BIDS_identifiers.tsv'),
@@ -52,7 +53,7 @@ def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
     return identifier
 
 
-def lookup_identifier(template_path: str) -> Tuple[str, None]:
+def lookup_identifier(template_path: str) -> TUPLE[str, None]:
     '''Function to return a standard template identifier for a packaged
     template, if known. Otherwise, returns the literal string
     'template'

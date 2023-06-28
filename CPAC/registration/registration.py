@@ -34,6 +34,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     run_c3d, \
                                     run_c4d
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
+from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
@@ -4978,10 +4979,10 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm,
 
 
 def warp_resource_to_template(wf: pe.Workflow, cfg, strat_pool, pipe_num: int,
-                              input_resource: list | str, xfm: str,
+                              input_resource: LIST_OR_STR, xfm: str,
                               reference: Optional[str] = None,
                               time_series: Optional[bool] = False
-                              ) -> tuple[pe.Workflow, pe.Workflow, str]:
+                              ) -> TUPLE[pe.Workflow, pe.Workflow, str]:
     '''Function to warp a resource into a template space
 
     Parameters
@@ -5063,7 +5064,7 @@ def warp_resource_to_template(wf: pe.Workflow, cfg, strat_pool, pipe_num: int,
 
 
 def _warp_return(wf: pe.Workflow, apply_xfm: Optional[pe.Workflow],
-                 outputs: dict) -> tuple[pe.Workflow, dict]:
+                 outputs: dict) -> TUPLE[pe.Workflow, dict]:
     """Check if we have a transform to apply; if not, don't add the outputs"""
     if apply_xfm is None:
         return wf, {}
