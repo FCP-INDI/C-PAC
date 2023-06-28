@@ -121,19 +121,11 @@ RUN groupadd -r c-pac && \
 ENV PATH=/usr/bin/nvm/versions/node/v12.12.0/bin:/usr/local/miniconda/bin:$PATH
 
 # Installing conda dependencies, torch & Python dependencies
-<<<<<<< HEAD
-COPY requirements.txt /opt/requirements.txt
-RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y && \
-    mamba update conda -y && \
-    mamba install nomkl -y && \
-    mamba install -y  \
-=======
 COPY dev/docker_data/unpinned_requirements.txt /opt/requirements.txt
 RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y && \
     mamba update conda -y && \
     mamba install nomkl -y && \
     mamba  install -y  \
->>>>>>> origin/develop
       blas \
       cython \
       matplotlib==3.1.3 \
