@@ -168,13 +168,7 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     """
     import re
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
-                                      res_in_filename
-    from CPAC.utils.outputs import Outputs
-
-    if resource in Outputs.motion:
-        resource = (
-            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
-
+                                      res_in_filename                                   
     if atlas_id:
         if '_desc-' in atlas_id:
             atlas, desc = atlas_id.split('_desc-')
