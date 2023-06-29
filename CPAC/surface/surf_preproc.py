@@ -456,7 +456,136 @@ def run_surface(post_freesurfer_folder,
             StrainR['MSMSulc']['R'], StrainR['MSMSulc']['dscalar'], sulc['L'], sulc['R'], sulc['dscalar'], thickness['L'], thickness['R'], 
             thickness['dscalar'], white['L'][164], white['L'][32], white['L']['native'], white['R'][164], white['R'][32], white['R']['native'])
 
-def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
+@nodeblock(
+    name="surface_postproc",
+    config=["surface_analysis", "post_freesurfer"],
+    switch=["run"],
+    inputs=[
+        (
+            "freesurfer-subject-dir",
+            [
+                "pipeline-fs_desc-restore_T1w",
+                "desc-preproc_T1w",
+                "desc-reorient_T1w",
+                "T1w",
+                "space-longitudinal_desc-reorient_T1w",
+            ],
+            [
+                "space-template_desc-head_T1w",
+                "space-template_desc-brain_T1w",
+                "space-template_desc-T1w_mask",
+            ],
+            [
+                "from-T1w_to-template_mode-image_xfm",
+                "from-T1w_to-template_mode-image_desc-linear_xfm",
+            ],
+            [
+                "from-template_to-T1w_mode-image_xfm",
+                "from-template_to-T1w_mode-image_desc-linear_xfm",
+            ],
+            ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
+            [
+                "space-template_desc-scout_bold",
+                "space-template_desc-cleaned_bold",
+                "space-template_desc-brain_bold",
+                "space-template_desc-motion_bold",
+                "space-template_bold",
+            ],
+        )
+    ],
+    outputs=[
+                "space-fsLR_den-32k_bold",
+                 "atlas-DesikanKilliany_space-fsLR_den-32k",
+                 "atlas-Destrieux_space-fsLR_den-32k",
+                 "atlas-DesikanKilliany_space-fsLR_den-164k",
+                 "atlas-Destrieux_space-fsLR_den-164k",
+                 "space-fsLR_den-32k_bold-dtseries",
+                 "AtlasSubcortical_s2",
+                 "goodvoxels",
+                 "ribbon_only",
+                 "hemi-L_space-fsLR_den-32k_desc-atlasroi_bold",
+                 "hemi-R_space-fsLR_den-32k_desc-atlasroi_bold",
+                 "hemi-L_space-fsLR_den-32k_desc-atlasroi_mask",
+                 "hemi-R_space-fsLR_den-32k_desc-atlasroi_mask",
+                 "hemi-L_space-native_bold",
+                 "hemi-R_space-native_bold",
+                 "space-fsLR_den-32k_wb-spec",
+                 "space-native_wb-spec",
+                 "hemi-L_space-fsLR_den-32k_desc-FS_arealdistortion",
+                 "hemi-R_space-fsLR_den-32k_desc-FS_arealdistortion",
+                 "space-fsLR_den-32k_desc-FS_arealdistortion",
+                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
+                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
+                 "space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
+                 "hemi-L_space-fsLR_den-32k_desc-FS_edgedistortion",
+                 "hemi-R_space-fsLR_den-32k_desc-FS_edgedistortion",
+                 "space-fsLR_den-32k_desc-FS_edgedistortion",
+                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
+                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
+                 "space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
+                 "hemi-L_space-fsLR_den-32k_curv",
+                 "hemi-R_space-fsLR_den-32k_curv",
+                 "space-fsLR_den-32k_curv",
+                 "hemi-L_space-fsLR_den-32k_flat",
+                 "hemi-R_space-fsLR_den-32k_flat",
+                 "hemi-L_space-fsLR_den-32k_inflated",
+                 "hemi-R_space-fsLR_den-32k_inflated",
+                 "hemi-L_space-fsLR_den-32k_veryinflated",
+                 "hemi-R_space-fsLR_den-32k_veryinflated",
+                 "hemi-L_space-native_inflated",
+                 "hemi-R_space-native_inflated",
+                 "hemi-L_space-native_veryinflated",
+                 "hemi-R_space-native_veryinflated",
+                 "hemi-L_space-fsLR_den-164k_midthickness",
+                 "hemi-R_space-fsLR_den-164k_midthickness",
+                 "hemi-L_space-fsLR_den-32k_midthickness",
+                 "hemi-R_space-fsLR_den-32k_midthickness",
+                 "hemi-L_space-native_midthickness",
+                 "hemi-R_space-native_midthickness",
+                 "hemi-L_space-fsLR_den-32k_pial",
+                 "hemi-R_space-fsLR_den-32k_pial",
+                 "hemi-L_space-native_den-32k_pial",
+                 "hemi-R_space-native_den-32k_pial",
+                 "hemi-L_space-fsLR_den-32k_sphere",
+                 "hemi-R_space-fsLR_den-32k_sphere",
+                 "hemi-L_space-native_desc-MSMSulc_sphere",
+                 "hemi-R_space-native_desc-MSMSulc_sphere",
+                 "hemi-L_space-native_sphere",
+                 "hemi-R_space-native_sphere",
+                 "hemi-L_space-native_desc-reg_sphere",
+                 "hemi-R_space-native_desc-reg_sphere",
+                 "hemi-L_space-native_desc-reg-reg_sphere",
+                 "hemi-R_space-native_desc-reg-reg_sphere",
+                 "hemi-L_space-native_desc-rot_sphere",
+                 "hemi-R_space-native_desc-rot_sphere",
+                 "hemi-L_space-fsLR_den-32k_desc-FS_strainJ",
+                 "hemi-R_space-fsLR_den-32k_desc-FS_strainJ",
+                 "space-fsLR_den-32k_desc-FS_strainJ",
+                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainJ",
+                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainJ",
+                 "space-fsLR_den-32k_desc-MSMSulc_strainJ",
+                 "hemi-L_space-fsLR_den-32k_desc-FS_strainR",
+                 "hemi-R_space-fsLR_den-32k_desc-FS_strainR",
+                 "space-fsLR_den-32k_desc-FS_strainR",
+                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainR",
+                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainR",
+                 "space-fsLR_den-32k_desc-MSMSulc_strainR",
+                 "hemi-L_space-fsLR_den-32k_sulc",
+                 "hemi-R_space-fsLR_den-32k_sulc",
+                 "space-fsLR_den-32k_sulc",
+                 "hemi-L_space-fsLR_den-32k_thickness",
+                 "hemi-R_space-fsLR_den-32k_thickness",
+                 "space-fsLR_den-32k_thickness",
+                 "hemi-L_space-fsLR_den-164k_white",
+                 "hemi-R_space-fsLR_den-164k_white",
+                 "hemi-L_space-fsLR_den-32k_white",
+                 "hemi-R_space-fsLR_den-32k_white",
+                 "hemi-L_space-native_white",
+                 "hemi-R_space-native_white",
+    ],
+)
+
+def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
                                               'freesurfer_folder',
@@ -747,169 +876,14 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 
 @nodeblock(
-    name="surface_postproc",
-    config=["surface_analysis", "post_freesurfer"],
+    name="surface_falff",
+    config=["amplitude_low_frequency_fluctuation"],
     switch=["run"],
-    inputs=[
-        (
-            "freesurfer-subject-dir",
-            [
-                "pipeline-fs_desc-restore_T1w",
-                "desc-preproc_T1w",
-                "desc-reorient_T1w",
-                "T1w",
-                "space-longitudinal_desc-reorient_T1w",
-            ],
-            [
-                "space-template_desc-head_T1w",
-                "space-template_desc-brain_T1w",
-                "space-template_desc-T1w_mask",
-            ],
-            [
-                "from-T1w_to-template_mode-image_xfm",
-                "from-T1w_to-template_mode-image_desc-linear_xfm",
-            ],
-            [
-                "from-template_to-T1w_mode-image_xfm",
-                "from-template_to-T1w_mode-image_desc-linear_xfm",
-            ],
-            ["space-template_desc-brain_bold", "space-template_desc-preproc_bold"],
-            [
-                "space-template_desc-scout_bold",
-                "space-template_desc-cleaned_bold",
-                "space-template_desc-brain_bold",
-                "space-template_desc-motion_bold",
-                "space-template_bold",
-            ],
-        )
-    ],
+    inputs=["space-fsLR_den-32k_bold"],
     outputs=[
-        "atlas-DesikanKilliany_space-fsLR_den-32k_dlabel",
-        "atlas-Destrieux_space-fsLR_den-32k_dlabel",
-        "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel",
-        "atlas-Destrieux_space-fsLR_den-164k_dlabel",
-        "space-fsLR_den-32k_bold-dtseries",
-    ],
+        "space-fsLR_den-32k_bold_surf_falff"],
 )
-def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_postproc",
-     "config": ["surface_analysis", "post_freesurfer"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("freesurfer-subject-dir",
-                 ["pipeline-fs_desc-restore_T1w", "desc-preproc_T1w",
-                  "desc-reorient_T1w", "T1w",
-                  "space-longitudinal_desc-reorient_T1w"],
-                 ["space-template_desc-head_T1w",
-                  "space-template_desc-brain_T1w",
-                  "space-template_desc-T1w_mask"],
-                 ["from-T1w_to-template_mode-image_xfm",
-                  "from-T1w_to-template_mode-image_desc-linear_xfm"],
-                 ["from-template_to-T1w_mode-image_xfm",
-                  "from-template_to-T1w_mode-image_desc-linear_xfm"],
-                 ["space-template_desc-brain_bold",
-                  "space-template_desc-preproc_bold"],
-                 ["space-template_desc-scout_bold",
-                  "space-template_desc-cleaned_bold",
-                  "space-template_desc-brain_bold",
-                  "space-template_desc-motion_bold", "space-template_bold"])],
-     "outputs": ["space-fsLR_den-32k_bold",
-                 "atlas-DesikanKilliany_space-fsLR_den-32k",
-                 "atlas-Destrieux_space-fsLR_den-32k",
-                 "atlas-DesikanKilliany_space-fsLR_den-164k",
-                 "atlas-Destrieux_space-fsLR_den-164k",
-                 "space-fsLR_den-32k_bold-dtseries",
-                 "AtlasSubcortical_s2",
-                 "goodvoxels",
-                 "ribbon_only",
-                 "hemi-L_space-fsLR_den-32k_desc-atlasroi_bold",
-                 "hemi-R_space-fsLR_den-32k_desc-atlasroi_bold",
-                 "hemi-L_space-fsLR_den-32k_desc-atlasroi_mask",
-                 "hemi-R_space-fsLR_den-32k_desc-atlasroi_mask",
-                 "hemi-L_space-native_bold",
-                 "hemi-R_space-native_bold",
-                 "space-fsLR_den-32k_wb-spec",
-                 "space-native_wb-spec",
-                 "hemi-L_space-fsLR_den-32k_desc-FS_arealdistortion",
-                 "hemi-R_space-fsLR_den-32k_desc-FS_arealdistortion",
-                 "space-fsLR_den-32k_desc-FS_arealdistortion",
-                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
-                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
-                 "space-fsLR_den-32k_desc-MSMSulc_arealdistortion",
-                 "hemi-L_space-fsLR_den-32k_desc-FS_edgedistortion",
-                 "hemi-R_space-fsLR_den-32k_desc-FS_edgedistortion",
-                 "space-fsLR_den-32k_desc-FS_edgedistortion",
-                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
-                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
-                 "space-fsLR_den-32k_desc-MSMSulc_edgedistortion",
-                 "hemi-L_space-fsLR_den-32k_curv",
-                 "hemi-R_space-fsLR_den-32k_curv",
-                 "space-fsLR_den-32k_curv",
-                 "hemi-L_space-fsLR_den-32k_flat",
-                 "hemi-R_space-fsLR_den-32k_flat",
-                 "hemi-L_space-fsLR_den-32k_inflated",
-                 "hemi-R_space-fsLR_den-32k_inflated",
-                 "hemi-L_space-fsLR_den-32k_veryinflated",
-                 "hemi-R_space-fsLR_den-32k_veryinflated",
-                 "hemi-L_space-native_inflated",
-                 "hemi-R_space-native_inflated",
-                 "hemi-L_space-native_veryinflated",
-                 "hemi-R_space-native_veryinflated",
-                 "hemi-L_space-fsLR_den-164k_midthickness",
-                 "hemi-R_space-fsLR_den-164k_midthickness",
-                 "hemi-L_space-fsLR_den-32k_midthickness",
-                 "hemi-R_space-fsLR_den-32k_midthickness",
-                 "hemi-L_space-native_midthickness",
-                 "hemi-R_space-native_midthickness",
-                 "hemi-L_space-fsLR_den-32k_pial",
-                 "hemi-R_space-fsLR_den-32k_pial",
-                 "hemi-L_space-native_den-32k_pial",
-                 "hemi-R_space-native_den-32k_pial",
-                 "hemi-L_space-fsLR_den-32k_sphere",
-                 "hemi-R_space-fsLR_den-32k_sphere",
-                 "hemi-L_space-native_desc-MSMSulc_sphere",
-                 "hemi-R_space-native_desc-MSMSulc_sphere",
-                 "hemi-L_space-native_sphere",
-                 "hemi-R_space-native_sphere",
-                 "hemi-L_space-native_desc-reg_sphere",
-                 "hemi-R_space-native_desc-reg_sphere",
-                 "hemi-L_space-native_desc-reg-reg_sphere",
-                 "hemi-R_space-native_desc-reg-reg_sphere",
-                 "hemi-L_space-native_desc-rot_sphere",
-                 "hemi-R_space-native_desc-rot_sphere",
-                 "hemi-L_space-fsLR_den-32k_desc-FS_strainJ",
-                 "hemi-R_space-fsLR_den-32k_desc-FS_strainJ",
-                 "space-fsLR_den-32k_desc-FS_strainJ",
-                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainJ",
-                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainJ",
-                 "space-fsLR_den-32k_desc-MSMSulc_strainJ",
-                 "hemi-L_space-fsLR_den-32k_desc-FS_strainR",
-                 "hemi-R_space-fsLR_den-32k_desc-FS_strainR",
-                 "space-fsLR_den-32k_desc-FS_strainR",
-                 "hemi-L_space-fsLR_den-32k_desc-MSMSulc_strainR",
-                 "hemi-R_space-fsLR_den-32k_desc-MSMSulc_strainR",
-                 "space-fsLR_den-32k_desc-MSMSulc_strainR",
-                 "hemi-L_space-fsLR_den-32k_sulc",
-                 "hemi-R_space-fsLR_den-32k_sulc",
-                 "space-fsLR_den-32k_sulc",
-                 "hemi-L_space-fsLR_den-32k_thickness",
-                 "hemi-R_space-fsLR_den-32k_thickness",
-                 "space-fsLR_den-32k_thickness",
-                 "hemi-L_space-fsLR_den-164k_white",
-                 "hemi-R_space-fsLR_den-164k_white",
-                 "hemi-L_space-fsLR_den-32k_white",
-                 "hemi-R_space-fsLR_den-32k_white",
-                 "hemi-L_space-native_white",
-                 "hemi-R_space-native_white"]}
-    '''
-    wf, outputs = surface_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    return (wf, outputs)
-
-
-def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
+def surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
     falff = pe.Node(util.Function(input_names=['subject','dtseries'], 
                                 output_names=['surf_falff'],
@@ -924,7 +898,17 @@ def cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt):
         'space-fsLR_den-32k_bold_surf_falff': (falff,'surf_falff')}
     return wf, outputs
 
-def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
+
+@nodeblock(
+    name="surface_alff",
+    config=["amplitude_low_frequency_fluctuation"],
+    switch=["run"],
+    inputs=["space-fsLR_den-32k_bold"],
+    outputs=[
+        "space-fsLR_den-32k_bold_surf_alff"],
+)   
+
+def surface_alff(wf, cfg, strat_pool, pipe_num, opt):
 
     alff = pe.Node(util.Function(input_names=['subject','dtseries'], 
                              output_names=['surf_alff'],
@@ -938,7 +922,21 @@ def cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt):
         'space-fsLR_den-32k_bold_surf_alff': (alff,'surf_alff')}
     return wf, outputs
 
-def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
+
+@nodeblock(
+    name="surface_reho",
+    config=["regional_homogeneity"],
+    switch=["run"],
+    inputs=["space-fsLR_den-32k_bold",
+            "hemi-L_space-fsLR_den-32k_midthickness", 
+            "hemi-L_space-fsLR_den-32k_desc-atlasroi_mask",
+            "hemi-R_space-fsLR_den-32k_midthickness",   
+            "hemi-R_space-fsLR_den-32k_desc-atlasroi_mask"],
+    outputs=[
+        "space-fsLR_den-32k_bold_surf-L_reho",
+        "space-fsLR_den-32k_bold_surf-R_reho"],
+)  
+def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
 
     L_cortex_file = pe.Node(util.Function(input_names=['subject', 'dtseries', 'structure', 'cortex_filename'], 
                                 output_names=['L_cortex_file'],
@@ -1011,7 +1009,15 @@ def cal_reho(wf, cfg, strat_pool, pipe_num, opt):
 
     return wf, outputs
 
-def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
+@nodeblock(
+    name="surface_connectivity_matrix",
+    config=["surface_connectivity"],
+    switch=["run"],
+    inputs=["space-fsLR_den-32k_bold"],
+    outputs=["space-fsLR_den-32k_bold_surf-correlation_matrix"],
+)  
+
+def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
 
      
     connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
@@ -1036,67 +1042,6 @@ def cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
         'space-fsLR_den-32k_bold_surf-correlation_matrix': (correlation_matrix,'correlation_matrix')}
 
     return wf, outputs
-
-
-def surface_falff(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_falff",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-fsLR_den-32k_bold"],
-     "outputs": ["space-fsLR_den-32k_bold_surf_falff"]}
-    '''
-    wf, outputs = cal_surface_falff(wf, cfg, strat_pool, pipe_num, opt)
-
-    return (wf, outputs)
-
-def surface_alff(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_alff",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-fsLR_den-32k_bold"],
-     "outputs": ["space-fsLR_den-32k_bold_surf_alff"]}
-    '''
-    wf, outputs = cal_surface_alff(wf, cfg, strat_pool, pipe_num, opt)
-
-    return (wf, outputs)
-
-def surface_reho(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_reho",
-     "config": ["regional_homogeneity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-fsLR_den-32k_bold", 
-                "hemi-L_space-fsLR_den-32k_midthickness",
-                "hemi-L_space-fsLR_den-32k_desc-atlasroi_mask",
-                "hemi-R_space-fsLR_den-32k_midthickness",
-                "hemi-R_space-fsLR_den-32k_desc-atlasroi_mask"],
-     "outputs": ["space-fsLR_den-32k_bold_surf-L_reho", "space-fsLR_den-32k_bold_surf-R_reho"]}
-    '''
-    wf, outputs = cal_reho(wf, cfg, strat_pool, pipe_num, opt)
-    
-    return (wf, outputs)
-
-def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "surface_connectivity_matrix",
-     "config": ["surface_connectivity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-fsLR_den-32k_bold"],
-     "outputs": ["space-fsLR_den-32k_bold_surf-correlation_matrix"]}
-    '''
-   
-    wf, outputs = cal_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt)
-    return (wf, outputs)
 
 
 def run_surf_falff(subject,dtseries):
