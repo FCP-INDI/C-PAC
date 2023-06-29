@@ -19,6 +19,7 @@ import os
 import copy
 import time
 import shutil
+from CPAC.pipeline.nodeblock import nodeblock
 
 from nipype import config
 from nipype import logging
@@ -71,16 +72,14 @@ from CPAC.utils.utils import (
 logger = logging.getLogger('nipype.workflow')
 
 
+@nodeblock(
+    name="mask_T1w_longitudinal_template",
+    config=["longitudinal_template_generation"],
+    switch=["run"],
+    inputs=["desc-brain_T1w"],
+    outputs=["space-T1w_desc-brain_mask"],
+)
 def mask_T1w_longitudinal_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "mask_T1w_longitudinal_template",
-     "config": ["longitudinal_template_generation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["desc-brain_T1w"],
-     "outputs": ["space-T1w_desc-brain_mask"]}
-    '''
 
     brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
                          name=f'longitudinal_anatomical_brain_mask_'
@@ -248,16 +247,14 @@ def select_session(session, output_brains, warps):
     return (brain_path, warp_path)
 
 
+@nodeblock(
+    name="mask_longitudinal_T1w_brain",
+    config=["longitudinal_template_generation"],
+    switch=["run"],
+    inputs=["space-longitudinal_desc-brain_T1w"],
+    outputs=["space-longitudinal_desc-brain_mask"],
+)
 def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "mask_longitudinal_T1w_brain",
-     "config": ["longitudinal_template_generation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-longitudinal_desc-brain_T1w"],
-     "outputs": ["space-longitudinal_desc-brain_mask"]}
-    '''
 
     brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
                          name=f'longitudinal_T1w_brain_mask_{pipe_num}')
@@ -273,18 +270,20 @@ def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="warp_longitudinal_T1w_to_template",
+    config=["longitudinal_template_generation"],
+    switch=["run"],
+    inputs=[
+        (
+            "space-longitudinal_desc-brain_T1w",
+            "from-longitudinal_to-template_mode-image_xfm",
+        )
+    ],
+    outputs=["space-template_desc-brain_T1w"],
+)
 def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num,
                                       opt=None):
-    '''
-    {"name": "warp_longitudinal_T1w_to_template",
-     "config": ["longitudinal_template_generation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("space-longitudinal_desc-brain_T1w",
-                 "from-longitudinal_to-template_mode-image_xfm")],
-     "outputs": ["space-template_desc-brain_T1w"]}
-    '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-longitudinal_to-template_mode-image_xfm')
@@ -327,28 +326,37 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num,
     return (wf, outputs)
 
 
+@nodeblock(
+    name="warp_longitudinal_seg_to_T1w",
+    config=["longitudinal_template_generation"],
+    switch=["run"],
+    inputs=[
+        (
+            "from-longitudinal_to-T1w_mode-image_desc-linear_xfm",
+            "space-longitudinal_label-CSF_mask",
+            "space-longitudinal_label-GM_mask",
+            "space-longitudinal_label-WM_mask",
+            "space-longitudinal_label-CSF_desc-preproc_mask",
+            "space-longitudinal_label-GM_desc-preproc_mask",
+            "space-longitudinal_label-WM_desc-preproc_mask",
+            "space-longitudinal_label-CSF_probseg",
+            "space-longitudinal_label-GM_probseg",
+            "space-longitudinal_label-WM_probseg",
+        )
+    ],
+    outputs=[
+        "label-CSF_mask",
+        "label-GM_mask",
+        "label-WM_mask",
+        "label-CSF_desc-preproc_mask",
+        "label-GM_desc-preproc_mask",
+        "label-WM_desc-preproc_mask",
+        "label-CSF_probseg",
+        "label-GM_probseg",
+        "label-WM_probseg",
+    ],
+)
 def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "warp_longitudinal_seg_to_T1w",
-     "config": ["longitudinal_template_generation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("from-longitudinal_to-T1w_mode-image_desc-linear_xfm",
-                 "space-longitudinal_label-CSF_mask",
-                 "space-longitudinal_label-GM_mask",
-                 "space-longitudinal_label-WM_mask",
-                 "space-longitudinal_label-CSF_desc-preproc_mask",
-                 "space-longitudinal_label-GM_desc-preproc_mask",
-                 "space-longitudinal_label-WM_desc-preproc_mask",
-                 "space-longitudinal_label-CSF_probseg",
-                 "space-longitudinal_label-GM_probseg",
-                 "space-longitudinal_label-WM_probseg")],
-     "outputs": ["label-CSF_mask", "label-GM_mask", "label-WM_mask",
-                 "label-CSF_desc-preproc_mask", "label-GM_desc-preproc_mask",
-                 "label-WM_desc-preproc_mask",
-                 "label-CSF_probseg", "label-GM_probseg", "label-WM_probseg"]}
-    '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-longitudinal_to-T1w_mode-image_desc-linear_xfm')

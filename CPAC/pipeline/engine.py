@@ -16,17 +16,18 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import ast
 import copy
+import hashlib
+import json
 from itertools import chain
 import logging
 import os
 import re
-from types import FunctionType
-from typing import Tuple, Union
 import warnings
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype import config, logging  # pylint: disable=wrong-import-order
+from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
 from CPAC.func_preproc.func_preproc import motion_estimate_filter
@@ -44,7 +45,6 @@ from CPAC.utils.datasource import (
     create_general_datasource,
     resolve_resolution
 )
-from CPAC.utils.docs import grab_docstring_dct
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
@@ -55,7 +55,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
-logger = logging.getLogger('nipype.workflow')
+logger = getLogger('nipype.workflow')
 verbose_logger = logging.getLogger('engine')
 
 
@@ -448,6 +448,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('\nresources: %s', resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -471,6 +472,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('linked_resources: %s',
                                  linked_resources)
             verbose_logger.debug('resource_list: %s', resource_list)
@@ -498,6 +500,7 @@ class ResourcePool:
                                 f'NO-{val[0]}')
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('%s sub_pool: %s\n', resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -533,6 +536,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
+                verbose_logger = getLogger('engine')
                 verbose_logger.debug('len(strat_list_list): %s\n',
                                      len(strat_list_list))
             for strat_list in strat_list_list:
@@ -854,8 +858,8 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
-        movement_filter_keys = grab_docstring_dct(motion_estimate_filter).get(
-            'outputs', [])
+        movement_filter_keys = motion_estimate_filter.outputs \
+            if motion_estimate_filter.outputs is not None else []
 
         if add_excl:
             excl += add_excl
@@ -1204,39 +1208,58 @@ class NodeBlock:
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
 
-            init_dct = grab_docstring_dct(node_block_function)
-            name = init_dct['name']
+            if not isinstance(node_block_function, NodeBlockFunction):
+                # If the object is a plain function `__name__` will be more useful then `str()`
+                obj_str = node_block_function.__name__ \
+                    if hasattr(node_block_function, '__name__') else \
+                    str(node_block_function)
+                raise TypeError(f'Object is not a nodeblock: "{obj_str}"')
+            
+            name = node_block_function.name
             self.name = name
             self.node_blocks[name] = {}
 
             if self.input_interface:
                 for interface in self.input_interface:
-                    for orig_input in init_dct['inputs']:
+                    for orig_input in node_block_function.inputs:
                         if isinstance(orig_input, tuple):
                             list_tup = list(orig_input)
                             if interface[0] in list_tup:
                                 list_tup.remove(interface[0])
                                 list_tup.append(interface[1])
-                                init_dct['inputs'].remove(orig_input)
-                                init_dct['inputs'].append(tuple(list_tup))
+                                node_block_function.inputs.remove(orig_input)
+                                node_block_function.inputs.append(tuple(list_tup))
                         else:                         
                             if orig_input == interface[0]:
-                                init_dct['inputs'].remove(interface[0])
-                                init_dct['inputs'].append(interface[1])
+                                node_block_function.inputs.remove(interface[0])
+                                node_block_function.inputs.append(interface[1])
 
-            for key, val in init_dct.items():
+            for key, val in node_block_function.legacy_nodeblock_dict().items():
                 self.node_blocks[name][key] = val
 
             self.node_blocks[name]['block_function'] = node_block_function
 
             #TODO: fix/replace below
             self.outputs = {}
-            for out in init_dct['outputs']:
+            for out in node_block_function.outputs:
                 self.outputs[out] = None
 
             self.options = ['base']
-            if 'options' in init_dct:
-                self.options = init_dct['options']
+            if node_block_function.outputs is not None:
+                self.options = node_block_function.outputs
+
+            logger.info('Connecting %s...', name)
+            if debug:
+                config.update_config(
+                    {'logging': {'workflow_level': 'DEBUG'}})
+                logging.update_logging(config)
+                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                             node_block_function.inputs, list(self.outputs.keys()),
+                             f'\n\t"options": {self.options}'
+                             if self.options != ['base'] else '')
+                config.update_config(
+                    {'logging': {'workflow_level': 'INFO'}})
+                logging.update_logging(config)
 
             logger.info('Connecting %s...', name)
             if debug:
@@ -1320,11 +1343,20 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)                
-            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+            else:                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
 
+        sidecar_additions = {
+            'CpacConfigHash': hashlib.sha1(json.dumps(cfg.dict(), sort_keys=True).encode('utf-8')).hexdigest(),
+            'CpacConfig': cfg.dict()
+        }
+
+        if cfg['pipeline_setup']['output_directory'].get('user_defined'):
+            sidecar_additions['UserDefined'] = cfg['pipeline_setup']['output_directory']['user_defined']
+
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1395,7 +1427,6 @@ class NodeBlock:
                         switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
-
             if True in switch:
                 for pipe_idx, strat_pool in rpool.get_strats(
                         inputs, debug).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
@@ -1418,7 +1449,6 @@ class NodeBlock:
                                 input_name = interface[1]
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
-                        
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
@@ -1441,6 +1471,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
+                            verbose_logger = getLogger('engine')
                             verbose_logger.debug('\n=======================')
                             verbose_logger.debug('Node name: %s', node_name)
                             prov_dct = \
@@ -1508,6 +1539,10 @@ class NodeBlock:
                             if 'Description' in new_json_info:
                                 new_json_info['Description'] = ' '.join(new_json_info['Description'].split())
 
+                            for sidecar_key, sidecar_value in sidecar_additions.items():
+                                if sidecar_key not in new_json_info:
+                                    new_json_info[sidecar_key] = sidecar_value
+
                             try:
                                 del new_json_info['subjson']
                             except KeyError:
@@ -1539,42 +1574,7 @@ class NodeBlock:
                                                               new_json_info,
                                                               pipe_idx,
                                                               pipe_x)
-
         return wf
-
-
-def flatten_list(node_block_function: Union[FunctionType, list, Tuple],
-                 key: str = 'inputs') -> list:
-    """Take a Node Block function or list of inputs and return a flat list
-
-    Parameters
-    ----------
-    node_block_function : function, list or tuple
-        a Node Block function or a list or tuple for recursion
-
-    key : str
-        'inputs' or 'outputs'
-
-    Returns
-    -------
-    list
-    """
-    flat_list = []
-    resource_list = []
-    if isinstance(node_block_function, (list, tuple)):
-        resource_list = node_block_function
-    elif isinstance(node_block_function, FunctionType):
-        resource_list = grab_docstring_dct(node_block_function).get(key, [])
-    elif isinstance(node_block_function, str):
-        resource_list = [node_block_function]
-    if isinstance(resource_list, dict):
-        resource_list = list(resource_list.keys())
-    for resource in resource_list:
-        if isinstance(resource, str):
-            flat_list.append(resource)
-        else:
-            flat_list += flatten_list(resource, key)
-    return flat_list
 
 
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
@@ -1721,6 +1721,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
             'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
             'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+            'pipeline-fs_xfm': 'mri/transforms/talairach.lta'
         }
         
         for key, outfile in recon_outs.items():
@@ -1735,7 +1736,11 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                     dl_dir=cfg.pipeline_setup['working_directory']['path'])
                 rpool.set_data(key, fs_ingress, 'outputspec.data',
                                {}, "", f"fs_{key}_ingress")
-
+            else:
+                warnings.warn(str(
+                        LookupError("\n[!] Path does not exist for "
+                                        f"{fullpath}.\n")))
+                
     return rpool
 
 
@@ -1775,6 +1780,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup['Debugging']['verbose']:
+            verbose_logger = getLogger('engine')
             verbose_logger.debug('local_func_scans: %s', local_func_scans)
     del local_func_scans
 
