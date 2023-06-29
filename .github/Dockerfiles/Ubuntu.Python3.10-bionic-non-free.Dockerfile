@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
+FROM ghcr.io/fcp-indi/c-pac/python:3.10.12-bionic as Python3.10
 FROM neurodebian:bionic-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -35,19 +36,10 @@ ENV TZ=America/New_York
 
 # install install dependencies
 COPY ./dev/docker_data/neurodebian.sources.list /etc/apt/sources.list.d/neurodebian.sources.list
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-      software-properties-common python3-pip python3-dev \
-    # upgrade Python
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends python3.10 python3.10-dev python3.10-venv python3.10-distutils python3.10-gdbm python3.10-tk python3.10-lib2to3 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 10 \
-    && PY3DIR="$(dirname $(which python3))" \
-    && ln -s ${PY3DIR}/pydoc3 ${PY3DIR}/pydoc \
-    && ln -s ${PY3DIR}/python3 ${PY3DIR}/python \
-    && ln -s ${PY3DIR}/python3-config ${PY3DIR}/python-config \
-    && ln -s ${PY3DIR}/pip3 ${PY3DIR}/pip \
+COPY --from=ghcr.io/fcp-indi/c-pac/python:3.10.12-bionic /usr/local/python3.10 /usr/local/python3.10
+ENV PATH=/usr/local/python3.10/bin:$PATH
+RUN ln /usr/local/python3.10/bin/python3 /usr/local/python3.10/bin/python \
+    && ln /usr/local/python3.10/bin/pip3 /usr/local/python3.10/bin/pip \
     # add default user
     && groupadd -r c-pac \
     && useradd -r -g c-pac c-pac_user \
@@ -125,19 +117,8 @@ RUN apt-get update \
 
 # install Python dependencies
 COPY requirements.txt /opt/requirements.txt
-COPY dev/docker_data/get-pip_23.0.1.py /tmp/get-pip.py
-COPY dev/docker_data/github_git-lfs.list /etc/apt/sources.list.d/github_git-lfs.list
-COPY dev/docker_data/checksum/Python3.10-bionic.sha384 /tmp/checksum.sha384
-RUN python3.10 /tmp/get-pip.py \
-    && pip install --upgrade pip setuptools \
-    && pip install -r /opt/requirements.txt \
-    # install git-lfs
-    && curl -fsSL https://packagecloud.io/github/git-lfs/gpgkey | gpg --dearmor > /etc/apt/trusted.gpg.d/github_git-lfs-archive-keyring.gpg \
-    && sha384sum --check /tmp/checksum.sha384 \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends git-lfs \
-    && git lfs install \
-    && rm /tmp/get-pip.py /tmp/checksum.sha384
+RUN pip install --upgrade pip setuptools \
+    && pip install -r /opt/requirements.txt
 
 COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
