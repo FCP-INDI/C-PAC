@@ -14,6 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces.afni import preprocess
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
@@ -396,20 +397,19 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     return wflow
 
 
+@nodeblock(
+    name="SCA_AVG",
+    config=["seed_based_correlation_analysis"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold"],
+    outputs=[
+        "desc-MeanSCA_timeseries",
+        "space-template_desc-MeanSCA_correlations",
+        "atlas_name",
+    ],
+)
 def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Seed-Based Correlation Analysis.
-
-    Node Block:
-    {"name": "SCA_AVG",
-     "config": ["seed_based_correlation_analysis"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
-     "outputs": ["desc-MeanSCA_timeseries",
-                 "space-template_desc-MeanSCA_correlations",
-                 "atlas_name"]}
-    '''
+    '''Run Seed-Based Correlation Analysis.'''
 
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
@@ -477,21 +477,19 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="dual_regression",
+    config=["seed_based_correlation_analysis"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
+    outputs=[
+        "space-template_desc-DualReg_correlations",
+        "desc-DualReg_statmap",
+        "atlas_name",
+    ],
+)
 def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Dual Regression - spatial regression and then temporal regression.
-
-    Node Block:
-    {"name": "dual_regression",
-     "config": ["seed_based_correlation_analysis"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
-     "outputs": ["space-template_desc-DualReg_correlations",
-                 "desc-DualReg_statmap",
-                 "atlas_name"]}
-    '''
+    '''Run Dual Regression - spatial regression and then temporal regression.'''
 
     resample_spatial_map_to_native_space_for_dr = pe.Node(
         interface=fsl.FLIRT(),
@@ -563,21 +561,19 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="multiple_regression",
+    config=["seed_based_correlation_analysis"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
+    outputs=[
+        "space-template_desc-MultReg_correlations",
+        "desc-MultReg_statmap",
+        "atlas_name",
+    ],
+)
 def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Multiple Regression.
-
-    Node Block:
-    {"name": "multiple_regression",
-     "config": ["seed_based_correlation_analysis"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
-     "outputs": ["space-template_desc-MultReg_correlations",
-                 "desc-MultReg_statmap",
-                 "atlas_name"]}
-    '''
+    '''Run Multiple Regression.'''
 
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
