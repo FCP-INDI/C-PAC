@@ -144,6 +144,7 @@ packages:
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
  - fsl-newimage 2203.9
+ - fsl-nets 0.7.1
  - fsl-newmesh 2111.0
  - fsl-newnifti 4.1.0
  - fsl-newran 2111.0
