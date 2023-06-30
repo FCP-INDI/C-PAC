@@ -989,6 +989,10 @@ latest_schema = Schema({
             for option in ['using', 'measure']
         },
     },
+
+    'surface_amplitude_low_frequency_fluctuation': {'run': bool},
+    'surface_regional_homogeneity': {'run': bool},
+   
     'surface_connectivity': {
         'run': bool,
         'surface_parcellation_template':Maybe(str) },
