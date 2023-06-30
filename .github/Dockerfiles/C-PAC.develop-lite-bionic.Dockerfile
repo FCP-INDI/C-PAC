@@ -6,6 +6,7 @@ USER root
 # install C-PAC
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
+COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
 RUN pip install -e /code
 # set up runscript
 COPY dev/docker_data /code/docker_data
