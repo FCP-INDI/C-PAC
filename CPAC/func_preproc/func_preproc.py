@@ -517,7 +517,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     config=["functional_preproc"],
     switch=["run"],
     inputs=["bold"],
-    outputs=["desc-preproc_bold", "desc_reorient_bold"])
+    outputs=["desc-preproc_bold", "desc-reorient_bold"])
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
