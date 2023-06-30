@@ -42,11 +42,22 @@ jobs:
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
           python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
 
+      - uses: keithweaver/aws-s3-github-action@v1.0.0
+        name: Download from S3
+        with:
+            command: cp
+            source: s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/
+            destination: $GITHUB_WORKSPACE/lite/
+            aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws_region: us-east-1
+            flags: --recursive
+
       - name: Correlating
         run: |
           echo "Correlating lite regression runs"
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-          python3 reg-suite/main.py correlate --outdir $GITHUB_WORKSPACE/output/default/HNU_1 --workspace $GITHUB_WORKSPACE
+          python3 reg-suite/main.py correlate --pipeline1 $GITHUB_WORKSPACE/output/default/HNU_1 --pipeline2 $GITHUB_WORKSPACE/lite/default/HNU_1--workspace $GITHUB_WORKSPACE
 
       - uses: actions/upload-artifact@v3
         if: always()
