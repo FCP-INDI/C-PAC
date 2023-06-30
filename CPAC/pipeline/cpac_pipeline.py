@@ -208,7 +208,8 @@ from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
-
+from CPAC.utils.docs import version_report
+from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
@@ -359,6 +360,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Environment
+    ===========
+    {dependency_versions}
+
     Run command: {run_command}
 
     C-PAC version: {cpac_version}
@@ -392,6 +397,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
+        dependency_versions=version_report().replace('\n', '\n    '),
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
             'num_participants_at_once'],
@@ -419,15 +425,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                     'local_functional_connectivity_density'][
                                     'weight_options']) != 0
 
-    # Check system dependencies
-    check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
-    if isinstance(check_ica_aroma, list):
-        check_ica_aroma = True in check_ica_aroma
-    check_system_deps(check_ants='ANTS' in c.registration_workflows[
-        'anatomical_registration']['registration']['using'],
-                      check_ica_aroma=check_ica_aroma,
-                      check_centrality_degree=check_centrality_degree,
-                      check_centrality_lfcd=check_centrality_lfcd)
+    if not test_config:
+        # Check system dependencies
+        check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
+        if isinstance(check_ica_aroma, list):
+            check_ica_aroma = True in check_ica_aroma
+        check_system_deps(check_ants='ANTS' in c.registration_workflows[
+            'anatomical_registration']['registration']['using'],
+                        check_ica_aroma=check_ica_aroma,
+                        check_centrality_degree=check_centrality_degree,
+                        check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
     c.pipeline_setup['working_directory']['path'] = os.path.join(
@@ -547,11 +554,11 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.5.1'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.5.1\n" \
-                          % (CPAC.__version__)
-                logger.error(err_msg)
+            nipype_version = REQUIREMENTS['nipype']
+            if nipype.__version__ != nipype_version:
+                logger.warning('This version of Nipype may not be compatible '
+                               f'with CPAC v{CPAC.__version__}, please '
+                               f'install Nipype version {nipype_version}\n')
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
@@ -1351,10 +1358,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
-	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+        apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and
+                                  _r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
     else:
-        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
-    
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
+
     del _r_w_f_r
 
     template_funcs = [

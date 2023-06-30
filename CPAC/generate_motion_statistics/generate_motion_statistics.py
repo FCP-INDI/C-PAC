@@ -8,6 +8,7 @@ from CPAC.utils.interfaces.function import Function
 from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
 from nipype.interfaces.base import (TraitedSpec, traits, isdefined, File)
 
+
 def motion_power_statistics(name='motion_stats',
                             motion_correct_tool='3dvolreg'):
     """
@@ -285,9 +286,8 @@ def motion_power_statistics(name='motion_stats',
     calc_power_parameters = pe.Node(Function(input_names=['fdp',
                                                           'fdj',
                                                           'dvars',
-                                                          'motion_correct_tool'
-                                                          ],
-                                             output_names=['out_file', 'info'],
+                                                          'motion_correct_tool'],
+                                             output_names=['out_file'],
                                              function=gen_power_parameters,
                                              as_module=True),
                                     name='calc_power_parameters')
@@ -522,7 +522,6 @@ def gen_motion_parameters(movement_parameters, max_displacement,
     ]
 
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
-    
     with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')

@@ -128,16 +128,16 @@ def run_main():
                              'entire configuration process but will not '
                              'execute the pipeline.',
                         choices=['participant', 'group', 'test_config', 'cli'],
-                        type=str.lower)
+                        type=lambda choice: choice.replace('-', '_').lower())
 
-    parser.add_argument('--pipeline_file',
+    parser.add_argument('--pipeline-file', '--pipeline_file',
                         help='Path for the pipeline configuration file to '
                              'use. Use the format s3://bucket/path/to/'
                              'pipeline_file to read data directly from an '
                              'S3 bucket. This may require AWS S3 credentials '
                              'specified via the --aws_input_creds option.',
                         default=preconfig_yaml('default'))
-    parser.add_argument('--group_file',
+    parser.add_argument('--group-file', '--group_file',
                         help='Path for the group analysis configuration file '
                              'to use. Use the format s3://bucket/path/to/'
                              'pipeline_file to read data directly from an S3 '
@@ -146,7 +146,7 @@ def run_main():
                              'The output directory needs to refer to the '
                              'output of a preprocessing individual pipeline.',
                         default=None)
-    parser.add_argument('--data_config_file',
+    parser.add_argument('--data-config-file', '--data_config_file',
                         help='Yaml file containing the location of the data '
                              'that is to be processed. This file is not '
                              'necessary if the data in bids_dir is organized '
@@ -169,16 +169,16 @@ def run_main():
                              'for more information about the preconfigured '
                              'pipelines.',
                         default=None)
-
-    if '--pipeline_override' in sys.argv:  # secret option
-        parser.add_argument('--pipeline_override', type=parse_yaml,
-                            action='append',
+    if [_ for _ in ['--pipeline-override',
+                    '--pipeline_override']if _ in sys.argv]:  # secret option
+        parser.add_argument('--pipeline-override', '--pipeline_override',
+                            type=parse_yaml, action='append',
                             help='Override specific options from the '
                                  'pipeline configuration. E.g.: '
                                  '"{\'pipeline_setup\': {\'system_config\': '
                                  '{\'maximum_memory_per_participant\': 1}}}"')
 
-    parser.add_argument('--aws_input_creds',
+    parser.add_argument('--aws-input-creds', '--aws_input_creds',
                         help='Credentials for reading from S3. If not '
                              'provided and s3 paths are specified in the '
                              'data config we will try to access the bucket '
@@ -186,7 +186,7 @@ def run_main():
                              'that input credentials should read from the '
                              'environment. (E.g. when using AWS iam roles).',
                         default=None)
-    parser.add_argument('--aws_output_creds',
+    parser.add_argument('--aws-output-creds', '--aws_output_creds',
                         help='Credentials for writing to S3. If not provided '
                              'and s3 paths are specified in the output '
                              'directory we will try to access the bucket '
@@ -197,26 +197,26 @@ def run_main():
     # TODO: restore <default=3> for <--n_cpus> once we remove
     #       <max_cores_per_participant> from config file
     #       <https://github.com/FCP-INDI/C-PAC/pull/1264#issuecomment-631643708>
-    parser.add_argument('--n_cpus', type=int, default=0,
+    parser.add_argument('--n-cpus', '--n_cpus', type=int, default=0,
                         help='Number of execution resources per participant '
                              'available for the pipeline. This flag takes '
                              'precidence over max_cores_per_participant in '
                              'the pipeline configuration file.')
-    parser.add_argument('--mem_mb', type=float,
+    parser.add_argument('--mem-mb', '--mem_mb', type=float,
                         help='Amount of RAM available per participant in '
                              'megabytes. Included for compatibility with '
                              'BIDS-Apps standard, but mem_gb is preferred. '
                              'This flag takes precedence over '
                              'maximum_memory_per_participant in the pipeline '
                              'configuration file.')
-    parser.add_argument('--mem_gb', type=float,
+    parser.add_argument('--mem-gb', '--mem_gb', type=float,
                         help='Amount of RAM available per participant in '
                              'gigabytes. If this is specified along with '
                              'mem_mb, this flag will take precedence. This '
                              'flag also takes precedence over '
                              'maximum_memory_per_participant in the pipeline '
                              'configuration file.')
-    parser.add_argument('--runtime_usage', type=str,
+    parser.add_argument('--runtime-usage', '--runtime_usage', type=str,
                         help='Path to a callback.log from a prior run of the '
                              'same pipeline configuration (including any '
                              'resource-management parameters that will be '
@@ -224,18 +224,19 @@ def run_main():
                              "'num_ants_threads'). This log will be used to "
                              'override per-node memory estimates with '
                              'observed values plus a buffer.')
-    parser.add_argument('--runtime_buffer', type=float,
+    parser.add_argument('--runtime-buffer', '--runtime_buffer', type=float,
                         help='Buffer to add to per-node memory estimates if '
                              '--runtime_usage is specified. This number is a '
                              'percentage of the observed memory usage.')
-    parser.add_argument('--num_ants_threads', type=int, default=0,
+    parser.add_argument('--num-ants-threads', '--num_ants_threads', type=int,
+                        default=0,
                         help='The number of cores to allocate to ANTS-'
                              'based anatomical registration per '
                              'participant. Multiple cores can greatly '
                              'speed up this preprocessing step. This '
                              'number cannot be greater than the number of '
                              'cores per participant.')
-    parser.add_argument('--random_seed', type=str,
+    parser.add_argument('--random-seed', '--random_seed', type=str,
                         help='Random seed used to fix the state of execution. '
                              'If unset, each process uses its own default. If '
                              'set, a `random.log` file will be generated '
@@ -245,18 +246,18 @@ def run_main():
                              'process. If set to \'random\', a random seed '
                              'will be generated and recorded for each '
                              'process.')
-    parser.add_argument('--save_working_dir', nargs='?',
+    parser.add_argument('--save-working-dir', '--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
-    parser.add_argument('--save_workflow',
+    parser.add_argument('--save-workflow', '--save_workflow',
                         help='Save a serialized version of the workflow. '
                              'Can be used with `test_config` to save workflow '
                              'without running the pipeline.',
                         action='store_true')
 
-    parser.add_argument('--fail_fast', type=str.title,
+    parser.add_argument('--fail-fast', '--fail_fast', type=str.title,
                         help='Stop worklow execution on first crash?')
-    parser.add_argument('--participant_label',
+    parser.add_argument('--participant-label', '--participant_label',
                         help='The label of the participant that should be '
                              'analyzed. The label corresponds to '
                              'sub-<participant_label> from the BIDS spec '
@@ -266,7 +267,7 @@ def run_main():
                              'can be specified with a space separated '
                              'list.',
                         nargs="+")
-    parser.add_argument('--participant_ndx',
+    parser.add_argument('--participant-ndx', '--participant_ndx',
                         help='The index of the participant that should be '
                              'analyzed. This corresponds to the index of '
                              'the participant in the data config file. '
@@ -282,7 +283,7 @@ def run_main():
                              'variable.',
                         default=None, type=int)
 
-    parser.add_argument('--T1w_label',
+    parser.add_argument('--T1w-label', '--T1w_label',
                         help='C-PAC only runs one T1w per participant-'
                              'session at a time, at this time. Use this '
                              'flag to specify any BIDS entity (e.g., "acq-'
@@ -301,7 +302,7 @@ def run_main():
                              'files will be filtered as well. If no T2w files '
                              'match this --T1w_label, T2w files will be '
                              'processed as if no --T1w_label were provided.')
-    parser.add_argument('--bold_label',
+    parser.add_argument('--bold-label', '--bold_label',
                         help='To include a specified subset of available '
                              'BOLD files, use this flag to specify any '
                              'BIDS entity (e.g., "task-rest") or sequence '
@@ -321,19 +322,24 @@ def run_main():
 
     parser.add_argument('-v', '--version', action='version',
                         version=f'C-PAC BIDS-App version {__version__}')
-    parser.add_argument('--bids_validator_config',
+    parser.add_argument('--bids-validator-config', '--bids_validator_config',
                         help='JSON file specifying configuration of '
                              'bids-validator: See https://github.com/bids-'
                              'standard/bids-validator for more info.')
-    parser.add_argument('--skip_bids_validator',
+    parser.add_argument('--skip-bids-validator', '--skip_bids_validator',
                         help='Skips bids validation.',
                         action='store_true')
 
-    parser.add_argument('--anat_only',
+    parser.add_argument('--anat-only', '--anat_only',
                         help='run only the anatomical preprocessing',
                         action='store_true')
 
-    parser.add_argument('--tracking_opt-out', action='store_true',
+    parser.add_argument('--user_defined', type=str,
+                        help='Arbitrary user defined string that will be '
+                             'included in every output sidecar file.')
+
+    parser.add_argument('--tracking-opt-out', '--tracking_opt-out',
+                        action='store_true',
                         help='Disable usage tracking. Only the number of '
                              'participants on the analysis is tracked.',
                         default=False)
@@ -494,6 +500,9 @@ def run_main():
 
         if args.anat_only:
             c = update_nested_dict(c, {'FROM': 'anat-only'})
+
+        if args.user_defined:
+            c['pipeline_setup']['output_directory']['user_defined'] = args.user_defined
 
         c = Configuration(c)
 
@@ -796,7 +805,7 @@ def run_main():
                 ] > 1 else 'Linear',
                 plugin_args=plugin_args,
                 tracking=not args.tracking_opt_out,
-                test_config=(1 if args.analysis_level == "test_config" else 0)
+                test_config=args.analysis_level == "test_config"
             )
 
             if monitoring:
