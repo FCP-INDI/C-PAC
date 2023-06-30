@@ -199,7 +199,7 @@ linux-64-packages:
  - fsl-cudabasisfield-cuda-10.2 1.1.1
  - fsl-eddy-cuda-10.2 2111.0
  - fsl-fdt-cuda-10.2 2202.6
- - fsl-mmorf-cuda-10.2 0.3.2
+ - fsl-mmorf-cuda-10.2 v0.3.2
  - fsl-ptx2-cuda-10.2 2111.4
 
 # List of additional packages that
