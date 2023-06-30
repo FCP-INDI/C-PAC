@@ -955,8 +955,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
             sigma_units=['mm', 'mm', 'mm'],
             shrink_factors=[[2]],
             sampling_percentage=[0.2],
-            use_histogram_matching=[True],
-            use_estimate_learning_rate_once=[False]
+            use_histogram_matching=[True]
         ),
         name=f"norm_{pipe_num}",
         n_procs=cfg.pipeline_setup['system_config']['num_OMP_threads'],
