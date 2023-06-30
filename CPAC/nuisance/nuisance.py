@@ -2234,7 +2234,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
                                           'bold')
 
 
@@ -2280,7 +2280,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
                                           'T1w')
 
 
