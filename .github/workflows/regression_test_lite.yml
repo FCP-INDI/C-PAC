@@ -42,16 +42,15 @@ jobs:
           echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
           python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
 
-      - uses: keithweaver/aws-s3-github-action@v1.0.0
-        name: Download from S3
-        with:
-            command: cp
-            source: s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/
-            destination: $GITHUB_WORKSPACE/lite/
-            aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws_region: us-east-1
-            flags: --recursive
+      - name: Configure & Download from S3
+        run: |
+          [ ! -d  ~/.aws/credentials ] && mkdir -p ~/.aws/credentials
+          [ ! -d  $GITHUB_WORKSPACE/lite/ ] && mkdir -p $GITHUB_WORKSPACE/lite/
+          echo "[fcp]" >> ~/.aws/credentials
+          echo "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+          echo "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+          chmod 600 ~/.aws/credentials
+          aws s3 cp s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/ $GITHUB_WORKSPACE/lite/ --recursive
 
       - name: Correlating
         run: |
