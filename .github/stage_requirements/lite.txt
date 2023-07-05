@@ -1,5 +1,5 @@
 base-lite
-AFNI.21.1.00-bionic
-ICA-AROMA.0.4.4-beta-bionic
-msm.2.0-bionic
-Ubuntu.bionic-non-free
+AFNI.23.1.10-jammy
+ICA-AROMA.0.4.4-beta-jammy
+msm.2.0-jammy
+Ubuntu.jammy-non-free

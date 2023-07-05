@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgraded dependencies
 
-- `AFNI` 21.1.00 'Domitian' → 23.0.07 'Commodus'
+- `AFNI` 21.1.00 'Domitian' → 23.1.10 'Publius Helvius Pertinax'
 - `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
 - `boto3` 1.7.37 → 1.26.91
 - `click` 6.7 → 8.1.3
@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `psutil` 5.6.6 → 5.9.4
 - `pybids` 0.15.1 → 0.15.6
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
-- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `Python` 3.7.13 → 3.10.6 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
 - `python-dateutil` 2.7.3 → 2.8.2
 - `PyYAML` 5.4 → 6.0
 - `requests` 2.21.0 → 2.28.2
@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `torch` 1.2.0+cu92 → 1.13.1
 - `torchvision` 0.4.0+cu92 → 0.14.1
 - `traits` 4.6.0 → 6.3.2
+- `Ubuntu` 18.04 'Bionic Beaver' → 22.04 'Jammy Jellyfish'
 - `voluptuous` 0.12.0 → 0.13.1
 - `wb_command` neurodebian latest → 1.5.0
 

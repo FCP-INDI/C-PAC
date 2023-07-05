@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # using neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free as MSM
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as MSM
 USER root
 ARG DEBIAN_FRONTEND=noninteractive
 

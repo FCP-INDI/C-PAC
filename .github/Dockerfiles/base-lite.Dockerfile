@@ -14,23 +14,28 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
-FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3.python3.10-bionic as ANTs
-FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
-FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
-FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
-FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-bionic as ICA-AROMA
-FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
+FROM ghcr.io/fcp-indi/c-pac/afni:23.1.10-jammy as AFNI
+FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy as ANTs
+FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
+FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-jammy as FSL
+FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/msm:2.0-jammy as MSM
 
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:python3.10-bionic-non-free
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard and lite images"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench
-COPY --from=connectome-workbench /opt/workbench /opt/workbench
-ENV PATH $PATH:/opt/workbench/bin_linux64
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=connectome-workbench /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+COPY --from=connectome-workbench /usr/bin/wb_* /usr/bin
+COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb_command /usr/share/bash-completion/completions/wb_command
+COPY --from=connectome-workbench /usr/share/doc/connectome-workbench /usr/share/doc/connectome-workbench
+COPY --from=connectome-workbench /usr/share/man/man1/wb_* /usr/share/man/man1
+COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb_shortcuts /usr/share/bash-completion/completions/wb_shortcuts
 
 # Installing FSL
 ENV FSLDIR=/usr/share/fsl/6.0 \
@@ -57,7 +62,6 @@ COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /opt/afni/ /opt/afni/
-COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 

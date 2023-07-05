@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS FSL
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS FSL
 
 USER root
 

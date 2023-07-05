@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac_templates:latest as c-pac_templates
-FROM neurodebian:bionic-non-free AS dcan-hcp
+FROM neurodebian:jammy-non-free AS dcan-hcp
 
 ARG DEBIAN_FRONTEND=noninteractive
-COPY ./dev/docker_data/neurodebian.sources.list /etc/apt/sources.list.d/neurodebian.sources.list
 # add DCAN dependencies & HCP code
 RUN apt-get update \
     && apt-get install -y git \
@@ -26,30 +25,15 @@ RUN apt-get update \
     && git clone -b 'v2.0.0' --single-branch --depth 1 https://github.com/DCAN-Labs/DCAN-HCP.git /opt/dcan-tools/pipeline
 
 # use neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free
+FROM neurodebian:jammy-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-Ubuntu Bionic base image"
+Ubuntu Jammy base image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York
 
-# install install dependencies
-COPY ./dev/docker_data/neurodebian.sources.list /etc/apt/sources.list.d/neurodebian.sources.list
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-      software-properties-common python3-pip python3-dev \
-    # upgrade Python
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends python3.10 python3.10-dev python3.10-venv python3.10-distutils python3.10-gdbm python3.10-tk python3.10-lib2to3 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 10 \
-    && PY3DIR="$(dirname $(which python3))" \
-    && ln -s ${PY3DIR}/pydoc3 ${PY3DIR}/pydoc \
-    && ln -s ${PY3DIR}/python3 ${PY3DIR}/python \
-    && ln -s ${PY3DIR}/python3-config ${PY3DIR}/python-config \
-    && ln -s ${PY3DIR}/pip3 ${PY3DIR}/pip \
-    # add default user
-    && groupadd -r c-pac \
+# add default user
+RUN groupadd -r c-pac \
     && useradd -r -g c-pac c-pac_user \
     && mkdir -p /home/c-pac_user/ \
     && chown -R c-pac_user:c-pac /home/c-pac_user \
@@ -105,7 +89,12 @@ RUN apt-get update \
       ninja-build \
       openssh-client \
       pkg-config \
+      python-is-python3 \
+      python3 \
+      python3-dev \
+      python3-pip \
       rsync \
+      software-properties-common \
       tcsh \
       unzip \
       vim \
@@ -125,19 +114,7 @@ RUN apt-get update \
 
 # install Python dependencies
 COPY requirements.txt /opt/requirements.txt
-COPY dev/docker_data/get-pip_23.0.1.py /tmp/get-pip.py
-COPY dev/docker_data/github_git-lfs.list /etc/apt/sources.list.d/github_git-lfs.list
-COPY dev/docker_data/checksum/Python3.10-bionic.sha384 /tmp/checksum.sha384
-RUN python3.10 /tmp/get-pip.py \
-    && pip install --upgrade pip setuptools \
-    && pip install -r /opt/requirements.txt \
-    # install git-lfs
-    && curl -fsSL https://packagecloud.io/github/git-lfs/gpgkey | gpg --dearmor > /etc/apt/trusted.gpg.d/github_git-lfs-archive-keyring.gpg \
-    && sha384sum --check /tmp/checksum.sha384 \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends git-lfs \
-    && git lfs install \
-    && rm /tmp/get-pip.py /tmp/checksum.sha384
+RUN pip install -r /opt/requirements.txt
 
 COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
