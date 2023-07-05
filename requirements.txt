@@ -3,6 +3,7 @@ ciftify==2.3.3
 click==8.1.3
 click-aliases==1.0.1
 configparser==5.3.0
+flowdump==0.1.1
 future==0.18.3
 INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git@998c246c597209f06f8d5c5b92ddc2c9c1942f46
 joblib==1.2.0

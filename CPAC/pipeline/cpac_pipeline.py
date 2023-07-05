@@ -192,8 +192,9 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
-from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
+from flowdump import save_workflow_json, WorkflowJSONMeta
 
+from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
     warp_timeseries_to_sym_template,
@@ -472,14 +473,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                        f'{graph2use}, {graph_format})'
                                        ) from exception
 
-    workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
-    if workflow_save:
-        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
-        save_workflow_json(
-            filename=os.path.join(log_dir, workflow_meta.filename()),
-            workflow=workflow,
-            meta=workflow_meta
-        )
+    workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
+    save_workflow_json(
+        filename=os.path.join(log_dir, workflow_meta.filename()),
+        workflow=workflow,
+        meta=workflow_meta,
+        custom_serializer=cpac_flowdump_serializer
+    )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -527,6 +527,7 @@ Please, make yourself aware of how it works and its assumptions:
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
+        workflow_result = None
         try:
             subject_info['resource_pool'] = []
 
@@ -569,7 +570,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             try:
                 # Actually run the pipeline now, for the current subject
-                workflow.run(plugin=plugin, plugin_args=plugin_args)
+                workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
             except UnicodeDecodeError:
                 raise EnvironmentError(
                     "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
@@ -784,16 +785,13 @@ CPAC run error:
                                  c['subject_id'])
                 ))
 
-                if workflow_save:
+                if workflow_result is not None:
                     workflow_meta.stage = "post"
-                    workflow_filename = os.path.join(
-                        log_dir,
-                        workflow_meta.filename()
-                    )
                     save_workflow_json(
-                        filename=workflow_filename,
-                        workflow=workflow,
-                        meta=workflow_meta
+                        filename=os.path.join(log_dir, workflow_meta.filename()),
+                        workflow=workflow_result,
+                        meta=workflow_meta,
+                        custom_serializer=cpac_flowdump_serializer
                     )
 
                 # Remove working directory when done
