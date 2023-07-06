@@ -20,7 +20,6 @@ FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
-FROM ghcr.io/fcp-indi/c-pac/msm:2.0-jammy as MSM
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
@@ -73,11 +72,6 @@ COPY --from=ANTs /ants_template/ /ants_template/
 # Installing ICA-AROMA
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
-
-# install Multimodal Surface Matching
-COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
-ENV MSMBINDIR=/opt/msm/Ubuntu \
-    PATH=$PATH:/opt/msm/Ubuntu
 
 # link libraries & clean up
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
