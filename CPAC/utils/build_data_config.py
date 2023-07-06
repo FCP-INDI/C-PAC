@@ -988,6 +988,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
     import os
     import glob
+    from pathlib import Path
 
     if not data_dct:
         data_dct = {}
@@ -1219,7 +1220,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 if scan_id in exclusion_dct['scans']:
                     return data_dct
     # start the data dictionary updating
-    if 'anat' in data_type:
+    if data_type == 'anat':
         if "*" in file_path:
             if "s3://" in file_path:
                 err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
@@ -1254,7 +1255,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                                  str(temp_sub_dct))
             print(warn)
 
-    elif 'freesurfer' in data_type:
+    elif data_type == 'freesurfer':
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for freesurfer for " \
@@ -1273,7 +1274,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             return data_dct
         data_dct[site_id][sub_id][ses_id]['anat']['freesurfer_dir'] = file_path
 
-    elif 'brain_mask' in data_type:
+    elif data_type == 'brain_mask':
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for brain mask for " \
@@ -1293,21 +1294,20 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         data_dct[site_id][sub_id][ses_id]['brain_mask'] = file_path
 
-    elif 'func' in data_type:
-        temp_func_dct = {scan_id: {"scan": file_path}}
-        contents = os.listdir(os.path.dirname(file_path))
+    elif data_type == 'func':
+        temp_func_dct = {scan_id: {"scan": file_path, "scan_parameters": None}}
+        _fp = Path(file_path)
 
         # scan parameters time
         scan_params = None
         if scan_params_dct:
             scan_params = find_unique_scan_params(scan_params_dct, site_id,
                                                   sub_id, ses_id, scan_id)
-        for file in contents:
-            if '.json' in file:
-                scan_params = os.path.join(os.path.dirname(file_path), file)
+        else:
+            scan_params = str(_fp.absolute()).replace(''.join(_fp.suffixes), '.json')
 
         if scan_params:
-            temp_func_dct[scan_id].update({'scan_parameters': str(scan_params)})
+            temp_func_dct[scan_id]['scan_parameters'] = scan_params
 
         if site_id not in data_dct.keys():
             if verbose:
