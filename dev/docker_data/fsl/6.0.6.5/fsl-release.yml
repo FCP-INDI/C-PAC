@@ -6,7 +6,7 @@
 release-url: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/
 
 # Latest fslinstaller version
-installer: 3.5.0
+installer: 3.5.3
 
 # URLs to miniconda installers to
 # use for all supported platforms
@@ -63,6 +63,8 @@ packages:
  - ciftilib 1.6.0
  - c-compiler
  - cxx-compiler
+ - file-tree 1.2.1
+ - file-tree-fsl 0.2.1
  - fmrib-unpack 3.7.0
  - fsleyes 1.7.0
  - fslpy 3.13.0
@@ -146,6 +148,7 @@ packages:
  - fsl-newnifti 4.1.0
  - fsl-newran 2111.0
  - fsl-oxford_asl v4.0.29
+ - fsl-pipe 0.6.1
  - fsl-possum 2111.2
  - fsl-ptx2 2111.4
  - fsl-pyfeeds 0.12.1
