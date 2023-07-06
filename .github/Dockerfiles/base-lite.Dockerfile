@@ -18,7 +18,7 @@ FROM ghcr.io/fcp-indi/c-pac/afni:23.1.10-jammy as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
-FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-jammy as FSL
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
@@ -40,16 +40,14 @@ COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb_short
 ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
-    FSLTCLSH=/usr/bin/tclsh \
-    FSLWISH=/usr/bin/wish \
     TZ=America/New_York
-ENV POSSUMDIR=${FSLDIR}/6.0 \
-    LD_LIBRARY_PATH=${FSLDIR}/6.0:$LD_LIBRARY_PATH \
+ENV LD_LIBRARY_PATH=${FSLDIR}/6.0:$LD_LIBRARY_PATH \
     PATH=${FSLDIR}/bin:$PATH
-COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
-COPY --from=FSL /usr/bin/wish /usr/bin/wish
-COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
-COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=FSL /usr/bin /usr/bin
+COPY --from=FSL /usr/local/bin /usr/local/bin
+COPY --from=FSL /usr/share/fsl /usr/share/fsl
 
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/
