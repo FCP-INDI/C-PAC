@@ -67,12 +67,12 @@ packages:
  - file-tree-fsl 0.2.1
  - fmrib-unpack 3.7.0
  - fsleyes 1.7.0
- - fslpy 3.13.0
+ - fslpy 3.13.2
  - fsl-add_module 0.5.0
  - fsl-armawrap 0.6.0
  - fsl-asl_mfree v1.0.2
  - fsl-avwutils 2209.0
- - fsl-base 2303.4
+ - fsl-base 2306.1
  - fsl-basil v4.0.4
  - fsl-basisfield 2203.1
  - fsl-baycest 2111.0
@@ -122,7 +122,7 @@ packages:
  - fsl-get_standard 0.2.0
  - fsl-giftiio 2111.1
  - fsl-gps 2211.0
- - fsl-installer 3.5.0
+ - fsl-installer 3.5.3
  - fsl-lesions 2111.0
  - fsl-libgdc 2111.0
  - fsl-libmeshutils 2111.0
@@ -143,7 +143,7 @@ packages:
  - fsl-msm 2008.0
  - fsl-msmreglib 2008.0
  - fsl-mvdisc 2111.0
- - fsl-newimage 2203.8
+ - fsl-newimage 2203.9
  - fsl-newmesh 2111.0
  - fsl-newnifti 4.1.0
  - fsl-newran 2111.0
@@ -161,7 +161,7 @@ packages:
  - fsl-slicetimer 2111.0
  - fsl_sub 2.8.3
  - fsl_sub_plugin_sge 1.5.4
- - fsl_sub_plugin_slurm 1.6.0
+ - fsl_sub_plugin_slurm 1.6.1
  - fsl-surface 2111.1
  - fsl-susan 2111.0
  - fsl-swe v1.1.0
