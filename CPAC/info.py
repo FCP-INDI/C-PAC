@@ -174,7 +174,7 @@ REQUIREMENTS = [
     "click-aliases",
     "configparser",
     "cython",
-    "flowdump==0.1.1",
+    "flowdump==0.1.2",
     "future",
     "INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git#egg=INDI-Tools",
     "lockfile",
