@@ -2142,8 +2142,9 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name='bold_masking',
-    config=None,
-    switch=[['functional_preproc', 'func_masking', 'run'], ['functional_preproc', 'func_masking', 'apply_func_mask_in_native_space']],
+    switch=[['functional_preproc', 'run'],
+            ['functional_preproc', 'func_masking', 'run'], 
+            ['functional_preproc', 'func_masking', 'apply_func_mask_in_native_space']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask')],
     outputs={'desc-preproc_bold': {'Description': 'The skull-stripped BOLD time-series.', 'SkullStripped': True},
              'desc-brain_bold': {'Description': 'The skull-stripped BOLD time-series.', 'SkullStripped': True}}
