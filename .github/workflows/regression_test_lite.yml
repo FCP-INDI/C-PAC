@@ -2,8 +2,9 @@ name: Run Regression Lite Test
 
 
 on: 
-  pull_request:
-    types: [ready_for_review]
+  push:
+  #pull_request:
+  #  types: [ready_for_review]
   workflow_call:
 
 jobs: 
