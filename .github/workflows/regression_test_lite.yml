@@ -34,33 +34,46 @@ jobs:
         run: |
           git clone https://github.com/FCP-INDI/reg-suite.git
 
-      - name: Run Lite Regression Test
-        if: github.event_name == 'push'
+      - name: Install SSH Keys
         run: |
-          #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-          echo "Running lite regression test"
-          echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-          python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: us-east-1
-
-      - name: Download from S3
+      - name: Connect and Run
         run: |
-          aws s3 cp s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/ $GITHUB_WORKSPACE/lite/ --recursive
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && touch ./test.txt && exit"
 
-      - name: Correlating
+      - name: Cleanup SSH
         run: |
-          echo "Correlating lite regression runs"
-          echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-          python3 reg-suite/main.py correlate --pipeline1 $GITHUB_WORKSPACE/output/default/HNU_1 --pipeline2 $GITHUB_WORKSPACE/lite/default/HNU_1--workspace $GITHUB_WORKSPACE
+          rm -rf ~/.ssh
+      #- name: Run Lite Regression Test
+      #  if: github.event_name == 'push'
+      #  run: |
+      #    #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
+      #    echo "Running lite regression test"
+      #    echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
+      #    python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
 
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: logs
-          path: output/*/*/log/
+      #- name: Configure AWS Credentials
+      #  uses: aws-actions/configure-aws-credentials@v2
+      #  with:
+      #      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #      aws-region: us-east-1
+
+      #- name: Download from S3
+      #  run: |
+      #    aws s3 cp s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/ $GITHUB_WORKSPACE/lite/ --recursive
+
+      #- name: Correlating
+      #  run: |
+      #    echo "Correlating lite regression runs"
+      #    echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
+      #    python3 reg-suite/main.py correlate --pipeline1 $GITHUB_WORKSPACE/output/default/HNU_1 --pipeline2 $GITHUB_WORKSPACE/lite/default/HNU_1--workspace $GITHUB_WORKSPACE
+
+      #- uses: actions/upload-artifact@v3
+      #  if: always()
+      #  with:
+      #    name: logs
+      #    path: output/*/*/log/
