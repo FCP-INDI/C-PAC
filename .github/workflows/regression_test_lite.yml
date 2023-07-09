@@ -45,18 +45,18 @@ jobs:
 
       - name: Install SSH Keys
         run: |
-          install -m 600 -D /dev/null ~/.ssh/id_rsa
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+          install -m 600 -D /dev/null $GITHUB_WORKSPACE/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > $GITHUB_WORKSPACE/.ssh/id_rsa
+          ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~$GITHUB_WORKSPACE/.ssh/known_hosts
         shell: bash
         env:
             SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
             SSH_KNOWN_HOSTS: ${{secrets.SSH_HOSTS}}
-            SSH_KEY_PATH: ~/.ssh/id_rsa
+            SSH_KEY_PATH: $GITHUB_WORKSPACE/.ssh/id_rsa
 
       - name: Connect and Run
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && touch ./test.txt && exit"
+          ssh -i $GITHUB_WORKSPACE/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && touch ./test.txt && exit"
 
       - name: Cleanup SSH
         run: |
