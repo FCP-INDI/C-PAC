@@ -5,6 +5,15 @@ on:
   #pull_request:
   #  types: [ready_for_review]
   workflow_call:
+    secrets: 
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_WORK_DIR:
+        required: true
 
 jobs: 
   test:
