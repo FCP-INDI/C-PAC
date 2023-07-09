@@ -34,8 +34,9 @@ jobs:
             TAG=latest
           fi
           TAG=$TAG$VARIANT
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
-          cat $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG
+          #echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          #cat $GITHUB_ENV
 
       - name: Checkout Code
         uses: actions/checkout@v2
