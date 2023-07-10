@@ -450,15 +450,15 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
         filename = filename.replace(".gz", "")
 
     corr_img = nb.load(correlation_file)
-    corr_data = corr_img.get_data()
+    corr_data = corr_img.get_fdata()
 
-    hdr = corr_img.get_header()
+    hdr = corr_img.header
 
     # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
     z_score_img = nb.Nifti1Image(corr_data, header=hdr,
-                                 affine=corr_img.get_affine())
+                                 affine=corr_img.affine)
 
     out_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
@@ -986,7 +986,7 @@ def check_tr(tr, in_file):
 
     # get header from image data, then extract TR information, TR is fourth
     # item in list returned by get_zooms()
-    imageHeader = img.get_header()
+    imageHeader = img.header
     imageZooms = imageHeader.get_zooms()
     header_tr = imageZooms[3]
 

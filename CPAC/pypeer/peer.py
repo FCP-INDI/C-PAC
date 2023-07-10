@@ -34,7 +34,7 @@ def make_pypeer_dir(dirpath):
 
 
 def pypeer_eye_masking(data_path, eye_mask_path):
-    eye_mask = nb.load(eye_mask_path).get_data()
+    eye_mask = nb.load(eye_mask_path).get_fdata()
 
     data = load_data(data_path)
 
