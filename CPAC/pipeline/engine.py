@@ -2014,7 +2014,7 @@ def strip_template(data_label, dir_path, filename):
                 template_name, _template_desc = lookup_identifier(template_val)
                 if template_name:
                     json['Template'] = f"{template_val}"
-                    data_label = data_label.replace((f'{template_val}_'), 'template')
+                    data_label = data_label.replace(template_val, 'template')
             elif bidstag.startswith('res-'):
                 res_key, res_val = bidstag.split('-')
                 json['Resolution'] = res_val
