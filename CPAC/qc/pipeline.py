@@ -1,6 +1,7 @@
 import os
 import pkg_resources as p
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces import afni
 from nipype.interfaces import fsl
 from CPAC.utils.interfaces.function import Function
@@ -31,23 +32,24 @@ for pallete in palletes:
     )
 
 
+@nodeblock(
+    name="qc_snr_plot",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=[
+        ("desc-preproc_bold", "space-bold_desc-brain_mask"),
+        "from-bold_to-T1w_mode-image_desc-linear_xfm",
+        "desc-preproc_T1w",
+        "space-T1w_sbref",
+    ],
+    outputs=[
+        "desc-boldSnrAxial_quality",
+        "desc-boldSnrSagittal_quality",
+        "desc-boldSnrHist_quality",
+        "desc-boldSnr_quality",
+    ],
+)
 def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_snr_plot",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 "space-bold_desc-brain_mask"),
-                "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                "desc-preproc_T1w",
-                "space-T1w_sbref"],
-     "outputs": ["desc-boldSnrAxial_quality",
-                 "desc-boldSnrSagittal_quality",
-                 "desc-boldSnrHist_quality",
-                 "desc-boldSnr_quality"]}
-    '''
 
     # make SNR plot
     qc_workflow = create_qc_snr(f'qc_snr_{pipe_num}')
@@ -82,17 +84,17 @@ def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_motion_plot",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=["movement-parameters"],
+    outputs=[
+        "desc-movementParametersTrans_quality",
+        "desc-movementParametersRot_quality",
+    ],
+)
 def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_motion_plot",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["movement-parameters"],
-     "outputs": ["desc-movementParametersTrans_quality",
-                 "desc-movementParametersRot_quality"]}
-    '''
 
     # make motion parameters plot
     qc_workflow = create_qc_motion(f'qc_motion_{pipe_num}')
@@ -110,16 +112,14 @@ def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_fd_plot",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=["framewise-displacement-jenkinson"],
+    outputs=["desc-framewiseDisplacementJenkinsonPlot_quality"],
+)
 def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_fd_plot",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["framewise-displacement-jenkinson"],
-     "outputs": ["desc-framewiseDisplacementJenkinsonPlot_quality"]}
-    '''
 
     qc_workflow = create_qc_fd(f'qc_fd_{pipe_num}')
 
@@ -134,18 +134,14 @@ def qc_fd_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_brain_extraction",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=["desc-preproc_T1w", "desc-head_T1w"],
+    outputs=["desc-brain_desc-T1wAxial_quality", "desc-brain_desc-T1wSagittal_quality"],
+)
 def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_brain_extraction",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["desc-preproc_T1w",
-                "desc-head_T1w"],
-     "outputs": ["desc-brain_desc-T1wAxial_quality",
-                 "desc-brain_desc-T1wSagittal_quality"]}
-    '''
 
     # make QC montages for Skull Stripping Visualization
     qc_workflow = create_qc_skullstrip(
@@ -168,18 +164,17 @@ def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_brain_extraction",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=["space-template_desc-preproc_T1w", "T1w-brain-template"],
+    outputs=[
+        "space-template_desc-brain_desc-T1wAxial_quality",
+        "space-template_desc-brain_desc-T1wSagittal_quality",
+    ],
+)
 def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_brain_extraction",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_T1w",
-                "T1w-brain-template"],
-     "outputs": ["space-template_desc-brain_desc-T1wAxial_quality",
-                 "space-template_desc-brain_desc-T1wSagittal_quality"]}
-    '''
 
     # make QC montages for mni normalized anatomical image
     montage_mni_anat = create_montage(f'montage_mni_anat_{pipe_num}',
@@ -211,23 +206,21 @@ def qc_T1w_standard(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_segmentation",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=[
+        (
+            "desc-preproc_T1w",
+            ["label-CSF_desc-preproc_mask", "label-CSF_mask"],
+            ["label-WM_desc-preproc_mask", "label-WM_mask"],
+            ["label-GM_desc-preproc_mask", "label-GM_mask"],
+        )
+    ],
+    outputs=["desc-dsegAxial_quality", "desc-dsegSagittal_quality"],
+)
 def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_segmentation",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_T1w",
-                 ["label-CSF_desc-preproc_mask",
-                  "label-CSF_mask"],
-                 ["label-WM_desc-preproc_mask",
-                  "label-WM_mask"],
-                 ["label-GM_desc-preproc_mask",
-                  "label-GM_mask"])],
-     "outputs": ["desc-dsegAxial_quality",
-                 "desc-dsegSagittal_quality"]}
-    '''
 
     # make QC montages for CSF WM GM
     montage_csf_gm_wm = create_montage_gm_wm_csf(
@@ -257,23 +250,21 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
     
     
+@nodeblock(
+    name="qc_epi_segmentation",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=[
+        (
+            "desc-preproc_bold",
+            ["space-bold_label-CSF_desc-preproc_mask", "space-bold_label-CSF_mask"],
+            ["space-bold_label-WM_desc-preproc_mask", "space-bold_label-WM_mask"],
+            ["space-bold_label-GM_desc-preproc_mask", "space-bold_label-GM_mask"],
+        )
+    ],
+    outputs=["epi-desc-dsegAxial_quality", "epi-desc-dsegSagittal_quality"],
+)
 def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_epi_segmentation",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_bold",
-                 ["space-bold_label-CSF_desc-preproc_mask",
-                  "space-bold_label-CSF_mask"],
-                 ["space-bold_label-WM_desc-preproc_mask",
-                  "space-bold_label-WM_mask"],
-                 ["space-bold_label-GM_desc-preproc_mask",
-                  "space-bold_label-GM_mask"])],
-     "outputs": ["epi-desc-dsegAxial_quality",
-                 "epi-desc-dsegSagittal_quality"]}
-    '''
 
     # make QC montages for CSF WM GM
     montage_csf_gm_wm = create_montage_gm_wm_csf(
@@ -304,20 +295,19 @@ def qc_epi_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_carpet_plot",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=[
+        ("space-template_desc-preproc_bold", "space-template_sbref"),
+        "GM-path",
+        "WM-path",
+        "CSF-path",
+    ],
+    outputs=["space-template_desc-preprocBoldCarpet_quality"],
+)
 def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_carpet_plot",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("space-template_desc-preproc_bold",
-                 "space-template_sbref"),
-                "GM-path",
-                "WM-path",
-                "CSF-path"],
-     "outputs": ["space-template_desc-preprocBoldCarpet_quality"]}
-    '''
 
     # make QC Carpet plot
     carpet_seg = create_qc_carpet(f'carpet_seg_{pipe_num}', 'carpet_seg')
@@ -346,18 +336,14 @@ def qc_carpet_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_coregistration",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_quality_control_images"],
+    inputs=[("desc-preproc_T1w", "space-T1w_sbref")],
+    outputs=["space-T1w_desc-boldAxial_quality", "space-T1w_desc-boldSagittal_quality"],
+)
 def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_coregistration",
-     "config": ["pipeline_setup", "output_directory", "quality_control"],
-     "switch": ["generate_quality_control_images"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("desc-preproc_T1w",
-                 "space-T1w_sbref")],
-     "outputs": ["space-T1w_desc-boldAxial_quality",
-                 "space-T1w_desc-boldSagittal_quality"]}
-    '''
 
     # make QC montage for Mean Functional in T1 with T1 edge
     anat_edge = pe.Node(Function(input_names=['in_file'],
@@ -388,20 +374,24 @@ def qc_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="qc_bold_registration",
+    switch=[
+        [
+            "pipeline_setup",
+            "output_directory",
+            "quality_control",
+            "generate_quality_control_images",
+        ],
+        ["registration_workflows", "anatomical_registration", "run"],
+    ],
+    inputs=["space-template_sbref", "T1w-brain-template-funcreg"],
+    outputs=[
+        "space-template_desc-boldAxial_quality",
+        "space-template_desc-boldSagittal_quality",
+    ],
+)
 def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_bold_registration",
-     "config": "None",
-     "switch": [["pipeline_setup", "output_directory", "quality_control",
-                 "generate_quality_control_images"],
-                ["registration_workflows", "anatomical_registration", "run"]],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_sbref",
-                "T1w-brain-template-funcreg"],
-     "outputs": ["space-template_desc-boldAxial_quality",
-                 "space-template_desc-boldSagittal_quality"]}
-    '''
 
     # make QC montage for Mean Functional in MNI with MNI edge
     montage_mfi = create_montage(f'montage_mfi_{pipe_num}', 'red',
@@ -433,22 +423,32 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
     
     
+@nodeblock(
+    name="qc_bold_EPI_registration",
+    switch=[
+        [
+            "pipeline_setup",
+            "output_directory",
+            "quality_control",
+            "generate_quality_control_images",
+        ],
+        [
+            "registration_workflows",
+            "functional_registration",
+            "func_registration_to_template",
+            "run_EPI",
+        ],
+    ],
+    inputs=[
+        ("space-template_sbref", "from-bold_to-EPItemplate_mode-image_xfm"),
+        "EPI-template-funcreg",
+    ],
+    outputs=[
+        "space-template_desc-mean_desc-boldAxial_quality",
+        "space-template_desc-mean_desc-boldSagittal_quality",
+    ],
+)
 def qc_bold_EPI_registration(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "qc_bold_EPI_registration",
-     "config": "None",
-     "switch": [["pipeline_setup", "output_directory", "quality_control",
-                 "generate_quality_control_images"],
-                ["registration_workflows", "functional_registration",
-                 "func_registration_to_template", "run_EPI"]],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [("space-template_sbref",
-                 "from-bold_to-EPItemplate_mode-image_xfm"),
-                "EPI-template-funcreg"],
-     "outputs": ["space-template_desc-mean_desc-boldAxial_quality",
-                 "space-template_desc-mean_desc-boldSagittal_quality"]}
-    '''
 
     # make QC montage for Mean Functional in MNI with MNI edge
     montage_mfi = create_montage(f'montage_mfi_{pipe_num}', 'red',

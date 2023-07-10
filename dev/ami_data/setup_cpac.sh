@@ -168,10 +168,7 @@ rm Miniconda2-latest-Linux-x86_64.sh
 echo 'PATH=/usr/local/miniconda/bin:$PATH' >> /etc/bash.bashrc
 export PATH=/usr/local/miniconda/bin:$PATH
 
-conda install -y  \
-    pip \
-    wxpython==3.0.0.0
-
+conda install -y pip
 pip install --upgrade pip==9.0.1
 pip install -r /opt/C-PAC/requirements.txt
 pip install xvfbwrapper

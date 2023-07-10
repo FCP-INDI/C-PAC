@@ -1,0 +1,3 @@
+lite
+ABCD-HCP
+fMRIPrep-LTS
