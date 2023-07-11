@@ -1255,7 +1255,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                                  str(temp_sub_dct))
             print(warn)
 
-    elif data_type == 'freesurfer':
+    elif data_type == 'freesurfer_dir':
         if site_id not in data_dct.keys():
             if verbose:
                 print("No anatomical entries found for freesurfer for " \
@@ -1596,7 +1596,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
-
     if brain_mask_template:
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
