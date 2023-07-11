@@ -34,15 +34,14 @@ jobs:
             TAG=latest
           fi
           TAG=$TAG$VARIANT
-          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG
-          #echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
-          #cat $GITHUB_ENV
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
 
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      - name: Clone reg-suite
-        run: |
-          git clone https://github.com/FCP-INDI/reg-suite.git
+      #- name: Checkout Code
+      #  uses: actions/checkout@v2
+      #- name: Clone slurm_testing
+      #  run: |
+      #    git clone https://github.com/cmi-dair/slurm_testing
 
       - name: Install SSH Keys
         run: |
@@ -52,14 +51,17 @@ jobs:
           ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
       - name: Connect and Run
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && touch ./test.txt && exit"
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: 
+            cd ${{ secrets.SSH_WORK_DIR }}
+            git clone https://github.com/cmi-dair/slurm_testing
+            bash slurm_testing/regression_run_scripts/build_image.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
-      - name: Cleanup SSH
-        run: |
-          rm -rf ~/.ssh
       #- name: Run Lite Regression Test
-      #  if: github.event_name == 'push'
       #  run: |
       #    #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
       #    echo "Running lite regression test"
@@ -82,6 +84,10 @@ jobs:
       #    echo "Correlating lite regression runs"
       #    echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
       #    python3 reg-suite/main.py correlate --pipeline1 $GITHUB_WORKSPACE/output/default/HNU_1 --pipeline2 $GITHUB_WORKSPACE/lite/default/HNU_1--workspace $GITHUB_WORKSPACE
+
+      - name: Cleanup SSH
+        run: |
+          rm -rf ~/.ssh
 
       #- uses: actions/upload-artifact@v3
       #  if: always()
