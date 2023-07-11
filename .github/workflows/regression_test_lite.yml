@@ -56,7 +56,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: 
+          script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             git clone https://github.com/cmi-dair/slurm_testing
             bash slurm_testing/regression_run_scripts/build_image.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
