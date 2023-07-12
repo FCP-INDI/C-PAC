@@ -61,12 +61,17 @@ jobs:
             git clone https://github.com/cmi-dair/slurm_testing
             bash slurm_testing/regression_run_scripts/build_image.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
-      #- name: Run Lite Regression Test
-      #  run: |
-      #    #if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.state }}" = "open" ]; then
-      #    echo "Running lite regression test"
-      #    echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-      #    python3 reg-suite/main.py run --lite --docker_tag ${{ env.DOCKER_TAG }} --workspace $GITHUB_WORKSPACE
+      - name: Run Lite Regression Test
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.SSH_WORK_DIR }}
+            echo "Running lite regression test"
+            echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
+            bash slurm_testing/regression_run_scripts/regtest_lite.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
       #- name: Configure AWS Credentials
       #  uses: aws-actions/configure-aws-credentials@v2
