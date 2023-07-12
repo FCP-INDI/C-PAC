@@ -58,7 +58,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
-            git clone https://github.com/cmi-dair/slurm_testing
+            if [ ! -d slurm_testing ] ; then
+                git clone https://github.com/cmi-dair/slurm_testing
+            else
+                cd slurm_testing
+                git pull origin main
+                cd ..
+            fi
             bash slurm_testing/regression_run_scripts/build_image.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
       - name: Run Lite Regression Test
