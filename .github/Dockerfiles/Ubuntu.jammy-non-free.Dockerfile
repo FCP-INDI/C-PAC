@@ -130,7 +130,7 @@ ENTRYPOINT ["/bin/bash"]
 RUN ldconfig && \
     apt-get clean && \
     apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/*
 
 # Set user
 USER c-pac_user
