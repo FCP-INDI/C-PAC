@@ -76,7 +76,6 @@ jobs:
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             echo "Running lite regression test"
-            echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
             bash slurm_testing/regression_run_scripts/regtest_lite.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
       #- name: Configure AWS Credentials
