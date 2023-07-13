@@ -75,7 +75,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
-            bash slurm_testing/regression_run_scripts/regtest_lite.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
+            bash slurm_testing/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
       #- name: Configure AWS Credentials
       #  uses: aws-actions/configure-aws-credentials@v2
