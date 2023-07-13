@@ -118,7 +118,7 @@ packages:
  - fsl-flameo 2111.0
  - fsl-flirt 2111.2
  - fsl-fnirt 2203.0
- - fsl-fugue 2201.2
+ - fsl-fugue 2201.3
  - fsl-get_standard 0.2.0
  - fsl-giftiio 2111.1
  - fsl-gps 2211.0
