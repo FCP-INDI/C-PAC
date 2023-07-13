@@ -56,6 +56,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 200m
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             if [ ! -d slurm_testing ] ; then
@@ -73,6 +74,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 200m
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             bash slurm_testing/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
