@@ -77,17 +77,6 @@ jobs:
             cd ${{ secrets.SSH_WORK_DIR }}
             bash slurm_testing/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
-      #- name: Configure AWS Credentials
-      #  uses: aws-actions/configure-aws-credentials@v2
-      #  with:
-      #      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #      aws-region: us-east-1
-
-      #- name: Download from S3
-      #  run: |
-      #    aws s3 cp s3://fcp-indi/resources/cpac/regression/outputs/v1.8.5/lite/ $GITHUB_WORKSPACE/lite/ --recursive
-
       #- name: Correlating
       #  run: |
       #    echo "Correlating lite regression runs"
