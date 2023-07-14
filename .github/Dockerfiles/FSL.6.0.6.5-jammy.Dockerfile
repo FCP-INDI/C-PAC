@@ -19,41 +19,6 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS FSL
 
 USER root
 COPY ./dev/docker_data/fsl/6.0.6.5 /tmp/fsl/manifest
-# Set up conda for FSL installer
-# from https://github.com/conda-forge/miniforge-images/blob/4019adeb4fa01fa0721b17138510dc96df46222e/ubuntu/Dockerfile
-# Replaced canonical manifest and environment with local to match image's Python version
-# BSD 3-Clause License
-
-# Copyright (c) 2021, conda-forge
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-
-# 3. Neither the name of the copyright holder nor the names of its
-#    contributors may be used to endorse or promote products derived from
-#    this software without specific prior written permission.
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-ARG MINIFORGE_NAME=Miniforge3
-ARG MINIFORGE_VERSION=23.1.0-3
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # set up FSL environment
 ENV FSLDIR=/usr/share/fsl/6.0
@@ -76,7 +41,7 @@ RUN apt-get update > /dev/null && \
         > /dev/null && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/${MINIFORGE_NAME}-${MINIFORGE_VERSION}-Linux-$(uname -m).sh -O /tmp/miniforge.sh && \
+    wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/download/23.1.0-4/Mambaforge-23.1.0-4-Linux-x86_64.sh -O /tmp/mambaforge.sh && \
     wget --no-hsts --quiet https://git.fmrib.ox.ac.uk/fsl/conda/installer/-/raw/3.5.3/fsl/installer/fslinstaller.py?inline=false -O /tmp/fslinstaller.py \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone \
@@ -116,7 +81,7 @@ RUN apt-get update > /dev/null && \
       --exclude_package '*wxpython*' \
       --exclude_package '*xt*' \
       --manifest '/tmp/fsl/manifest/manifest.json' \
-      --miniconda '/tmp/miniforge.sh' \
+      --miniconda '/tmp/mambaforge.sh' \
     && cd $FSLDIR \
     && conda remove gcc make \
     && ldconfig
