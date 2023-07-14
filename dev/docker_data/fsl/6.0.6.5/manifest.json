@@ -1,139 +1,30 @@
-// The FSL installer manifest file contains information
-// about the fslinstaller script, and about versions of
-// FSL that are available for download.
-//
-// This file is an example. The official installer
-// manifest.json file is automaticallygenerated/updated
-// by the generate_manifest-file.py script, which is run
-// when a new version of FSL is released.
 {
-
-    // The "installer" section contains information about the
-    // latest available version of the fslinstaller script
     "installer" : {
-
-        // Latest version of fslinstaller script
-        "version" : "1.3.4",
-
-        // URL to download fslinstaller script
-        "url" : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py",
-
-        // SHA256 checksum of installer script
-        "sha256"  : "2626342288e232d56bd16898ab6b46a348e21bb7f06bb8371fbf7479d7b5e4e8"
+        "version" : "3.5.3",
+        "url" : "https://git.fmrib.ox.ac.uk/fsl/conda/installer/-/raw/3.5.3/fsl/installer/fslinstaller.py?inline=false",
+        "sha256"  : "da59a5c94ec05c813ecf5e1b6da2ef44cc2cf7bf78243f517f77dee1cf06647f"
     },
-
-    // URLs to download miniconda/miniforge
     "miniconda" : {
         "linux-64" : {
-            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-Linux-x86_64.sh",
-            "sha256" : "303d65289f600fa4c85fe2b0fef9bb0848ec544a75a9c3079607d847918f7023",
-
-            // Number of lines of output to expect
-            // when running the miniconda installer
-            // script - used to report progress to
-            // the user.
+            "url"    : "https://github.com/conda-forge/miniforge/releases/download/23.1.0-3/Miniforge3-23.1.0-3-Linux-x86_64.sh",
+            "sha256" : "d4e4750ac95508512c52ff33fa71834e7839e8c51224694a544aecdd655ce29c",
             "output" : "194"
-        },
-        "macos-64" : {
-            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-MacOSX-x86_64.sh",
-            "sha256" : "8ed6871bbd0b24f66b2d87fd88cbcd0854142e5cf1447de5f5f246884ef9c846",
-            "output" : "87"
-        }
-
-        "macos-M1" : {
-            "url"    : "https://github.com/conda-forge/miniforge/releases/download/4.10.3-1/Miniforge3-4.10.3-1-MacOSX-arm64.sh",
-            "sha256" : "8ed6871bbd0b24f66b2d87fd88cbcd0854142e5cf1447de5f5f246884ef9c846",
-            "output" : "87"
         }
     },
-
-    // The "versions" section contains information
-    // about all available versions of FSL. FSL versions
-    // are distributed as conda environment.yml files.
-    "versions" : {
-
-        // Reference to latest available
-        // version - must be present
-        "latest" : "6.1.0",
-
-        // Builds available for this version. A build
-        // entry contains the following fields:
-        //
-        //   - "platform"      Architecture/platform  - currently one of
-        //                     "linux-64", "macos-64", or "macos-M1"
-        //   - "environment"   Conda environment.yml file
-        //   - "sha256"        SHA256 checksum of environment.yml file
-        //   - "output"        Dictionary containing number of lines of
-        //                     output to expect when installing the FSL
-        //                     environment ("install" : "100"), or when
-        //                     updating from an older FSL installation
-        //                     (e.g. "6.1.0" : "50") - used to report
-        //                     progress to the user.
-        //                     "output" may optionally be a dictionary
-        //                     containing "value" and "version", in which
-        //                     case an alternative progress reporting
-        //                     mechanism will be used. See the
-        //                     fslinstaller script for more details.
-        "6.1.0"  : [
+    "versions": {
+        "6.0.6.5": [
             {
-                "platform"      : "linux-64",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-linux-64.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"}
-                }
-            },
-            {
-                "platform"      : "macos-64",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-64.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"}
-                }
-            },
-            {
-                "platform"      : "macos-M1",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.1.0-macos-M1.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"}
-                }
+                "environment": "/tmp/fsl/manifest/fsl-release.yml",
+                "output": {
+                    "install": {
+                        "value": "648",
+                        "version": "2"
+                    }
+                },
+                "platform": "linux-64",
+                "sha256": "58347ee1cdee375a19b3b7df099631ada8d88c16aae1ea4cb0374822437f4f05"
             }
         ],
-        "6.2.0" : [
-            {
-                "platform"      : "linux-64",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-linux-64.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"},
-                    "6.1.0"     : {"value" : "11", "version" : "2"}
-                }
-            },
-            {
-                "platform"      : "macos-64",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-64.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"},
-                    "6.1.0"     : {"value" : "11", "version" : "2"}
-                }
-            },
-            {
-                "platform"      : "macos-M1",
-                "environment"   : "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fsl-6.2.0-macos-M1.yml",
-                "sha256"        : "952a0101fc19948e785572f8c06436c59f19c4ef92df9425f2e2033d4b986918",
-                "output"        : {
-                    "install"   : {"value" : "92", "version" : "2"},
-                    "6.0.6"     : {"value" : "11", "version" : "2"},
-                    "6.1.0"     : {"value" : "11", "version" : "2"}
-                }
-            }
-        ]
+        "latest": "6.0.6.5"
     }
 }

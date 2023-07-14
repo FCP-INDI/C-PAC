@@ -18,10 +18,10 @@ FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS FSL
 
 USER root
-COPY ./dev/docker_data/checksum/FSL.6.0.6.5.sha384 /tmp/checksum.sha384
+COPY ./dev/docker_data/fsl/6.0.6.5 /tmp/fsl/manifest
 # Set up conda for FSL installer
 # from https://github.com/conda-forge/miniforge-images/blob/4019adeb4fa01fa0721b17138510dc96df46222e/ubuntu/Dockerfile
-# FSL installer download and checksum injected into original code below
+# Replaced canonical manifest and environment with local to match image's Python version
 # BSD 3-Clause License
 
 # Copyright (c) 2021, conda-forge
@@ -53,38 +53,11 @@ COPY ./dev/docker_data/checksum/FSL.6.0.6.5.sha384 /tmp/checksum.sha384
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ARG MINIFORGE_NAME=Miniforge3
 ARG MINIFORGE_VERSION=23.1.0-3
-ARG TARGETPLATFORM
-
-ENV CONDA_DIR=/opt/conda
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH=${CONDA_DIR}/bin:${PATH}
-
-RUN apt-get update > /dev/null && \
-    apt-get install --no-install-recommends --yes \
-        wget bzip2 ca-certificates \
-        git \
-        tini \
-        > /dev/null && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/${MINIFORGE_NAME}-${MINIFORGE_VERSION}-Linux-$(uname -m).sh -O /tmp/miniforge.sh && \
-    wget --no-hsts --quiet https://git.fmrib.ox.ac.uk/fsl/conda/installer/-/raw/3.5.3/fsl/installer/fslinstaller.py?inline=false -O /tmp/fslinstaller.py && \
-    sha384sum --check /tmp/checksum.sha384 && \
-    /bin/bash /tmp/miniforge.sh -b -p ${CONDA_DIR} && \
-    rm /tmp/miniforge.sh && \
-    conda clean --tarballs --index-cache --packages --yes && \
-    find ${CONDA_DIR} -follow -type f -name '*.a' -delete && \
-    find ${CONDA_DIR} -follow -type f -name '*.pyc' -delete && \
-    conda clean --force-pkgs-dirs --all --yes  && \
-    echo ". ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate base" >> /etc/skel/.bashrc && \
-    echo ". ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate base" >> ~/.bashrc
-
-ARG MINIFORGE_NAME=Miniforge3
-ARG MINIFORGE_VERSION=23.1.0-3
 
 # set up FSL environment
-ENV FSLDIR=/usr/share/fsl/6.0 \
-    FSLOUTPUTTYPE=NIFTI_GZ \
+ENV FSLDIR=/usr/share/fsl/6.0
+ENV FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
     FSLTCLSH=$FSLDIR/bin/fsltclsh \
     FSLWISH=$FSLDIR/bin/fslwish \
@@ -94,7 +67,18 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     USER=c-pac_user
 
 # Installing and setting up FSL
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+# Full list of packages, included excluded packages, in dev/docker_data/fsl/6.0.6.5/fsl-release.yml
+RUN apt-get update > /dev/null && \
+    apt-get install --no-install-recommends --yes \
+        wget bzip2 ca-certificates \
+        git \
+        tini \
+        > /dev/null && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/${MINIFORGE_NAME}-${MINIFORGE_VERSION}-Linux-$(uname -m).sh -O /tmp/miniforge.sh && \
+    wget --no-hsts --quiet https://git.fmrib.ox.ac.uk/fsl/conda/installer/-/raw/3.5.3/fsl/installer/fslinstaller.py?inline=false -O /tmp/fslinstaller.py \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone \
     && mkdir -p /usr/share/fsl \
     && yes | python3 /tmp/fslinstaller.py \
@@ -118,12 +102,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
       --exclude_package '*mist*' \
       --exclude_package '*mo*' \
       --exclude_package '*mrs*' \
-      --exclude_package '*nibabel*' \
-      --exclude_package '*numpy*' \
       --exclude_package '*pack*' \
       --exclude_package '*possum*' \
       --exclude_package '*ptx*' \
-      --exclude_package 'python' \
       --exclude_package '*shapemodel*' \
       --exclude_package '*siena*' \
       --exclude_package '*surface*' \
@@ -134,20 +115,24 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
       --exclude_package '*verbena*' \
       --exclude_package '*wxpython*' \
       --exclude_package '*xt*' \
+      --manifest '/tmp/fsl/manifest/manifest.json' \
+      --miniconda '/tmp/miniforge.sh' \
+    && cd $FSLDIR \
+    && conda remove gcc make \
     && ldconfig
 
 ENTRYPOINT ["/bin/bash"]
 
-# Only keep what we need
-FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-FSL 6.0.6.5 stage"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
-COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
-COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
-COPY --from=FSL /usr/bin /usr/bin
-COPY --from=FSL /usr/local/bin /usr/local/bin
-COPY --from=FSL /usr/share/fsl /usr/share/fsl
-# install C-PAC resources into FSL
-COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard
-COPY --from=data /fsl_data/atlases /usr/share/fsl/6.0/data/atlases
+# # Only keep what we need
+# FROM scratch
+# LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+# FSL 6.0.6.5 stage"
+# LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+# COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+# COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+# COPY --from=FSL /usr/bin /usr/bin
+# COPY --from=FSL /usr/local/bin /usr/local/bin
+# COPY --from=FSL /usr/share/fsl /usr/share/fsl
+# # install C-PAC resources into FSL
+# COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard
+# COPY --from=data /fsl_data/atlases /usr/share/fsl/6.0/data/atlases
