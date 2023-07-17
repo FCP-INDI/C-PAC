@@ -98,6 +98,6 @@ ENTRYPOINT ["/bin/bash"]
 # COPY --from=FSL /usr/bin /usr/bin
 # COPY --from=FSL /usr/local/bin /usr/local/bin
 # COPY --from=FSL /usr/share/fsl /usr/share/fsl
-# # install C-PAC resources into FSL
-# COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard
-# COPY --from=data /fsl_data/atlases /usr/share/fsl/6.0/data/atlases
+# install C-PAC resources into FSL
+COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard
+COPY --from=data /fsl_data/atlases /usr/share/fsl/6.0/data/atlases
