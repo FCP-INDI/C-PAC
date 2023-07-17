@@ -171,6 +171,7 @@ STATUS = 'stable'
 REQUIREMENTS = [
     "boto3",
     "click",
+    "click-aliases",
     "configparser",
     "cython",
     "future",

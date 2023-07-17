@@ -1261,19 +1261,6 @@ class NodeBlock:
                     {'logging': {'workflow_level': 'INFO'}})
                 logging.update_logging(config)
 
-            logger.info('Connecting %s...', name)
-            if debug:
-                config.update_config(
-                    {'logging': {'workflow_level': 'DEBUG'}})
-                logging.update_logging(config)
-                logger.debug('"inputs": %s\n\t "outputs": %s%s',
-                             init_dct["inputs"], list(self.outputs.keys()),
-                             f'\n\t"options": {self.options}'
-                             if self.options != ['base'] else '')
-                config.update_config(
-                    {'logging': {'workflow_level': 'INFO'}})
-                logging.update_logging(config)
-
     def get_name(self):
         return self.name
 
