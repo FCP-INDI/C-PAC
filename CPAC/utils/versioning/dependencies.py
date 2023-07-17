@@ -69,21 +69,6 @@ def first_line(stdout):
     return stdout
 
 
-def requirements() -> dict:
-    """Create a dictionary from requirements.txt"""
-    import CPAC
-    reqs = {}
-    with open(Path(CPAC.__path__[0]).parent.joinpath('requirements.txt'), 'r',
-              encoding='utf8') as _req:
-        for line in _req.readlines():
-            for delimiter in ['==', ' @ ']:
-                if delimiter in line:
-                    key, value = line.split(delimiter, 1)
-                    reqs[key.strip()] = value.strip()
-                    continue
-    return reqs
-
-
 def _version_sort(_version_item):
     """Key to report by case-insensitive dependecy name"""
     return _version_item[0].lower()
@@ -93,8 +78,39 @@ PYTHON_PACKAGES = dict(sorted({
   getattr(d, 'name', d.metadata['Name']): d.version for d in
           list(distributions())}.items(),
   key=_version_sort))
+
+
+def requirements() -> dict:
+    """Create a dictionary from requirements.txt"""
+    import CPAC
+    delimiters = ['==', ' @ ', '>=']
+    reqs = {}
+    try:
+        with open(Path(CPAC.__path__[0]).parent.joinpath('requirements.txt'),
+                  'r', encoding='utf8') as _req:
+            for line in _req.readlines():
+                for delimiter in delimiters:
+                    if delimiter in line:
+                        key, value = line.split(delimiter, 1)
+                        reqs[key.strip()] = value.strip()
+                        continue
+    except FileNotFoundError:
+        from requests.structures import CaseInsensitiveDict
+        _reqs = {_req: '' for _req in CPAC.info.REQUIREMENTS}
+        for _req in _reqs:
+            _delimited = False
+            for delimiter in delimiters:
+                if not _delimited and delimiter in _req:
+                    _package, _version = _req.split(delimiter)
+                    reqs[_package] = _version
+                    _delimited = True
+            if not _delimited:
+                reqs[_req] = CaseInsensitiveDict(PYTHON_PACKAGES).get(_req, '')
+    return reqs
+
+
 REPORTED = dict(sorted({
-  **cli_version('ldd --version', formatting=first_line),
-  'Python': sys.version.replace('\n', ' ').replace('  ', ' ')
+    **cli_version('ldd --version', formatting=first_line),
+    'Python': sys.version.replace('\n', ' ').replace('  ', ' ')
 }.items(), key=_version_sort))
 REQUIREMENTS = requirements()

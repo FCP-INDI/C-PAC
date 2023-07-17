@@ -18,6 +18,7 @@
 import os
 import pkg_resources as p
 import click
+from click_aliases import ClickAliasedGroup
 from CPAC.utils.docs import version_report
 
 # CLI tree
@@ -61,9 +62,9 @@ def version():
 
 @main.command()
 @click.argument('data_config')
-@click.option('--pipe_config')
-@click.option('--num_cores')
-@click.option('--ndmg_mode', is_flag=True)
+@click.option('--pipe-config', '--pipe_config')
+@click.option('--num-cores', '--num_cores')
+@click.option('--ndmg-mode', '--ndmg_mode', is_flag=True)
 @click.option('--debug', is_flag=True)
 def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False,
         debug=False):
@@ -146,7 +147,7 @@ def group():
 
 
 # Group analysis - FSL FEAT
-@group.group()
+@group.group(cls=ClickAliasedGroup)
 def feat():
     pass
 
@@ -172,17 +173,17 @@ def randomise(group_config):
     cgr.run_feat(group_config, feat=False)
 
 
-@feat.group()
+@feat.group(aliases=['load_preset'], cls=ClickAliasedGroup)
 def load_preset():
     pass
 
-@load_preset.command()
+@load_preset.command(aliases=['single_grp_avg'])
 @click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('model_name')
-@click.option('--output_dir', default=None)
-@click.option('--group_participants', default=None)
+@click.option('--output-dir', '--output_dir', default=None)
+@click.option('--group-participants', '--group_participants', default=None)
 def single_grp_avg(pipeline_dir, z_thresh, p_thresh, model_name,
                    output_dir=None, group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
@@ -193,7 +194,7 @@ def single_grp_avg(pipeline_dir, z_thresh, p_thresh, model_name,
                                 output_dir=output_dir,
                                 model_name=model_name)
 
-@load_preset.command()
+@load_preset.command(aliases=['single_grp_cov'])
 @click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
@@ -201,8 +202,8 @@ def single_grp_avg(pipeline_dir, z_thresh, p_thresh, model_name,
 @click.argument('pheno_sub')
 @click.argument('covariate')
 @click.argument('model_name')
-@click.option('--output_dir', default=None)
-@click.option('--group_participants', default=None)
+@click.option('--output-dir', '--output_dir', default=None)
+@click.option('--group-participants', '--group_participants', default=None)
 def single_grp_cov(pipeline_dir, z_thresh, p_thresh, pheno_file,
                    pheno_sub, covariate, model_name, output_dir=None,
                    group_participants=None):
@@ -216,7 +217,7 @@ def single_grp_cov(pipeline_dir, z_thresh, p_thresh, pheno_file,
                                 covariate=covariate, output_dir=output_dir,
                                 model_name=model_name)
 
-@load_preset.command()
+@load_preset.command(aliases=['unpaired_two'])
 @click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
@@ -224,8 +225,8 @@ def single_grp_cov(pipeline_dir, z_thresh, p_thresh, pheno_file,
 @click.argument('pheno_sub')
 @click.argument('covariate')
 @click.argument('model_name')
-@click.option('--output_dir', default=None)
-@click.option('--group_participants', default=None)
+@click.option('--output-dir', '--output_dir', default=None)
+@click.option('--group-participants', '--group_participants', default=None)
 def unpaired_two(pipeline_dir, z_thresh, p_thresh, pheno_file,
                  pheno_sub, covariate, model_name, output_dir=None,
                  group_participants=None):
@@ -239,15 +240,15 @@ def unpaired_two(pipeline_dir, z_thresh, p_thresh, pheno_file,
                                 covariate=covariate, output_dir=output_dir,
                                 model_name=model_name)
 
-@load_preset.command()
+@load_preset.command(aliases=['paired_two'])
 @click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('conditions')
 @click.argument('condition_type')
 @click.argument('model_name')
-@click.option('--output_dir', default=None)
-@click.option('--group_participants', default=None)
+@click.option('--output-dir', '--output_dir', default=None)
+@click.option('--group-participants', '--group_participants', default=None)
 def paired_two(pipeline_dir, z_thresh, p_thresh, conditions,
                condition_type, model_name, output_dir=None,
                group_participants=None):
@@ -261,15 +262,15 @@ def paired_two(pipeline_dir, z_thresh, p_thresh, conditions,
                                 output_dir=output_dir, model_name=model_name)
 
 
-@load_preset.command()
+@load_preset.command(aliases=['tripled_two'])
 @click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('conditions')
 @click.argument('condition_type')
 @click.argument('model_name')
-@click.option('--output_dir', default=None)
-@click.option('--group_participants', default=None)
+@click.option('--output-dir', '--output_dir', default=None)
+@click.option('--group-participants', '--group_participants', default=None)
 def tripled_two(pipeline_dir, z_thresh, p_thresh, conditions,
                 condition_type, model_name, output_dir=None,
                 group_participants=None):
@@ -313,7 +314,7 @@ def qpp(group_config):
 
 
 # Utilities
-@main.group()
+@main.group(cls=ClickAliasedGroup)
 def utils():
     pass
 
@@ -332,8 +333,8 @@ def crash(crash_file):
         display_crash_file(crash_file, False, False, None)
 
 
-@utils.group()
-@click.option('--tracking_opt-out', is_flag=True,
+@utils.group(aliases=['data_config'], cls=ClickAliasedGroup)
+@click.option('--tracking-opt-out', '--tracking_opt-out', is_flag=True,
               help='Disable usage tracking.')
 def data_config(tracking_opt_out):
     if not tracking_opt_out:
@@ -342,7 +343,7 @@ def data_config(tracking_opt_out):
         track_config('cli')
 
 
-@data_config.command()
+@data_config.command(aliases=['new_settings_template'])
 def new_settings_template():
     from CPAC.utils.build_data_config import util_copy_template
     util_copy_template('data_settings')
@@ -355,8 +356,8 @@ def build(data_settings_file):
     run(data_settings_file)
 
 
-@utils.group()
-@click.option('--tracking_opt-out', is_flag=True,
+@utils.group(aliases=['pipe_config'], cls=ClickAliasedGroup)
+@click.option('--tracking-opt-out', '--tracking_opt-out', is_flag=True,
               help='Disable usage tracking.')
 def pipe_config(tracking_opt_out):
     if not tracking_opt_out:
@@ -365,14 +366,14 @@ def pipe_config(tracking_opt_out):
         track_config('cli')
 
 
-@pipe_config.command(name='new_template')
+@pipe_config.command(name='new-template', aliases=['new_template'])
 def new_pipeline_template():
     from CPAC.utils.build_data_config import util_copy_template
     util_copy_template('pipeline_config')
 
 
-@utils.group()
-@click.option('--tracking_opt-out', is_flag=True,
+@utils.group(aliases=['group_config'], cls=ClickAliasedGroup)
+@click.option('--tracking-opt-out', '--tracking_opt-out', is_flag=True,
               help='Disable usage tracking.')
 def group_config(tracking_opt_out):
     if not tracking_opt_out:
@@ -381,25 +382,25 @@ def group_config(tracking_opt_out):
         track_config('cli')
 
 
-@group_config.command(name='new_template')
+@group_config.command(name='new-template', aliases=['new_template'])
 def new_group_template():
     from CPAC.utils.build_data_config import util_copy_template
     util_copy_template('group_config')
 
 
-@utils.group()
+@utils.group(cls=ClickAliasedGroup)
 def tools():
     pass
 
 
-@tools.command()
+@tools.command(aliases=['ants_apply_warp'])
 @click.argument('moving_image')
 @click.argument('reference')
 @click.option('--initial', default=None)
 @click.option('--rigid', default=None)
 @click.option('--affine', default=None)
 @click.option('--nonlinear', default=None)
-@click.option('--func_to_anat', default=None)
+@click.option('--func-to-anat', '--func_to_anat', default=None)
 @click.option('--dim', default=3)
 @click.option('--interp', default='Linear')
 @click.option('--inverse', default=False)
@@ -424,12 +425,12 @@ def repickle(directory):
         repickle_util(directory)
 
 
-@utils.group()
+@utils.group(cls=ClickAliasedGroup)
 def test():
     pass
 
 
-@test.command()
+@test.command(aliases=['run_suite'])
 @click.option('--list', '-l', 'show_list', is_flag=True)
 @click.option('--filter', '-f', 'pipeline_filter', default='')
 def run_suite(show_list=False, pipeline_filter=''):
@@ -489,12 +490,12 @@ def run_suite(show_list=False, pipeline_filter=''):
         print("")
 
 
-@test.group()
+@test.group(cls=ClickAliasedGroup)
 def functions():
     pass
 
 
-@functions.command()
+@functions.command(aliases=['gather_outputs_func'])
 @click.argument('pipe_config')
 def gather_outputs_func(pipe_config):
     #from CPAC.pipeline.

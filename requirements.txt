@@ -1,6 +1,7 @@
 boto3==1.26.91
 ciftify==2.3.3
 click==8.1.5
+click-aliases==1.0.1
 configparser==5.3.0
 future==0.18.3
 INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git@998c246c597209f06f8d5c5b92ddc2c9c1942f46
