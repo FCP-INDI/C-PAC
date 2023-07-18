@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `AFNI` 21.1.00 'Domitian' → 23.1.10 'Publius Helvius Pertinax'
 - `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
-- `boto3` 1.7.37 → 1.26.91
+- `boto3` 1.7.37 → 1.28.4
 - `click` 6.7 → 8.1.5
 - `configparser` 3.7.4 → 5.3.0
 - `FSL` 5.0.10 (5.0.9) → 6.0.6.5

@@ -19,7 +19,7 @@ RUN chmod ugo+w /etc/passwd
 
 # install and set up c3d
 COPY --from=c3d /opt/c3d/ /opt/c3d/
-ENV C3DPATH=/opt/c3d/
+ENV C3DPATH=/opt/c3d
 ENV PATH=$C3DPATH/bin:$PATH
 
 # install AFNI

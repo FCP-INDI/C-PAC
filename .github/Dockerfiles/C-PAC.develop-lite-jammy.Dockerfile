@@ -33,7 +33,13 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run.py"]
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/* \
+# link libraries & clean up
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+    && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
+    && rm -rf results.txt \
+    && apt-get remove rdfind -y \
+    && apt-get clean \
+    && apt-get autoremove -y \
     && ldconfig \
     && chmod 777 / \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)

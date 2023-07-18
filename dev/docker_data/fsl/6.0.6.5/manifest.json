@@ -22,7 +22,7 @@
                     }
                 },
                 "platform": "linux-64",
-                "sha256": "58347ee1cdee375a19b3b7df099631ada8d88c16aae1ea4cb0374822437f4f05"
+                "sha256": "e4984b6aa75075999fede743e5c686671ec4a975de6361b5bc1b5112f6612300"
             }
         ],
         "latest": "6.0.6.5"

@@ -16,8 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/fsl:data as data
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS FSL
-
 USER root
+ARG DEBIAN_FRONTEND=noninteractive
 COPY ./dev/docker_data/fsl/6.0.6.5 /tmp/fsl/manifest
 
 # set up FSL environment
@@ -35,10 +35,13 @@ ENV FSLOUTPUTTYPE=NIFTI_GZ \
 # Full list of packages, included excluded packages, in dev/docker_data/fsl/6.0.6.5/fsl-release.yml
 RUN apt-get update > /dev/null && \
     apt-get install --no-install-recommends --yes \
-        wget bzip2 ca-certificates \
-        git \
-        tini \
-        > /dev/null && \
+      bzip2 \
+      ca-certificates \
+      git \
+      python3 \
+      tini \
+      wget \
+      > /dev/null && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/download/23.1.0-4/Mambaforge-23.1.0-4-Linux-x86_64.sh -O /tmp/mambaforge.sh && \
@@ -82,22 +85,32 @@ RUN apt-get update > /dev/null && \
       --exclude_package '*xt*' \
       --manifest '/tmp/fsl/manifest/manifest.json' \
       --miniconda '/tmp/mambaforge.sh' \
-    && cd $FSLDIR \
-    && conda remove gcc make \
-    && ldconfig
+    # remove packages we just needed for building
+    && yes | mamba remove -n base \
+      c-compiler \
+      cxx-compiler \
+      fmrib-unpack \
+      gcc \
+      make \
+      nidmresults \
+      openslide-python \
+      vtk \
+    && ldconfig \
+    && yes | mamba clean --all \
+    && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
 
 ENTRYPOINT ["/bin/bash"]
 
 # # Only keep what we need
-# FROM scratch
-# LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-# FSL 6.0.6.5 stage"
-# LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
-# COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
-# COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
-# COPY --from=FSL /usr/bin /usr/bin
-# COPY --from=FSL /usr/local/bin /usr/local/bin
-# COPY --from=FSL /usr/share/fsl /usr/share/fsl
+FROM scratch
+LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+FSL 6.0.6.5 stage"
+LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=FSL /usr/bin /usr/bin
+COPY --from=FSL /usr/local/bin /usr/local/bin
+COPY --from=FSL /usr/share/fsl /usr/share/fsl
 # install C-PAC resources into FSL
 COPY --from=data /fsl_data/standard /usr/share/fsl/6.0/data/standard
 COPY --from=data /fsl_data/atlases /usr/share/fsl/6.0/data/atlases

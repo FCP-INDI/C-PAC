@@ -37,10 +37,12 @@ COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+    && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
+    && rm -rf results.txt \
+    && ldconfig \
+    && chmod 777 / \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user

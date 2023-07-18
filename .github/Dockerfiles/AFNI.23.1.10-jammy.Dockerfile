@@ -14,50 +14,104 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
 USER root
+# To use the same Python environment to share common libraries
+COPY --from=FSL /usr/share/fsl/6.0 /usr/share/fsl/6.0
+ENV FSLDIR=/usr/share/fsl/6.0 \
+    PATH=/usr/share/fsl/6.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # install AFNI
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 COPY dev/docker_data/checksum/AFNI.23.1.10.sha384 /tmp/AFNI.23.1.10.sha384
 RUN apt-get update \
     && apt-get install -y \
+      apt-transport-https \
+      apt-utils \
+      bc \
       build-essential \
+      bzip2 \
+      ca-certificates \
       cmake \
       curl \
+      dh-autoreconf \
       eog \
       evince \
       firefox \
+      gcc \
       gedit \
+      git \
       gnome-terminal \
       gnome-tweaks \
+      gnupg \
+      graphviz \
+      graphviz-dev \
       gsl-bin \
+      libcanberra-gtk-module \
       libcurl4-openssl-dev \
+      libexpat1-dev \
       libgdal-dev \
       libgfortran-11-dev \
+      libgiftiio-dev \
+      libgl1-mesa-dri \
+      libglib2.0-dev \
+      libglu1-mesa \
       libglu1-mesa-dev \
+      libglw1-mesa \
       libglw1-mesa-dev \
       libgomp1 \
+      libgsl-dev \
+      libjpeg-progs \
       libjpeg62 \
+      libmotif-dev \
       libnode-dev \
       libopenblas-dev \
       libssl-dev \
+      libtool \
       libudunits2-dev \
+      libx11-dev \
+      libxext-dev \
+      libxft-dev \
+      libxft2 \
+      libxi-dev \
       libxm4 \
+      libxml2 \
       libxml2-dev \
+      libxmu-dev \
+      libxmu-headers \
+      libxpm-dev \
+      libxslt1-dev \
+      locales \
+      m4 \
+      make \
+      mesa-common-dev \
+      mesa-utils \
       nautilus \
       netpbm \
-      python-is-python3 \
-      python3-matplotlib \
-      python3-numpy \
-      python3-pil \
+      ninja-build \
+      openssh-client \
+      pkg-config \
       r-base-dev \
+      rsync \
+      software-properties-common \
       tcsh \
+      unzip \
       vim \
+      wget \
+      x11proto-xext-dev \
+      xauth \
       xfonts-100dpi \
       xfonts-base \
       xterm \
+      xutils-dev \
       xvfb \
+      zlib1g-dev && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG="en_US.UTF-8" \
     && ln -s /usr/lib/x86_64-linux-gnu/libgsl.so.27 /usr/lib/x86_64-linux-gnu/libgsl.so.19 \
     && AFNI_VERSION="23.1.10" \
     && curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz \
@@ -77,8 +131,33 @@ RUN apt-get update \
     ls > full_ls \
     && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls \
     && comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls \
-    && apt-get remove -y libglw1-mesa-dev \
-    && ldconfig
+    # get rid of stuff we just needed for building
+    && apt-get remove -y \
+      apt-transport-https \
+      apt-utils \
+      build-essential \
+      bzip2 \
+      ca-certificates \
+      cmake \
+      curl \
+      dh-autoreconf \
+      evince \
+      firefox \
+      gedit \
+      git \
+      gnome-terminal \
+      gnome-tweaks \
+      libglw1-mesa-dev \
+      m4 \
+      make \
+      ninja-build \
+      openssh-client \
+      pkg-config \
+      unzip \
+      wget \
+      xterm \
+    && ldconfig \
+    && rm -rf /opt/afni/src
 
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
@@ -90,7 +169,7 @@ RUN ldconfig
 
 RUN apt-get clean \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/*
 
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \

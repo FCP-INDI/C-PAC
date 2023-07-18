@@ -42,16 +42,24 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLMULTIFILEQUIT=TRUE \
     TZ=America/New_York
 ENV LD_LIBRARY_PATH=${FSLDIR}/6.0:$LD_LIBRARY_PATH \
-    PATH=$PATH:${FSLDIR}/bin
+    PATH=${FSLDIR}/bin:$PATH
 COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
 COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
 COPY --from=FSL /usr/bin /usr/bin
 COPY --from=FSL /usr/local/bin /usr/local/bin
 COPY --from=FSL /usr/share/fsl /usr/share/fsl
 
+# Installing C-PAC dependencies
+COPY requirements.txt /opt/requirements.txt
+RUN mamba install git -y \
+  && pip install -r /opt/requirements.txt \
+  && rm -rf /opt/requirements.txt \
+  && yes | mamba clean --all \
+  && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
+
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/
-ENV C3DPATH /opt/c3d/
+ENV C3DPATH /opt/c3d
 ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
@@ -72,10 +80,12 @@ COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+    && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
+    && rm -rf results.txt \
+    && ldconfig \
+    && chmod 777 / \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user
