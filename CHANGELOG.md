@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makes in-container root directory writable by all
 - Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
 - Disabled `--use-estimate-learning-rate-once` in `antsRegistration` (ANTsX/ANTs#1405; ANTsX/ANTs#1411)
+- Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
 
 ### Added dependencies
 

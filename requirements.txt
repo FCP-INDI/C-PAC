@@ -28,7 +28,5 @@ requests==2.31.0
 scikit-learn==1.2.2
 scipy==1.10.1
 sdcflows==2.4.0
-torch==1.13.1
-torchvision==0.14.1
 traits==6.3.2
 voluptuous==0.13.1
