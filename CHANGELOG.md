@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## Added
+
+- Some automatic handling of user-provided BIDSy atlas names.
+
 ## Fixed
 
 - Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
