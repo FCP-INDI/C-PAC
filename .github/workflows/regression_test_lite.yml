@@ -50,13 +50,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
-      - name: Connect and Run
+      - name: Connect and Run Regression Test Lite
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 60m
+          command_timeout: 200m
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             if [ ! -d slurm_testing ] ; then
@@ -66,17 +66,6 @@ jobs:
                 git pull origin main
                 cd ..
             fi
-            bash slurm_testing/regression_run_scripts/build_image.sh --working_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
-
-      - name: Run Lite Regression Test
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 200m
-          script: |
-            cd ${{ secrets.SSH_WORK_DIR }}
             bash slurm_testing/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }}
 
       #- name: Correlating
