@@ -1247,7 +1247,7 @@ functional_preproc:
       regrid: 1
 
   func_masking:
-
+    run: On
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
 
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
@@ -1335,7 +1335,11 @@ functional_preproc:
 
     # Normalize functional image
     run: On
+  
+  coreg_prep:
 
+    # Generate sbref
+    run: On
 
 nuisance_corrections:
 
