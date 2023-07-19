@@ -206,6 +206,7 @@ functional_preproc:
     run: [On]
 
   func_masking:
+    run: On
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
@@ -239,6 +240,9 @@ functional_preproc:
     # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
     # Note: the selection here applies to all scans of all participants.
     stop_tr: 100
+  
+  coreg_prep:
+    run: On
 
 nuisance_corrections:
   2-nuisance_regression:

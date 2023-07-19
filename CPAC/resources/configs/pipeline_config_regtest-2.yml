@@ -166,6 +166,9 @@ functional_preproc:
   motion_estimates_and_correction:
     run: On
 
+  func_masking:
+    run: On 
+
   distortion_correction:
 
     # this is a fork point
@@ -180,6 +183,9 @@ functional_preproc:
   normalize_func:
 
     # Normalize functional image
+    run: On
+
+  coreg_prep:
     run: On
 
 nuisance_corrections:

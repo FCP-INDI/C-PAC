@@ -75,6 +75,9 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
+  func_masking:
+    run: On 
+
   generate_func_mean:
 
     # Generate mean functional image
@@ -83,6 +86,9 @@ functional_preproc:
   normalize_func:
 
     # Normalize functional image
+    run: On
+
+  coreg_prep:
     run: On
 
 nuisance_corrections:
