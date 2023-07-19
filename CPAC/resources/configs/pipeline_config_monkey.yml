@@ -304,8 +304,10 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
-  
+
   coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:

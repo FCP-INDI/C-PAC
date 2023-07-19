@@ -237,7 +237,9 @@ functional_preproc:
     run: [On]
 
   coreg_prep:
-    run: On 
+
+    # Generate sbref
+    run: On
 
 nuisance_corrections:
   2-nuisance_regression:

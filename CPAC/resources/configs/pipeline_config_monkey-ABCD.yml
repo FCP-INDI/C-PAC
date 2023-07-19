@@ -363,6 +363,8 @@ functional_preproc:
     run: On
 
   coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:

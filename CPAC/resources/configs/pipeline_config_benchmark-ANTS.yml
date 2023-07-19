@@ -156,8 +156,10 @@ functional_preproc:
 
     # Normalize functional image
     run: On
-  
+
   coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:

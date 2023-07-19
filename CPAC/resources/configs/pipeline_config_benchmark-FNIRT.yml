@@ -169,7 +169,7 @@ functional_preproc:
     run: [On]
 
   func_masking:
-    run: On 
+    run: On
 
   generate_func_mean:
 
@@ -182,6 +182,8 @@ functional_preproc:
     run: On
 
   coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:
