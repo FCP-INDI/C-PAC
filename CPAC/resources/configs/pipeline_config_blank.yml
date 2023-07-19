@@ -1174,6 +1174,8 @@ functional_preproc:
     space: native
 
   coreg_prep:
+
+    # Generate sbref
     run: Off
 
 nuisance_corrections:
