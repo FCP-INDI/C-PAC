@@ -173,7 +173,7 @@ pipeline_setup:
 
     # Full path to the FSL version to be used by CPAC.
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR:  /usr/share/fsl/5.0
+    FSLDIR: FSLDIR
 
   Amazon-AWS:
 
@@ -734,7 +734,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
         # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
         ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
@@ -918,7 +918,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     func_registration_to_template:
 
@@ -1000,7 +1000,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
       apply_transform:
 

@@ -134,7 +134,7 @@ pipeline_setup:
 
     # Full path to the FSL version to be used by CPAC.
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: /usr/share/fsl/5.0
+    FSLDIR: FSLDIR
 
   working_directory:
 

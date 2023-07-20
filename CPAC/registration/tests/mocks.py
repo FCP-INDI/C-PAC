@@ -26,7 +26,7 @@ def configuration_strategy_mock( method = 'FSL' ):
         "template_for_resample": "/usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz",
         "template_brain_only_for_func": "/usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz",
         "template_skull_for_func":  "/usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz",
-        "identityMatrix":  "/usr/share/fsl/5.0/etc/flirtsch/ident.mat",
+        "identityMatrix":  "$FSLDIR/etc/flirtsch/ident.mat",
         "funcRegFSLinterpolation": "sinc",
         "funcRegANTSinterpolation": "LanczosWindowedSinc"
     })
