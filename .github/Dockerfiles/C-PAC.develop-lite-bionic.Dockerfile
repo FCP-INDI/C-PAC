@@ -25,7 +25,7 @@ COPY . /code
 RUN pip install -e /code
 # set up runscript
 COPY dev/docker_data /code/docker_data
-RUN rm -Rf /code/docker_data/Dockerfiles && \
+RUN rm -Rf /code/docker_data/checksum && \
     mv /code/docker_data/* /code && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
