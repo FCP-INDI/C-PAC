@@ -47,10 +47,6 @@ pipeline_setup:
     # - This number cannot be greater than the number of cores per participant.
     num_ants_threads: 4
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
 anatomical_preproc:
   acpc_alignment:
     T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
@@ -74,10 +70,6 @@ registration_workflows:
 
         # Reference mask for FSL registration.
         ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
@@ -170,12 +162,6 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
-      FNIRT_pipelines:
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
-
     EPI_registration:
 
       # directly register the mean functional to an EPI template
@@ -217,12 +203,6 @@ registration_workflows:
                 smoothing-sigmas: 5x3x0
                 totalFieldVarianceInVoxelSpace: 1
                 updateFieldVarianceInVoxelSpace: 5
-
-      FSL-FNIRT:
-
-        # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
 functional_preproc:
   run: On
