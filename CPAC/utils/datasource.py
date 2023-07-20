@@ -1220,8 +1220,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
-    import os, subprocess
+    import os
     import nibabel as nb
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     # load func and ROI dimension
     func_img = nb.load(in_func)
@@ -1257,7 +1258,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
                '-out', out_file,
                '-interp', interp,
                '-applyxfm', '-init', identity_matrix]
-        subprocess.check_output(cmd)
+        log_subprocess(cmd)
 
     else:
         out_func = in_func
