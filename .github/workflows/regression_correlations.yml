@@ -1,0 +1,35 @@
+name: Run Regression Test Correlations
+
+on:
+  workflow_call:
+    secrets: 
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_WORK_DIR:
+        required: true
+
+jobs: 
+  test:
+    name: Regression Correlations
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Install SSH Keys
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+
+      - name: Cleanup SSH
+        run: |
+          rm -rf ~/.ssh
+
+      #- uses: actions/upload-artifact@v3
+      #  if: always()
+      #  with:
+      #    name: logs
+      #    path: output/*/*/log/
