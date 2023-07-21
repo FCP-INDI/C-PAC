@@ -1,0 +1,41 @@
+name: Run Regression Full Test
+
+on: 
+  workflow_call:
+
+jobs: 
+  test:
+    name: Regression Test - Full
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Get C-PAC branch
+        run: |
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest
+          fi
+
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Clone reg-suite
+        run: |
+          git clone https://github.com/amygutierrez/reg-suite.git
+
+      - name: Run Full Regression Test
+        if: ${{ github.event_name }} == "pull_request" && ${{ github.event.pull_request.state }} == "closed" && ${{ github.event.pull_request.merged }} == "true" && ${{ github.event.pull_request.base.ref }} == "main"
+        run: |
+          echo "Running full regression test"
+          echo "୧(๑•̀ヮ•́)૭ LET'S GO! ٩(^ᗜ^ )و "
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: logs
+          path: output/*/*/log/
