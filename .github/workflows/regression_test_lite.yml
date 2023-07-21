@@ -69,7 +69,8 @@ jobs:
                 git pull origin regression/after_runs
                 cd ..
             fi
-            sbatch slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }}
+            mkdir -p ./logs/${{ github.sha }}
+            sbatch --output=logs/${{ github.sha }}/out.log --error=logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }}
 
       #- name: Correlating
       #  run: |
