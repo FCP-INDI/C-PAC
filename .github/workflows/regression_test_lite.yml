@@ -70,7 +70,7 @@ jobs:
                 cd ..
             fi
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }}
+            sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }}
 
       #- name: Correlating
       #  run: |
