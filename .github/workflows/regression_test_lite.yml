@@ -43,12 +43,6 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
 
-      #- name: Checkout Code
-      #  uses: actions/checkout@v2
-      #- name: Clone slurm_testing
-      #  run: |
-      #    git clone https://github.com/cmi-dair/slurm_testing
-
       - name: Install SSH Keys
         run: |
           mkdir -p ~/.ssh/
@@ -64,6 +58,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 200m
           script: |
+            gh pr check --repo ${{ github.repository }} --head ${{ github.sha }} --status "pending" --name "Run regression test lite" --check-run "Run regression test lite"
+
             cd ${{ secrets.SSH_WORK_DIR }}
             if [ ! -d slurm_testing_callback ] ; then
                 git clone https://github.com/shnizzedy/slurm_testing slurm_testing_callback
@@ -80,18 +76,6 @@ jobs:
               sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }} --path-extra ${{ secrets.GH_CLI_BIN_PATH }}
             fi
 
-      #- name: Correlating
-      #  run: |
-      #    echo "Correlating lite regression runs"
-      #    echo "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧"
-      #    python3 reg-suite/main.py correlate --pipeline1 $GITHUB_WORKSPACE/output/default/HNU_1 --pipeline2 $GITHUB_WORKSPACE/lite/default/HNU_1--workspace $GITHUB_WORKSPACE
-
       - name: Cleanup SSH
         run: |
           rm -rf ~/.ssh
-
-      #- uses: actions/upload-artifact@v3
-      #  if: always()
-      #  with:
-      #    name: logs
-      #    path: output/*/*/log/
