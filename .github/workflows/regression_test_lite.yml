@@ -49,6 +49,9 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      
+      - name: Initiate check
+        run: gh pr check --repo ${{ github.repository }} --head ${{ github.sha }} --status "pending" --name "Run regression test lite" --check-run "Run regression test lite"
 
       - name: Connect and Run Regression Test Lite
         uses: appleboy/ssh-action@master
@@ -58,8 +61,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 200m
           script: |
-            gh pr check --repo ${{ github.repository }} --head ${{ github.sha }} --status "pending" --name "Run regression test lite" --check-run "Run regression test lite"
-
             cd ${{ secrets.SSH_WORK_DIR }}
             if [ ! -d slurm_testing_callback ] ; then
                 git clone https://github.com/shnizzedy/slurm_testing slurm_testing_callback
