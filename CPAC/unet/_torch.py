@@ -15,13 +15,16 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Dynamically install torch iff we're going to use it"""
+# pylint: disable=ungrouped-imports
 try:
     import torch
 except (ImportError, ModuleNotFoundError):
+    from importlib import invalidate_caches
     from CPAC.utils.monitoring.custom_logging import log_subprocess
-
-    log_subprocess(['pip', 'install',
+    invalidate_caches()
+    log_subprocess(['pip', 'install', '--user',
                     'torch==1.13.1', 'torchvision==0.14.1'])
+    invalidate_caches()
     import torch
 
 __all__ = ['torch']
