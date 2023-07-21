@@ -20,6 +20,7 @@ on:
 jobs: 
   test:
     name: Regression Test - Lite
+    environment: ACCESS
     runs-on: ubuntu-latest
     steps: 
       - name: Get C-PAC branch
