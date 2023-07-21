@@ -77,9 +77,9 @@ jobs:
             mkdir -p ./logs/${{ github.sha }}
             if [ -z "${{ secrets.GH_CLI_BIN_PATH }}" ]
             then
-              sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }}
+              sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }} --owner ${{ github.repository_owner }}
             else
-              sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }} --path-extra ${{ secrets.GH_CLI_BIN_PATH }}
+              sbatch -N 1 -p RM-shared -t 00:05:00 --ntasks-per-node=1 --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/regression_run_scripts/regtest_lite.sh --home_dir ${{ secrets.SSH_WORK_DIR }} --image ${{ env.DOCKER_TAG }} --sha ${{ github.sha }} --path-extra ${{ secrets.GH_CLI_BIN_PATH }} --owner ${{ github.repository_owner }}
             fi
 
       - name: Cleanup SSH
