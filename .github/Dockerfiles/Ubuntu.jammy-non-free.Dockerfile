@@ -38,9 +38,8 @@ ENV TZ=America/New_York \
 RUN groupadd -r c-pac \
     && useradd -r -g c-pac c-pac_user \
     && mkdir -p /home/c-pac_user/ \
-    && mkdir /.local \
     && chown -R c-pac_user:c-pac /home/c-pac_user \
-    && chmod 777 / .local /opt \
+    && chmod 777 / /home/c-pac_user /opt \
     && chmod ugo+w /etc/passwd \
     && chmod a+s /opt \
     # set up for noninteractive apt

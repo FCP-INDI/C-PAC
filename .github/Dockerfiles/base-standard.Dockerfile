@@ -23,6 +23,9 @@ LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing FreeSurfer
+RUN yes | mamba install tcsh \
+  && yes | mamba clean --all \
+  && cp -l `which tcsh` /bin/tcsh
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     NO_FSFAST=1
 ENV PATH="$FREESURFER_HOME/bin:$PATH" \
