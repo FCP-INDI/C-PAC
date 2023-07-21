@@ -51,7 +51,12 @@ jobs:
           ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
       
       - name: Initiate check
-        run: gh pr check --repo ${{ github.repository }} --head ${{ github.sha }} --status "pending" --name "Run regression test lite" --check-run "Run regression test lite"
+        uses: guibranco/github-status-action-v2@v1.1.7
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: Run regression test lite
+          description: running
+          state: pending
 
       - name: Connect and Run Regression Test Lite
         uses: appleboy/ssh-action@master
