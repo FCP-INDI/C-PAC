@@ -90,8 +90,6 @@ RUN apt-get update > /dev/null && \
       c-compiler \
       cxx-compiler \
       fmrib-unpack \
-      gcc \
-      make \
       nidmresults \
       openslide-python \
       vtk \

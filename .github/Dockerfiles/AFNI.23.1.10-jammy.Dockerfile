@@ -17,36 +17,32 @@
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
 USER root
+ENV AFNI_VERSION="23.1.10"
 # To use the same Python environment to share common libraries
 COPY --from=FSL /usr/share/fsl/6.0 /usr/share/fsl/6.0
 ENV FSLDIR=/usr/share/fsl/6.0 \
-    PATH=/usr/share/fsl/6.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/usr/share/fsl/6.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    LD_LIBRARY_PATH=/usr/share/fsl/6.0/lib:$LD_LIBRARY_PATH
 
 # install AFNI
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 COPY dev/docker_data/checksum/AFNI.23.1.10.sha384 /tmp/AFNI.23.1.10.sha384
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
       apt-transport-https \
-      apt-utils \
       bc \
-      build-essential \
       bzip2 \
-      ca-certificates \
       cmake \
       curl \
       dh-autoreconf \
       eog \
       evince \
       firefox \
-      gcc \
       gedit \
       git \
       gnome-terminal \
       gnome-tweaks \
       gnupg \
-      graphviz \
-      graphviz-dev \
       gsl-bin \
       libcanberra-gtk-module \
       libcurl4-openssl-dev \
@@ -55,7 +51,6 @@ RUN apt-get update \
       libgfortran-11-dev \
       libgiftiio-dev \
       libgl1-mesa-dri \
-      libglib2.0-dev \
       libglu1-mesa \
       libglu1-mesa-dev \
       libglw1-mesa \
@@ -82,9 +77,7 @@ RUN apt-get update \
       libxmu-headers \
       libxpm-dev \
       libxslt1-dev \
-      locales \
       m4 \
-      make \
       mesa-common-dev \
       mesa-utils \
       nautilus \
@@ -106,16 +99,10 @@ RUN apt-get update \
       xterm \
       xutils-dev \
       xvfb \
-      zlib1g-dev && \
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
-    dpkg-reconfigure --frontend=noninteractive locales && \
-    update-locale LANG="en_US.UTF-8" \
-    && ln -s /usr/lib/x86_64-linux-gnu/libgsl.so.27 /usr/lib/x86_64-linux-gnu/libgsl.so.19 \
-    && AFNI_VERSION="23.1.10" \
+      zlib1g-dev \
     && curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz \
     && sha384sum --check /tmp/AFNI.23.1.10.sha384 \
+    && ln -s /usr/lib/x86_64-linux-gnu/libgsl.so.27 /usr/lib/x86_64-linux-gnu/libgsl.so.19 \
     && mkdir /opt/afni \
     && tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 \
     && rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz \
@@ -133,11 +120,7 @@ RUN apt-get update \
     && comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls \
     # get rid of stuff we just needed for building
     && apt-get remove -y \
-      apt-transport-https \
-      apt-utils \
-      build-essential \
       bzip2 \
-      ca-certificates \
       cmake \
       curl \
       dh-autoreconf \
@@ -149,10 +132,8 @@ RUN apt-get update \
       gnome-tweaks \
       libglw1-mesa-dev \
       m4 \
-      make \
       ninja-build \
       openssh-client \
-      pkg-config \
       unzip \
       wget \
       xterm \

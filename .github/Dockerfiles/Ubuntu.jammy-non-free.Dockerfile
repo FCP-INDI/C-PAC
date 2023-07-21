@@ -30,22 +30,30 @@ LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A
 Ubuntu Jammy base image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=America/New_York
+ENV TZ=America/New_York \
+    PATH=$PATH:/.local/bin \
+    PYTHONPATH=$PYTHONPATH:/.local/lib/python3.10/site-packages
 
 # add default user
 RUN groupadd -r c-pac \
     && useradd -r -g c-pac c-pac_user \
     && mkdir -p /home/c-pac_user/ \
+    && mkdir /.local \
     && chown -R c-pac_user:c-pac /home/c-pac_user \
-    && chmod 777 / \
+    && chmod 777 / .local /opt \
     && chmod ugo+w /etc/passwd \
-    && chmod 777 /opt \
     && chmod a+s /opt \
     # set up for noninteractive apt
     && apt-get update \
     && apt-get install -y --no-install-recommends \
       apt-utils \
-      gcc \
+      apt-transport-https \
+      build-essential \
+      ca-certificates \
+      curl \
+      gnupg \
+      graphviz \
+      graphviz-dev \
       locales \
       rdfind \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
