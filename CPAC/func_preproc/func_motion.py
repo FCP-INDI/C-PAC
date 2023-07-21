@@ -38,25 +38,15 @@ except (AttributeError, KeyError, LookupError, IndexError):
 
 
 @nodeblock(
-    name="calc_motion_stats",
-    switch=[["functional_preproc", "run"],
-            ["functional_preproc", "motion_estimates_and_correction",
-             "motion_estimates", "calculate_motion_after"]],
-    inputs=[("desc-preproc_bold",
-             "space-bold_desc-brain_mask",
-             "max-displacement",
-             "rels-displacement",
-             "movement-parameters",
-             ["filtered-movement-parameters", "movement-parameters"],
-             ["filtered-coordinate-transformation",
-             "coordinate-transformation"]),
-            "subject",
-            "scan"],
-     outputs=["framewise-displacement-power",
-              "framewise-displacement-jenkinson",
-              "dvars",
-              "power-params",
-              "motion-params"])
+    name='calc_motion_stats',
+    switch=[['functional_preproc', 'run'],
+            ['functional_preproc', 'motion_estimates_and_correction', 'run'],
+            ['functional_preproc', 'motion_estimates_and_correction', 'motion_estimates', 'calculate_motion_after']],
+    inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask', 'movement-parameters', 'max-displacement',
+             'rels-displacement', 'coordinate-transformation'), 'subject', 'scan'],
+    outputs=['framewise-displacement-power', 'framewise-displacement-jenkinson', 'dvars', 'power-params',
+             'motion-params']
+)
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Calculate motion statistics for motion parameters.'''
     motion_prov = strat_pool.get_cpac_provenance('movement-parameters')

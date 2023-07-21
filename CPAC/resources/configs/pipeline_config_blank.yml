@@ -1060,6 +1060,7 @@ functional_preproc:
       fmap_skullstrip_AFNI_threshold: 0.6
 
   func_masking:
+    run: Off
     FSL-BET:
 
       # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
@@ -1171,6 +1172,11 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
     space: native
+
+  coreg_prep:
+
+    # Generate sbref
+    run: Off
 
 nuisance_corrections:
   2-nuisance_regression:

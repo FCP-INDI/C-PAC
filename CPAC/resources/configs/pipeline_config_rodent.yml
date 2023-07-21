@@ -221,6 +221,7 @@ functional_preproc:
         functional_volreg_twopass: Off
 
   func_masking:
+    run: On
     FSL-BET:
 
       # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
@@ -262,6 +263,11 @@ functional_preproc:
   normalize_func:
 
     # Normalize functional image
+    run: On
+
+  coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:
