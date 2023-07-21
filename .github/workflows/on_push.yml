@@ -18,6 +18,7 @@ name: Build and test C-PAC
 
 on:
   push:
+    branches: !regression/after-runs
 
 jobs:
   check-updated-preconfigs:
