@@ -17,6 +17,10 @@ jobs:
     name: Regression Correlations
     runs-on: ubuntu-latest
     steps: 
+      - name: Get C-PAC branch
+        run: |
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+
       - name: Install SSH Keys
         run: |
           mkdir -p ~/.ssh/
@@ -24,9 +28,34 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
+      - name: Connect and Run Regression Test Lite
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            command_timeout: 200m
+            script: |
+              cd ${{ secrets.SSH_WORK_DIR }}
+              if [ ! -d regression_dashboard ] ; then
+                  git clone https://github.com/amygutierrez/regression_dashboard.git
+              else
+                  cd regression_dashboard
+                  git pull origin main
+                  cd ..
+              fi
+              #find where the cpac run outputs are saved. Repeat this for all data sources (may need to loop)
+              DATA_SOURCES="HNU_1 Site-CBIC Site-SI"
+              python3 regression_dashboard/create_yaml.py --pipeline1 --pipeline2 --workspace ${{ secrets.SSH_WORK_DIR }} --branch $GITHUB_BRANCH --data_source
+              python3 regression_dashboard/calculate_correlations.py output.yaml --data_source 
+              
+              #this one doesn't need to be in the data_sorces loop
+              python3 build_dashboard.py --json_files HNU_1_regression_reg-suite.json,KKI_regression_reg-suite.json --branch $GITHUB_BRANCH
+
+
       - name: Cleanup SSH
         run: |
-          rm -rf ~/.ssh
+            rm -rf ~/.ssh
 
       #- uses: actions/upload-artifact@v3
       #  if: always()
