@@ -50,6 +50,7 @@ RUN groupadd -r c-pac \
       build-essential \
       ca-certificates \
       curl \
+      dc \
       gnupg \
       graphviz \
       graphviz-dev \
