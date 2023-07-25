@@ -131,6 +131,9 @@ functional_preproc:
     #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     using: []
 
+  func_masking:
+    run: On
+
   generate_func_mean:
 
     # Generate mean functional image
@@ -139,6 +142,11 @@ functional_preproc:
   normalize_func:
 
     # Normalize functional image
+    run: On
+
+  coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:

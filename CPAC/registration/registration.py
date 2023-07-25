@@ -2826,7 +2826,8 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="coregistration_prep_mean",
-    switch=["functional_preproc", "run"],
+    switch=[["functional_preproc", "run"], 
+            ["functional_preproc", "coreg_prep", "run"]],
     option_key=[
         "registration_workflows",
         "functional_registration",
@@ -2869,7 +2870,8 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="coregistration_prep_fmriprep",
-    switch=["functional_preproc", "run"],
+    switch=[["functional_preproc", "run"], 
+            ["functional_preproc", "coreg_prep", "run"]],
     option_key=[
         "registration_workflows",
         "functional_registration",
