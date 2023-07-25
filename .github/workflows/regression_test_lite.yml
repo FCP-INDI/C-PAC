@@ -55,7 +55,7 @@ jobs:
         with:
           authToken: ${{ secrets.GITHUB_TOKEN }}
           context: Run regression test lite
-          description: running
+          description: launching
           state: pending
 
       - name: Connect and Run Regression Test Lite
@@ -85,3 +85,26 @@ jobs:
       - name: Cleanup SSH
         run: |
           rm -rf ~/.ssh
+
+  check_runs:
+    name: Regression Test - Lite status checks
+    environment: ACCESS
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        preconfig:
+          - default
+        data_source:
+          - Site-CBIC
+          - Site-SI
+          - HNU_1
+    needs:
+      - test
+    steps:
+      - name: Initiate check
+        uses: guibranco/github-status-action-v2@v1.1.7
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: lite ${{ matrix.preconfig }} ${{ matrix.data_source }}
+          description: running
+          state: pending
