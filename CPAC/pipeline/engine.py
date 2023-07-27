@@ -1110,7 +1110,7 @@ class ResourcePool:
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
-                if resource != 'pipeline-ingress_desc-confounds_timeseries':
+                if not resource.endswith('desc-confounds_timeseries'):
                     if resource.split('_')[-1] in atlas_suffixes:
                         atlas_idx = pipe_idx.replace(resource, 'atlas_name')
                         # need the single quote and the colon inside the double
@@ -1840,61 +1840,50 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
                         bidstag += f'{tag}_'
                         data_label = data_label.replace(f'{tag}_', '')
             data_label, json = strip_template(data_label, dir_path, filename)
-            unique_data_label = str(data_label)
-            # suffix = data_label.split('_')[-1]
 
+            # Rename confounds to avoid confusion in nuisance regression
+            if data_label.endswith('desc-confounds_timeseries'):
+                data_label = 'pipeline-ingress_desc-confounds_timeseries'
             rpool, json_info, pipe_idx, node_name, data_label = \
                 json_outdir_ingress(rpool, filepath, \
-                exts, unique_data_label, data_label, json)
-            resource = data_label
+                exts, data_label, json)
             if len(bidstag) > 1:
                 # Remove tail symbol
                 bidstag = bidstag[:-1]
                 if bidstag.startswith('task-'):
                     bidstag = bidstag.replace('task-', '')
-                    if bidstag not in scan_iterables:
-                        scan_iterables.append(bidstag)
 
-            # Rename confounds to avoid confusion in nuisance regression
-            if resource == 'desc-confounds_timeseries':
-                resource = 'pipeline-ingress_desc-confounds_timeseries'
-            if filepath in outdir_func:
-                try:
-                    func_dict[resource][bidstag] = {}
-                    func_dict[resource][bidstag]['scan'] = str(filepath)
-                    func_dict[resource][bidstag]['scan_parameters'] = json_info
-                    func_dict[resource][bidstag]['pipe_idx'] = pipe_idx
+            # Rename bold mask for CPAC naming convention
+            # and to avoid collision with anat brain mask
+            if data_label.endswith('desc-brain_mask') and filepath in outdir_func: 
+                data_label.replace('brain', 'bold')
+            if data_label.endswith('desc-preproc_bold'): 
+                func_key = data_label
+                func_dict[bidstag] = {}
+                func_dict[bidstag]['scan'] = str(filepath)
+                func_dict[bidstag]['scan_parameters'] = json_info
+                func_dict[bidstag]['pipe_idx'] = pipe_idx
 
-                except KeyError:
-                    func_dict[resource] = {}
-                    func_dict[resource][bidstag] = {}
-                    func_dict[resource][bidstag]['scan'] = str(filepath)
-                    func_dict[resource][bidstag]['scan_parameters'] = json_info
-                    func_dict[resource][bidstag]['pipe_idx'] = pipe_idx
             else:
-                ingress = create_general_datasource(f'gather_outdir_{unique_data_label}')
+                ingress = create_general_datasource(f'gather_outdir_{str(data_label)}')
                 ingress.inputs.inputnode.set(
                     unique_id=unique_id,
                     data=filepath,
                     creds_path=creds_path,
                     dl_dir=cfg.pipeline_setup['working_directory']['path']
                 )
-                rpool.set_data(resource, ingress, 'outputspec.data', json_info,
-                    pipe_idx, node_name, f"outdir_{resource}_ingress", inject=True)
+                rpool.set_data(data_label, ingress, 'outputspec.data', json_info,
+                    pipe_idx, node_name, f"outdir_{data_label}_ingress", inject=True)
     if func_dict:
         wf, rpool = func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, \
-            creds_path, part_id)
-        # for key in func_dict.keys():
-        #     for val in func_dict[key].keys():
-        #         json = func_dict[key][val]['scan_parameters']
-        #         rpool.set_json_info(key, func_dict[key][val]['pipe_idx'], val, json)
+            creds_path, part_id, func_key)
 
     if cfg.surface_analysis['freesurfer']['ingress_reconall']:
         rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id)
     return wf, rpool
 
-def json_outdir_ingress(rpool, filepath, exts, unique_data_label, data_label, json):
+def json_outdir_ingress(rpool, filepath, exts, data_label, json):
     
     desc_val = None
     for tag in data_label.split('_'):
@@ -1940,7 +1929,7 @@ def json_outdir_ingress(rpool, filepath, exts, unique_data_label, data_label, js
                                     'reading in the output directory or when '
                                     'it was written out previously.\n\nGive '
                                     'this to your friendly local C-PAC '
-                                    f'developer:\n\n{unique_data_label}\n')
+                                    f'developer:\n\n{str(data_label)}\n')
 
             # remove the integer at the end of the desc-* variant, we will 
             # get the unique pipe_idx from the CpacProvenance below
@@ -1963,29 +1952,26 @@ def json_outdir_ingress(rpool, filepath, exts, unique_data_label, data_label, js
 
     return rpool, json_info, pipe_idx, node_name, data_label
 
-def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_id):
+def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_id, key):
     
-    for key in func_dict.keys():
-        ingress = create_func_datasource(func_dict[key], rpool, f'gather_outdir_{key}')
-        ingress.inputs.inputnode.set(
-            subject=unique_id,
-            creds_path=creds_path,
-            dl_dir=cfg.pipeline_setup['working_directory']['path']
-        )
-        rpool.set_data('subject', ingress, 'outputspec.subject', {}, "",
+    ingress = create_func_datasource(func_dict, rpool, f'gather_outdir_{key}')
+    ingress.inputs.inputnode.set(
+        subject=unique_id,
+        creds_path=creds_path,
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+    rpool.set_data('subject', ingress, 'outputspec.subject', {}, "",
+        "func_ingress")
+    ingress.get_node('inputnode').iterables = \
+        ("scan", list(func_dict.keys())) 
+    rpool.set_data(key, ingress, 'outputspec.rest', {}, "",
             "func_ingress")
-        ingress.get_node('inputnode').iterables = \
-            ("scan", list(func_dict[key].keys())) 
-        rpool.set_data(key, ingress, 'outputspec.rest', {}, "",
-                "func_ingress")
-        
-        rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", f'func_ingress')
-        rpool.set_data('scan-params', ingress, 'outputspec.scan_params', {}, "",
-            "scan_params_ingress")
-        if key == 'space-template_desc-preproc_bold':
-            wf, rpool, diff, blip, fmap_rp_list = \
-            ingress_func_metadata(wf, cfg, rpool, func_dict[key], part_id,
-                            creds_path, key)
+    
+    rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", f'func_ingress')
+    rpool.set_data('scan-params', ingress, 'outputspec.scan_params', {}, "",
+        "scan_params_ingress")
+    wf, rpool, diff, blip, fmap_rp_list = ingress_func_metadata(wf, cfg, \
+            rpool, func_dict, part_id, creds_path, key)
     return wf, rpool
 
 def strip_template(data_label, dir_path, filename):
@@ -2227,12 +2213,11 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     if data_paths:
         # ingress outdir
-        try:
-            if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']:
+        if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']:
                 wf, rpool = \
                      ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, \
                     ses_id, creds_path=None)
-        except KeyError:
+        else:
             rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                         part_id, ses_id)
             if 'func' in data_paths:
