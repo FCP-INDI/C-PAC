@@ -6,10 +6,10 @@ USER root
 # install C-PAC & set up runscript
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
-RUN pip install -e /code
+RUN pip cache purge && pip install -e /code
 # set up runscript
 COPY dev/docker_data /code/docker_data
-RUN rm -Rf /code/docker_data/Dockerfiles && \
+RUN rm -Rf /code/docker_data/checksum && \
     mv /code/docker_data/* /code && \
     rm -Rf /code/docker_data && \
     chmod +x /code/run.py && \
@@ -24,7 +24,11 @@ RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/* \
     && ldconfig \
     && chmod 777 / \
+    && chmod -R 777 /home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
+ENV PYTHONUSERBASE=/home/c-pac_user/.local
+ENV PATH=$PATH:/home/c-pac_user/.local/bin \
+    PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
 
 # set user
 # USER c-pac_user

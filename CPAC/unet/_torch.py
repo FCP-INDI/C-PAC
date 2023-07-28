@@ -19,10 +19,12 @@
 try:
     import torch
 except (ImportError, ModuleNotFoundError):
+    from importlib import invalidate_caches
     from CPAC.info import UNET_REQUIREMENTS
     from CPAC.utils.monitoring.custom_logging import log_subprocess
-
-    log_subprocess(['pip', 'install', *UNET_REQUIREMENTS])
+    invalidate_caches()
+    log_subprocess(['pip', 'install', '--user', *UNET_REQUIREMENTS])
+    invalidate_caches()
     import torch
 
 __all__ = ['torch']
