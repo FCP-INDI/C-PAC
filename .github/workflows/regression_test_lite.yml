@@ -4,8 +4,6 @@ name: Run Regression Lite Test
 on:
   #pull_request:
   #  types: [ready_for_review]
-  push:
-    branches: regression/after-runs
   workflow_call:
     secrets:
       GH_CLI_BIN_PATH:
