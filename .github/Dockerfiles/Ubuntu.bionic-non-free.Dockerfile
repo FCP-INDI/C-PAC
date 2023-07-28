@@ -25,7 +25,7 @@ RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
     chown -R c-pac_user:c-pac /home/c-pac_user && \
-    chmod 777 /home/c-pac_user && \
+    chmod 777 / /home/c-pac_user && \
     chmod ugo+w /etc/passwd && \
     apt-get update && \
     apt-get install -y --no-install-recommends \

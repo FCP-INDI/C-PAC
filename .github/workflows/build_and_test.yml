@@ -312,7 +312,7 @@ jobs:
       variant: ''
 
   C-PAC-lite:
-    if: github.ref_name != 'regression/reg-suite' && github.ref_name != 'set_working_directory'
+    if: github.ref_name != 'set_working_directory'
     needs: build-base
     uses: ./.github/workflows/build_C-PAC.yml
     with:

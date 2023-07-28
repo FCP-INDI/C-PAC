@@ -705,7 +705,7 @@ def gen_voxel_timeseries(data_file, template):
     one = np.array([1])
     headers = ['volume/xyz']
     cordinates = np.argwhere(unit_data != 0)
-    for val in range(np.alen(cordinates)):
+    for val in range(len(cordinates)):
         ijk_mat = np.concatenate([cordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)

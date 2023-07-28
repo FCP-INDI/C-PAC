@@ -274,6 +274,7 @@ functional_preproc:
     using: []
 
   func_masking:
+    run: On
     FSL_AFNI:
       brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
       brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
@@ -303,6 +304,11 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
+
+  coreg_prep:
+
+    # Generate sbref
+    run: On
 
 nuisance_corrections:
   2-nuisance_regression:
