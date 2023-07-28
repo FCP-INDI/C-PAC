@@ -34,15 +34,20 @@ jobs:
       - name: Set tag & Dockerfile
         if: github.ref_type == 'branch'
         run: |
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ inputs.variant }}" == "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
-          fi
-          if [[ "${{ inputs.variant }}" == "fMRIPrep-LTS" ]]
-          then
-            OS=xenial
+            OS=jammy
           else
-            OS=bionic
+            VARIANT=-${{ inputs.variant }}
+            if [[ "${{ inputs.variant }}" == "fMRIPrep-LTS" ]]
+            then
+              OS=xenial
+            elif [[ "${{ inputs.variant }}" == "ABCD-HCP" ]]
+            then
+              OS=bionic
+            else
+              OS=jammy
+            fi
           fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
