@@ -20,7 +20,7 @@ ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 RUN ldconfig \
     && apt-get clean \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/* \
     && chmod 777 / \
     && chmod -R 777 /home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)

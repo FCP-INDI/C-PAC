@@ -14,38 +14,35 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy as FreeSurfer
-
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6.dev1
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-Standard software dependencies for C-PAC standard images"
+FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.6.dev1
+LABEL org.opencontainers.image.description "Full C-PAC image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
-# Installing FreeSurfer
-RUN yes | mamba install tcsh \
-  && yes | mamba clean --all \
-  && cp -l `which tcsh` /bin/tcsh
-ENV FREESURFER_HOME="/usr/lib/freesurfer" \
-    NO_FSFAST=1
-ENV PATH="$FREESURFER_HOME/bin:$PATH" \
-    PERL5LIB="$FREESURFER_HOME/mni/share/perl5" \
-    FSFAST_HOME="$FREESURFER_HOME/fsfast" \
-    SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
-    MNI_DIR="$FREESURFER_HOME/mni"
-ENV MINC_BIN_DIR="$MNI_DIR/bin" \
-    MINC_LIB_DIR="$MNI_DIR/lib" \
-    PATH="$PATH:$MINC_BIN_DIR"
-COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
-COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
+# install C-PAC
+COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
+COPY . /code
+RUN pip install -e /code
+# set up runscript
+COPY dev/docker_data /code/docker_data
+RUN rm -Rf /code/docker_data/Dockerfiles && \
+    mv /code/docker_data/* /code && \
+    rm -Rf /code/docker_data && \
+    chmod +x /code/run.py && \
+    chmod +x /code/run-with-freesurfer.sh
+ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
+# link libraries & clean up
 # link libraries & clean up
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
     && rm -rf results.txt \
+    && apt-get remove rdfind -y \
+    && apt-get clean \
+    && apt-get autoremove -y \
     && ldconfig \
     && chmod 777 / \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
-USER c-pac_user
+# USER c-pac_user
