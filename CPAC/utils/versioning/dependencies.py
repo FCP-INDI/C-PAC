@@ -52,6 +52,7 @@ def cli_version(command, dependency=None, in_result=True, delimiter=' ',
         {software: version}
     """
     with Popen(command, stdout=PIPE, stderr=STDOUT, shell=True) as _command:
+        assert _command.stdout is not None
         _version = _command.stdout.read().decode('utf-8')
         poll = _command.poll()
         if poll is None or int(poll) == 127:  # handle missing command
