@@ -812,6 +812,7 @@ latest_schema = Schema({
             }
         },
         'func_masking': {
+            'run': bool1_1,
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
                  'Anatomical_Based', 'Anatomical_Resampled',
@@ -852,6 +853,9 @@ latest_schema = Schema({
             'run': bool1_1,
         },
         'normalize_func': {
+            'run': bool1_1,
+        },
+        'coreg_prep': {
             'run': bool1_1,
         },
     },

@@ -204,3 +204,7 @@ REQUIREMENTS = [
     "voluptuous>=0.12.0",
     "ciftify",
 ]
+UNET_REQUIREMENTS = [
+    "torch==1.13.1",
+    "torchvision==0.14.1"
+]

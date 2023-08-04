@@ -295,6 +295,7 @@ functional_preproc:
     using: [PhaseDiff, Blip-FSL-TOPUP]
 
   func_masking:
+    run: On
 
     # Apply functional mask in native space
     apply_func_mask_in_native_space: Off
@@ -311,6 +312,11 @@ functional_preproc:
   generate_func_mean:
 
     # Generate mean functional image
+    run: On
+
+  coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:
