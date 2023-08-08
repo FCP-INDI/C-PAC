@@ -17,10 +17,13 @@
 """
 Helpers and aliases for handling typing in main and variant Python versions
 
-Once all variants run Python ≥ 3.10, these global variables can be
-replaced with the preferred syntax
+Once all variants (see {DOCS_URL_PREFIX}/user/versions#variants)
+run Python ≥ 3.10, these global variables can be replaced with the
+current preferred syntax.
 """
 import sys
+from CPAC.utils.docs import DOCS_URL_PREFIX
+__doc__ = __doc__.replace(r'{DOCS_URL_PREFIX}', DOCS_URL_PREFIX)
 
 if sys.version_info >= (3, 10):
     LIST_OR_STR = list | str
