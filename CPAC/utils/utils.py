@@ -1493,7 +1493,7 @@ def _check_nested_types(d, keys):
 def delete_nested_value(d, keys):
     '''Helper function to delete nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -1858,7 +1858,7 @@ def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
 def lookup_nested_value(d, keys):
     '''Helper method to look up nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -2020,7 +2020,7 @@ def replace_in_strings(d, replacements=None):
 def set_nested_value(d, keys, value):
     '''Helper method to set nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
