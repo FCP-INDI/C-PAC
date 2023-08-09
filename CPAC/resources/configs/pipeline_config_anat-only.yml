@@ -33,10 +33,6 @@ pipeline_setup:
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 3
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
   working_directory:
 
     # Deletes the contents of the Working Directory after running.
@@ -124,12 +120,6 @@ registration_workflows:
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters:
-
-      FSL-FNIRT:
-
-        # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
 functional_preproc:
   run: Off

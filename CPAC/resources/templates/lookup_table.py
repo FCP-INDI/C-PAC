@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,8 +19,10 @@
 from in-container template paths"""
 from os import path as op
 from re import search
-from typing import Optional, Tuple
+from typing import Optional
+from bids.layout import parse_file_entities
 from numpy import loadtxt
+from CPAC.utils.typing import TUPLE
 
 LOOKUP_TABLE = {row[0]: (row[1], str(row[2]) if row[2] else None) for row in
                 loadtxt(op.join(op.dirname(__file__), 'BIDS_identifiers.tsv'),
@@ -52,7 +54,7 @@ def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
     return identifier
 
 
-def lookup_identifier(template_path: str) -> Tuple[str, None]:
+def lookup_identifier(template_path: str) -> TUPLE[str, None]:
     '''Function to return a standard template identifier for a packaged
     template, if known. Otherwise, returns the literal string
     'template'
@@ -80,8 +82,15 @@ def lookup_identifier(template_path: str) -> Tuple[str, None]:
     ('template', None)
     >>> lookup_identifier('/cpac_templates/CC200.nii.gz')
     ('CC', '200')
+    >>> lookup_identifier('s3://templateflow/tpl-MNI152NLin2009cAsym/'
+    ...                   'tpl-MNI152NLin2009cAsym_res-02_atlas-Schaefer2018_'
+    ...                   'desc-200Parcels17Networks_dseg.nii.gz')
+    ('Schaefer2018', '200Parcels17Networks')
     '''
     for key, value in LOOKUP_TABLE.items():
         if search(key, template_path) is not None:
             return value
+    _bidsy = parse_file_entities(template_path)
+    if 'atlas' in _bidsy:
+        return _bidsy['atlas'], _bidsy.get('desc')
     return 'template', None

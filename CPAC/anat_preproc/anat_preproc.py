@@ -921,10 +921,12 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 
 def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
+    '''
+    ABCD harmonization - anatomical brain mask generation
 
-    ### ABCD harmonization - anatomical brain mask generation ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
-    
+    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
+    '''
+
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file',
                                                          'reslice_like',
                                                          'args'],
@@ -1833,8 +1835,9 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
-    wf, outputs = freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-    
+    wf, outputs = freesurfer_abcd_brain_connector(wf, cfg, strat_pool,
+                                                  pipe_num, opt)
+
     return (wf, outputs)
 
 
@@ -1934,7 +1937,7 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
 def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-    
+
     outputs = {'space-T1w_desc-tight_acpcbrain_mask':
         wf_outputs['space-T1w_desc-tight_brain_mask']}
         
@@ -2306,7 +2309,6 @@ def n4_bias_correction_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-T2w_desc-brain_mask"],
 )
 def brain_mask_afni_T2(wf, cfg, strat_pool, pipe_num, opt=None):
-    
     wf, outputs = afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     return (wf, outputs)
@@ -2480,7 +2482,7 @@ def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     }
     
     return (wf, outputs)
- 
+
 
 @nodeblock(
     name="brain_mask_acpc_T2",
@@ -2623,7 +2625,6 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
-    
     # fnirt-based brain extraction
     brain_extraction = fnirt_based_brain_extraction(config=cfg,
                                                     wf_name=f'fnirt_based_brain_extraction_{pipe_num}')
@@ -3017,7 +3018,8 @@ def fast_bias_field_correction(config=None, wf_name='fast_bias_field_correction'
     ],
     outputs=["desc-restore-brain_T1w"],
 )
-def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num,
+                                         opt=None):
 
     ### ABCD Harmonization - Myelin Map ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656

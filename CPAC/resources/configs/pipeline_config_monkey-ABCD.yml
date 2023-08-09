@@ -46,10 +46,6 @@ pipeline_setup:
     #   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
     num_participants_at_once: 3
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
   working_directory:
 
     # Deletes the contents of the Working Directory after running.
@@ -201,10 +197,6 @@ registration_workflows:
         # Possible values: trilinear, sinc, spline
         interpolation: spline
 
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
@@ -304,10 +296,6 @@ registration_workflows:
         # Interpolation method for writing out transformed functional images.
         # Possible values: trilinear, sinc, spline
         interpolation: spline
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
     EPI_registration:
       ANTs:

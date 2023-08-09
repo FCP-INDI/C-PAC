@@ -814,7 +814,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
 def camelCase(string: str) -> str:  # pylint: disable=invalid-name
     """Convert a hyphenated string to camelCase
 
-    Paremeters
+    Parameters
     ----------
     string : str
         string to convert to camelCase
