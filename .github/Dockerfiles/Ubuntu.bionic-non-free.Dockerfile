@@ -140,7 +140,6 @@ RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y &
     pip install --upgrade setuptools && \
     pip install --upgrade pip && \
     pip install -r /opt/requirements.txt && \
-    pip install xvfbwrapper && \
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get install -y --no-install-recommends git-lfs && \
     git lfs install
