@@ -189,10 +189,10 @@ registration_workflows:
         FNIRT_T1w_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
         # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
 
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
+        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
         # Reference mask for FSL registration.
         ref_mask: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
@@ -203,7 +203,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
@@ -238,7 +238,7 @@ registration_workflows:
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+        bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
 
       # Choose coregistration interpolation
       interpolation: spline
@@ -307,7 +307,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     EPI_registration:
       ANTs:
@@ -340,8 +340,8 @@ functional_preproc:
   func_masking:
     run: On
     FSL_AFNI:
-      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_probseg: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514

@@ -31,8 +31,8 @@ class TestAnatPreproc:
 
 
         self.preproc = anat_preproc.create_anat_preproc()
-        self.input_anat = os.path.abspath('/usr/share/data/fsl-mni152-templates/MNI152_T1_2mm.nii.gz')
-        self.input_anat_known_brain = os.path.abspath('/usr/share/data/fsl-mni152-templates/MNI152_T1_2mm_brain.nii.gz')
+        self.input_anat = os.path.abspath('$FSLDIR/data/standard/MNI152_T1_2mm.nii.gz')
+        self.input_anat_known_brain = os.path.abspath('$FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz')
         self.base_dir = os.path.abspath('/home/data/Projects/Pipelines_testing/Dickstein_CPAC_working_dir/')
         self.preproc.inputs.inputspec.anat = self.input_anat
         self.preproc.base_dir = self.base_dir
