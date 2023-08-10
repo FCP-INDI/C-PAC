@@ -17,7 +17,10 @@
 """Test torch installation"""
 def test_import_torch():
     """
-    Test that torch successfully imports after being installed dynamically
+    Test that ``torch`` successfully imports after being installed dynamically.
+
+    This test is necessarily slow because it involves dynamically
+    installing ``torch``.
     """
     # pylint: disable=import-error,unused-import,wrong-import-order
     from CPAC import unet
