@@ -46,10 +46,6 @@ pipeline_setup:
     #   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
     num_participants_at_once: 3
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
   working_directory:
 
     # Deletes the contents of the Working Directory after running.
@@ -188,22 +184,12 @@ registration_workflows:
         # It is for monkey pipeline specifically.
         FNIRT_T1w_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
-
         # Reference mask for FSL registration.
         ref_mask: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
 
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
         interpolation: spline
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
       # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
@@ -234,11 +220,6 @@ registration_workflows:
 
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
       run: On
-      boundary_based_registration:
-
-        # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-        # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
 
       # Choose coregistration interpolation
       interpolation: spline
@@ -304,10 +285,6 @@ registration_workflows:
         # Interpolation method for writing out transformed functional images.
         # Possible values: trilinear, sinc, spline
         interpolation: spline
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     EPI_registration:
       ANTs:
