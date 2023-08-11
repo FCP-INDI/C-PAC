@@ -15,9 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for requisite surface prerequisites"""
+import os
+import pytest
 from CPAC.utils.monitoring.custom_logging import log_subprocess
 
 
+@pytest.mark.skipif("FREESURFER_HOME" not in os.environ or
+                    not os.path.exists(os.environ['FREESURFER_HOME']),
+                    reason="We don't need bc if we don't have FreeSurfer.")
 def test_bc():
     """Make sure ``bc`` is installed"""
     _, exit_code = log_subprocess(['bc', '--version'])
