@@ -18,8 +18,8 @@
 (https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers)
 from in-container template paths"""
 from os import environ, path as op
-from re import search
-from typing import Optional, Tuple
+from re import findall, search
+from typing import Optional, Tuple, Union
 from numpy import loadtxt
 
 LOOKUP_TABLE = {row[0].replace(r'$FSLDIR', environ['FSLDIR']): (
@@ -53,7 +53,7 @@ def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
     return identifier
 
 
-def lookup_identifier(template_path: str) -> Tuple[str, None]:
+def lookup_identifier(template_path: str) -> Tuple[str, Union[str, None]]:
     '''Function to return a standard template identifier for a packaged
     template, if known. Otherwise, returns the literal string
     'template'
@@ -82,6 +82,15 @@ def lookup_identifier(template_path: str) -> Tuple[str, None]:
     >>> lookup_identifier('/cpac_templates/CC200.nii.gz')
     ('CC', '200')
     '''
+    if r'$' in template_path:
+        bash_var_pattern = r'(\$[\w]+(?=/|\s)|\${\w+})'
+        matches = findall(bash_var_pattern, template_path)
+        if matches is not None:
+            for match in matches:
+                bash_var = match.lstrip('${').rstrip('}')
+                if bash_var in environ:
+                    template_path = template_path.replace(match,
+                                                          environ[bash_var])
     for key, value in LOOKUP_TABLE.items():
         if search(key, template_path) is not None:
             return value
