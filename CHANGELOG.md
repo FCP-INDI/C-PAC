@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makes in-container root directory writable by all
 - Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
 - Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
+- Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
 
 ### Added dependencies
 
