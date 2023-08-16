@@ -51,9 +51,6 @@ anatomical_preproc:
   acpc_alignment:
     T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
-    # ACPC aligned template
-    T1w_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz
-
   brain_extraction:
     run: On
 
