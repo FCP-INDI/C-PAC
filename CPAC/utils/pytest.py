@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,13 +14,19 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Functional preprocessing"""
-from .func_motion import calc_motion_stats, func_motion_correct, \
-                         func_motion_correct_only, func_motion_estimates, \
-                         get_motion_ref, motion_estimate_filter
-from .func_preproc import slice_timing_wf, \
-                          get_idx
+"""Utilities for Pytest integration"""
+try:
+    import pytest
+    HAVE_PYTEST = True
+except ImportError:
+    HAVE_PYTEST = False
 
-__all__ = ['calc_motion_stats', 'func_motion_correct',
-           'func_motion_correct_only', 'func_motion_estimates', 'get_idx',
-           'get_motion_ref', 'motion_estimate_filter', 'slice_timing_wf']
+
+def skipif(condition, reason):
+    """Skip test if we have Pytest, ignore test entirely if not"""
+    def decorator(func):
+        """Skip test if we have Pytest"""
+        if HAVE_PYTEST:
+            return pytest.mark.skipif(condition, reason)(func)
+        return func  # return undecorated function
+    return decorator  # return conditionally decorated function

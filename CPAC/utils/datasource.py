@@ -27,6 +27,7 @@ from CPAC.resources.templates.lookup_table import format_identifier, \
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import get_scan_params
 
 logger = logging.getLogger('nipype.workflow')
@@ -369,7 +370,7 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
 
 
 def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
-                                 echo_times: list) -> Tuple[float, float]:
+                                 echo_times: list) -> TUPLE[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
 
     Parameters
@@ -1270,8 +1271,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
-    import os, subprocess
+    import os
     import nibabel as nb
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     # load func and ROI dimension
     func_img = nb.load(in_func)
@@ -1307,7 +1309,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
                '-out', out_file,
                '-interp', interp,
                '-applyxfm', '-init', identity_matrix]
-        subprocess.check_output(cmd)
+        log_subprocess(cmd)
 
     else:
         out_func = in_func

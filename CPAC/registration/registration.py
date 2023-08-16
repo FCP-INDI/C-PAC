@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
-# TODO: replace Tuple with tuple, Union with |, once Python >= 3.9, 3.10
-from typing import Optional, Tuple, Union
+from typing import Optional
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
@@ -35,6 +34,7 @@ from CPAC.registration.utils import seperate_warps_list, \
                                     run_c3d, \
                                     run_c4d
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
+from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
@@ -1992,8 +1992,10 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False,
         "space-template_desc-head_T1w": {"Template": "T1w-template"},
         "space-template_desc-T1w_mask": {"Template": "T1w-template"},
         "space-template_desc-T1wT2w_biasfield": {"Template": "T1w-template"},
-        "from-T1w_to-template_mode-image_desc-linear_xfm": {"Template": "T1w-template"},
-        "from-template_to-T1w_mode-image_desc-linear_xfm": {"Template": "T1w-template"},
+        "from-T1w_to-template_mode-image_desc-linear_xfm": {
+            "Template": "T1w-template"},
+        "from-template_to-T1w_mode-image_desc-linear_xfm": {
+            "Template": "T1w-template"},
         "from-T1w_to-template_mode-image_xfm": {"Template": "T1w-template"},
         "from-T1w_to-template_mode-image_warp": {"Template": "T1w-template"},
         "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
@@ -2002,7 +2004,8 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False,
         "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
             "Template": "T1w-template"
         },
-        "from-longitudinal_to-template_mode-image_xfm": {"Template": "T1w-template"},
+        "from-longitudinal_to-template_mode-image_xfm": {
+            "Template": "T1w-template"},
     },
 )
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2153,7 +2156,8 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
 
 @nodeblock(
     name="register_FSL_EPI_to_template",
-    config=["registration_workflows", "functional_registration", "EPI_registration"],
+    config=["registration_workflows", "functional_registration",
+            "EPI_registration"],
     switch=["run"],
     option_key="using",
     option_val=["FSL", "FSL-linear"],
@@ -2170,7 +2174,8 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
         "from-EPItemplate_to-bold_mode-image_desc-linear_xfm": {
             "Template": "EPI-template"
         },
-        "from-bold_to-EPItemplate_mode-image_xfm": {"Template": "EPI-template"},
+        "from-bold_to-EPItemplate_mode-image_xfm": {
+            "Template": "EPI-template"},
     },
 )
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2239,55 +2244,73 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     outputs={
         "space-template_desc-preproc_T1w": {
-            "Description": "The preprocessed T1w brain transformed to template space.",
+            "Description": "The preprocessed T1w brain transformed to "
+                           "template space.",
             "Template": "T1w-template",
         },
         "from-T1w_to-template_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w native space to T1w-template space.",
+            "Description": "Linear (affine) transform from T1w native space "
+                           "to T1w-template space.",
             "Template": "T1w-template",
         },
         "from-template_to-T1w_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w-template space to T1w native space.",
+            "Description": "Linear (affine) transform from T1w-template space "
+                           "to T1w native space.",
             "Template": "T1w-template",
         },
         "from-T1w_to-template_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from T1w native space to T1w-template space.",
+            "Description": "Nonlinear (warp field) transform from T1w native "
+                           "space to T1w-template space.",
             "Template": "T1w-template",
         },
         "from-template_to-T1w_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from T1w-template space to T1w native space.",
+            "Description": "Nonlinear (warp field) transform from "
+                           "T1w-template space to T1w native space.",
             "Template": "T1w-template",
         },
         "from-T1w_to-template_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from T1w native space to T1w-template space.",
+            "Description": "Composite (affine + warp field) transform from "
+                           "T1w native space to T1w-template space.",
             "Template": "T1w-template",
         },
         "from-template_to-T1w_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from T1w-template space to T1w native space.",
+            "Description": "Composite (affine + warp field) transform from "
+                           "T1w-template space to T1w native space.",
             "Template": "T1w-template",
         },
         "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from longitudinal-template space to T1w-template space.",
+            "Description": "Linear (affine) transform from "
+                           "longitudinal-template space to T1w-template "
+                           "space.",
             "Template": "T1w-template",
         },
         "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w-template space to longitudinal-template space.",
+            "Description": "Linear (affine) transform from T1w-template "
+                           "space to longitudinal-template space.",
             "Template": "T1w-template",
         },
         "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from longitudinal-template space to T1w-template space.",
+            "Description": "Nonlinear (warp field) transform from "
+                           "longitudinal-template space to T1w-template "
+                           "space.",
             "Template": "T1w-template",
         },
         "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from T1w-template space to longitudinal-template space.",
+            "Description": "Nonlinear (warp field) transform from "
+                           "T1w-template space to longitudinal-template "
+                           "space.",
             "Template": "T1w-template",
         },
         "from-longitudinal_to-template_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from longitudinal-template space to T1w-template space.",
+            "Description": "Composite (affine + warp field) transform from "
+                           "longitudinal-template space to T1w-template "
+                           "space.",
             "Template": "T1w-template",
         },
         "from-template_to-longitudinal_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from T1w-template space to longitudinal-template space.",
+            "Description": "Composite (affine + warp field) transform from "
+                           "T1w-template space to longitudinal-template "
+                           "space.",
             "Template": "T1w-template",
         },
     },
@@ -2361,7 +2384,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[
         (
             ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
-            ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"],
+            ["space-T1w_desc-brain_mask",
+             "space-longitudinal_desc-brain_mask"],
             [
                 "desc-head_T1w",
                 "desc-preproc_T1w",
@@ -2496,8 +2520,10 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
         "from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm": {
             "Template": "EPI-template"
         },
-        "from-bold_to-EPItemplate_mode-image_xfm": {"Template": "EPI-template"},
-        "from-EPItemplate_to-bold_mode-image_xfm": {"Template": "EPI-template"},
+        "from-bold_to-EPItemplate_mode-image_xfm": {
+            "Template": "EPI-template"},
+        "from-EPItemplate_to-bold_mode-image_xfm": {
+            "Template": "EPI-template"},
     },
 )
 def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2559,7 +2585,8 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             "desc-restore-brain_T1w",
             ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
-            ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+            ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w",
+             "T1w"],
             ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             "space-T1w_desc-brain_mask",
             "T1w-template",
@@ -2577,7 +2604,8 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "from-template_to-T1w_mode-image_xfm": {"Template": "T1w-template"},
     },
 )
-def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num,
+                                         opt=None):
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-T1w_to-template_mode-image_xfm')
@@ -2826,7 +2854,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="coregistration_prep_mean",
-    switch=[["functional_preproc", "run"], 
+    switch=[["functional_preproc", "run"],
             ["functional_preproc", "coreg_prep", "run"]],
     option_key=[
         "registration_workflows",
@@ -2870,7 +2898,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="coregistration_prep_fmriprep",
-    switch=[["functional_preproc", "run"], 
+    switch=[["functional_preproc", "run"],
             ["functional_preproc", "coreg_prep", "run"]],
     option_key=[
         "registration_workflows",
@@ -2927,7 +2955,6 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
-
     diff_complete = False
     if strat_pool.check_rpool("despiked-fieldmap") and \
             strat_pool.check_rpool("fieldmap-mask"):
@@ -3278,7 +3305,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
     ],
     outputs=["sbref", "desc-preproc_bold", "desc-stc_bold", "bold"],
 )
-def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, 
+def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
                                              opt=None):
 
     outputs = {'desc-preproc_bold': strat_pool.get_data("desc-preproc_bold")}
@@ -3417,7 +3444,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     ],
     outputs=["desc-preproc_bold", "desc-stc_bold", "bold"],
 )
-def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, 
+def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
                                         opt=None):
 
     xfm_prov = strat_pool.get_cpac_provenance(
@@ -3610,7 +3637,8 @@ def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "T1w-brain-template-funcreg",
     ],
     outputs={
-        "space-template_desc-preproc_bold": {"Template": "T1w-brain-template-funcreg"}
+        "space-template_desc-preproc_bold": {
+            "Template": "T1w-brain-template-funcreg"}
     },
 )
 def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3653,7 +3681,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
     
-    
+
 @nodeblock(
     name="transform_timeseries_to_T1template_deriv",
     config=[
@@ -3674,7 +3702,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         }
     },
 )
-def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, 
+def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
                                         opt=None):
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-bold_to-template_mode-image_xfm')
@@ -3727,7 +3755,8 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
     option_key=["apply_transform", "using"],
     option_val="abcd",
     inputs=[
-        ("desc-preproc_bold", "bold", "motion-basefile", "coordinate-transformation"),
+        ("desc-preproc_bold", "bold", "motion-basefile",
+         "coordinate-transformation"),
         "from-T1w_to-template_mode-image_xfm",
         "from-bold_to-T1w_mode-image_desc-linear_xfm",
         "from-bold_to-template_mode-image_xfm",
@@ -3738,12 +3767,16 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
         "T1w-brain-template-funcreg",
     ],
     outputs={
-        "space-template_desc-preproc_bold": {"Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-scout_bold": {"Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-head_bold": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-preproc_bold": {
+            "Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-scout_bold": {
+            "Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-head_bold": {
+            "Template": "T1w-brain-template-funcreg"},
     },
 )
-def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
+                                       ):
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries using ABCD-style registration
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
 
@@ -4030,7 +4063,8 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         "space-template_desc-bold_mask": {"Template": "T1w-template"},
     },
 )
-def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num,
+                                           opt=None):
     # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries
     # Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh
 
@@ -4378,10 +4412,14 @@ def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         )
     ],
     outputs={
-        "space-template_desc-preproc_bold": {"Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-brain_bold": {"Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-bold_mask": {"Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-head_bold": {"Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-preproc_bold": {
+            "Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-brain_bold": {
+            "Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-bold_mask": {
+            "Template": "T1w-brain-template-funcreg"},
+        "space-template_desc-head_bold": {
+            "Template": "T1w-brain-template-funcreg"},
         "space-template_res-derivative_desc-preproc_bold": {
             "Template": "T1w-brain-template-deriv"
         },
@@ -4655,7 +4693,8 @@ def single_step_resample_timeseries_to_T1template(wf, cfg, strat_pool,
     ],
     outputs={
         "space-template_sbref": {
-            "Description": "Single-volume sbref of the BOLD time-series transformed to template space.",
+            "Description": "Single-volume sbref of the BOLD time-series "
+                           "transformed to template space.",
             "Template": "T1w-brain-template-funcreg",
         }
     },
@@ -4694,11 +4733,9 @@ def warp_sbref_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         "T1w-brain-template-funcreg",
     ],
     outputs={
-        "space-template_desc-bold_mask": {"Template": "T1w-brain-template-funcreg"}
-    },
-)
+        "space-template_desc-bold_mask": {
+            "Template": "T1w-brain-template-funcreg"}})
 def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
-
     xfm = 'from-bold_to-template_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
@@ -4765,7 +4802,6 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-preproc_bold": {"Template": "EPI-template"}},
 )
 def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm, resource = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'desc-preproc_bold', xfm,
@@ -4790,7 +4826,6 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-mean_bold": {"Template": "EPI-template"}},
 )
 def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'desc-mean_bold', xfm,
@@ -4809,13 +4844,13 @@ def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     switch=["run_EPI"],
     inputs=[
-        ("space-bold_desc-brain_mask", "from-bold_to-EPItemplate_mode-image_xfm"),
+        ("space-bold_desc-brain_mask",
+         "from-bold_to-EPItemplate_mode-image_xfm"),
         "EPI-template",
     ],
     outputs={"space-template_desc-bold_mask": {"Template": "EPI-template"}},
 )
 def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    
     xfm = 'from-bold_to-EPItemplate_mode-image_xfm'
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, 'space-bold_desc-brain_mask', xfm,
@@ -4834,11 +4869,13 @@ def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     switch=["run_EPI"],
     inputs=[
-        ("space-bold_desc-brain_mask", "from-bold_to-EPItemplate_mode-image_xfm"),
+        ("space-bold_desc-brain_mask",
+         "from-bold_to-EPItemplate_mode-image_xfm"),
         "EPI-template",
     ],
     outputs={
-        "space-template_res-derivative_desc-bold_mask": {"Template": "EPI-template"}
+        "space-template_res-derivative_desc-bold_mask": {
+            "Template": "EPI-template"}
     },
 )
 def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -4873,7 +4910,6 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
-   
     return warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num,
                                        xfm='from-T1w_to-template_mode-image_'
                                            'xfm', template_space='T1')
@@ -4945,10 +4981,10 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm,
 
 
 def warp_resource_to_template(wf: pe.Workflow, cfg, strat_pool, pipe_num: int,
-                              input_resource: Union[list, str], xfm: str,
+                              input_resource: LIST_OR_STR, xfm: str,
                               reference: Optional[str] = None,
                               time_series: Optional[bool] = False
-                              ) -> Tuple[pe.Workflow, pe.Workflow, str]:
+                              ) -> TUPLE[pe.Workflow, pe.Workflow, str]:
     '''Function to warp a resource into a template space
 
     Parameters
@@ -5029,8 +5065,8 @@ def warp_resource_to_template(wf: pe.Workflow, cfg, strat_pool, pipe_num: int,
     return wf, apply_xfm, input_resource
 
 
-def _warp_return(wf: pe.Workflow, apply_xfm: Union[pe.Workflow, None],
-                 outputs: dict) -> Tuple[pe.Workflow, dict]:
+def _warp_return(wf: pe.Workflow, apply_xfm: Optional[pe.Workflow],
+                 outputs: dict) -> TUPLE[pe.Workflow, dict]:
     """Check if we have a transform to apply; if not, don't add the outputs"""
     if apply_xfm is None:
         return wf, {}

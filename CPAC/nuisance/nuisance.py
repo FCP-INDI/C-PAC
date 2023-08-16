@@ -2234,7 +2234,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
                                           'bold')
 
 
@@ -2280,15 +2280,15 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
                                           'T1w')
 
 
-def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
+def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
     '''
     Parameters
     ----------
-    wf, cfg, strat_pool, pipe_num, opt
+    wf, strat_pool, pipe_num, opt
         pass through from Node Block
 
     space : str
@@ -2451,8 +2451,10 @@ def nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, space):
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    if strat_pool.check_rpool('movement-parameters'):
-        node, out = strat_pool.get_data('movement-parameters')
+    movement_parameters = ['filtered-movement-parameters',
+                           'movement-parameters']
+    if strat_pool.check_rpool(movement_parameters):
+        node, out = strat_pool.get_data(movement_parameters)
         wf.connect(node, out,
                    regressors, 'inputspec.motion_parameters_file_path')
 
@@ -2718,7 +2720,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Apply nuisance regression to template-space image'''
-    wf, outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 
+    wf, outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, opt,
                                       'template')
     if strat_pool.check_rpool('space-template_res-derivative_desc-preproc_bold'):
         wf, res_outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, 

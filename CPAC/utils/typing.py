@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,13 +14,23 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Functional preprocessing"""
-from .func_motion import calc_motion_stats, func_motion_correct, \
-                         func_motion_correct_only, func_motion_estimates, \
-                         get_motion_ref, motion_estimate_filter
-from .func_preproc import slice_timing_wf, \
-                          get_idx
+"""
+Helpers and aliases for handling typing in main and variant Python versions
 
-__all__ = ['calc_motion_stats', 'func_motion_correct',
-           'func_motion_correct_only', 'func_motion_estimates', 'get_idx',
-           'get_motion_ref', 'motion_estimate_filter', 'slice_timing_wf']
+Once all variants (see {DOCS_URL_PREFIX}/user/versions#variants)
+run Python ≥ 3.10, these global variables can be replaced with the
+current preferred syntax.
+"""
+import sys
+from CPAC.utils.docs import DOCS_URL_PREFIX
+__doc__ = __doc__.replace(r'{DOCS_URL_PREFIX}', DOCS_URL_PREFIX)
+
+if sys.version_info >= (3, 10):
+    LIST_OR_STR = list | str
+    TUPLE = tuple
+else:
+    from typing import Tuple, Union
+    LIST_OR_STR = Union[list, str]
+    TUPLE = Tuple
+
+__all__ = ['LIST_OR_STR', 'TUPLE']
