@@ -54,10 +54,32 @@ class NodeBlockFunction:
         self.__name__ = func.__name__
         self.__qualname__ = func.__qualname__
         self.__annotations__ = func.__annotations__
-        self.__doc__ = func.__doc__
+        self.__doc__ = ''.join([_.replace('        ', '') for _ in [
+            func.__doc__, '', '', NodeBlockFunction.__call__.__doc__
+        ] if _ is not None]).rstrip()
 
     # all node block functions have this signature
     def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
+        """
+
+        Parameters
+        ----------
+        wf : ~nipype.pipeline.engine.workflows.Workflow
+
+        cfg : ~CPAC.utils.configuration.Configuration
+
+        strat_pool
+
+        pipe_num : int
+
+        opt : str, optional
+
+        Returns
+        -------
+        wf : ~nipype.pipeline.engine.workflows.Workflow
+
+        out : dict
+        """
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
     def legacy_nodeblock_dict(self):
