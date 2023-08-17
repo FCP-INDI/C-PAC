@@ -17,14 +17,10 @@
 from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces.afni import preprocess
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
-import nipype.interfaces.utility as util
+from nipype.interfaces import fsl, utility as util
 
 from CPAC.sca.utils import *
-from CPAC.utils.utils import extract_one_d
+# from CPAC.utils.utils import extract_one_d
 from CPAC.utils.datasource import resample_func_roi, \
     create_roi_mask_dataflow, create_spatial_map_dataflow
 
@@ -481,7 +477,8 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     name="dual_regression",
     config=["seed_based_correlation_analysis"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
+    inputs=["space-template_desc-preproc_bold",
+            "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-DualReg_correlations",
         "desc-DualReg_statmap",
@@ -489,8 +486,9 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Dual Regression - spatial regression and then temporal regression.'''
-
+    '''
+    Run Dual Regression - spatial regression and then temporal regression.
+    '''
     resample_spatial_map_to_native_space_for_dr = pe.Node(
         interface=fsl.FLIRT(),
         name=f'resample_spatial_map_to_native_space_for_DR_{pipe_num}'
@@ -565,7 +563,8 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     name="multiple_regression",
     config=["seed_based_correlation_analysis"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
+    inputs=["space-template_desc-preproc_bold",
+            "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-MultReg_correlations",
         "desc-MultReg_statmap",

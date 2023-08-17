@@ -572,9 +572,10 @@ def setup_test_logger(logger_name, log_file, level, to_screen=False):
 
     # Import packages
     import logging
+    from CPAC.utils.monitoring.custom_logging import getLogger
 
     # Init logger, formatter, filehandler, streamhandler
-    logger = logging.getLogger(logger_name)
+    logger = getLogger(logger_name)
     logger.setLevel(level)
     formatter = logging.Formatter('%(asctime)s : %(message)s')
 

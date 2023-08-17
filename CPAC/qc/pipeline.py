@@ -248,8 +248,8 @@ def qc_segmentation(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-    
-    
+
+
 @nodeblock(
     name="qc_epi_segmentation",
     config=["pipeline_setup", "output_directory", "quality_control"],
@@ -421,8 +421,8 @@ def qc_bold_registration(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-    
-    
+
+
 @nodeblock(
     name="qc_bold_EPI_registration",
     switch=[
