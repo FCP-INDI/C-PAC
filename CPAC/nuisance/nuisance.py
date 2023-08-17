@@ -2451,10 +2451,8 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    movement_parameters = ['filtered-movement-parameters',
-                           'movement-parameters']
-    if strat_pool.check_rpool(movement_parameters):
-        node, out = strat_pool.get_data(movement_parameters)
+    if strat_pool.check_rpool('movement-parameters'):
+        node, out = strat_pool.get_data('movement-parameters')
         wf.connect(node, out,
                    regressors, 'inputspec.motion_parameters_file_path')
 
