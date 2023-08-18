@@ -41,10 +41,14 @@ except (AttributeError, KeyError, LookupError, IndexError):
     name='calc_motion_stats',
     switch=[['functional_preproc', 'run'],
             ['functional_preproc', 'motion_estimates_and_correction', 'run'],
-            ['functional_preproc', 'motion_estimates_and_correction', 'motion_estimates', 'calculate_motion_after']],
-    inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask', 'movement-parameters', 'max-displacement',
-             'rels-displacement', 'coordinate-transformation'), 'subject', 'scan'],
-    outputs=['framewise-displacement-power', 'framewise-displacement-jenkinson', 'dvars', 'power-params',
+            ['functional_preproc', 'motion_estimates_and_correction',
+             'motion_estimates', 'calculate_motion_after']],
+    inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask',
+             'movement-parameters', 'max-displacement',
+             'rels-displacement', 'coordinate-transformation'), 'subject',
+             'scan'],
+    outputs=['framewise-displacement-power',
+             'framewise-displacement-jenkinson', 'dvars', 'power-params',
              'motion-params']
 )
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -147,8 +151,6 @@ def estimate_reference_image(in_file):
 _MOTION_CORRECTED_OUTPUTS = {
     "desc-preproc_bold": {"Description": "Motion-corrected BOLD time-series."},
     "desc-motion_bold": {"Description": "Motion-corrected BOLD time-series."}}
-# the "filtered" outputs here are just for maintaining expecting
-# forking and connections and will not be output
 _MOTION_PARAM_OUTPUTS = {
     "max-displacement": {},
     "rels-displacement": {},
@@ -164,9 +166,6 @@ _MOTION_PARAM_OUTPUTS = {
     "coordinate-transformation": {
         "Description" : "Each row contains for one timepoint the first "
                         "12 values of a 4x4 affine matrix"}}
-_MOTION_PARAM_OUTPUTS["unfiltered-movement-parameters"] = {
-    "Description": "UNFILTERED: " +
-                   _MOTION_PARAM_OUTPUTS["movement-parameters"]['Description']}
 
 
 @nodeblock(
@@ -221,7 +220,6 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
                                 ['coordinate-transformation',
                                  'max-displacement',
                                  'movement-parameters',
-                                 'unfiltered-movement-parameters',
                                  'rels-displacement']))
 
 
@@ -513,8 +511,7 @@ def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
         'desc-motion_bold': (out_motion_A, 'out_file'),
         'max-displacement': (out_md1d, 'out_file'),
         'movement-parameters': (out_oned, 'out_file'),
-        'coordinate-transformation': (out_oned_matrix, 'out_file'),
-        'unfiltered-movement-parameters': (out_oned, 'out_file')
+        'coordinate-transformation': (out_oned_matrix, 'out_file')
     }
 
     return wf, outputs
@@ -559,9 +556,7 @@ def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num):
         'max-displacement': (get_rms_abs, 'abs_file'),
         'rels-displacement': (get_rms_abs, 'rels_file'),
         'movement-parameters': (normalize_motion_params, 'out_file'),
-        'coordinate-transformation': (func_motion_correct_A, 'mat_file'),
-        'unfiltered-movement-parameters': (normalize_motion_params,
-                                           'out_file')
+        'coordinate-transformation': (func_motion_correct_A, 'mat_file')
     }
 
     return wf, outputs
@@ -615,12 +610,14 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                                  " not seem to affect framewise"
                                  " displacement calculation, for which"
                                  " this matrix is used."},
+              "filter-name": {
+                  "Description": "Name of the motion filter used."},
               "movement-parameters": {
                   "Description": "Filtered movement parameters"
                                  " (3 rotation, 3 translation)."},
               "motion-filter-info": {},
               "motion-filter-plot": {}})
-def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
+def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt):
     '''
     Filter motion parameters.
 
@@ -652,6 +649,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
                              function=notch_filter_motion,
                              imports=notch_imports),
                     name=f'filter_motion_params_{opt["Name"]}_{pipe_num}')
+    strat_pool.filter_name = opt['Name']
 
     notch.inputs.filter_type = opt.get('filter_type')
     notch.inputs.fc_RR_min = opt.get('breathing_rate_min')
@@ -682,6 +680,9 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
+
+
+MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs or []
 
 
 def normalize_motion_parameters(in_file):

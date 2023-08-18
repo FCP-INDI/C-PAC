@@ -34,7 +34,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -858,6 +858,8 @@ class ResourcePool:
         return (wf, post_labels)
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
+        from CPAC.func_preproc.func_motion import MOVEMENT_FILTER_KEYS
+
         excl = []
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
@@ -1047,7 +1049,8 @@ class ResourcePool:
                                                           'template_desc',
                                                           'atlas_id',
                                                           'fwhm',
-                                                          'subdir'],
+                                                          'subdir',
+                                                          'filter_name'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1055,6 +1058,10 @@ class ResourcePool:
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
+                filter_name = None
+                if hasattr(self.rpool, 'filter_name'):
+                    filter_name = self.rpool.filter_name
+                id_string.inputs.filter_name = filter_name
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -1139,7 +1146,8 @@ class ResourcePool:
                 expected_outputs += (out_dct['subdir'], create_id_string(
                     self.cfg, unique_id, resource_idx,
                     template_desc=id_string.inputs.template_desc,
-                    atlas_id=atlas_id, subdir=out_dct['subdir']))
+                    atlas_id=atlas_id, subdir=out_dct['subdir'],
+                    filter_name=filter_name))
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',

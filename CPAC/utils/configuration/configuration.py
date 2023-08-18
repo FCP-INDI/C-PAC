@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
-from typing import Optional
+from typing import List, Optional, Union
 from warnings import warn
 import pkg_resources as p
 import yaml
@@ -234,6 +234,34 @@ class Configuration:
             return {i: self._nonestr_to_None(d[i]) for i in d}
         else:
             return d
+
+    def on_off(self, key: Union[str, List[str]]) -> bool:
+        '''Return True if the given key is set to both 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        Returns
+        -------
+        bool
+            True if key is set to 'on', False if set to 'off'
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.on_off(['nuisance_corrections', '2-nuisance_regression', 'run'])
+        False
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.on_off(['nuisance_corrections', '2-nuisance_regression', 'run'])
+        True
+        '''
+        if isinstance(self[key], list):
+            return True in self[key] and False in self[key]
+        return False
 
     def return_config_elements(self):
         # this returns a list of tuples

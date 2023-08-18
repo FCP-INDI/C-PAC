@@ -482,7 +482,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         meta=workflow_meta,
         custom_serializer=cpac_flowdump_serializer
     )
-
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
                     'file, the pipeline was built successfully, but was '

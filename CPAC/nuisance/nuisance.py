@@ -54,6 +54,9 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import (bandpass_voxels, afni_1dBandpass)
 logger = logging.getLogger('nipype.workflow')
+_FILTERS_SWITCH = ['functional_preproc',
+                   'motion_estimates_and_correction',
+                   'motion_estimate_filter', 'run']
 
 
 def choose_nuisance_blocks(cfg, generate_only=False):
@@ -2234,7 +2237,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
     return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
-                                          'bold')
+                                          'bold', cfg.on_off(_FILTERS_SWITCH))
 
 
 @nodeblock(
@@ -2280,22 +2283,31 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
     return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
-                                          'T1w')
+                                          'T1w', cfg.on_off(_FILTERS_SWITCH))
 
 
-def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
+def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space,
+                                   filters_on_off):
     '''
     Parameters
     ----------
-    wf, strat_pool, pipe_num, opt
-        pass through from Node Block
+    wf : ~nipype.pipeline.engine.workflows.Workflow
+
+    strat_pool : ~CPAC.pipeline.engine.ResourcePool
+
+    pipe_num : int
+
+    opt : str
 
     space : str
         T1w or bold
 
+    filters_on_off : bool
+        Fork on with/without motion filters?
+
     Returns
     -------
-    wf : nipype.pipeline.engine.workflows.Workflow
+    wf : ~nipype.pipeline.engine.workflows.Workflow
 
     outputs : dict
     '''
@@ -2323,12 +2335,17 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
                                        'desc-preproc_mask',
                                        f'{prefixes[0]}label-CSF_mask'])
 
+    wf_name = 'nuisance_regressors_{opt["Name"]}'
+    if filters_on_off and not hasattr(strat_pool, 'filter_name'):
+        strat_pool.filter_name = 'none'
+    if hasattr(strat_pool, 'filter_name'):
+        wf_name += f'_filt-{strat_pool.filter_name}'
+
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
                                            all_bold=space=='bold',
                                            csf_mask_exist = csf_mask,
-                                           name='nuisance_regressors_'
-                                                f'{opt["Name"]}_{pipe_num}')
+                                           name=f'{wf_name}_{pipe_num}')
 
     node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, 'inputspec.functional_file_path')

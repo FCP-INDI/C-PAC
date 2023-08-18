@@ -150,8 +150,8 @@ def read_json(json_file):
 
 
 def create_id_string(cfg, unique_id, resource, scan_id=None,
-                     template_desc=None, atlas_id=None, fwhm=None, subdir=None
-                     ):
+                     template_desc=None, atlas_id=None, fwhm=None, subdir=None,
+                     filter_name=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -211,6 +211,9 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
             if prefix in bidstag and 'template' in bidstag:
                 out_filename = out_filename.replace(
                     bidstag, f'{prefix}{template_tag}')
+
+    if filter_name is not None:
+        out_filename = f'{out_filename}_filt-{filter_name}'
 
     if fwhm:
         for tag in resource.split('_'):
