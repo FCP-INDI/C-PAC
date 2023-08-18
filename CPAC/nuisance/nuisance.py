@@ -94,7 +94,6 @@ def choose_nuisance_blocks(cfg, generate_only=False):
                                                  '2-nuisance_regression',
                                                  'space']:
             nuisance.append((nuisance_regression_native, input_interface))
-
     return nuisance
 
 
