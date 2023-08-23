@@ -19,7 +19,6 @@ import copy
 import hashlib
 import json
 from itertools import chain
-import logging
 import os
 import re
 import warnings
@@ -1050,7 +1049,7 @@ class ResourcePool:
                                                           'atlas_id',
                                                           'fwhm',
                                                           'subdir',
-                                                          'filter_name'],
+                                                          'fork_naming'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1058,10 +1057,8 @@ class ResourcePool:
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
                 id_string.inputs.subdir = out_dct['subdir']
-                filter_name = None
-                if hasattr(self.rpool, 'filter_name'):
-                    filter_name = self.rpool.filter_name
-                id_string.inputs.filter_name = filter_name
+                id_string.inputs.fork_naming = getattr(
+                    self.rpool[resource][pipe_idx], 'fork_naming', {})
 
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
@@ -1147,7 +1144,7 @@ class ResourcePool:
                     self.cfg, unique_id, resource_idx,
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir'],
-                    filter_name=filter_name))
+                    fork_naming=id_string.inputs.fork_naming))
                 wf.connect(nii_name, 'out_file',
                            ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
@@ -1232,7 +1229,7 @@ class NodeBlock:
                 logger.debug('"inputs": %s\n\t "outputs": %s%s',
                              node_block_function.inputs,
                              list(self.outputs.keys()),
-                             f'\n\t"options": {self.options}'
+                             f'\n\t"options": {list(self.options)}'
                              if self.options != ['base'] else '')
                 config.update_config(
                     {'logging': {'workflow_level': 'INFO'}})
@@ -1416,6 +1413,7 @@ class NodeBlock:
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool,
                                                       pipe_x, opt)
+                            persist_fork_naming(strat_pool, outs)
                         except IOError as e:  # duplicate node
                             logger.warning(e)
                             continue
@@ -2164,6 +2162,26 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     return (wf, rpool)
+
+
+def persist_fork_naming(strat_pool: ResourcePool,
+                        outs: dict[str, tuple[pe.Node, str]]) -> None:
+    """Persist fork names to downstream nodes.
+
+    Parameters
+    ----------
+    strat_pool : ResourcePool
+        a strategy pool
+
+    outs : dict
+        dictionary of downstream nodes
+    """
+    for _resource in strat_pool.get_entire_rpool().values():
+        if outs and hasattr(_resource.get('data', [({},)])[0], 'fork_naming'):
+            for _out in outs.values():
+                fork_naming = {**_resource['data'][0].fork_naming,
+                               **getattr(_out[0], 'fork_naming', {})}
+                setattr(_out[0], 'fork_naming', fork_naming)
 
 
 def run_node_blocks(blocks, data_paths, cfg=None):

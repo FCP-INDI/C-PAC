@@ -2237,7 +2237,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
     return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
-                                          'bold', cfg.on_off(_FILTERS_SWITCH))
+                                          'bold')
 
 
 @nodeblock(
@@ -2283,11 +2283,10 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
     return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
-                                          'T1w', cfg.on_off(_FILTERS_SWITCH))
+                                          'T1w')
 
 
-def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space,
-                                   filters_on_off):
+def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
     '''
     Parameters
     ----------
@@ -2335,11 +2334,14 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space,
                                        'desc-preproc_mask',
                                        f'{prefixes[0]}label-CSF_mask'])
 
-    wf_name = 'nuisance_regressors_{opt["Name"]}'
-    if filters_on_off and not hasattr(strat_pool, 'filter_name'):
-        strat_pool.filter_name = 'none'
-    if hasattr(strat_pool, 'filter_name'):
-        wf_name += f'_filt-{strat_pool.filter_name}'
+    wf_name = f'nuisance_regressors_{opt["Name"]}'
+    if strat_pool.check_rpool('movement-parameters'):
+        movement_parameters = strat_pool.node_data('movement-parameters')
+        if hasattr(movement_parameters.node, 'fork_naming'
+                   ) and 'filt' in movement_parameters.node.fork_naming:
+            wf_name += f'_filt-{movement_parameters.node.fork_naming["filt"]}'
+    else:
+        movement_parameters = False
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
@@ -2467,9 +2469,8 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space,
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    if strat_pool.check_rpool('movement-parameters'):
-        node, out = strat_pool.get_data('movement-parameters')
-        wf.connect(node, out,
+    if movement_parameters:
+        wf.connect(movement_parameters.node, movement_parameters.out,
                    regressors, 'inputspec.motion_parameters_file_path')
 
     if strat_pool.check_rpool('framewise-displacement-jenkinson'):
@@ -2520,16 +2521,18 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         if regressor_dct['Name'] == regressor_strat_name:
             opt = regressor_dct
             break
-
+    regressors = strat_pool.node_data('regressors')
     bandpass = 'Bandpass' in opt
     bandpass_before = bandpass and cfg['nuisance_corrections',
                                        '2-nuisance_regression',
                                        'bandpass_filtering_order'] == 'Before'
 
-    name_suff = (f'space-{space}_reg-{opt["Name"]}_{pipe_num}'
-                 if res is None else
-                 f'space-{space}_res-{res}_reg-{opt["Name"]}_{pipe_num}')
-    nuis_name = f'nuisance_regression_{name_suff}'
+    name_suff = (f'space-{space}_reg-{opt["Name"]}' if res is None else
+                 f'space-{space}_res-{res}_reg-{opt["Name"]}')
+    if hasattr(regressors.node,
+               'fork_naming') and 'filt' in regressors.node.fork_naming:
+        name_suff = f'filt-{regressors.node.fork_naming["filt"]}'
+    nuis_name = f'nuisance_regression_{name_suff}_{pipe_num}'
 
     nuis = create_nuisance_regression_workflow(opt, name=nuis_name)
     if bandpass_before:
@@ -2570,10 +2573,11 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                        nofilter_nuis,
                        'inputspec.functional_brain_mask_file_path')
 
-    node, out = strat_pool.get_data('regressors')
-    wf.connect(node, out, nuis, 'inputspec.regressor_file')
+    wf.connect(regressors.node, regressors.out,
+               nuis, 'inputspec.regressor_file')
     if bandpass_before:
-        wf.connect(node, out, nofilter_nuis, 'inputspec.regressor_file')
+        wf.connect(regressors.node, regressors.out,
+                   nofilter_nuis, 'inputspec.regressor_file')
 
     if strat_pool.check_rpool('framewise-displacement-jenkinson'):
         node, out = strat_pool.get_data('framewise-displacement-jenkinson')

@@ -14,9 +14,12 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import collections.abc
+from copy import deepcopy
+from itertools import repeat
 import os
 import sys
-import collections.abc
+from typing import Optional
 import fnmatch
 import gzip
 import json
@@ -26,10 +29,10 @@ import numpy as np
 import yaml
 
 from click import BadParameter
-from copy import deepcopy
-from itertools import repeat
 from voluptuous.error import Invalid
 from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
+from CPAC.utils.interfaces.function import ns_imports
+from .configuration import Configuration
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -149,9 +152,15 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(cfg, unique_id, resource, scan_id=None,
-                     template_desc=None, atlas_id=None, fwhm=None, subdir=None,
-                     filter_name=None):
+@ns_imports(['from typing import Optional',
+             'from CPAC.utils.configuration import Configuration'])
+def create_id_string(cfg: Configuration, unique_id: str, resource: str,
+                     scan_id: Optional[str] = None,
+                     template_desc: Optional[str] = None,
+                     atlas_id: Optional[str] = None,
+                     fwhm: Optional[str] = None,
+                     subdir: Optional[str] = None,
+                     fork_naming: Optional[dict[str, str]] = None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -212,8 +221,9 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
                 out_filename = out_filename.replace(
                     bidstag, f'{prefix}{template_tag}')
 
-    if filter_name is not None:
-        out_filename = f'{out_filename}_filt-{filter_name}'
+    if fork_naming is not None:
+        for _k, _v in fork_naming.items():
+            out_filename = f'{out_filename}_{_k}-{_v}'
 
     if fwhm:
         for tag in resource.split('_'):

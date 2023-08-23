@@ -216,6 +216,12 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     from CPAC.pipeline.utils import present_outputs
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num,
                                                 opt)
+    if 'movement-parameters' in wf_outputs and cfg.on_off([
+        "functional_preproc", "motion_estimates_and_correction",
+        "motion_estimate_filter", "run"]):
+        # Put a name on the "off" condition
+        setattr(wf_outputs['movement-parameters'][0], 'fork_naming',
+                {'filt': 'none'})
     return (wf, present_outputs(wf_outputs,
                                 ['coordinate-transformation',
                                  'max-displacement',
@@ -649,7 +655,6 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt):
                              function=notch_filter_motion,
                              imports=notch_imports),
                     name=f'filter_motion_params_{opt["Name"]}_{pipe_num}')
-    strat_pool.filter_name = opt['Name']
 
     notch.inputs.filter_type = opt.get('filter_type')
     notch.inputs.fc_RR_min = opt.get('breathing_rate_min')
@@ -671,6 +676,8 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt):
                      name='affine_from_filtered_params_'
                           f'{opt["Name"]}_{pipe_num}')
     wf.connect(notch, 'filtered_motion_params', affine, 'params_file')
+
+    setattr(notch, 'fork_naming', {'filt': opt['Name']})
 
     outputs = {
         'coordinate-transformation': (affine, 'affine_file'),

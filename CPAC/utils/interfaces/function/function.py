@@ -1,6 +1,6 @@
 from builtins import str, bytes
 import inspect
-
+from typing import Callable, List
 from nipype import logging
 from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined,
                                     isdefined, BaseInterfaceInputSpec)
@@ -57,11 +57,19 @@ class Function(IOBase):
             parameter)
         imports : list of strings
             list of import statements that allow the function to execute
-            in an otherwise empty namespace
+            in an otherwise empty namespace. If these collide with
+            imports defined via the :py:func:`ns_imports` decorator,
+            these imports will take precedence
         """
 
-        super(Function, self).__init__(**inputs)
+        super().__init__(**inputs)
         if function:
+            if hasattr(function, 'ns_imports'):
+                _ns_imports = [
+                    'from CPAC.utils.interfaces.function import ns_imports',
+                     *function.ns_imports]
+                imports = _ns_imports if imports is None else [*_ns_imports,
+                                                               *imports]
             if as_module:
                 module = inspect.getmodule(function).__name__
                 full_name = "%s.%s" % (module, function.__name__)
@@ -168,3 +176,25 @@ class Function(IOBase):
         for key in self._output_names:
             outputs[key] = self._out[key]
         return outputs
+
+
+def ns_imports(imports: List[str]) -> Callable:
+    """
+    Sets an ``ns_imports`` attribute on a function for Function node functions.
+    This can be useful for classes needed for typehints and
+    for avoiding redefinitions.
+
+    Parameters
+    ----------
+    imports : list of str
+        import statements to import the function in an otherwise empty
+        namespace
+
+    Returns
+    -------
+    func : function
+    """
+    def _imports(func: Callable) -> Callable:
+        setattr(func, 'ns_imports', imports)
+        return func
+    return _imports
