@@ -59,7 +59,8 @@ class Function(IOBase):
             list of import statements that allow the function to execute
             in an otherwise empty namespace. If these collide with
             imports defined via the :py:func:`ns_imports` decorator,
-            these imports will take precedence
+            the imports given as a parameter here will take precedence
+            over those from the decorator
         """
 
         super().__init__(**inputs)
