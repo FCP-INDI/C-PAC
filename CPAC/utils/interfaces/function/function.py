@@ -1,5 +1,6 @@
 from builtins import str, bytes
 import inspect
+from typing import Callable, List
 
 from nipype import logging
 from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined,
@@ -57,11 +58,22 @@ class Function(IOBase):
             parameter)
         imports : list of strings
             list of import statements that allow the function to execute
-            in an otherwise empty namespace
+            in an otherwise empty namespace. If these collide with
+            imports defined via the :py:meth:`Function.sig_imports`
+            decorator, the imports given as a parameter here will take
+            precedence over those from the decorator.
         """
 
-        super(Function, self).__init__(**inputs)
+        super().__init__(**inputs)
         if function:
+            if hasattr(function, 'ns_imports'):
+                # prepend the ns_imports from the decorator to
+                # the paramater imports
+                _ns_imports = [
+                    'from CPAC.utils.interfaces.function import Function',
+                     *function.ns_imports]
+                imports = _ns_imports if imports is None else [*_ns_imports,
+                                                               *imports]
             if as_module:
                 module = inspect.getmodule(function).__name__
                 full_name = "%s.%s" % (module, function.__name__)
@@ -95,6 +107,57 @@ class Function(IOBase):
         self._out = {}
         for name in self._output_names:
             self._out[name] = None
+
+    @staticmethod
+    def sig_imports(imports: List[str]) -> Callable:
+        """
+        Sets an ``ns_imports`` attribute on a function for
+        Function-node functions.
+        This can be useful for classes needed for decorators, typehints
+        and for avoiding redefinitions.
+
+        Parameters
+        ----------
+        imports : list of str
+            import statements to import the function in an otherwise empty
+            namespace. If these collide with imports defined via the
+            ~:py:meth:`Function.__init__` initialization method, the
+            imports given as a parameter here will be overridden by
+            those from the initializer.
+
+        Returns
+        -------
+        func : function
+
+        Examples
+        --------
+        See the defintion of
+        ~:py:func:`CPAC.generate_motion_statistics.calculate_FD_J` to see the
+        decorator tested here being applied.
+        >>> from CPAC.generate_motion_statistics import calculate_FD_J
+        >>> calc_fdj = Function(input_names=['in_file', 'calc_from', 'center'],
+        ...                     output_names=['out_file'],
+        ...                     function=calculate_FD_J,
+        ...                     as_module=True)
+        >>> calc_fdj.imports  # doctest: +NORMALIZE_WHITESPACE
+        ['from CPAC.utils.interfaces.function import Function',
+         'import os',
+         'import sys',
+         'from typing import Literal, Optional',
+         'import numpy as np',
+         'from CPAC.utils.pytest import skipif']
+        >>> from inspect import signature
+        >>> from nipype.utils.functions import (getsource,
+        ...     create_function_from_source)
+        >>> f = create_function_from_source(getsource(calculate_FD_J),
+        ...                                 calc_fdj.imports)
+        >>> inspect.signature(calculate_FD_J) == inspect.signature(f)
+        True
+        """
+        def _imports(func: Callable) -> Callable:
+            setattr(func, 'ns_imports', imports)
+            return func
+        return _imports
 
     def _set_function_string(self, obj, name, old, new):
         if name == 'function_str':

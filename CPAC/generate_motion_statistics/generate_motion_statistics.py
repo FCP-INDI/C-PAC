@@ -351,6 +351,10 @@ def calculate_FD_P(in_file):
     return out_file
 
 
+@Function.sig_imports(['import os', 'import sys',
+                       'from typing import Literal, Optional',
+                       'import numpy as np',
+                       'from CPAC.utils.pytest import skipif'])
 @skipif(sys.version_info < (3, 10),
         reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
