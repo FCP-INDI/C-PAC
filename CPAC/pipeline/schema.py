@@ -379,7 +379,6 @@ latest_schema = Schema({
                     'format': Maybe(All(Coerce(ListFromItem),
                                         [All(Lower, In(('png', 'svg')))])),
                     'simple_form': Maybe(bool)}},
-            'save_workflow': Maybe(bool),
         },
         'crash_log_directory': {
             'path': Maybe(str),
