@@ -121,7 +121,7 @@ class Function(IOBase):
         imports : list of str
             import statements to import the function in an otherwise empty
             namespace. If these collide with imports defined via the
-            ~:py:meth:`Function.__init__` initialization method, the
+            :py:meth:`Function.__init__` initialization method, the
             imports given as a parameter here will be overridden by
             those from the initializer.
 
