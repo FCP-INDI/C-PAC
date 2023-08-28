@@ -170,6 +170,7 @@ VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
     "boto3",
+    "ciftify",
     "click",
     "click-aliases",
     "configparser",
@@ -191,6 +192,7 @@ REQUIREMENTS = [
     "patsy",
     "prov",
     "psutil",
+    "PyBASC",
     "pybids",
     "pygraphviz",
     "PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97#egg=PyPEER",
@@ -200,9 +202,8 @@ REQUIREMENTS = [
     "scipy",
     "sdcflows",
     "traits",
-    "PyBASC",
     "voluptuous>=0.12.0",
-    "ciftify",
+    "xvfbwrapper"
 ]
 UNET_REQUIREMENTS = [
     "torch==1.13.1",

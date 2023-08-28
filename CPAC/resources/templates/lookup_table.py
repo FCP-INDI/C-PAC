@@ -17,16 +17,17 @@
 """Utilities for determining BIDS standard template identifiers
 (https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers)
 from in-container template paths"""
-from os import path as op
-from re import search
+from os import environ, path as op
+from re import findall, search
 from typing import Optional
 from bids.layout import parse_file_entities
 from numpy import loadtxt
 from CPAC.utils.typing import TUPLE
 
-LOOKUP_TABLE = {row[0]: (row[1], str(row[2]) if row[2] else None) for row in
-                loadtxt(op.join(op.dirname(__file__), 'BIDS_identifiers.tsv'),
-                        dtype='str', delimiter='\t')}
+LOOKUP_TABLE = {row[0].replace(r'$FSLDIR', environ['FSLDIR']): (
+    row[1], str(row[2]) if row[2] else None) for row in
+    loadtxt(op.join(op.dirname(__file__), 'BIDS_identifiers.tsv'),
+            dtype='str', delimiter='\t')}
 
 
 def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
@@ -71,7 +72,7 @@ def lookup_identifier(template_path: str) -> TUPLE[str, None]:
 
     Examples
     --------
-    >>> lookup_identifier('/usr/share/fsl/5.0/data/standard/'
+    >>> lookup_identifier('$FSLDIR/data/standard/'
     ...                   'MNI152_T1_1mm_brain.nii.gz')
     ('MNI152NLin6ASym', None)
     >>> lookup_identifier('/code/CPAC/resources/templates/'
@@ -87,6 +88,15 @@ def lookup_identifier(template_path: str) -> TUPLE[str, None]:
     ...                   'desc-200Parcels17Networks_dseg.nii.gz')
     ('Schaefer2018', '200Parcels17Networks')
     '''
+    if r'$' in template_path:
+        bash_var_pattern = r'(\$[\w]+(?=/|\s)|\${\w+})'
+        matches = findall(bash_var_pattern, template_path)
+        if matches is not None:
+            for match in matches:
+                bash_var = match.lstrip('${').rstrip('}')
+                if bash_var in environ:
+                    template_path = template_path.replace(match,
+                                                          environ[bash_var])
     for key, value in LOOKUP_TABLE.items():
         if search(key, template_path) is not None:
             return value

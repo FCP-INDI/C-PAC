@@ -49,40 +49,12 @@ pipeline_setup:
 
 anatomical_preproc:
   acpc_alignment:
-    T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
-
-    # ACPC aligned template
-    T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+    T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
   brain_extraction:
     run: On
 
 registration_workflows:
-  anatomical_registration:
-    registration:
-      FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
-
-        # Reference mask for FSL registration.
-        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-
   functional_registration:
     coregistration:
       boundary_based_registration:
@@ -90,10 +62,6 @@ registration_workflows:
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
-
-        # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-        # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
     func_registration_to_template:
 
@@ -241,10 +209,6 @@ functional_preproc:
 
       # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
       robust: On
-
-    FSL_AFNI:
-      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514

@@ -88,7 +88,7 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
     && rm -rf results.txt \
     && ldconfig \
-    && chmod 777 / \
+    && chmod 777 / /home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user

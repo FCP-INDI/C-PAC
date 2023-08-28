@@ -113,7 +113,8 @@ def test_registration_lesion():
     # Skull stripped anat image
     anat_file = '/bids_dataset/sub-0027228/ses-1/anat/sub-0027228_ses-1_run-1_T1w.nii.gz'
     lesion_file = '/bids_dataset/sub-0027228/ses-1/anat/sub-0027228_ses-1_run-1_T1w_lesion-mask.nii.gz'
-    mni_brain_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_3mm_brain.nii.gz'
+    mni_brain_file = (f'{os.environ.get("FSLDIR")}/data/standard/'
+                      'MNI152_T1_3mm_brain.nii.gz')
 
     if not os.path.exists(anat_file):
         raise IOError(anat_file + ' not found')

@@ -23,9 +23,11 @@ LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing FreeSurfer
-RUN yes | mamba install tcsh \
-  && yes | mamba clean --all \
-  && cp -l `which tcsh` /bin/tcsh
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y bc \
+    && yes | mamba install tcsh \
+    && yes | mamba clean --all \
+    && cp -l `which tcsh` /bin/tcsh
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     NO_FSFAST=1
 ENV PATH="$FREESURFER_HOME/bin:$PATH" \
@@ -40,11 +42,13 @@ COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+RUN apt-get autoremove -y \
+    && apt-get autoclean -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
     && rm -rf results.txt \
     && ldconfig \
-    && chmod 777 / \
+    && chmod 777 / /home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user

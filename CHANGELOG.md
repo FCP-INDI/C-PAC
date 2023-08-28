@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
 - Disabled `--use-estimate-learning-rate-once` in `antsRegistration` (ANTsX/ANTs#1405; ANTsX/ANTs#1411)
 - Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
+- Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
 
 ### Added dependencies
 
