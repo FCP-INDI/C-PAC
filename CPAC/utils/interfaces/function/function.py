@@ -143,9 +143,10 @@ class Function(IOBase):
         ['from CPAC.utils.interfaces.function import Function',
          'import os',
          'import sys',
-         'from typing import Literal, Optional',
+         'from typing import Optional',
          'import numpy as np',
-         'from CPAC.utils.pytest import skipif']
+         'from CPAC.utils.pytest import skipif',
+         'from CPAC.utils.typing import LITERAL']
         >>> from inspect import signature
         >>> from nipype.utils.functions import (getsource,
         ...     create_function_from_source)

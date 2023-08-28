@@ -25,6 +25,12 @@ import sys
 from CPAC.utils.docs import DOCS_URL_PREFIX
 __doc__ = __doc__.replace(r'{DOCS_URL_PREFIX}', DOCS_URL_PREFIX)
 
+if sys.version_info >= (3, 8):
+    from typing import Literal
+    LITERAL = Literal
+else:
+    from typing_extensions import Literal
+    LITERAL = Literal
 if sys.version_info >= (3, 10):
     LIST_OR_STR = list | str
     TUPLE = tuple
@@ -33,4 +39,4 @@ else:
     LIST_OR_STR = Union[list, str]
     TUPLE = Tuple
 
-__all__ = ['LIST_OR_STR', 'TUPLE']
+__all__ = ['LIST_OR_STR', 'LITERAL', 'TUPLE']
