@@ -20,6 +20,7 @@ from CPAC.pipeline.nodeblock import nodeblock
 import numpy as np
 import nibabel as nb
 # pylint: disable=wrong-import-order
+from nipype.pipeline.engine.workflows import Workflow
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import CPAC
@@ -31,9 +32,12 @@ from nipype.interfaces import c3
 from nipype.interfaces import afni
 from nipype.interfaces.afni import utils as afni_utils
 from scipy.fftpack import fft, ifft
+from CPAC.pipeline.engine import ResourcePool
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
+from CPAC.utils.typing import LITERAL, TUPLE
 
 from CPAC.registration.registration import warp_timeseries_to_T1template, \
     warp_timeseries_to_EPItemplate, apply_transform
@@ -2234,7 +2238,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
-    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
                                           'bold')
 
 
@@ -2280,16 +2284,27 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
-    return nuisance_regressors_generation(wf, strat_pool, pipe_num, opt,
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
                                           'T1w')
 
 
-def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
+def nuisance_regressors_generation(wf: Workflow, cfg: Configuration,
+                                   strat_pool: ResourcePool,
+                                   pipe_num: int, opt: dict,
+                                   space: LITERAL['T1w', 'bold']
+                                   ) -> TUPLE[Workflow, dict]:
     '''
     Parameters
     ----------
-    wf, strat_pool, pipe_num, opt
-        pass through from Node Block
+    wf : ~nipype.pipeline.engine.workflows.Workflow
+
+    cfg : ~CPAC.utils.configuration.Configuration
+
+    strat_pool : ~CPAC.pipeline.engine.ResourcePool
+
+    pipe_num : int
+
+    opt : dict
 
     space : str
         T1w or bold
@@ -2300,7 +2315,6 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
 
     outputs : dict
     '''
-
     prefixes = [f'space-{space}_'] * 2
     reg_tool = None
     if space == 'T1w':
@@ -2316,6 +2330,12 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
         reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == 'ants'
+    if True in cfg['functional_preproc', 'motion_estimates_and_correction',
+                   'motion_estimate_filter', 'run']:
+        wf_name = (f'nuisance_regressors_{opt["Name"]}_filt-'
+                    f'{strat_pool.filter_name}_{pipe_num}')
+    else:
+        wf_name = f'nuisance_regressors_{opt["Name"]}_{pipe_num}'
 
     ventricle = strat_pool.check_rpool('lateral-ventricles-mask')
     csf_mask = strat_pool.check_rpool([f'{prefixes[0]}label-CSF_'
@@ -2326,10 +2346,9 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
 
     regressors = create_regressor_workflow(opt, use_ants,
                                            ventricle_mask_exist=ventricle,
-                                           all_bold=space=='bold',
-                                           csf_mask_exist = csf_mask,
-                                           name='nuisance_regressors_'
-                                                f'{opt["Name"]}_{pipe_num}')
+                                           all_bold=space == 'bold',
+                                           csf_mask_exist=csf_mask,
+                                           name=wf_name)
 
     node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, 'inputspec.functional_file_path')
@@ -2451,10 +2470,8 @@ def nuisance_regressors_generation(wf, strat_pool, pipe_num, opt, space):
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    movement_parameters = ['filtered-movement-parameters',
-                           'movement-parameters']
-    if strat_pool.check_rpool(movement_parameters):
-        node, out = strat_pool.get_data(movement_parameters)
+    if strat_pool.check_rpool('movement-parameters'):
+        node, out = strat_pool.get_data('movement-parameters')
         wf.connect(node, out,
                    regressors, 'inputspec.motion_parameters_file_path')
 

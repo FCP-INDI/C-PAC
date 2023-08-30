@@ -34,8 +34,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import FilteredUnfilteredError, \
-                                MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -737,6 +736,43 @@ class ResourcePool:
 
         return wf
 
+    @property
+    def filtered_movement(self) -> bool:
+        """
+        Check if the movement parameters have been filtered in this strat_pool
+
+        Returns
+        -------
+        bool
+        """
+        try:
+            return 'motion_estimate_filter' in str(self.get_cpac_provenance(
+                'movement-parameters'))
+        except KeyError:
+            # not a strat_pool or no movement parameters in strat_pool
+            return False
+
+    @property
+    def filter_name(self) -> str:
+        """
+        In a strat_pool with filtered movement parameters, return the
+        name of the filter for this strategy
+
+        Returns
+        -------
+        str
+        """
+        key = 'movement-parameters'
+        try:
+            sidecar = self.get_json(key)
+        except KeyError:
+            sidecar = None
+        if sidecar is not None and 'CpacVariant' in sidecar:
+            if sidecar['CpacVariant'][key]:
+                return sidecar['CpacVariant'][key][0][::-1].split('_',
+                                                                  1)[0][::-1]
+        return 'none'
+
     def post_process(self, wf, label, connection, json_info, pipe_idx, pipe_x,
                      outs):
 
@@ -1024,11 +1060,8 @@ class ResourcePool:
                 resource_idx = resource
 
                 if isinstance(num_variant, int):
-                    try:
-                        resource_idx, out_dct = name_fork(resource_idx, cfg,
-                                                          json_info, out_dct)
-                    except FilteredUnfilteredError:
-                        continue
+                    resource_idx, out_dct = name_fork(resource_idx, cfg,
+                                                      json_info, out_dct)
                     if unlabelled:
                         if 'desc-' in out_dct['filename']:
                             for key in out_dct['filename'].split('_')[::-1]:

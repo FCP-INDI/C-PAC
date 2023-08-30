@@ -22,10 +22,6 @@ from CPAC.utils.bids_utils import insert_entity
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
-class FilteredUnfilteredError(ValueError):
-    """Custom error class to catch "filtered" outputs with "filt-none"."""
-
-
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints
 
@@ -61,8 +57,8 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
                 if _v][0]
         except IndexError:
             filt_value = 'none'
-            if 'filtered' in resource_idx:
-                raise FilteredUnfilteredError
+            if 'unfiltered-' in resource_idx:
+                resource_idx = resource_idx.replace('unfiltered-', '')
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'filt', filt_value)
     if True in cfg['nuisance_corrections',
