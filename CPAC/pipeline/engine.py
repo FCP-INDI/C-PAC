@@ -115,7 +115,7 @@ class ResourcePool:
     def append_name(self, name):
         self.name.append(name)
 
-    def back_propogate_template_name(self, resource_idx: str, json_info: dict,
+    def back_propogate_template_name(self, wf, resource_idx: str, json_info: dict,
                                      id_string: 'pe.Node') -> None:
         """Find and apply the template name from a resource's provenance
 
@@ -131,6 +131,10 @@ class ResourcePool:
         -------
         None
         """
+        if ('template' in resource_idx and self.check_rpool('derivatives-dir')):
+            if self.check_rpool('template'):
+                node, out = self.get_data('template')
+                wf.connect(node, out, id_string, 'template_desc')
         if 'Template' in json_info:
             id_string.inputs.template_desc = json_info['Template']
         elif ('template' in resource_idx and
@@ -1093,7 +1097,7 @@ class ResourcePool:
                             'data']
                     wf.connect(node, out, id_string, 'scan_id')
                 
-                self.back_propogate_template_name(resource_idx, json_info,
+                self.back_propogate_template_name(wf, resource_idx, json_info,
                                                   id_string)
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
@@ -1848,7 +1852,7 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
             # Rename confounds to avoid confusion in nuisance regression
             if data_label.endswith('desc-confounds_timeseries'):
                 data_label = 'pipeline-ingress_desc-confounds_timeseries'
-        
+
             if len(bidstag) > 1:
                 # Remove tail symbol
                 bidstag = bidstag[:-1]
@@ -1858,15 +1862,9 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
             # Rename bold mask for CPAC naming convention
             # and to avoid collision with anat brain mask
             if data_label.endswith('desc-brain_mask') and filepath in outdir_func: 
-                data_label = data_label.replace('brain', 'bold')
-            if data_label.endswith('desc-preproc_bold'): 
-                func_key = data_label
-                func_dict[bidstag] = {}
-                func_dict[bidstag]['scan'] = str(filepath)
-                func_dict[bidstag]['scan_parameters'] = json_info
-                func_dict[bidstag]['pipe_idx'] = pipe_idx
+                data_label = data_label.replace('brain_mask', 'bold_mask')
 
-            elif filepath in outdir_anat:
+            if filepath in outdir_anat:
                 ingress = create_general_datasource(f'gather_outdir_{str(data_label)}')
                 ingress.inputs.inputnode.set(
                     unique_id=unique_id,
@@ -1877,6 +1875,14 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
                 rpool.set_data(data_label, ingress, 'outputspec.data', json_info,
                     pipe_idx, node_name, f"outdir_{data_label}_ingress", inject=True)
             else:
+                if data_label.endswith('desc-preproc_bold'): 
+                    func_key = data_label
+                    func_dict[bidstag] = {}
+                    func_dict[bidstag]['scan'] = str(filepath)
+                    func_dict[bidstag]['scan_parameters'] = json_info
+                    func_dict[bidstag]['pipe_idx'] = pipe_idx
+                if data_label.endswith('desc-brain_mask'): 
+                    data_label = data_label.replace('brain_mask', 'bold_mask')
                 try:
                     func_paths[data_label].append(filepath)
                 except:
@@ -2002,10 +2008,9 @@ def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_i
     iterables.inputs.ts_paths = func_paths[ts_paths_key]
     wf.connect(ingress, 'outputspec.scan', iterables, 'scan')
 
-    #TODO: make timeseries optional
     for key in func_paths:
         if key == mask_paths_key or key == ts_paths_key:
-            ingress_func = create_general_datasource('ingress_func_data')
+            ingress_func = create_general_datasource(f'ingress_func_data_{key}')
             ingress_func.inputs.inputnode.set(
                 unique_id=unique_id,
                 creds_path=creds_path,
@@ -2013,16 +2018,14 @@ def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_i
             wf.connect(iterables, 'out_scan', ingress_func, 'inputnode.scan')
             if key == mask_paths_key:
                 wf.connect(iterables, 'mask', ingress_func, 'inputnode.data')
-                rpool.set_data(key, ingress_func, 'outputspec.mask', {}, "", f"outdir_{key}_ingress")
+                rpool.set_data(key, ingress_func, 'inputnode.data', {}, "", f"outdir_{key}_ingress")
             elif key == ts_paths_key:
                 wf.connect(iterables, 'confounds', ingress_func, 'inputnode.data')
                 rpool.set_data(key, ingress_func, 'inputnode.data', {}, "", f"outdir_{key}_ingress")
-        else:
-            break
 
     return wf, rpool
 
-def set_iterables(mask_paths, ts_paths, scan):
+def set_iterables(scan, mask_paths=None, ts_paths=None):
     
     # match scan with filepath to get filepath
     mask_path = [path for path in mask_paths if scan in path]
