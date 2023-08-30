@@ -49,16 +49,18 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
             _key: json_info['CpacVariant'][_key]
             for _key in MOVEMENT_FILTER_KEYS
             if _key in json_info.get('CpacVariant', {})}
-        try:
-            filt_value = [
-                json_info['CpacVariant'][_k][0].replace(
-                    'motion_estimate_filter_', ''
-                ) for _k, _v in _motion_variant.items()
-                if _v][0]
-        except IndexError:
+        if 'unfiltered-' in resource_idx:
+            resource_idx = resource_idx.replace('unfiltered-', '')
             filt_value = 'none'
-            if 'unfiltered-' in resource_idx:
-                resource_idx = resource_idx.replace('unfiltered-', '')
+        else:
+            try:
+                filt_value = [
+                    json_info['CpacVariant'][_k][0].replace(
+                        'motion_estimate_filter_', ''
+                    ) for _k, _v in _motion_variant.items()
+                    if _v][0]
+            except IndexError:
+                filt_value = 'none'
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'filt', filt_value)
     if True in cfg['nuisance_corrections',
