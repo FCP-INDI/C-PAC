@@ -687,9 +687,9 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
         'movement-parameters': (notch, 'filtered_motion_params')
     }
 
-    if False not in cfg["functional_preproc",
-                        "motion_estimates_and_correction",
-                        "motion_estimate_filter"]:
+    if not cfg.switch_is_off(["functional_preproc",
+                              "motion_estimates_and_correction",
+                              "motion_estimate_filter", "run"]):
         outputs['unfiltered-movement-parameters'] = (movement_parameters.node,
                                                      movement_parameters.out)
 

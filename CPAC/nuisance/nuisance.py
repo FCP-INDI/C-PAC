@@ -2330,8 +2330,9 @@ def nuisance_regressors_generation(wf: Workflow, cfg: Configuration,
         reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == 'ants'
-    if True in cfg['functional_preproc', 'motion_estimates_and_correction',
-                   'motion_estimate_filter', 'run']:
+    if cfg.switch_is_on(['functional_preproc',
+                         'motion_estimates_and_correction',
+                         'motion_estimate_filter', 'run']):
         wf_name = (f'nuisance_regressors_{opt["Name"]}_filt-'
                     f'{strat_pool.filter_name}_{pipe_num}')
     else:
