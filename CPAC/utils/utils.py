@@ -813,6 +813,18 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             except TypeError:
                 TR = None
 
+            try: 
+                template = str(
+                    try_fetch_parameter(
+                        params_dct,
+                        subject_id,
+                        scan,
+                        ['Template', 'template']
+                    )
+                )
+            except TypeError:
+                template = None
+
             pattern = str(
                 try_fetch_parameter(
                     params_dct,
@@ -956,6 +968,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
     return (tr if tr else None,
             tpattern if tpattern else None,
+            template if template else None,
             ref_slice,
             start_indx,
             stop_indx,

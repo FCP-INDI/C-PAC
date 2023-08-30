@@ -594,6 +594,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                      'pipeconfig_stop_indx'],
         output_names=['tr',
                       'tpattern',
+                      'template',
                       'ref_slice',
                       'start_indx',
                       'stop_indx',
@@ -608,16 +609,33 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             'start_tr'],
         pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr'])
 
-    # wire in the scan parameter workflow
-    node, out = rpool.get('scan-params')[
-        "['scan-params:scan_params_ingress']"]['data']
-    wf.connect(node, out, scan_params, 'data_config_scan_params')
-
     node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
     wf.connect(node, out, scan_params, 'scan')
 
+    # Workaround for extracting metadata with ingress
+    if rpool.check_rpool('derivatives-dir'):
+        selectrest_json = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
+                         name='selectrest_json')
+        selectrest_json.inputs.rest_dict = sub_dict
+        selectrest_json.inputs.resource = "scan_parameters"
+        wf.connect(node, out, selectrest_json, 'scan')
+        wf.connect(selectrest_json, 'file_path', scan_params, 'data_config_scan_params')
+    
+    else:
+        # wire in the scan parameter workflow
+        node, out = rpool.get('scan-params')[
+            "['scan-params:scan_params_ingress']"]['data']
+        wf.connect(node, out, scan_params, 'data_config_scan_params')
+
     rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
     rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('template', scan_params, 'template', {}, "", 
                    "func_metadata_ingress")
     rpool.set_data('start-tr', scan_params, 'start_indx', {}, "",
                    "func_metadata_ingress")
