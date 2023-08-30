@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - Some automatic handling of user-provided BIDSy atlas names.
+- `switch_is_off`, `switch_is_on` and `switch_is_on_off` methods to `Configuration` class
 
 ## Fixed
 

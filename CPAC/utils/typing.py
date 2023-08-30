@@ -22,7 +22,11 @@ run Python ≥ 3.10, these global variables can be replaced with the
 current preferred syntax.
 """
 import sys
+from typing import Union
+
 from CPAC.utils.docs import DOCS_URL_PREFIX
+
+# Set the version-specific documentation URL in the module docstring:
 __doc__ = __doc__.replace(r'{DOCS_URL_PREFIX}', DOCS_URL_PREFIX)
 
 if sys.version_info >= (3, 8):
@@ -31,12 +35,19 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
     LITERAL = Literal
+if sys.version_info >= (3, 9):
+    LIST = list
+else:
+    from typing import List
+    LIST = List
 if sys.version_info >= (3, 10):
-    LIST_OR_STR = list | str
+    LIST_OR_STR = list | str  # pylint: disable=invalid-name
     TUPLE = tuple
 else:
-    from typing import Tuple, Union
-    LIST_OR_STR = Union[list, str]
+    from typing import Tuple
+    LIST_OR_STR = Union[list, str]  # pylint: disable=invalid-name
     TUPLE = Tuple
 
-__all__ = ['LIST_OR_STR', 'LITERAL', 'TUPLE']
+ConfigKeyType = Union[str, LIST[str]]
+
+__all__ = ['ConfigKeyType', 'LIST', 'LIST_OR_STR', 'LITERAL', 'TUPLE']
