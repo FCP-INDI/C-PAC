@@ -132,7 +132,7 @@ class Function(IOBase):
         Examples
         --------
         See the defintion of
-        ~:py:func:`CPAC.generate_motion_statistics.calculate_FD_J` to see the
+        :py:func:`~CPAC.generate_motion_statistics.calculate_FD_J` to see the
         decorator tested here being applied.
         >>> from CPAC.generate_motion_statistics import calculate_FD_J
         >>> calc_fdj = Function(input_names=['in_file', 'calc_from', 'center'],
