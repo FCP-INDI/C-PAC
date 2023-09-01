@@ -83,10 +83,10 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     """
     Given an outputs dictionary and a list of output keys, returns
     the subset of ``outputs`` that includes all keys in ``keys`` that are
-    present. I.e., :py:func:~:`CPAC.func_preproc.func_motion.motion_correct_connections`
+    present. I.e., :py:func:`~CPAC.func_preproc.func_motion.motion_correct_connections`
     will have different items in its ``outputs`` dictionary at different
     times depending on the ``motion_correction`` configuration;
-    :py:func:~:`CPAC.func_preproc.func_motion.func_motion_estimates` can
+    :py:func:`~CPAC.func_preproc.func_motion.func_motion_estimates` can
     then wrap that ``outputs`` in this function and provide a list of
     keys of the desired outputs to include, if they are present in the
     provided ``outputs`` dictionary, eliminating the need for multiple
