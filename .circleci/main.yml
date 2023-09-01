@@ -307,6 +307,7 @@ workflows:
           variant: fMRIPrep-LTS
       - pytest-docker:
           name: "Test lite variant in Docker"
+          variant: lite
       # - pytest-singularity:
       #     name: "Test in Singularity"
       # - pytest-singularity:
