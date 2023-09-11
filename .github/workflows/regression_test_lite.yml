@@ -1,4 +1,4 @@
-name: Run Regression Lite Test
+name: Launch lite regression test
 
 
 on:
@@ -52,7 +52,7 @@ jobs:
         uses: guibranco/github-status-action-v2@v1.1.7
         with:
           authToken: ${{ secrets.GITHUB_TOKEN }}
-          context: Run regression test lite
+          context: Launch lite regression test
           description: launching
           state: pending
 
