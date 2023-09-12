@@ -24,7 +24,7 @@ USER root
 
 # Installing FreeSurfer
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y bc \
+    && apt-get install --no-install-recommends -y bc csh \
     && yes | mamba install tcsh \
     && yes | mamba clean --all \
     && cp -l `which tcsh` /bin/tcsh \
