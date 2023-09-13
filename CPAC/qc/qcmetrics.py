@@ -55,8 +55,8 @@ def dc(input1, input2):
     """
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
-    input1 = np.atleast_1d(input1.astype(np.bool))
-    input2 = np.atleast_1d(input2.astype(np.bool))
+    input1 = np.atleast_1d(input1.astype(np.bool_))
+    input2 = np.atleast_1d(input2.astype(np.bool_))
 
     intersection = np.count_nonzero(input1 & input2)
 
@@ -110,8 +110,8 @@ def crosscorr(input1, input2):
     r"""cross correlation: compute cross correction bewteen input masks"""
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
-    input1 = np.atleast_1d(input1.astype(np.bool)).flatten()
-    input2 = np.atleast_1d(input2.astype(np.bool)).flatten()
+    input1 = np.atleast_1d(input1.astype(bool)).flatten()
+    input2 = np.atleast_1d(input2.astype(bool)).flatten()
     cc = np.corrcoef(input1, input2)[0][1]
     return cc
 
@@ -120,8 +120,8 @@ def coverage(input1, input2):
     """Estimate the coverage between two masks."""
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
-    input1 = np.atleast_1d(input1.astype(np.bool))
-    input2 = np.atleast_1d(input2.astype(np.bool))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
     intsec = np.count_nonzero(input1 & input2)
     if np.sum(input1) > np.sum(input2):
         smallv = np.sum(input2)
