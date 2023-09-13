@@ -55,8 +55,8 @@ def dc(input1, input2):
     """
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
-    input1 = np.atleast_1d(input1.astype(np.bool_))
-    input2 = np.atleast_1d(input2.astype(np.bool_))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
     intersection = np.count_nonzero(input1 & input2)
 
@@ -95,8 +95,8 @@ def jc(input1, input2):
     """
     input1 = nb.load(input1).get_fdata()
     input2 = nb.load(input2).get_fdata()
-    input1 = np.atleast_1d(input1.astype(np.bool))
-    input2 = np.atleast_1d(input2.astype(np.bool))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
     intersection = np.count_nonzero(input1 & input2)
     union = np.count_nonzero(input1 | input2)
