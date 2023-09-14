@@ -89,7 +89,7 @@ RUN locale-gen --purge en_US.UTF-8 \
   && echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
   && ldconfig \
-  && chmod 777 / \
+  && chmod 777 / /home/c-pac_user \
   && chmod 777 $(ls / | grep -v sys | grep -v proc) \
   && apt-get clean \
   && apt-get autoremove -y \

@@ -17,7 +17,8 @@
 import csv
 import json
 import re
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, Union
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -26,6 +27,7 @@ from CPAC.resources.templates.lookup_table import format_identifier, \
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import get_scan_params
 
 logger = logging.getLogger('nipype.workflow')
@@ -368,7 +370,7 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
 
 
 def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
-                                 echo_times: list) -> Tuple[float, float]:
+                                 echo_times: list) -> TUPLE[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
 
     Parameters
@@ -901,6 +903,52 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
+def get_highest_local_res(template: Union[Path, str], tagname: str) -> Path:
+    """Given a reference template path and a resolution string, get all
+    resolutions of that template in the same local path and return the
+    highest resolution.
+
+    Parameters
+    ----------
+    template : Path or str
+
+    tagname : str
+
+    Returns
+    -------
+    str
+
+    Raises
+    ------
+    LookupError
+        If no matching local template is found.
+
+    Examples
+    --------
+    >>> get_highest_local_res(
+    ...     '/cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz', '2mm')
+    PosixPath('/cpac_templates/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz')
+    >>> get_highest_local_res(
+    ...     '/cpac_templates/dne_T1w_2mm.nii.gz', '2mm')
+    Traceback (most recent call last):
+       ...
+    LookupError: Could not find template /cpac_templates/dne_T1w_2mm.nii.gz
+    """
+    from CPAC.pipeline.schema import RESOLUTION_REGEX
+    if isinstance(template, str):
+        template = Path(template)
+    template_pattern = (
+        RESOLUTION_REGEX.replace('^', '').replace('$', '').join([
+            re.escape(_part) for _part in template.name.split(tagname, 1)]))
+    matching_templates = [file for file in template.parent.iterdir() if
+                          re.match(template_pattern, file.name)]
+    matching_templates.sort()
+    try:
+        return matching_templates[0]
+    except (FileNotFoundError, IndexError):
+        raise LookupError(f"Could not find template {template}")
+
+
 def res_string_to_tuple(resolution):
     """
     Converts a resolution string to a tuple of floats.
@@ -946,9 +994,12 @@ def resolve_resolution(resolution, template, template_name, tag=None):
 
     if local_path is None:
         if tagname is not None:
-            ref_template = template.replace(tagname, '1mm')
-            local_path = check_for_s3(ref_template)
-        elif tagname is None and "s3" in template:
+            if template.startswith('s3:'):
+                ref_template = template.replace(tagname, '1mm')
+                local_path = check_for_s3(ref_template)
+            else:
+                local_path = get_highest_local_res(template, tagname)
+        elif tagname is None and template.startswith('s3:'):
             local_path = check_for_s3(template)
         else:
             local_path = template
@@ -1220,8 +1271,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
-    import os, subprocess
+    import os
     import nibabel as nb
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     # load func and ROI dimension
     func_img = nb.load(in_func)
@@ -1257,7 +1309,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
                '-out', out_file,
                '-interp', interp,
                '-applyxfm', '-init', identity_matrix]
-        subprocess.check_output(cmd)
+        log_subprocess(cmd)
 
     else:
         out_func = in_func

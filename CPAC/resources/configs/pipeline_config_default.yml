@@ -173,7 +173,7 @@ pipeline_setup:
 
     # Full path to the FSL version to be used by CPAC.
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR:  /usr/share/fsl/5.0
+    FSLDIR: FSLDIR
 
   Amazon-AWS:
 
@@ -329,8 +329,8 @@ anatomical_preproc:
     align_brain_mask: Off
 
     # ACPC aligned template
-    T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-    T1w_brain_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
+    T1w_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz
+    T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
     T2w_ACPC_template: None
     T2w_brain_ACPC_template: None
 
@@ -615,15 +615,15 @@ registration_workflows:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+    T1w_brain_template_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: True
@@ -718,7 +718,7 @@ registration_workflows:
         ref_resolution: 2mm
 
         # Reference mask for FSL registration.
-        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
         
         # Template to be used during registration.
         # It is for monkey pipeline specifically. 
@@ -734,13 +734,13 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
         # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
 
         # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
+        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
     overwrite_transform:
 
@@ -807,7 +807,7 @@ registration_workflows:
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+        bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
 
         # reference for boundary based registration
         # options: 'whole-head' or 'brain'
@@ -918,7 +918,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     func_registration_to_template:
 
@@ -961,15 +961,15 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
           # Template to be used during registration.
           # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+          T1w_brain_template_mask_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
 
           # a standard template for resampling if using float resolution
           T1w_template_for_resample:  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
@@ -1000,7 +1000,7 @@ registration_workflows:
 
         # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
       apply_transform:
 
@@ -1314,9 +1314,9 @@ functional_preproc:
 
       bold_ref:
 
-      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
-      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+      brain_probseg: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     Anatomical_Refined:
 

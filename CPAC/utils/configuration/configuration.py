@@ -1,6 +1,6 @@
 """C-PAC Configuration class and related functions
 
-Copyright (C) 2022  C-PAC Developers
+Copyright (C) 2022-2023  C-PAC Developers
 
 This file is part of C-PAC.
 
@@ -18,11 +18,11 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
-from typing import Optional, Tuple
+from typing import Optional
 from warnings import warn
 import pkg_resources as p
 import yaml
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.typing import TUPLE
 from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
@@ -498,7 +498,7 @@ def set_from_ENV(conf):  # pylint: disable=invalid-name
 
 
 def set_subject(sub_dict: dict, pipe_config: 'Configuration',
-                p_name: Optional[str] = None) -> Tuple[str, str, str]:
+                p_name: Optional[str] = None) -> TUPLE[str, str, str]:
     '''Function to set pipeline name and log directory path for a given
     sub_dict
 

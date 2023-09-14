@@ -155,7 +155,6 @@ COPY dev/docker_data/unpinned_requirements.txt /opt/requirements.txt
 RUN pip install --upgrade setuptools
 RUN pip install --upgrade pip
 RUN pip install -r /opt/requirements.txt
-RUN pip install xvfbwrapper
 
 # install cpac templates
 COPY --from=c-pac_templates /cpac_templates /cpac_templates

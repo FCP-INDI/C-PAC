@@ -2,7 +2,7 @@
 from typing import Callable, List, Union, Optional, Dict, Any
 
 
-class NodeBlockFunction(object):
+class NodeBlockFunction:
     """
     Stores a reference to the nodeblock function and all of its meta-data.
     """
