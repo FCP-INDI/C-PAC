@@ -291,7 +291,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
             ],
             [
                 "space-template_res-derivative_desc-bold_mask",
-                "space-template_desc-brain_mask"
+                "space-template_desc-bold_mask"
             ],
         )
     ],
@@ -312,7 +312,7 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_desc-preproc_bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
     node, out = strat_pool.get_data(["space-template_res-derivative_desc-bold_mask",
-                                     "space-template_desc-brain_mask"])
+                                     "space-template_desc-bold_mask"])
     wf.connect(node, out, alff, 'inputspec.rest_mask')
     outputs = {
         'space-template_alff': (alff, 'outputspec.alff_img'),
