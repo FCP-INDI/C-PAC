@@ -41,30 +41,35 @@ class ConfigurationDictUpdateConflation(SyntaxError):
 
 
 class Configuration:
-    """Class to set dictionary keys as map attributes.
+    """
+    Class to set dictionary keys as map attributes.
 
-    If the given dictionary includes the key `FROM`, that key's value
+    If the given dictionary includes the key ``FROM``, that key's value
     will form the base of the Configuration object with the values in
     the given dictionary overriding matching keys in the base at any
-    depth. If no `FROM` key is included, the base Configuration is
+    depth. If no ``FROM`` key is included, the base Configuration is
     the default Configuration.
 
-    `FROM` accepts either the name of a preconfigured pipleine or a
+    ``FROM`` accepts either the name of a preconfigured pipleine or a
     path to a YAML file.
 
-    Given a Configuration `c`, and a list or tuple of an attribute name
-    and nested keys `keys = ['attribute', 'key0', 'key1']` or
-    `keys = ('attribute', 'key0', 'key1')`, the value 'value' nested in
+    Given a Configuration ``c``, and a list or tuple of an attribute name
+    and nested keys ``keys = ['attribute', 'key0', 'key1']`` or
+    ``keys = ('attribute', 'key0', 'key1')``, the value 'value' nested in
 
-    c.attribute = {'key0': {'key1': 'value'}}
+    .. code-block:: python
+
+        c.attribute = {'key0': {'key1': 'value'}}
 
     can be accessed (get and set) in any of the following ways (and
     more):
 
-    c.attribute['key0']['key1']
-    c['attribute']['key0']['key1']
-    c['attribute', 'key0', 'key1']
-    c[keys]
+    .. code-block:: python
+
+        c.attribute['key0']['key1']
+        c['attribute']['key0']['key1']
+        c['attribute', 'key0', 'key1']
+        c[keys]
 
     Examples
     --------
@@ -305,21 +310,23 @@ class Configuration:
                 new_key = self.check_pattern(attr_value)
             setattr(self, attr_key, new_key)
 
-    def update(self, key, val=ConfigurationDictUpdateConflation):
+    def update(self, key, val=ConfigurationDictUpdateConflation()):
         if isinstance(key, dict):
             raise ConfigurationDictUpdateConflation
+        if isinstance(val, Exception):
+            raise val
         setattr(self, key, val)
 
-    def get_nested(self, d, keys):
-        if d is None:
-            d = {}
+    def get_nested(self, _d, keys):
+        if _d is None:
+            _d = {}
         if isinstance(keys, str):
-            return d[keys]
+            return _d[keys]
         if isinstance(keys, (list, tuple)):
             if len(keys) > 1:
-                return self.get_nested(d[keys[0]], keys[1:])
-            return d[keys[0]]
-        return d
+                return self.get_nested(_d[keys[0]], keys[1:])
+            return _d[keys[0]]
+        return _d
 
     def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
