@@ -1216,20 +1216,14 @@ class NodeBlock:
             for out in node_block_function.outputs:
                 self.outputs[out] = None
 
-            self.options = ['base']
-            if node_block_function.outputs is not None:
-                self.options = node_block_function.outputs
-
             logger.info('Connecting %s...', name)
             if debug:
                 config.update_config(
                     {'logging': {'workflow_level': 'DEBUG'}})
                 logging.update_logging(config)
-                logger.debug('"inputs": %s\n\t "outputs": %s%s',
+                logger.debug('"inputs": %s\n\t "outputs": %s',
                              node_block_function.inputs,
-                             list(self.outputs.keys()),
-                             f'\n\t"options": {self.options}'
-                             if self.options != ['base'] else '')
+                             list(self.outputs.keys()))
                 config.update_config(
                     {'logging': {'workflow_level': 'INFO'}})
                 logging.update_logging(config)
