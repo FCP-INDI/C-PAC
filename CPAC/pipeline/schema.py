@@ -416,7 +416,10 @@ latest_schema = Schema({
         'Debugging': {
             'verbose': bool1_1,
         },
-        'outdir_ingress': bool1_1,
+        'outdir_ingress': {
+            'run': bool1_1,
+            'Template': Maybe(str),
+        },
     },
     'anatomical_preproc': {
         'run': bool1_1,

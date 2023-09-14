@@ -181,7 +181,8 @@ pipeline_setup:
     # Directory where CPAC should write crash logs.
     path: /outputs/crash
 
-  outdir_ingress: On
+  outdir_ingress: 
+    run: Off
   Amazon-AWS:
 
     # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.

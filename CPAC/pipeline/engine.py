@@ -1849,6 +1849,10 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
                 json_outdir_ingress(rpool, filepath, \
                 exts, data_label, json)
 
+            if ('template' in data_label and not json_info['Template'] == \
+                    cfg.pipeline_setup['outdir_ingress']['Template']):
+                print('not equal template', filepath)
+                continue
             # Rename confounds to avoid confusion in nuisance regression
             if data_label.endswith('desc-confounds_timeseries'):
                 data_label = 'pipeline-ingress_desc-confounds_timeseries'
@@ -1864,8 +1868,12 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
             if data_label.endswith('desc-brain_mask') and filepath in outdir_func: 
                 data_label = data_label.replace('brain_mask', 'bold_mask')
 
+            try:
+                pipe_x = rpool.get_pipe_number(pipe_idx)
+            except ValueError:
+                pipe_x = len(rpool.pipe_list)
             if filepath in outdir_anat:
-                ingress = create_general_datasource(f'gather_outdir_{str(data_label)}')
+                ingress = create_general_datasource(f'gather_anat_outdir_{str(data_label)}_{pipe_x}')
                 ingress.inputs.inputnode.set(
                     unique_id=unique_id,
                     data=filepath,
@@ -1969,9 +1977,9 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
 
 def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_id, key, \
                             func_paths):
-    
+    pipe_x = len(rpool.pipe_list)
     exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.tsv']
-    ingress = create_func_datasource(func_dict, rpool, f'gather_outdir_{key}')
+    ingress = create_func_datasource(func_dict, rpool, f'gather_func_outdir_{key}_{pipe_x}')
     ingress.inputs.inputnode.set(
         subject=unique_id,
         creds_path=creds_path,
@@ -2003,7 +2011,7 @@ def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_i
                                               'mask',
                                               'confounds'],
                                 function=set_iterables),
-                                name=f'set_iterables')
+                                name=f'set_iterables_{pipe_x}')
     iterables.inputs.mask_paths = func_paths[mask_paths_key]
     iterables.inputs.ts_paths = func_paths[ts_paths_key]
     wf.connect(ingress, 'outputspec.scan', iterables, 'scan')
@@ -2272,7 +2280,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     if data_paths:
         # ingress outdir
-        if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']:
+        if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']['run']:
                 wf, rpool = \
                      ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, \
                     ses_id, creds_path=None)

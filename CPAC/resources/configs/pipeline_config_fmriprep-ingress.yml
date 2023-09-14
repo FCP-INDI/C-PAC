@@ -20,6 +20,10 @@ pipeline_setup:
 
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: On
+  
+  outdir_ingress:
+    run: On 
+    Template: 'MNI152NLin2009cAsym'
 
 anatomical_preproc:
   acpc_alignment:
@@ -79,29 +83,6 @@ nuisance_corrections:
           bottom_frequency: 0.01
           top_frequency: 0.1
           method: default
-      - Name: defaultNoGSR
-        Motion:
-          include_delayed: On
-          include_squared: On
-          include_delayed_squared: On
-        aCompCor:
-          summary:
-            method: DetrendPC
-            components: 5
-          tissues:
-          - WhiteMatter
-          - CerebrospinalFluid
-          extraction_resolution: 2
-        CerebrospinalFluid:
-          summary: Mean
-          extraction_resolution: 2
-          erode_mask: On
-        PolyOrt:
-          degree: 2
-        Bandpass:
-          bottom_frequency: 0.01
-          top_frequency: 0.1
-          method: default
 
     # Process and refine masks used to produce regressors and time series for
     # regression.
@@ -141,6 +122,11 @@ nuisance_corrections:
     space: [template]
     ingress_regressors:
       run: On
+      Regressors:
+        Name: 'default'
+        Columns:
+          - global_signal
+          - white_matter
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off
