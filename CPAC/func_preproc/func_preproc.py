@@ -171,8 +171,8 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
 
 
 def anat_based_mask(wf_name='bold_mask'):
-# reference DCAN lab BOLD mask
-# https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+    """reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_
+    """
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(util.IdentityInterface(fields=['func',
@@ -252,22 +252,24 @@ def anat_based_mask(wf_name='bold_mask'):
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
     """Workflow to scale func data.
-    Parameters
-    ----------
-        scaling_factor : float
-            Scale the size of the dataset voxels by the factor.
-        wf_name : string
-            name of the workflow
 
     Workflow Inputs::
         inputspec.func : func file or a list of func/rest nifti file
             User input functional(T2*) Image
     Workflow Outputs::
-        outputspec.scaled_func : string (nifti file)
+        outputspec.scaled_func : str (nifti file)
             Path to Output image with scaled data
+
     Order of commands:
     - Scale the size of the dataset voxels by the factor 'fac'. For details see `3dcalc <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html>`_::
         3drefit -xyzscale fac rest.nii.gz
+
+    Parameters
+    ----------
+    scaling_factor : float
+        Scale the size of the dataset voxels by the factor.
+    wf_name : str
+        name of the workflow
     """
 
     # allocate a workflow object
@@ -306,15 +308,15 @@ def create_wf_edit_func(wf_name="edit_func"):
         inputspec.func : func file or a list of func/rest nifti file
             User input functional(T2*) Image
 
-        inputspec.start_idx : string
+        inputspec.start_idx : str
             Starting volume/slice of the functional image (optional)
 
-        inputspec.stop_idx : string
+        inputspec.stop_idx : str
             Last volume/slice of the functional image (optional)
 
     Workflow Outputs::
 
-        outputspec.edited_func : string (nifti file)
+        outputspec.edited_func : str (nifti file)
             Path to Output image with the initial few slices dropped
 
 
@@ -463,7 +465,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     Parameters
     ----------
-    in_file : string (nifti file)
+    in_file : str (nifti file)
        Path to input functional run
 
     stop_idx : int
@@ -913,8 +915,9 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=['space-bold_desc-brain_mask', 'desc-ref_bold']
 )
 def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
-    # fMRIPrep-style BOLD mask
-    # Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514
+    """fMRIPrep-style BOLD mask
+    `Ref <https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514>`_
+    """
 
     # Initialize transforms with antsAI
     init_aff = pe.Node(
@@ -1210,8 +1213,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Generate the BOLD mask by basing it off of the anatomical brain mask.
-    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
-        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
     '''
 
     # 0. Take single volume of func
@@ -1303,8 +1305,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
-    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
-        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     '''
 
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
@@ -1372,8 +1373,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Generate the BOLD mask by basing it off of the anatomical brain.
-    Adapted from the BOLD mask method from the CCS pipeline.
-        https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110
+    Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110>`_.
     '''
 
     # Run 3dAutomask to generate func initial mask
