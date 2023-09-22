@@ -46,23 +46,9 @@ def pypeer_eye_masking(data_path, eye_mask_path):
 
 
 def pypeer_zscore(data):
-    volumes = data.shape[3]
-
-    for x in range(data.shape[0]):
-        for y in range(data.shape[1]):
-            for z in range(data.shape[2]):
-                vmean = np.mean(np.array(data[x, y, z, :]))
-                vstdv = np.std(np.array(data[x, y, z, :]))
-
-                for time in range(volumes):
-                    if vstdv != 0:
-                        data[x, y, z, time] = (float(
-                            data[x, y, z, time]) - float(vmean)) / vstdv
-                    else:
-                        data[x, y, z, time] = float(
-                            data[x, y, z, time]) - float(vmean)
-
-    return data
+    vstdv = data.std(axis=3, keepdims=True)
+    vstdv[vstdv == 0] = 1
+    return (data - data.mean(axis=3, keepdims=True)) / vstdv
 
 
 def pypeer_ravel_data(data):

@@ -16,13 +16,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## Added
+
+- Some automatic handling of user-provided BIDSy atlas names.
+
+## Fixed
+
+- Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
+
 ### Changed
 
 - Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}.dev{integer}+{SHA}`
 - Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
 - Makes in-container root directory writable by all
 - Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
+- Disabled `--use-estimate-learning-rate-once` in `antsRegistration` (ANTsX/ANTs#1405; ANTsX/ANTs#1411)
 - Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
+- Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
 
 ### Added dependencies
 
@@ -117,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
+- When applying a filter to motion parameters, now C-PAC reports both the original and the filtered motion parameters and uses the original parameters for qc. Previous versions only reported the filtered parameters and used the filtered parameters for qc.
 
 ### Upgraded dependencies
 

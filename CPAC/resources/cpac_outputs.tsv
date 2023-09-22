@@ -106,6 +106,7 @@ motion-filter-info	motion		func	text
 motion-filter-plot	motion		func	png					
 motion-params	motion		func	text					
 movement-parameters	motion		func	1D					
+filtered-movement-parameters	motion		func	1D					
 power-params	motion		func	text					
 rels-displacement	motion		func	1D					
 label-CSF_probseg	probseg	T1w	anat	NIfTI					

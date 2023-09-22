@@ -1,15 +1,40 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Functions to calculate motion statistics"""
 import os
+import sys
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+from typing import Optional
 import numpy as np
 import nibabel as nb
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
-from CPAC.utils.interfaces.function import Function
-
 from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
-from nipype.interfaces.base import (TraitedSpec, traits, isdefined, File)
+from nipype.interfaces.base import (TraitedSpec, traits, File)
+import nipype.interfaces.utility as util
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.pytest import skipif
+
 
 def motion_power_statistics(name='motion_stats',
-                            motion_correct_tool='3dvolreg'):
+                            motion_correct_tool='3dvolreg',
+                            filtered=False):
     """
     The main purpose of this workflow is to get various statistical measures
      from the movement/motion parameters obtained in functional preprocessing.
@@ -220,16 +245,18 @@ def motion_power_statistics(name='motion_stats',
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
-                                                  'motion_correct_tool'],
+                                                  'calc_from',
+                                                  'center'],
                                      output_names=['out_file'],
                                      function=calculate_FD_J,
                                      as_module=True),
                             name='calculate_FDJ')
 
-    calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
-    if motion_correct_tool == '3dvolreg':
+    if filtered or motion_correct_tool == '3dvolreg':
         wf.connect(input_node, 'transformations', calculate_FDJ, 'in_file')
+        calculate_FDJ.inputs.calc_from = 'affine'
     elif motion_correct_tool == 'mcflirt':
+        calculate_FDJ.inputs.calc_from = 'rms'
         wf.connect(input_node, 'rels_displacement', calculate_FDJ, 'in_file')
 
     wf.connect(calculate_FDJ, 'out_file', output_node, 'FDJ_1D')
@@ -324,7 +351,10 @@ def calculate_FD_P(in_file):
     return out_file
 
 
-def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
+@skipif(sys.version_info < (3, 10),
+        reason="Test requires Python 3.10 or higher")
+def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
+                   center: Optional[np.ndarray] = None) -> str:
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
 
@@ -332,25 +362,41 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
     ----------
     in_file : string
         matrix transformations from volume alignment file path if
-        motion_correct_tool is '3dvolreg', or FDRMS (*_rel.rms) output if
-        motion_correct_tool is 'mcflirt'.
-    motion_correct_tool : string
-        motion correction tool used, '3dvolreg' or 'mcflirt'.
-    center : ndarray
-        optional volume center for the calculation.
+        calc_from is 'affine', or FDRMS (*_rel.rms) output if
+        calc_from is 'rms'.
+    calc_from : string
+        one of {'affine', 'rms'}
+    center : ndarray, optional
+        optional volume center for the from-affine calculation
 
     Returns
     -------
     out_file : string
         Frame-wise displacement file path
 
+    Examples
+    --------
+    >>> import gzip, os, pickle
+    >>> from unittest import mock
+    >>> import numpy as np
+    >>> with gzip.open('/code/CPAC/generate_motion_statistics/test/'
+    ...                'fdj_test_data.pklz') as _pickle:
+    ...     test_data = pickle.load(_pickle)
+    >>> with mock.patch('nibabel.load',
+    ...                 return_value=test_data.img), mock.patch(
+    ...        'numpy.genfromtxt', return_value=test_data.affine):
+    ...     fdj_file = calculate_FD_J(test_data.affine, calc_from='affine',
+    ...                               center=find_volume_center(test_data.img))
+    >>> all(np.isclose(np.genfromtxt(fdj_file),
+    ...                np.insert(test_data.rels_rms, 0, 0), atol=0.001))
+    True
+    >>> os.unlink(fdj_file)
     """
-    if center is None:
-        center = np.zeros((3, 1))
-    else:
-        center = np.asarray(center).reshape((3, 1))
-
-    if motion_correct_tool == '3dvolreg':
+    if calc_from == 'affine':
+        if center is None:
+            center = np.zeros((3, 1))
+        else:
+            center = np.asarray(center).reshape((3, 1))
         pm_ = np.genfromtxt(in_file)
 
         pm = np.zeros((pm_.shape[0], pm_.shape[1] + 4))
@@ -377,12 +423,12 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
 
             T_rb_prev = T_rb
 
-    elif motion_correct_tool == 'mcflirt':
+    elif calc_from == 'rms':
         rel_rms = np.loadtxt(in_file)
         fd = np.append(0, rel_rms)
-    
+
     else:
-        raise ValueError(f"motion_correct_tool {motion_correct_tool} not supported")
+        raise ValueError(f"calc_from {calc_from} not supported")
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
@@ -390,7 +436,7 @@ def calculate_FD_J(in_file, motion_correct_tool='3dvolreg', center=None):
     return out_file
 
 
-def find_volume_center(img_file):
+def find_volume_center(img_file : str) -> np.ndarray:
     """
     Find the center of mass of a Nifti image volume
 

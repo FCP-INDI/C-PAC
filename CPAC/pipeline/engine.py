@@ -30,14 +30,14 @@ from nipype import config, logging  # pylint: disable=wrong-import-order
 from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
-from CPAC.func_preproc.func_preproc import motion_estimate_filter
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import source_set
+from CPAC.pipeline.utils import FilteredUnfilteredError, \
+                                MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
-from CPAC.utils.bids_utils import insert_entity, res_in_filename
+from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -56,7 +56,6 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
 logger = getLogger('nipype.workflow')
-verbose_logger = logging.getLogger('engine')
 
 
 class ResourcePool:
@@ -390,6 +389,12 @@ class ResourcePool:
     def get_cpac_provenance(self, resource, strat=None):
         # NOTE: resource_strat_dct has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
+        if isinstance(resource, list):
+            for _resource in resource:
+                try:
+                    return self.get_cpac_provenance(_resource, strat)
+                except KeyError:
+                    continue
         json_data = self.get_json(resource, strat)
         return json_data['CpacProvenance']
 
@@ -862,8 +867,6 @@ class ResourcePool:
         substring_excl = []
         outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
-        movement_filter_keys = motion_estimate_filter.outputs \
-            if motion_estimate_filter.outputs is not None else []
 
         if add_excl:
             excl += add_excl
@@ -976,7 +979,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in (*movement_filter_keys, 'regressors'))
+                             key not in (*MOVEMENT_FILTER_KEYS, 'regressors'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1024,47 +1027,16 @@ class ResourcePool:
                 resource_idx = resource
 
                 if isinstance(num_variant, int):
-                    if True in cfg['functional_preproc',
-                                   'motion_estimates_and_correction',
-                                   'motion_estimate_filter', 'run']:
-                        filt_value = None
-                        _motion_variant = {
-                            _key: json_info['CpacVariant'][_key]
-                            for _key in movement_filter_keys
-                            if _key in json_info.get('CpacVariant', {})}
-                        try:
-                            filt_value = [
-                                json_info['CpacVariant'][_k][0].replace(
-                                    'motion_estimate_filter_', ''
-                                ) for _k, _v in _motion_variant.items()
-                                if _v][0]
-                        except IndexError:
-                            filt_value = 'none'
-                        if filt_value is not None:
-                            resource_idx = insert_entity(resource_idx, 'filt',
-                                                         filt_value)
-                            out_dct['filename'] = insert_entity(
-                                out_dct['filename'], 'filt', filt_value)
-                    if True in cfg['nuisance_corrections',
-                                   '2-nuisance_regression', 'run']:
-                        reg_value = None
-                        if ('regressors' in json_info.get('CpacVariant', {})
-                                and json_info['CpacVariant']['regressors']):
-                            reg_value = json_info['CpacVariant'][
-                                'regressors'
-                            ][0].replace('nuisance_regressors_generation_', '')
-                        elif False in cfg['nuisance_corrections',
-                                          '2-nuisance_regression', 'run']:
-                            reg_value = 'Off'
-                        if reg_value is not None:
-                            out_dct['filename'] = insert_entity(
-                                out_dct['filename'], 'reg', reg_value)
-                            resource_idx = insert_entity(resource_idx, 'reg',
-                                                         reg_value)
+                    try:
+                        resource_idx, out_dct = name_fork(resource_idx, cfg,
+                                                          json_info, out_dct)
+                    except FilteredUnfilteredError:
+                        continue
                     if unlabelled:
                         if 'desc-' in out_dct['filename']:
                             for key in out_dct['filename'].split('_')[::-1]:
-                                if key.startswith('desc-'):  # final `desc` entity
+                                # final `desc` entity
+                                if key.startswith('desc-'):
                                     out_dct['filename'] = out_dct['filename'
                                                                   ].replace(
                                         key, f'{key}-{num_variant}')
@@ -1215,7 +1187,7 @@ class NodeBlock:
                     if hasattr(node_block_function, '__name__') else \
                     str(node_block_function)
                 raise TypeError(f'Object is not a nodeblock: "{obj_str}"')
-            
+
             name = node_block_function.name
             self.name = name
             self.node_blocks[name] = {}
@@ -1230,7 +1202,7 @@ class NodeBlock:
                                 list_tup.append(interface[1])
                                 node_block_function.inputs.remove(orig_input)
                                 node_block_function.inputs.append(tuple(list_tup))
-                        else:                         
+                        else:
                             if orig_input == interface[0]:
                                 node_block_function.inputs.remove(interface[0])
                                 node_block_function.inputs.append(interface[1])
@@ -1255,7 +1227,8 @@ class NodeBlock:
                     {'logging': {'workflow_level': 'DEBUG'}})
                 logging.update_logging(config)
                 logger.debug('"inputs": %s\n\t "outputs": %s%s',
-                             node_block_function.inputs, list(self.outputs.keys()),
+                             node_block_function.inputs,
+                             list(self.outputs.keys()),
                              f'\n\t"options": {self.options}'
                              if self.options != ['base'] else '')
                 config.update_config(
@@ -1344,7 +1317,7 @@ class NodeBlock:
             sidecar_additions['UserDefined'] = cfg['pipeline_setup']['output_directory']['user_defined']
 
         for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
-            
+
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1401,7 +1374,7 @@ class NodeBlock:
                                 # fork switches
                                 if True in val:
                                     switch_list.append(True)
-                                else:
+                                if False in val:
                                     switch_list.append(False)
                             else:
                                 switch_list.append(val)

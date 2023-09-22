@@ -46,10 +46,6 @@ pipeline_setup:
     #   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
     num_participants_at_once: 3
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
   working_directory:
 
     # Deletes the contents of the Working Directory after running.
@@ -143,18 +139,8 @@ registration_workflows:
     registration:
       FSL-FNIRT:
 
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
-
         # Reference mask for FSL registration.
         ref_mask: /cpac_templates/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
@@ -163,10 +149,6 @@ registration_workflows:
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_template: /cpac_templates/MacaqueYerkes19_T1w_1.0mm.nii.gz
-
-    # Template to be used during registration.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
-    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: Off
@@ -182,12 +164,6 @@ registration_workflows:
           # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
           # this can increase tissue contrast which may improve registration quality in some data
           n4_correct_func: On
-
-      boundary_based_registration:
-
-        # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-        # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-        bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
       # Choose coregistration interpolation
       interpolation: spline
@@ -232,16 +208,6 @@ registration_workflows:
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /cpac_templates/MacaqueYerkes19_T1w_2mm.nii.gz
 
-          # Template to be used during registration.
-          # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
-
-      FNIRT_pipelines:
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
     EPI_registration:
       ANTs:
 
@@ -275,9 +241,6 @@ functional_preproc:
 
   func_masking:
     run: On
-    FSL_AFNI:
-      brain_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
-      brain_probseg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
