@@ -18,7 +18,7 @@ import csv
 import json
 import re
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Union
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -371,7 +371,7 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     return (dwell_time, pe_direction, total_readout, echo_time, 
             echo_time_one, echo_time_two)
 
-
+@Function.sig_imports(['from CPAC.utils.typing import TUPLE'])
 def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
                                  echo_times: list) -> TUPLE[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
