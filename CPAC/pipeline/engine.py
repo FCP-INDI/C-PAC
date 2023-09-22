@@ -135,7 +135,7 @@ class ResourcePool:
             if self.check_rpool('template'):
                 node, out = self.get_data('template')
                 wf.connect(node, out, id_string, 'template_desc')
-        if 'Template' in json_info:
+        elif 'Template' in json_info:
             id_string.inputs.template_desc = json_info['Template']
         elif ('template' in resource_idx and
               len(json_info.get('CpacProvenance', [])) > 1):
@@ -1851,7 +1851,6 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
 
             if ('template' in data_label and not json_info['Template'] == \
                     cfg.pipeline_setup['outdir_ingress']['Template']):
-                print('not equal template', filepath)
                 continue
             # Rename confounds to avoid confusion in nuisance regression
             if data_label.endswith('desc-confounds_timeseries'):
