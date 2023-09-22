@@ -2650,7 +2650,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 @nodeblock(
     name="ingress_regressors",
     switch=[["nuisance_corrections", "2-nuisance_regression", "run"],
-            ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors"]],
+            ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors", "run"]],
     inputs=["pipeline-ingress_desc-confounds_timeseries"],
     outputs=["parsed_regressors"]
 )
