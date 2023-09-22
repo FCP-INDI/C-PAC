@@ -20,10 +20,10 @@ pipeline_setup:
 
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: On
-  
+
   outdir_ingress:
-    run: On 
-    Template: 'MNI152NLin2009cAsym'
+    run: On
+    Template: MNI152NLin2009cAsym
 
 anatomical_preproc:
   acpc_alignment:
@@ -123,10 +123,7 @@ nuisance_corrections:
     ingress_regressors:
       run: On
       Regressors:
-        Name: 'default'
-        Columns:
-          - global_signal
-          - white_matter
+        Columns: [global_signal, white_matter]
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off
