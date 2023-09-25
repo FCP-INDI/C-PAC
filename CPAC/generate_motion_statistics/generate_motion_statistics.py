@@ -17,10 +17,6 @@
 """Functions to calculate motion statistics"""
 import os
 import sys
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
 from typing import Optional
 import numpy as np
 import nibabel as nb
@@ -30,6 +26,7 @@ import nipype.interfaces.utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.pytest import skipif
+from CPAC.utils.typing import LITERAL
 
 
 def motion_power_statistics(name='motion_stats',
@@ -351,9 +348,14 @@ def calculate_FD_P(in_file):
     return out_file
 
 
+@Function.sig_imports(['import os', 'import sys',
+                       'from typing import Optional',
+                       'import numpy as np',
+                       'from CPAC.utils.pytest import skipif',
+                       'from CPAC.utils.typing import LITERAL'])
 @skipif(sys.version_info < (3, 10),
         reason="Test requires Python 3.10 or higher")
-def calculate_FD_J(in_file: str, calc_from: Literal['affine', 'rms'],
+def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
                    center: Optional[np.ndarray] = None) -> str:
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002

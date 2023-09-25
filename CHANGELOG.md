@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - Some automatic handling of user-provided BIDSy atlas names.
+- `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
 
 ## Fixed
 
