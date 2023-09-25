@@ -2252,11 +2252,12 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     if data_paths:
         # ingress outdir
-        if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']['run']:
+        try: 
+            if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']['run']:
                 wf, rpool = \
                      ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, \
                     ses_id, creds_path=None)
-        else:
+        except:
             rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
                                         part_id, ses_id)
             if 'func' in data_paths:
