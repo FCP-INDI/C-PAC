@@ -1,4 +1,5 @@
 import glob
+from os import environ
 import pytest
 import yaml
 
@@ -110,7 +111,9 @@ def test_nuisance_workflow_type1():
         nuisance_regression_workflow.inputs.inputspec.wm_mask_file_path = glob.glob(preprocessed + '/seg_preproc_0/WM/WM_mask/segment_seg_2_maths.nii.gz')[0]
         nuisance_regression_workflow.inputs.inputspec.csf_mask_file_path = glob.glob(preprocessed + '/seg_preproc_0/GM/GM_mask/segment_seg_1_maths.nii.gz')[0]
         nuisance_regression_workflow.inputs.inputspec.gm_mask_file_path = glob.glob(preprocessed + '/seg_preproc_0/GM/GM_mask/segment_seg_1_maths.nii.gz')[0]
-        nuisance_regression_workflow.inputs.inputspec.lat_ventricles_mask_file_path = glob.glob('/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_VentricleMask.nii.gz')[0]
+        nuisance_regression_workflow.inputs.inputspec.lat_ventricles_mask_file_path = glob.glob(
+            f'{environ.get("FSLDIR")}/data/standard/'
+            'MNI152_T1_2mm_VentricleMask.nii.gz')[0]
         # nuisance_regression_workflow.inputs.inputspec.mni_to_anat_linear_xfm_file_path = glob.glob('')[0]
         nuisance_regression_workflow.inputs.inputspec.func_to_anat_linear_xfm_file_path = glob.glob(preprocessed + '/func_to_anat_bbreg_0/_scan_*/bbreg_func_to_anat/*_calc_tshift_resample_volreg_calc_tstat_flirt.mat')[0]
         nuisance_regression_workflow.inputs.inputspec.anat_to_mni_initial_xfm_file_path = glob.glob(preprocessed + '/anat_mni_ants_register_0/calc_ants_warp/transform0DerivedInitialMovingTranslation.mat')[0]

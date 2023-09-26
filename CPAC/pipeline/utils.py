@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2022  C-PAC Developers
+# Copyright (C) 2021-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,11 +16,111 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC pipeline engine utilities"""
 from typing import Union
+from CPAC.func_preproc.func_motion import motion_estimate_filter
+from CPAC.utils.bids_utils import insert_entity
+
+MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+class FilteredUnfilteredError(ValueError):
+    """Custom error class to catch "filtered" outputs with "filt-none"."""
+
+
+def name_fork(resource_idx, cfg, json_info, out_dct):
+    """Create and insert entities for forkpoints
+
+    Parameters
+    ----------
+    resource_idx : str
+
+    cfg : CPAC.utils.configuration.Configuration
+
+    json_info : dict
+
+    out_dct : dict
+
+    Returns
+    -------
+    resource_idx : str
+
+    out_dct : dict
+    """
+    if True in cfg['functional_preproc',
+                   'motion_estimates_and_correction',
+                   'motion_estimate_filter', 'run']:
+        filt_value = None
+        _motion_variant = {
+            _key: json_info['CpacVariant'][_key]
+            for _key in MOVEMENT_FILTER_KEYS
+            if _key in json_info.get('CpacVariant', {})}
+        try:
+            filt_value = [
+                json_info['CpacVariant'][_k][0].replace(
+                    'motion_estimate_filter_', ''
+                ) for _k, _v in _motion_variant.items()
+                if _v][0]
+        except IndexError:
+            filt_value = 'none'
+            if 'filtered' in resource_idx:
+                raise FilteredUnfilteredError
+        resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
+                                                     'filt', filt_value)
+    if True in cfg['nuisance_corrections',
+                    '2-nuisance_regression', 'run']:
+        reg_value = None
+        if ('regressors' in json_info.get('CpacVariant', {})
+                and json_info['CpacVariant']['regressors']):
+            reg_value = json_info['CpacVariant'][
+                'regressors'
+            ][0].replace('nuisance_regressors_generation_', '')
+        elif False in cfg['nuisance_corrections',
+                            '2-nuisance_regression', 'run']:
+            reg_value = 'Off'
+        resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
+                                                     'reg', reg_value)
+    return resource_idx, out_dct
+
+
+def present_outputs(outputs: dict, keys: list) -> dict:
+    """
+    Given an outputs dictionary and a list of output keys, returns
+    the subset of ``outputs`` that includes all keys in ``keys`` that are
+    present. I.e., :py:func:`~CPAC.func_preproc.func_motion.motion_correct_connections`
+    will have different items in its ``outputs`` dictionary at different
+    times depending on the ``motion_correction`` configuration;
+    :py:func:`~CPAC.func_preproc.func_motion.func_motion_estimates` can
+    then wrap that ``outputs`` in this function and provide a list of
+    keys of the desired outputs to include, if they are present in the
+    provided ``outputs`` dictionary, eliminating the need for multiple
+    NodeBlocks that differ only by configuration options and relevant
+    output keys.
+
+    Parameters
+    ----------
+    outputs : dict
+
+    keys : list of str
+
+    Returns
+    -------
+    dict
+        outputs filtered down to keys
+
+    Examples
+    --------
+    >>> present_outputs({'a': 1, 'b': 2, 'c': 3}, ['b'])
+    {'b': 2}
+    >>> present_outputs({'a': 1, 'b': 2, 'c': 3}, ['d'])
+    {}
+    >>> present_outputs({'a': 1, 'b': 2, 'c': 3}, ['a', 'c'])
+    {'a': 1, 'c': 3}
+    """  # pylint: disable=line-too-long
+    return {key: outputs[key] for key in keys if key in outputs}
 
 
 def source_set(sources: Union[str, list, set]) -> set:
     """Given a CpacProvenance, return a set of {resource}:{source} strings
-  
+
     Parameters
     ----------
     sources: str, list, or set
@@ -88,3 +188,31 @@ def source_set(sources: Union[str, list, set]) -> set:
         for item in sources:
             _set.update(source_set(item))
     return _set
+
+
+def _update_resource_idx(resource_idx, out_dct, key, value):
+    """
+    Given a resource_idx and an out_dct, insert fork-based keys as
+    appropriate
+
+    Parameters
+    ----------
+    resource_idx : str
+
+    out_dct : dict
+
+    key : str
+
+    value : str
+
+    Returns
+    -------
+    resource_idx : str
+
+    out_dct : dict
+    """
+    if value is not None:
+        resource_idx = insert_entity(resource_idx, key, value)
+        out_dct['filename'] = insert_entity(out_dct['filename'], key,
+                                            value)
+    return resource_idx, out_dct

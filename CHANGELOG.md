@@ -16,19 +16,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## Added
+
+- Some automatic handling of user-provided BIDSy atlas names.
+- `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
+
+## Fixed
+
+- Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
+
 ### Changed
 
 - Updates develop version numbers to adhere to [PEP440](https://peps.python.org/pep-0440) by changing `{major}.{minor}.{patch}.{SHA}-{dev}` to `{major}.{minor}.{patch}.dev{integer}+{SHA}`
 - Adds checksum steps to `curl`d steps in Docker build process (for standard and `lite` images)
 - Makes in-container root directory writable by all
+- Updates multiword CLI commands and options to accept either standard `-`s or backwards-compatible `_`s interchangeably
+- Disabled `--use-estimate-learning-rate-once` in `antsRegistration` (ANTsX/ANTs#1405; ANTsX/ANTs#1411)
+- Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
+- Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
 
-### Added dependency
+### Added dependencies
 
+- `click-aliases`
 - `dc`
 
 ### Removed dependencies
 
 - `bids-validator`
+- `MSM` (now packaged with `FSL`)
 - `Node`
 - `NVM`
 - `simplejson`
@@ -37,37 +52,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgraded dependencies
 
-- `AFNI` 21.1.00 'Domitian' → 23.0.07 'Commodus'
+- `AFNI` 21.1.00 'Domitian' → 23.1.10 'Publius Helvius Pertinax'
 - `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
-- `boto3` 1.7.37 → 1.26.91
-- `click` 6.7 → 8.1.3
+- `boto3` 1.7.37 → 1.28.4
+- `click` 6.7 → 8.1.5
 - `configparser` 3.7.4 → 5.3.0
-- `FSL` 5.0.10 (5.0.9) → 6.0.6 (6.0.4:ddd0a010c)
+- `FSL` 5.0.10 (5.0.9) → 6.0.6.5
 - `future` 0.16.0 → 0.18.3
 - `ICA-AROMA` 0.4.3-beta → 0.4.4-beta
 - `INDI-Tools` 0.0.7@`main` → 0.0.7@`998c246`
 - `joblib` 1.0.1 → 1.2.0
 - `matplotlib` 3.1.3 → 3.7.1
 - `networkx` 2.4 → 3.1
-- `nibabel` 3.0.1 → 5.0.1
+- `nibabel` 3.0.1 → 5.1.0
 - `nilearn` 0.4.1 → 0.10.0
 - `nipype` 1.5.1 → 1.8.6
-- `numpy` 1.21.0 → 1.24.2
-- `pandas` 1.0.5 → 1.5.3
+- `numpy` 1.21.0 → 1.25.1
+- `pandas` 1.0.5 → 2.0.3
 - `patsy` 0.5.0 → 0.5.3
 - `prov` 1.5.2 → 2.0.0
-- `psutil` 5.6.6 → 5.9.4
+- `psutil` 5.6.6 → 5.9.5
 - `pybids` 0.15.1 → 0.15.6
 - `PyPEER` 1.0@`main` → 1.1@`6965d2b`
-- `Python` 3.7.13 → 3.10.10 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
+- `Python` 3.7.13 → 3.10.6 (holding back from 3.11 for `sdcflows`, `torch`, and `torchvision`)
 - `python-dateutil` 2.7.3 → 2.8.2
 - `PyYAML` 5.4 → 6.0
 - `requests` 2.21.0 → 2.28.2
-- `scipy` 1.6.3 → 1.10.1
+- `scipy` 1.6.3 → 1.11.1
 - `sdcflows` 2.0.5 → 2.4.0
 - `torch` 1.2.0+cu92 → 1.13.1
 - `torchvision` 0.4.0+cu92 → 0.14.1
 - `traits` 4.6.0 → 6.3.2
+- `Ubuntu` 18.04 'Bionic Beaver' → 22.04 'Jammy Jellyfish'
 - `voluptuous` 0.12.0 → 0.13.1
 - `wb_command` neurodebian latest → 1.5.0
 
@@ -112,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
+- When applying a filter to motion parameters, now C-PAC reports both the original and the filtered motion parameters and uses the original parameters for qc. Previous versions only reported the filtered parameters and used the filtered parameters for qc.
 
 ### Upgraded dependencies
 

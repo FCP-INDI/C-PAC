@@ -29,16 +29,16 @@ from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
-scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
+SCIENTIFIC_NOTATION_STR_REGEX = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
 
 # (1 or more digits, optional decimal, 0 or more lowercase characters (units))
 # ('x',
 #  1 or more digits, optional decimal, 0 or more lowercase characters (units)
 # ) 0 or more times
-resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
+RESOLUTION_REGEX = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
                    r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
 
-Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
+Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
 
 
 def str_to_bool1_1(x):  # pylint: disable=invalid-name
@@ -116,7 +116,7 @@ valid_options = {
         'segmentation': {
             'erode_mask': bool1_1,
             'extraction_resolution': Any(
-                int, float, 'Functional', All(str, Match(resolution_regex))
+                int, float, 'Functional', All(str, Match(RESOLUTION_REGEX))
             ),
             'include_delayed': bool1_1,
             'include_delayed_squared': bool1_1,
@@ -162,12 +162,12 @@ ANTs_parameter_transforms = {
         'radius': Number,
     },
     'convergence': {
-        'iteration': All(str, Match(resolution_regex)),
+        'iteration': All(str, Match(RESOLUTION_REGEX)),
         'convergenceThreshold': Number,
         'convergenceWindowSize': int,
     },
-    'smoothing-sigmas': All(str, Match(resolution_regex)),
-    'shrink-factors': All(str, Match(resolution_regex)),
+    'smoothing-sigmas': All(str, Match(RESOLUTION_REGEX)),
+    'shrink-factors': All(str, Match(RESOLUTION_REGEX)),
     'use-histogram-matching': bool1_1,
     'updateFieldVarianceInVoxelSpace': Number,
     'totalFieldVarianceInVoxelSpace': Number,
@@ -379,7 +379,6 @@ latest_schema = Schema({
                     'format': Maybe(All(Coerce(ListFromItem),
                                         [All(Lower, In(('png', 'svg')))])),
                     'simple_form': Maybe(bool)}},
-            'save_workflow': Maybe(bool),
         },
         'crash_log_directory': {
             'path': Maybe(str),
@@ -591,7 +590,7 @@ latest_schema = Schema({
     'registration_workflows': {
         'anatomical_registration': {
             'run': bool1_1,
-            'resolution_for_anat': All(str, Match(resolution_regex)),
+            'resolution_for_anat': All(str, Match(RESOLUTION_REGEX)),
             'T1w_brain_template': Maybe(str),
             'T1w_template': Maybe(str),
             'T1w_brain_template_mask': Maybe(str),
@@ -607,7 +606,7 @@ latest_schema = Schema({
                 },
                 'FSL-FNIRT': {
                     'fnirt_config': Maybe(str),
-                    'ref_resolution': All(str, Match(resolution_regex)),
+                    'ref_resolution': All(str, Match(RESOLUTION_REGEX)),
                     'FNIRT_T1w_brain_template': Maybe(str),
                     'FNIRT_T1w_template': Maybe(str),
                     'interpolation': In({
@@ -677,9 +676,9 @@ latest_schema = Schema({
                 'run_EPI': bool1_1,
                 'output_resolution': {
                     'func_preproc_outputs': All(
-                        str, Match(resolution_regex)),
+                        str, Match(RESOLUTION_REGEX)),
                     'func_derivative_outputs': All(
-                        str, Match(resolution_regex)
+                        str, Match(RESOLUTION_REGEX)
                     ),
                 },
                 'target_template': {
@@ -813,6 +812,7 @@ latest_schema = Schema({
             }
         },
         'func_masking': {
+            'run': bool1_1,
             'using': [In(
                 ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined',
                  'Anatomical_Based', 'Anatomical_Resampled',
@@ -853,6 +853,9 @@ latest_schema = Schema({
             'run': bool1_1,
         },
         'normalize_func': {
+            'run': bool1_1,
+        },
+        'coreg_prep': {
             'run': bool1_1,
         },
     },

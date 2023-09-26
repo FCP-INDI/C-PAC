@@ -192,6 +192,7 @@ functional_preproc:
     run: [On]
 
   func_masking:
+    run: On
     FSL_AFNI:
       bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
 
@@ -234,6 +235,11 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
+
+  coreg_prep:
+
+    # Generate sbref
+    run: On
 
 nuisance_corrections:
   2-nuisance_regression:

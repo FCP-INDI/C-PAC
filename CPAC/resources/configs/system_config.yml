@@ -13,7 +13,7 @@ run_on_grid :  False
 
 # Full path to the FSL version to be used by CPAC.
 # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-FSLDIR :  /usr/share/fsl/5.0
+FSLDIR :  $FSLDIR
 
 
 # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).

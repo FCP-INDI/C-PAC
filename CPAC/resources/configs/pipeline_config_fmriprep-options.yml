@@ -33,10 +33,6 @@ pipeline_setup:
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 3
 
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
-
   Amazon-AWS:
 
     # Enable server-side 256-AES encryption on data to the S3 bucket
@@ -167,10 +163,6 @@ registration_workflows:
 
         # Reference mask for FSL registration.
         ref_mask:
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
       # option parameters
       ANTs:
@@ -337,12 +329,6 @@ registration_workflows:
           # a standard template for resampling if using float resolution
           EPI_template_for_resample:
 
-      FNIRT_pipelines:
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
     EPI_registration:
       ANTs:
 
@@ -382,6 +368,7 @@ functional_preproc:
     run: [On]
 
   func_masking:
+    run: On
     FSL_AFNI:
       bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
       brain_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
@@ -399,6 +386,11 @@ functional_preproc:
   generate_func_mean:
 
     # Generate mean functional image
+    run: On
+
+  coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:

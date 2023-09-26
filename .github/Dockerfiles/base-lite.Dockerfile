@@ -14,42 +14,56 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/afni:23.0.07-bionic as AFNI
-FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3.python3.10-bionic as ANTs
-FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-bionic as c3d
-FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-bionic as connectome-workbench
-FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.4-python3.10-bionic as FSL
-FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-bionic as ICA-AROMA
-FROM ghcr.io/fcp-indi/c-pac/msm:2.0-bionic as MSM
+FROM ghcr.io/fcp-indi/c-pac/afni:23.1.10-jammy as AFNI
+FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy as ANTs
+FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
+FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
+FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
 
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:python3.10-bionic-non-free
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard and lite images"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench
-COPY --from=connectome-workbench /opt/workbench /opt/workbench
-ENV PATH $PATH:/opt/workbench/bin_linux64
+COPY --from=connectome-workbench /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=connectome-workbench /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+COPY --from=connectome-workbench /usr/bin/wb_* /usr/bin
+COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb_command /usr/share/bash-completion/completions/wb_command
+COPY --from=connectome-workbench /usr/share/doc/connectome-workbench /usr/share/doc/connectome-workbench
+COPY --from=connectome-workbench /usr/share/man/man1/wb_* /usr/share/man/man1
+COPY --from=connectome-workbench /usr/share/bash-completion/completions/wb_shortcuts /usr/share/bash-completion/completions/wb_shortcuts
 
 # Installing FSL
 ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
-    FSLTCLSH=/usr/bin/tclsh \
-    FSLWISH=/usr/bin/wish \
     TZ=America/New_York
-ENV POSSUMDIR=${FSLDIR}/6.0 \
+ENV FSLTCLSH=$FSLDIR/bin/fsltclsh \
+    FSLWISH=$FSLDIR/bin/fslwish \
     LD_LIBRARY_PATH=${FSLDIR}/6.0:$LD_LIBRARY_PATH \
-    PATH=${FSLDIR}/bin:$PATH
-COPY --from=FSL /usr/bin/tclsh /usr/bin/tclsh
-COPY --from=FSL /usr/bin/wish /usr/bin/wish
-COPY --from=FSL /usr/share/fsl/ /usr/share/fsl/
-COPY --from=FSL /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+    PATH=${FSLDIR}/bin:$PATH \
+    TZ=America/New_York \
+    USER=c-pac_user
+COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=FSL /usr/bin /usr/bin
+COPY --from=FSL /usr/local/bin /usr/local/bin
+COPY --from=FSL /usr/share/fsl /usr/share/fsl
+
+# Installing C-PAC dependencies
+COPY requirements.txt /opt/requirements.txt
+RUN mamba install git -y \
+  && pip install -r /opt/requirements.txt \
+  && rm -rf /opt/requirements.txt \
+  && yes | mamba clean --all \
+  && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
 
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/
-ENV C3DPATH /opt/c3d/
+ENV C3DPATH /opt/c3d
 ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
@@ -57,7 +71,6 @@ COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /opt/afni/ /opt/afni/
-COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
@@ -70,16 +83,13 @@ COPY --from=ANTs /ants_template/ /ants_template/
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
-# install Multimodal Surface Matching
-COPY --from=MSM /opt/msm/Ubuntu/msm /opt/msm/Ubuntu/msm
-ENV MSMBINDIR=/opt/msm/Ubuntu \
-    PATH=$PATH:/opt/msm/Ubuntu
-
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+    && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
+    && rm -rf results.txt \
+    && ldconfig \
+    && chmod 777 / /home/c-pac_user \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user

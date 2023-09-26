@@ -18,7 +18,7 @@ RUN chmod ugo+w /etc/passwd
 
 # install and set up c3d
 COPY --from=c3d /opt/c3d/ /opt/c3d/
-ENV C3DPATH=/opt/c3d/
+ENV C3DPATH=/opt/c3d
 ENV PATH=$C3DPATH/bin:$PATH
 
 # install AFNI
@@ -89,15 +89,15 @@ COPY --from=ICA-AROMA /opt/ICA-AROMA /opt/ICA-AROMA
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # link libraries & clean up
-RUN locale-gen --purge en_US.UTF-8
-RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN ldconfig
-RUN chmod 777 /
-RUN chmod 777 $(ls / | grep -v sys | grep -v proc)
-RUN apt-get clean
-RUN apt-get autoremove -y
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN locale-gen --purge en_US.UTF-8 \
+  && echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+  && ldconfig \
+  && chmod 777 / /home/c-pac_user \
+  && chmod 777 $(ls / | grep -v sys | grep -v proc) \
+  && apt-get clean \
+  && apt-get autoremove -y \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # set user
 USER c-pac_user

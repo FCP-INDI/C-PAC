@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:bionic-non-free AS ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS ICA-AROMA
 USER root
 
 # install ICA-AROMA
