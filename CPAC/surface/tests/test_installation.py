@@ -17,7 +17,7 @@
 """Tests for requisite surface prerequisites"""
 import os
 import pytest
-from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.tests.test_utils import _installation_check
 
 
 @pytest.mark.parametrize("executable", ["bc", "csh"])
@@ -27,5 +27,4 @@ from CPAC.utils.monitoring.custom_logging import log_subprocess
                            "have FreeSurfer.")
 def test_executable(executable):
     """Make sure executable is installed"""
-    _, exit_code = log_subprocess([executable, "--version"])
-    assert exit_code == 0
+    _installation_check(executable, "--version")
