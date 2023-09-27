@@ -141,8 +141,10 @@ def create_centrality_wf(wf_name : str, method_option : str,
         sep_subbriks_node.inputs.out_names = out_names
         output_node = pe.Node(util.IdentityInterface(fields=['outfile_list']),
                               name='outputspec')
-        centrality_wf.connect(sep_subbriks_node, 'output_niftis',
-                              output_node, 'outfile_list')
+        centrality_wf.connect([(afni_centrality_node, sep_subbriks_node,
+                                [('out_file', 'nifti_file')]),
+                               (sep_subbriks_node, output_node,
+                                [('output_niftis', 'outfile_list')])])
 
     afni_centrality_node.interface.num_threads = num_threads
 
