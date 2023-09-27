@@ -114,7 +114,7 @@ def create_centrality_wf(wf_name : str, method_option : str,
                 util.IdentityInterface(fields=['outfile_list']),
                 name='outputspec', joinfield=['outfile_list'],
                 joinsource='afni_centrality')
-            centrality_wf.connect(afni_centrality_node, 'output_niftis',
+            centrality_wf.connect(afni_centrality_node, 'out_file',
                                   output_node, 'outfile_list')
         else:
             afni_centrality_node = pe.Node(ECM(environ={
