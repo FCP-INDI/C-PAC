@@ -40,10 +40,16 @@ def test_create_centrality_wf(method_option: str, weight_options: LIST[str],
                               threshold: float, tmpdir: Path) -> None:
     '''Integration test of
     ~CPAC.network_centrality.network_centrality.create_centrality_wf'''
-    centrality_wf = create_centrality_wf(
-        f'test_{method_option[0]}{"".join([_[0] for _ in weight_options])}'
-        f'{threshold_option[0]}{threshold}'.replace('.', 'p'), method_option,
-        weight_options, threshold_option, threshold, base_dir=tmpdir)
+    wf_name = (f'test_{method_option[0]}'
+               f'{"".join([_[0] for _ in weight_options])}'
+               f'{threshold_option[0]}{threshold}'.replace('.', 'p'))
+    if method_option == 'eigenvector_centrality':
+        centrality_wf = create_centrality_wf(wf_name, method_option,
+            weight_options, threshold_option, threshold, memory_gb=3.0,
+            base_dir=tmpdir)
+    else:
+        centrality_wf = create_centrality_wf(wf_name, method_option,
+            weight_options, threshold_option, threshold, base_dir=tmpdir)
     centrality_wf.inputs.inputspec.in_file = (_DATA_DIR /
                                               'in_file.nii.gz').absolute()
     centrality_wf.inputs.inputspec.template = (_DATA_DIR /
