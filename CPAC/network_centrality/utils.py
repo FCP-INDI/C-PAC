@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,8 +14,14 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import os
+from pathlib import Path
+from typing import Union
+import nibabel as nib
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.typing import ITERABLE, LIST
 
 
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
@@ -100,12 +106,18 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
 
 @docstring_parameter(
     weight_options=tuple(valid_options['centrality']['weight_options']))
-def sep_nifti_subbriks(nifti_file, out_names):
+@Function.sig_imports(['from typing import Union', 'import os',
+                       'from pathlib import Path', 'import nibabel as nib',
+                       'from CPAC.pipeline.schema import valid_options',
+                       'from CPAC.utils.docs import docstring_parameter',
+                       'from CPAC.utils.typing import ITERABLE, LIST'])
+def sep_nifti_subbriks(nifti_file: Union[Path, str], out_names: ITERABLE[str]
+                       ) -> LIST[str]:
     '''Separate sub-briks of niftis and save specified out
 
     Parameters
     ----------
-    nifti_file : str
+    nifti_file : ~pathlib.Path or str
         path to NIfTI output of an AFNI centrality tool
 
     out_names : iterable of str
@@ -113,15 +125,9 @@ def sep_nifti_subbriks(nifti_file, out_names):
 
     Returns
     -------
-    list
-        each of the specified outputs as its own file
+    list of str
+        paths to each of the specified outputs as its own file
     '''
-    # pylint: disable=redefined-outer-name,reimported,unused-import
-    import os
-    import nibabel as nib
-    from CPAC.pipeline.schema import valid_options
-    from CPAC.utils.docs import docstring_parameter  # noqa: F401
-
     output_niftis = []
     weight_options = valid_options['centrality']['weight_options']
     selected_options = {_[::-1].split('_', 1)[0][::-1]: _ for _ in out_names}
