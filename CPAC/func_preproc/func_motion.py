@@ -574,18 +574,7 @@ motion_correct = {'3dvolreg': motion_correct_3dvolreg,
 
 
 def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
-    """Check opt for valid option, then connect that option.
-
-    Parameters
-    ----------
-    passed through from node block
-
-    Returns
-    -------
-    wf : pe.Workflow
-
-    outputs : dict
-    """
+    """Check opt for valid option, then connect that option."""
     if opt not in motion_correct_options:
         raise KeyError("\n\n[!] Error: The 'tool' parameter of the "
                        "'motion_correction' workflow must be one of "
@@ -626,8 +615,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
               "motion-filter-info": {},
               "motion-filter-plot": {}})
 def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Filter motion parameters.
+    '''Filter motion parameters.
 
     .. versionchanged:: 1.8.6
        Beginning with version 1.8.6, C-PAC outputs both the unfiltered

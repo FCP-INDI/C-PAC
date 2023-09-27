@@ -17,13 +17,14 @@
 """Tests for requisite surface prerequisites"""
 import os
 import pytest
-from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.tests.test_utils import _installation_check
 
 
+@pytest.mark.parametrize("executable", ["bc", "csh"])
 @pytest.mark.skipif("FREESURFER_HOME" not in os.environ or
                     not os.path.exists(os.environ['FREESURFER_HOME']),
-                    reason="We don't need bc if we don't have FreeSurfer.")
-def test_bc():
-    """Make sure ``bc`` is installed"""
-    _, exit_code = log_subprocess(['bc', '--version'])
-    assert exit_code == 0
+                    reason="We don't need these dependencies if we don't"
+                           "have FreeSurfer.")
+def test_executable(executable):
+    """Make sure executable is installed"""
+    _installation_check(executable, "--version")

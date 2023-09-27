@@ -56,6 +56,7 @@ RUN groupadd -r c-pac \
       graphviz-dev \
       locales \
       rdfind \
+      xvfb \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone \
     && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \

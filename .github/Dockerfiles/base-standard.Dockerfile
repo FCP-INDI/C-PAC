@@ -27,7 +27,8 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y bc \
     && yes | mamba install tcsh \
     && yes | mamba clean --all \
-    && cp -l `which tcsh` /bin/tcsh
+    && cp -l `which tcsh` /bin/tcsh \
+    && cp -l `which tcsh` /bin/csh
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     NO_FSFAST=1
 ENV PATH="$FREESURFER_HOME/bin:$PATH" \

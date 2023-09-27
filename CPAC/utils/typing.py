@@ -23,7 +23,6 @@ current preferred syntax.
 """
 import sys
 from typing import Union
-
 from CPAC.utils.docs import DOCS_URL_PREFIX
 
 # Set the version-specific documentation URL in the module docstring:
