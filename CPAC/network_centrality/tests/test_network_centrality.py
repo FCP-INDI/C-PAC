@@ -49,7 +49,7 @@ def test_create_centrality_wf(method_option: str, weight_options: LIST[str],
         with pytest.raises(ValueError):
             centrality_wf = create_centrality_wf(wf_name, method_option,
                 weight_options, threshold_option, threshold, base_dir=tmpdir)
-            return
+        return
     if method_option == 'eigenvector_centrality':
         centrality_wf = create_centrality_wf(wf_name, method_option,
             weight_options, threshold_option, threshold, memory_gb=3.0,
