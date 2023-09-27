@@ -44,8 +44,10 @@ def test_create_centrality_wf(method_option: str, weight_options: LIST[str],
         f'test_{method_option[0]}{"".join([_[0] for _ in weight_options])}'
         f'{threshold_option[0]}{threshold}'.replace('.', 'p'), method_option,
         weight_options, threshold_option, threshold, base_dir=tmpdir)
-    centrality_wf.inputs.inputspec.in_file = _DATA_DIR / 'in_file.nii.gz'
-    centrality_wf.inputs.inputspec.template = _DATA_DIR / 'template.nii.gz'
+    centrality_wf.inputs.inputspec.in_file = (_DATA_DIR /
+                                              'in_file.nii.gz').absolute()
+    centrality_wf.inputs.inputspec.template = (_DATA_DIR /
+                                               'template.nii.gz').absolute()
     if (method_option == 'local_functional_connectivity_density' and
         threshold_option == 'Sparsity threshold'
     ):

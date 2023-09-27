@@ -307,10 +307,10 @@ class ThresholdOptionError(ValueError):
             method_option == 'local_functional_connectivity_density' and
             threshold_option == 'Sparsity threshold'
         ):
-            valid_options = ' or '.join([
+            _valid_options = ' or '.join([
                 f"'{t}'" for t in valid_options[
                     'centrality'
                 ]['threshold_options'] if t != threshold_option
             ])
-            self.message += f'. \'{method_option}\' must use {valid_options}.'
+            self.message += f'. \'{method_option}\' must use {_valid_options}.'
         super().__init__(self.message)
