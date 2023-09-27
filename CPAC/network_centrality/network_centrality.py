@@ -121,7 +121,7 @@ def create_centrality_wf(wf_name : str, method_option : str,
             }), name='afni_centrality', mem_gb=memory_gb)
             afni_centrality_node.inputs.out_file = \
                 'eigenvector_centrality_merged.nii.gz'
-            afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
+        afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
 
     # lFCD
     elif method_option == 'local_functional_connectivity_density':
