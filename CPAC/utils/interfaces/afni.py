@@ -22,8 +22,15 @@ import semver
 import traits.api as traits
 from CPAC.utils.versioning import REPORTED
 
-AFNI_GTE_21_1_1 = semver.compare(REPORTED.get('AFNI', '0.0.0').split(':')[0],
-                                  '21.1.1') >= 0
+AFNI_SEMVER = REPORTED.get('AFNI', '0.0.0').split(':')[0]
+"""Validated AFNI Semver string"""
+try:
+    AFNI_SEMVER = str(semver.Version.parse(AFNI_SEMVER))
+except ValueError:
+    _major, _minor, _patch = [int(part) for part in AFNI_SEMVER.split('.')]
+    AFNI_SEMVER = str(semver.Version.parse(f'{_major}.{_minor}.{_patch}'))
+    del _major, _minor, _patch
+AFNI_GTE_21_1_1 = semver.compare(AFNI_SEMVER, '21.1.1') >= 0
 """AFNI version >= 21.1.1?"""
 
 
