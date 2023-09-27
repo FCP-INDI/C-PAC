@@ -65,6 +65,7 @@ def create_centrality_wf(wf_name : str, method_option : str,
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from nipype.interfaces import utility as util
     from CPAC.network_centrality import utils
+    from CPAC.utils.interfaces.function import Function
 
     test_thresh = threshold
 
@@ -133,9 +134,9 @@ def create_centrality_wf(wf_name : str, method_option : str,
     if not ecm_gte_21_1_01:
         # Need to separate sub-briks except for 3dECM if AFNI > 21.1.01
         sep_subbriks_node = \
-            pe.Node(util.Function(input_names=['nifti_file', 'out_names'],
-                                  output_names=['output_niftis'],
-                                  function=utils.sep_nifti_subbriks),
+            pe.Node(Function(input_names=['nifti_file', 'out_names'],
+                             output_names=['output_niftis'],
+                             function=utils.sep_nifti_subbriks),
                     name='sep_nifti_subbriks')
         sep_subbriks_node.inputs.out_names = out_names
         output_node = pe.Node(util.IdentityInterface(fields=['outfile_list']),
@@ -154,11 +155,11 @@ def create_centrality_wf(wf_name : str, method_option : str,
     if threshold_option == 'Significance threshold':
         # Check and (possibly) conver threshold
         convert_thr_node = pe.Node(
-            util.Function(input_names=['datafile',
-                                       'p_value',
-                                       'two_tailed'],
-                          output_names=['rvalue_threshold'],
-                          function=utils.convert_pvalue_to_r),
+            Function(input_names=['datafile',
+                                  'p_value',
+                                  'two_tailed'],
+                     output_names=['rvalue_threshold'],
+                     function=utils.convert_pvalue_to_r),
             name='convert_threshold')
         # Wire workflow to connect in conversion node
         centrality_wf.connect([(input_node, convert_thr_node,
