@@ -45,6 +45,7 @@ except (AttributeError, KeyError, LookupError, IndexError):
              'motion_estimates', 'calculate_motion_after']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask',
              'movement-parameters', 'max-displacement', 'rels-displacement',
+             'filtered-coordinate-transformation',
              'coordinate-transformation'), 'subject', 'scan'],
     outputs=['framewise-displacement-power',
              'framewise-displacement-jenkinson', 'dvars', 'power-params',
