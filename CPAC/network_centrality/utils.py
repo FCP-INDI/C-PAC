@@ -104,13 +104,13 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
             eigen_binarized, lfcd_weighted, lfcd_binarized)
 
 
-@docstring_parameter(
-    weight_options=tuple(valid_options['centrality']['weight_options']))
 @Function.sig_imports(['from typing import Union', 'import os',
                        'from pathlib import Path', 'import nibabel as nib',
                        'from CPAC.pipeline.schema import valid_options',
                        'from CPAC.utils.docs import docstring_parameter',
                        'from CPAC.utils.typing import ITERABLE, LIST'])
+@docstring_parameter(
+    weight_options=tuple(valid_options['centrality']['weight_options']))
 def sep_nifti_subbriks(nifti_file: Union[Path, str], out_names: ITERABLE[str]
                        ) -> LIST[str]:
     '''Separate sub-briks of niftis and save specified out
