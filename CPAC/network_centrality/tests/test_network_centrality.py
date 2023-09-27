@@ -1,0 +1,55 @@
+# Copyright (C) 2015-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from itertools import combinations
+from pathlib import Path
+import pytest
+from CPAC.network_centrality.network_centrality import create_centrality_wf
+from CPAC.pipeline.schema import valid_options
+from CPAC.utils.interfaces.afni import AFNI_SEMVER
+from CPAC.utils.typing import LIST
+
+_DATA_DIR = Path(__file__).parent / 'data'
+"""Path to test data directory"""
+
+
+@pytest.mark.parametrize('method_option',
+                         valid_options['centrality']['method_options'])
+@pytest.mark.parametrize('weight_options',
+    [*combinations(valid_options['centrality']['weight_options'], 1),
+     *combinations(valid_options['centrality']['weight_options'], 2)])
+@pytest.mark.parametrize('threshold_option',
+                          valid_options['centrality']['threshold_options'])
+@pytest.mark.parametrize('threshold', [0.1, 0.6, 1.])
+@pytest.mark.skipif(AFNI_SEMVER == '0.0.0', reason='AFNI not installed')
+def test_create_centrality_wf(method_option: str, weight_options: LIST[str],
+                              threshold_option: str,
+                              threshold: float, tmpdir: Path) -> None:
+    '''Integration test of
+    ~CPAC.network_centrality.network_centrality.create_centrality_wf'''
+    centrality_wf = create_centrality_wf(
+        f'test_{method_option[0]}{"".join([_[0] for _ in weight_options])}'
+        f'{threshold_option[0]}{threshold}'.replace('.', 'p'), method_option,
+        weight_options, threshold_option, threshold, base_dir=tmpdir)
+    centrality_wf.inputs.inputspec.in_file = _DATA_DIR / 'in_file.nii.gz'
+    centrality_wf.inputs.inputspec.template = _DATA_DIR / 'template.nii.gz'
+    if (method_option == 'local_functional_connectivity_density' and
+        threshold_option == 'Sparsity threshold'
+    ):
+        with pytest.raises(ValueError):
+            centrality_wf.run()
+    else:
+        centrality_wf.run()

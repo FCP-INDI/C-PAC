@@ -14,19 +14,26 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from pathlib import Path
+from typing import Optional, Union
 from nipype.interfaces.afni.preprocess import DegreeCentrality, LFCD
+from nipype.pipeline.engine import Workflow
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.afni import AFNI_GTE_21_1_1, ECM
+from CPAC.utils.typing import LIST
 
 
 @docstring_parameter(m_options=valid_options['centrality']['method_options'],
                      t_options=valid_options['centrality'][
                         'threshold_options'],
                      w_options=valid_options['centrality']['weight_options'])
-def create_centrality_wf(wf_name, method_option, weight_options,
-                         threshold_option, threshold, num_threads=1,
-                         memory_gb=1.0):
+def create_centrality_wf(wf_name : str, method_option : str,
+                         weight_options : LIST[str], threshold_option : str,
+                         threshold : float, num_threads : Optional[int] = 1,
+                         memory_gb : Optional[float] = 1.0,
+                         base_dir : Optional[Union[Path, str]] = None
+                         ) -> Workflow:
     """
     Function to create the afni-based centrality workflow
 
@@ -42,10 +49,13 @@ def create_centrality_wf(wf_name, method_option, weight_options,
         one of {t_options}
     threshold : float
         the threshold value for thresholding the similarity matrix
-    num_threads : integer (optional); default=1
-        the number of threads to utilize for centrality computation
-    memory_gb : float (optional); default=1.0
-        the amount of memory the centrality calculation will take (GB)
+    num_threads : integer, optional
+        the number of threads to utilize for centrality computation; default=1
+    memory_gb : float,optional
+        the amount of memory the centrality calculation will take (GB);
+        default=1.0
+    base_dir : path or str, optional
+        the base directory for the workflow; default=None
 
     Returns
     -------
@@ -68,7 +78,10 @@ def create_centrality_wf(wf_name, method_option, weight_options,
     ecm_gte_21_1_01 = ((method_option == 'eigenvector_centrality') and
                        AFNI_GTE_21_1_1)
     out_names = tuple(f'{method_option}_{x}' for x in weight_options)
-    centrality_wf = pe.Workflow(name=wf_name)
+    if base_dir is None:
+        centrality_wf = pe.Workflow(name=wf_name)
+    else:
+        centrality_wf = pe.Workflow(name=wf_name, base_dir=base_dir)
 
     input_node = pe.Node(util.IdentityInterface(fields=['in_file',
                                                         'template',
