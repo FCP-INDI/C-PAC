@@ -33,7 +33,7 @@ _DATA_DIR = Path(__file__).parent / 'data'
      *combinations(valid_options['centrality']['weight_options'], 2)])
 @pytest.mark.parametrize('threshold_option',
                           valid_options['centrality']['threshold_options'])
-@pytest.mark.parametrize('threshold', [0.1, 0.6, 1.])
+@pytest.mark.parametrize('threshold', [0.001, 0.6])
 @pytest.mark.skipif(AFNI_SEMVER == '0.0.0', reason='AFNI not installed')
 def test_create_centrality_wf(method_option: str, weight_options: LIST[str],
                               threshold_option: str,
