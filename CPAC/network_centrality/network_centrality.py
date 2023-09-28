@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Optional, Union
 from nipype.interfaces.afni.preprocess import DegreeCentrality, LFCD
 from nipype.pipeline.engine import Workflow
+from CPAC.network_centrality.utils import ThresholdOptionError
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.afni import AFNI_GTE_21_1_1, ECM
@@ -174,8 +175,7 @@ def create_centrality_wf(wf_name : str, method_option : str,
     elif threshold_option == 'Sparsity threshold':
         # Check to make sure it's not lFCD
         if method_option == 'local_functional_connectivity_density':
-            raise ValueError(
-                'Sparsity thresholding is not supported for lFCD')
+            raise ThresholdOptionError(threshold_option, method_option)
 
         # Otherwise, connect threshold to sparsity input
         centrality_wf.connect(input_node, 'threshold',
