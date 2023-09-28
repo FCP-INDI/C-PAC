@@ -45,7 +45,7 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
                                                               threshold)
 
     # Change sparsity thresholding to % to work with afni
-    if threshold_option == 'sparsity':
+    if threshold_option == 'Sparsity threshold':
         threshold = threshold * 100
 
     afni_centrality_wf = \

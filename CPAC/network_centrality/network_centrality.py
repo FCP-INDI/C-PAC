@@ -69,7 +69,7 @@ def create_centrality_wf(wf_name : str, method_option : str,
 
     test_thresh = threshold
 
-    if threshold_option == 'sparsity':
+    if threshold_option == 'Sparsity threshold':
         test_thresh = threshold / 100.0
 
     method_option, threshold_option = \
