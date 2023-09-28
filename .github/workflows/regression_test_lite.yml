@@ -1,9 +1,13 @@
 name: Launch lite regression test
 
-
 on:
-  #pull_request:
-  #  types: [ready_for_review]
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - ready_for_review
+      - reopened
   workflow_call:
     secrets:
       GH_CLI_BIN_PATH:
@@ -65,15 +69,15 @@ jobs:
           command_timeout: 200m
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
-            if [ ! -d slurm_testing_callback ] ; then
-                git clone https://github.com/shnizzedy/slurm_testing slurm_testing_callback
+            if [ ! -d slurm_testing ] ; then
+                git clone https://github.com/${{ github.repository_owner }}/slurm_testing slurm_testing
             else
-                cd slurm_testing_callback
+                cd slurm_testing
                 git pull origin regression/after_runs
                 cd ..
             fi
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha}}/error.log slurm_testing_callback/.github/scripts/launch_regtest_lite.SLURM
+            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
