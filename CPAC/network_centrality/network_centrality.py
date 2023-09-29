@@ -62,7 +62,12 @@ def create_centrality_wf(wf_name : str, method_option : str,
     -------
     centrality_wf : nipype Workflow
         the initialized nipype workflow for the afni centrality command
-    """
+
+    .. seealso::
+
+        :py:func:`~CPAC.network_centrality.pipelin
+e.connect_centrality_workflow`
+    """  # pylint: disable=line-too-long
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from nipype.interfaces import utility as util
     from CPAC.network_centrality import utils

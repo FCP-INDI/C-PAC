@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 from typing import Union
 import nibabel as nib
+from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.function import Function
@@ -102,6 +103,19 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
 
     return (degree_weighted, degree_binarized, eigen_weighted,
             eigen_binarized, lfcd_weighted, lfcd_binarized)
+
+
+def create_merge_node(pipe_num: int) -> Node:
+    '''Create a merge node for the centrality workflow'''
+    return Node(Function(input_names=['deg_list', 'eig_list', 'lfcd_list'],
+                         output_names=['degree_weighted',
+                                       'degree_binarized',
+                                       'eigen_weighted',
+                                       'eigen_binarized',
+                                       'lfcd_weighted',
+                                       'lfcd_binarized'],
+                         function=merge_lists, as_module=True),
+                name=f'centrality_merge_node_{pipe_num}')
 
 
 @Function.sig_imports(['from typing import Union', 'import os',

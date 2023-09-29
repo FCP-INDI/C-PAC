@@ -1,13 +1,28 @@
+# Copyright (C) 2018-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.utility as util
+from nipype.interfaces import fsl
 
 from nipype import logging
 
 from CPAC.pipeline.nodeblock import nodeblock
-from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
-from CPAC.network_centrality.utils import merge_lists, check_centrality_params
+from CPAC.network_centrality.utils import check_centrality_params, \
+    create_merge_node
 from CPAC.pipeline.schema import valid_options
 
 logger = logging.getLogger('nipype.workflow')
@@ -16,6 +31,57 @@ logger = logging.getLogger('nipype.workflow')
 def connect_centrality_workflow(workflow, c, resample_functional_to_template,
                                 template_node, template_out, merge_node,
                                 method_option, pipe_num):
+    """
+    .. exec::
+       :hide:
+
+       from nipype.interfaces.utility import IdentityInterface
+       from CPAC.network_centrality.utils import create_merge_node
+       from CPAC.network_centrality.pipeline import \
+           connect_centrality_workflow
+       from CPAC.pipeline import nipype_pipeline_engine as pe
+       from CPAC.pipeline.schema import valid_options
+       from CPAC.utils.configuration import Configuration
+       from CPAC.utils.interfaces.function import Function
+
+       wf = pe.Workflow(name='centrality')
+       cfg = Configuration({'network_centrality': {
+           method: {
+               'weight_options': valid_options[
+                   'centrality']['weight_options'],
+               'correlation_threshold_option': 'Significance threshold',
+               'correlation_threshold': 0.001
+           } for method in ['degree_centrality',
+                            'eigenvector_centrality',
+                            'local_functional_connectivity_density']
+       }})
+       pipe_num = 0
+       resample_functional_to_template = pe.Node(
+           IdentityInterface(fields=['resample_functional_to_template']),
+           name='resample_functional_to_template')
+       template_node = pe.Node(
+           IdentityInterface(fields=['template_node']),
+           name='template_node')
+       merge_node = create_merge_node(pipe_num)
+       for option in valid_options['centrality']['method_options']:
+           if cfg.network_centrality[option]['weight_options']:
+               connect_centrality_workflow(
+                   wf, cfg, resample_functional_to_template, template_node,
+                   'template_node', merge_node, option, 0)
+       wf.write_graph(
+           graph2use='orig',
+           dotfilename='./images/generated/network_centrality.dot')
+
+    High Level Workflow Graph:
+
+    .. image:: ../../images/generated/network_centrality.png
+        :width: 500
+
+    Detailed Workflow Graph:
+
+    .. image:: ../../images/generated/network_centrality.png
+        :width: 500
+    """
     template = c.network_centrality['template_specification_file']
 
     # Set method_options variables
@@ -112,29 +178,15 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("template-specification-file")
     wf.connect(node, out, resample_functional_to_template, 'reference')
 
-    merge_node = pe.Node(Function(input_names=['deg_list',
-                                               'eig_list',
-                                               'lfcd_list'],
-                                  output_names=['degree_weighted',
-                                                'degree_binarized',
-                                                'eigen_weighted',
-                                                'eigen_binarized',
-                                                'lfcd_weighted',
-                                                'lfcd_binarized'],
-                                  function=merge_lists,
-                                  as_module=True),
-                         name=f'centrality_merge_node_{pipe_num}')
-
-    [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
-                                 node, out, merge_node,
-                                 option, pipe_num) for option in
-     valid_options['centrality']['method_options'] if
-     cfg.network_centrality[option]['weight_options']]
-
+    merge_node = create_merge_node(pipe_num)
     outputs = {}
 
     for option in valid_options['centrality']['method_options']:
         if cfg.network_centrality[option]['weight_options']:
+            connect_centrality_workflow(wf, cfg,
+                                        resample_functional_to_template,
+                                        node, out, merge_node,
+                                        option, pipe_num)
             for weight in cfg.network_centrality[option]['weight_options']:
                 _option = option.lower()
                 _weight = weight.lower()
