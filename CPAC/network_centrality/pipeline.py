@@ -82,8 +82,6 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
     .. image:: ../../images/generated/network_centrality.png
         :width: 500
     """
-    template = c.network_centrality['template_specification_file']
-
     # Set method_options variables
     if method_option == 'degree_centrality':
         out_list = 'deg_list'
