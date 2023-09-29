@@ -90,6 +90,8 @@ def create_centrality_wf(wf_name : str, method_option : str,
                                                         'threshold']),
                          name='inputspec')
     input_node.inputs.threshold = threshold
+    output_node = pe.Node(util.IdentityInterface(fields=['outfile_list']),
+                          name='outputspec')
 
     # Degree centrality
     if method_option == 'degree_centrality':
@@ -111,10 +113,6 @@ def create_centrality_wf(wf_name : str, method_option : str,
                 w_option in weight_options]
             afni_centrality_node.inputs.do_binary = [
                 w_option == 'Binarized' for w_option in weight_options]
-            output_node = pe.JoinNode(
-                util.IdentityInterface(fields=['outfile_list']),
-                name='outputspec', joinfield=['outfile_list'],
-                joinsource='afni_centrality')
             centrality_wf.connect(afni_centrality_node, 'out_file',
                                   output_node, 'outfile_list')
         else:
@@ -140,8 +138,6 @@ def create_centrality_wf(wf_name : str, method_option : str,
                              function=utils.sep_nifti_subbriks),
                     name='sep_nifti_subbriks')
         sep_subbriks_node.inputs.out_names = out_names
-        output_node = pe.Node(util.IdentityInterface(fields=['outfile_list']),
-                              name='outputspec')
         centrality_wf.connect([(afni_centrality_node, sep_subbriks_node,
                                 [('out_file', 'nifti_file')]),
                                (sep_subbriks_node, output_node,
