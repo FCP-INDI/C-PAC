@@ -33,7 +33,6 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
                                 method_option, pipe_num):
     """
     .. exec::
-       :hide:
 
        from nipype.interfaces.utility import IdentityInterface
        from CPAC.network_centrality.utils import create_merge_node
@@ -43,7 +42,6 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
        from CPAC.pipeline.schema import valid_options
        from CPAC.utils.configuration import Configuration
        from CPAC.utils.interfaces.function import Function
-
        wf = pe.Workflow(name='centrality')
        cfg = Configuration({'network_centrality': {
            method: {

@@ -29,14 +29,18 @@ from CPAC.utils.typing import LIST
                      t_options=valid_options['centrality'][
                         'threshold_options'],
                      w_options=valid_options['centrality']['weight_options'])
-def create_centrality_wf(wf_name : str, method_option : str,
-                         weight_options : LIST[str], threshold_option : str,
-                         threshold : float, num_threads : Optional[int] = 1,
-                         memory_gb : Optional[float] = 1.0,
-                         base_dir : Optional[Union[Path, str]] = None
+def create_centrality_wf(wf_name: str, method_option: str,
+                         weight_options: LIST[str], threshold_option: str,
+                         threshold: float, num_threads: Optional[int] = 1,
+                         memory_gb: Optional[float] = 1.0,
+                         base_dir: Optional[Union[Path, str]] = None
                          ) -> Workflow:
     """
-    Function to create the afni-based centrality workflow
+    Function to create the afni-based centrality workflow.
+
+    .. seealso::
+
+        :py:func:`~CPAC.network_centrality.pipeline.connect_centrality_workflow`
 
     Parameters
     ----------
@@ -62,11 +66,6 @@ def create_centrality_wf(wf_name : str, method_option : str,
     -------
     centrality_wf : nipype Workflow
         the initialized nipype workflow for the afni centrality command
-
-    .. seealso::
-
-        :py:func:`~CPAC.network_centrality.pipelin
-e.connect_centrality_workflow`
     """  # pylint: disable=line-too-long
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from nipype.interfaces import utility as util

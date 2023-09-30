@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 import nibabel as nib
 from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.pipeline.schema import valid_options
@@ -73,8 +73,16 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     return r_value
 
 
-# Function to actually do the list merging
-def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
+def merge_lists(deg_list: Optional[LIST[str]] = None,
+                eig_list: Optional[LIST[str]] = None,
+                lfcd_list: Optional[LIST[str]] = None):
+    '''Function to actually do the list merging'''
+    if deg_list is None:
+        deg_list = []
+    if eig_list is None:
+        eig_list = []
+    if lfcd_list is None:
+        lfcd_list = []
     merged_list = []
     merged_list.extend(deg_list)
     merged_list.extend(eig_list)
