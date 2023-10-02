@@ -43,19 +43,19 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
        from CPAC.utils.configuration import Configuration
        from CPAC.utils.interfaces.function import Function
        wf = pe.Workflow(name='centrality')
-       cfg = Configuration({'network_centrality': {
-           method: {
-               'weight_options': valid_options[
-                   'centrality']['weight_options'],
+       # Sphinx didn't like a comprehension here
+       _d = {'network_centrality': {}}
+       for method in ['degree_centrality',
+                      'eigenvector_centrality',
+                      'local_functional_connectivity_density']:
+           _d['network_centrality'][method] = {
+               'weight_options': valid_options['centrality']['weight_options'],
                'correlation_threshold_option': 'Significance threshold',
-               'correlation_threshold': 0.001
-           } for method in ['degree_centrality',
-                            'eigenvector_centrality',
-                            'local_functional_connectivity_density']
-       }})
+               'correlation_threshold': 0.001}
+       cfg = Configuration(_d)
        pipe_num = 0
        resample_functional_to_template = pe.Node(
-           IdentityInterface(fields=['resample_functional_to_template']),
+           IdentityInterface(fields=['in_file', 'reference', 'out_file']),
            name='resample_functional_to_template')
        template_node = pe.Node(
            IdentityInterface(fields=['template_node']),
@@ -69,6 +69,9 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
        wf.write_graph(
            graph2use='orig',
            dotfilename='./images/generated/network_centrality.dot')
+       wf.write_graph(
+           graph2use='hierarchical',
+           dotfilename='./images/generated/network_centrality.dot')
 
     High Level Workflow Graph:
 
@@ -77,7 +80,7 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
 
     Detailed Workflow Graph:
 
-    .. image:: ../../images/generated/network_centrality.png
+    .. image:: ../../images/generated/network_centrality_detailed.png
         :width: 500
     """
     # Set method_options variables

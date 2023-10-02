@@ -76,7 +76,39 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
 def merge_lists(deg_list: Optional[LIST[str]] = None,
                 eig_list: Optional[LIST[str]] = None,
                 lfcd_list: Optional[LIST[str]] = None):
-    '''Function to actually do the list merging'''
+    '''Function to actually do the list merging.
+
+    Parameters
+    ----------
+    deg_list : list of str, optional
+        list of paths to degree centrality outputs
+
+    eig_list : list of str, optional
+        list of paths to eigenvector centrality outputs
+
+    lfcd_list : list of str, optional
+        list of paths to local functional connectivity density outputs
+
+    Returns
+    -------
+    degree_weighted : str
+        path to weighted degree centrality output
+
+    degree_binarized : str
+        path to binarized degree centrality output
+
+    eigen_weighted : str
+        path to weighted eigenvector centrality output
+
+    eigen_binarized : str
+        path to binarized eigenvector centrality output
+
+    lfcd_weighted : str
+        path to weighted local functional connectivity density output
+
+    lfcd_binarized : str
+        path to binarized local functional connectivity density output
+    '''
     if deg_list is None:
         deg_list = []
     if eig_list is None:
@@ -114,7 +146,50 @@ def merge_lists(deg_list: Optional[LIST[str]] = None,
 
 
 def create_merge_node(pipe_num: int) -> Node:
-    '''Create a merge node for the centrality workflow'''
+    '''Create a Function Node to merge lists for the centrality workflow
+
+    Parameters
+    ----------
+    pipe_num : int
+
+    Returns
+    -------
+    Node
+        a Function Node to merge lists for the centrality workflow
+
+    Notes
+    -----
+    Node Inputs::
+
+        deg_list : list of strings
+            list of paths to degree centrality outputs
+
+        eig_list : list of strings
+            list of paths to eigenvector centrality outputs
+
+        lfcd_list : list of strings
+            list of paths to local functional connectivity density outputs
+
+    Node Outputs::
+
+        degree_weighted : string
+            path to weighted degree centrality output
+
+        degree_binarized : string
+            path to binarized degree centrality output
+
+        eigen_weighted : string
+            path to weighted eigenvector centrality output
+
+        eigen_binarized : string
+            path to binarized eigenvector centrality output
+
+        lfcd_weighted : string
+            path to weighted local functional connectivity density output
+
+        lfcd_binarized : string
+            path to binarized local functional connectivity density output
+    '''
     return Node(Function(input_names=['deg_list', 'eig_list', 'lfcd_list'],
                          output_names=['degree_weighted',
                                        'degree_binarized',

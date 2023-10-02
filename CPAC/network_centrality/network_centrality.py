@@ -40,7 +40,9 @@ def create_centrality_wf(wf_name: str, method_option: str,
 
     .. seealso::
 
-        :py:func:`~CPAC.network_centrality.pipeline.connect_centrality_workflow`
+        * :py:func:`~CPAC.network_centrality.pipeline.connect_centrality_workflow`
+        * :py:func:`~CPAC.network_centrality.utils.create_merge_node`
+        * :py:func:`~CPAC.network_centrality.utils.sep_nifti_subbriks`
 
     Parameters
     ----------
@@ -66,6 +68,24 @@ def create_centrality_wf(wf_name: str, method_option: str,
     -------
     centrality_wf : nipype Workflow
         the initialized nipype workflow for the afni centrality command
+
+    Notes
+    -----
+    Workflow Inputs::
+
+        inputspec.in_file : string
+            path to input functional data NIfTI file
+
+        inputspec.template : string
+            path to input mask template NIfTI file
+
+        inputspec.threshold : float
+            threshold value for thresholding the similarity matrix
+
+    Workflow Outputs::
+
+        outputspec.outfile_list : list of strings
+            list of paths to output files (binarized and weighted)
     """  # pylint: disable=line-too-long
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from nipype.interfaces import utility as util
