@@ -61,7 +61,7 @@ jobs:
           state: pending
 
       - name: Connect and Run Regression Test Lite
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
