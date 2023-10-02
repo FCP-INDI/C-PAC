@@ -18,9 +18,7 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as ANTs
 
 USER root
 COPY dev/docker_data/checksum/ANTs.2.4.3.sha384 /tmp/checksum.sha384
-RUN apt-get update \
-  && apt-get install --no-install-recommends -y unzip \
-  && curl -sL https://github.com/ANTsX/ANTs/releases/download/v2.4.3/ants-2.4.3-ubuntu-18.04-X64-gcc.zip -o /tmp/ANTs.zip \
+RUN curl -sL https://github.com/ANTsX/ANTs/releases/download/v2.4.3/ants-2.4.3-ubuntu-18.04-X64-gcc.zip -o /tmp/ANTs.zip \
   && curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip \
   && sha384sum --check /tmp/checksum.sha384 \
   && unzip /tmp/ANTs.zip -d /tmp \

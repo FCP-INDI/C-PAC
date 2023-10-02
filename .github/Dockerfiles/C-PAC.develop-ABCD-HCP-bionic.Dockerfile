@@ -30,4 +30,3 @@ ENV PATH=$PATH:/home/c-pac_user/.local/bin \
 
 # set user
 # USER c-pac_user
-WORKDIR /home/c-pac_user
