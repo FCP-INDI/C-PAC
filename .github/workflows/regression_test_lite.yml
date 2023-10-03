@@ -26,6 +26,9 @@ jobs:
   test:
     name: Regression Test - Lite
     environment: ACCESS
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
     runs-on: ubuntu-latest
     steps: 
       - name: Get C-PAC branch
@@ -48,9 +51,9 @@ jobs:
       - name: Install SSH Keys
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H -t rsa ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+          ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
       
       - name: Initiate check
         uses: guibranco/github-status-action-v2@v1.1.7
