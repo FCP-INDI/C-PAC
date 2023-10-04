@@ -1,6 +1,13 @@
 name: Launch lite regression test
 
 on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - ready_for_review
+      - reopened
   pull_request_target:  # Make sure environment protection is enabled!
     branches:
       - develop
@@ -30,8 +37,9 @@ jobs:
       SHA: ${{ github.event.pull_request.head.sha }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
+    if: (${{ github.event.pull_request.head.repo.full_name }} == ${{ github.repository }} && ${{ github.event_name }} == 'pull_request') || (${{ github.event.pull_request.head.repo.full_name }} != ${{ github.repository }} && ${{ github.event_name }} == 'pull_request_target')
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - name: Get C-PAC branch
         run: |
           GITHUB_BRANCH=${{ github.event.pull_request.head.ref }}
