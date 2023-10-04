@@ -1,7 +1,7 @@
 name: Launch lite regression test
 
 on:
-  pull_request:
+  pull_request_target:  # Make sure environment protection is enabled!
     branches:
       - develop
     types:
@@ -33,7 +33,7 @@ jobs:
     steps: 
       - name: Get C-PAC branch
         run: |
-          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
+          GITHUB_BRANCH=${{ github.event.pull_request.head.ref }}
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=${GITHUB_BRANCH//\//_}
