@@ -27,6 +27,7 @@ jobs:
     name: Regression Test - Lite
     environment: ACCESS
     env:
+      SHA: ${{ github.event.pull_request.head.sha }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
     runs-on: ubuntu-latest
@@ -79,8 +80,8 @@ jobs:
                 git pull origin regression/after_runs
                 cd ..
             fi
-            mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            mkdir -p ./logs/${SHA}
+            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${SHA}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
