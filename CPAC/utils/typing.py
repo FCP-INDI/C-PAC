@@ -31,6 +31,12 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
     LITERAL = Literal
+if sys.version_info >= (3, 9):
+    from collections.abc import Iterable
+    LIST = list
+else:
+    from typing import Iterable, List
+    LIST = List
 if sys.version_info >= (3, 10):
     LIST_OR_STR = list | str
     TUPLE = tuple
@@ -38,5 +44,6 @@ else:
     from typing import Tuple, Union
     LIST_OR_STR = Union[list, str]
     TUPLE = Tuple
+ITERABLE = Iterable
 
-__all__ = ['LIST_OR_STR', 'LITERAL', 'TUPLE']
+__all__ = ['ITERABLE', 'LIST_OR_STR', 'LITERAL', 'TUPLE']
