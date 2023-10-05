@@ -184,8 +184,9 @@ class ResourcePool:
                             cfg=self.cfg,
                             pipe_list=copy.deepcopy(self.pipe_list))
 
-    def get_raw_label(self, resource):
-        # remove desc-* label
+    @staticmethod
+    def get_raw_label(resource: str) -> str:
+        """Removes ``desc-*`` label"""
         for tag in resource.split('_'):
             if 'desc-' in tag:
                 resource = resource.replace(f'{tag}_', '')
@@ -224,7 +225,8 @@ class ResourcePool:
                 return val['json'][key]
         return self.rpool[resource][pipe_idx][key]
 
-    def get_resource_from_prov(self, prov):
+    @staticmethod
+    def get_resource_from_prov(prov):
         # each resource (i.e. "desc-cleaned_bold" AKA nuisance-regressed BOLD
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
@@ -394,7 +396,8 @@ class ResourcePool:
         json_data = self.get_json(resource, strat)
         return json_data['CpacProvenance']
 
-    def generate_prov_string(self, prov):
+    @staticmethod
+    def generate_prov_string(prov):
         # this will generate a string from a SINGLE RESOURCE'S dictionary of
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
         #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
@@ -405,13 +408,15 @@ class ResourcePool:
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
 
-    def generate_prov_list(self, prov_str):
+    @staticmethod
+    def generate_prov_list(prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
                             f'entry for {str(prov_str)} has to be a string.\n')
         return ast.literal_eval(prov_str)
 
-    def get_resource_strats_from_prov(self, prov):
+    @staticmethod
+    def get_resource_strats_from_prov(prov):
         # if you provide the provenance of a resource pool output, this will
         # return a dictionary of all the preceding resource pool entries that
         # led to that one specific output:
