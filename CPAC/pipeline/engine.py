@@ -314,12 +314,6 @@ class ResourcePool:
                     if report_fetched:
                         return (self.rpool[label], label)
                     return self.rpool[label]
-            else:
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
