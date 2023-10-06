@@ -111,6 +111,17 @@ class ResourcePool:
                     'reho', 'desc-sm_reho', 'desc-zstd_reho',
                     'desc-sm-zstd_reho']
 
+    def __repr__(self) -> str:
+        params = [f"{param}={getattr(self, param)}" for param in
+                  ["rpool", "name", "cfg", "pipe_list"] if
+                  getattr(self, param, None) is not None]
+        return f'ResourcePool({", ".join(params)})'
+
+    def __str__(self) -> str:
+        if self.name:
+            return f'ResourcePool({self.name}): {list(self.rpool)}'
+        return f'ResourcePool: {list(self.rpool)}'
+
     def append_name(self, name):
         self.name.append(name)
 
