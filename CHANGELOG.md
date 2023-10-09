@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 
 - Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
+- Handling of `3dECM` outputs for AFNI ≥ 21.1.1.
+- Fixed a bug where sparsity thresholds were not being scaled for network centrality.
 
 ### Changed
 
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `click-aliases`
 - `dc`
+- `semver`
 
 ### Removed dependencies
 

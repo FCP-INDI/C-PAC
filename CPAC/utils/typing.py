@@ -35,9 +35,10 @@ else:
     from typing_extensions import Literal
     LITERAL = Literal
 if sys.version_info >= (3, 9):
+    from collections.abc import Iterable
     LIST = list
 else:
-    from typing import List
+    from typing import Iterable, List
     LIST = List
 if sys.version_info >= (3, 10):
     LIST_OR_STR = list | str  # pylint: disable=invalid-name
@@ -46,7 +47,7 @@ else:
     from typing import Tuple
     LIST_OR_STR = Union[list, str]  # pylint: disable=invalid-name
     TUPLE = Tuple
-
+ITERABLE = Iterable
 ConfigKeyType = Union[str, LIST[str]]
-
-__all__ = ['ConfigKeyType', 'LIST', 'LIST_OR_STR', 'LITERAL', 'TUPLE']
+__all__ = ['ConfigKeyType', 'ITERABLE', 'LIST', 'LIST_OR_STR', 'LITERAL',
+           'TUPLE']
