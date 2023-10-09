@@ -29,4 +29,5 @@ ENV PATH=$PATH:/home/c-pac_user/.local/bin \
     PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
 
 # set user
+WORKDIR /home/c-pac_user
 # USER c-pac_user

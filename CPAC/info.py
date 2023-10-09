@@ -201,6 +201,7 @@ REQUIREMENTS = [
     "scikit-learn",
     "scipy",
     "sdcflows",
+    "semver",
     "traits",
     "voluptuous>=0.12.0",
     "xvfbwrapper"
