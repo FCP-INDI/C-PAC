@@ -34,6 +34,7 @@ requests==2.31.0
 scikit-learn==1.2.2
 scipy==1.11.1
 sdcflows==2.4.0
+semver==3.0.1
 traits==6.3.2
 voluptuous==0.13.1
 # the below are pinned specifically to match what the FSL installer installs

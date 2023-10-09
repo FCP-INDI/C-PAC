@@ -21,10 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Some automatic handling of user-provided BIDSy atlas names.
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
 - String representations for NodeBlock and ResourcePool class instances
+- `switch_is_off`, `switch_is_on` and `switch_is_on_off` methods to `Configuration` class
 
 ## Fixed
 
 - Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
+- Handling of `3dECM` outputs for AFNI ≥ 21.1.1.
+- Fixed a bug where sparsity thresholds were not being scaled for network centrality.
 
 ### Changed
 
@@ -40,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `click-aliases`
 - `dc`
+- `semver`
 
 ### Removed dependencies
 
