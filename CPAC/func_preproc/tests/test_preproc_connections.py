@@ -81,14 +81,21 @@ def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
 @pytest.mark.parametrize('run', [True, False, [True, False]])
 @pytest.mark.parametrize('filters', [[_FILTERS[0]], [_FILTERS[1]], _FILTERS])
 @pytest.mark.parametrize('regtool', ['ANTs', 'FSL'])
+@pytest.mark.parametrize('calculate_motion_first', [True, False])
+@pytest.mark.parametrize('pre_resources', [_PRE_RESOURCES,
+                                           ['movement-parameters',
+                                            *_PRE_RESOURCES]])
 def test_motion_filter_connections(run: Union[bool, LIST[bool]],
-                                   filters: LIST[dict], regtool: LIST[str]
-                                  ) -> None:
+                                   filters: LIST[dict], regtool: LIST[str],
+                                   calculate_motion_first: bool,
+                                   pre_resources: LIST[str]) -> None:
     """Test that appropriate connections occur vis-à-vis motion filters"""
     # paramaterized Configuration
     c = Configuration({
         'functional_preproc': {
             'motion_estimates_and_correction': {
+                'motion_estimates': {
+                    'calculate_motion_first': calculate_motion_first},
                 'motion_estimate_filter': {
                     'run': run,
                     'filters': filters},
@@ -111,15 +118,16 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                                  'top_frequency': 0.1}}]}}})
     # resource for intial inputs
     before_this_test = create_dummy_node('created_before_this_test',
-                                         _PRE_RESOURCES)
+                                         pre_resources)
     rpool = ResourcePool(cfg=c)
-    for resource in _PRE_RESOURCES:
+    for resource in pre_resources:
         if resource.endswith('xfm'):
             rpool.set_data(resource, before_this_test, resource, {}, "",
                            f"created_before_this_test_{regtool}")
         else:
             rpool.set_data(resource, before_this_test, resource, {}, "",
                            "created_before_this_test")
+    # set up blocks
     pipeline_blocks = []
     func_init_blocks = []
     func_motion_blocks = []
@@ -132,7 +140,6 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
          coregistration_prep_mean,
          coregistration_prep_fmriprep]
     ]
-
     # Motion Correction
     func_motion_blocks = []
     if c['functional_preproc', 'motion_estimates_and_correction',
