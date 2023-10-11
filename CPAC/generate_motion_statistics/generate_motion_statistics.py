@@ -21,6 +21,7 @@ from typing import Optional
 import nibabel as nb
 from nipype.interfaces.afni.base import (AFNICommand, AFNICommandInputSpec)
 from nipype.interfaces.base import (TraitedSpec, traits, File)
+from nipype.interfaces import utility as util
 import numpy as np
 import pandas as pd
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -186,9 +187,7 @@ def motion_power_statistics(name='motion_stats',
 
     .. [3] Jenkinson, M., Bannister, P., Brady, M., Smith, S., 2002. Improved optimization for the robust
            and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
-
     """
-
     wf = pe.Workflow(name=name)
     input_node = pe.Node(util.IdentityInterface(fields=['scan_id',
                                                         'movement_parameters',
@@ -205,7 +204,8 @@ def motion_power_statistics(name='motion_stats',
                                                          'power_params',
                                                          'motion_params',
                                                          'motion',
-                                                         'desc-summary_motion']),
+                                                         'desc-summary_motion']
+                                                ),
                           name='outputspec')
 
     cal_DVARS = pe.Node(ImageTo1D(method='dvars'),
@@ -238,7 +238,8 @@ def motion_power_statistics(name='motion_stats',
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
-                                                  'motion_correct_tool'],
+                                                  'calc_from',
+                                                  'center'],
                                      output_names=['out_file'],
                                      function=calculate_FD_J,
                                      as_module=True),
@@ -394,6 +395,23 @@ def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
     out_file : string
         Frame-wise displacement file path
 
+    Examples
+    --------
+    >>> import gzip, os, pickle
+    >>> from unittest import mock
+    >>> import numpy as np
+    >>> with gzip.open('/code/CPAC/generate_motion_statistics/test/'
+    ...                'fdj_test_data.pklz') as _pickle:
+    ...     test_data = pickle.load(_pickle)
+    >>> with mock.patch('nibabel.load',
+    ...                 return_value=test_data.img), mock.patch(
+    ...        'numpy.genfromtxt', return_value=test_data.affine):
+    ...     fdj_file = calculate_FD_J(test_data.affine, calc_from='affine',
+    ...                               center=find_volume_center(test_data.img))
+    >>> all(np.isclose(np.genfromtxt(fdj_file),
+    ...                np.insert(test_data.rels_rms, 0, 0), atol=0.001))
+    True
+    >>> os.unlink(fdj_file)
     """
     if calc_from == 'affine':
         if center is None:
