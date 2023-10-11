@@ -121,8 +121,8 @@ class Configuration:
                 # set Regressor 'Name's if not provided
                 if 'Name' not in regressor:
                     regressor['Name'] = f'Regressor-{str(i + 1)}'
-                # replace spaces with hyphens in Regressor 'Name's
-                regressor['Name'] = regressor['Name'].replace(' ', '-')
+                # make Regressor 'Name's Nipype-friendly
+                regressor['Name'] = nipype_friendly_name(regressor['Name'])
 
         config_map = schema(config_map)
 
@@ -446,7 +446,7 @@ class Configuration:
 
     def switch_is_on(self, key: ConfigKeyType, exclusive: bool = False
                      ) -> bool:
-        '''Return True if the given key is set to both 'on' and 'off'
+        '''Return True if the given key is set to 'on' OR 'on' and 'off'
         or False otherwise. Used for tracking forking.
 
         Parameters
@@ -731,3 +731,18 @@ def set_subject(sub_dict: dict, pipe_config: 'Configuration',
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
     return subject_id, p_name, log_dir
+
+
+def nipype_friendly_name(name: str) -> str:
+    """Replace sequences of non-alphanumeric characters with a single
+    underscore and remove any leading underscores
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    str
+    """
+    return re.sub(r'[^a-zA-Z0-9]+', '_', name).lstrip('_')

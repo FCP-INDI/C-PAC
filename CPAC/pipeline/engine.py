@@ -385,7 +385,7 @@ class ResourcePool:
         else:
             raise Exception('\n[!] Developer info: the JSON '
                             f'information for {resource} and {strat} '
-                            f'is  incomplete.\n')
+                            f'is incomplete.\n')
         return strat_json
 
     def get_cpac_provenance(self, resource, strat=None):
@@ -762,8 +762,7 @@ class ResourcePool:
             # not a strat_pool or no movement parameters in strat_pool
             return False
 
-    @property
-    def filter_name(self) -> str:
+    def filter_name(self, cfg) -> str:
         """
         In a strat_pool with filtered movement parameters, return the
         name of the filter for this strategy
@@ -772,6 +771,14 @@ class ResourcePool:
         -------
         str
         """
+        motion_filters = cfg['functional_preproc',
+                             'motion_estimates_and_correction',
+                             'motion_estimate_filter', 'filters']
+        if len(motion_filters) == 1 and cfg.switch_is_on([
+            'functional_preproc', 'motion_estimates_and_correction',
+            'motion_estimate_filter', 'run'], exclusive=True
+        ):
+            return motion_filters[0]['Name']
         key = 'movement-parameters'
         try:
             sidecar = self.get_json(key)

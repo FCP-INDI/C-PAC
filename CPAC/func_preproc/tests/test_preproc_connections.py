@@ -1,0 +1,190 @@
+# Copyright (C) 2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Test graph connections for functional preprocessing"""
+import re
+from typing import Union
+
+from nipype.interfaces.utility import Function as NipypeFunction, \
+    IdentityInterface
+from nipype.pipeline.engine import Workflow as NipypeWorkflow
+
+import pytest
+
+from CPAC.func_preproc.func_motion import calc_motion_stats, \
+    func_motion_correct, func_motion_correct_only, func_motion_estimates, \
+    get_motion_ref, motion_estimate_filter
+from CPAC.func_preproc.func_preproc import func_normalize
+from CPAC.nuisance.nuisance import choose_nuisance_blocks
+from CPAC.pipeline.cpac_pipeline import connect_pipeline
+from CPAC.pipeline.engine import NodeBlock, ResourcePool
+from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
+from CPAC.registration.registration import coregistration_prep_fmriprep, \
+    coregistration_prep_mean, coregistration_prep_vol
+from CPAC.utils.configuration import Configuration
+from CPAC.utils.interfaces.function import Function as CpacFunction
+from CPAC.utils.test_init import create_dummy_node
+from CPAC.utils.typing import LIST
+
+
+_FILTERS = [{'filter_type': 'notch', 'filter_order': 4,
+             'center_frequency': 0.31, 'filter_bandwidth': 0.12},
+            {'filter_type': 'lowpass', 'filter_order': 4,
+             'lowpass_cutoff': .0032}]
+_PRE_RESOURCES = ['desc-preproc_bold',
+                  'dvars',
+                  'framewise-displacement-jenkinson',
+                  'framewise-displacement-power',
+                  'label-CSF_desc-eroded_mask',
+                  'label-CSF_desc-preproc_mask',
+                  'label-CSF_mask',
+                  'label-GM_desc-eroded_mask',
+                  'label-GM_desc-preproc_mask',
+                  'label-GM_mask',
+                  'label-WM_desc-eroded_mask',
+                  'label-WM_desc-preproc_mask',
+                  'label-WM_mask',
+                  'lateral-ventricles-mask',
+                  'space-T1w_desc-brain_mask',
+                  'space-T1w_desc-eroded_mask',
+                  'space-bold_desc-brain_mask',
+                  'TR',
+                  'desc-brain_T1w',
+                  'from-T1w_to-template_mode-image_desc-linear_xfm',
+                  'from-bold_to-T1w_mode-image_desc-linear_xfm',
+                  'from-template_to-T1w_mode-image_desc-linear_xfm']
+
+
+def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
+                              should_be_filtered: bool) -> str:
+    if is_filtered and not should_be_filtered:
+        return (
+            f'{subwf.name} is filtered by '
+            f'{" & ".join([node.name for node in is_filtered])} and should '
+            'not be')
+    return f'{subwf.name} is not filtered and should be'
+
+
+@pytest.mark.parametrize('run', [True, False, [True, False]])
+@pytest.mark.parametrize('filters', [[_FILTERS[0]], [_FILTERS[1]], _FILTERS])
+@pytest.mark.parametrize('regtool', ['ANTs', 'FSL'])
+def test_motion_filter_connections(run: Union[bool, LIST[bool]],
+                                   filters: LIST[dict], regtool: LIST[str]
+                                  ) -> None:
+    """Test that appropriate connections occur vis-à-vis motion filters"""
+    # paramaterized Configuration
+    c = Configuration({
+        'functional_preproc': {
+            'motion_estimates_and_correction': {
+                'motion_estimate_filter': {
+                    'run': run,
+                    'filters': filters},
+                'run': True}},
+        'nuisance_corrections': {
+            '2-nuisance_regression': {
+                'Regressors': [{
+                    'Name': 'aCompCor, GSR, no censor',
+                    'Motion': {'include_delayed': True,
+                               'include_squared': True,
+                               'include_delayed_squared': True},
+                    'aCompCor': {'summary': {'method': 'DetrendPC',
+                                             'components': 5},
+                                 'tissues': ['WhiteMatter',
+                                             'CerebrospinalFluid'],
+                                 'extraction_resolution': 3},
+                    'GlobalSignal': {'summary': 'Mean'},
+                    'PolyOrt': {'degree': 2},
+                    'Bandpass': {'bottom_frequency': 0.01,
+                                 'top_frequency': 0.1}}]}}})
+    # resource for intial inputs
+    before_this_test = create_dummy_node('created_before_this_test',
+                                         _PRE_RESOURCES)
+    rpool = ResourcePool(cfg=c)
+    for resource in _PRE_RESOURCES:
+        if resource.endswith('xfm'):
+            rpool.set_data(resource, before_this_test, resource, {}, "",
+                           f"created_before_this_test_{regtool}")
+        else:
+            rpool.set_data(resource, before_this_test, resource, {}, "",
+                           "created_before_this_test")
+    pipeline_blocks = []
+    func_init_blocks = []
+    func_motion_blocks = []
+    func_preproc_blocks = []
+    func_mask_blocks = []
+    func_prep_blocks = [
+        calc_motion_stats,
+        func_normalize,
+        [coregistration_prep_vol,
+         coregistration_prep_mean,
+         coregistration_prep_fmriprep]
+    ]
+
+    # Motion Correction
+    func_motion_blocks = []
+    if c['functional_preproc', 'motion_estimates_and_correction',
+         'motion_estimates', 'calculate_motion_first']:
+        func_motion_blocks = [
+            get_motion_ref,
+            func_motion_estimates,
+            motion_estimate_filter
+        ]
+    else:
+        func_motion_blocks = [
+            get_motion_ref,
+            func_motion_correct,
+            motion_estimate_filter
+        ]
+    if not rpool.check_rpool('movement-parameters'):
+        if c['functional_preproc', 'motion_estimates_and_correction',
+             'motion_estimates', 'calculate_motion_first']:
+            func_blocks = func_init_blocks + func_motion_blocks + \
+                          func_preproc_blocks + [func_motion_correct_only] + \
+                          func_mask_blocks + func_prep_blocks
+        else:
+            func_blocks = func_init_blocks + func_preproc_blocks + \
+                          func_motion_blocks + func_mask_blocks + \
+                          func_prep_blocks
+    else:
+        func_blocks = func_init_blocks + func_preproc_blocks + \
+                      func_motion_blocks + func_mask_blocks + \
+                      func_prep_blocks
+    pipeline_blocks += func_blocks
+    # Nuisance Correction
+    generate_only = True not in c['nuisance_corrections',
+                                  '2-nuisance_regression', 'run']
+    if not rpool.check_rpool('desc-cleaned_bold'):
+        pipeline_blocks += choose_nuisance_blocks(c, generate_only)
+    wf = Workflow(re.sub(r'[\[\]\-\:\_ \'\",]', '', str(rpool)))
+    connect_pipeline(wf, c, rpool, pipeline_blocks)
+    regressor_subwfs = [wf.get_node(nodename[:-26]) for nodename in
+                        wf.list_node_names() if
+                        nodename.endswith('build_nuisance_regressors')]
+    for subwf in regressor_subwfs:
+        # a motion filter is an input to the nuisance regressor subworkflow
+        is_filtered = []
+        # a motion filter should be an input to the regressor subworkflow
+        should_be_filtered = ('_filt-' in subwf.name and '_filt-none' not in
+                              subwf.name)
+        for u, v in wf._graph.edges:  # pylint: disable=invalid-name,protected-access
+            if (v == subwf and
+                isinstance(u.interface, (NipypeFunction, CpacFunction)) and
+                'notch_filter_motion' in u.interface.inputs.function_str
+            ):
+                is_filtered.append(u)
+        assert bool(is_filtered
+                    ) == should_be_filtered, _filter_assertion_message(
+            subwf, is_filtered, should_be_filtered)
