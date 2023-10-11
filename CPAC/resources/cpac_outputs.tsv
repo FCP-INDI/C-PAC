@@ -94,23 +94,25 @@ label-WM_desc-preproc_mask	mask	T1w	anat	NIfTI
 label-WM_mask	mask	T1w	anat	NIfTI					
 space-T1w_desc-acpcbrain_mask	mask	T1w	anat	NIfTI					
 space-T1w_desc-brain_mask	mask	T1w	anat	NIfTI					
-space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI
-space-template_desc-brain_mask	mask	template	anat	NIfTI
-space-template_desc-bold_mask	mask	template	func	NIfTI
-space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI
-motion-filter-plot	motion		func	png	
-label-CSF_probseg	probseg	T1w	anat	NIfTI
-label-GM_probseg	probseg	T1w	anat	NIfTI
-label-WM_probseg	probseg	T1w	anat	NIfTI
-desc-T1wAxial_quality	qc		anat	png
-desc-T1wSagittal_quality	qc		anat	png
-desc-dsegAxial_quality	qc		anat	png
-desc-dsegSagittal_quality	qc		anat	png
-desc-boldAxial_quality	qc		func	png
-desc-boldSagittal_quality	qc		func	png
-desc-boldCarpet_quality	qc		func	png
-desc-framewiseDisplacementJenkinsonPlot_quality	qc		func	png
-desc-movementParametersTrans_quality	qc		func	png
+space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI					
+space-template_desc-brain_mask	mask	template	anat	NIfTI					
+space-template_desc-bold_mask	mask	template	func	NIfTI					
+space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
+motion	motion		func	TSV					
+desc-summary_motion	motion		func	TSV					
+motion-filter-plot	motion		func	png					
+label-CSF_probseg	probseg	T1w	anat	NIfTI					
+label-GM_probseg	probseg	T1w	anat	NIfTI					
+label-WM_probseg	probseg	T1w	anat	NIfTI					
+desc-T1wAxial_quality	qc		anat	png					
+desc-T1wSagittal_quality	qc		anat	png					
+desc-dsegAxial_quality	qc		anat	png					
+desc-dsegSagittal_quality	qc		anat	png					
+desc-boldAxial_quality	qc		func	png					
+desc-boldSagittal_quality	qc		func	png					
+desc-boldCarpet_quality	qc		func	png					
+desc-framewiseDisplacementJenkinsonPlot_quality	qc		func	png					
+desc-movementParametersTrans_quality	qc		func	png					
 desc-movementParametersRot_quality	qc		func	png					
 desc-boldSnrAxial_quality	qc		func	png					
 desc-boldSnrSagittal_quality	qc		func	png					
@@ -212,6 +214,4 @@ space-EPItemplate_label-CSF_mask	mask	template	func	NIfTI
 space-EPItemplate_label-WM_mask	mask	template	func	NIfTI					
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
-desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes	
-motion	motion		func	TSV					
-desc-summary_motion	motion		func	TSV			
+desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			

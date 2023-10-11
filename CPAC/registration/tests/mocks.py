@@ -14,7 +14,7 @@ def file_node(path, file_node_num=0):
     return input_node, 'file'
 
 def configuration_strategy_mock( method = 'FSL' ):
-
+    fsldir = os.environ.get("FSLDIR")
     # mock the config dictionary
     c = Configuration({
         "num_ants_threads": 4,
@@ -23,10 +23,14 @@ def configuration_strategy_mock( method = 'FSL' ):
         "outputDirectory": "/output/output/pipeline_analysis_nuisance/sub-M10978008_ses-NFB3",
         "resolution_for_func_preproc": "3mm",
         "resolution_for_func_derivative": "3mm",
-        "template_for_resample": "/usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz",
-        "template_brain_only_for_func": "/usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz",
-        "template_skull_for_func":  "/usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz",
-        "identityMatrix":  "/usr/share/fsl/5.0/etc/flirtsch/ident.mat",
+        "template_for_resample": f"{fsldir}/data/standard/"
+                                 "MNI152_T1_1mm_brain.nii.gz",
+        "template_brain_only_for_func": f"{fsldir}/data/standard/"
+                                        r"MNI152_T1_${func_resolution}_"
+                                        "brain.nii.gz",
+        "template_skull_for_func":  f"{fsldir}/data/standard/"
+                                    r"MNI152_T1_${func_resolution}.nii.gz",
+        "identityMatrix":  f"{fsldir}/etc/flirtsch/ident.mat",
         "funcRegFSLinterpolation": "sinc",
         "funcRegANTSinterpolation": "LanczosWindowedSinc"
     })

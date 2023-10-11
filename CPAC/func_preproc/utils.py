@@ -1,16 +1,10 @@
 
 import numpy as np
-from scipy.signal import iirnotch, firwin, filtfilt, lfilter, freqz
+from scipy.signal import iirnotch, firwin, filtfilt, freqz
 from matplotlib import pyplot as plt
 import nibabel as nb
 import subprocess
 import math
-
-def add_afni_prefix(tpattern):
-    if tpattern:
-        if ".txt" in tpattern:
-            tpattern = "@{0}".format(tpattern)
-    return tpattern
 
 
 def nullify(value, function=None):
@@ -163,7 +157,7 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         bandwidth = fa[1] - fa[0]
 
         Q = Wn/bw
-        [b_filt, a_filt] = iirnotch(Wn, Q, fs)
+        [b_filt, a_filt] = iirnotch(Wn, Q)
         num_f_apply = np.floor(filter_order / 2)
 
         filter_info = f"Motion estimate filter information\n\nType: Notch\n" \
@@ -216,10 +210,7 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
     # convert rotation params from degrees to mm
     params_data[:, 0:3] = degrees_to_mm(params_data[:, 0:3], head_radius=50)
 
-    filtered_params = lfilter(b_filt, a_filt, params_data.T, zi=None)
-
-    for i in range(0, int(num_f_apply) - 1):
-        filtered_params = lfilter(b_filt, a_filt, filtered_params, zi=None)
+    filtered_params = filtfilt(b_filt, a_filt, params_data.T)
 
     # back rotation params to degrees
     filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)

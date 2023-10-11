@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -53,7 +53,9 @@ def cli_version(command, dependency=None, in_result=True, delimiter=' ',
     """
     with Popen(command, stdout=PIPE, stderr=STDOUT, shell=True) as _command:
         _version = _command.stdout.read().decode('utf-8')
-        if int(_command.poll()) == 127:  # handle missing command
+        _command_poll = _command.poll()
+        if _command_poll is None or int(_command_poll) == 127:
+            # handle missing command
             return {}
     if formatting is not None:
         _version = formatting(_version)
@@ -66,6 +68,13 @@ def first_line(stdout):
     """Return first line of stdout"""
     if '\n' in stdout:
         return stdout.split('\n', 1)[0]
+    return stdout
+
+
+def last_line(stdout : str) -> str:
+    """Return final line of stdout"""
+    if '\n' in stdout:
+        return stdout.rstrip().split('\n')[-1]
     return stdout
 
 
@@ -111,6 +120,8 @@ def requirements() -> dict:
 
 REPORTED = dict(sorted({
     **cli_version('ldd --version', formatting=first_line),
-    'Python': sys.version.replace('\n', ' ').replace('  ', ' ')
+    'Python': sys.version.replace('\n', ' ').replace('  ', ' '),
+    **cli_version('3dECM -help', delimiter='_',
+                  formatting=lambda _: last_line(_).split('{')[-1].rstrip('}'))
 }.items(), key=_version_sort))
 REQUIREMENTS = requirements()

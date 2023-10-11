@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-bionic as FreeSurfer
+FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy as FreeSurfer
 
 FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6.dev1
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
@@ -23,6 +23,12 @@ LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing FreeSurfer
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y bc \
+    && yes | mamba install tcsh \
+    && yes | mamba clean --all \
+    && cp -l `which tcsh` /bin/tcsh \
+    && cp -l `which tcsh` /bin/csh
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     NO_FSFAST=1
 ENV PATH="$FREESURFER_HOME/bin:$PATH" \
@@ -37,10 +43,14 @@ COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN apt-get autoremove -y \
+    && apt-get autoclean -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+    && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
+    && rm -rf results.txt \
+    && ldconfig \
+    && chmod 777 / /home/c-pac_user \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user

@@ -705,7 +705,7 @@ def gen_voxel_timeseries(data_file, template):
     one = np.array([1])
     headers = ['volume/xyz']
     cordinates = np.argwhere(unit_data != 0)
-    for val in range(np.alen(cordinates)):
+    for val in range(len(cordinates)):
         ijk_mat = np.concatenate([cordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)
@@ -795,7 +795,8 @@ def resample_function() -> 'Function':
     name="timeseries_extraction_AVG",
     config=["timeseries_extraction"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold", "space-template_desc-brain_mask"],
+    inputs=["space-template_desc-preproc_bold",
+            "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-Mean_timeseries",
         "space-template_desc-ndmg_correlations",
@@ -866,7 +867,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     pipe_num=pipe_num
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-brain_mask'])
+                    'space-template_desc-bold_mask'])
                 if 'func_to_ROI' in realignment:
                     resample_brain_mask_roi = pe.Node(
                         resample_function(),

@@ -1262,8 +1262,8 @@ def dc(input1, input2):
     -----
     This is a real metric.
     """
-    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
-    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+    input1 = numpy.atleast_1d(input1.astype(bool))
+    input2 = numpy.atleast_1d(input2.astype(bool))
 
     intersection = numpy.count_nonzero(input1 & input2)
 
@@ -1303,8 +1303,8 @@ def jc(input1, input2):
     -----
     This is a real metric.
     """
-    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
-    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+    input1 = numpy.atleast_1d(input1.astype(bool))
+    input2 = numpy.atleast_1d(input2.astype(bool))
 
     intersection = numpy.count_nonzero(input1 & input2)
     union = numpy.count_nonzero(input1 | input2)
@@ -1314,25 +1314,24 @@ def jc(input1, input2):
     return jc
 
 def crosscorr(input1,input2):
+    """
+    cross correlation
+    computer compute cross correction bewteen input mask
+    """
 
-   """
-   cross correlation
-   computer compute cross correction bewteen input mask
-   """
+    input1 = numpy.atleast_1d(input1.astype(bool))
+    input2 = numpy.atleast_1d(input2.astype(bool))
 
-   input1 = numpy.atleast_1d(input1.astype(numpy.bool))
-   input2 = numpy.atleast_1d(input2.astype(numpy.bool))
-
-   from scipy.stats.stats import pearsonr
-   cc=pearsonr(input1,input2)
-   return cc
+    from scipy.stats.stats import pearsonr
+    cc=pearsonr(input1,input2)
+    return cc
 
 def coverage(input1,input2):
     """
     estimate the coverage between  two mask
     """
-    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
-    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+    input1 = numpy.atleast_1d(input1.astype(bool))
+    input2 = numpy.atleast_1d(input2.astype(bool))
 
     intsec=numpy.count_nonzero(input1 & input2)
     if numpy.sum(input1)> numpy.sum(input2):

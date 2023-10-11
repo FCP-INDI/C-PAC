@@ -170,10 +170,12 @@ VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
     "boto3",
+    "ciftify",
     "click",
     "click-aliases",
     "configparser",
     "cython",
+    "flowdump==0.1.2",
     "future",
     "INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git#egg=INDI-Tools",
     "lockfile",
@@ -190,6 +192,7 @@ REQUIREMENTS = [
     "patsy",
     "prov",
     "psutil",
+    "PyBASC",
     "pybids",
     "pygraphviz",
     "PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97#egg=PyPEER",
@@ -198,8 +201,12 @@ REQUIREMENTS = [
     "scikit-learn",
     "scipy",
     "sdcflows",
+    "semver",
     "traits",
-    "PyBASC",
     "voluptuous>=0.12.0",
-    "ciftify",
+    "xvfbwrapper"
+]
+UNET_REQUIREMENTS = [
+    "torch==1.13.1",
+    "torchvision==0.14.1"
 ]

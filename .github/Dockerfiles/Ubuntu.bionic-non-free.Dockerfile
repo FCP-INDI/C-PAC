@@ -25,7 +25,7 @@ RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
     mkdir -p /home/c-pac_user/ && \
     chown -R c-pac_user:c-pac /home/c-pac_user && \
-    chmod 777 / && \
+    chmod 777 / /home/c-pac_user && \
     chmod ugo+w /etc/passwd && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -140,7 +140,6 @@ RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y &
     pip install --upgrade setuptools && \
     pip install --upgrade pip && \
     pip install -r /opt/requirements.txt && \
-    pip install xvfbwrapper && \
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get install -y --no-install-recommends git-lfs && \
     git lfs install

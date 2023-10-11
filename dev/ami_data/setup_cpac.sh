@@ -171,7 +171,6 @@ export PATH=/usr/local/miniconda/bin:$PATH
 conda install -y pip
 pip install --upgrade pip==9.0.1
 pip install -r /opt/C-PAC/requirements.txt
-pip install xvfbwrapper
 
 curl -L https://github.com/neurodata/neuroparc/archive/master.zip -o /tmp/neuroparc.zip && \
 unzip /tmp/neuroparc.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \

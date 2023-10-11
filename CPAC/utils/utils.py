@@ -168,7 +168,7 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     """
     import re
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
-                                      res_in_filename                                   
+                                      res_in_filename
     if atlas_id:
         if '_desc-' in atlas_id:
             atlas, desc = atlas_id.split('_desc-')
@@ -1478,7 +1478,7 @@ def _check_nested_types(d, keys):
 def delete_nested_value(d, keys):
     '''Helper function to delete nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -1843,7 +1843,7 @@ def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
 def lookup_nested_value(d, keys):
     '''Helper method to look up nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -2005,7 +2005,7 @@ def replace_in_strings(d, replacements=None):
 def set_nested_value(d, keys, value):
     '''Helper method to set nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple

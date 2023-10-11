@@ -249,12 +249,6 @@ def run_main():
     parser.add_argument('--save-working-dir', '--save_working_dir', nargs='?',
                         help='Save the contents of the working directory.',
                         default=False)
-    parser.add_argument('--save-workflow', '--save_workflow',
-                        help='Save a serialized version of the workflow. '
-                             'Can be used with `test_config` to save workflow '
-                             'without running the pipeline.',
-                        action='store_true')
-
     parser.add_argument('--fail-fast', '--fail_fast', type=str.title,
                         help='Stop worklow execution on first crash?')
     parser.add_argument('--participant-label', '--participant_label',
@@ -620,10 +614,6 @@ def run_main():
             logger.warning('Cannot write working directory to S3 bucket. '
                            'Either change the output directory to something '
                            'local or turn off the --save_working_dir flag')
-
-        c['pipeline_setup']['log_directory']['save_workflow'] = \
-            args.save_workflow or \
-            c['pipeline_setup']['log_directory'].get('save_workflow', False)
 
         if args.fail_fast is not None:
             c['pipeline_setup', 'system_config',
