@@ -85,15 +85,18 @@ def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
 @pytest.mark.parametrize('pre_resources', [_PRE_RESOURCES,
                                            ['movement-parameters',
                                             *_PRE_RESOURCES]])
+@pytest.mark.parametrize('motion_correction', [['mcflirt'], ['3dvolreg']])
 def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                                    filters: LIST[dict], regtool: LIST[str],
                                    calculate_motion_first: bool,
-                                   pre_resources: LIST[str]) -> None:
+                                   pre_resources: LIST[str],
+                                   motion_correction: LIST[LIST[str]]) -> None:
     """Test that appropriate connections occur vis-à-vis motion filters"""
     # paramaterized Configuration
     c = Configuration({
         'functional_preproc': {
             'motion_estimates_and_correction': {
+                'motion_correction': {'using': motion_correction},
                 'motion_estimates': {
                     'calculate_motion_first': calculate_motion_first},
                 'motion_estimate_filter': {
