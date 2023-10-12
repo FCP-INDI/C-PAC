@@ -699,7 +699,7 @@ def normalize_motion_parameters(in_file):
                                -motion_params[4, :]))
     motion_params = np.transpose(motion_params)
 
-    out_file = os.path.join(os.getcwd(), 'motion_params.1D')
+    out_file = os.path.join(os.getcwd(), 'motion_params.tsv')
     np.savetxt(out_file, motion_params)
 
     return out_file

@@ -268,13 +268,13 @@ def motion_power_statistics(name='motion_stats',
                                      name='calc_motion_parameters')
 
     get_all_motion_parameters = pe.Node(Function(input_names=[
-                                                     'in_file_FDJ',
-                                                     'in_file_FDP',
-                                                     'in_file_maxdisp',
-                                                     'in_file_motion',
-                                                     'in_file_power',
-                                                     'in_file_relsdisp',
-                                                     'in_file_DVARS'],
+                                                     'fdj',
+                                                     'fdp',
+                                                     'maxdisp',
+                                                     'motion',
+                                                     'power',
+                                                     'relsdisp',
+                                                     'dvars'],
                                                  output_names=[
                                                      'all_motion_val',
                                                      'summary_motion_power'],
@@ -283,16 +283,16 @@ def motion_power_statistics(name='motion_stats',
                                         name='get_all_motion_parameters')
 
     calc_motion_parameters.inputs.motion_correct_tool = motion_correct_tool
-    wf.connect(calculate_FDJ, 'fd', get_all_motion_parameters, 'in_file_FDJ')
-    wf.connect(calculate_FDP, 'fd', get_all_motion_parameters, 'in_file_FDP')
+    wf.connect(calculate_FDJ, 'fd', get_all_motion_parameters, 'fdj')
+    wf.connect(calculate_FDP, 'fd', get_all_motion_parameters, 'fdp')
     wf.connect(calc_motion_parameters, 'maxdisp',
-               get_all_motion_parameters, 'in_file_maxdisp')
+               get_all_motion_parameters, 'maxdisp')
     wf.connect(calc_motion_parameters, 'relsdisp',
-               get_all_motion_parameters, 'in_file_relsdisp')
+               get_all_motion_parameters, 'relsdisp')
     wf.connect(calc_motion_parameters, 'info',
-               get_all_motion_parameters, 'in_file_motion')
+               get_all_motion_parameters, 'motion')
     wf.connect(cal_DVARS_strip, 'DVARS_val',
-               get_all_motion_parameters, 'in_file_DVARS')
+               get_all_motion_parameters, 'dvars')
     wf.connect(input_node, 'movement_parameters',
                calc_motion_parameters, 'movement_parameters')
     wf.connect(input_node, 'max_displacement',
@@ -317,7 +317,7 @@ def motion_power_statistics(name='motion_stats',
 
     calc_power_parameters.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(calc_power_parameters, 'info',
-               get_all_motion_parameters, 'in_file_power')
+               get_all_motion_parameters, 'power')
     wf.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'dvars')
 
@@ -503,6 +503,7 @@ def gen_motion_parameters(movement_parameters, max_displacement,
     max_displacement : string
         path of file with maximum displacement (in mm) for brain voxels
         in each volume
+
     movement_parameters : string
         path of 1D file containing six movement/motion parameters
         (3 Translation, 3 Rotations) in different columns
@@ -512,14 +513,16 @@ def gen_motion_parameters(movement_parameters, max_displacement,
     -------
     out_file : string
         path to csv file containing various motion parameters
+
     info : text
         contains information about motion parameters
+
     maxdisp : array
         max displacement value
+
     relsdisp : array
         rels displacement value
     """
-
     mot = np.genfromtxt(movement_parameters).T
 
     # Relative RMS of translation
@@ -756,49 +759,51 @@ def calculate_DVARS(func_brain, mask):
     return out_file, dvars
 
 
-def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion,
-                  in_file_power, in_file_relsdisp=None, in_file_DVARS=None):
+def get_allmotion(fdj, fdp, maxdisp, motion, power, relsdisp=None, dvars=None):
     """
     Method to append all the motion and power parameters into 2 files
+
     Parameters
     ----------
-    in_file_FDJ
-        file with framewise displacement Jenkinson
-    in_file_FDP
-        file with framewise displacement power
-    in_file_maxdisp
-        file with maximum displacement value
-    in_file_motion
-        file with motion values
-    in_file_power
-        file with power values
-    in_file_rels
-        file with rels displacement value
-    in_file_DVARS
-        file with DVARS value
+    fdj
+        framewise displacement (Jenkinson)
+    fdp
+        framewise displacement (Power)
+    maxdisp
+        maximum displacement value
+    motion
+        motion info
+    power
+        Power values
+    relsdisp
+        rels displacement value
+    dvars
+        DVARS value
+
     Returns
     -------
-    all_motion_val : string
+    all_motion_val : str
         path to file containing all motion parameters appended
-    summary_motion_power
+
+    summary_motion_power : str
         path to file containing all motion parameters appended
     """
     all_motion_val = os.path.join(os.getcwd(), 'motion.tsv')
     summary_motion_power = os.path.join(os.getcwd(), 'desc-summary_motion.tsv')
 
-    df_FDJ = pd.DataFrame(in_file_FDJ)
-    df_FDJ.columns = ['Framewise displacement Jenkinson']
-    df_FDP = pd.DataFrame(in_file_FDP)
-    df_FDP.columns = ['Framewise displacement Power']
-    df_DVARS = pd.DataFrame(in_file_DVARS)
-    df_DVARS.columns = ['DVARS']
-    df_maxdisp = pd.DataFrame(in_file_maxdisp)
+    df_fdj = pd.DataFrame(fdj)
+    df_fdj.columns = ['Framewise displacement Jenkinson']
+    df_fdp = pd.DataFrame(fdp)
+    df_fdp.columns = ['Framewise displacement Power']
+    df_dvars = pd.DataFrame(dvars)
+    df_dvars.columns = ['DVARS']
+    df_maxdisp = pd.DataFrame(maxdisp)
     df_maxdisp.columns = ['Max Displacement']
-    df_relsdisp = pd.DataFrame(in_file_relsdisp)
+    df_relsdisp = pd.DataFrame(relsdisp)
     df_maxdisp.columns = ['Rels Displacement']
-    data_frames = [df_FDJ, df_FDP, df_DVARS, df_maxdisp, df_relsdisp]
+    data_frames = [df_fdj, df_fdp, df_dvars, df_maxdisp, df_relsdisp]
     all_motion_val_df = pd.concat(data_frames, axis=1)
-    #raise Exception(len(all_motion_val_df.columns))
+
     if len(all_motion_val_df.columns) == 5:
         np.savetxt(all_motion_val, all_motion_val_df, delimiter="\t",
                    header="Framewise displacement Jenkinson\tFramewise "
@@ -810,8 +815,8 @@ def get_allmotion(in_file_FDJ, in_file_FDP, in_file_maxdisp, in_file_motion,
                           "displacement power\tDVARS\tMax Displacement",
                    comments='')
 
-    df_motion = pd.DataFrame(in_file_motion)
-    df_power = pd.DataFrame(in_file_power)
+    df_motion = pd.DataFrame(motion)
+    df_power = pd.DataFrame(power)
     data_frames_motionpower = [df_motion, df_power]
     summary_motion_pow_df = pd.concat(data_frames_motionpower)
     np.savetxt(summary_motion_power, summary_motion_pow_df, delimiter="\t",
