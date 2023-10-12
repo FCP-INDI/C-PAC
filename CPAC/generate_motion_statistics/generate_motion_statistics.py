@@ -371,7 +371,7 @@ def calculate_FD_P(in_file):
                        'from typing import Optional',
                        'import numpy as np',
                        'from CPAC.utils.pytest import skipif',
-                       'from CPAC.utils.typing import LITERAL'])
+                       'from CPAC.utils.typing import LITERAL, TUPLE'])
 @skipif(sys.version_info < (3, 10),
         reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
