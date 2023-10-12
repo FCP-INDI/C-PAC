@@ -26,15 +26,9 @@ from CPAC.func_preproc.utils import notch_filter_motion
 from CPAC.generate_motion_statistics import affine_file_from_params_file, \
                                             motion_power_statistics
 from CPAC.pipeline.nodeblock import nodeblock
-from CPAC.pipeline.schema import latest_schema
+from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
-try:
-    motion_correct_options = latest_schema.schema['functional_preproc'][
-        'motion_estimates_and_correction'
-        ]['motion_correction']['using'][0].container
-except (AttributeError, KeyError, LookupError, IndexError):
-    motion_correct_options = ['3dvolreg', 'mcflirt']
 
 
 @nodeblock(
@@ -576,6 +570,7 @@ motion_correct = {'3dvolreg': motion_correct_3dvolreg,
 
 def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     """Check opt for valid option, then connect that option."""
+    motion_correct_options = valid_options['motion_correction']
     if opt not in motion_correct_options:
         raise KeyError("\n\n[!] Error: The 'tool' parameter of the "
                        "'motion_correction' workflow must be one of "

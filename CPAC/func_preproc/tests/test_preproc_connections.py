@@ -21,8 +21,8 @@ from typing import Union
 from nipype.interfaces.utility import Function as NipypeFunction, \
     IdentityInterface
 from nipype.pipeline.engine import Workflow as NipypeWorkflow
-
 import pytest
+from voluptuous.error import Invalid
 
 from CPAC.func_preproc.func_motion import calc_motion_stats, \
     func_motion_correct, func_motion_correct_only, func_motion_estimates, \
@@ -85,13 +85,23 @@ def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
 @pytest.mark.parametrize('pre_resources', [_PRE_RESOURCES,
                                            ['movement-parameters',
                                             *_PRE_RESOURCES]])
-@pytest.mark.parametrize('motion_correction', [['mcflirt'], ['3dvolreg']])
+@pytest.mark.parametrize('motion_correction', [['mcflirt'], ['3dvolreg'],
+                                               ['mcflirt', '3dvolreg']])
 def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                                    filters: LIST[dict], regtool: LIST[str],
                                    calculate_motion_first: bool,
                                    pre_resources: LIST[str],
                                    motion_correction: LIST[LIST[str]]) -> None:
     """Test that appropriate connections occur vis-à-vis motion filters"""
+    if isinstance(motion_correction, list) and len(motion_correction) != 1:
+        # Until https://github.com/FCP-INDI/C-PAC/issues/1935 is resolved
+        with pytest.raises(Invalid) as invalid:
+            c = Configuration({
+                'functional_preproc': {
+                    'motion_estimates_and_correction': {
+                        'motion_correction': {'using': motion_correction}}}})
+            assert 'FCP-INDI/C-PAC/issues/1935' in invalid
+        return
     # paramaterized Configuration
     c = Configuration({
         'functional_preproc': {

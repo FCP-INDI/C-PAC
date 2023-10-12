@@ -84,21 +84,22 @@ valid_options = {
                              'Correlation threshold'],
        'weight_options': ['Binarized', 'Weighted']
     },
+    'motion_correction': ['3dvolreg', 'mcflirt'],
     'sca': {
-        'roi_paths': {'Avg', 'DualReg', 'MultReg'},
+        'roi_paths': ['Avg', 'DualReg', 'MultReg'],
     },
     'segmentation': {
         'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
+        'roi_paths': ['Avg', 'Voxel', 'SpatialReg'],
     },
     'connectivity_matrix': {
-        'using': {'AFNI', 'Nilearn', 'ndmg'},
-        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC',
+        'using': ['AFNI', 'Nilearn', 'ndmg'],
+        'measure': ['Pearson', 'Partial', 'Spearman', 'MGC',
                     # 'TangentEmbed'  # "Skip tangent embedding for now"
-                    },
+        ],
     },
     'Regressors': {
         'CompCor': {
@@ -770,7 +771,14 @@ latest_schema = Schema({
                 'calculate_motion_after': bool1_1,
             },
             'motion_correction': {
-                'using': [In({'3dvolreg', 'mcflirt'})],
+                'using': All(Coerce(ListFromItem),
+                             Length(min=1, max=1,
+                    msg='Forking is currently broken for this option. '
+                        'Please use separate configs if you want to '
+                        'use each of 3dvolreg and mcflirt. Follow '
+                        'https://github.com/FCP-INDI/C-PAC/issues/1935 '
+                        'to see when this issue is resolved.'),
+                             [In(valid_options['motion_correction'])]),
                 'AFNI-3dvolreg': {
                     'functional_volreg_twopass': bool1_1,
                 },
