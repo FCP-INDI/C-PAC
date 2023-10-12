@@ -1,21 +1,20 @@
-'''Tools for configuration differences
+# Copyright (C) 2022-2023  C-PAC Developers
 
-Copyright (C) 2022  C-PAC Developers
+# This file is part of C-PAC.
 
-This file is part of C-PAC.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.'''
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+'''Tools for configuration differences'''
 
 
 def dct_diff(dct1, dct2):
@@ -24,14 +23,14 @@ def dct_diff(dct1, dct2):
 
     Parameters
     ----------
-    dct1 : dict or CPAC.utils.Configuration
+    dct1 : dict or ~CPAC.utils.Configuration
 
-    dct2 : dict or CPAC.utils.Configuration
+    dct2 : dict or ~CPAC.utils.Configuration
 
     Returns
     -------
     diff : dict
-       each value is a DiffValue of values from dct1, dct2 for each
+       each value is a ~DiffValue of values from ``dct1``, ``dct2`` for each
        differing key between original dicts or a subdictionary thereof
 
     Example
@@ -86,7 +85,7 @@ def dct_diff(dct1, dct2):
 
 def diff_dict(diff):
     '''Method to return a dict of only changes given a nested dict
-    of (dict1_value, dict2_value) tuples
+    of ``(dict1_value, dict2_value)`` tuples
 
     Parameters
     ----------
@@ -124,36 +123,37 @@ def diff_dict(diff):
 
 class DiffDict(dict):
     '''Class to semantically store a dictionary of set differences from
-    Configuration(S) - Configuration(T)
+    ``Configuration(S) - Configuration(T)``
 
     Attributes
     ----------
     left : dict
-        dictionary of differing values from Configuration(S)
-        (alias for s_value)
+        dictionary of differing values from ``Configuration(S)``
+        (alias for ``s_value``)
 
     minuend : dict
-        dictionary of differing values from Configuration(S)
-        (alias for s_value)
+        dictionary of differing values from ``Configuration(S)``
+        (alias for ``s_value``)
 
     right : dict
-        dictionary of differing values from Configuration(T)
-        (alias for t_value)
+        dictionary of differing values from ``Configuration(T)``
+        (alias for ``t_value``)
 
     subtrahend : dict
-        dictionary of differing values from Configuration(T)
-        (alias for t_value)
+        dictionary of differing values from ``Configuration(T)``
+        (alias for ``t_value``)
 
     s_value : dict
-        dictionary of differing values from Configuration(S)
+        dictionary of differing values from ``Configuration(S)``
 
     t_value : dict
-        dictionary of differing values from Configuration(T)
+        dictionary of differing values from ``Configuration(T)``
     '''
     def __init__(self, *args, **kwargs):
-        '''Dictionary of difference Configuration(S) - Configuration(T).
+        '''Dictionary of difference ``Configuration(S) - Configuration(T)``.
 
-        Each value in a DiffDict should be either a DiffDict or a DiffValue.
+        Each value in a ~DiffDict should be either a ``DiffDict`` or a
+        ~DiffValue.
         '''
         super().__init__(*args, **kwargs)
         self.left = self.minuend = self.s_value = self._s_value()
@@ -169,50 +169,50 @@ class DiffDict(dict):
         return return_dict
 
     def _s_value(self):
-        '''Get a dictionary of only the differing 'S' values that differ
-        in S - T'''
+        '''Get a dictionary of only the differing ``'S'`` values that differ
+        in ``S - T``'''
         return self._return_one_value('s_value')
 
     def _t_value(self):
-        '''Get a dictionary of only the differing 'T' values that differ
-        in S - T'''
+        '''Get a dictionary of only the differing ``'T'`` values that differ
+        in ``S - T``'''
         return self._return_one_value('t_value')
 
 
 class DiffValue:
     '''Class to semantically store values of set difference from
-    Configuration(S) - Configuration(T)
+    ``Configuration(S) - Configuration(T)``
 
     Attributes
     ----------
     left : any
-        value from Configuration(S) (alias for s_value)
+        value from ``Configuration(S)`` (alias for ``s_value``)
 
     minuend : dict
-        value from Configuration(S) (alias for s_value)
+        value from ``Configuration(S)`` (alias for ``s_value``)
 
     right : dict
-        value from Configuration(T) (alias for t_value)
+        value from ``Configuration(T)`` (alias for ``t_value``)
 
     subtrahend : dict
-        value from Configuration(T) (alias for t_value)
+        value from ``Configuration(T)`` (alias for ``t_value``)
 
     s_value : any
-        value from Configuration(S)
+        value from ``Configuration(S)``
 
     t_value : any
-        value from Configuration(T)
+        value from ``Configuration(T)``
     '''
     def __init__(self, s_value, t_value):
-        '''Different values from Configuration(S) - Configuration(T)
+        '''Different values from ``Configuration(S) - Configuration(T)``
 
         Parameters
         ----------
         s_value : any
-           value from Configuration(S)
+           value from ``Configuration(S)``
 
         t_value : any
-           value from Configuration(T)
+           value from ``Configuration(T)``
         '''
         self.left = self.minuend = self.s_value = s_value
         self.right = self.subtrahend = self.t_value = t_value

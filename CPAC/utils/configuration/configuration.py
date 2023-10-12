@@ -22,11 +22,13 @@ from typing import Optional
 from warnings import warn
 import pkg_resources as p
 import yaml
-from CPAC.utils.typing import TUPLE
+from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
+
+
 
 
 class ConfigurationDictUpdateConflation(SyntaxError):
@@ -39,30 +41,35 @@ class ConfigurationDictUpdateConflation(SyntaxError):
 
 
 class Configuration:
-    """Class to set dictionary keys as map attributes.
+    """
+    Class to set dictionary keys as map attributes.
 
-    If the given dictionary includes the key `FROM`, that key's value
+    If the given dictionary includes the key ``FROM``, that key's value
     will form the base of the Configuration object with the values in
     the given dictionary overriding matching keys in the base at any
-    depth. If no `FROM` key is included, the base Configuration is
+    depth. If no ``FROM`` key is included, the base Configuration is
     the default Configuration.
 
-    `FROM` accepts either the name of a preconfigured pipleine or a
+    ``FROM`` accepts either the name of a preconfigured pipleine or a
     path to a YAML file.
 
-    Given a Configuration `c`, and a list or tuple of an attribute name
-    and nested keys `keys = ['attribute', 'key0', 'key1']` or
-    `keys = ('attribute', 'key0', 'key1')`, the value 'value' nested in
+    Given a Configuration ``c``, and a list or tuple of an attribute name
+    and nested keys ``keys = ['attribute', 'key0', 'key1']`` or
+    ``keys = ('attribute', 'key0', 'key1')``, the value 'value' nested in
 
-    c.attribute = {'key0': {'key1': 'value'}}
+    .. code-block:: python
+
+        c.attribute = {'key0': {'key1': 'value'}}
 
     can be accessed (get and set) in any of the following ways (and
     more):
 
-    c.attribute['key0']['key1']
-    c['attribute']['key0']['key1']
-    c['attribute', 'key0', 'key1']
-    c[keys]
+    .. code-block:: python
+
+        c.attribute['key0']['key1']
+        c['attribute']['key0']['key1']
+        c['attribute', 'key0', 'key1']
+        c[keys]
 
     Examples
     --------
@@ -303,21 +310,23 @@ class Configuration:
                 new_key = self.check_pattern(attr_value)
             setattr(self, attr_key, new_key)
 
-    def update(self, key, val=ConfigurationDictUpdateConflation):
+    def update(self, key, val=ConfigurationDictUpdateConflation()):
         if isinstance(key, dict):
             raise ConfigurationDictUpdateConflation
+        if isinstance(val, Exception):
+            raise val
         setattr(self, key, val)
 
-    def get_nested(self, d, keys):
-        if d is None:
-            d = {}
+    def get_nested(self, _d, keys):
+        if _d is None:
+            _d = {}
         if isinstance(keys, str):
-            return d[keys]
+            return _d[keys]
         if isinstance(keys, (list, tuple)):
             if len(keys) > 1:
-                return self.get_nested(d[keys[0]], keys[1:])
-            return d[keys[0]]
-        return d
+                return self.get_nested(_d[keys[0]], keys[1:])
+            return _d[keys[0]]
+        return _d
 
     def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
@@ -328,6 +337,181 @@ class Configuration:
             else:
                 d[keys[0]] = value
         return d
+
+    def _check_if_switch(self, key: ConfigKeyType,
+                         error: bool = False) -> bool:
+        '''Check if a given entity is a switch
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        error : bool
+            raise a TypeError if not a switch
+
+        Returns
+        -------
+        bool
+            True if the given key is a switch, False otherwise
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c._check_if_switch('anatomical_preproc')
+        False
+        >>> c._check_if_switch(['anatomical_preproc'])
+        False
+        >>> c._check_if_switch(['anatomical_preproc', 'run'])
+        True
+        '''
+        _maybe_switch = self[key]
+        if isinstance(_maybe_switch, bool):
+            return True
+        if isinstance(_maybe_switch, list):
+            _answer = all(isinstance(_, bool) for _ in _maybe_switch)
+            if _answer:
+                return _answer
+        if error:
+            raise TypeError(f'`{key}` is not a switch in {str(self)}.')
+        return False
+
+    def _switch_bool(self, key: ConfigKeyType, value: bool, exclusive: bool
+                     ) -> bool:
+        '''Return True if the given key is set to the given value or
+        False otherwise.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        value : bool
+            value to check for
+
+        exclusive : bool
+            return False if forking (both True and False)
+
+        Returns
+        -------
+        bool
+            True if the given key is set to the given value or False
+            otherwise. If exclusive is True, return False if the key
+            is set to both True and False.
+        '''
+        if not(exclusive and self.switch_is_on_off(key)):
+            if isinstance(self[key], bool):
+                return self[key] is value
+            if isinstance(self[key], list):
+                return value in self[key]
+        return False
+
+    def switch_is_off(self, key: ConfigKeyType, exclusive: bool = False
+                      ) -> bool:
+        '''Return True if the given key is set to 'off' OR 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        exclusive : bool, optional, default: False
+            return False if the key is set to 'on' and 'off'
+
+        Returns
+        -------
+        bool
+            True if key is set to 'off', False if not set to 'off'.
+            If exclusive is set to True, return False if the key is
+            set to 'on' and 'off'.
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'])
+        True
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'])
+        True
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'], exclusive=True)
+        False
+        '''
+        self._check_if_switch(key, True)
+        return self._switch_bool(key, False, exclusive)
+
+    def switch_is_on(self, key: ConfigKeyType, exclusive: bool = False
+                     ) -> bool:
+        '''Return True if the given key is set to both 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        exclusive : bool, optional, default: False
+            return False if the key is set to 'on' and 'off'
+
+        Returns
+        -------
+        bool
+            True if key is set to 'on', False if not set to 'on'.
+            If exclusive is set to True, return False if the key is
+            set to 'on' and 'off'.
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'])
+        False
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'])
+        True
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'], exclusive=True)
+        False
+        '''
+        self._check_if_switch(key, True)
+        return self._switch_bool(key, True, exclusive)
+
+    def switch_is_on_off(self, key: ConfigKeyType) -> bool:
+        '''Return True if the given key is set to both 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        Returns
+        -------
+        bool
+            True if key is set to 'on' and 'off', False otherwise
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_on_off(['nuisance_corrections',
+        ...                     '2-nuisance_regression', 'run'])
+        False
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_on_off(['nuisance_corrections',
+        ...                     '2-nuisance_regression', 'run'])
+        True
+        '''
+        self._check_if_switch(key, True)
+        if isinstance(self[key], list):
+            return True in self[key] and False in self[key]
+        return False
 
     def key_type_error(self, key):
         raise KeyError(' '.join([
