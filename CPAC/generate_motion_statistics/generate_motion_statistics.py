@@ -27,7 +27,7 @@ import pandas as pd
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.pytest import skipif
-from CPAC.utils.typing import LITERAL
+from CPAC.utils.typing import LITERAL, TUPLE
 
 
 def motion_power_statistics(name='motion_stats',
@@ -375,7 +375,8 @@ def calculate_FD_P(in_file):
 @skipif(sys.version_info < (3, 10),
         reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
-                   center: Optional[np.ndarray] = None) -> str:
+                   center: Optional[np.ndarray] = None
+                  ) -> TUPLE[str, np.ndarray]:
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
 
@@ -387,16 +388,22 @@ def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
         calc_from is 'rms'.
     calc_from : string
         one of {'affine', 'rms'}
-    center : ndarray, optional
+    center : ~numpy.ndarray, optional
         optional volume center for the from-affine calculation
 
     Returns
     -------
     out_file : string
-        Frame-wise displacement file path
+        Framewise displacement file path
+
+    fdj : ~numpy.ndarray
+        Framewise displacement array
 
     Examples
     --------
+    The file and array output by this function and the "rels_rms"
+    property of the pickled test data (offset by a leading zero)
+    should all be equal (rounded to the neareast 0.001):
     >>> import gzip, os, pickle
     >>> from unittest import mock
     >>> import numpy as np
@@ -406,10 +413,16 @@ def calculate_FD_J(in_file: str, calc_from: LITERAL['affine', 'rms'],
     >>> with mock.patch('nibabel.load',
     ...                 return_value=test_data.img), mock.patch(
     ...        'numpy.genfromtxt', return_value=test_data.affine):
-    ...     fdj_file = calculate_FD_J(test_data.affine, calc_from='affine',
-    ...                               center=find_volume_center(test_data.img))
-    >>> all(np.isclose(np.genfromtxt(fdj_file),
-    ...                np.insert(test_data.rels_rms, 0, 0), atol=0.001))
+    ...     fdj_file, fdj = calculate_FD_J(
+    ...         test_data.affine, calc_from='affine',
+    ...         center=find_volume_center(test_data.img))
+    >>> fdj_from_file = np.genfromtxt(fdj_file)
+    >>> fdj_test_data = np.insert(test_data.rels_rms, 0, 0)
+    >>> all(np.isclose(fdj, fdj_from_file, atol=0.001))
+    True
+    >>> all(np.isclose(fdj, fdj_test_data, atol=0.001))
+    True
+    >>> all(np.isclose(fdj_from_file, fdj_test_data, atol=0.001))
     True
     >>> os.unlink(fdj_file)
     """
