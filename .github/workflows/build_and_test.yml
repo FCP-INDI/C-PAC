@@ -339,6 +339,20 @@ jobs:
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     uses: ./.github/workflows/smoke_test_participant.yml
 
+  regtest-lite:
+    name: Run lite regression test
+    needs:
+      - C-PAC
+    secrets: inherit
+    if: contains(github.event.head_commit.message, '[run reg-suite]')
+    uses: ./.github/workflows/regression_test_lite.yml
+
+  regtest-full:
+    name: Run full regression test
+    needs:
+      - smoke-tests-participant
+    uses: ./.github/workflows/regression_test_full.yml
+
   Circle_tests:
     name: Run tests on CircleCI
     needs:

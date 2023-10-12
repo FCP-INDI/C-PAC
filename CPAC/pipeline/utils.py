@@ -22,10 +22,6 @@ from CPAC.utils.bids_utils import insert_entity
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
-class FilteredUnfilteredError(ValueError):
-    """Custom error class to catch "filtered" outputs with "filt-none"."""
-
-
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints
 
@@ -45,36 +41,38 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
 
     out_dct : dict
     """
-    if True in cfg['functional_preproc',
-                   'motion_estimates_and_correction',
-                   'motion_estimate_filter', 'run']:
+    if cfg.switch_is_on(['functional_preproc',
+                         'motion_estimates_and_correction',
+                         'motion_estimate_filter', 'run']):
         filt_value = None
         _motion_variant = {
             _key: json_info['CpacVariant'][_key]
             for _key in MOVEMENT_FILTER_KEYS
             if _key in json_info.get('CpacVariant', {})}
-        try:
-            filt_value = [
-                json_info['CpacVariant'][_k][0].replace(
-                    'motion_estimate_filter_', ''
-                ) for _k, _v in _motion_variant.items()
-                if _v][0]
-        except IndexError:
+        if 'unfiltered-' in resource_idx:
+            resource_idx = resource_idx.replace('unfiltered-', '')
             filt_value = 'none'
-            if 'filtered' in resource_idx:
-                raise FilteredUnfilteredError
+        else:
+            try:
+                filt_value = [
+                    json_info['CpacVariant'][_k][0].replace(
+                        'motion_estimate_filter_', ''
+                    ) for _k, _v in _motion_variant.items()
+                    if _v][0]
+            except IndexError:
+                filt_value = 'none'
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'filt', filt_value)
-    if True in cfg['nuisance_corrections',
-                    '2-nuisance_regression', 'run']:
+    if cfg.switch_is_on(['nuisance_corrections',
+                         '2-nuisance_regression', 'run']):
         reg_value = None
         if ('regressors' in json_info.get('CpacVariant', {})
                 and json_info['CpacVariant']['regressors']):
             reg_value = json_info['CpacVariant'][
                 'regressors'
             ][0].replace('nuisance_regressors_generation_', '')
-        elif False in cfg['nuisance_corrections',
-                            '2-nuisance_regression', 'run']:
+        elif cfg.switch_is_off(['nuisance_corrections',
+                                '2-nuisance_regression', 'run']):
             reg_value = 'Off'
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'reg', reg_value)
