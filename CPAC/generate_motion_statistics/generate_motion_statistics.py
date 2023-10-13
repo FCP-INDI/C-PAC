@@ -305,7 +305,7 @@ def motion_power_statistics(name='motion_stats',
                                                           'fdj',
                                                           'dvars',
                                                           'motion_correct_tool'],
-                                             output_names=['out_file'],
+                                             output_names=['out_file', 'info'],
                                              function=gen_power_parameters,
                                              as_module=True),
                                     name='calc_power_parameters')
