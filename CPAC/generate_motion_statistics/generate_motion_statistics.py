@@ -235,7 +235,7 @@ def motion_power_statistics(name='motion_stats',
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
                                                   'calc_from',
                                                   'center'],
-                                     output_names=['out_file'],
+                                     output_names=['out_file', 'fd'],
                                      function=calculate_FD_J,
                                      as_module=True),
                             name='calculate_FDJ')
