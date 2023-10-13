@@ -63,10 +63,6 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Special case where the workflow is not getting outputs from
     # resource pool but is connected to functional datasource
-    wf.connect(*strat_pool.get_data('subject'),
-               gen_motion_stats, 'inputspec.subject_id')
-    wf.connect(*strat_pool.get_data('scan'),
-               gen_motion_stats, 'inputspec.scan_id')
     wf.connect(*strat_pool.get_data('desc-preproc_bold'),
                gen_motion_stats, 'inputspec.motion_correct')
     wf.connect(*strat_pool.get_data('space-bold_desc-brain_mask'),

@@ -189,8 +189,7 @@ def motion_power_statistics(name='motion_stats',
            and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
     """
     wf = pe.Workflow(name=name)
-    input_node = pe.Node(util.IdentityInterface(fields=['scan_id',
-                                                        'movement_parameters',
+    input_node = pe.Node(util.IdentityInterface(fields=['movement_parameters',
                                                         'max_displacement',
                                                         'rels_displacement',
                                                         'motion_correct',
