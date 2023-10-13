@@ -48,9 +48,6 @@ def motion_power_statistics(name='motion_stats',
 
     Workflow Inputs::
 
-        inputspec.scan_id : string
-            Functional Scan id or name
-
         inputspec.motion_correct : string (func/rest file or a list of func/rest nifti file)
             Path to motion corrected functional data
 
@@ -170,7 +167,6 @@ def motion_power_statistics(name='motion_stats',
     >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.transformations = 'CPAC_outputs/sub01/func/coordinate_transformation/rest_mc.aff12.1D'  # doctest: +SKIP
-    >>> wf.inputs.inputspec.scan_id = 'rest_1'
     >>> wf.base_dir = './working_dir'  # doctest: +SKIP
     >>> wf.run()  # doctest: +SKIP
 
