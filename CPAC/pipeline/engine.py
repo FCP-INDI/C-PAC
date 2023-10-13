@@ -747,7 +747,7 @@ class ResourcePool:
         """
         try:
             return 'motion_estimate_filter' in str(self.get_cpac_provenance(
-                'movement-parameters'))
+                'desc-movementParameters_motion'))
         except KeyError:
             # not a strat_pool or no movement parameters in strat_pool
             return False
@@ -762,7 +762,7 @@ class ResourcePool:
         -------
         str
         """
-        key = 'movement-parameters'
+        key = 'desc-movementParameters_motion'
         try:
             sidecar = self.get_json(key)
         except KeyError:

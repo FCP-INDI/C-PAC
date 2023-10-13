@@ -1224,7 +1224,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_prep_blocks += distcor_blocks
 
         func_motion_blocks = []
-        if not rpool.check_rpool('movement-parameters'):
+        if not rpool.check_rpool('desc-movementParameters_motion'):
             if cfg['functional_preproc']['motion_estimates_and_correction'][
                 'motion_estimates']['calculate_motion_first']:
                 func_motion_blocks = [

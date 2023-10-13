@@ -44,15 +44,16 @@ except (AttributeError, KeyError, LookupError, IndexError):
             ['functional_preproc', 'motion_estimates_and_correction',
              'motion_estimates', 'calculate_motion_after']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask',
-             'movement-parameters', 'max-displacement', 'rels-displacement',
-             'filtered-coordinate-transformation',
+             'desc-movementParameters_motion', 'max-displacement',
+             'rels-displacement', 'filtered-coordinate-transformation',
              'coordinate-transformation'), 'subject', 'scan'],
     outputs=['dvars', 'framewise-displacement-power',
              'framewise-displacement-jenkinson', 'power-params',
              'motion-params', 'motion', 'desc-summary_motion'])
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Calculate motion statistics for motion parameters.'''
-    motion_prov = strat_pool.get_cpac_provenance('movement-parameters')
+    motion_prov = strat_pool.get_cpac_provenance(
+        'desc-movementParameters_motion')
     motion_correct_tool = check_prov_for_motion_tool(motion_prov)
     coordinate_transformation = ['filtered-coordinate-transformation',
                                  'coordinate-transformation']
@@ -67,7 +68,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                gen_motion_stats, 'inputspec.motion_correct')
     wf.connect(*strat_pool.get_data('space-bold_desc-brain_mask'),
                gen_motion_stats, 'inputspec.mask')
-    wf.connect(*strat_pool.get_data('movement-parameters'),
+    wf.connect(*strat_pool.get_data('desc-movementParameters_motion'),
                gen_motion_stats, 'inputspec.movement_parameters')
     wf.connect(*strat_pool.get_data('max-displacement'),
                gen_motion_stats, 'inputspec.max_displacement')
@@ -153,7 +154,7 @@ _MOTION_CORRECTED_OUTPUTS = {
 _MOTION_PARAM_OUTPUTS = {
     "max-displacement": {},
     "rels-displacement": {},
-    "movement-parameters": {
+    "desc-movementParameters_motion": {
         "Description": "Each line contains for one timepoint a 6-DOF "
                        "rigid transform parameters in the format "
                        "defined by AFNI's 3dvolreg: [roll, pitch, yaw, "
@@ -220,7 +221,7 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
                                 ['coordinate-transformation',
                                  'filtered-coordinate-transformation',
                                  'max-displacement',
-                                 'movement-parameters',
+                                 'desc-movementParameters_motion',
                                  'rels-displacement']))
 
 
@@ -511,7 +512,7 @@ def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
         'desc-preproc_bold': (out_motion_A, 'out_file'),
         'desc-motion_bold': (out_motion_A, 'out_file'),
         'max-displacement': (out_md1d, 'out_file'),
-        'movement-parameters': (out_oned, 'out_file'),
+        'desc-movementParameters_motion': (out_oned, 'out_file'),
         'coordinate-transformation': (out_oned_matrix, 'out_file'),
         'filtered-coordinate-transformation': (out_oned_matrix, 'out_file')
     }
@@ -557,7 +558,8 @@ def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num):
         'desc-motion_bold': (func_motion_correct_A, 'out_file'),
         'max-displacement': (get_rms_abs, 'abs_file'),
         'rels-displacement': (get_rms_abs, 'rels_file'),
-        'movement-parameters': (normalize_motion_params, 'out_file'),
+        'desc-movementParameters_motion': (normalize_motion_params,
+                                           'out_file'),
         'coordinate-transformation': (func_motion_correct_A, 'mat_file'),
         'filtered-coordinate-transformation': (func_motion_correct_A,
                                                'mat_file')
@@ -592,7 +594,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
              "max-displacement",
              "rels-displacement",
              "coordinate-transformation",
-             "movement-parameters"),
+             "desc-movementParameters_motion"),
             "TR"],
      outputs={"filtered-coordinate-transformation": {
                   "Description": "Affine matrix regenerated from"
@@ -603,10 +605,10 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
                                   " not seem to affect framewise"
                                   " displacement calculation, for which"
                                   " this matrix is used."},
-              "movement-parameters": {
+              "desc-movementParameters_motion": {
                   "Description": "Filtered movement parameters"
                                  " (3 rotation, 3 translation)."},
-              "unfiltered-movement-parameters": {
+              "desc-movementParametersUnfiltered_motion": {
                   "Description": "Unfiltered movement parameters"
                                  " (3 rotation, 3 translation)."},
               "motion-filter-info": {},
@@ -651,7 +653,8 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     notch.inputs.lowpass_cutoff = opt.get('lowpass_cutoff')
     notch.inputs.filter_order = opt.get('filter_order')
 
-    movement_parameters = strat_pool.node_data('movement-parameters')
+    movement_parameters = strat_pool.node_data(
+        'desc-movementParameters_motion')
     wf.connect(movement_parameters.node, movement_parameters.out,
                notch, 'motion_params')
 
@@ -669,14 +672,14 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
         'filtered-coordinate-transformation': (affine, 'affine_file'),
         'motion-filter-info': (notch, 'filter_info'),
         'motion-filter-plot': (notch, 'filter_plot'),
-        'movement-parameters': (notch, 'filtered_motion_params')
+        'desc-movementParameters_motion': (notch, 'filtered_motion_params')
     }
 
     if not cfg.switch_is_off(["functional_preproc",
                               "motion_estimates_and_correction",
                               "motion_estimate_filter", "run"]):
-        outputs['unfiltered-movement-parameters'] = (movement_parameters.node,
-                                                     movement_parameters.out)
+        outputs['desc-movementParametersUnfiltered_motion'] = (
+            movement_parameters.node, movement_parameters.out)
 
     return (wf, outputs)
 
