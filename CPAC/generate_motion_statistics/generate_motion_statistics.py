@@ -813,8 +813,10 @@ def get_allmotion(fdj, fdp, maxdisp, motion, power, relsdisp=None, dvars=None):
     df_motion = pd.DataFrame(motion)
     df_power = pd.DataFrame(power)
     data_frames_motionpower = [df_motion, df_power]
-    summary_motion_pow_df = pd.concat(data_frames_motionpower)
-    np.savetxt(summary_motion_power, summary_motion_pow_df, delimiter="\t",
-               header="Parameters\tValues", comments='', fmt='%s')
+    summary_motion_pow_df = pd.concat(data_frames_motionpower).T
+    summary_motion_pow_df.columns = summary_motion_pow_df.iloc[0]
+    summary_motion_pow_df.drop(summary_motion_pow_df.index[0], inplace=True)
+    summary_motion_pow_df.to_csv(summary_motion_power, sep='\t', header=True,
+                                 index=False)
 
     return all_motion_val, summary_motion_power
