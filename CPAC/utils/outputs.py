@@ -74,6 +74,3 @@ class Outputs():
 
     template_raw = list(reference[all_template_filter &
                         (reference['To z-std'] == 'Yes')]['Resource'])
-
-    # motion parameters to rename until FCP-INDI/CPAC#1624 is merged
-    motion = list(reference[reference['Type'] == 'motion']['Resource'])

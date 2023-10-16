@@ -151,8 +151,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_ccs,
     bold_masking,
     func_mean,
-    func_normalize,
-    func_mask_normalize
+    func_normalize
 )
 
 from CPAC.distortion_correction.distortion_correction import (
@@ -572,7 +571,8 @@ Please, make yourself aware of how it works and its assumptions:
 
             try:
                 # Actually run the pipeline now, for the current subject
-                workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
+                workflow_result = workflow.run(plugin=plugin,
+                                               plugin_args=plugin_args)
             except UnicodeDecodeError:
                 raise EnvironmentError(
                     "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
@@ -790,7 +790,8 @@ CPAC run error:
                 if workflow_result is not None:
                     workflow_meta.stage = "post"
                     save_workflow_json(
-                        filename=os.path.join(log_dir, workflow_meta.filename()),
+                        filename=os.path.join(log_dir,
+                                              workflow_meta.filename()),
                         workflow=workflow_result,
                         meta=workflow_meta,
                         custom_serializer=cpac_flowdump_serializer
@@ -1223,7 +1224,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_prep_blocks += distcor_blocks
 
         func_motion_blocks = []
-        if not rpool.check_rpool('movement-parameters'):
+        if not rpool.check_rpool('desc-movementParameters_motion'):
             if cfg['functional_preproc']['motion_estimates_and_correction'][
                 'motion_estimates']['calculate_motion_first']:
                 func_motion_blocks = [
