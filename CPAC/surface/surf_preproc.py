@@ -80,7 +80,7 @@ def run_surface(post_freesurfer_folder,
     subprocess.check_output(cmd)
 
     #DCAN-HCP PostFreeSurfer Block3.5
-    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block3-5.sh', post_freesurfer_folder, \
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block4.sh', post_freesurfer_folder, \
           freesurfer_folder, subject, \
           t1w_restore_image, atlas_space_t1w_image, \
           atlas_transform, inverse_atlas_transform, \
@@ -92,7 +92,7 @@ def run_surface(post_freesurfer_folder,
 
     # DCAN-HCP PostFreeSurfer Block4
 
-    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block4.sh', post_freesurfer_folder, \
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block5.sh', post_freesurfer_folder, \
           freesurfer_folder, subject, \
           t1w_restore_image, atlas_space_t1w_image, \
           atlas_transform, inverse_atlas_transform, \
@@ -104,7 +104,7 @@ def run_surface(post_freesurfer_folder,
 
   # DCAN-HCP PostFreeSurfer Block5
 
-    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block5.sh', post_freesurfer_folder, \
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block6.sh', post_freesurfer_folder, \
           freesurfer_folder, subject, \
           t1w_restore_image, atlas_space_t1w_image, \
           atlas_transform, inverse_atlas_transform, \
@@ -116,7 +116,7 @@ def run_surface(post_freesurfer_folder,
 
    # DCAN-HCP PostFreeSurfer Block6
       
-    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block6.sh', post_freesurfer_folder, \
+    cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block7.sh', post_freesurfer_folder, \
           freesurfer_folder, subject, \
           t1w_restore_image, atlas_space_t1w_image, \
           atlas_transform, inverse_atlas_transform, \
