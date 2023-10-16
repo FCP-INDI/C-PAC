@@ -68,7 +68,7 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: Regressor-1
+      - Name: Regressor_1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -92,7 +92,7 @@ nuisance_corrections:
           tissues:
           - WhiteMatter
           - CerebrospinalFluid
-      - Name: Regressor-2
+      - Name: Regressor_2
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
