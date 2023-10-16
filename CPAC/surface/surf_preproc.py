@@ -42,18 +42,6 @@ def run_surface(post_freesurfer_folder,
     if os.path.isdir(recon_all_path):
         freesurfer_folder = recon_all_path
 
-    # # DCAN-HCP PostFreeSurfer
-    # # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
-    # cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/run.sh', '--post_freesurfer_folder', post_freesurfer_folder, \
-    #     '--freesurfer_folder', freesurfer_folder, '--subject', subject, \
-    #     '--t1w_restore', t1w_restore_image, '--atlas_t1w', atlas_space_t1w_image, \
-    #     '--atlas_transform', atlas_transform, '--inverse_atlas_transform', inverse_atlas_transform, \
-    #     '--surfatlasdir', surf_atlas_dir, '--grayordinatesdir', gray_ordinates_dir, '--grayordinatesres', gray_ordinates_res, \
-    #     '--hiresmesh', high_res_mesh, '--lowresmesh', low_res_mesh, \
-    #     '--subcortgraylabels', subcortical_gray_labels, '--freesurferlabels', freesurfer_labels]
-
-    # subprocess.check_output(cmd)
-
         # DCAN-HCP PostFreeSurfer Block1
    
     cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block1.sh', post_freesurfer_folder, \
@@ -699,7 +687,7 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     surf.inputs.subject = cfg['subject_id']
 
     surf.inputs.post_freesurfer_folder = os.path.join(cfg.pipeline_setup['working_directory']['path'],
-        'cpac_'+cfg['subject_id'],
+        'cpac_' + cfg['subject_id'],
         f'post_freesurfer_{pipe_num}')
 
     surf.inputs.surf_atlas_dir = cfg.surface_analysis['post_freesurfer']['surf_atlas_dir']
@@ -910,16 +898,16 @@ def surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
 def surface_alff(wf, cfg, strat_pool, pipe_num, opt):
 
-    alff = pe.Node(util.Function(input_names=['subject','dtseries'], 
+    alff = pe.Node(util.Function(input_names=['subject', 'dtseries'], 
                              output_names=['surf_alff'],
                                function=run_surf_alff),
                  name=f'surf_alff_{pipe_num}')
     
     alff.inputs.subject = cfg['subject_id']
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold') 
-    wf.connect(node, out,alff, 'dtseries')
+    wf.connect(node, out, alff, 'dtseries')
     outputs = {
-        'space-fsLR_den-32k_bold_surf_alff': (alff,'surf_alff')}
+        'space-fsLR_den-32k_bold_surf_alff': (alff, 'surf_alff')}
     return wf, outputs
 
 
@@ -1044,7 +1032,7 @@ def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     return wf, outputs
 
 
-def run_surf_falff(subject,dtseries):
+def run_surf_falff(subject, dtseries):
     import os
     import subprocess
     falff = os.path.join(os.getcwd(), f'{subject}_falff_surf.dscalar.nii')
@@ -1052,7 +1040,7 @@ def run_surf_falff(subject,dtseries):
     subprocess.check_output(cmd)
     return falff
 
-def run_surf_alff(subject,dtseries):
+def run_surf_alff(subject, dtseries):
    import os
    import subprocess
    alff = os.path.join(os.getcwd(), f'{subject}_alff_surf.dscalar.nii')
@@ -1079,7 +1067,8 @@ def run_mean_timeseries(subject, dtseries):
     log_subprocess(cmd)
     return mean_timeseries
     
-def run_surf_reho(subject, dtseries, mask, cortex_file, surface_file,mean_timeseries,reho_filename,structure_name):
+def run_surf_reho(subject, dtseries, mask, cortex_file, \
+                surface_file, mean_timeseries, reho_filename, structure_name):
 
     import os
     import subprocess
