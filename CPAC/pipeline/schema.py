@@ -21,9 +21,10 @@ import re
 from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
-from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
-                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
-                       Optional, Range, Required, Schema, Title
+from voluptuous import All, ALLOW_EXTRA, Any, BooleanInvalid, Capitalize, \
+                       Coerce, ExclusiveInvalid, In, Length, LengthInvalid, \
+                       Lower, Match, Maybe, Optional, Range, Required, \
+                       Schema, Title
 from CPAC import docs_prefix
 from CPAC.utils.datatypes import ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
@@ -63,6 +64,10 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
             pass
         x = (True if str(x).lower() in YAML_BOOLS[True] else
              False if str(x).lower() in YAML_BOOLS[False] else x)
+    if not isinstance(x, (bool, int)):
+        raise BooleanInvalid('Type boolean value was expected, type '
+                             f'{getattr(type(x), "__name__", str(type(x)))} '
+                             f'value\n\n{x}\n\nwas provided')
     return bool(x)
 
 
@@ -771,14 +776,14 @@ latest_schema = Schema({
                 'calculate_motion_after': bool1_1,
             },
             'motion_correction': {
-                'using': All(Coerce(ListFromItem),
-                             Length(min=1, max=1,
+                'using': Optional(All(Coerce(ListFromItem),
+                                      Length(min=0, max=1,
                     msg='Forking is currently broken for this option. '
                         'Please use separate configs if you want to '
                         'use each of 3dvolreg and mcflirt. Follow '
                         'https://github.com/FCP-INDI/C-PAC/issues/1935 '
                         'to see when this issue is resolved.'),
-                             [In(valid_options['motion_correction'])]),
+                             [In(valid_options['motion_correction'])])),
                 'AFNI-3dvolreg': {
                     'functional_volreg_twopass': bool1_1,
                 },
@@ -1117,6 +1122,27 @@ def schema(config_dict):
                     motion_filter, motion_filters['filters'])
         else:
             motion_filters['filters'] = []
+    except KeyError:
+        pass
+    try:
+        # 'motion_correction.using' is only optional if 'run' is Off
+        mec = partially_validated['functional_preproc'][
+            'motion_estimates_and_correction']
+        if mec['run']:
+            try:
+                # max should be len(valid_options['motion_correction'])
+                # once #1935 is resolved
+                Length(min=1, max=1)(mec['motion_correction']['using'])
+            except LengthInvalid:
+                mec_path = ['functional_preproc',
+                            'motion_estimates_and_correction']
+                raise LengthInvalid(  # pylint: disable=raise-missing-from
+                    f'If data[{"][".join(map(repr, mec_path))}][\'run\'] is '
+                    # length must be between 1 and
+                    # len(valid_options['motion_correction']) once #1935 is
+                    # resolved
+                    'True, length of list must be exactly 1',
+                    path=[*mec_path, 'motion_correction', 'using'])
     except KeyError:
         pass
     return partially_validated
