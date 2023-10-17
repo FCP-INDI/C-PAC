@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
 - String representations for NodeBlock and ResourcePool class instances
 - `switch_is_off`, `switch_is_on` and `switch_is_on_off` methods to `Configuration` class
+- `__repr__` and `__str__` methods to `ResourcePool`s and `NodeBlockFunction`s
 
 ## Fixed
 
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled `--use-estimate-learning-rate-once` in `antsRegistration` (ANTsX/ANTs#1405; ANTsX/ANTs#1411)
 - Removes `torch` from preinstalled dependencies and only installs if we're running `unet`
 - Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
+- Updates config boolean validation from anything-truthy-is-True (e.g., `[True, False]`, or `[False]`, or a typo like `Offf`) to only accepting bools, ints, and YAML boolean strings like "On" and "Off" as boolean
 
 ### Added dependencies
 

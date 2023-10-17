@@ -734,7 +734,7 @@ def set_subject(sub_dict: dict, pipe_config: 'Configuration',
 
 
 def nipype_friendly_name(name: str) -> str:
-    """Replace sequences of non-alphanumeric characters with a single
+    """Replace each sequence of non-alphanumeric characters with a single
     underscore and remove any leading underscores
 
     Parameters
