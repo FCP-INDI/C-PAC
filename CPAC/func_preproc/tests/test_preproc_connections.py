@@ -83,7 +83,7 @@ def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
 @pytest.mark.parametrize('regtool', ['ANTs', 'FSL'])
 @pytest.mark.parametrize('calculate_motion_first', [True, False])
 @pytest.mark.parametrize('pre_resources', [_PRE_RESOURCES,
-                                           ['movement-parameters',
+                                           ['desc-movementParameters_motion',
                                             *_PRE_RESOURCES]])
 @pytest.mark.parametrize('motion_correction', [['mcflirt'], ['3dvolreg'],
                                                ['mcflirt', '3dvolreg']])
@@ -170,7 +170,7 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
             func_motion_correct,
             motion_estimate_filter
         ]
-    if not rpool.check_rpool('movement-parameters'):
+    if not rpool.check_rpool('desc-movementParameters_motion'):
         if c['functional_preproc', 'motion_estimates_and_correction',
              'motion_estimates', 'calculate_motion_first']:
             func_blocks = func_init_blocks + func_motion_blocks + \
@@ -198,13 +198,16 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                          'motion_estimate_filter', 'run']
     if c.switch_is_on(filter_switch_key, exclusive=True):
         assert all(strat.filtered_movement for strat in
-                   rpool.get_strats(['movement-parameters']).values())
+                   rpool.get_strats(['desc-movementParameters_motion']
+                                    ).values())
     elif c.switch_is_off(filter_switch_key, exclusive=True):
         assert not any(strat.filtered_movement for strat in
-                       rpool.get_strats(['movement-parameters']).values())
+                       rpool.get_strats(['desc-movementParameters_motion']
+                                        ).values())
     elif c.switch_is_on_off(filter_switch_key):
         assert any(strat.filtered_movement for strat in
-                   rpool.get_strats(['movement-parameters']).values())
+                   rpool.get_strats(['desc-movementParameters_motion']
+                                    ).values())
         if 'mcflirt' in c['functional_preproc',
                           'motion_estimates_and_correction',
                           'motion_correction', 'using']:

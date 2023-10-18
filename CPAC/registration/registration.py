@@ -3680,7 +3680,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     }
 
     return (wf, outputs)
-    
+
 
 @nodeblock(
     name="transform_timeseries_to_T1template_deriv",

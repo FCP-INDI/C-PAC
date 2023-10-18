@@ -73,7 +73,7 @@ from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 
 motion_params = ['dvars', 'framewise-displacement-jenkinson',
-                 'unfiltered-movement-parameters', 'movement-parameters']
+                 'desc-movementParametersUnfiltered_motion', 'desc-movementParameters_motion']
 
 
 def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
@@ -395,7 +395,7 @@ def get_bids_info(subject, scan, wf_name):
             ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"],
             "regressors",
             ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"],
-            ["unfiltered-movement-parameters", "movement-parameters"],
+            ["desc-movementParametersUnfiltered_motion", "desc-movementParameters_motion"],
             "dvars",
             "framewise-displacement-jenkinson",
         )
