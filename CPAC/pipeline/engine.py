@@ -779,9 +779,9 @@ class ResourcePool:
             'motion_estimate_filter', 'run'], exclusive=True
         ):
             return motion_filters[0]['Name']
-        key = 'desc-movementParameters_motion'
         try:
-            sidecar = self.get_json(key)
+            key = 'motion'
+            sidecar = self.get_json('desc-movementParameters_motion')
         except KeyError:
             sidecar = None
         if sidecar is not None and 'CpacVariant' in sidecar:
