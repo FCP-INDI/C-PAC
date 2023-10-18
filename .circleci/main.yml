@@ -225,6 +225,7 @@ jobs:
         default: ""
     machine:
       image: ubuntu-2004:2023.04.2
+    parallelism: 15
     resource_class: large
     steps:
       - checkout
