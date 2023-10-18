@@ -138,7 +138,12 @@ functional_preproc:
   motion_estimates_and_correction:
     run: On
     motion_correction:
-      using: 3dvolreg
+
+      # using: ['3dvolreg', 'mcflirt']
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
+      using: [3dvolreg]
 
   distortion_correction:
 
