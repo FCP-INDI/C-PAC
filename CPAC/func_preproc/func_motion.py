@@ -34,9 +34,7 @@ from CPAC.utils.utils import check_prov_for_motion_tool
 @nodeblock(
     name='calc_motion_stats',
     switch=[['functional_preproc', 'run'],
-            ['functional_preproc', 'motion_estimates_and_correction', 'run'],
-            ['functional_preproc', 'motion_estimates_and_correction',
-             'motion_estimates', 'calculate_motion_after']],
+            ['functional_preproc', 'motion_estimates_and_correction', 'run']],
     inputs=[('desc-preproc_bold', 'space-bold_desc-brain_mask',
              'movement-parameters', 'max-displacement', 'rels-displacement',
              'filtered-coordinate-transformation',

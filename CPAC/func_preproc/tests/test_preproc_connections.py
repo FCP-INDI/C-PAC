@@ -22,6 +22,7 @@ from nipype.interfaces.utility import Function as NipypeFunction, \
     IdentityInterface
 from nipype.pipeline.engine import Workflow as NipypeWorkflow
 import pytest
+from traits.trait_base import Undefined
 from voluptuous.error import Invalid
 
 from CPAC.func_preproc.func_motion import calc_motion_stats, \
@@ -45,9 +46,6 @@ _FILTERS = [{'filter_type': 'notch', 'filter_order': 4,
             {'filter_type': 'lowpass', 'filter_order': 4,
              'lowpass_cutoff': .0032}]
 _PRE_RESOURCES = ['desc-preproc_bold',
-                  'dvars',
-                  'framewise-displacement-jenkinson',
-                  'framewise-displacement-power',
                   'label-CSF_desc-eroded_mask',
                   'label-CSF_desc-preproc_mask',
                   'label-CSF_mask',
@@ -62,6 +60,8 @@ _PRE_RESOURCES = ['desc-preproc_bold',
                   'space-T1w_desc-eroded_mask',
                   'space-bold_desc-brain_mask',
                   'TR',
+                  'scan',
+                  'subject',
                   'desc-brain_T1w',
                   'from-T1w_to-template_mode-image_desc-linear_xfm',
                   'from-bold_to-T1w_mode-image_desc-linear_xfm',
@@ -108,11 +108,13 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
             'motion_estimates_and_correction': {
                 'motion_correction': {'using': motion_correction},
                 'motion_estimates': {
+                    'calculate_motion_after': not calculate_motion_first,
                     'calculate_motion_first': calculate_motion_first},
                 'motion_estimate_filter': {
                     'run': run,
                     'filters': filters},
-                'run': True}},
+                'run': True},
+            'run': True},
         'nuisance_corrections': {
             '2-nuisance_regression': {
                 'Regressors': [{
@@ -190,6 +192,28 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
         pipeline_blocks += choose_nuisance_blocks(c, generate_only)
     wf = Workflow(re.sub(r'[\[\]\-\:\_ \'\",]', '', str(rpool)))
     connect_pipeline(wf, c, rpool, pipeline_blocks)
+    # Check that filtering is happening as expected
+    filter_switch_key = ['functional_preproc',
+                         'motion_estimates_and_correction',
+                         'motion_estimate_filter', 'run']
+    if c.switch_is_on(filter_switch_key, exclusive=True):
+        assert all(strat.filtered_movement for strat in
+                   rpool.get_strats(['movement-parameters']).values())
+    elif c.switch_is_off(filter_switch_key, exclusive=True):
+        assert not any(strat.filtered_movement for strat in
+                       rpool.get_strats(['movement-parameters']).values())
+    elif c.switch_is_on_off(filter_switch_key):
+        assert any(strat.filtered_movement for strat in
+                   rpool.get_strats(['movement-parameters']).values())
+        if 'mcflirt' in c['functional_preproc',
+                          'motion_estimates_and_correction',
+                          'motion_correction', 'using']:
+            # Only for [On, Off] + mcflirt, we should have at least one of each
+            assert set(wf.get_node(nodename).inputs.calc_from for nodename in
+                       wf.list_node_names() if
+                       nodename.endswith('.calculate_FDJ') and
+                       wf.get_node(nodename).inputs.calc_from is
+                       not Undefined) == {'affine', 'rms'}
     regressor_subwfs = [wf.get_node(nodename[:-26]) for nodename in
                         wf.list_node_names() if
                         nodename.endswith('build_nuisance_regressors')]
@@ -200,7 +224,7 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
         should_be_filtered = ('_filt-' in subwf.name and '_filt-none' not in
                               subwf.name)
         for u, v in wf._graph.edges:  # pylint: disable=invalid-name,protected-access
-            if (v == subwf and
+            if (v == subwf and hasattr(u, 'interface') and
                 isinstance(u.interface, (NipypeFunction, CpacFunction)) and
                 'notch_filter_motion' in u.interface.inputs.function_str
             ):
