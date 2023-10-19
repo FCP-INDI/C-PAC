@@ -4,15 +4,6 @@ import os
 import sys
 
 
-dtseries = nb.load(sys.argv[1]) # dtseries file
-mask = nb.load(sys.argv[2]) # surface mask file
-cortex_file = nb.load(sys.argv[3]) # cortex file 
-surf_file = nb.load(sys.argv[4]) # surface file
-scalar_dt =  nb.load(sys.argv[5]) # mean_timeseries
-structure_name = sys.argv[6] #structure name
-surf_reho = sys.argv[7] # Path to reho file
-
-
 def get_neighbours(faces, vertex_id, depth=1):
     fois = np.where(faces == vertex_id)[0]
     nbrs = list(np.unique(faces[fois]))
@@ -65,32 +56,48 @@ def ccs_ReHo(dt_file, surf_file):
 
     return(cReHo)    
 
-cReHo = ccs_ReHo(cortex_file, surf_file)
+def run_surf_reho(subject, dtseries, mask, cortex_file, \
+                surface_file, mean_timeseries, reho_filename, structure_name):
 
-## Axes and Header stuff ##
-axes = [dtseries.header.get_axis(i) for i in range(dtseries.ndim)]
-axes1 = [scalar_dt.header.get_axis(i) for i in range(scalar_dt.ndim)]
+    import os
+    import subprocess
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
-time_axis, brain_model_axis = axes #dtseries
-time_axis1, brain_axis1 = axes1 #dscalar
+    dtseries = nb.load(dtseries) # dtseries file
+    mask = nb.load(mask) # surface mask file
+    cortex_file = nb.load(cortex_file) # cortex file 
+    surf_file = nb.load(surface_file) # surface file
+    scalar_dt =  nb.load(mean_timeseries) # mean_timeseries
+    surf_reho = os.path.join(os.getcwd(), f'{subject}_{reho_filename}')
 
-# Select the structures you want
-structure_names = [structure_name]  # List of structure names
+    cReHo = ccs_ReHo(cortex_file, surf_file)
 
-brain_models = [bm for bm in brain_model_axis.iter_structures()
-                if bm[0] in structure_names]
+    ## Axes and Header stuff ##
+    axes = [dtseries.header.get_axis(i) for i in range(dtseries.ndim)]
+    axes1 = [scalar_dt.header.get_axis(i) for i in range(scalar_dt.ndim)]
 
-new_dataobj = np.concatenate([dtseries.dataobj[0, bm[1]] for bm in brain_models], axis=0)
-new_dataobj = np.transpose(new_dataobj.reshape(-1,1))
+    time_axis, brain_model_axis = axes #dtseries
+    time_axis1, brain_axis1 = axes1 #dscalar
 
-new_brain_model_axis = sum(
-    (bm[2] for bm in brain_models[1:]), brain_models[0][2])
+    # Select the structures you want
+    structure_names = [structure_name]  # List of structure names
 
-new_cifti = nb.Cifti2Image(new_dataobj,
-                       header=(time_axis1, new_brain_model_axis),
-                       nifti_header=dtseries.nifti_header)
+    brain_models = [bm for bm in brain_model_axis.iter_structures()
+                    if bm[0] in structure_names]
 
-## Saving image ##                       
-img = nb.Cifti2Image(np.transpose(cReHo), header = new_cifti.header, nifti_header=new_cifti.nifti_header)
-reho_file = surf_reho
-img.to_filename(reho_file)
+    new_dataobj = np.concatenate([dtseries.dataobj[0, bm[1]] for bm in brain_models], axis=0)
+    new_dataobj = np.transpose(new_dataobj.reshape(-1,1))
+
+    new_brain_model_axis = sum(
+        (bm[2] for bm in brain_models[1:]), brain_models[0][2])
+
+    new_cifti = nb.Cifti2Image(new_dataobj,
+                        header=(time_axis1, new_brain_model_axis),
+                        nifti_header=dtseries.nifti_header)
+
+    ## Saving image ##                       
+    img = nb.Cifti2Image(np.transpose(cReHo), header = new_cifti.header, nifti_header=new_cifti.nifti_header)
+    reho_file = surf_reho
+    img.to_filename(reho_file)
+
+    return surf_reho

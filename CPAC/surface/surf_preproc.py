@@ -3,6 +3,7 @@ from CPAC.pipeline.nodeblock import nodeblock
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.surface.PostFreeSurfer.surf_reho import run_surf_reho
 
 
 def run_surface(post_freesurfer_folder,
@@ -1066,17 +1067,6 @@ def run_mean_timeseries(subject, dtseries):
     cmd = ['wb_command', '-cifti-reduce', dtseries, 'MEAN', mean_timeseries]
     log_subprocess(cmd)
     return mean_timeseries
-    
-def run_surf_reho(subject, dtseries, mask, cortex_file, \
-                surface_file, mean_timeseries, reho_filename, structure_name):
-
-    import os
-    import subprocess
-    from CPAC.utils.monitoring.custom_logging import log_subprocess
-    surf_reho = os.path.join(os.getcwd(), f'{subject}_{reho_filename}')
-    cmd = ['python', '/code/CPAC/surface/PostFreeSurfer/surf_reho.py', dtseries, mask, cortex_file, surface_file, mean_timeseries, structure_name, surf_reho]
-    log_subprocess(cmd)
-    return surf_reho
     
 def run_ciftiparcellate(subject, dtseries, surf_atlaslabel):
     import os  
