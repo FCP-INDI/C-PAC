@@ -227,9 +227,9 @@ surface_analysis:
     fmri_res: 2
     smooth_fwhm: 2
 
-  amplitude_low_frequency_fluctuation: 
-    run: Off 
-  
+  amplitude_low_frequency_fluctuation:
+    run: Off
+
   regional_homogeneity:
     run: Off
 

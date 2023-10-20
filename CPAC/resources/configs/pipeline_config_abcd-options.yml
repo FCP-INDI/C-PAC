@@ -45,14 +45,14 @@ surface_analysis:
   post_freesurfer:
     run: On
 
-  amplitude_low_frequency_fluctuation: 
-    run: True 
-  
+  amplitude_low_frequency_fluctuation:
+    run: On
+
   regional_homogeneity:
-    run: True
-  
+    run: On
+
   surface_connectivity:
-    run: True 
+    run: On
 
 anatomical_preproc:
   run: On
