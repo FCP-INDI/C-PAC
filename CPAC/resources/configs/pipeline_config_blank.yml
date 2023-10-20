@@ -228,12 +228,13 @@ surface_analysis:
     smooth_fwhm: 2
 
   amplitude_low_frequency_fluctuation: 
-    run: True 
+    run: Off 
   
   regional_homogeneity:
-    run: True
-    
+    run: Off
+
   surface_connectivity:
+    run: Off
     surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 anatomical_preproc:
