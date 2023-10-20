@@ -234,6 +234,8 @@ surface_analysis:
 
     smooth_fwhm: 2
 
+  surface_connectivity:
+    surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 longitudinal_template_generation:
 
@@ -1636,9 +1638,6 @@ seed_based_correlation_analysis:
 
   # Normalize each time series before running Dual Regression SCA.
   norm_timeseries_for_DR: True
-
-surface_connectivity:
-  surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 amplitude_low_frequency_fluctuation:
 
