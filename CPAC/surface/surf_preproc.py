@@ -866,7 +866,7 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="surface_falff",
-    config=["surface_amplitude_low_frequency_fluctuation"],
+    config=["surface_analysis", "amplitude_low_frequency_fluctuation"],
     switch=["run"],
     inputs=["space-fsLR_den-32k_bold"],
     outputs=[
@@ -890,7 +890,7 @@ def surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 
 @nodeblock(
     name="surface_alff",
-    config=["surface_amplitude_low_frequency_fluctuation"],
+    config=["surface_analysis", "amplitude_low_frequency_fluctuation"],
     switch=["run"],
     inputs=["space-fsLR_den-32k_bold"],
     outputs=[
@@ -914,7 +914,7 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt):
 
 @nodeblock(
     name="surface_reho",
-    config=["surface_regional_homogeneity"],
+    config=["surface_analysis", "regional_homogeneity"],
     switch=["run"],
     inputs=["space-fsLR_den-32k_bold",
             "hemi-L_space-fsLR_den-32k_midthickness", 
@@ -1000,7 +1000,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
 
 @nodeblock(
     name="surface_connectivity_matrix",
-    config=["surface_connectivity"],
+    config=["surface_analysis", "surface_connectivity"],
     switch=["run"],
     inputs=["space-fsLR_den-32k_bold"],
     outputs=["space-fsLR_den-32k_bold_surf-correlation_matrix"],
@@ -1017,7 +1017,7 @@ def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     connectivity_parcellation.inputs.subject = cfg['subject_id'] 
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold')        
     wf.connect(node, out, connectivity_parcellation, 'dtseries') 
-    connectivity_parcellation.inputs.surf_atlaslabel = cfg['surface_connectivity']['surface_parcellation_template']
+    connectivity_parcellation.inputs.surf_atlaslabel = cfg["surface_analysis"]['surface_connectivity']['surface_parcellation_template']
 
     correlation_matrix = pe.Node(util.Function(input_names=['subject','ptseries'], 
                                 output_names=['correlation_matrix'],

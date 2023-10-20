@@ -732,6 +732,16 @@ latest_schema = Schema({
             'fmri_res': Maybe(int),
             'smooth_fwhm': Maybe(int),
         },
+        'amplitude_low_frequency_fluctuation': {
+            'run': bool1_1,
+        },
+        'regional_homogeneity': {
+            'run': bool1_1,
+        },
+        'surface_connectivity': {
+            'run': bool1_1,
+            'surface_parcellation_template': Maybe(str),
+        },
     },
     'longitudinal_template_generation': {
         'run': bool1_1,
@@ -992,13 +1002,6 @@ latest_schema = Schema({
             for option in ['using', 'measure']
         },
     },
-
-    'surface_amplitude_low_frequency_fluctuation': {'run': bool},
-    'surface_regional_homogeneity': {'run': bool},
-   
-    'surface_connectivity': {
-        'run': bool,
-        'surface_parcellation_template':Maybe(str) },
     'seed_based_correlation_analysis': {
         'run': bool1_1,
         Optional('roi_paths_fully_specified'): bool1_1,

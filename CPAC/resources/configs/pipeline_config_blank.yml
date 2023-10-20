@@ -227,6 +227,15 @@ surface_analysis:
     fmri_res: 2
     smooth_fwhm: 2
 
+  amplitude_low_frequency_fluctuation: 
+    run: True 
+  
+  regional_homogeneity:
+    run: True
+    
+  surface_connectivity:
+    surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
+
 anatomical_preproc:
   run: Off
   acpc_alignment:
@@ -1343,9 +1352,6 @@ timeseries_extraction:
   #           result in small misalignments for very small ROIs - please double
   #           check your data if you see issues
   realignment: ROI_to_func
-
-surface_connectivity:
-  surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 amplitude_low_frequency_fluctuation:
 

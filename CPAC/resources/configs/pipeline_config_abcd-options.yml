@@ -45,6 +45,15 @@ surface_analysis:
   post_freesurfer:
     run: On
 
+  amplitude_low_frequency_fluctuation: 
+    run: True 
+  
+  regional_homogeneity:
+    run: True
+  
+  surface_connectivity:
+    run: True 
+
 anatomical_preproc:
   run: On
   acpc_alignment:
