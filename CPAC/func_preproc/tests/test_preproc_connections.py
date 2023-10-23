@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test graph connections for functional preprocessing"""
+from itertools import product
+from random import sample
 import re
 from typing import Union
 
@@ -67,6 +69,8 @@ _PRE_RESOURCES = ['desc-preproc_bold',
                   'from-bold_to-T1w_mode-image_desc-linear_xfm',
                   'from-template_to-T1w_mode-image_desc-linear_xfm']
 
+NUM_TESTS = 48  # number of parameterizations to run for many-parameter tests
+
 
 def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
                               should_be_filtered: bool) -> str:
@@ -78,15 +82,18 @@ def _filter_assertion_message(subwf: NipypeWorkflow, is_filtered: bool,
     return f'{subwf.name} is not filtered and should be'
 
 
-@pytest.mark.parametrize('run', [True, False, [True, False]])
-@pytest.mark.parametrize('filters', [[_FILTERS[0]], [_FILTERS[1]], _FILTERS])
-@pytest.mark.parametrize('regtool', ['ANTs', 'FSL'])
-@pytest.mark.parametrize('calculate_motion_first', [True, False])
-@pytest.mark.parametrize('pre_resources', [_PRE_RESOURCES,
-                                           ['desc-movementParameters_motion',
-                                            *_PRE_RESOURCES]])
-@pytest.mark.parametrize('motion_correction', [['mcflirt'], ['3dvolreg'],
-                                               ['mcflirt', '3dvolreg']])
+_PARAMS = {  # for test_motion_filter_connections
+    'calculate_motion_first': [True, False],
+    'filters': [[_FILTERS[0]], [_FILTERS[1]], _FILTERS],
+    'motion_correction': [['mcflirt'], ['3dvolreg'], ['mcflirt', '3dvolreg']],
+    'pre_resources': [_PRE_RESOURCES, ['desc-movementParameters_motion',
+                                       *_PRE_RESOURCES]],
+    'regtool': ['ANTs', 'FSL'],
+    'run': [True, False, [True, False]]}  # product == 216
+
+
+@pytest.mark.parametrize(','.join(_PARAMS.keys()),  # run n=NUM_TESTS subset
+                         sample(list(product(*_PARAMS.values())), NUM_TESTS))
 def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                                    filters: LIST[dict], regtool: LIST[str],
                                    calculate_motion_first: bool,
@@ -102,7 +109,7 @@ def test_motion_filter_connections(run: Union[bool, LIST[bool]],
                         'motion_correction': {'using': motion_correction}}}})
             assert 'FCP-INDI/C-PAC/issues/1935' in invalid
         return
-    # paramaterized Configuration
+    # parameterized Configuration
     c = Configuration({
         'functional_preproc': {
             'motion_estimates_and_correction': {
