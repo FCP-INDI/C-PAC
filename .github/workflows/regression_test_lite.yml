@@ -8,13 +8,6 @@ on:
       - opened
       - ready_for_review
       - reopened
-  pull_request_target:  # Make sure environment protection is enabled!
-    branches:
-      - develop
-    types:
-      - opened
-      - ready_for_review
-      - reopened
   workflow_call:
     secrets:
       GH_CLI_BIN_PATH:
@@ -36,12 +29,11 @@ jobs:
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
-    if: (${{ github.event.pull_request.head.repo.full_name }} == ${{ github.repository }} && ${{ github.event_name }} == 'pull_request') || (${{ github.event.pull_request.head.repo.full_name }} != ${{ github.repository }} && ${{ github.event_name }} == 'pull_request_target')
     runs-on: ubuntu-latest
     steps:
       - name: Get C-PAC branch
         run: |
-          GITHUB_BRANCH=${{ github.event.pull_request.head.ref }}
+          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=${GITHUB_BRANCH//\//_}
