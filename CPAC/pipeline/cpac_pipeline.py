@@ -1313,7 +1313,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     
     # Check for mutually exclusive options
     if cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'] and \
-        cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors']:
+        cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
         err_msg = "[!] Ingress_regressors and create_regressors can't both run! " \
                     " Try turning one option off.\n "
         raise Exception(err_msg)
@@ -1348,12 +1348,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             ts_to_T1template_block += [warp_timeseries_to_T1template_deriv]
 
         if cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-            
-            # Check for mutually exclusive options
-            err_msg = "[!] Ingress_regressors and create_regressors can't both run! " \
-                    " Try turning one option off.\n "
-            if cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors']:
-                raise Exception(err_msg)
             ts_to_T1template_block += [(warp_timeseries_to_T1template_abcd, ('desc-preproc_bold', 'bold'))]
             ts_to_T1template_block.append(single_step_resample_timeseries_to_T1template)
         else:
