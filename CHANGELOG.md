@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Some automatic handling of user-provided BIDSy atlas names.
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
+- Ability to ingress an FmriPrep output directory and run derivatives with C-PAC
+- FmripPrep-ingress preconfig that runs derivatives
+- `switch_is_off`, `switch_is_on` and `switch_is_on_off` methods to `Configuration` class
 
 ## Fixed
 

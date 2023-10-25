@@ -1,0 +1,96 @@
+name: Launch lite regression test
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+  pull_request_target:  # Make sure environment protection is enabled!
+    branches:
+      - develop
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+  workflow_call:
+    secrets:
+      GH_CLI_BIN_PATH:
+        description: 'path to directory containing GitHub CLI binary if not on default $PATH'
+        required: false
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_WORK_DIR:
+        required: true
+
+jobs: 
+  test:
+    name: Regression Test - Lite
+    environment: ACCESS
+    env:
+      SHA: ${{ github.event.pull_request.head.sha }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+    if: (${{ github.event.pull_request.head.repo.full_name }} == ${{ github.repository }} && ${{ github.event_name }} == 'pull_request') || (${{ github.event.pull_request.head.repo.full_name }} != ${{ github.repository }} && ${{ github.event_name }} == 'pull_request_target')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get C-PAC branch
+        run: |
+          GITHUB_BRANCH=${{ github.event.pull_request.head.ref }}
+          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=${GITHUB_BRANCH//\//_}
+          elif [[ $GITHUB_BRANCH == 'develop' ]]
+          then
+            TAG=nightly
+          elif [[ $GITHUB_BRANCH == 'main' ]]
+          then
+            TAG=latest
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: Install SSH Keys
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
+      
+      - name: Initiate check
+        uses: guibranco/github-status-action-v2@v1.1.7
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: Launch lite regression test
+          description: launching
+          state: pending
+
+      - name: Connect and Run Regression Test Lite
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 200m
+          script: |
+            cd ${{ secrets.SSH_WORK_DIR }}
+            if [ ! -d slurm_testing ] ; then
+                git clone https://github.com/${{ github.repository_owner }}/slurm_testing slurm_testing
+            else
+                cd slurm_testing
+                git pull origin regression/after_runs
+                cd ..
+            fi
+            mkdir -p ./logs/${SHA}
+            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${SHA}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+
+      - name: Cleanup SSH
+        run: |
+          rm -rf ~/.ssh
