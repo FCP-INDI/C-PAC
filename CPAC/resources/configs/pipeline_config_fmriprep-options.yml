@@ -482,13 +482,13 @@ nuisance_corrections:
     #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
     space: [template]
 
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: On
+
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask:
 
-    # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: On
-    
 timeseries_extraction:
   connectivity_matrix:
 
