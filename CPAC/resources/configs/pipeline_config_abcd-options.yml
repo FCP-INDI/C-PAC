@@ -348,9 +348,6 @@ nuisance_corrections:
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop: 0.6
 
-    # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
-
 timeseries_extraction:
   connectivity_matrix:
 
