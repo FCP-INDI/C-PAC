@@ -415,6 +415,10 @@ latest_schema = Schema({
         'Debugging': {
             'verbose': bool1_1,
         },
+        'outdir_ingress': {
+            'run': bool1_1,
+            'Template': Maybe(str),
+        },
     },
     'anatomical_preproc': {
         'run': bool1_1,
@@ -869,6 +873,12 @@ latest_schema = Schema({
             'space': All(Coerce(ListFromItem),
                          [All(Lower, In({'native', 'template'}))]),
             'create_regressors': bool1_1,
+            'ingress_regressors': {
+                'run': bool1_1,
+                'Regressors': {
+                    'Name': Maybe(str),
+                    'Columns': [str]},
+            },
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {

@@ -280,7 +280,7 @@ nuisance_corrections:
         gm_erosion_prop: 0.6
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
+    create_regressors: On
 
 timeseries_extraction:
   connectivity_matrix:

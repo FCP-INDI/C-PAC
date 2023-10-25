@@ -174,7 +174,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldCSF,
     erode_mask_boldGM,
     erode_mask_boldWM,
-    nuisance_regression_template
+    nuisance_regression_template,
+    ingress_regressors
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -867,7 +868,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks = []
 
     # T1w Anatomical Preprocessing
-    if not rpool.check_rpool('desc-reorient_T1w'):
+    if not rpool.check_rpool('desc-reorient_T1w') and \
+        not rpool.check_rpool('desc-preproc_T1w'):
         anat_init_blocks = [
             anatomical_init
         ]
@@ -1303,9 +1305,19 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, rpool, \
+                                    generate_only)
 
         pipeline_blocks += nuisance
+        
+    pipeline_blocks.append(ingress_regressors)
+    
+    # Check for mutually exclusive options
+    if cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'] and \
+        cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
+        err_msg = "[!] Ingress_regressors and create_regressors can't both run! " \
+                    " Try turning one option off.\n "
+        raise Exception(err_msg)
 
     apply_func_warp = {}
     _r_w_f_r = cfg.registration_workflows['functional_registration']
@@ -1392,8 +1404,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'nuisance_corrections', '2-nuisance_regression', 'space'
     ] and not generate_only
     if nuisance_template:
-        pipeline_blocks += [(nuisance_regression_template,
-                            ("desc-preproc_bold", "desc-stc_bold"))]
+        pipeline_blocks += [nuisance_regression_template]
+        # pipeline_blocks += [(nuisance_regression_template,
+        #                     ("desc-preproc_bold", "desc-stc_bold"))]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
