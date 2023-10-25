@@ -2206,7 +2206,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
             "desc-preproc_bold",
             "desc-brain_bold",
             "space-bold_desc-brain_mask",
-            "movement-parameters",
+            "desc-movementParameters_motion",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
             "dvars",
@@ -2251,7 +2251,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
             "desc-preproc_bold",
             "space-bold_desc-brain_mask",
             "from-bold_to-T1w_mode-image_desc-linear_xfm",
-            "movement-parameters",
+            "desc-movementParameters_motion",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
             "dvars",
@@ -2469,8 +2469,8 @@ def nuisance_regressors_generation(wf: Workflow, cfg: Configuration,
                        regressors,
                        'inputspec.func_to_anat_linear_xfm_file_path')
 
-    if strat_pool.check_rpool('movement-parameters'):
-        node, out = strat_pool.get_data('movement-parameters')
+    if strat_pool.check_rpool('desc-movementParameters_motion'):
+        node, out = strat_pool.get_data('desc-movementParameters_motion')
         wf.connect(node, out,
                    regressors, 'inputspec.motion_parameters_file_path')
 
@@ -2806,7 +2806,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
             "desc-stc_bold",
             "space-template_desc-preproc_bold",
             "space-template_res-derivative_desc-preproc_bold",
-            "movement-parameters",
+            "desc-movementParameters_motion",
             ["desc-confounds_timeseries", "parsed_regressors"],
             "FSL-AFNI-brain-mask",
             "framewise-displacement-jenkinson",
@@ -2841,8 +2841,10 @@ def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Apply nuisance regression to template-space image'''
     wf, outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, opt,
                                       'template')
-    if strat_pool.check_rpool('space-template_res-derivative_desc-preproc_bold'):
-        wf, res_outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num, 
+    if strat_pool.check_rpool(
+        'space-template_res-derivative_desc-preproc_bold'
+    ):
+        wf, res_outputs = nuisance_regression(wf, cfg, strat_pool, pipe_num,
                                               opt, 'template', 'derivative')
         outputs.update(res_outputs)
     return (wf, outputs)

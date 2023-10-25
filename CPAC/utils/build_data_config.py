@@ -502,8 +502,8 @@ def format_incl_excl_dct(incl_list, info_type='participants'):
 
 
 def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
-                      aws_creds_path=None, freesurfer_dir=None, 
-                      brain_mask_template=None,inclusion_dct=None, 
+                      aws_creds_path=None, freesurfer_dir=None,
+                      brain_mask_template=None,inclusion_dct=None,
                       exclusion_dct=None, config_dir=None):
     """Return a data dictionary mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
@@ -1417,8 +1417,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
                      brain_mask_template=None, fmap_phase_template=None,
                      fmap_mag_template=None, fmap_pedir_template=None,
-                     freesurfer_dir=None, aws_creds_path=None, 
-                     inclusion_dct=None, exclusion_dct=None, 
+                     freesurfer_dir=None, aws_creds_path=None,
+                     inclusion_dct=None, exclusion_dct=None,
                      sites_dct=None, verbose=False):
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""

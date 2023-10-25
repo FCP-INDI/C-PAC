@@ -1314,18 +1314,17 @@ def jc(input1, input2):
     return jc
 
 def crosscorr(input1,input2):
+    """
+    cross correlation
+    computer compute cross correction bewteen input mask
+    """
 
-   """
-   cross correlation
-   computer compute cross correction bewteen input mask
-   """
+    input1 = numpy.atleast_1d(input1.astype(bool))
+    input2 = numpy.atleast_1d(input2.astype(bool))
 
-   input1 = numpy.atleast_1d(input1.astype(bool))
-   input2 = numpy.atleast_1d(input2.astype(bool))
-
-   from scipy.stats.stats import pearsonr
-   cc=pearsonr(input1,input2)
-   return cc
+    from scipy.stats.stats import pearsonr
+    cc=pearsonr(input1,input2)
+    return cc
 
 def coverage(input1,input2):
     """

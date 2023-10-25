@@ -1936,11 +1936,12 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
 
-    wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
+    wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool,
+                                                    pipe_num, opt)
 
     outputs = {'space-T1w_desc-tight_acpcbrain_mask':
         wf_outputs['space-T1w_desc-tight_brain_mask']}
-        
+
     return (wf, outputs)
 
 
@@ -2480,7 +2481,7 @@ def brain_mask_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-T2w_desc-brain_mask': (brain_mask_T2, 'outputspec.T2w_mask')
     }
-    
+
     return (wf, outputs)
 
 

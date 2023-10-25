@@ -96,9 +96,9 @@ def affine_from_params(params: np.ndarray) -> np.ndarray:
 
 def load_mats(mat_dir: str) -> np.ndarray:
     """
-    Given a directory of affince matrices as output by MCFLIRT, 
+    Given a directory of affince matrices as output by MCFLIRT,
     return an array of these matrices
-    
+
     Parameters
     ----------
     mat_dir : str
