@@ -60,7 +60,7 @@ from .bandpass import (bandpass_voxels, afni_1dBandpass)
 logger = logging.getLogger('nipype.workflow')
 
 
-def choose_nuisance_blocks(cfg, generate_only=False):
+def choose_nuisance_blocks(cfg, rpool, generate_only=False):
     '''
     Function to handle selecting appropriate blocks based on
     existing config and resource pool
@@ -98,7 +98,7 @@ def choose_nuisance_blocks(cfg, generate_only=False):
                                                  '2-nuisance_regression',
                                                  'space']:
             nuisance.append((nuisance_regression_native, input_interface))
-
+    
     return nuisance
 
 
@@ -224,12 +224,11 @@ def gather_nuisance(functional_file_path,
         functional_image = nb.load(functional_file_path)
     except:
         raise ValueError("Invalid value for input_file ({}). Should be a nifti "
-                         "file and should exist".format(functional_file_path))
+                        "file and should exist".format(functional_file_path))
 
     if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:
         raise ValueError("Invalid input_file ({}). Expected 4D file."
-                         .format(functional_file_path))
-
+                        .format(functional_file_path))
     regressor_length = functional_image.shape[3]
 
     #selector = selector.selector
@@ -960,9 +959,9 @@ def create_regressor_workflow(nuisance_selectors,
 
             if type(regressor_selector['summary']) is not dict:
                 raise ValueError("Regressor {0} requires PC summary method, "
-                                 "but {1} specified"
-                                 .format(regressor_type,
-                                         regressor_selector['summary']))
+                                "but {1} specified"
+                                .format(regressor_type,
+                                        regressor_selector['summary']))
 
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
@@ -979,7 +978,7 @@ def create_regressor_workflow(nuisance_selectors,
             if regressor_type == 'aCompCor':
                 if not regressor_selector.get('tissues'):
                     raise ValueError("Tissue type required for aCompCor, "
-                                     "but none specified")
+                                    "but none specified")
 
                 regressor_descriptor = {
                     'tissue': regressor_selector['tissues']
@@ -988,11 +987,11 @@ def create_regressor_workflow(nuisance_selectors,
             if regressor_type == 'tCompCor':
                 if not regressor_selector.get('threshold'):
                     raise ValueError("Threshold required for tCompCor, "
-                                     "but none specified.")
+                                    "but none specified.")
 
                 regressor_descriptor = {
                     'tissue': 'FunctionalVariance-{}'
-                              .format(regressor_selector['threshold'])
+                            .format(regressor_selector['threshold'])
                 }
 
                 if regressor_selector.get('by_slice'):
@@ -1011,9 +1010,9 @@ def create_regressor_workflow(nuisance_selectors,
                     degree = 1
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
-                                                     by_slice=regressor_selector['by_slice'],
-                                                     erosion=erosion_mm,
-                                                     degree=degree)
+                                                    by_slice=regressor_selector['by_slice'],
+                                                    erosion=erosion_mm,
+                                                    degree=degree)
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
@@ -1062,7 +1061,7 @@ def create_regressor_workflow(nuisance_selectors,
 
             if not regressor_selector.get('summary'):
                 raise ValueError("Summary method required for {0}, "
-                                 "but none specified".format(regressor_type))
+                                "but none specified".format(regressor_type))
 
             regressor_descriptor['extraction'] = \
                 regressor_selector['summary']['method']
@@ -1070,7 +1069,7 @@ def create_regressor_workflow(nuisance_selectors,
             if regressor_descriptor['extraction'] in ['DetrendPC', 'PC']:
                 if not regressor_selector['summary'].get('components'):
                     raise ValueError("Summary method PC requires components, "
-                                     "but received none.")
+                                    "but received none.")
 
                 regressor_descriptor['extraction'] += \
                     '_{0}'.format(regressor_selector['summary']['components'])
@@ -1095,10 +1094,10 @@ def create_regressor_workflow(nuisance_selectors,
                     anat_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(anatomical_at_resolution_key),
+                            .format(anatomical_at_resolution_key),
                         mem_gb=3.63,
                         mem_x=(3767129957844731 / 1208925819614629174706176,
-                               'in_file')
+                            'in_file')
                     )
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
@@ -1120,10 +1119,10 @@ def create_regressor_workflow(nuisance_selectors,
                     func_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(functional_at_resolution_key),
+                            .format(functional_at_resolution_key),
                         mem_gb=0.521,
                         mem_x=(4394984950818853 / 302231454903657293676544,
-                               'in_file')
+                            'in_file')
                     )
                     func_resample.inputs.apply_xfm = True
 
@@ -1160,7 +1159,7 @@ def create_regressor_workflow(nuisance_selectors,
 
                 # Generate resource masks
                 (pipeline_resource_pool,
-                 regressor_mask_file_resource_key) = \
+                regressor_mask_file_resource_key) = \
                     generate_summarize_tissue_mask(
                         nuisance_wf,
                         pipeline_resource_pool,
@@ -1212,7 +1211,7 @@ def create_regressor_workflow(nuisance_selectors,
                     name='{}_union_masks'.format(regressor_type),
                     mem_gb=2.1,
                     mem_x=(1708448960473801 / 1208925819614629174706176,
-                           'in_files')
+                        'in_files')
                 )
 
                 nuisance_wf.connect(
@@ -1237,23 +1236,23 @@ def create_regressor_workflow(nuisance_selectors,
                 if 'DetrendPC' in summary_method:
 
                     compcor_imports = ['import os',
-                                       'import scipy.signal as signal',
-                                       'import nibabel as nb',
-                                       'import numpy as np',
-                                       'from CPAC.utils import safe_shape']
+                                    'import scipy.signal as signal',
+                                    'import nibabel as nb',
+                                    'import numpy as np',
+                                    'from CPAC.utils import safe_shape']
 
                     compcor_node = pe.Node(Function(input_names=['data_filename',
-                                                                 'num_components',
-                                                                 'mask_filename'],
+                                                                'num_components',
+                                                                'mask_filename'],
                                                     output_names=[
                                                         'compcor_file'],
                                                     function=calc_compcor_components,
                                                     imports=compcor_imports),
-                                           name='{}_DetrendPC'.format(regressor_type),
-                                           mem_gb=0.4,
-                                           mem_x=(3811976743057169 /
-                                                  151115727451828646838272,
-                                                  'data_filename'))
+                                        name='{}_DetrendPC'.format(regressor_type),
+                                        mem_gb=0.4,
+                                        mem_x=(3811976743057169 /
+                                                151115727451828646838272,
+                                                'data_filename'))
 
                     compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
@@ -1272,16 +1271,16 @@ def create_regressor_workflow(nuisance_selectors,
                 else:
                     if 'cosine' in summary_filter:
                         cosfilter_imports = ['import os',
-                                             'import numpy as np',
-                                             'import nibabel as nb',
-                                             'from nipype import logging']
+                                            'import numpy as np',
+                                            'import nibabel as nb',
+                                            'from nipype import logging']
 
                         cosfilter_node = pe.Node(
                             util.Function(input_names=['input_image_path',
-                                                       'timestep'],
-                                          output_names=['cosfiltered_img'],
-                                          function=cosine_filter,
-                                          imports=cosfilter_imports),
+                                                    'timestep'],
+                                        output_names=['cosfiltered_img'],
+                                        function=cosine_filter,
+                                        imports=cosfilter_imports),
                             name='{}_cosine_filter'.format(regressor_type),
                             mem_gb=8.0)
                         nuisance_wf.connect(
@@ -1289,10 +1288,10 @@ def create_regressor_workflow(nuisance_selectors,
                             cosfilter_node, 'input_image_path'
                         )
                         tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
-                                                                     output_names=[
-                                                                         'tr_float'],
-                                                                     function=TR_string_to_float),
-                                                       name='{}_tr_string2float'.format(regressor_type))
+                                                                    output_names=[
+                                                                        'tr_float'],
+                                                                    function=TR_string_to_float),
+                                                    name='{}_tr_string2float'.format(regressor_type))
 
                         nuisance_wf.connect(
                             inputspec, 'tr',
@@ -1341,8 +1340,8 @@ def create_regressor_workflow(nuisance_selectors,
                             name='{}_norm'.format(regressor_type),
                             mem_gb=1.7,
                             mem_x=(1233286593342025 /
-                                   151115727451828646838272,
-                                   'in_file_a')
+                                151115727451828646838272,
+                                'in_file_a')
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1515,7 +1514,6 @@ def create_regressor_workflow(nuisance_selectors,
         ('censor_indices', 'censor_indices')])])
 
     return nuisance_wf
-
 
 def create_nuisance_regression_workflow(nuisance_selectors,
                                         name='nuisance_regression'):
@@ -2234,16 +2232,16 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
         "lateral-ventricles-mask",
         "TR",
     ],
-    outputs=["regressors", "censor-indices"],
+    outputs=["desc-confounds_timeseries", "censor-indices"],
 )
+
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
                                                opt=None):
     return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt,
                                           'bold')
 
-
 @nodeblock(
-    name="nuisance_regressors_generation",
+    name="nuisance_regressors_generation_T1w",
     config=["nuisance_corrections", "2-nuisance_regression"],
     switch=["create_regressors"],
     option_key="Regressors",
@@ -2280,7 +2278,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num,
         "lateral-ventricles-mask",
         "TR",
     ],
-    outputs=["regressors", "censor-indices"],
+    outputs=["desc-confounds_timeseries", "censor-indices"],
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None
                                        ):
@@ -2492,7 +2490,7 @@ def nuisance_regressors_generation(wf: Workflow, cfg: Configuration,
     wf.connect(node, out, regressors, 'inputspec.tr')
 
     outputs = {
-        'regressors': (regressors, 'outputspec.regressors_file_path'),
+        'desc-confounds_timeseries': (regressors, 'outputspec.regressors_file_path'),
         'censor-indices': (regressors, 'outputspec.censor_indices')
     }
 
@@ -2516,9 +2514,18 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     outputs : dict
     '''
-    regressor_prov = strat_pool.get_cpac_provenance('regressors')
-    regressor_strat_name = regressor_prov[-1].split('_')[-1]
-
+    ingress = strat_pool.check_rpool('parsed_regressors')
+    if not ingress:
+        try:
+            regressor_prov = strat_pool.get_cpac_provenance('desc-confounds_timeseries')
+            regressor_strat_name = regressor_prov[-1].split('_')[-1]
+        except KeyError:
+            raise Exception("[!] No regressors in resource pool. \n\n Try turning " \
+                            "on create_regressors or ingress_regressors.")
+    else:
+        # name regressor workflow without regressor_prov
+        regressor_strat_name = cfg.nuisance_corrections['2-nuisance_regression'][
+                'ingress_regressors']['Regressors']['Name']
     for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
             'Regressors']:
         if regressor_dct['Name'] == regressor_strat_name:
@@ -2574,7 +2581,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                        nofilter_nuis,
                        'inputspec.functional_brain_mask_file_path')
 
-    node, out = strat_pool.get_data('regressors')
+    node, out = strat_pool.get_data(['desc-confounds_timeseries', 'parsed_regressors'])
     wf.connect(node, out, nuis, 'inputspec.regressor_file')
     if bandpass_before:
         wf.connect(node, out, nofilter_nuis, 'inputspec.regressor_file')
@@ -2602,7 +2609,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                                              f'regressors_{name_suff}')
         filt.inputs.inputspec.nuisance_selectors = opt
 
-        node, out = strat_pool.get_data('regressors')
+        node, out = strat_pool.get_data(['desc-confounds_timeseries', 'parsed_regressors'])
         wf.connect(node, out, filt, 'inputspec.regressors_file_path')
 
         if space == 'template':
@@ -2629,7 +2636,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                 desc_keys[0]: (filt, 'outputspec.residual_file_path'),
                 desc_keys[1]: (filt, 'outputspec.residual_file_path'),
                 desc_keys[2]: (nuis, 'outputspec.residual_file_path'),
-                'regressors': (filt, 'outputspec.residual_regressor')
+                'desc-confounds_timeseries': (filt, 'outputspec.residual_regressor')
             }
 
         elif bandpass_before:
@@ -2647,7 +2654,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
                 desc_keys[0]: (nuis, 'outputspec.residual_file_path'),
                 desc_keys[1]: (nuis, 'outputspec.residual_file_path'),
                 desc_keys[2]: (nofilter_nuis, 'outputspec.residual_file_path'),
-                'regressors': (filt, 'outputspec.residual_regressor')}
+                'desc-confounds_timeseries': (filt, 'outputspec.residual_regressor')}
 
     else:
         node, out = strat_pool.get_data(desc_keys[0])
@@ -2658,6 +2665,100 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     return (wf, outputs)
 
+@nodeblock(
+    name="ingress_regressors",
+    switch=[["nuisance_corrections", "2-nuisance_regression", "run"],
+            ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors", "run"]],
+    inputs=["pipeline-ingress_desc-confounds_timeseries"],
+    outputs=["parsed_regressors"]
+)
+def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
+
+    regressors_list = cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'][
+        'Regressors']['Columns']
+    
+    # Will need to generalize the name
+    node, out = strat_pool.get_data('pipeline-ingress_desc-confounds_timeseries')
+    if not regressors_list:
+        logger.warning("\n[!] Ingress regressors is on, but no regressors provided. "  
+                                            "The whole regressors file will be applied, but it may be" 
+                                            "too large for the timeseries data!")
+        outputs = {
+            'parsed_regressors': (node, out)
+        }
+    else:
+        ingress_imports = ['import numpy as np',
+                   'import numpy as np', 'import os',
+                   'import CPAC', 'from nipype import logging',
+                   'logger = logging.getLogger("nipype.workflow")']
+        ingress_regressors = pe.Node(Function(
+                input_names=['regressors_file',
+                            'regressors_list'],
+                output_names=['parsed_regressors'],
+                function=parse_regressors,
+                imports=ingress_imports
+            ), name="parse_regressors_file")
+
+        wf.connect(node, out, ingress_regressors, 'regressors_file')
+        ingress_regressors.inputs.regressors_list = regressors_list
+
+        outputs = {
+            'parsed_regressors': (ingress_regressors, 'parsed_regressors')
+        }
+    
+    return wf, outputs
+
+def parse_regressors(regressors_file, regressors_list):
+
+    """
+    
+    Parses regressors file from outdir ingress.
+    
+    Parameters
+    ----------
+    confounds / regressors file : string
+        Path of regressors / confounds file.
+    regressors list : list, can be empty
+        List containing names of regressors to select
+
+        
+    Returns
+    -------
+    parsed_regressors: dataframe
+        Regressors 
+    
+    """
+    import pandas as pd
+
+    with open(regressors_file, 'r') as f:
+        full_file = pd.read_table(regressors_file)
+        parsed_regressors = pd.DataFrame()
+        header = []
+        for regressor in regressors_list:
+            # Look through first 3 rows in case the header is nonstandard
+            if regressor in full_file.iloc[:3]:
+                header.append(regressor)
+                parsed_regressors[regressor] = full_file.loc[:,regressor]
+            else:
+                logger.warning(f"\n[!] Regressor {regressor} not found in {regressors_file}")
+    if parsed_regressors.empty:
+        raise Exception(f"Regressors not found in {regressors_file}")
+
+    regressors_path = os.path.join(os.getcwd(), "parsed_regressors.1D")
+    parsed_regressors = parsed_regressors.to_numpy()
+    check_vals = np.any(np.isnan(parsed_regressors))
+    if check_vals:
+        raise Exception('\n[!] This regressors file contains "N/A" values.\n' 
+                            '[!] Please choose a different dataset or ' 
+                                        'remove regressors with those values.')
+    with open(regressors_path, "w") as ofd:
+
+        # write out the header information
+        ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
+        ofd.write("# Ingressed nuisance regressors:\n")
+        np.savetxt(ofd, parsed_regressors, fmt='%.18f', delimiter='\t')
+
+    return regressors_path
 
 @nodeblock(
     name="nuisance_regression_native",
@@ -2668,7 +2769,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
     inputs=[
         (
             "desc-preproc_bold",
-            "regressors",
+            ["desc-confounds_timeseries", "parsed_regressors"],
             "space-bold_desc-brain_mask",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
@@ -2686,11 +2787,11 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         "desc-denoisedNofilt_bold": {
             "Description": "Preprocessed BOLD image that was nuisance-regressed in native space, but without frequency filtering."
         },
-        "regressors": {"Description": "Regressors that were applied in native space"},
+        "desc-confounds_timeseries": {"Description": "Regressors that were applied in native space"},
     },
 )
 def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Apply nuisance regression to native-space image'''
+
     return nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, 'native')
 
 
@@ -2706,7 +2807,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
             "space-template_desc-preproc_bold",
             "space-template_res-derivative_desc-preproc_bold",
             "desc-movementParameters_motion",
-            "regressors",
+            ["desc-confounds_timeseries", "parsed_regressors"],
             "FSL-AFNI-brain-mask",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
@@ -2733,7 +2834,7 @@ def nuisance_regression_native(wf, cfg, strat_pool, pipe_num, opt=None):
         "space-template_res-derivative_desc-denoisedNofilt_bold": {
             "Description": "Preprocessed BOLD image that was nuisance-regressed in template space, but without frequency filtering."
         },
-        "regressors": {"Description": "Regressors that were applied in template space"},
+        "desc-confounds_timeseries": {"Description": "Regressors that were applied in template space"},
     },
 )
 def nuisance_regression_template(wf, cfg, strat_pool, pipe_num, opt=None):

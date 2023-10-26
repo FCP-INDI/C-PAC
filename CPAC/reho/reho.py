@@ -150,12 +150,15 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
     config=["regional_homogeneity"],
     switch=["run"],
     inputs=[
-        "space-template_res-derivative_desc-preproc_bold",
-        "space-template_res-derivative_desc-bold_mask",
+        ["space-template_res-derivative_desc-preproc_bold",
+          "space-template_desc-preproc_bold"],
+        ["space-template_res-derivative_desc-bold_mask",
+          "space-template_desc-brain_mask"],
     ],
     outputs=["space-template_reho"],
 )
 def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
+  
     cluster_size = cfg.regional_homogeneity['cluster_size']
 
     # Check the cluster size is supported
@@ -168,11 +171,12 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     reho = create_reho(f'reho_{pipe_num}')
     reho.inputs.inputspec.cluster_size = cluster_size
 
-    node, out = strat_pool.get_data("space-template_res-derivative_desc-preproc_bold")
+    node, out = strat_pool.get_data(["space-template_res-derivative_desc-preproc_bold",
+                                    "space-template_desc-preproc_bold"])
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
-    node, out_file = strat_pool.get_data(
-        'space-template_res-derivative_desc-bold_mask')
+    node, out_file = strat_pool.get_data(['space-template_res-derivative_desc-bold_mask',
+                                          'space-template_desc-brain_mask'])
     wf.connect(node, out_file, reho, 'inputspec.rest_mask')
 
     outputs = {

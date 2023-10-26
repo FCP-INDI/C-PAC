@@ -111,18 +111,28 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
         
         else:
             with open(regressor_file, 'r') as f:
-                header = [f.readline() for x in range(0,3)]
+                header = []
 
-            regressor = np.loadtxt(regressor_file)
+                # header wouldn't be longer than 5, right? I don't want to 
+                # loop over the whole file
+                for i in range(5):
+                    line = f.readline()
+                    if line.startswith('#') or isinstance(line[0], str):
+                        header.append(line)
+            
+            # usecols=[list]
+            regressor = np.loadtxt(regressor_file, skiprows=len(header))
             Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
             Y_bp = np.zeros_like(Yc)
-            for j in range(regressor.shape[1]):
+
+            # Modify to allow just 1 regressor column
+            shape = regressor.shape[0] if len(regressor.shape) < 1 else regressor.shape[1]
+            for j in range(shape):
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
                                             bandpass_freqs)
 
             regressor_bandpassed_file = os.path.join(os.getcwd(),
                                     'regressor_bandpassed_demeaned_filtered.1D')
-
             with open(regressor_bandpassed_file, "w") as ofd:
                 # write out the header information
                 for line in header:
@@ -131,7 +141,6 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 nuisance_regressors = np.array(Y_bp)
                 np.savetxt(ofd, nuisance_regressors, fmt='%.18f',
                         delimiter='\t')
-
     return bandpassed_file, regressor_bandpassed_file
 
 

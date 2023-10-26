@@ -751,8 +751,11 @@ def run_main():
             for sublogdir in sublogdirs[1:]:
                 for config_file in (data_config_file, pipeline_config_file,
                                     minimized_config):
-                    os.link(config_file, config_file.replace(
-                        sublogdirs[0], sublogdir))
+                    try:
+                        os.link(config_file, config_file.replace(
+                                sublogdirs[0], sublogdir))
+                    except FileExistsError:
+                        pass
 
         if args.analysis_level in ["participant", "test_config"]:
             # build pipeline easy way

@@ -184,7 +184,6 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
         part_id = f'sub-{part_id}'
     if 'ses-' not in ses_id:
         ses_id = f'ses-{ses_id}'
-
     if scan_id:
         out_filename = f'{part_id}_{ses_id}_task-{scan_id}_{resource}'
     else:
@@ -211,7 +210,6 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
         out_filename = out_filename.replace('_space-T1w_', '_')
     if subdir == 'func':
         out_filename = out_filename.replace('_space-bold_', '_')
-
     return combine_multiple_entity_instances(
         res_in_filename(cfg, out_filename))
 
@@ -695,7 +693,6 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
 
         if value is not None:
             return value
-
     return None
 
 
@@ -733,7 +730,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     pe_direction : str
     effective_echo_spacing : float
     """
-
+    
     import os
     import json
     import warnings
@@ -755,7 +752,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
             pipeconfig_stop_indx = None
-
     if data_config_scan_params:
         if ".json" in data_config_scan_params:
             if not os.path.exists(data_config_scan_params):
@@ -799,14 +795,29 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
             # get details from the configuration
-            TR = float(
-                try_fetch_parameter(
-                    params_dct,
-                    subject_id,
-                    scan,
-                    ['TR', 'RepetitionTime']
+            try: 
+                TR = float(
+                    try_fetch_parameter(
+                        params_dct,
+                        subject_id,
+                        scan,
+                        ['TR', 'RepetitionTime']
+                    )
                 )
-            )
+            except TypeError:
+                TR = None
+
+            try: 
+                template = str(
+                    try_fetch_parameter(
+                        params_dct,
+                        subject_id,
+                        scan,
+                        ['Template', 'template']
+                    )
+                )
+            except TypeError:
+                template = None
 
             pattern = str(
                 try_fetch_parameter(
@@ -844,7 +855,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                   "information included in the data configuration file for " \
                   f"the participant {subject_id}.\n\n"
             raise Exception(err)
-
     if first_tr == '' or first_tr is None:
         first_tr = pipeconfig_start_indx
 
@@ -871,7 +881,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
     valid_patterns = ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
                       'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']
-
     if pattern and pattern != '' and pattern not in valid_patterns:
 
         if isinstance(pattern, list) or \
@@ -953,6 +962,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
     return (tr if tr else None,
             tpattern if tpattern else None,
+            template if template else None,
             ref_slice,
             start_indx,
             stop_indx,
@@ -1002,7 +1012,7 @@ def check_tr(tr, in_file):
                       'the config and subject list files.')
 
     return TR
-
+        
 
 def add_afni_prefix(tpattern):
     if ".txt" in tpattern:

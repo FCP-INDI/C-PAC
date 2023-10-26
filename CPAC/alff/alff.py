@@ -287,8 +287,12 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
             [
                 "space-template_res-derivative_desc-denoisedNofilt_bold",
                 "space-template_res-derivative_desc-preproc_bold",
+                "space-template_desc-preproc_bold"
             ],
-            "space-template_res-derivative_desc-bold_mask",
+            [
+                "space-template_res-derivative_desc-bold_mask",
+                "space-template_desc-bold_mask"
+            ],
         )
     ],
     outputs=["space-template_alff", "space-template_falff"],
@@ -303,14 +307,13 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg.amplitude_low_frequency_fluctuation['lowpass_cutoff']
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
-
     node, out = strat_pool.get_data(["space-template_res-derivative_desc-denoisedNofilt_bold",
-                                     "space-template_res-derivative_desc-preproc_bold"])
+                                     "space-template_res-derivative_desc-preproc_bold",
+                                     "space-template_desc-preproc_bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
-
-    node, out = strat_pool.get_data("space-template_res-derivative_desc-bold_mask")
+    node, out = strat_pool.get_data(["space-template_res-derivative_desc-bold_mask",
+                                     "space-template_desc-bold_mask"])
     wf.connect(node, out, alff, 'inputspec.rest_mask')
-
     outputs = {
         'space-template_alff': (alff, 'outputspec.alff_img'),
         'space-template_falff': (alff, 'outputspec.falff_img')

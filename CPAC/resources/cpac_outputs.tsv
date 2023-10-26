@@ -121,7 +121,7 @@ desc-boldSnrSagittal_quality	qc		func	png
 desc-boldSnrHist_quality	qc		func	png					
 desc-boldSnr_quality	qc		func	png					
 space-template_desc-xcp_quality	qc		func	tsv					
-regressors	regressors		func	1D					
+desc-confounds_timeseries	regressors		func	1D					
 desc-sm_reho	reho	functional	func	NIfTI		Yes			
 desc-sm-zstd_reho	reho	functional	func	NIfTI					
 desc-zstd_reho	reho	functional	func	NIfTI					
@@ -217,3 +217,4 @@ space-EPItemplate_label-WM_mask	mask	template	func	NIfTI
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
+dseg			anat
