@@ -1155,6 +1155,17 @@ def schema(config_dict):
                     path=[*mec_path, 'motion_correction', 'using'])
     except KeyError:
         pass
+    try:
+        # Check for mutually exclusive options
+        if (partially_validated['nuisance_corrections'][
+            '2-nuisance_regression']['ingress_regressors']['run'] and
+            partially_validated['nuisance_corrections'][
+                '2-nuisance_regression']['create_regressors']):
+            raise ExclusiveInvalid(
+                "[!] Ingress_regressors and create_regressors can't both run! "
+                " Try turning one option off.\n ")
+    except KeyError:
+        pass
     return partially_validated
 
 
