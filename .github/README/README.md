@@ -7,6 +7,9 @@ C-PAC is free software: you can redistribute it and/or modify it under the terms
 C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>. -->
+
+<!-- Don't rename to '.github/README.md' or it will override the root readme. -->
+
 # C-PAC/.github/README/README.md
 
 The `.github` directory contains Dockerfiles, scripts, requirements files, and workflow configurations for [this repository's GitHub Actions](https://github.com/FCP-INDI/C-PAC/actions).
