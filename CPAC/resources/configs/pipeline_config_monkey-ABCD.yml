@@ -300,7 +300,9 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
       using: [mcflirt]
 
       # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
@@ -349,7 +351,7 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: Regressor-1
+      - Name: Regressor_1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -369,7 +371,7 @@ nuisance_corrections:
           summary:
             components: 5
             method: PC
-      - Name: Regressor-2
+      - Name: Regressor_2
         CerebrospinalFluid:
           summary:
             components: 5

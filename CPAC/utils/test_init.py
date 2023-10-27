@@ -2,13 +2,44 @@
 #
 # Contributing authors (please append):
 # Daniel Clark
-
+# Jon Clucas
 '''
 This module contains functions that assist in initializing CPAC
 tests resources
 '''
+from typing import Optional
+
+from nipype.interfaces.utility import IdentityInterface
+
+from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.utils.typing import LIST
+
+
+def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
+    """
+    Create a dummy IdentityInterface Node source for resources upstream
+    in a graph from a section to be tested
+
+    Parameters
+    ----------
+    name : str
+        a name for the dummy Node
+
+    fields : list of str, optional
+        a list of resources to be present in the created Node. If not
+        provided, the only resource will be called 'resource'
+
+    Returns
+    -------
+    Node
+    """
+    if fields is None:
+        fields = ['resource']
+    return Node(IdentityInterface(fields=fields), name=name)
+
+
 # Return tests data config file
-def populate_template_config(config_type):
+def populate_template_config(config_type: str) -> str:
     '''
     Function to read in a template config file from the
     CPAC_RESOURCE_DIR and populate it with actual filepaths

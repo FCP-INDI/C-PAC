@@ -2332,7 +2332,7 @@ def nuisance_regressors_generation(wf: Workflow, cfg: Configuration,
                          'motion_estimates_and_correction',
                          'motion_estimate_filter', 'run']):
         wf_name = (f'nuisance_regressors_{opt["Name"]}_filt-'
-                    f'{strat_pool.filter_name}_{pipe_num}')
+                    f'{strat_pool.filter_name(cfg)}_{pipe_num}')
     else:
         wf_name = f'nuisance_regressors_{opt["Name"]}_{pipe_num}'
 

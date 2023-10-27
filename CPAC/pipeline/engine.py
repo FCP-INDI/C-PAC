@@ -110,6 +110,17 @@ class ResourcePool:
                     'reho', 'desc-sm_reho', 'desc-zstd_reho',
                     'desc-sm-zstd_reho']
 
+    def __repr__(self) -> str:
+        params = [f"{param}={getattr(self, param)}" for param in
+                  ["rpool", "name", "cfg", "pipe_list"] if
+                  getattr(self, param, None) is not None]
+        return f'ResourcePool({", ".join(params)})'
+
+    def __str__(self) -> str:
+        if self.name:
+            return f'ResourcePool({self.name}): {list(self.rpool)}'
+        return f'ResourcePool: {list(self.rpool)}'
+
     def append_name(self, name):
         self.name.append(name)
 
@@ -187,8 +198,9 @@ class ResourcePool:
                             cfg=self.cfg,
                             pipe_list=copy.deepcopy(self.pipe_list))
 
-    def get_raw_label(self, resource):
-        # remove desc-* label
+    @staticmethod
+    def get_raw_label(resource: str) -> str:
+        """Removes ``desc-*`` label"""
         for tag in resource.split('_'):
             if 'desc-' in tag:
                 resource = resource.replace(f'{tag}_', '')
@@ -227,7 +239,8 @@ class ResourcePool:
                 return val['json'][key]
         return self.rpool[resource][pipe_idx][key]
 
-    def get_resource_from_prov(self, prov):
+    @staticmethod
+    def get_resource_from_prov(prov):
         # each resource (i.e. "desc-cleaned_bold" AKA nuisance-regressed BOLD
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
@@ -315,12 +328,6 @@ class ResourcePool:
                     if report_fetched:
                         return (self.rpool[label], label)
                     return self.rpool[label]
-            else:
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:
@@ -382,7 +389,7 @@ class ResourcePool:
         else:
             raise Exception('\n[!] Developer info: the JSON '
                             f'information for {resource} and {strat} '
-                            f'is  incomplete.\n')
+                            f'is incomplete.\n')
         return strat_json
 
     def get_cpac_provenance(self, resource, strat=None):
@@ -397,7 +404,8 @@ class ResourcePool:
         json_data = self.get_json(resource, strat)
         return json_data['CpacProvenance']
 
-    def generate_prov_string(self, prov):
+    @staticmethod
+    def generate_prov_string(prov):
         # this will generate a string from a SINGLE RESOURCE'S dictionary of
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
         #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
@@ -408,13 +416,15 @@ class ResourcePool:
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
 
-    def generate_prov_list(self, prov_str):
+    @staticmethod
+    def generate_prov_list(prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
                             f'entry for {str(prov_str)} has to be a string.\n')
         return ast.literal_eval(prov_str)
 
-    def get_resource_strats_from_prov(self, prov):
+    @staticmethod
+    def get_resource_strats_from_prov(prov):
         # if you provide the provenance of a resource pool output, this will
         # return a dictionary of all the preceding resource pool entries that
         # led to that one specific output:
@@ -756,8 +766,7 @@ class ResourcePool:
             # not a strat_pool or no movement parameters in strat_pool
             return False
 
-    @property
-    def filter_name(self) -> str:
+    def filter_name(self, cfg) -> str:
         """
         In a strat_pool with filtered movement parameters, return the
         name of the filter for this strategy
@@ -766,9 +775,17 @@ class ResourcePool:
         -------
         str
         """
-        key = 'desc-movementParameters_motion'
+        motion_filters = cfg['functional_preproc',
+                             'motion_estimates_and_correction',
+                             'motion_estimate_filter', 'filters']
+        if len(motion_filters) == 1 and cfg.switch_is_on([
+            'functional_preproc', 'motion_estimates_and_correction',
+            'motion_estimate_filter', 'run'], exclusive=True
+        ):
+            return motion_filters[0]['Name']
         try:
-            sidecar = self.get_json(key)
+            key = 'motion'
+            sidecar = self.get_json('desc-movementParameters_motion')
         except KeyError:
             sidecar = None
         if sidecar is not None and 'CpacVariant' in sidecar:
