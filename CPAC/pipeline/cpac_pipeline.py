@@ -1309,15 +1309,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                                     generate_only)
 
         pipeline_blocks += nuisance
-        
+
     pipeline_blocks.append(ingress_regressors)
-    
-    # Check for mutually exclusive options
-    if cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'] and \
-        cfg.nuisance_corrections['2-nuisance_regression']['create_regressors']:
-        err_msg = "[!] Ingress_regressors and create_regressors can't both run! " \
-                    " Try turning one option off.\n "
-        raise Exception(err_msg)
 
     apply_func_warp = {}
     _r_w_f_r = cfg.registration_workflows['functional_registration']
