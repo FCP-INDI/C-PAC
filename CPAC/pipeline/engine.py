@@ -252,6 +252,35 @@ class ResourcePool:
         elif isinstance(prov[-1], str):
             return prov[-1].split(':')[0]
 
+    def regressor_dct(self, cfg) -> dict:
+        """Returns the regressor dictionary for the current strategy if
+        one exists. Raises KeyError otherwise."""
+        # pylint: disable=attribute-defined-outside-init
+        if hasattr(self, '_regressor_dct'):  # memoized
+            # pylint: disable=access-member-before-definition
+            return self._regressor_dct
+        key_error = KeyError("[!] No regressors in resource pool. \n\n"
+                             "Try turning on create_regressors or "
+                             "ingress_regressors.")
+        _nr = cfg['nuisance_corrections', '2-nuisance_regression']
+        if not hasattr(self, 'regressors'):
+            self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+        if self.check_rpool('parsed_regressors'):  # ingressed regressor
+            # name regressor workflow without regressor_prov
+            strat_name = _nr['ingress_regressors']['Regressors']['Name']
+            if strat_name in self.regressors:
+                self._regressor_dct = self.regressors[strat_name]
+                return self._regressor_dct
+            raise key_error
+        prov = self.get_cpac_provenance('desc-confounds_timeseries')
+        strat_name_components = prov[-1].split('_')
+        for _ in list(range(prov[-1].count('_'))):
+            reg_name = '_'.join(strat_name_components[-_:])
+            if reg_name in self.regressors:
+                self._regressor_dct = self.regressors[reg_name]
+                return self._regressor_dct
+        raise key_error
+
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
         json_info = json_info.copy()
@@ -328,6 +357,11 @@ class ResourcePool:
                     if report_fetched:
                         return (self.rpool[label], label)
                     return self.rpool[label]
+            if optional:
+                if report_fetched:
+                    return (None, None)
+                return None
+            raise LookupError(info_msg)
         else:
             if resource not in self.rpool.keys():
                 if optional:

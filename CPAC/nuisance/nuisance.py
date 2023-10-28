@@ -2514,24 +2514,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     outputs : dict
     '''
-    ingress = strat_pool.check_rpool('parsed_regressors')
-    if not ingress:
-        try:
-            regressor_prov = strat_pool.get_cpac_provenance('desc-confounds_timeseries')
-            regressor_strat_name = regressor_prov[-1].split('_')[-1]
-        except KeyError:
-            raise Exception("[!] No regressors in resource pool. \n\n Try turning " \
-                            "on create_regressors or ingress_regressors.")
-    else:
-        # name regressor workflow without regressor_prov
-        regressor_strat_name = cfg.nuisance_corrections['2-nuisance_regression'][
-                'ingress_regressors']['Regressors']['Name']
-    for regressor_dct in cfg['nuisance_corrections']['2-nuisance_regression'][
-            'Regressors']:
-        if regressor_dct['Name'] == regressor_strat_name:
-            opt = regressor_dct
-            break
-
+    opt = strat_pool.regressor_dct(cfg)
     bandpass = 'Bandpass' in opt
     bandpass_before = bandpass and cfg['nuisance_corrections',
                                        '2-nuisance_regression',
