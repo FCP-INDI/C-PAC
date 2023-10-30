@@ -50,7 +50,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
-from CPAC.utils.typing import TUPLE
+from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
 
@@ -332,59 +332,42 @@ class ResourcePool:
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    @staticmethod
-    def _resource_found(resource: Any, label: str, report_fetched: bool
-                        ) -> Union[TUPLE[Any, str], Any]:
-        """Return the resource (and the label if ``report_fetched``)"""
-        if report_fetched:
-            return resource, label
-        return resource
-
-    @staticmethod
-    def _resource_not_found(optional: bool, report_fetched: bool,
-                            info_msg: str) -> Union[TUPLE[None, None], None]:
-        """If a resource is not found, raise a LookupError if not optional.
-        Otherwise, return None for the value and a second None if
-        report_fetched"""
+    def get(self, resource: LIST_OR_STR, pipe_idx: Optional[str] = None,
+            report_fetched: Optional[bool] = False,
+            optional: Optional[bool] = False) -> Union[
+                TUPLE[Optional[dict], Optional[str]], Optional[dict]]:
+        # NOTE!!!
+        #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
+        #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        if not isinstance(resource, list):
+            resource = [resource]
+        # if a list of potential inputs are given, pick the first one
+        # found
+        for label in resource:
+            if label in self.rpool.keys():
+                _found = self.rpool[label]
+                if pipe_idx:
+                    _found = _found[pipe_idx]
+                if report_fetched:
+                    return _found, label
+                return _found
         if optional:
             if report_fetched:
                 return (None, None)
             return None
-        raise LookupError(info_msg)
-
-    def get(self, resource: str, pipe_idx: Optional[str] = None,
-            report_fetched: Optional[bool] = False,
-            optional: Optional[bool] = False) -> Union[TUPLE[Any, str], Any]:
-        # NOTE!!!
-        #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
-        #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
-        
-        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
-                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
-                   "can enable a node block earlier in the pipeline which " \
-                   "produces these resources. Check the 'outputs:' field in " \
-                   "a node block's documentation.\n- You can directly " \
-                   "provide this required data by pulling it from another " \
-                   "BIDS directory using 'source_outputs_dir:' in the " \
-                   "pipeline configuration, or by placing it directly in " \
-                   "your C-PAC output directory.\n- If you have done these, " \
-                   "and you still get this message, please let us know " \
-                   "through any of our support channels at: " \
-                   "https://fcp-indi.github.io/\n"
-        
-        if isinstance(resource, list):
-            # if a list of potential inputs are given, pick the first one
-            # found
-            for label in resource:
-                if label in self.rpool.keys():
-                    return self._resource_found(
-                        self.rpool[label], label, report_fetched)
-        if resource not in self.rpool.keys():
-            return self._resource_not_found(optional, report_fetched, info_msg)
-        _found = self.rpool[resource]
-        if pipe_idx:
-            _found = self.rpool[resource][pipe_idx]
-        return self._resource_found(_found, resource, report_fetched)
+        raise LookupError(
+            "\n\n[!] C-PAC says: None of the listed resources are in "
+            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
+            "can enable a node block earlier in the pipeline which "
+            "produces these resources. Check the 'outputs:' field in "
+            "a node block's documentation.\n- You can directly "
+            "provide this required data by pulling it from another "
+            "BIDS directory using 'source_outputs_dir:' in the "
+            "pipeline configuration, or by placing it directly in "
+            "your C-PAC output directory.\n- If you have done these, "
+            "and you still get this message, please let us know "
+            "through any of our support channels at: "
+            "https://fcp-indi.github.io/\n")
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
