@@ -22,6 +22,7 @@ from itertools import chain
 import logging
 import os
 import re
+from typing import Any, Optional, Union
 import warnings
 
 from CPAC.pipeline import \
@@ -49,6 +50,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
+from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
 
@@ -328,10 +330,31 @@ class ResourcePool:
             self.pipe_list.append(new_pipe_idx)
 
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info 
+        self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    def get(self, resource, pipe_idx=None, report_fetched=False,
-            optional=False):
+    @staticmethod
+    def _resource_found(resource: Any, label: str, report_fetched: bool
+                        ) -> Union[TUPLE[Any, str], Any]:
+        """Return the resource (and the label if ``report_fetched``)"""
+        if report_fetched:
+            return resource, label
+        return resource
+
+    @staticmethod
+    def _resource_not_found(optional: bool, report_fetched: bool,
+                            info_msg: str) -> Union[TUPLE[None, None], None]:
+        """If a resource is not found, raise a LookupError if not optional.
+        Otherwise, return None for the value and a second None if
+        report_fetched"""
+        if optional:
+            if report_fetched:
+                return (None, None)
+            return None
+        raise LookupError(info_msg)
+
+    def get(self, resource: str, pipe_idx: Optional[str] = None,
+            report_fetched: Optional[bool] = False,
+            optional: Optional[bool] = False) -> Union[TUPLE[Any, str], Any]:
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
@@ -354,28 +377,14 @@ class ResourcePool:
             # found
             for label in resource:
                 if label in self.rpool.keys():
-                    if report_fetched:
-                        return (self.rpool[label], label)
-                    return self.rpool[label]
-            if optional:
-                if report_fetched:
-                    return (None, None)
-                return None
-            raise LookupError(info_msg)
-        else:
-            if resource not in self.rpool.keys():
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
-            if report_fetched:
-                if pipe_idx:
-                    return (self.rpool[resource][pipe_idx], resource)
-                return (self.rpool[resource], resource)
-            if pipe_idx:
-                return self.rpool[resource][pipe_idx]
-            return self.rpool[resource]
+                    return self._resource_found(
+                        self.rpool[label], label, report_fetched)
+        if resource not in self.rpool.keys():
+            return self._resource_not_found(optional, report_fetched, info_msg)
+        _found = self.rpool[resource]
+        if pipe_idx:
+            _found = self.rpool[resource][pipe_idx]
+        return self._resource_found(_found, resource, report_fetched)
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
