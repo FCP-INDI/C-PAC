@@ -1016,6 +1016,11 @@ functional_preproc:
 
   run: On
 
+  reorient: 
+
+    # Convert raw data from LPI to RPI
+    run: On
+  
   truncation:
 
     # First timepoint to include in analysis.
