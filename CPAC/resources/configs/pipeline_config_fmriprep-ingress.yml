@@ -124,6 +124,8 @@ nuisance_corrections:
       run: On
       Regressors:
         Columns: [global_signal, white_matter]
+    
+    create_regressors: Off
 
 timeseries_extraction:
   run: On
