@@ -939,7 +939,7 @@ registration_workflows:
 
 functional_preproc:
   run: Off
-  reorient:
+  update_header:
 
     # Convert raw data from LPI to RPI
     run: On

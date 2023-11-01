@@ -1016,7 +1016,7 @@ functional_preproc:
 
   run: On
 
-  reorient: 
+  update_header: 
 
     # Convert raw data from LPI to RPI
     run: On

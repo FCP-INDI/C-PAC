@@ -760,7 +760,7 @@ latest_schema = Schema({
             'start_tr': int,
             'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
-        'reorient': {
+        'update_header': {
             'run': bool1_1,
         },
         'scaling': {
