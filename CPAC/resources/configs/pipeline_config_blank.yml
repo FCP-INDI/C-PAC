@@ -939,6 +939,11 @@ registration_workflows:
 
 functional_preproc:
   run: Off
+  update_header:
+
+    # Convert raw data from LPI to RPI
+    run: On
+
   slice_timing_correction:
 
     # Interpolate voxel time courses so they are sampled at the same time points.

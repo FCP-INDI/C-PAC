@@ -516,7 +516,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
 @nodeblock(
     name='func_reorient',
-    config=['functional_preproc'],
+    config=['functional_preproc', 'update_header'],
     switch=['run'],
     inputs=['bold'],
     outputs=['desc-preproc_bold', 'desc-reorient_bold']
