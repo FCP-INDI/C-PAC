@@ -18,6 +18,7 @@ name: Run participant smoke test
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   smoke_test_human:

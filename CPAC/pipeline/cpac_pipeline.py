@@ -1116,14 +1116,13 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 LOGTAIL['warnings'].append(WARNING_FREESURFER_OFF_WITH_DATA)
                 continue
             previous_nb_str = (
-                f"after node block '{previous_nb.get_name()}': "
+                f"after node block '{previous_nb.get_name()}':"
             ) if previous_nb else 'at beginning:'
             # Alert user to block that raises error
             e.args = (
                 'When trying to connect node block '
                 f"'{NodeBlock(block).get_name()}' "
-                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
-            )
+                f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",)
             if cfg.pipeline_setup['Debugging']['verbose']:
                 verbose_logger = getLogger('engine')
                 verbose_logger.debug(e.args[0])
@@ -1480,11 +1479,22 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     try:
         wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
     except LookupError as lookup_error:
-        errorstrings = lookup_error.args[0].split('\n')
-        missing_key = errorstrings[
-            errorstrings.index('[!] C-PAC says: The listed resource is not '
-                               'in the resource pool:') + 1]
-        if missing_key.endswith('_bold') and 'func' not in sub_dict:
+        missing_key = None
+        errorstrings = [arg for arg in lookup_error.args[0].split('\n') if
+                        arg.strip()]
+        if lookup_error.args[0].startswith('When trying to connect node b'):
+            missing_key = lookup_error.args[0].split("': ")[-1]
+        for errorstring in [
+            '[!] C-PAC says: The listed resource is not in the resource pool:',
+            '[!] C-PAC says: None of the listed resources are in the resource '
+            'pool:',
+            '[!] C-PAC says: None of the listed resources in the node block '
+            'being connected exist in the resource pool.\n\nResources:'
+        ]:
+            if errorstring in lookup_error.args[0]:
+                missing_key = errorstrings[errorstrings.index(errorstring) + 1]
+        if missing_key and missing_key.endswith('_bold'
+                                                ) and 'func' not in sub_dict:
             raise FileNotFoundError(
                 'The provided pipeline configuration requires functional '
                 'data but no functional data were found for ' +

@@ -1369,7 +1369,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val='CCS_Anatomical_Refined',
     inputs=[['desc-motion_bold', 'desc-preproc_bold', 'bold'], 'desc-brain_T1w',
             ['desc-preproc_T1w', 'desc-reorient_T1w', 'T1w']],
-    outputs=['space-bold_desc-brain_mask', 'desc-ROIbrain_bold']
+    outputs=['space-bold_desc-brain_mask', 'desc-ref_bold']
 )
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Generate the BOLD mask by basing it off of the anatomical brain.
@@ -1496,7 +1496,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'space-bold_desc-brain_mask': (intersect_mask, 'out_file'),
-        'desc-ROIbrain_bold': (example_func_brain, 'out_file')
+        'desc-ref_bold': (example_func_brain, 'out_file')
     }
 
     return (wf, outputs)

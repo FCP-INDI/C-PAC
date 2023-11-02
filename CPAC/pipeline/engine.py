@@ -22,6 +22,7 @@ from itertools import chain
 import logging
 import os
 import re
+from typing import Any, Optional, Union
 import warnings
 
 from CPAC.pipeline import \
@@ -49,6 +50,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
+from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
 
@@ -252,6 +254,35 @@ class ResourcePool:
         elif isinstance(prov[-1], str):
             return prov[-1].split(':')[0]
 
+    def regressor_dct(self, cfg) -> dict:
+        """Returns the regressor dictionary for the current strategy if
+        one exists. Raises KeyError otherwise."""
+        # pylint: disable=attribute-defined-outside-init
+        if hasattr(self, '_regressor_dct'):  # memoized
+            # pylint: disable=access-member-before-definition
+            return self._regressor_dct
+        key_error = KeyError("[!] No regressors in resource pool. \n\n"
+                             "Try turning on create_regressors or "
+                             "ingress_regressors.")
+        _nr = cfg['nuisance_corrections', '2-nuisance_regression']
+        if not hasattr(self, 'regressors'):
+            self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+        if self.check_rpool('parsed_regressors'):  # ingressed regressor
+            # name regressor workflow without regressor_prov
+            strat_name = _nr['ingress_regressors']['Regressors']['Name']
+            if strat_name in self.regressors:
+                self._regressor_dct = self.regressors[strat_name]
+                return self._regressor_dct
+            raise key_error
+        prov = self.get_cpac_provenance('desc-confounds_timeseries')
+        strat_name_components = prov[-1].split('_')
+        for _ in list(range(prov[-1].count('_'))):
+            reg_name = '_'.join(strat_name_components[-_:])
+            if reg_name in self.regressors:
+                self._regressor_dct = self.regressors[reg_name]
+                return self._regressor_dct
+        raise key_error
+
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
         json_info = json_info.copy()
@@ -299,49 +330,44 @@ class ResourcePool:
             self.pipe_list.append(new_pipe_idx)
 
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info 
+        self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    def get(self, resource, pipe_idx=None, report_fetched=False,
-            optional=False):
+    def get(self, resource: LIST_OR_STR, pipe_idx: Optional[str] = None,
+            report_fetched: Optional[bool] = False,
+            optional: Optional[bool] = False) -> Union[
+                TUPLE[Optional[dict], Optional[str]], Optional[dict]]:
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
-        
-        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
-                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
-                   "can enable a node block earlier in the pipeline which " \
-                   "produces these resources. Check the 'outputs:' field in " \
-                   "a node block's documentation.\n- You can directly " \
-                   "provide this required data by pulling it from another " \
-                   "BIDS directory using 'source_outputs_dir:' in the " \
-                   "pipeline configuration, or by placing it directly in " \
-                   "your C-PAC output directory.\n- If you have done these, " \
-                   "and you still get this message, please let us know " \
-                   "through any of our support channels at: " \
-                   "https://fcp-indi.github.io/\n"
-        
-        if isinstance(resource, list):
-            # if a list of potential inputs are given, pick the first one
-            # found
-            for label in resource:
-                if label in self.rpool.keys():
-                    if report_fetched:
-                        return (self.rpool[label], label)
-                    return self.rpool[label]
-        else:
-            if resource not in self.rpool.keys():
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
-            if report_fetched:
+        if not isinstance(resource, list):
+            resource = [resource]
+        # if a list of potential inputs are given, pick the first one
+        # found
+        for label in resource:
+            if label in self.rpool.keys():
+                _found = self.rpool[label]
                 if pipe_idx:
-                    return (self.rpool[resource][pipe_idx], resource)
-                return (self.rpool[resource], resource)
-            if pipe_idx:
-                return self.rpool[resource][pipe_idx]
-            return self.rpool[resource]
+                    _found = _found[pipe_idx]
+                if report_fetched:
+                    return _found, label
+                return _found
+        if optional:
+            if report_fetched:
+                return (None, None)
+            return None
+        raise LookupError(
+            "\n\n[!] C-PAC says: None of the listed resources are in "
+            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
+            "can enable a node block earlier in the pipeline which "
+            "produces these resources. Check the 'outputs:' field in "
+            "a node block's documentation.\n- You can directly "
+            "provide this required data by pulling it from another "
+            "BIDS directory using 'source_outputs_dir:' in the "
+            "pipeline configuration, or by placing it directly in "
+            "your C-PAC output directory.\n- If you have done these, "
+            "and you still get this message, please let us know "
+            "through any of our support channels at: "
+            "https://fcp-indi.github.io/\n")
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
