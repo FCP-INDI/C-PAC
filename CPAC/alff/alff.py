@@ -354,7 +354,7 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_desc-bold_mask"])
     wf.connect(node, out, alff, 'inputspec.rest_mask')
     
-    outputs = outputs.update({
+    outputs.update({
         'space-template_alff': (alff, 'outputspec.alff_img'),
         'space-template_falff': (alff, 'outputspec.falff_img')
     })
