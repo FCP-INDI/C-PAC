@@ -30,6 +30,7 @@ jobs:
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
+    if: "${{ github.env.SSH_PRIVATE_KEY }} != ''"
     runs-on: ubuntu-latest
     steps:
       - name: Get C-PAC branch
