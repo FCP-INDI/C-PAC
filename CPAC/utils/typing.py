@@ -41,11 +41,11 @@ else:
     from typing import Iterable, List
     LIST = List
 if sys.version_info >= (3, 10):
-    LIST_OR_STR = list | str  # pylint: disable=invalid-name
+    LIST_OR_STR = LIST[str] | str  # pylint: disable=invalid-name
     TUPLE = tuple
 else:
     from typing import Tuple
-    LIST_OR_STR = Union[list, str]  # pylint: disable=invalid-name
+    LIST_OR_STR = Union[LIST[str], str]  # pylint: disable=invalid-name
     TUPLE = Tuple
 ITERABLE = Iterable
 ConfigKeyType = Union[str, LIST[str]]

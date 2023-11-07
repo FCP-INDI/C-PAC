@@ -125,6 +125,9 @@ nuisance_corrections:
       Regressors:
         Columns: [global_signal, white_matter]
 
+    # switch to Off if nuisance regression is off and you don't want to write out the regressors
+    create_regressors: Off
+
 timeseries_extraction:
   run: On
   connectivity_matrix:

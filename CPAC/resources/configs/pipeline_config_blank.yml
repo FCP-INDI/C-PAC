@@ -1281,7 +1281,7 @@ nuisance_corrections:
         Columns: [global_signal]
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
+    create_regressors: On
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
