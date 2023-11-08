@@ -40,7 +40,7 @@ from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
 from CPAC.utils.configuration.yaml_template import create_yaml_from_template, \
                                                    hash_data_config, \
                                                    upgrade_pipeline_to_1_8
-from CPAC.utils.utils import load_preconfig, update_nested_dict
+from CPAC.utils.utils import update_nested_dict
 simplefilter(action='ignore', category=FutureWarning)
 logger = logging.getLogger('nipype.workflow')
 DEFAULT_TMP_DIR = "/tmp"
@@ -460,7 +460,7 @@ def run_main():
                 run(f"bids-validator {bids_dir}")
 
         if args.preconfig:
-            args.pipeline_file = load_preconfig(args.preconfig)
+            args.pipeline_file = preconfig_yaml(args.preconfig, load=True)
 
         # otherwise, if we are running group, participant, or dry run we
         # begin by conforming the configuration

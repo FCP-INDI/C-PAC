@@ -21,6 +21,7 @@ import re
 from typing import Optional
 from warnings import warn
 import pkg_resources as p
+from click import BadParameter
 import yaml
 from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
@@ -83,9 +84,22 @@ class Configuration:
     >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
     >>> c['pipeline_setup', 'pipeline_name']
     'new_pipeline2'
+
+    >>> from CPAC.utils.tests.configs import SLACK_420349
+
+    # test "FROM: /path/to/file"
+    >>> slack_420349_filepath = Configuration(
+    ...     yaml.safe_load(SLACK_420349['filepath']))
+    >>> slack_420349_filepath['pipeline_setup', 'pipeline_name']
+    'slack_420349_filepath'
+
+    # test "FROM: preconfig"
+    >>> slack_420349_preconfig = Configuration(
+    ...    yaml.safe_load(SLACK_420349['preconfig']))
+    >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
+    'slack_420349_preconfig'
     """
     def __init__(self, config_map=None):
-        from click import BadParameter
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
@@ -604,7 +618,8 @@ def configuration_from_file(config_file):
 
 
 def preconfig_yaml(preconfig_name='default', load=False):
-    """Get the path to a preconfigured pipeline's YAML file
+    """Get the path to a preconfigured pipeline's YAML file.
+    Raises BadParameter if an invalid preconfig name is given.
 
     Parameters
     ----------
@@ -618,6 +633,13 @@ def preconfig_yaml(preconfig_name='default', load=False):
     str or dict
         path to YAML file or dict loaded from YAML
     """
+    from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
+    if preconfig_name not in ALL_PIPELINE_CONFIGS:
+        raise BadParameter(
+            "The pre-configured pipeline name '{0}' you provided is not one "
+            "of the available pipelines.\n\nAvailable pipelines:\n"
+            f"{1}\n".format(preconfig_name, str(AVAILABLE_PIPELINE_CONFIGS)),
+            param='preconfig')
     if load:
         with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:
             return yaml.safe_load(_f)

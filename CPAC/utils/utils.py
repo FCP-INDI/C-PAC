@@ -25,11 +25,9 @@ import pickle
 import numpy as np
 import yaml
 
-from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
 from voluptuous.error import Invalid
-from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -1513,33 +1511,6 @@ def delete_nested_value(d, keys):
         return d
     d[keys[0]] = delete_nested_value(d.get(keys[0], {}), keys[1:])
     return d
-
-
-def load_preconfig(pipeline_label):
-    import os
-    import pkg_resources as p
-
-    if pipeline_label not in ALL_PIPELINE_CONFIGS:
-        raise BadParameter(
-            "The pre-configured pipeline name '{0}' you provided is not one "
-            "of the available pipelines.\n\nAvailable pipelines:\n"
-            "{1}\n".format(pipeline_label, str(AVAILABLE_PIPELINE_CONFIGS)),
-            param='preconfig')
-
-    pipeline_file = \
-        p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources",
-                "configs",
-                "pipeline_config_{0}.yml".format(pipeline_label)
-            )
-        )
-
-    print(f"Loading the '{pipeline_label}' pre-configured pipeline.",
-          file=sys.stderr)
-
-    return pipeline_file
 
 
 def ordereddict_to_dict(value):
