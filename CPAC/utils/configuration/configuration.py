@@ -118,8 +118,8 @@ class Configuration:
             config_map = update_nested_dict(base_config.dict(), config_map)
         else:
             # base everything on blank pipeline for unspecified keys
-            with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
-                config_map = update_nested_dict(yaml.safe_load(_f), config_map)
+            config_map = update_nested_dict(
+                preconfig_yaml('blank', load=True), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -636,9 +636,9 @@ def preconfig_yaml(preconfig_name='default', load=False):
     from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
     if preconfig_name not in ALL_PIPELINE_CONFIGS:
         raise BadParameter(
-            "The pre-configured pipeline name '{0}' you provided is not one "
-            "of the available pipelines.\n\nAvailable pipelines:\n"
-            f"{1}\n".format(preconfig_name, str(AVAILABLE_PIPELINE_CONFIGS)),
+            f"The pre-configured pipeline name '{preconfig_name}' you "
+            "provided is not one of the available pipelines.\n\nAvailable "
+            f"pipelines:\n{str(AVAILABLE_PIPELINE_CONFIGS)}\n",
             param='preconfig')
     if load:
         with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:

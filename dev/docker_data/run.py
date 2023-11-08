@@ -460,11 +460,14 @@ def run_main():
                 run(f"bids-validator {bids_dir}")
 
         if args.preconfig:
-            args.pipeline_file = preconfig_yaml(args.preconfig, load=True)
+            args.pipeline_file = preconfig_yaml(args.preconfig)
 
         # otherwise, if we are running group, participant, or dry run we
         # begin by conforming the configuration
-        c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+        if isinstance(args.pipeline_file, dict):
+            c = args.pipeline_file
+        else:
+            c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
         if 'pipeline_setup' not in c:
             _url = (f'{DOCS_URL_PREFIX}/user/pipelines/'
