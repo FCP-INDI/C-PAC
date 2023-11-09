@@ -35,14 +35,13 @@ jobs:
     steps:
       - name: Get C-PAC branch
         run: |
-          GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
-          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          if [[ ! $GITHUB_REF_NAME == 'main' ]] && [[ ! $GITHUB_REF_NAME == 'develop' ]]
           then
-            TAG=${GITHUB_BRANCH//\//_}
-          elif [[ $GITHUB_BRANCH == 'develop' ]]
+            TAG=${GITHUB_REF_NAME//\//_}
+          elif [[ $GITHUB_REF_NAME == 'develop' ]]
           then
             TAG=nightly
-          elif [[ $GITHUB_BRANCH == 'main' ]]
+          elif [[ $GITHUB_REF_NAME == 'main' ]]
           then
             TAG=latest
           fi
