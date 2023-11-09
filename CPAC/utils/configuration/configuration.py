@@ -21,6 +21,7 @@ import re
 from typing import Optional
 from warnings import warn
 import pkg_resources as p
+from click import BadParameter
 import yaml
 from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
@@ -83,9 +84,22 @@ class Configuration:
     >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
     >>> c['pipeline_setup', 'pipeline_name']
     'new_pipeline2'
+
+    >>> from CPAC.utils.tests.configs import SLACK_420349
+
+    # test "FROM: /path/to/file"
+    >>> slack_420349_filepath = Configuration(
+    ...     yaml.safe_load(SLACK_420349['filepath']))
+    >>> slack_420349_filepath['pipeline_setup', 'pipeline_name']
+    'slack_420349_filepath'
+
+    # test "FROM: preconfig"
+    >>> slack_420349_preconfig = Configuration(
+    ...    yaml.safe_load(SLACK_420349['preconfig']))
+    >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
+    'slack_420349_preconfig'
     """
     def __init__(self, config_map=None):
-        from click import BadParameter
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
@@ -104,8 +118,8 @@ class Configuration:
             config_map = update_nested_dict(base_config.dict(), config_map)
         else:
             # base everything on blank pipeline for unspecified keys
-            with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
-                config_map = update_nested_dict(yaml.safe_load(_f), config_map)
+            config_map = update_nested_dict(
+                preconfig_yaml('blank', load=True), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -604,7 +618,8 @@ def configuration_from_file(config_file):
 
 
 def preconfig_yaml(preconfig_name='default', load=False):
-    """Get the path to a preconfigured pipeline's YAML file
+    """Get the path to a preconfigured pipeline's YAML file.
+    Raises BadParameter if an invalid preconfig name is given.
 
     Parameters
     ----------
@@ -618,6 +633,13 @@ def preconfig_yaml(preconfig_name='default', load=False):
     str or dict
         path to YAML file or dict loaded from YAML
     """
+    from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
+    if preconfig_name not in ALL_PIPELINE_CONFIGS:
+        raise BadParameter(
+            f"The pre-configured pipeline name '{preconfig_name}' you "
+            "provided is not one of the available pipelines.\n\nAvailable "
+            f"pipelines:\n{str(AVAILABLE_PIPELINE_CONFIGS)}\n",
+            param='preconfig')
     if load:
         with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:
             return yaml.safe_load(_f)

@@ -20,6 +20,7 @@ import os
 import re
 from datetime import datetime
 from hashlib import sha1
+from click import BadParameter
 import yaml
 
 from CPAC.utils.configuration import Configuration, Preconfiguration, \
@@ -58,16 +59,20 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
 
         base_config : Configuration, optional
         """
-        preconfig_path = preconfig_yaml(original_yaml)
-        if os.path.exists(preconfig_path):
-            original_yaml = preconfig_path
+        try:
+            original_yaml = preconfig_yaml(original_yaml)
+        except BadParameter:
+            pass
         if os.path.exists(original_yaml):
             with open(original_yaml, 'r', encoding='utf-8') as _f:
                 original_yaml = _f.read()
         self.comments = {}
         self.template = original_yaml
         if base_config is None:
-            self._dict = yaml.safe_load(self.template)
+            if isinstance(self.template, dict):
+                self._dict = self.template
+            if isinstance(self.template, str):
+                self._dict = yaml.safe_load(self.template)
         else:
             self._dict = base_config.dict()
         self._parse_comments()
