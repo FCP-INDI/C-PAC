@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uses highest resolution available locally as reference when resampling a template to a non-packaged resolution (was always using 1mm reference before)
 - Updates config boolean validation from anything-truthy-is-True (e.g., `[True, False]`, or `[False]`, or a typo like `Offf`) to only accepting bools, ints, and YAML boolean strings like "On" and "Off" as boolean
 - When applying a filter to motion parameters, now C-PAC reports both the original and the filtered motion parameters and uses the original parameters for qc. Previous versions only reported the filtered parameters and used the filtered parameters for qc.
+- Makes nuisance regression space non-forkable. In v1.8.5, nuisance regression forking was broken, so this change should not cause backwards-compatibility issues.
 
 ### Added dependencies
 

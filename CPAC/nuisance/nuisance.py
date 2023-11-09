@@ -94,11 +94,11 @@ def choose_nuisance_blocks(cfg, rpool, generate_only=False):
             nuisance.append((nuisance_regressors_generation_EPItemplate,
                              input_interface))
 
-        if not generate_only and 'native' in cfg['nuisance_corrections',
-                                                 '2-nuisance_regression',
-                                                 'space']:
+        if not generate_only and cfg['nuisance_corrections',
+                                     '2-nuisance_regression',
+                                     'space'] == 'native':
             nuisance.append((nuisance_regression_native, input_interface))
-    
+
     return nuisance
 
 
