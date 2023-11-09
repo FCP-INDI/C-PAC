@@ -232,7 +232,8 @@ faulthandler.enable()
 
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
-                 plugin='MultiProc', plugin_args=None, test_config=False):
+                 plugin='MultiProc', plugin_args=None, test_config=False
+                 ) -> int:
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -256,9 +257,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     Returns
     -------
-    workflow : nipype workflow
-        the prepared nipype workflow object containing the parameters
-        specified in the config
+    exitcode : int
+       0 for success
+       1 for general failure
     '''
     from CPAC.utils.datasource import bidsier_prefix
 
@@ -487,6 +488,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         logger.info('This has been a test of the pipeline configuration '
                     'file, the pipeline was built successfully, but was '
                     'not run')
+        return 0  # return success code
     else:
         working_dir = os.path.join(
             c.pipeline_setup['working_directory']['path'], workflow.name)
@@ -530,6 +532,7 @@ Please, make yourself aware of how it works and its assumptions:
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
         workflow_result = None
+        exitcode = 0
         try:
             subject_info['resource_pool'] = []
 
@@ -751,8 +754,11 @@ Please, make yourself aware of how it works and its assumptions:
                         'Unable to upload CPAC log files in: %s.\nError: %s')
                     logger.error(err_msg, log_dir, exc)
 
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
+            # If we want to throw other exit codes, we can catch various
+            # specific exceptions to do so
             import traceback
+            exitcode = 1
             traceback.print_exc()
             execution_info = """
 
@@ -811,6 +817,7 @@ CPAC run error:
                             'Could not remove working directory %s',
                             working_dir
                         )
+            return exitcode  # pylint: disable=lost-exception
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):

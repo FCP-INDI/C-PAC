@@ -577,8 +577,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if c.pipeline_setup['system_config']['num_participants_at_once'] == 1:
             for sub in sublist:
                 try:
-                    run_workflow(sub, c, True, pipeline_timing_info,
-                                 p_name, plugin, plugin_args, test_config)
+                    exitcode = run_workflow(sub, c, True, pipeline_timing_info,
+                                            p_name, plugin, plugin_args,
+                                            test_config)
                 except Exception as exception:  # pylint: disable=broad-except
                     exitcode = 1
                     failed_to_start(set_subject(sub, c)[2], exception)
