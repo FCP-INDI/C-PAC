@@ -6,6 +6,8 @@ from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
+from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.registration.registration import apply_transform
 
 
 def create_alff(wf_name='alff_workflow'):
@@ -293,11 +295,13 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
                 "space-template_res-derivative_desc-bold_mask",
                 "space-template_desc-bold_mask"
             ],
-            ["desc-denoisedNofilt_bold", "from-bold_to-template_mode-image_xfm"],
+            "desc-denoisedNofilt_bold", 
+            "from-bold_to-template_mode-image_xfm",
             "T1w-brain-template-deriv",
         )
     ],
-    outputs=["space-template_alff", "space-template_falff"],
+    outputs=["space-template_alff", "space-template_falff", 
+             "space-template_res-derivative_desc-denoisedNofilt_bold"],
 )
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
