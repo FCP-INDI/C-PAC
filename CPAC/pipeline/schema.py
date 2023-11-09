@@ -1109,6 +1109,7 @@ def schema(config_dict):
                 'Nusiance regression space is not forkable. Please choose '
                 f'only one of {valid_options["space"]}',
                 path=multiple_invalid.path) from multiple_invalid
+        raise multiple_invalid
     try:
         if (partially_validated['registration_workflows'][
             'functional_registration'
