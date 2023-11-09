@@ -297,8 +297,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
             "T1w-brain-template-deriv",
         )
     ],
-    outputs=["space-template_alff", "space-template_falff",
-        "space-template_res-derivative_desc-denoisedNofilt_bold"],
+    outputs=["space-template_alff", "space-template_falff"],
 )
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
