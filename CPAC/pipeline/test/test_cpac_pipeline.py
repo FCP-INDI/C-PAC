@@ -15,7 +15,8 @@ def test_plugin_param(plugin):
     cfg = Configuration()
 
     with pytest.raises((TypeError, KeyError)) as e:
-        run_workflow({}, cfg, False, plugin=plugin)
+        exitcode = run_workflow({}, cfg, False, plugin=plugin)
+        assert exitcode != 0
     if isinstance(plugin, str) or plugin is None:
         assert e.typename == 'KeyError'
     else:
