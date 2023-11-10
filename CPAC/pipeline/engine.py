@@ -1888,7 +1888,7 @@ def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, c
 
             bidstag = ''
             for tag in data_label.split('_'):
-                for prefix in ['task-', 'run-', 'acq-']:
+                for prefix in ['task-', 'run-', 'acq-', 'rec']:
                     if tag.startswith(prefix):
                         bidstag += f'{tag}_'
                         data_label = data_label.replace(f'{tag}_', '')

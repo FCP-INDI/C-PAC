@@ -50,8 +50,7 @@ def test_yaml_template():
     # Create a new YAML configuration file based on the default pipeline
     # YAML file.
     pipeline_file = preconfig_yaml('default')
-    with open(pipeline_file, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+    config = preconfig_yaml('default', load=True)
     new_config = create_yaml_from_template(config, pipeline_file)
     with open(config_file, 'w', encoding='utf-8') as f:
         f.write(new_config)

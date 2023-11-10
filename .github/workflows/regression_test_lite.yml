@@ -8,13 +8,6 @@ on:
       - opened
       - ready_for_review
       - reopened
-  pull_request_target:  # Make sure environment protection is enabled!
-    branches:
-      - develop
-    types:
-      - opened
-      - ready_for_review
-      - reopened
   workflow_call:
     secrets:
       GH_CLI_BIN_PATH:
@@ -28,28 +21,27 @@ on:
         required: true
       SSH_WORK_DIR:
         required: true
+  workflow_dispatch:
 
 jobs: 
   test:
     name: Regression Test - Lite
     environment: ACCESS
     env:
-      SHA: ${{ github.event.pull_request.head.sha }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
-    if: (${{ github.event.pull_request.head.repo.full_name }} == ${{ github.repository }} && ${{ github.event_name }} == 'pull_request') || (${{ github.event.pull_request.head.repo.full_name }} != ${{ github.repository }} && ${{ github.event_name }} == 'pull_request_target')
+    if: "${{ github.env.SSH_PRIVATE_KEY }} != ''"
     runs-on: ubuntu-latest
     steps:
       - name: Get C-PAC branch
         run: |
-          GITHUB_BRANCH=${{ github.event.pull_request.head.ref }}
-          if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
+          if [[ ! $GITHUB_REF_NAME == 'main' ]] && [[ ! $GITHUB_REF_NAME == 'develop' ]]
           then
-            TAG=${GITHUB_BRANCH//\//_}
-          elif [[ $GITHUB_BRANCH == 'develop' ]]
+            TAG=${GITHUB_REF_NAME//\//_}
+          elif [[ $GITHUB_REF_NAME == 'develop' ]]
           then
             TAG=nightly
-          elif [[ $GITHUB_BRANCH == 'main' ]]
+          elif [[ $GITHUB_REF_NAME == 'main' ]]
           then
             TAG=latest
           fi
@@ -88,8 +80,8 @@ jobs:
                 git pull origin regression/after_runs
                 cd ..
             fi
-            mkdir -p ./logs/${SHA}
-            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${SHA}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${SHA}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            mkdir -p ./logs/${{ github.sha }}
+            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
