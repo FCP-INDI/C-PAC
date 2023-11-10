@@ -4328,62 +4328,6 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num,
 
 
 @nodeblock(
-    name="transform_denoisedNofilt_to_T1template",
-    config=["amplitude_low_frequency_fluctuation"],
-    switch=["run"],
-    option_key=["target_space"],
-    option_val="Template",
-    inputs=[
-        (["desc-denoisedNofilt_bold"], "from-bold_to-template_mode-image_xfm"),
-        "T1w-brain-template-deriv",
-    ],
-    outputs={
-        "space-template_res-derivative_desc-denoisedNofilt_bold": {
-            "Template": "T1w-brain-template-deriv"
-        }
-    },
-)
-def warp_denoiseNofilt_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    xfm_prov = strat_pool.get_cpac_provenance(
-        'from-bold_to-template_mode-image_xfm')
-    reg_tool = check_prov_for_regtool(xfm_prov)
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
-    apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', reg_tool,
-                                time_series=True, num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    if reg_tool == 'ants':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'ANTs_pipelines']['interpolation']
-    elif reg_tool == 'fsl':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'FNIRT_pipelines']['interpolation']
-
-    node, out = strat_pool.get_data("desc-denoisedNofilt_bold")
-    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
-
-    node, out = strat_pool.get_data("T1w-brain-template-deriv")
-    wf.connect(node, out, apply_xfm, 'inputspec.reference')
-
-    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
-    wf.connect(node, out, apply_xfm, 'inputspec.transform')
-
-    outputs = {
-        f'space-template_res-derivative_desc-denoisedNofilt_bold': (apply_xfm, 'outputspec.output_image')
-    }
-
-    return (wf, outputs)
-
-
-@nodeblock(
     name="single_step_resample_stc_timeseries_to_T1template",
     config=[
         "registration_workflows",

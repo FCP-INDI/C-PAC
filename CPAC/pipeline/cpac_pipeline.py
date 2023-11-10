@@ -106,7 +106,6 @@ from CPAC.registration.registration import (
     warp_sbref_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template,
-    warp_denoiseNofilt_to_T1template,
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
@@ -1356,9 +1355,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     pipeline_blocks += [func_despike_template]
 
-    if 'Template' in target_space_alff and 'Native' in target_space_nuis:
-        pipeline_blocks += [warp_denoiseNofilt_to_T1template]
-
     template = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['target_template']['using']
 
@@ -1439,9 +1435,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [alff_falff]
 
     if 'Template' in target_space_alff:
-        if not nuisance_template and not rpool.check_rpool(
-                'space-template_desc-denoisedNofilt_bold'):
-            pipeline_blocks += [warp_denoiseNofilt_to_T1template]
         if not rpool.check_rpool('space-template_alff'):
             pipeline_blocks += [alff_falff_space_template]
 
