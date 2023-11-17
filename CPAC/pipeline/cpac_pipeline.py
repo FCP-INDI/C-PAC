@@ -800,16 +800,28 @@ CPAC run error:
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
-                    try:
-                        if os.path.exists(working_dir):
-                            logger.info("Removing working dir: %s",
-                                        working_dir)
-                            shutil.rmtree(working_dir)
-                    except (FileNotFoundError, PermissionError):
-                        logger.warning(
-                            'Could not remove working directory %s',
-                            working_dir
-                        )
+                    remove_workdir(working_dir)
+                # Remove just .local from working directory
+                else:
+                    remove_workdir(os.path.join(os.environ["CPAC_WORKDIR"],
+                                                '.local'))
+
+
+def remove_workdir(wdpath: str) -> None:
+    """Remove a given working directory if possible, warn if impossible
+
+    Parameters
+    ----------
+    wdpath : str
+        path to working directory to remove
+    """
+    try:
+        if os.path.exists(wdpath):
+            logger.info("Removing working dir: %s", wdpath)
+            shutil.rmtree(wdpath)
+    except (FileNotFoundError, PermissionError):
+        logger.warning(
+            'Could not remove working directory %s', wdpath)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
