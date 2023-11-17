@@ -15,6 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test torch installation"""
+import os
+from pathlib import Path
+
+
 def test_import_torch():
     """
     Test that ``torch`` successfully imports after being installed dynamically.
@@ -25,3 +29,14 @@ def test_import_torch():
     # pylint: disable=import-error,unused-import,wrong-import-order
     from CPAC import unet
     import torch
+
+
+def test_writable_homedir():
+    """
+    Test that ``/tmp/home/c-pac_user`` should be writable
+    """
+    home_dir = Path('/tmp/home/c-pac_user')
+    owner = home_dir.owner()
+    assert owner == 'c-pac_user', \
+           f"{home_dir} is owned by {owner} instead of 'c-pac_user'"
+    assert os.access(home_dir, os.W_OK), f'{home_dir} is not writable'

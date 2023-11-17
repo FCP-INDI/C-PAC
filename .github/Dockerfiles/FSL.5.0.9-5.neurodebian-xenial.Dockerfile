@@ -47,10 +47,11 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 ENTRYPOINT ["/bin/bash"]
 
 # Link libraries for Singularity images
-RUN ldconfig && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \

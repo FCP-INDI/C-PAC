@@ -37,9 +37,12 @@ ENV TZ=America/New_York \
 # add default user
 RUN groupadd -r c-pac \
     && useradd -r -g c-pac c-pac_user \
-    && mkdir -p /home/c-pac_user/ \
-    && chown -R c-pac_user:c-pac /home/c-pac_user \
-    && chmod 777 / /home/c-pac_user /opt \
+    && mkdir -p /tmp/c-pac_user \
+    && mkdir -p /home \
+    && ln -s /tmp/c-pac_user /tmp/home/c-pac_user \
+    && mkdir -p /tmp/home/c-pac_user \
+    && chown -R c-pac_user:c-pac /tmp/home/c-pac_user \
+    && chmod 777 / /tmp/home/c-pac_user /opt \
     && chmod ugo+w /etc/passwd \
     && chmod a+s /opt \
     # set up for noninteractive apt
@@ -77,7 +80,8 @@ ENTRYPOINT ["/bin/bash"]
 RUN ldconfig \
     && apt-get clean \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/*
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' /root/.cache/pip/*
 
 # Set user
 USER c-pac_user

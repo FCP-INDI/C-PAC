@@ -18,9 +18,10 @@ ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 # Link libraries for Singularity images
 RUN ldconfig
 
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # set user
 # USER c-pac_user

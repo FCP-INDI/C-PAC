@@ -3,10 +3,11 @@ FROM ghcr.io/fcp-indi/c-pac/ubuntu:xenial-20200114 as base
 USER root
 
 # install wb_command v1.3.2
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-                    connectome-workbench=1.3.2-2~nd16.04+1 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+                    connectome-workbench=1.3.2-2~nd16.04+1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # set user
 USER c-pac_user

@@ -115,14 +115,16 @@ COPY --from=connectome-workbench /lib/x86_64-linux-gnu/* /lib/x86_64-linux-gnu/
 COPY --from=connectome-workbench /usr/* /usr/
 
 # link libraries & clean up
-RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
-    locale-gen && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 / /home/c-pac_user && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' \
+    && ldconfig \
+    && mkdir -p /tmp/c-pac_user \
+    && ln -sf /tmp/c-pac_user /tmp/home/c-pac_user \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user

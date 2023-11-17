@@ -23,9 +23,9 @@ ENV TZ=America/New_York
 # Installing system requirments, the BIDS validator & minconda
 RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
-    mkdir -p /home/c-pac_user/ && \
-    chown -R c-pac_user:c-pac /home/c-pac_user && \
-    chmod 777 / /home/c-pac_user && \
+    mkdir -p /tmp/home/c-pac_user/ && \
+    chown -R c-pac_user:c-pac /tmp/home/c-pac_user && \
+    chmod 777 / /tmp/home/c-pac_user && \
     chmod ugo+w /etc/passwd && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -157,10 +157,11 @@ COPY --from=c-pac_templates /opt/dcan-tools/pipeline/global/templates/Greyordina
 ENTRYPOINT ["/bin/bash"]
 
 # Link libraries for Singularity images
-RUN ldconfig && \
-    apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN ldconfig \
+    && apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # set user
 USER c-pac_user

@@ -4,9 +4,10 @@ USER root
 ENTRYPOINT ["/code/run.py"]
 
 # remove FreeSurfer, link libraries & clean up
-RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ln -svf /usr/lib/x86_64-linux-gnu/libgsl.so.23 /usr/lib/x86_64-linux-gnu/libgsl.so.0 && ldconfig && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /usr/lib/freesurfer/ /code/run-with-freesurfer.sh /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' \
+    && ln -svf /usr/lib/x86_64-linux-gnu/libgsl.so.23 /usr/lib/x86_64-linux-gnu/libgsl.so.0 && ldconfig \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 # USER c-pac_user

@@ -87,13 +87,15 @@ ENV PATH=/opt/ICA-AROMA:$PATH
 # link libraries & clean up
 RUN locale-gen --purge en_US.UTF-8 \
   && echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
   && ldconfig \
-  && chmod 777 / /home/c-pac_user \
+  && mkdir -p /tmp/c-pac_user \
+  && ln -sf /tmp/c-pac_user /tmp/home/c-pac_user \
+  && chmod 777 / /tmp/home/c-pac_user \
   && chmod 777 $(ls / | grep -v sys | grep -v proc) \
   && apt-get clean \
   && apt-get autoremove -y \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+  && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # set user
 USER c-pac_user

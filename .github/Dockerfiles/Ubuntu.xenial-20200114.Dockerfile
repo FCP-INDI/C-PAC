@@ -21,8 +21,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 # create usergroup and user, set permissions, install curl
 RUN groupadd -r c-pac && \
     useradd -r -g c-pac c-pac_user && \
-    mkdir -p /home/c-pac_user/ && \
-    chown -R c-pac_user:c-pac /home/c-pac_user && \
+    mkdir -p /tmp/home/c-pac_user/ && \
+    chown -R c-pac_user:c-pac /tmp/home/c-pac_user && \
     chmod 777 / && \
     chmod ugo+w /etc/passwd && \
     apt-get update && \
@@ -115,10 +115,11 @@ RUN curl -sSL "http://neuro.debian.net/lists/$( lsb_release -c | cut -f2 ).us-ca
     APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add /usr/local/etc/neurodebian.gpg && \
     (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-                    connectome-workbench=1.3.2-2~nd16.04+1 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+                    connectome-workbench=1.3.2-2~nd16.04+1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # Installing and setting up miniconda
 RUN curl -sSLO https://repo.continuum.io/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh && \
@@ -176,9 +177,10 @@ ENTRYPOINT ["/bin/bash"]
 # Link libraries for Singularity images
 RUN ldconfig
 
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get clean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 # set user
 USER c-pac_user

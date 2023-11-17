@@ -16,9 +16,10 @@ RUN rm -Rf /code/docker_data/Dockerfiles && \
 ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    ldconfig && \
-    chmod 777 $(ls / | grep -v sys | grep -v proc)
+RUN rm -rf /var/lib/apt/lists/* /var/tmp/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' \
+    && ldconfig \
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 # USER c-pac_user

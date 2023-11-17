@@ -34,8 +34,8 @@ RUN rm -Rf /code/docker_data/checksum && \
 ENTRYPOINT ["/code/run.py"]
 
 # link libraries & clean up
-# link libraries & clean up
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
+RUN rm -rf /var/lib/apt/lists/* /var/tmp/* /root/.cache/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' \
     && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
     && rm -rf results.txt \
     && apt-get remove rdfind -y \
@@ -43,11 +43,15 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && apt-get autoremove -y \
     && ldconfig \
     && chmod 777 / \
+    && mkdir -p /tmp/home/c-pac_user \
+    && mkdir -p /tmp/home/c-pac_user \
+    && chown -R c-pac_user:c-pac /tmp/home/c-pac_user \
+    && chmod 777 -R /tmp/home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
-ENV PYTHONUSERBASE=/home/c-pac_user/.local
-ENV PATH=$PATH:/home/c-pac_user/.local/bin \
+ENV PYTHONUSERBASE=/tmp/home/c-pac_user/.local
+ENV PATH=$PATH:/tmp/home/c-pac_user/.local/bin \
     PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
 
 # set user
-WORKDIR /home/c-pac_user
+WORKDIR /tmp/home/c-pac_user
 # USER c-pac_user

@@ -20,14 +20,17 @@ ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 RUN ldconfig \
     && apt-get clean \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/pip/* \
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* /root/.cache/pip/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")' \
     && chmod 777 / \
-    && chmod -R 777 /home/c-pac_user \
+    && mkdir -p /tmp/home/c-pac_user \
+    && chown -R c-pac_user:c-pac /tmp/home/c-pac_user \
+    && chmod -R 777 /tmp/home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
-ENV PYTHONUSERBASE=/home/c-pac_user/.local
-ENV PATH=$PATH:/home/c-pac_user/.local/bin \
+ENV PYTHONUSERBASE=/tmp/home/c-pac_user/.local
+ENV PATH=$PATH:/tmp/home/c-pac_user/.local/bin \
     PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
 
 # set user
-WORKDIR /home/c-pac_user
+WORKDIR /tmp/home/c-pac_user
 # USER c-pac_user

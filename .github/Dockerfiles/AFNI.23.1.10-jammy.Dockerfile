@@ -150,7 +150,8 @@ RUN ldconfig
 
 RUN apt-get clean \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/*
+    && rm -rf /var/lib/apt/lists/* /var/tmp/* /root/.cache/* \
+    && /bin/bash -O extglob -c 'rm -rfv /tmp/!("home/c-pac_user")'
 
 FROM scratch
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
