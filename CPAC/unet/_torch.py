@@ -30,12 +30,18 @@ except (ImportError, ModuleNotFoundError):
         # try to install under the working directory if in a
         # read-only container
         import os
-        os.environ['PYTHONUSERBASE'] = os.path.join(
+        import site
+        import sys
+        if 'CPAC_WORKDIR' not in os.environ:
+            os.environ['CPAC_WORKDIR'] = os.environ['PWD']
+        site.USER_BASE = os.environ['PYTHONUSERBASE'] = os.path.join(
             os.environ['CPAC_WORKDIR'], '.local')
-        os.environ['PATH'] = ':'.join([os.environ['PATH'],
-                                       f'{os.environ["PYTHONUSERBASE"]}/bin'])
+        PY_VERSION = '.'.join(str(getattr(sys.version_info, attr)) for
+                              attr in ['major', 'minor'])
+        PYTHONPATH = f'{site.USER_BASE}/lib/python{PY_VERSION}/site-packages'
+        sys.path.append(PYTHONPATH)
         os.environ['PYTHONPATH'] = ':'.join([os.environ['PYTHONPATH'],
-            f'{os.environ["PYTHONUSERBASE"]}/lib/python3.10/site-packages'])
+                                             PYTHONPATH]).replace('::', ':')
         log_subprocess(['pip', 'install', '--user', *UNET_REQUIREMENTS])
     invalidate_caches()
     import torch
