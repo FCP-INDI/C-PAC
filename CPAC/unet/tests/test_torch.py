@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test torch installation"""
+import os
 import pytest
 
 
@@ -29,7 +30,6 @@ def test_import_torch(monkeypatch, readonly, tmp_path, workdir):
     """
     if readonly:
         # set PYTHONUSERBASE to a readonly directory
-        import os
         os.chmod(tmp_path, 0o444)
         monkeypatch.setenv('PYTHONUSERBASE', tmp_path)
     if workdir:
