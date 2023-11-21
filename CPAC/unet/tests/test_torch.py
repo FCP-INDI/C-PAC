@@ -19,7 +19,8 @@ import pytest
 
 
 @pytest.mark.parametrize('readonly', [False, True])
-def test_import_torch(monkeypatch, readonly, tmp_path):
+@pytest.mark.parametrize('workdir', [False, True])
+def test_import_torch(monkeypatch, readonly, tmp_path, workdir):
     """
     Test that ``torch`` successfully imports after being installed dynamically.
 
@@ -31,6 +32,11 @@ def test_import_torch(monkeypatch, readonly, tmp_path):
         import os
         os.chmod(tmp_path, 0o444)
         monkeypatch.setenv('PYTHONUSERBASE', tmp_path)
+    if workdir:
+        os.environ['CPAC_WORKDIR'] = tmp_path
+    else:
+        if 'CPAC_WORKDIR' in os.environ:
+            del os.environ['CPAC_WORKDIR']
 
     # pylint: disable=import-error,unused-import,wrong-import-order
     from CPAC import unet
