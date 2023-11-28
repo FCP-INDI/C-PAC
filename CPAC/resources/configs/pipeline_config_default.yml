@@ -42,7 +42,7 @@ pipeline_setup:
     write_func_outputs: False
 
     # Include extra outputs in the output directory that may be of interest when more information is needed.
-    write_debugging_outputs: False
+    write_debugging_outputs: True
 
     # Output directory format and structure.
     # Options: default, ndmg
