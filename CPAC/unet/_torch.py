@@ -56,6 +56,7 @@ def _custom_pip_install(env_var: Optional[str] = None) -> None:
 try:
     import torch  # just import if it's available
 except (ImportError, ModuleNotFoundError):
+    torch = NotImplemented
     try:
         _custom_pip_install()  # pip install in default user directory
     except (CalledProcessError, FileNotFoundError, ImportError,
@@ -65,4 +66,5 @@ except (ImportError, ModuleNotFoundError):
         except (CalledProcessError, FileNotFoundError, ImportError,
                 ModuleNotFoundError, OSError):
             _custom_pip_install('PWD')  # pip install in $PWD
-__all__ = ['torch']
+if torch is not NotImplemented:
+    __all__ = ['torch']
