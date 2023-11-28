@@ -15,35 +15,54 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Dynamically install torch iff we're going to use it"""
-# pylint: disable=ungrouped-imports
-try:
-    import torch
-except (ImportError, ModuleNotFoundError):
-    from importlib import invalidate_caches
-    from subprocess import CalledProcessError
-    from CPAC.info import UNET_REQUIREMENTS
-    from CPAC.utils.monitoring.custom_logging import log_subprocess
-    invalidate_caches()
-    try:
-        log_subprocess(['pip', 'install', '--user', *UNET_REQUIREMENTS])
-    except (CalledProcessError, OSError):
-        # try to install under the working directory if in a
-        # read-only container
-        import os
-        import site
-        import sys
-        if 'CPAC_WORKDIR' not in os.environ:
-            os.environ['CPAC_WORKDIR'] = os.environ['PWD']
+# pylint: disable=import-error,redefined-outer-name,ungrouped-imports,unused-import
+from importlib import invalidate_caches
+import os
+import site
+from subprocess import CalledProcessError
+import sys
+from typing import Optional
+from CPAC.info import UNET_REQUIREMENTS
+from CPAC.utils.monitoring.custom_logging import log_subprocess
+
+
+def _custom_pip_install(env_var: Optional[str] = None) -> None:
+    """
+    ``pip install --user torch``, in a custom ``--user`` directory if
+    one is provided, then ``import torch``
+
+    Parameters
+    ----------
+    env_var : str, optional
+        environment variable to define custom ``--user`` directory
+    """
+    if env_var is not None:
+        if env_var not in os.environ:
+            raise FileNotFoundError(f'${env_var}')
         site.USER_BASE = os.environ['PYTHONUSERBASE'] = os.path.join(
-            os.environ['CPAC_WORKDIR'], '.local')
-        PY_VERSION = '.'.join(str(getattr(sys.version_info, attr)) for
+            os.environ[env_var], '.local')
+        py_version = '.'.join(str(getattr(sys.version_info, attr)) for
                               attr in ['major', 'minor'])
-        PYTHONPATH = f'{site.USER_BASE}/lib/python{PY_VERSION}/site-packages'
-        sys.path.append(PYTHONPATH)
+        pythonpath = f'{site.USER_BASE}/lib/python{py_version}/site-packages'
+        sys.path.append(pythonpath)
         os.environ['PYTHONPATH'] = ':'.join([os.environ['PYTHONPATH'],
-                                             PYTHONPATH]).replace('::', ':')
-        log_subprocess(['pip', 'install', '--user', *UNET_REQUIREMENTS])
+                                             pythonpath]).replace('::', ':')
+    invalidate_caches()
+    log_subprocess(['pip', 'install', '--user', *UNET_REQUIREMENTS])
     invalidate_caches()
     import torch
 
+
+try:
+    import torch  # just import if it's available
+except (ImportError, ModuleNotFoundError):
+    try:
+        _custom_pip_install()  # pip install in default user directory
+    except (CalledProcessError, FileNotFoundError, ImportError,
+            ModuleNotFoundError, OSError):
+        try:
+            _custom_pip_install('CPAC_WORKDIR')  # pip install in $CPAC_WORKDIR
+        except (CalledProcessError, FileNotFoundError, ImportError,
+                ModuleNotFoundError, OSError):
+            _custom_pip_install('PWD')  # pip install in $PWD
 __all__ = ['torch']
