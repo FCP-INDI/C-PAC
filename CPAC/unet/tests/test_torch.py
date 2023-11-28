@@ -33,7 +33,7 @@ def test_import_torch(monkeypatch, readonly, tmp_path, workdir):
         os.chmod(tmp_path, 0o444)
         monkeypatch.setenv('PYTHONUSERBASE', tmp_path)
     if workdir:
-        os.environ['CPAC_WORKDIR'] = tmp_path
+        os.environ['CPAC_WORKDIR'] = str(tmp_path)
     else:
         if 'CPAC_WORKDIR' in os.environ:
             del os.environ['CPAC_WORKDIR']
