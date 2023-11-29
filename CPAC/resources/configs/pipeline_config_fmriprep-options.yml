@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.5
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -32,10 +32,6 @@ pipeline_setup:
     # - It is recommended that you set this to a value that when multiplied by
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 3
-
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
 
   Amazon-AWS:
 
@@ -167,10 +163,6 @@ registration_workflows:
 
         # Reference mask for FSL registration.
         ref_mask:
-
-        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
       # option parameters
       ANTs:
@@ -337,12 +329,6 @@ registration_workflows:
           # a standard template for resampling if using float resolution
           EPI_template_for_resample:
 
-      FNIRT_pipelines:
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
     EPI_registration:
       ANTs:
 
@@ -369,7 +355,9 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
       using: [mcflirt]
 
       # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
@@ -382,6 +370,7 @@ functional_preproc:
     run: [On]
 
   func_masking:
+    run: On
     FSL_AFNI:
       bold_ref: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
       brain_mask: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
@@ -401,12 +390,17 @@ functional_preproc:
     # Generate mean functional image
     run: On
 
+  coreg_prep:
+
+    # Generate sbref
+    run: On
+
 nuisance_corrections:
   2-nuisance_regression:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: Regressor-1
+      - Name: Regressor_1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -482,13 +476,12 @@ nuisance_corrections:
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop: 0.6
 
-    # this is a fork point
+    # this is not a fork point
     # Run nuisance regression in native or template space
-    #   - If set to [native, template], the number of outputs will be double what it would be if only one space were chosen. Nuisance regression will only be run once per fork.
     #   - If set to template, will use the brain mask configured in
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
-    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
-    space: [template]
+    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
+    space: template
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
@@ -585,15 +578,3 @@ PyPEER:
 
   # Template-space eye mask
   eye_mask_path:
-
-# PREPROCESSING
-# -------------
-surface_analysis:
-
-  # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
-  # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
-  # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  freesurfer:
-
-    # Ingress freesurfer recon-all folder
-    ingress_reconall: Off

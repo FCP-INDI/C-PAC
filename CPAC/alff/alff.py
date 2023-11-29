@@ -2,9 +2,12 @@
 
 import os
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
+from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.registration.registration import apply_transform
 
 
 def create_alff(wf_name='alff_workflow'):
@@ -239,19 +242,19 @@ def create_alff(wf_name='alff_workflow'):
     return wf
 
 
+@nodeblock(
+    name="alff_falff",
+    config=["amplitude_low_frequency_fluctuation"],
+    switch=["run"],
+    inputs=[
+        (
+            ["desc-denoisedNofilt_bold", "desc-preproc_bold"],
+            "space-bold_desc-brain_mask",
+        )
+    ],
+    outputs=["alff", "falff"],
+)
 def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "alff_falff",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [(["desc-denoisedNofilt_bold",
-                  "desc-preproc_bold"],
-                 "space-bold_desc-brain_mask")],
-     "outputs": ["alff",
-                 "falff"]}
-    '''
 
     alff = create_alff(f'alff_falff_{pipe_num}')
 
@@ -277,19 +280,67 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="alff_falff_space_template",
+    config=["amplitude_low_frequency_fluctuation"],
+    switch=["run"],
+    inputs=[
+        (
+            [
+                "space-template_res-derivative_desc-denoisedNofilt_bold",
+                "space-template_res-derivative_desc-preproc_bold",
+                "space-template_desc-preproc_bold"
+            ],
+            [
+                "space-template_res-derivative_desc-bold_mask",
+                "space-template_desc-bold_mask"
+            ],
+            "desc-denoisedNofilt_bold", 
+            "from-bold_to-template_mode-image_xfm",
+            "T1w-brain-template-deriv",
+        )
+    ],
+    outputs=["space-template_alff", "space-template_falff", 
+             "space-template_res-derivative_desc-denoisedNofilt_bold"],
+)
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "alff_falff_space_template",
-     "config": ["amplitude_low_frequency_fluctuation"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": [(["space-template_res-derivative_desc-denoisedNofilt_bold",
-                  "space-template_res-derivative_desc-preproc_bold"],
-                 "space-template_res-derivative_desc-bold_mask")],
-     "outputs": ["space-template_alff",
-                 "space-template_falff"]}
-    '''
+
+    outputs = {}    
+    if strat_pool.check_rpool("desc-denoisedNofilt_bold"):
+        xfm_prov = strat_pool.get_cpac_provenance(
+            'from-bold_to-template_mode-image_xfm')
+        reg_tool = check_prov_for_regtool(xfm_prov)
+
+        num_cpus = cfg.pipeline_setup['system_config'][
+            'max_cores_per_participant']
+
+        num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+        apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', reg_tool,
+                                    time_series=True, num_cpus=num_cpus,
+                                    num_ants_cores=num_ants_cores)
+
+        if reg_tool == 'ants':
+            apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'ANTs_pipelines']['interpolation']
+        elif reg_tool == 'fsl':
+            apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'FNIRT_pipelines']['interpolation']
+
+        node, out = strat_pool.get_data("desc-denoisedNofilt_bold")
+        wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+        node, out = strat_pool.get_data("T1w-brain-template-deriv")
+        wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+        node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+        wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+        outputs = {
+            f'space-template_res-derivative_desc-denoisedNofilt_bold': (apply_xfm, 'outputspec.output_image')
+        }
     alff = create_alff(f'alff_falff_{pipe_num}')
 
     alff.inputs.hp_input.hp = \
@@ -298,17 +349,17 @@ def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg.amplitude_low_frequency_fluctuation['lowpass_cutoff']
     alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
     alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
-
     node, out = strat_pool.get_data(["space-template_res-derivative_desc-denoisedNofilt_bold",
-                                     "space-template_res-derivative_desc-preproc_bold"])
+                                     "space-template_res-derivative_desc-preproc_bold",
+                                     "space-template_desc-preproc_bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
-
-    node, out = strat_pool.get_data("space-template_res-derivative_desc-bold_mask")
+    node, out = strat_pool.get_data(["space-template_res-derivative_desc-bold_mask",
+                                     "space-template_desc-bold_mask"])
     wf.connect(node, out, alff, 'inputspec.rest_mask')
-
-    outputs = {
+    
+    outputs.update({
         'space-template_alff': (alff, 'outputspec.alff_img'),
         'space-template_falff': (alff, 'outputspec.falff_img')
-    }
+    })
 
     return (wf, outputs)

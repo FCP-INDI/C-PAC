@@ -25,11 +25,9 @@ import pickle
 import numpy as np
 import yaml
 
-from click import BadParameter
 from copy import deepcopy
 from itertools import repeat
 from voluptuous.error import Invalid
-from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
 CONFIGS_DIR = os.path.abspath(os.path.join(
     __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
@@ -150,8 +148,8 @@ def read_json(json_file):
 
 
 def create_id_string(cfg, unique_id, resource, scan_id=None,
-                     template_desc=None, atlas_id=None, fwhm=None, subdir=None
-                     ):
+                     template_desc=None, atlas_id=None, fwhm=None,
+                     subdir=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -169,12 +167,6 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
     import re
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, \
                                       res_in_filename
-    from CPAC.utils.outputs import Outputs
-
-    if resource in Outputs.motion:
-        resource = (
-            f'desc-{resource.replace("framewise-displacement", "FD")}_motion')
-
     if atlas_id:
         if '_desc-' in atlas_id:
             atlas, desc = atlas_id.split('_desc-')
@@ -190,7 +182,6 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
         part_id = f'sub-{part_id}'
     if 'ses-' not in ses_id:
         ses_id = f'ses-{ses_id}'
-
     if scan_id:
         out_filename = f'{part_id}_{ses_id}_task-{scan_id}_{resource}'
     else:
@@ -217,7 +208,6 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
         out_filename = out_filename.replace('_space-T1w_', '_')
     if subdir == 'func':
         out_filename = out_filename.replace('_space-bold_', '_')
-
     return combine_multiple_entity_instances(
         res_in_filename(cfg, out_filename))
 
@@ -452,15 +442,15 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
         filename = filename.replace(".gz", "")
 
     corr_img = nb.load(correlation_file)
-    corr_data = corr_img.get_data()
+    corr_data = corr_img.get_fdata()
 
-    hdr = corr_img.get_header()
+    hdr = corr_img.header
 
     # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
     z_score_img = nb.Nifti1Image(corr_data, header=hdr,
-                                 affine=corr_img.get_affine())
+                                 affine=corr_img.affine)
 
     out_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
@@ -701,7 +691,6 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
 
         if value is not None:
             return value
-
     return None
 
 
@@ -739,7 +728,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     pe_direction : str
     effective_echo_spacing : float
     """
-
+    
     import os
     import json
     import warnings
@@ -761,7 +750,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
             pipeconfig_stop_indx = None
-
     if data_config_scan_params:
         if ".json" in data_config_scan_params:
             if not os.path.exists(data_config_scan_params):
@@ -805,14 +793,29 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
             # get details from the configuration
-            TR = float(
-                try_fetch_parameter(
-                    params_dct,
-                    subject_id,
-                    scan,
-                    ['TR', 'RepetitionTime']
+            try: 
+                TR = float(
+                    try_fetch_parameter(
+                        params_dct,
+                        subject_id,
+                        scan,
+                        ['TR', 'RepetitionTime']
+                    )
                 )
-            )
+            except TypeError:
+                TR = None
+
+            try: 
+                template = str(
+                    try_fetch_parameter(
+                        params_dct,
+                        subject_id,
+                        scan,
+                        ['Template', 'template']
+                    )
+                )
+            except TypeError:
+                template = None
 
             pattern = str(
                 try_fetch_parameter(
@@ -850,7 +853,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                   "information included in the data configuration file for " \
                   f"the participant {subject_id}.\n\n"
             raise Exception(err)
-
     if first_tr == '' or first_tr is None:
         first_tr = pipeconfig_start_indx
 
@@ -877,7 +879,6 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
     valid_patterns = ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
                       'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']
-
     if pattern and pattern != '' and pattern not in valid_patterns:
 
         if isinstance(pattern, list) or \
@@ -959,6 +960,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
 
     return (tr if tr else None,
             tpattern if tpattern else None,
+            template if template else None,
             ref_slice,
             start_indx,
             stop_indx,
@@ -989,7 +991,7 @@ def check_tr(tr, in_file):
 
     # get header from image data, then extract TR information, TR is fourth
     # item in list returned by get_zooms()
-    imageHeader = img.get_header()
+    imageHeader = img.header
     imageZooms = imageHeader.get_zooms()
     header_tr = imageZooms[3]
 
@@ -1008,7 +1010,7 @@ def check_tr(tr, in_file):
                       'the config and subject list files.')
 
     return TR
-
+        
 
 def add_afni_prefix(tpattern):
     if ".txt" in tpattern:
@@ -1484,7 +1486,7 @@ def _check_nested_types(d, keys):
 def delete_nested_value(d, keys):
     '''Helper function to delete nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -1509,33 +1511,6 @@ def delete_nested_value(d, keys):
         return d
     d[keys[0]] = delete_nested_value(d.get(keys[0], {}), keys[1:])
     return d
-
-
-def load_preconfig(pipeline_label):
-    import os
-    import pkg_resources as p
-
-    if pipeline_label not in ALL_PIPELINE_CONFIGS:
-        raise BadParameter(
-            "The pre-configured pipeline name '{0}' you provided is not one "
-            "of the available pipelines.\n\nAvailable pipelines:\n"
-            "{1}\n".format(pipeline_label, str(AVAILABLE_PIPELINE_CONFIGS)),
-            param='preconfig')
-
-    pipeline_file = \
-        p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources",
-                "configs",
-                "pipeline_config_{0}.yml".format(pipeline_label)
-            )
-        )
-
-    print(f"Loading the '{pipeline_label}' pre-configured pipeline.",
-          file=sys.stderr)
-
-    return pipeline_file
 
 
 def ordereddict_to_dict(value):
@@ -1849,7 +1824,7 @@ def list_item_replace(l,  # noqa: E741  # pylint: disable=invalid-name
 def lookup_nested_value(d, keys):
     '''Helper method to look up nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple
@@ -2011,7 +1986,7 @@ def replace_in_strings(d, replacements=None):
 def set_nested_value(d, keys, value):
     '''Helper method to set nested values
 
-    Paramters
+    Parameters
     ---------
     d: dict
     keys: list or tuple

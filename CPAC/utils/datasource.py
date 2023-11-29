@@ -17,7 +17,8 @@
 import csv
 import json
 import re
-from typing import Tuple
+from pathlib import Path
+from typing import Union
 from nipype import logging
 from nipype.interfaces import utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -26,6 +27,7 @@ from CPAC.resources.templates.lookup_table import format_identifier, \
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import get_scan_params
 
 logger = logging.getLogger('nipype.workflow')
@@ -165,7 +167,7 @@ def check_func_scan(func_scan_dct, scan):
                         '\n\n'.format(scan))
 
 
-def create_func_datasource(rest_dict, wf_name='func_datasource'):
+def create_func_datasource(rest_dict, rpool, wf_name='func_datasource'):
     """Return the functional timeseries-related file paths for each
     series/scan, from the dictionary of functional files described in the data
     configuration (sublist) YAML file.
@@ -189,16 +191,19 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='outputspec')
 
     # have this here for now because of the big change in the data
-    # configuration format
-    check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
+    # configuration format 
+    # (Not necessary with ingress - format does not comply)
+    if not rpool.check_rpool('derivatives-dir'):
+        check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
                                                         'scan'],
                                            output_names=[],
                                            function=check_func_scan,
                                            as_module=True),
                          name='check_func_scan')
 
-    check_scan.inputs.func_scan_dct = rest_dict
-    wf.connect(inputnode, 'scan', check_scan, 'scan')
+        check_scan.inputs.func_scan_dct = rest_dict
+        wf.connect(inputnode, 'scan', check_scan, 'scan')
+
 
     # get the functional scan itself
     selectrest = pe.Node(function.Function(input_names=['scan',
@@ -366,9 +371,9 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     return (dwell_time, pe_direction, total_readout, echo_time, 
             echo_time_one, echo_time_two)
 
-
+@Function.sig_imports(['from CPAC.utils.typing import TUPLE'])
 def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
-                                 echo_times: list) -> Tuple[float, float]:
+                                 echo_times: list) -> TUPLE[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata
 
     Parameters
@@ -591,6 +596,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                      'pipeconfig_stop_indx'],
         output_names=['tr',
                       'tpattern',
+                      'template',
                       'ref_slice',
                       'start_indx',
                       'stop_indx',
@@ -605,16 +611,33 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             'start_tr'],
         pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr'])
 
-    # wire in the scan parameter workflow
-    node, out = rpool.get('scan-params')[
-        "['scan-params:scan_params_ingress']"]['data']
-    wf.connect(node, out, scan_params, 'data_config_scan_params')
-
     node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
     wf.connect(node, out, scan_params, 'scan')
 
+    # Workaround for extracting metadata with ingress
+    if rpool.check_rpool('derivatives-dir'):
+        selectrest_json = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
+                         name='selectrest_json')
+        selectrest_json.inputs.rest_dict = sub_dict
+        selectrest_json.inputs.resource = "scan_parameters"
+        wf.connect(node, out, selectrest_json, 'scan')
+        wf.connect(selectrest_json, 'file_path', scan_params, 'data_config_scan_params')
+    
+    else:
+        # wire in the scan parameter workflow
+        node, out = rpool.get('scan-params')[
+            "['scan-params:scan_params_ingress']"]['data']
+        wf.connect(node, out, scan_params, 'data_config_scan_params')
+
     rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
     rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('template', scan_params, 'template', {}, "", 
                    "func_metadata_ingress")
     rpool.set_data('start-tr', scan_params, 'start_indx', {}, "",
                    "func_metadata_ingress")
@@ -647,7 +670,7 @@ def create_general_datasource(wf_name):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['unique_id', 'data', 'creds_path',
+        fields=['unique_id', 'data', 'scan', 'creds_path',
                 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
@@ -667,10 +690,12 @@ def create_general_datasource(wf_name):
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['unique_id',
-                                                        'data']),
+                                                        'data',
+                                                        'scan']),
                          name='outputspec')
 
     wf.connect(inputnode, 'unique_id', outputnode, 'unique_id')
+    wf.connect(inputnode, 'scan', outputnode, 'scan')
     wf.connect(check_s3_node, 'local_path', outputnode, 'data')
 
     return wf
@@ -901,6 +926,52 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
+def get_highest_local_res(template: Union[Path, str], tagname: str) -> Path:
+    """Given a reference template path and a resolution string, get all
+    resolutions of that template in the same local path and return the
+    highest resolution.
+
+    Parameters
+    ----------
+    template : Path or str
+
+    tagname : str
+
+    Returns
+    -------
+    str
+
+    Raises
+    ------
+    LookupError
+        If no matching local template is found.
+
+    Examples
+    --------
+    >>> get_highest_local_res(
+    ...     '/cpac_templates/MacaqueYerkes19_T1w_2mm_brain.nii.gz', '2mm')
+    PosixPath('/cpac_templates/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz')
+    >>> get_highest_local_res(
+    ...     '/cpac_templates/dne_T1w_2mm.nii.gz', '2mm')
+    Traceback (most recent call last):
+       ...
+    LookupError: Could not find template /cpac_templates/dne_T1w_2mm.nii.gz
+    """
+    from CPAC.pipeline.schema import RESOLUTION_REGEX
+    if isinstance(template, str):
+        template = Path(template)
+    template_pattern = (
+        RESOLUTION_REGEX.replace('^', '').replace('$', '').join([
+            re.escape(_part) for _part in template.name.split(tagname, 1)]))
+    matching_templates = [file for file in template.parent.iterdir() if
+                          re.match(template_pattern, file.name)]
+    matching_templates.sort()
+    try:
+        return matching_templates[0]
+    except (FileNotFoundError, IndexError):
+        raise LookupError(f"Could not find template {template}")
+
+
 def res_string_to_tuple(resolution):
     """
     Converts a resolution string to a tuple of floats.
@@ -946,9 +1017,12 @@ def resolve_resolution(resolution, template, template_name, tag=None):
 
     if local_path is None:
         if tagname is not None:
-            ref_template = template.replace(tagname, '1mm')
-            local_path = check_for_s3(ref_template)
-        elif tagname is None and "s3" in template:
+            if template.startswith('s3:'):
+                ref_template = template.replace(tagname, '1mm')
+                local_path = check_for_s3(ref_template)
+            else:
+                local_path = get_highest_local_res(template, tagname)
+        elif tagname is None and template.startswith('s3:'):
             local_path = check_for_s3(template)
         else:
             local_path = template
@@ -1220,8 +1294,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
-    import os, subprocess
+    import os
     import nibabel as nb
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
 
     # load func and ROI dimension
     func_img = nb.load(in_func)
@@ -1257,7 +1332,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
                '-out', out_file,
                '-interp', interp,
                '-applyxfm', '-init', identity_matrix]
-        subprocess.check_output(cmd)
+        log_subprocess(cmd)
 
     else:
         out_func = in_func

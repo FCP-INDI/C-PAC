@@ -1,5 +1,6 @@
 # coding: utf-8
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.reho.utils import *
@@ -111,17 +112,14 @@ def create_reho(wf_name):
     return reHo
 
 
+@nodeblock(
+    name="ReHo",
+    config=["regional_homogeneity"],
+    switch=["run"],
+    inputs=["desc-preproc_bold", "space-bold_desc-brain_mask"],
+    outputs=["reho"],
+)
 def reho(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "ReHo",
-     "config": ["regional_homogeneity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["desc-preproc_bold",
-                "space-bold_desc-brain_mask"],
-     "outputs": ["reho"]}
-    '''
     cluster_size = cfg.regional_homogeneity['cluster_size']
 
     # Check the cluster size is supported
@@ -147,17 +145,20 @@ def reho(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="ReHo_space_template",
+    config=["regional_homogeneity"],
+    switch=["run"],
+    inputs=[
+        ["space-template_res-derivative_desc-preproc_bold",
+          "space-template_desc-preproc_bold"],
+        ["space-template_res-derivative_desc-bold_mask",
+          "space-template_desc-brain_mask"],
+    ],
+    outputs=["space-template_reho"],
+)
 def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "ReHo_space_template",
-     "config": ["regional_homogeneity"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_res-derivative_desc-preproc_bold",
-                "space-template_res-derivative_desc-bold_mask"],
-     "outputs": ["space-template_reho"]}
-    '''
+  
     cluster_size = cfg.regional_homogeneity['cluster_size']
 
     # Check the cluster size is supported
@@ -170,11 +171,12 @@ def reho_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     reho = create_reho(f'reho_{pipe_num}')
     reho.inputs.inputspec.cluster_size = cluster_size
 
-    node, out = strat_pool.get_data("space-template_res-derivative_desc-preproc_bold")
+    node, out = strat_pool.get_data(["space-template_res-derivative_desc-preproc_bold",
+                                    "space-template_desc-preproc_bold"])
     wf.connect(node, out, reho, 'inputspec.rest_res_filt')
 
-    node, out_file = strat_pool.get_data(
-        'space-template_res-derivative_desc-bold_mask')
+    node, out_file = strat_pool.get_data(['space-template_res-derivative_desc-bold_mask',
+                                          'space-template_desc-brain_mask'])
     wf.connect(node, out_file, reho, 'inputspec.rest_mask')
 
     outputs = {

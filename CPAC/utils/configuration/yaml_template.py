@@ -1,30 +1,32 @@
-"""Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022  C-PAC Developers
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Functions to create YAML configuration files from templates."""
 from copy import deepcopy
 import os
 import re
 from datetime import datetime
 from hashlib import sha1
+from click import BadParameter
 import yaml
-from CPAC.surface.globals import DOUBLERUN_GUARD_MESSAGE
+
 from CPAC.utils.configuration import Configuration, Preconfiguration, \
                                      preconfig_yaml
-from CPAC.utils.utils import set_nested_value, update_config_dict, \
-                             update_pipeline_values_1_8, YAML_BOOLS
+from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, \
+                             YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for
                yaml_str in value}
@@ -36,10 +38,10 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
     Attributes
     ----------
     comments : dict
-        Flat dictionary with '.'-delimited pseudo-nested structure.
+        Flat dictionary with ``'.'``-delimited pseudo-nested structure.
         E.g., comments for ``{'pipeline_setup': {'pipeline_name': value}}``
-        would be keyed ``{'pipeline_setup': comment0,
-                          'pipeline_setup.pipeline_name: comment1}`` to
+        would be keyed
+        ``{'pipeline_setup': comment0, 'pipeline_setup.pipeline_name: comment1}`` to
         allow comments at each level of depth.
 
     dump : method
@@ -57,16 +59,20 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
 
         base_config : Configuration, optional
         """
-        preconfig_path = preconfig_yaml(original_yaml)
-        if os.path.exists(preconfig_path):
-            original_yaml = preconfig_path
+        try:
+            original_yaml = preconfig_yaml(original_yaml)
+        except BadParameter:
+            pass
         if os.path.exists(original_yaml):
             with open(original_yaml, 'r', encoding='utf-8') as _f:
                 original_yaml = _f.read()
         self.comments = {}
         self.template = original_yaml
         if base_config is None:
-            self._dict = yaml.safe_load(self.template)
+            if isinstance(self.template, dict):
+                self._dict = self.template
+            if isinstance(self.template, str):
+                self._dict = yaml.safe_load(self.template)
         else:
             self._dict = base_config.dict()
         self._parse_comments()
@@ -87,18 +93,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
         -------
         str
         """
-        # Initialize variable for automatically updated value
-        if parents == ['surface_analysis', 'freesurfer'] or parents is None:
-            freesurfer_extraction = False
-            try:
-                brain_extractions = self.get_nested(
-                    new_dict, ['anatomical_preproc', 'brain_extraction',
-                               'using'])
-            except KeyError:
-                brain_extractions = []
-            if (brain_extractions is not None and
-                    'FreeSurfer-ABCD' in brain_extractions):
-                freesurfer_extraction = True
+    
         # SSOT FSLDIR
         try:  # Get from current config
             fsldir = self.get_nested(new_dict,
@@ -117,17 +112,6 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
             _dump = ['%YAML 1.1', '---']
             if 'pipeline_setup' not in new_dict:
                 new_dict['pipeline_setup'] = None
-            # Insert automatically-changed value in original dict
-            if freesurfer_extraction:
-                new_dict = set_nested_value(
-                    new_dict, ['surface_analysis', 'freesurfer',
-                    'run_reconall'], False)
-            ingress_keys = ['surface_analysis', 'freesurfer', 'ingress_reconall']
-            try:
-                self.get_nested(new_dict, ingress_keys)
-            except KeyError:
-                new_dict = set_nested_value(new_dict, ingress_keys,
-                                            self.get_nested(self._dict, ingress_keys))
         else:
             _dump = []
         # Prepare for indentation
@@ -150,12 +134,7 @@ class YamlTemplate():  # pylint: disable=too-few-public-methods
                 value = self.get_nested(new_dict, keys)
             except KeyError:  # exclude unincluded keys
                 continue
-            # Add comment for automatically changed value
-            if (keys == ['surface_analysis', 'freesurfer', 'run_reconall'] and
-                    freesurfer_extraction):
-                if comment is None:
-                    comment = []
-                comment.append(f'# {DOUBLERUN_GUARD_MESSAGE}')
+
             # Print comment if there's one above this key in the template
             if comment:
                 if key != 'pipeline_setup':

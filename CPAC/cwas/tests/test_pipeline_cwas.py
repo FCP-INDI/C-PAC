@@ -5,10 +5,12 @@ import nibabel as nb
 import nilearn.datasets
 import numpy as np
 import pandas as pd
+import pytest
 
 from CPAC.cwas.pipeline import create_cwas
 
-def test_pipeline():
+@pytest.mark.parametrize('z_score', [[0], [1], [0, 1], []])
+def test_pipeline(z_score):
     try:
         # pylint: disable=invalid-name
         cc = nilearn.datasets.fetch_atlas_craddock_2012()
@@ -26,8 +28,6 @@ def test_pipeline():
 
     pheno = pheno[['FILE_ID', 'AGE_AT_SCAN', 'FIQ']]
 
-    pheno.FILE_ID = pheno.FILE_ID.apply(lambda b: b.decode())
-
     pheno.to_csv('/tmp/cwas/pheno.csv')
 
     # Sanity ordering check
@@ -36,7 +36,7 @@ def test_pipeline():
         for i, FID in enumerate(pheno.FILE_ID)
     )
     img = nb.load(cc['scorr_mean'])
-    img_data = np.copy(img.get_data()[:, :, :, 10])
+    img_data = np.copy(img.get_fdata()[:, :, :, 10])
     img_data[img_data != 2] = 0.0
     img = nb.Nifti1Image(img_data, img.affine)
     nb.save(img, '/tmp/cwas/roi.nii.gz')
@@ -62,5 +62,6 @@ def test_pipeline():
     workflow.inputs.inputspec.columns = columns
     workflow.inputs.inputspec.permutations = permutations
     workflow.inputs.inputspec.parallel_nodes = parallel_nodes
+    workflow.inputs.inputspec.z_score = z_score
 
     workflow.run(plugin='Linear')

@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.5
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -28,16 +28,18 @@ pipeline_setup:
 # -------------
 surface_analysis:
 
+  # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
+  abcd_prefreesurfer_prep:
+    run: On
+
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
   freesurfer:
+    run_reconall: On
 
     # Ingress freesurfer recon-all folder
     ingress_reconall: On
-
-    # FreeSurfer will run as part of configured brain extraction in this specific configuration, so FreeSurfer's independent run was automatically disabled.
-    run_reconall: Off
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
@@ -238,21 +240,6 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 2mm
 
-      target_template:
-        T1_template:
-
-          # Standard Skull Stripped Template. Used as a reference image for functional registration.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template_funcreg: /usr/share/data/fsl-mni152-templates/MNI152_T1_${func_resolution}_brain.nii.gz
-
-          # Standard Anatomical Brain Image with Skull.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template_funcreg: /usr/share/data/fsl-mni152-templates/MNI152_T1_${func_resolution}.nii.gz
-
-          # Template to be used during registration.
-          # It is not necessary to change this path unless you intend to use a non-standard template.
-          T1w_brain_template_mask_funcreg: /usr/share/data/fsl-mni152-templates/MNI152_T1_${func_resolution}_brain_mask.nii.gz
-
       ANTs_pipelines:
 
         # Interpolation method for writing out transformed functional images.
@@ -274,7 +261,9 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
       using: [mcflirt]
 
       # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
@@ -293,6 +282,7 @@ functional_preproc:
     using: [PhaseDiff, Blip-FSL-TOPUP]
 
   func_masking:
+    run: On
 
     # Apply functional mask in native space
     apply_func_mask_in_native_space: Off
@@ -309,6 +299,11 @@ functional_preproc:
   generate_func_mean:
 
     # Generate mean functional image
+    run: On
+
+  coreg_prep:
+
+    # Generate sbref
     run: On
 
 nuisance_corrections:
@@ -354,9 +349,6 @@ nuisance_corrections:
         # Target volume ratio, if using erosion.
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop: 0.6
-
-    # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
 
 timeseries_extraction:
   connectivity_matrix:

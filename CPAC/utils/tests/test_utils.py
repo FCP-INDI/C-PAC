@@ -2,9 +2,10 @@
 import multiprocessing
 from unittest import mock
 import pytest
-from CPAC.func_preproc.func_preproc import get_motion_ref
+from CPAC.func_preproc import get_motion_ref
+from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
-from CPAC.utils.docs import grab_docstring_dct
+from CPAC.utils.monitoring.custom_logging import log_subprocess
 from CPAC.utils.utils import check_config_resources, check_system_deps, \
                              try_fetch_parameter
 
@@ -20,6 +21,31 @@ scan_params_cpac = {
     'first_tr': '',
     'last_tr': '',
 }
+
+
+def _installation_check(command: str, flag: str) -> None:
+    """Test that command is installed by running specified version or
+    help flag.
+
+    Parameters
+    ----------
+    command : str
+        Command to run.
+
+    flag : str
+        Version or help flag to run.
+
+    Raises
+    ------
+    AssertionError
+        If command is not installed.
+
+    Returns
+    -------
+    None
+    """
+    _, exit_code = log_subprocess([command, flag])
+    assert exit_code == 0
 
 
 def test_check_config_resources():
@@ -43,13 +69,19 @@ def test_function():
     assert TR == 2.5
 
 
+@pytest.mark.parametrize("executable", ["Xvfb"])
+def test_executable(executable):
+    """Make sure executable is installed"""
+    _installation_check(executable, "-help")
+
+
 def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
     '''Test using NodeBlock dictionaries for SSOT for options'''
-    nodebock_opts = grab_docstring_dct(get_motion_ref).get('option_val')
+    assert isinstance(get_motion_ref, NodeBlockFunction)
     with pytest.raises(ValueError) as value_error:
         get_motion_ref(None, None, None, None, opt='chaos')
     error_message = str(value_error.value).rstrip()
-    for opt in nodebock_opts:
+    for opt in get_motion_ref.option_val:
         assert f"'{opt}'" in error_message
     assert error_message.endswith('Tool input: \'chaos\'')
 

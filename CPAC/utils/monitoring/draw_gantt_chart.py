@@ -650,8 +650,9 @@ def _timing_timestamp(node):
     -------
     dict
     """
-    if node is None:
+    if node is None or node.items() is None:
         raise ProcessLookupError('No logged nodes have timing information.')
-    return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if
-            '.' in v else datetime.fromisoformat(v)) if
-            k in {"start", "finish"} else v for k, v in node.items()}
+    return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if '.' in v else
+                datetime.fromisoformat(v)) if (k in {"start", "finish"} and
+                                               isinstance(v, str)) else
+            v for k, v in node.items()}

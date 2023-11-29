@@ -65,13 +65,13 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
     
     """
     nii = nb.load(realigned_file)
-    data = nii.get_data().astype('float64')
+    data = nii.get_fdata().astype('float64')
     mask = (data != 0).sum(-1) != 0
     Y = data[mask].T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
 
     if not sample_period:
-        hdr = nii.get_header()
+        hdr = nii.header
         sample_period = float(hdr.get_zooms()[3])
         # Sketchy check to convert TRs in millisecond units
         if sample_period > 20.0:
@@ -82,8 +82,8 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
         Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
 
     data[mask] = Y_bp.T
-    img = nb.Nifti1Image(data, header=nii.get_header(),
-                         affine=nii.get_affine())
+    img = nb.Nifti1Image(data, header=nii.header,
+                         affine=nii.affine)
     bandpassed_file = os.path.join(os.getcwd(),
                                    'bandpassed_demeaned_filtered.nii.gz')
     img.to_filename(bandpassed_file)
@@ -94,7 +94,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
 
         if regressor_file.endswith('.nii.gz') or regressor_file.endswith('.nii'):
             nii = nb.load(regressor_file)
-            data = nii.get_data().astype('float64')
+            data = nii.get_fdata().astype('float64')
             mask = (data != 0).sum(-1) != 0
             Y = data[mask].T
             Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
@@ -103,26 +103,36 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
             data[mask] = Y_bp.T
             
-            img = nb.Nifti1Image(data, header=nii.get_header(),
-                            affine=nii.get_affine())
+            img = nb.Nifti1Image(data, header=nii.header,
+                            affine=nii.affine)
             regressor_bandpassed_file = os.path.join(os.getcwd(),
                                     'regressor_bandpassed_demeaned_filtered.nii.gz')
             img.to_filename(regressor_bandpassed_file)
         
         else:
             with open(regressor_file, 'r') as f:
-                header = [f.readline() for x in range(0,3)]
+                header = []
 
-            regressor = np.loadtxt(regressor_file)
+                # header wouldn't be longer than 5, right? I don't want to 
+                # loop over the whole file
+                for i in range(5):
+                    line = f.readline()
+                    if line.startswith('#') or isinstance(line[0], str):
+                        header.append(line)
+            
+            # usecols=[list]
+            regressor = np.loadtxt(regressor_file, skiprows=len(header))
             Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
             Y_bp = np.zeros_like(Yc)
-            for j in range(regressor.shape[1]):
+
+            # Modify to allow just 1 regressor column
+            shape = regressor.shape[0] if len(regressor.shape) < 1 else regressor.shape[1]
+            for j in range(shape):
                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
                                             bandpass_freqs)
 
             regressor_bandpassed_file = os.path.join(os.getcwd(),
                                     'regressor_bandpassed_demeaned_filtered.1D')
-
             with open(regressor_bandpassed_file, "w") as ofd:
                 # write out the header information
                 for line in header:
@@ -131,7 +141,6 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                 nuisance_regressors = np.array(Y_bp)
                 np.savetxt(ofd, nuisance_regressors, fmt='%.18f',
                         delimiter='\t')
-
     return bandpassed_file, regressor_bandpassed_file
 
 

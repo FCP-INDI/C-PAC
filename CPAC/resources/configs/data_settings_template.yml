@@ -1,5 +1,5 @@
 # CPAC Data Settings File
-# Version 1.8.5
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -97,6 +97,16 @@ scanParametersCSV: None
 # Examples:
 # /data/{site}/{participant}/{session}/{participant}_{session}_brain-mask.nii.gz
 brain_mask_template: None
+
+
+# File Path for Freesurfer Directory.
+# This should be the directory for the `recon-all` output
+# Each participant should contain subdirectories: label, mri, scripts, stats, surf, tmp, touch, trash
+#
+# Examples:
+# /recon-all_path/{participant}
+# 
+freesurfer_dir: None
 
 
 # File Path Template for Field Map Phase files

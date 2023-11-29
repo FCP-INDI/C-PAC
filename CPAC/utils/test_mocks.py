@@ -17,7 +17,7 @@ def file_node(path, file_node_num=0):
 
 
 def configuration_strategy_mock(method='FSL'):
-
+    fsldir = os.environ.get('FSLDIR')
     # mock the config dictionary
     c = Configuration({
         "pipeline_setup": {
@@ -36,7 +36,7 @@ def configuration_strategy_mock(method='FSL'):
             "functional_registration": {
                 "EPI_registration": {
                     "FSL-FNIRT": {
-                        "identity_matrix": "/usr/share/fsl/5.0/etc/flirtsch/"
+                        "identity_matrix": f"{fsldir}/etc/flirtsch/"
                                            "ident.mat",
                         "interpolation": "sinc"
                     }
@@ -51,17 +51,17 @@ def configuration_strategy_mock(method='FSL'):
                     },
                     "target_template": {
                         "T1_template": {
-                            "T1w_template_for_resample": "/usr/share/fsl/5.0/"
+                            "T1w_template_for_resample": f"{fsldir}/"
                                                          "data/standard/"
                                                          "MNI152_T1_1mm_brain."
                                                          "nii.gz",
-                            "T1w_brain_template_funcreg": "/usr/share/fsl/5.0/"
+                            "T1w_brain_template_funcreg": f"{fsldir}/"
                                                           "data/standard/"
                                                           "MNI152_T1_"
                                                           "${resolution_for_"
                                                           "func_preproc}_"
                                                           "brain.nii.gz",
-                            "T1w_template_funcreg": "/usr/share/fsl/5.0/data/"
+                            "T1w_template_funcreg": f"{fsldir}/data/"
                                                     "standard/MNI152_T1_"
                                                     "${resolution_for_func_"
                                                     "preproc}.nii.gz"
