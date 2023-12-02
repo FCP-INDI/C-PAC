@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgraded dependencies
 
-- `AFNI` 21.1.00 'Domitian' → 23.1.10 'Publius Helvius Pertinax'
+- `AFNI` 21.1.00 'Domitian' → 23.3.09 'Septimius Severus'
 - `ANTs` 2.3.3 'Leptomyrmex' → 2.4.3 'Emplastus'
 - `boto3` 1.7.37 → 1.28.4
 - `click` 6.7 → 8.1.5
