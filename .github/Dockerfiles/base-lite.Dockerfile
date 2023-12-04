@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/afni:23.1.10-jammy as AFNI
+FROM ghcr.io/fcp-indi/c-pac/afni:23.3.09-jammy as AFNI
 FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy as ANTs
 FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
 FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
