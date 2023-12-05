@@ -18,12 +18,13 @@
 # pylint: disable=import-error,redefined-outer-name,ungrouped-imports,unused-import
 from importlib import invalidate_caches
 import os
+from pathlib import Path
 import site
 from subprocess import CalledProcessError
 import sys
 from typing import Optional
 from CPAC.info import UNET_REQUIREMENTS
-from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.monitoring.custom_logging import getLogger, log_subprocess
 
 
 def _custom_pip_install(env_var: Optional[str] = None) -> None:
@@ -68,4 +69,10 @@ except (ImportError, ModuleNotFoundError):
             _custom_pip_install('PWD')  # pip install in $PWD
             os.environ['CPAC_WORKDIR'] = os.environ['PWD']
 if torch is not NotImplemented:
+    logger = getLogger('nipype.interface')
+    install_roots = [str(path) for path in Path(torch.__file__).parents if
+                     str(path).endswith('.local')]
+    if install_roots:
+        os.environ['TORCH_INSTALL_ROOT'] = install_roots[0]
+        logger.info('torch was installed in %s', install_roots[0])
     __all__ = ['torch']

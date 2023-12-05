@@ -230,6 +230,17 @@ faulthandler.enable()
 # config.enable_debug_mode()
 
 
+def log_torch_install() -> str:
+    '''Generate a log message about torch installation, if relevant'''
+    install_root = os.environ.get('TORCH_INSTALL_ROOT')
+    if install_root:
+        return (f'\n\ntorch was installed in {install_root} within the '
+                'C-PAC container for U-Net. If that path persists when the '
+                'container is removed, please check that the installation '
+                'was successfully removed.')
+    return ''
+
+
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                  plugin='MultiProc', plugin_args=None, test_config=False):
     '''
@@ -393,7 +404,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
         System time of start:      {run_start}
         System time of completion: {run_finish}
-        {output_check}
+        {output_check}{torch_installed}
 """  # noqa: E501
 
     logger.info('%s', information.format(
@@ -764,7 +775,7 @@ CPAC run error:
     Elapsed run time (minutes): {elapsed}
     Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
     System time of start:      {run_start}
-    {output_check}
+    {output_check}{torch_installed}
 """
 
         finally:
@@ -784,8 +795,8 @@ CPAC run error:
                     output_check=check_outputs(
                                  c.pipeline_setup['output_directory']['path'],
                                  log_dir, c.pipeline_setup['pipeline_name'],
-                                 c['subject_id'])
-                ))
+                                 c['subject_id']),
+                    torch_installed=log_torch_install()))
 
                 if workflow_result is not None:
                     workflow_meta.stage = "post"

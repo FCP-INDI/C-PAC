@@ -14,7 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from ._torch import torch  # this import has to be first to install torch
+# this import has to be first to install torch
+from ._torch import torch  # isort:skip
 
 from .function import write_nifti, estimate_dice, extract_large_comp, \
     predict_volumes, MyParser
