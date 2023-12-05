@@ -361,6 +361,7 @@ def run_main():
     output_dir_is_s3 = args.output_dir.lower().startswith("s3://")
     output_dir = args.output_dir if output_dir_is_s3 else os.path.realpath(
         args.output_dir)
+    os.environ["CPAC_WORKDIR"] = output_dir
     exitcode = 0
     if args.analysis_level == "cli":
         from CPAC.__main__ import main

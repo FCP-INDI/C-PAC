@@ -66,5 +66,6 @@ except (ImportError, ModuleNotFoundError):
         except (CalledProcessError, FileNotFoundError, ImportError,
                 ModuleNotFoundError, OSError):
             _custom_pip_install('PWD')  # pip install in $PWD
+            os.environ['CPAC_WORKDIR'] = os.environ['PWD']
 if torch is not NotImplemented:
     __all__ = ['torch']
