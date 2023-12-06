@@ -1130,10 +1130,20 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"after node block '{previous_nb.get_name()}':"
             ) if previous_nb else 'at beginning:'
             # Alert user to block that raises error
-            e.args = (
-                'When trying to connect node block '
-                f"'{NodeBlock(block).get_name()}' "
-                f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",)
+            if isinstance(block, list):
+                node_block_names = str([NodeBlock(b).get_name() for b in block])
+                e.args = (
+                    f'When trying to {e.args} connect one of the node blocks '
+                    f"'{node_block_names}' "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
+            else:
+                node_block_names = NodeBlock(block).get_name()
+                e.args = (
+                    f'When trying to {e.args} connect node block '
+                    f"'{node_block_names}' "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
             if cfg.pipeline_setup['Debugging']['verbose']:
                 verbose_logger = getLogger('engine')
                 verbose_logger.debug(e.args[0])
