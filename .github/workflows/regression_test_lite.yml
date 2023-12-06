@@ -28,6 +28,7 @@ jobs:
     name: Regression Test - Lite
     environment: ACCESS
     env:
+      SLURM_TESTING_OWNER: ${{ vars.SLURM_TESTING_OWNER }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
     if: "${{ github.env.SSH_PRIVATE_KEY }} != ''"
@@ -74,14 +75,14 @@ jobs:
           script: |
             cd ${{ secrets.SSH_WORK_DIR }}
             if [ ! -d slurm_testing ] ; then
-                git clone https://github.com/${{ github.repository_owner }}/slurm_testing slurm_testing
+                git clone https://github.com/${{ env.SLURM_TESTING_OWNER }}/slurm_testing slurm_testing
             else
                 cd slurm_testing
-                git pull origin regression/after_runs
+                git pull origin main
                 cd ..
             fi
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }},TESTING_OWNER=$(echo ${{ env.SLURM_TESTING_OWNER }}) | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
