@@ -1134,7 +1134,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 node_block_names = str([NodeBlock(b).get_name() for b in block])
                 e.args = (
                     f'When trying to connect one of the node blocks '
-                    f"'{node_block_names}' "
+                    f"{node_block_names} "
                     f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
                 )
             else:
