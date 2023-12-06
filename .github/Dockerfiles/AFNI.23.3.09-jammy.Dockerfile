@@ -119,6 +119,7 @@ RUN apt-get update \
     && cd /opt/afni \
     && VERSION_STRING=$(afni --version) \
     && VERSION_NAME=$(echo $VERSION_STRING | awk -F"'" '{print $2}') \
+    && echo "${AFNI_VERSION} (${VERSION_NAME})" > /afni_version.txt \
     # filter down to required packages
     && ls > full_ls \
     && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls \
@@ -154,9 +155,13 @@ RUN apt-get clean \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/*
 
-FROM scratch
+FROM busybox:latest
+COPY --from=AFNI /afni_version.txt /afni_version.txt
+ARG AFNI_VERSION_STRING
+RUN export AFNI_VERSION_STRING="$(cat /afni_version.txt)" \
+    && rm /afni_version.txt
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-AFNI ${AFNI_VERSION} (${VERSION_NAME}) stage"
+AFNI ${AFNI_VERSION_STRING} stage"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
