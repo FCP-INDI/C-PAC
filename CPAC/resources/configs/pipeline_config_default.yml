@@ -1019,6 +1019,11 @@ functional_preproc:
 
   run: On
 
+  update_header: 
+
+    # Convert raw data from LPI to RPI
+    run: On
+  
   truncation:
 
     # First timepoint to include in analysis.
@@ -1077,7 +1082,9 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
       using: ['3dvolreg']
 
       # option parameters
@@ -1363,13 +1370,12 @@ nuisance_corrections:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
-    # this is a fork point
+    # this is not a fork point
     # Run nuisance regression in native or template space
-    #   - If set to [native, template], the number of outputs will be double what it would be if only one space were chosen. Nuisance regression will only be run once per fork.
     #   - If set to template, will use the brain mask configured in
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
-    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
-    space: [native]
+    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
+    space: native
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On

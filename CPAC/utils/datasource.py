@@ -167,7 +167,7 @@ def check_func_scan(func_scan_dct, scan):
                         '\n\n'.format(scan))
 
 
-def create_func_datasource(rest_dict, wf_name='func_datasource'):
+def create_func_datasource(rest_dict, rpool, wf_name='func_datasource'):
     """Return the functional timeseries-related file paths for each
     series/scan, from the dictionary of functional files described in the data
     configuration (sublist) YAML file.
@@ -191,16 +191,19 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='outputspec')
 
     # have this here for now because of the big change in the data
-    # configuration format
-    check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
+    # configuration format 
+    # (Not necessary with ingress - format does not comply)
+    if not rpool.check_rpool('derivatives-dir'):
+        check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
                                                         'scan'],
                                            output_names=[],
                                            function=check_func_scan,
                                            as_module=True),
                          name='check_func_scan')
 
-    check_scan.inputs.func_scan_dct = rest_dict
-    wf.connect(inputnode, 'scan', check_scan, 'scan')
+        check_scan.inputs.func_scan_dct = rest_dict
+        wf.connect(inputnode, 'scan', check_scan, 'scan')
+
 
     # get the functional scan itself
     selectrest = pe.Node(function.Function(input_names=['scan',
@@ -367,7 +370,6 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
 
     return (dwell_time, pe_direction, total_readout, echo_time, 
             echo_time_one, echo_time_two)
-
 
 @Function.sig_imports(['from CPAC.utils.typing import TUPLE'])
 def calc_delta_te_and_asym_ratio(effective_echo_spacing: float,
@@ -594,6 +596,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                      'pipeconfig_stop_indx'],
         output_names=['tr',
                       'tpattern',
+                      'template',
                       'ref_slice',
                       'start_indx',
                       'stop_indx',
@@ -608,16 +611,33 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
             'start_tr'],
         pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr'])
 
-    # wire in the scan parameter workflow
-    node, out = rpool.get('scan-params')[
-        "['scan-params:scan_params_ingress']"]['data']
-    wf.connect(node, out, scan_params, 'data_config_scan_params')
-
     node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
     wf.connect(node, out, scan_params, 'scan')
 
+    # Workaround for extracting metadata with ingress
+    if rpool.check_rpool('derivatives-dir'):
+        selectrest_json = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
+                         name='selectrest_json')
+        selectrest_json.inputs.rest_dict = sub_dict
+        selectrest_json.inputs.resource = "scan_parameters"
+        wf.connect(node, out, selectrest_json, 'scan')
+        wf.connect(selectrest_json, 'file_path', scan_params, 'data_config_scan_params')
+    
+    else:
+        # wire in the scan parameter workflow
+        node, out = rpool.get('scan-params')[
+            "['scan-params:scan_params_ingress']"]['data']
+        wf.connect(node, out, scan_params, 'data_config_scan_params')
+
     rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
     rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('template', scan_params, 'template', {}, "", 
                    "func_metadata_ingress")
     rpool.set_data('start-tr', scan_params, 'start_indx', {}, "",
                    "func_metadata_ingress")
@@ -650,7 +670,7 @@ def create_general_datasource(wf_name):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['unique_id', 'data', 'creds_path',
+        fields=['unique_id', 'data', 'scan', 'creds_path',
                 'dl_dir'],
         mandatory_inputs=True),
         name='inputnode')
@@ -670,10 +690,12 @@ def create_general_datasource(wf_name):
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['unique_id',
-                                                        'data']),
+                                                        'data',
+                                                        'scan']),
                          name='outputspec')
 
     wf.connect(inputnode, 'unique_id', outputnode, 'unique_id')
+    wf.connect(inputnode, 'scan', outputnode, 'scan')
     wf.connect(check_s3_node, 'local_path', outputnode, 'data')
 
     return wf

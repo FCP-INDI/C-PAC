@@ -21,11 +21,12 @@ import re
 from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
-from voluptuous import All, ALLOW_EXTRA, Any, Capitalize, Coerce, \
-                       ExclusiveInvalid, In, Length, Lower, Match, Maybe, \
+from voluptuous import All, ALLOW_EXTRA, Any, BooleanInvalid, Capitalize, \
+                       Coerce, CoerceInvalid, ExclusiveInvalid, In, Length, \
+                       LengthInvalid, Lower, Match, Maybe, MultipleInvalid, \
                        Optional, Range, Required, Schema, Title
 from CPAC import docs_prefix
-from CPAC.utils.datatypes import ListFromItem
+from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -63,6 +64,10 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
             pass
         x = (True if str(x).lower() in YAML_BOOLS[True] else
              False if str(x).lower() in YAML_BOOLS[False] else x)
+    if not isinstance(x, (bool, int)):
+        raise BooleanInvalid('Type boolean value was expected, type '
+                             f'{getattr(type(x), "__name__", str(type(x)))} '
+                             f'value\n\n{x}\n\nwas provided')
     return bool(x)
 
 
@@ -84,21 +89,22 @@ valid_options = {
                              'Correlation threshold'],
        'weight_options': ['Binarized', 'Weighted']
     },
+    'motion_correction': ['3dvolreg', 'mcflirt'],
     'sca': {
-        'roi_paths': {'Avg', 'DualReg', 'MultReg'},
+        'roi_paths': ['Avg', 'DualReg', 'MultReg'],
     },
     'segmentation': {
         'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
         'template': ['EPI_Template', 'T1_Template'],
     },
     'timeseries': {
-        'roi_paths': {'Avg', 'Voxel', 'SpatialReg'},
+        'roi_paths': ['Avg', 'Voxel', 'SpatialReg'],
     },
     'connectivity_matrix': {
-        'using': {'AFNI', 'Nilearn', 'ndmg','Surface'},
-        'measure': {'Pearson', 'Partial', 'Spearman', 'MGC'
+        'using': ['AFNI', 'Nilearn', 'ndmg'],
+        'measure': ['Pearson', 'Partial', 'Spearman', 'MGC',
                     # 'TangentEmbed'  # "Skip tangent embedding for now"
-                    },
+        ],
     },
     'Regressors': {
         'CompCor': {
@@ -128,6 +134,8 @@ valid_options = {
     },
     'target_space': ['Native', 'Template']
 }
+valid_options['space'] = list({option.lower() for option in
+                               valid_options['target_space']})
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
         # exactly zero or one of each of the following can be True for FSL-BET
@@ -414,6 +422,10 @@ latest_schema = Schema({
         },
         'Debugging': {
             'verbose': bool1_1,
+        },
+        'outdir_ingress': {
+            'run': bool1_1,
+            'Template': Maybe(str),
         },
     },
     'anatomical_preproc': {
@@ -760,6 +772,9 @@ latest_schema = Schema({
             'start_tr': int,
             'stop_tr': Maybe(Any(int, All(Capitalize, 'End')))
         },
+        'update_header': {
+            'run': bool1_1,
+        },
         'scaling': {
             'run': bool1_1,
             'scaling_factor': Number
@@ -780,7 +795,14 @@ latest_schema = Schema({
                 'calculate_motion_after': bool1_1,
             },
             'motion_correction': {
-                'using': [In({'3dvolreg', 'mcflirt'})],
+                'using': Optional(All(Coerce(ListFromItem),
+                                      Length(min=0, max=1,
+                    msg='Forking is currently broken for this option. '
+                        'Please use separate configs if you want to '
+                        'use each of 3dvolreg and mcflirt. Follow '
+                        'https://github.com/FCP-INDI/C-PAC/issues/1935 '
+                        'to see when this issue is resolved.'),
+                             [In(valid_options['motion_correction'])])),
                 'AFNI-3dvolreg': {
                     'functional_volreg_twopass': bool1_1,
                 },
@@ -876,9 +898,15 @@ latest_schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'space': All(Coerce(ListFromItem),
-                         [All(Lower, In({'native', 'template'}))]),
+            'space': All(Coerce(ItemFromList),
+                         Lower, In({'native', 'template'})),
             'create_regressors': bool1_1,
+            'ingress_regressors': {
+                'run': bool1_1,
+                'Regressors': {
+                    'Name': Maybe(str),
+                    'Columns': [str]},
+            },
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
@@ -1080,7 +1108,18 @@ def schema(config_dict):
     dict
     '''
     from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
-    partially_validated = latest_schema(_changes_1_8_0_to_1_8_1(config_dict))
+    try:
+        partially_validated = latest_schema(
+            _changes_1_8_0_to_1_8_1(config_dict))
+    except MultipleInvalid as multiple_invalid:
+        if (multiple_invalid.path == ['nuisance_corrections',
+                                      '2-nuisance_regression', 'space'] and
+                isinstance(multiple_invalid.errors[0], CoerceInvalid)):
+            raise CoerceInvalid(
+                'Nusiance regression space is not forkable. Please choose '
+                f'only one of {valid_options["space"]}',
+                path=multiple_invalid.path) from multiple_invalid
+        raise multiple_invalid
     try:
         if (partially_validated['registration_workflows'][
             'functional_registration'
@@ -1094,7 +1133,7 @@ def schema(config_dict):
             if True in partially_validated['nuisance_corrections'][
                 '2-nuisance_regression']['run'] and partially_validated[
                 'nuisance_corrections'
-            ]['2-nuisance_regression']['space'] != ['template']:
+            ]['2-nuisance_regression']['space'] != 'template':
                 raise ExclusiveInvalid(
                     '``single_step_resampling_from_stc`` requires '
                     'template-space nuisance regression. Either set '
@@ -1119,6 +1158,55 @@ def schema(config_dict):
                     motion_filter, motion_filters['filters'])
         else:
             motion_filters['filters'] = []
+    except KeyError:
+        pass
+    try:
+        # 'motion_correction.using' is only optional if 'run' is Off
+        mec = partially_validated['functional_preproc'][
+            'motion_estimates_and_correction']
+        if mec['run']:
+            try:
+                # max should be len(valid_options['motion_correction'])
+                # once #1935 is resolved
+                Length(min=1, max=1)(mec['motion_correction']['using'])
+            except LengthInvalid:
+                mec_path = ['functional_preproc',
+                            'motion_estimates_and_correction']
+                raise LengthInvalid(  # pylint: disable=raise-missing-from
+                    f'If data[{"][".join(map(repr, mec_path))}][\'run\'] is '
+                    # length must be between 1 and
+                    # len(valid_options['motion_correction']) once #1935 is
+                    # resolved
+                    'True, length of list must be exactly 1',
+                    path=[*mec_path, 'motion_correction', 'using'])
+    except KeyError:
+        pass
+    try:
+        # Check for mutually exclusive options
+        if (partially_validated['nuisance_corrections'][
+            '2-nuisance_regression']['ingress_regressors']['run'] and
+            partially_validated['nuisance_corrections'][
+                '2-nuisance_regression']['create_regressors']):
+            raise ExclusiveInvalid(
+                "[!] Ingress_regressors and create_regressors can't both run! "
+                " Try turning one option off.\n ")
+    except KeyError:
+        pass
+    try:
+        if 'unet' in [using.lower() for using in
+                      partially_validated['anatomical_preproc'][
+                          'brain_extraction']['using']]:
+            try:
+                from importlib import import_module
+                import_module('CPAC.unet')
+            except (ImportError, ModuleNotFoundError, OSError) as error:
+                import site
+                raise OSError(
+                    'U-Net brain extraction requires torch to be installed, '
+                    'but the installation path in this container is '
+                    'read-only. Please bind a local writable path to '
+                    f'"{site.USER_BASE}" in the container to use U-Net.'
+                ) from error
     except KeyError:
         pass
     return partially_validated

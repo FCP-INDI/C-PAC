@@ -270,7 +270,9 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
       using: [mcflirt]
 
       # Choose motion correction reference. Options: mean, median, selected_volume, fmriprep_reference
@@ -356,9 +358,6 @@ nuisance_corrections:
         # Target volume ratio, if using erosion.
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop: 0.6
-
-    # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
 
 timeseries_extraction:
   connectivity_matrix:

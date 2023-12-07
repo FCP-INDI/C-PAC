@@ -146,7 +146,7 @@ class Function(IOBase):
          'from typing import Optional',
          'import numpy as np',
          'from CPAC.utils.pytest import skipif',
-         'from CPAC.utils.typing import LITERAL']
+         'from CPAC.utils.typing import LITERAL, TUPLE']
         >>> from inspect import signature
         >>> from nipype.utils.functions import (getsource,
         ...     create_function_from_source)

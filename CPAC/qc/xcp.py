@@ -73,7 +73,7 @@ from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 
 motion_params = ['dvars', 'framewise-displacement-jenkinson',
-                 'movement-parameters']
+                 'desc-movementParametersUnfiltered_motion', 'desc-movementParameters_motion']
 
 
 def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
@@ -127,7 +127,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
         (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
-        ]) for node in motion_params]])
+        ]) for node in motion_params if node in nodes]])
     return wf
 
 
@@ -395,7 +395,7 @@ def get_bids_info(subject, scan, wf_name):
             ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"],
             "regressors",
             ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"],
-            "movement-parameters",
+            ["desc-movementParametersUnfiltered_motion", "desc-movementParameters_motion"],
             "dvars",
             "framewise-displacement-jenkinson",
         )
@@ -441,7 +441,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         'bold', 'desc-preproc_bold', 'max-displacement',
         'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
         'space-T1w_sbref', 'space-template_desc-preproc_bold',
-        'subject', *motion_params]}
+        'subject', *motion_params] if strat_pool.check_rpool(key)}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(

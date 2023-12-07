@@ -181,6 +181,9 @@ pipeline_setup:
     # Directory where CPAC should write crash logs.
     path: /outputs/crash
 
+  outdir_ingress:
+    run: Off
+
   Amazon-AWS:
 
     # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -946,6 +949,11 @@ registration_workflows:
 
 functional_preproc:
   run: Off
+  update_header:
+
+    # Convert raw data from LPI to RPI
+    run: On
+
   slice_timing_correction:
 
     # Interpolate voxel time courses so they are sampled at the same time points.
@@ -973,8 +981,10 @@ functional_preproc:
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
-      # this is a fork point
-      using: [3dvolreg]
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
+      using: []
 
       # option parameters
       AFNI-3dvolreg:
@@ -1267,13 +1277,17 @@ nuisance_corrections:
         # Erode binarized gray matter mask in millimeters
         gm_erosion_mm:
 
-    # this is a fork point
+    # this is not a fork point
     # Run nuisance regression in native or template space
-    #   - If set to [native, template], the number of outputs will be double what it would be if only one space were chosen. Nuisance regression will only be run once per fork.
     #   - If set to template, will use the brain mask configured in
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
-    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
-    space: [native]
+    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
+    space: native
+    ingress_regressors:
+      run: Off
+      Regressors:
+        Name: default
+        Columns: [global_signal]
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: On

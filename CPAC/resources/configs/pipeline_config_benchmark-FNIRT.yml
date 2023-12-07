@@ -161,6 +161,13 @@ functional_preproc:
 
   motion_estimates_and_correction:
     run: On
+    motion_correction:
+
+      # using: ['3dvolreg', 'mcflirt']
+      # Forking is currently broken for this option.
+      # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
+      # Follow https://github.com/FCP-INDI/C-PAC/issues/1935 to see when this issue is resolved.
+      using: [3dvolreg]
 
   distortion_correction:
 
@@ -195,7 +202,7 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: Regressor-1
+      - Name: Regressor_1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -216,7 +223,7 @@ nuisance_corrections:
           tissues:
           - WhiteMatter
           - CerebrospinalFluid
-      - Name: Regressor-2
+      - Name: Regressor_2
         CerebrospinalFluid:
           erode_mask: On
           extraction_resolution: 2
@@ -234,7 +241,7 @@ nuisance_corrections:
             method: DetrendPC
           tissues:
           - CerebrospinalFluid
-      - Name: Regressor-3
+      - Name: Regressor_3
         Censor:
           method: Kill
           number_of_previous_trs_to_censor: 1

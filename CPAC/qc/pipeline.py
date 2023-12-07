@@ -88,7 +88,8 @@ def qc_snr_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     name="qc_motion_plot",
     config=["pipeline_setup", "output_directory", "quality_control"],
     switch=["generate_quality_control_images"],
-    inputs=["movement-parameters"],
+    inputs=[["desc-movementParametersUnfiltered_motion",
+             "desc-movementParameters_motion"]],
     outputs=[
         "desc-movementParametersTrans_quality",
         "desc-movementParametersRot_quality",
@@ -99,7 +100,9 @@ def qc_motion_plot(wf, cfg, strat_pool, pipe_num, opt=None):
     # make motion parameters plot
     qc_workflow = create_qc_motion(f'qc_motion_{pipe_num}')
 
-    node, out = strat_pool.get_data("movement-parameters")
+    node, out = strat_pool.get_data([
+        "desc-movementParametersUnfiltered_motion",
+        "desc-movementParameters_motion"])
     wf.connect(node, out, qc_workflow, 'inputspec.motion_parameters')
 
     outputs = {

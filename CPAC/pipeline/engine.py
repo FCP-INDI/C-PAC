@@ -22,6 +22,7 @@ from itertools import chain
 import logging
 import os
 import re
+from typing import Any, Optional, Union
 import warnings
 
 
@@ -35,8 +36,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import FilteredUnfilteredError, \
-                                MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -51,6 +51,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import getLogger, LOGTAIL, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
+from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool, \
     create_id_string, get_last_prov_entry, read_json, write_output_json
 
@@ -112,10 +113,21 @@ class ResourcePool:
                     'reho', 'desc-sm_reho', 'desc-zstd_reho',
                     'desc-sm-zstd_reho']
 
+    def __repr__(self) -> str:
+        params = [f"{param}={getattr(self, param)}" for param in
+                  ["rpool", "name", "cfg", "pipe_list"] if
+                  getattr(self, param, None) is not None]
+        return f'ResourcePool({", ".join(params)})'
+
+    def __str__(self) -> str:
+        if self.name:
+            return f'ResourcePool({self.name}): {list(self.rpool)}'
+        return f'ResourcePool: {list(self.rpool)}'
+
     def append_name(self, name):
         self.name.append(name)
 
-    def back_propogate_template_name(self, resource_idx: str, json_info: dict,
+    def back_propogate_template_name(self, wf, resource_idx: str, json_info: dict,
                                      id_string: 'pe.Node') -> None:
         """Find and apply the template name from a resource's provenance
 
@@ -131,7 +143,11 @@ class ResourcePool:
         -------
         None
         """
-        if 'Template' in json_info:
+        if ('template' in resource_idx and self.check_rpool('derivatives-dir')):
+            if self.check_rpool('template'):
+                node, out = self.get_data('template')
+                wf.connect(node, out, id_string, 'template_desc')
+        elif 'Template' in json_info:
             id_string.inputs.template_desc = json_info['Template']
         elif ('template' in resource_idx and
               len(json_info.get('CpacProvenance', [])) > 1):
@@ -185,8 +201,9 @@ class ResourcePool:
                             cfg=self.cfg,
                             pipe_list=copy.deepcopy(self.pipe_list))
 
-    def get_raw_label(self, resource):
-        # remove desc-* label
+    @staticmethod
+    def get_raw_label(resource: str) -> str:
+        """Removes ``desc-*`` label"""
         for tag in resource.split('_'):
             if 'desc-' in tag:
                 resource = resource.replace(f'{tag}_', '')
@@ -225,7 +242,8 @@ class ResourcePool:
                 return val['json'][key]
         return self.rpool[resource][pipe_idx][key]
 
-    def get_resource_from_prov(self, prov):
+    @staticmethod
+    def get_resource_from_prov(prov):
         # each resource (i.e. "desc-cleaned_bold" AKA nuisance-regressed BOLD
         # data) has its own provenance list. the name of the resource, and
         # the node that produced it, is always the last item in the provenance
@@ -236,6 +254,35 @@ class ResourcePool:
             return prov[-1][-1].split(':')[0]
         elif isinstance(prov[-1], str):
             return prov[-1].split(':')[0]
+
+    def regressor_dct(self, cfg) -> dict:
+        """Returns the regressor dictionary for the current strategy if
+        one exists. Raises KeyError otherwise."""
+        # pylint: disable=attribute-defined-outside-init
+        if hasattr(self, '_regressor_dct'):  # memoized
+            # pylint: disable=access-member-before-definition
+            return self._regressor_dct
+        key_error = KeyError("[!] No regressors in resource pool. \n\n"
+                             "Try turning on create_regressors or "
+                             "ingress_regressors.")
+        _nr = cfg['nuisance_corrections', '2-nuisance_regression']
+        if not hasattr(self, 'regressors'):
+            self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+        if self.check_rpool('parsed_regressors'):  # ingressed regressor
+            # name regressor workflow without regressor_prov
+            strat_name = _nr['ingress_regressors']['Regressors']['Name']
+            if strat_name in self.regressors:
+                self._regressor_dct = self.regressors[strat_name]
+                return self._regressor_dct
+            raise key_error
+        prov = self.get_cpac_provenance('desc-confounds_timeseries')
+        strat_name_components = prov[-1].split('_')
+        for _ in list(range(prov[-1].count('_'))):
+            reg_name = '_'.join(strat_name_components[-_:])
+            if reg_name in self.regressors:
+                self._regressor_dct = self.regressors[reg_name]
+                return self._regressor_dct
+        raise key_error
 
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
@@ -284,55 +331,44 @@ class ResourcePool:
             self.pipe_list.append(new_pipe_idx)
 
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
-        self.rpool[resource][new_pipe_idx]['json'] = json_info 
+        self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    def get(self, resource, pipe_idx=None, report_fetched=False,
-            optional=False):
+    def get(self, resource: LIST_OR_STR, pipe_idx: Optional[str] = None,
+            report_fetched: Optional[bool] = False,
+            optional: Optional[bool] = False) -> Union[
+                TUPLE[Optional[dict], Optional[str]], Optional[dict]]:
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
-        
-        info_msg = "\n\n[!] C-PAC says: None of the listed resources are in " \
-                   f"the resource pool:\n\n  {resource}\n\nOptions:\n- You " \
-                   "can enable a node block earlier in the pipeline which " \
-                   "produces these resources. Check the 'outputs:' field in " \
-                   "a node block's documentation.\n- You can directly " \
-                   "provide this required data by pulling it from another " \
-                   "BIDS directory using 'source_outputs_dir:' in the " \
-                   "pipeline configuration, or by placing it directly in " \
-                   "your C-PAC output directory.\n- If you have done these, " \
-                   "and you still get this message, please let us know " \
-                   "through any of our support channels at: " \
-                   "https://fcp-indi.github.io/\n"
-        
-        if isinstance(resource, list):
-            # if a list of potential inputs are given, pick the first one
-            # found
-            for label in resource:
-                if label in self.rpool.keys():
-                    if report_fetched:
-                        return (self.rpool[label], label)
-                    return self.rpool[label]
-            else:
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
-        else:
-            if resource not in self.rpool.keys():
-                if optional:
-                    if report_fetched:
-                        return (None, None)
-                    return None
-                raise LookupError(info_msg)
-            if report_fetched:
+        if not isinstance(resource, list):
+            resource = [resource]
+        # if a list of potential inputs are given, pick the first one
+        # found
+        for label in resource:
+            if label in self.rpool.keys():
+                _found = self.rpool[label]
                 if pipe_idx:
-                    return (self.rpool[resource][pipe_idx], resource)
-                return (self.rpool[resource], resource)
-            if pipe_idx:
-                return self.rpool[resource][pipe_idx]
-            return self.rpool[resource]
+                    _found = _found[pipe_idx]
+                if report_fetched:
+                    return _found, label
+                return _found
+        if optional:
+            if report_fetched:
+                return (None, None)
+            return None
+        raise LookupError(
+            "\n\n[!] C-PAC says: None of the listed resources are in "
+            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
+            "can enable a node block earlier in the pipeline which "
+            "produces these resources. Check the 'outputs:' field in "
+            "a node block's documentation.\n- You can directly "
+            "provide this required data by pulling it from another "
+            "BIDS directory using 'source_outputs_dir:' in the "
+            "pipeline configuration, or by placing it directly in "
+            "your C-PAC output directory.\n- If you have done these, "
+            "and you still get this message, please let us know "
+            "through any of our support channels at: "
+            "https://fcp-indi.github.io/\n")
 
     def get_data(self, resource, pipe_idx=None, report_fetched=False,
                  quick_single=False):
@@ -380,7 +416,7 @@ class ResourcePool:
         else:
             raise Exception('\n[!] Developer info: the JSON '
                             f'information for {resource} and {strat} '
-                            f'is  incomplete.\n')
+                            f'is incomplete.\n')
         return strat_json
 
     def get_cpac_provenance(self, resource, strat=None):
@@ -395,7 +431,8 @@ class ResourcePool:
         json_data = self.get_json(resource, strat)
         return json_data['CpacProvenance']
 
-    def generate_prov_string(self, prov):
+    @staticmethod
+    def generate_prov_string(prov):
         # this will generate a string from a SINGLE RESOURCE'S dictionary of
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
         #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
@@ -406,13 +443,15 @@ class ResourcePool:
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
 
-    def generate_prov_list(self, prov_str):
+    @staticmethod
+    def generate_prov_list(prov_str):
         if not isinstance(prov_str, str):
             raise Exception('\n[!] Developer info: the CpacProvenance '
                             f'entry for {str(prov_str)} has to be a string.\n')
         return ast.literal_eval(prov_str)
 
-    def get_resource_strats_from_prov(self, prov):
+    @staticmethod
+    def get_resource_strats_from_prov(prov):
         # if you provide the provenance of a resource pool output, this will
         # return a dictionary of all the preceding resource pool entries that
         # led to that one specific output:
@@ -739,6 +778,50 @@ class ResourcePool:
 
         return wf
 
+    @property
+    def filtered_movement(self) -> bool:
+        """
+        Check if the movement parameters have been filtered in this strat_pool
+
+        Returns
+        -------
+        bool
+        """
+        try:
+            return 'motion_estimate_filter' in str(self.get_cpac_provenance(
+                'desc-movementParameters_motion'))
+        except KeyError:
+            # not a strat_pool or no movement parameters in strat_pool
+            return False
+
+    def filter_name(self, cfg) -> str:
+        """
+        In a strat_pool with filtered movement parameters, return the
+        name of the filter for this strategy
+
+        Returns
+        -------
+        str
+        """
+        motion_filters = cfg['functional_preproc',
+                             'motion_estimates_and_correction',
+                             'motion_estimate_filter', 'filters']
+        if len(motion_filters) == 1 and cfg.switch_is_on([
+            'functional_preproc', 'motion_estimates_and_correction',
+            'motion_estimate_filter', 'run'], exclusive=True
+        ):
+            return motion_filters[0]['Name']
+        try:
+            key = 'motion'
+            sidecar = self.get_json('desc-movementParameters_motion')
+        except KeyError:
+            sidecar = None
+        if sidecar is not None and 'CpacVariant' in sidecar:
+            if sidecar['CpacVariant'][key]:
+                return sidecar['CpacVariant'][key][0][::-1].split('_',
+                                                                  1)[0][::-1]
+        return 'none'
+
     def post_process(self, wf, label, connection, json_info, pipe_idx, pipe_x,
                      outs):
 
@@ -869,7 +952,7 @@ class ResourcePool:
         if add_excl:
             excl += add_excl
 
-        if 'unsmoothed' not in cfg.post_processing['spatial_smoothing'][
+        if 'nonsmoothed' not in cfg.post_processing['spatial_smoothing'][
                 'output']:
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
@@ -883,7 +966,6 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-
             if resource not in Outputs.any:
                 continue
 
@@ -1026,11 +1108,8 @@ class ResourcePool:
                 resource_idx = resource
 
                 if isinstance(num_variant, int):
-                    try:
-                        resource_idx, out_dct = name_fork(resource_idx, cfg,
-                                                          json_info, out_dct)
-                    except FilteredUnfilteredError:
-                        continue
+                    resource_idx, out_dct = name_fork(resource_idx, cfg,
+                                                      json_info, out_dct)
                     if unlabelled:
                         if 'desc-' in out_dct['filename']:
                             for key in out_dct['filename'].split('_')[::-1]:
@@ -1065,12 +1144,11 @@ class ResourcePool:
                 # grab the iterable scan ID
                 if out_dct['subdir'] == 'func':
                     node, out = self.rpool['scan']["['scan:func_ingress']"][
-                        'data']
+                            'data']
                     wf.connect(node, out, id_string, 'scan_id')
-
-                self.back_propogate_template_name(resource_idx, json_info,
+                
+                self.back_propogate_template_name(wf, resource_idx, json_info,
                                                   id_string)
-
                 # grab the FWHM if smoothed
                 for tag in resource.split('_'):
                     if 'desc-' in tag and '-sm' in tag:
@@ -1086,26 +1164,26 @@ class ResourcePool:
                 atlas_suffixes = ['timeseries', 'correlations', 'statmap']
                 # grab the iterable atlas ID
                 atlas_id = None
-                if resource.split('_')[-1] in atlas_suffixes:
-                    atlas_idx = pipe_idx.replace(resource, 'atlas_name')
-                    # need the single quote and the colon inside the double
-                    # quotes - it's the encoded pipe_idx
-                    #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
-                    #                            "'atlas_name:")
-                    if atlas_idx in self.rpool['atlas_name']:
-                        node, out = self.rpool['atlas_name'][atlas_idx][
-                            'data']
-                        wf.connect(node, out, id_string, 'atlas_id')
-                    elif 'atlas-' in resource:
-                        for tag in resource.split('_'):
-                            if 'atlas-' in tag:
-                                atlas_id = tag.replace('atlas-', '')
-                        id_string.inputs.atlas_id = atlas_id
-                    else:
-                        warnings.warn(str(
-                            LookupError("\n[!] No atlas ID found for "
+                if not resource.endswith('desc-confounds_timeseries'):
+                    if resource.split('_')[-1] in atlas_suffixes:
+                        atlas_idx = pipe_idx.replace(resource, 'atlas_name')
+                        # need the single quote and the colon inside the double
+                        # quotes - it's the encoded pipe_idx
+                        #atlas_idx = new_idx.replace(f"'{temp_rsc}:",
+                        #                            "'atlas_name:")
+                        if atlas_idx in self.rpool['atlas_name']:
+                            node, out = self.rpool['atlas_name'][atlas_idx][
+                                'data']
+                            wf.connect(node, out, id_string, 'atlas_id')
+                        elif 'atlas-' in resource:
+                            for tag in resource.split('_'):
+                                if 'atlas-' in tag:
+                                    atlas_id = tag.replace('atlas-', '')
+                            id_string.inputs.atlas_id = atlas_id
+                        else:
+                            warnings.warn(str(
+                                LookupError("\n[!] No atlas ID found for "
                                         f"{out_dct['filename']}.\n")))
-               
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
@@ -1146,7 +1224,6 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, 'out_filename', write_json, 'filename')
-
                 ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}_'
                                               f'{pipe_x}')
                 ds.inputs.parameterization = False
@@ -1627,7 +1704,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
     return (wf, strat_pool)
 
-
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
 
@@ -1669,12 +1745,21 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
                     "", "anat_ingress")
 
-    ingress_fs = cfg.surface_analysis['freesurfer']['ingress_reconall']
-    
-    if 'freesurfer_dir' in data_paths['anat'] and ingress_fs:
-        anat['freesurfer_dir'] = data_paths['anat']['freesurfer_dir']
+    if cfg.surface_analysis['freesurfer']['ingress_reconall']:
+        rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id)
+                
+    return rpool
 
-        fs_ingress = create_general_datasource('gather_freesurfer_dir')
+def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id):
+    
+    if 'anat' not in data_paths:
+        print('No FreeSurfer data present.')
+        return rpool
+    
+    if 'freesurfer_dir' in data_paths['anat']:
+        fs_ingress = create_general_datasource('gather_freesurfer_dir') 
         fs_ingress.inputs.inputnode.set(
             unique_id=unique_id,
             data=data_paths['anat']['freesurfer_dir'],
@@ -1727,13 +1812,12 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                 
     return rpool
 
-
 def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
 
     func_paths_dct = data_paths['func']
 
-    func_wf = create_func_datasource(func_paths_dct,
+    func_wf = create_func_datasource(func_paths_dct, rpool,
                                      f'func_ingress_{part_id}_{ses_id}')
     func_wf.inputs.inputnode.set(
         subject=part_id,
@@ -1741,7 +1825,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
         dl_dir=cfg.pipeline_setup['working_directory']['path']
     )
     func_wf.get_node('inputnode').iterables = \
-        ("scan", list(func_paths_dct.keys()))
+        ("scan", list(func_paths_dct.keys()))   
 
     rpool.set_data('subject', func_wf, 'outputspec.subject', {}, "",
                    "func_ingress")
@@ -1749,6 +1833,8 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
     rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
+    
+    # TODO: CHECK FOR PARAMETERS
 
     wf, rpool, diff, blip, fmap_rp_list = \
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
@@ -1757,6 +1843,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     # Memoize list of local functional scans
     # TODO: handle S3 files
     # Skip S3 files for now
+
     local_func_scans = [
         func_paths_dct[scan]['scan'] for scan in func_paths_dct.keys() if not
         func_paths_dct[scan]['scan'].startswith('s3://')]
@@ -1771,189 +1858,279 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
-def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
+def ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, creds_path=None):
 
-    out_dir = cfg.pipeline_setup['output_directory']['path']
-    source = False
+    dir_path = data_paths['derivatives_dir']
 
-    if cfg.pipeline_setup['output_directory']['pull_source_once']:
-        if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
-            if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
-                if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-                    out_dir = cfg.pipeline_setup['output_directory'][
-                        'source_outputs_dir']
-                    source = True
-                else:
-                    out_dir = cfg.pipeline_setup['output_directory']['path']
-            else:
-                out_dir = cfg.pipeline_setup['output_directory']['path']
-        else:
-            if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-                out_dir = cfg.pipeline_setup['output_directory'][
-                    'source_outputs_dir']
-                source = True
-    else:
-        if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-            out_dir = cfg.pipeline_setup['output_directory'][
-                'source_outputs_dir']
-            source = True
-        else:
-            out_dir = cfg.pipeline_setup['output_directory']['path']
+    print(f"\nPulling outputs from {dir_path}.\n")
 
-    if not source:
-        if os.path.isdir(out_dir):
-            if not os.listdir(out_dir):
-                print(f"\nOutput directory {out_dir} does not exist yet, "
-                      f"initializing.")
-                return rpool
-        else:
-            print(f"\nOutput directory {out_dir} does not exist yet, "
-                  f"initializing.")
-            return rpool
+    anat = os.path.join(dir_path, 'anat')
+    func = os.path.join(dir_path, 'func')
 
-        cpac_dir = os.path.join(out_dir, 'pipeline_'
-                                f'{cfg.pipeline_setup["pipeline_name"]}',
-                                unique_id)
-    else:
-        if os.path.isdir(out_dir):
-            if not os.listdir(out_dir):
-                raise Exception(f"\nSource directory {out_dir} does not exist!")
-        
-        cpac_dir = os.path.join(out_dir, unique_id)
-        if not os.path.isdir(cpac_dir):
-            unique_id = unique_id.split('_')[0]
-            cpac_dir = os.path.join(out_dir, unique_id)
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.tsv']
 
-    print(f"\nPulling outputs from {cpac_dir}.\n")
+    outdir_anat = []
+    outdir_func = []
+    func_paths = {}
+    func_dict = {}
 
+    for subdir in [anat, func]:
+        if os.path.isdir(subdir):
+            for filename in os.listdir(subdir):
+                for ext in exts:
+                    if ext in filename:
+                        if subdir == anat:
+                            outdir_anat.append(os.path.join(subdir,
+                                                    filename))
+                        else:
+                            outdir_func.append(os.path.join(subdir,
+                                                    filename))
 
-    cpac_dir_anat = os.path.join(cpac_dir, 'anat')
-    cpac_dir_func = os.path.join(cpac_dir, 'func')
-
-    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
-
-    all_output_dir = []
-    if os.path.isdir(cpac_dir_anat):
-        for filename in os.listdir(cpac_dir_anat):
-            for ext in exts:
-                if ext in filename:
-                    all_output_dir.append(os.path.join(cpac_dir_anat,
-                                                       filename))
-
-    if os.path.isdir(cpac_dir_func):
-        for filename in os.listdir(cpac_dir_func):
-            for ext in exts:
-                if ext in filename:
-                    all_output_dir.append(os.path.join(cpac_dir_func,
-                                                       filename))
-
-    for filepath in all_output_dir:
-        filename = str(filepath)
-        for ext in exts:
-            filename = filename.split("/")[-1].replace(ext, '')
-        data_label = filename.split(unique_id)[1].lstrip('_')
-
-        if len(filename) == len(data_label):
-            raise Exception('\n\n[!] Possibly wrong participant or '
-                            'session in this directory?\n\n'
-                            f'Filepath: {filepath}\n\n')
-
-        if 'task-' in data_label:
-            for tag in data_label.split('_'):
-                if 'task-' in tag:
-                    break
-            runtag = None
-            if 'run-' in data_label:
-                for runtag in data_label.split('_'):
-                    if 'run-' in runtag:
-                        break
-            data_label = data_label.replace(f'{tag}_', '')
-            if runtag:
-                data_label = data_label.replace(f'{runtag}_', '')
-
-        unique_data_label = str(data_label)
-
-        #if 'sub-' in data_label or 'ses-' in data_label:
-        #    raise Exception('\n\n[!] Possibly wrong participant or '
-        #                    'session in this directory?\n\nDirectory: '
-        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
-        suffix = data_label.split('_')[-1]
-        desc_val = None
-        for tag in data_label.split('_'):
-            if 'desc-' in tag:
-                desc_val = tag
-                break
-        jsonpath = str(filepath)
-        for ext in exts:
-            jsonpath = jsonpath.replace(ext, '')
-        jsonpath = f"{jsonpath}.json"
-
-        if not os.path.exists(jsonpath):
-            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
-                  f'{jsonpath}..\n\n')
-            json_info = {
-                'Description': 'This data was generated elsewhere and '
-                               'supplied by the user into this C-PAC run\'s '
-                               'output directory. This JSON file was '
-                               'automatically generated by C-PAC because a '
-                               'JSON file was not supplied with the data.'
-            }
-            write_output_json(json_info, jsonpath)
-        else:        
-            json_info = read_json(jsonpath)
-            
-        if 'CpacProvenance' in json_info:
-            if desc_val:
-                # it's a C-PAC output, let's check for pipe_idx/strat integer
-                # suffixes in the desc- entries.
-                only_desc = str(desc_val)
-            
-                if only_desc[-1].isdigit():
-                    for idx in range(0, 3):
-                        # let's stop at 3, please don't run >999 strategies okay?
-                        if only_desc[-1].isdigit():
-                            only_desc = only_desc[:-1]
-            
-                    if only_desc[-1] == '-':
-                        only_desc = only_desc.rstrip('-')
-                    else:
-                        raise Exception('\n[!] Something went wrong with either '
-                                        'reading in the output directory or when '
-                                        'it was written out previously.\n\nGive '
-                                        'this to your friendly local C-PAC '
-                                        f'developer:\n\n{unique_data_label}\n')
-
-                # remove the integer at the end of the desc-* variant, we will 
-                # get the unique pipe_idx from the CpacProvenance below
-                data_label = data_label.replace(desc_val, only_desc)
-
-            # preserve cpac provenance/pipe_idx
-            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
-            node_name = ""
-        else:
-            json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin']
-            if not 'Description' in json_info:
-                json_info['Description'] = 'This data was generated elsewhere and ' \
-                                           'supplied by the user into this C-PAC run\'s '\
-                                           'output directory. This JSON file was '\
-                                           'automatically generated by C-PAC because a '\
-                                           'JSON file was not supplied with the data.'
-            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
-            node_name = f"{data_label}_ingress"
-
-        resource = data_label
-
-        ingress = create_general_datasource(f'gather_{unique_data_label}')
-        ingress.inputs.inputnode.set(
+     # Add derivatives directory to rpool
+    ingress = create_general_datasource(f'gather_derivatives_dir')
+    ingress.inputs.inputnode.set(
             unique_id=unique_id,
-            data=filepath,
+            data=dir_path,
             creds_path=creds_path,
             dl_dir=cfg.pipeline_setup['working_directory']['path']
         )
-        rpool.set_data(resource, ingress, 'outputspec.data', json_info,
-                       pipe_idx, node_name, inject=True)
+    rpool.set_data("derivatives-dir", ingress, 'outputspec.data',
+                {}, "", "outdir_config_ingress")
 
-    return rpool
+    for subdir in [outdir_anat, outdir_func]:
+        for filepath in subdir:
+            filename = str(filepath)
+            for ext in exts:
+                filename = filename.split("/")[-1].replace(ext, '')
+
+            data_label = filename.split(unique_id)[1].lstrip('_')
+
+            if len(filename) == len(data_label):
+                raise Exception('\n\n[!] Possibly wrong participant or '
+                                'session in this directory?\n\n'
+                                f'Filepath: {filepath}\n\n')
+
+            bidstag = ''
+            for tag in data_label.split('_'):
+                for prefix in ['task-', 'run-', 'acq-', 'rec']:
+                    if tag.startswith(prefix):
+                        bidstag += f'{tag}_'
+                        data_label = data_label.replace(f'{tag}_', '')
+            data_label, json = strip_template(data_label, dir_path, filename)
+
+            rpool, json_info, pipe_idx, node_name, data_label = \
+                json_outdir_ingress(rpool, filepath, \
+                exts, data_label, json)
+
+            if ('template' in data_label and not json_info['Template'] == \
+                    cfg.pipeline_setup['outdir_ingress']['Template']):
+                continue
+            # Rename confounds to avoid confusion in nuisance regression
+            if data_label.endswith('desc-confounds_timeseries'):
+                data_label = 'pipeline-ingress_desc-confounds_timeseries'
+
+            if len(bidstag) > 1:
+                # Remove tail symbol
+                bidstag = bidstag[:-1]
+                if bidstag.startswith('task-'):
+                    bidstag = bidstag.replace('task-', '')
+
+            # Rename bold mask for CPAC naming convention
+            # and to avoid collision with anat brain mask
+            if data_label.endswith('desc-brain_mask') and filepath in outdir_func: 
+                data_label = data_label.replace('brain_mask', 'bold_mask')
+
+            try:
+                pipe_x = rpool.get_pipe_number(pipe_idx)
+            except ValueError:
+                pipe_x = len(rpool.pipe_list)
+            if filepath in outdir_anat:
+                ingress = create_general_datasource(f'gather_anat_outdir_{str(data_label)}_{pipe_x}')
+                ingress.inputs.inputnode.set(
+                    unique_id=unique_id,
+                    data=filepath,
+                    creds_path=creds_path,
+                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+                )
+                rpool.set_data(data_label, ingress, 'outputspec.data', json_info,
+                    pipe_idx, node_name, f"outdir_{data_label}_ingress", inject=True)
+            else:
+                if data_label.endswith('desc-preproc_bold'): 
+                    func_key = data_label
+                    func_dict[bidstag] = {}
+                    func_dict[bidstag]['scan'] = str(filepath)
+                    func_dict[bidstag]['scan_parameters'] = json_info
+                    func_dict[bidstag]['pipe_idx'] = pipe_idx
+                if data_label.endswith('desc-brain_mask'): 
+                    data_label = data_label.replace('brain_mask', 'bold_mask')
+                try:
+                    func_paths[data_label].append(filepath)
+                except:
+                    func_paths[data_label] = []
+                    func_paths[data_label].append(filepath)
+
+    if func_dict:
+        wf, rpool = func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, \
+            creds_path, part_id, func_key, func_paths)
+
+    if cfg.surface_analysis['freesurfer']['ingress_reconall']:
+        rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id)
+    return wf, rpool
+
+def json_outdir_ingress(rpool, filepath, exts, data_label, json):
+    
+    desc_val = None
+    for tag in data_label.split('_'):
+        if 'desc-' in tag:
+            desc_val = tag
+            break
+    jsonpath = str(filepath)
+    for ext in exts:
+        jsonpath = jsonpath.replace(ext, '')
+    jsonpath = f"{jsonpath}.json"
+
+    if not os.path.exists(jsonpath):
+        print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+            f'{jsonpath}..\n\n')
+        json_info = {
+            'Description': 'This data was generated elsewhere and '
+                        'supplied by the user into this C-PAC run\'s '
+                        'output directory. This JSON file was '
+                        'automatically generated by C-PAC because a '
+                        'JSON file was not supplied with the data.'
+        }
+        json_info = {**json_info, **json}
+        write_output_json(json_info, jsonpath)
+    else:
+        json_info = read_json(jsonpath)
+        json_info = {**json_info, **json}
+    if 'CpacProvenance' in json_info:
+        if desc_val:
+            # it's a C-PAC output, let's check for pipe_idx/strat integer
+            # suffixes in the desc- entries.
+            only_desc = str(desc_val)
+        
+            if only_desc[-1].isdigit():
+                for idx in range(0, 3):
+                    # let's stop at 3, please don't run >999 strategies okay?
+                    if only_desc[-1].isdigit():
+                        only_desc = only_desc[:-1]
+        
+                if only_desc[-1] == '-':
+                    only_desc = only_desc.rstrip('-')
+                else:
+                    raise Exception('\n[!] Something went wrong with either '
+                                    'reading in the output directory or when '
+                                    'it was written out previously.\n\nGive '
+                                    'this to your friendly local C-PAC '
+                                    f'developer:\n\n{str(data_label)}\n')
+
+            # remove the integer at the end of the desc-* variant, we will 
+            # get the unique pipe_idx from the CpacProvenance below
+            data_label = data_label.replace(desc_val, only_desc)
+
+        # preserve cpac provenance/pipe_idx
+        pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
+        node_name = ""
+        
+    else:
+        json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin: {filepath}']
+        if not 'Description' in json_info:
+            json_info['Description'] = 'This data was generated elsewhere and ' \
+                                    'supplied by the user into this C-PAC run\'s '\
+                                    'output directory. This JSON file was '\
+                                    'automatically generated by C-PAC because a '\
+                                    'JSON file was not supplied with the data.'
+        pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
+        node_name = f"{data_label}_ingress"
+
+    return rpool, json_info, pipe_idx, node_name, data_label
+
+def func_outdir_ingress(wf, cfg, func_dict, rpool, unique_id, creds_path, part_id, key, \
+                            func_paths):
+    pipe_x = len(rpool.pipe_list)
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms', '.tsv']
+    ingress = create_func_datasource(func_dict, rpool, f'gather_func_outdir_{key}_{pipe_x}')
+    ingress.inputs.inputnode.set(
+        subject=unique_id,
+        creds_path=creds_path,
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+    rpool.set_data('subject', ingress, 'outputspec.subject', {}, "",
+        "func_ingress")
+    ingress.get_node('inputnode').iterables = \
+        ("scan", list(func_dict.keys())) 
+    rpool.set_data(key, ingress, 'outputspec.rest', {}, "",
+            "func_ingress")
+    
+    rpool.set_data('scan', ingress, 'outputspec.scan', {}, "", 'func_ingress')
+    rpool.set_data('scan-params', ingress, 'outputspec.scan_params', {}, "",
+        "scan_params_ingress")
+    wf, rpool, diff, blip, fmap_rp_list = ingress_func_metadata(wf, cfg, \
+            rpool, func_dict, part_id, creds_path, key)
+    
+    # Have to do it this weird way to save the parsed BIDS tag & filepath
+    mask_paths_key = 'desc-bold_mask' if 'desc-bold_mask' in func_paths else \
+                                    'space-template_desc-bold_mask'
+    ts_paths_key = 'pipeline-ingress_desc-confounds_timeseries'
+
+    # Connect func data with approproate scan name
+    iterables = pe.Node(Function(input_names=['scan',
+                                              'mask_paths',
+                                              'ts_paths'],
+                                output_names=['out_scan', 
+                                              'mask',
+                                              'confounds'],
+                                function=set_iterables),
+                                name=f'set_iterables_{pipe_x}')
+    iterables.inputs.mask_paths = func_paths[mask_paths_key]
+    iterables.inputs.ts_paths = func_paths[ts_paths_key]
+    wf.connect(ingress, 'outputspec.scan', iterables, 'scan')
+
+    for key in func_paths:
+        if key == mask_paths_key or key == ts_paths_key:
+            ingress_func = create_general_datasource(f'ingress_func_data_{key}')
+            ingress_func.inputs.inputnode.set(
+                unique_id=unique_id,
+                creds_path=creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path'])
+            wf.connect(iterables, 'out_scan', ingress_func, 'inputnode.scan')
+            if key == mask_paths_key:
+                wf.connect(iterables, 'mask', ingress_func, 'inputnode.data')
+                rpool.set_data(key, ingress_func, 'inputnode.data', {}, "", f"outdir_{key}_ingress")
+            elif key == ts_paths_key:
+                wf.connect(iterables, 'confounds', ingress_func, 'inputnode.data')
+                rpool.set_data(key, ingress_func, 'inputnode.data', {}, "", f"outdir_{key}_ingress")
+
+    return wf, rpool
+
+def set_iterables(scan, mask_paths=None, ts_paths=None):
+    
+    # match scan with filepath to get filepath
+    mask_path = [path for path in mask_paths if scan in path]
+    ts_path = [path for path in ts_paths if scan in path]
+
+    return (scan, mask_path[0], ts_path[0]) 
+
+def strip_template(data_label, dir_path, filename):
+    
+    json = {}
+    # rename to template 
+    for prefix in ['space-', 'from-', 'to-']: 
+        for bidstag in data_label.split('_'):
+            if bidstag.startswith(prefix):
+                template_key, template_val = bidstag.split('-')
+                template_name, _template_desc = lookup_identifier(template_val)
+                if template_name:
+                    json['Template'] = template_val
+                    data_label = data_label.replace(template_val, 'template')
+            elif bidstag.startswith('res-'):
+                res_key, res_val = bidstag.split('-')
+                json['Resolution'] = res_val
+                data_label = data_label.replace(bidstag, '')
+    if data_label.find('__'): data_label = data_label.replace('__', '_') 
+    return data_label, json
 
 
 def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
@@ -2043,7 +2220,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data',
                                json_info, "", f"{key}_config_ingress")
-
     # templates, resampling from config
     '''
     template_keys = [
@@ -2151,7 +2327,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
        },
        'site_id': 'site-ID',
        'subject_id': 'sub-01',
-       'unique_id': 'ses-1'}
+       'unique_id': 'ses-1',
+       'derivatives_dir': '{derivatives_dir path}'}
     '''
 
     # TODO: refactor further, integrate with the ingress_data functionality
@@ -2166,6 +2343,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         else:
             creds_path = data_paths['creds_path']
         unique_id = f'{part_id}_{ses_id}'
+    
     elif part_id:
         unique_id = part_id
         creds_path = None
@@ -2173,15 +2351,24 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
     if data_paths:
-        rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
-                                      part_id, ses_id)
-        if 'func' in data_paths:
-            wf, rpool, diff, blip, fmap_rp_list = \
-                ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
-                                      part_id, ses_id)
+        # ingress outdir
+        try: 
+            if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']['run']:
+                wf, rpool = \
+                     ingress_output_dir(wf, cfg, rpool, unique_id, data_paths, part_id, \
+                    ses_id, creds_path=None)
+        except:
+            rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
+                                        part_id, ses_id)
+            if 'func' in data_paths:
+                wf, rpool, diff, blip, fmap_rp_list = \
+                    ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id,
+                                        part_id, ses_id)
 
     # grab any file paths from the pipeline config YAML
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+
+    # output files with 4 different scans
 
     return (wf, rpool)
 

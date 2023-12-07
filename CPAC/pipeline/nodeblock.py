@@ -96,6 +96,17 @@ class NodeBlockFunction:
             'outputs': self.outputs
         }
 
+    def __repr__(self) -> str:
+        return (f'NodeBlockFunction({self.func.__module__}.'
+                f'{self.func.__name__}, "{self.name}", '
+                f'config={self.config}, switch={self.switch}, '
+                f'option_key={self.option_key}, option_val='
+                f'{self.option_val}, inputs={self.inputs}, '
+                f'outputs={self.outputs})')
+
+    def __str__(self) -> str:
+        return f'NodeBlockFunction({self.name})'
+
 
 def nodeblock(
         name: Optional[str] = None,
