@@ -235,6 +235,7 @@ surface_analysis:
     smooth_fwhm: 2
 
   surface_connectivity:
+    run: On
     surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 longitudinal_template_generation:

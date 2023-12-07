@@ -1009,7 +1009,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
 def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
 
      
-    connectivity_parcellation = pe.Node(util.Function(input_names=['subject','dtseries', 'surf_atlaslabel'], 
+    connectivity_parcellation = pe.Node(util.Function(input_names=['subject', 'dtseries', 'surf_atlaslabel'], 
                                 output_names=['parcellation_file'],
                                 function=run_ciftiparcellate),
                             name=f'connectivity_parcellation_{pipe_num}')
@@ -1017,7 +1017,7 @@ def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     connectivity_parcellation.inputs.subject = cfg['subject_id'] 
     node, out = strat_pool.get_data('space-fsLR_den-32k_bold')        
     wf.connect(node, out, connectivity_parcellation, 'dtseries') 
-    connectivity_parcellation.inputs.surf_atlaslabel = cfg["surface_analysis"]['surface_connectivity']['surface_parcellation_template']
+    connectivity_parcellation.inputs.surf_atlaslabel = cfg.surface_analysis['surface_connectivity']['surface_parcellation_template']
 
     correlation_matrix = pe.Node(util.Function(input_names=['subject','ptseries'], 
                                 output_names=['correlation_matrix'],

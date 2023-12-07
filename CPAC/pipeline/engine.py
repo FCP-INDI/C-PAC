@@ -1268,11 +1268,11 @@ class NodeBlock:
                             f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
-        cfg_dct = cfg
+        cfg_dct = cfg.dict()
         for key in key_list:
             try:
-                cfg_dct = cfg_dct.__getitem__(key)
-                #print(cfg_dct)
+                print(key)
+                cfg_dct = cfg_dct.get(key, {})
             except KeyError:
                 raise Exception(f"[!] The config provided to the node block is not valid")  
         return cfg_dct
