@@ -19,6 +19,10 @@ License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import pkg_resources as p
 
+from CPAC.pipeline.nipype_pipeline_engine.monkeypatch import patch_base_interface
+
+patch_base_interface()  # Monkeypatch Nipypes BaseInterface class
+
 ALL_PIPELINE_CONFIGS = os.listdir(
     p.resource_filename("CPAC", os.path.join("resources", "configs")))
 ALL_PIPELINE_CONFIGS = [x.split('_')[2].replace('.yml', '') for
@@ -28,6 +32,5 @@ AVAILABLE_PIPELINE_CONFIGS = [preconfig for preconfig in ALL_PIPELINE_CONFIGS
                               if preconfig not in
                               ['benchmark-ANTS', 'monkey-ABCD'] and
                               not preconfig.startswith('regtest-')]
-
 
 __all__ = ['ALL_PIPELINE_CONFIGS', 'AVAILABLE_PIPELINE_CONFIGS']
