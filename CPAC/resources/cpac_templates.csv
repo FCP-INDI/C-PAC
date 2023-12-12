@@ -40,4 +40,4 @@ template-eye-mask,"PyPEER, eye_mask_path",,"registration_workflows, functional_r
 T1w-brain-template-mask-ccs,"anatomical_preproc, brain_extraction, FreeSurfer-BET, T1w_brain_template_mask_ccs",,
 T2w-ACPC-template,"anatomical_preproc, acpc_alignment, T2w_ACPC_template",Whole-head template for use in ACPC-alignment,
 T2w-brain-ACPC-template,"anatomical_preproc, acpc_alignment, T2w_brain_ACPC_template",Brain-only template for use in ACPC-alignment,
-surface-parcellation-atlas,"surface_connectivity, surface_parcellation_template",surface space parcellation atlas,
+surface-parcellation-atlas,"surface_analysis, surface_connectivity, surface_parcellation_template",surface space parcellation atlas,
