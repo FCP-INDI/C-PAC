@@ -1132,7 +1132,8 @@ class ResourcePool:
                                                           'template_desc',
                                                           'atlas_id',
                                                           'fwhm',
-                                                          'subdir'],
+                                                          'subdir',
+                                                          'extension'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1348,7 +1349,6 @@ class NodeBlock:
         cfg_dct = cfg.dict()
         for key in key_list:
             try:
-                print(key)
                 cfg_dct = cfg_dct.get(key, {})
             except KeyError:
                 raise Exception(f"[!] The config provided to the node block is not valid")  

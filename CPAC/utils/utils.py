@@ -149,7 +149,7 @@ def read_json(json_file):
 
 def create_id_string(cfg, unique_id, resource, scan_id=None,
                      template_desc=None, atlas_id=None, fwhm=None,
-                     subdir=None):
+                     subdir=None, extension=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
