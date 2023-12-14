@@ -60,18 +60,18 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
                         'motion_estimate_filter_', ''
                     ) for _k, _v in _motion_variant.items()
                     if _v][0]
-            except IndexError:
+            except (IndexError, KeyError):
                 filt_value = 'none'
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'filt', filt_value)
     if cfg.switch_is_on(['nuisance_corrections',
                          '2-nuisance_regression', 'run']):
         variants = [variant.split('_')[-1] for variant in
-                    chain.from_iterable(json_info['CpacVariant'].values()) if
+                    chain.from_iterable(json_info.get('CpacVariant', {}).values()) if
                     variant.startswith('nuisance_regressors_generation')]
         if cfg.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
                               'run']):
-            variants.append['Off']
+            variants.append('Off')
         reg_value = variants[0] if variants else None
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'reg', reg_value)
