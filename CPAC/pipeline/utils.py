@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC pipeline engine utilities"""
 from typing import Union
+from itertools import chain
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
@@ -65,15 +66,13 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
                                                      'filt', filt_value)
     if cfg.switch_is_on(['nuisance_corrections',
                          '2-nuisance_regression', 'run']):
-        reg_value = None
-        if ('regressors' in json_info.get('CpacVariant', {})
-                and json_info['CpacVariant']['regressors']):
-            reg_value = json_info['CpacVariant'][
-                'regressors'
-            ][0].replace('nuisance_regressors_generation_', '')
-        elif cfg.switch_is_off(['nuisance_corrections',
-                                '2-nuisance_regression', 'run']):
-            reg_value = 'Off'
+        variants = [variant.split('_')[-1] for variant in
+                    chain.from_iterable(json_info['CpacVariant'].values()) if
+                    variant.startswith('nuisance_regressors_generation')]
+        if cfg.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+                              'run']):
+            variants.append['Off']
+        reg_value = variants[0] if variants else None
         resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
                                                      'reg', reg_value)
     return resource_idx, out_dct
