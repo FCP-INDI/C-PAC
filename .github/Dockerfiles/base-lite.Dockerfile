@@ -75,7 +75,10 @@ COPY --from=AFNI /opt/afni/ /opt/afni/
 ENV PATH=/opt/afni:$PATH
 
 # Installing ANTs
-ENV PATH=/usr/lib/ants/bin:$PATH
+ENV LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
+    ANTSPATH=/usr/lib/ants/bin \
+    PATH=/usr/lib/ants/bin:$PATH
 COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
 COPY --from=ANTs /ants_template/ /ants_template/
 
