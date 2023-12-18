@@ -218,4 +218,4 @@ space-EPItemplate_label-WM_mask	mask	template	func	NIfTI
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
-dseg			anat
+dseg			anat						
