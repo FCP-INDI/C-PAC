@@ -2,7 +2,16 @@
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from nibabel import load as nib_load, Nifti1Image
+from numpy import zeros
 
+def get_shape(nifti_image):
+    return nib_load(nifti_image).shape
+
+def pad(cropped_image, target_shape):
+    padded_image = zeros(target_shape)
+    padded_image[:, :, :cropped_image.shape[2]] = cropped_image.get_data()
+    return Nifti1Image(padded_image, affine=cropped_image.affine)
 
 def fsl_aff_to_rigid(in_xfm, out_name):
 

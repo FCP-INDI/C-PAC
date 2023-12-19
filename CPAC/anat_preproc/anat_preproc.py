@@ -33,7 +33,8 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     wb_command, \
     fslmaths_command, \
     VolumeRemoveIslands, \
-    normalize_wmparc
+    normalize_wmparc, \
+    pad, get_shape
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 
@@ -647,16 +648,34 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
             'FSL-BET']['vertical_gradient'],
     )
     
+    anat_nifti_shape= pe.Node(util.Function(input_names=['nifti_image'],
+                                            output_names=['shape'],
+                                            function=get_shape),
+                            name=f'anat_nifti_shape_{pipe_num}'
+                            )
+
     anat_robustfov = pe.Node(
         interface=fsl.RobustFOV(), name=f'anat_RobustFOV_{pipe_num}')
+    #anat_robustfov.brainsize = '%d'
     anat_robustfov.inputs.output_type = 'NIFTI_GZ'
+
+    pad_mask = pe.Node(util.Function(input_names=['cropped_image', 'target_shape'],
+                                    output_names=['padded_mask'],
+                                    function=pad),
+                        name=f'pad_mask_{pipe_num}'
+                        )
 
     if strat_pool.check_rpool('desc-preproc_T1w'): 
         node, out = strat_pool.get_data('desc-preproc_T1w')
         
+        wf.connect(anat_nifti_shape, 'dim3', anat_robustfov, 'brainsize')
+        
         if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
-           wf.connect(anat_robustfov, 'out_roi', anat_skullstrip,'in_file')
+           wf.connect(node, out, anat_nifti_shape, 'nifti_image')
+           wf.connect(anat_robustfov, 'out_roi', pad_mask, 'cropped_image')
+           wf.connect(anat_nifti_shape,'shape', pad_mask, 'target_shape')
+           wf.connect(pad_mask, 'padded_image', anat_skullstrip,'in_file')
         else :
            wf.connect(node, out, anat_skullstrip, 'in_file')
 
@@ -664,10 +683,13 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         node, out = strat_pool.get_data('desc-preproc_T2w')
         if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
-           wf.connect(anat_robustfov, 'out_roi', anat_skullstrip,'in_file')
+           wf.connect(node, out, anat_nifti_shape, 'nifti_image')
+           wf.connect(anat_robustfov, 'out_roi', pad_mask, 'cropped_image')
+           wf.connect(anat_nifti_shape,'shape', pad_mask, 'target_shape')
+           wf.connect(pad_mask, 'padded_image', anat_skullstrip,'in_file')
         else :
            wf.connect(node, out, anat_skullstrip, 'in_file')
-
+    
     wf.connect([
         (inputnode_bet, anat_skullstrip, [
             ('frac', 'frac'),
