@@ -2,16 +2,36 @@
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from nibabel import load as nib_load, Nifti1Image
-from numpy import zeros
 
-def get_shape(nifti_image):
-    return nib_load(nifti_image).shape
+def find_sublist(a, b):
+    len_a = len(a)
+    len_b = len(b)
 
-def pad(cropped_image, target_shape):
-    padded_image = zeros(target_shape)
-    padded_image[:, :, :cropped_image.shape[2]] = cropped_image.get_data()
-    return Nifti1Image(padded_image, affine=cropped_image.affine)
+    for f in range(len_b - len_a + 1):
+        b[f:f+len_a]
+        if (b[f:f+len_a] == a).all():
+            return f
+    return None
+
+def pad(cropped_image_path, target_image_path):
+    import numpy as np
+    from nibabel import load, save, Nifti1Image
+    from os import path, getcwd
+
+    cropped_image = np.asanyarray(load(cropped_image_path).dataobj)
+    target_image = np.asanyarray(load(target_image_path).dataobj)
+
+    r =20
+    c= 20
+    f = find_sublist(cropped_image[r, c, :], target_image[r, c, :])
+    
+    padded_image_matrix = np.zeros_like(target_image)
+    print(padded_image_matrix.shape)
+    cropped_image = load(cropped_image_path)
+    padded_image_matrix[:, :, f:cropped_image.shape[2]+f] = cropped_image
+    padded_image_path = path.join(getcwd(),"padded_image_T1w.nii.gz")
+    save(Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path)
+    return padded_image_path
 
 def fsl_aff_to_rigid(in_xfm, out_name):
 
