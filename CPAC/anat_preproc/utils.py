@@ -3,16 +3,6 @@ import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 
-def find_sublist(a, b):
-    len_a = len(a)
-    len_b = len(b)
-
-    for f in range(len_b - len_a + 1):
-        b[f:f+len_a]
-        if (b[f:f+len_a] == a).all():
-            return f
-    return None
-
 def pad(cropped_image_path, target_image_path):
     import numpy as np
     from nibabel import load, save, Nifti1Image
@@ -23,13 +13,21 @@ def pad(cropped_image_path, target_image_path):
 
     r =20
     c= 20
-    f = find_sublist(cropped_image[r, c, :], target_image[r, c, :])
+    a = cropped_image[r, c, :]
+    b = target_image[r, c, :]
+    len_a = len(a)
+    len_b = len(b)
+
+    for f in range(len_b - len_a + 1):
+        b[f:f+len_a]
+        if (b[f:f+len_a] == a).all():
+            break
+    print(f)
     
     padded_image_matrix = np.zeros_like(target_image)
-    print(padded_image_matrix.shape)
-    cropped_image = load(cropped_image_path)
     padded_image_matrix[:, :, f:cropped_image.shape[2]+f] = cropped_image
     padded_image_path = path.join(getcwd(),"padded_image_T1w.nii.gz")
+    cropped_image = load(cropped_image_path)
     save(Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path)
     return padded_image_path
 
