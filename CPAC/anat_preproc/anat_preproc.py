@@ -653,7 +653,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     anat_robustfov.inputs.output_type = 'NIFTI_GZ'
 
-    anat_pad_mask = pe.Node(util.Function(input_names=['cropped_image_path', 'target_image_path'],
+    anat_pad_RobustFOV_cropped = pe.Node(util.Function(input_names=['cropped_image_path', 'target_image_path'],
                                     output_names=['padded_image_path'],
                                     function=pad),
                         name=f'anat_pad_mask_{pipe_num}'
@@ -663,9 +663,9 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         node, out = strat_pool.get_data('desc-preproc_T1w')
         if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
-           wf.connect(node, out, anat_pad_mask, 'target_image_path')
-           wf.connect(anat_robustfov, 'out_roi', anat_pad_mask, 'cropped_image_path')
-           wf.connect(anat_pad_mask, 'padded_image_path', anat_skullstrip,'in_file')
+           wf.connect(node, out, anat_pad_RobustFOV_cropped, 'target_image_path')
+           wf.connect(anat_robustfov, 'out_roi', anat_pad_RobustFOV_cropped, 'cropped_image_path')
+           wf.connect(anat_pad_RobustFOV_cropped, 'padded_image_path', anat_skullstrip,'in_file')
         else :
            wf.connect(node, out, anat_skullstrip, 'in_file')
 
@@ -673,9 +673,9 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         node, out = strat_pool.get_data('desc-preproc_T2w')
         if cfg.anatomical_preproc['brain_extraction']['FSL-BET']['Robustfov']:
            wf.connect(node, out, anat_robustfov, 'in_file')
-           wf.connect(node, out, anat_pad_mask, 'target_image_path')
-           wf.connect(anat_robustfov, 'out_roi', anat_pad_mask, 'cropped_image_path')
-           wf.connect(anat_pad_mask, 'padded_image_path', anat_skullstrip,'in_file')
+           wf.connect(node, out, anat_pad_RobustFOV_cropped, 'target_image_path')
+           wf.connect(anat_robustfov, 'out_roi', anat_pad_RobustFOV_cropped, 'cropped_image_path')
+           wf.connect(anat_pad_RobustFOV_cropped, 'padded_image_path', anat_skullstrip,'in_file')
         else :
            wf.connect(node, out, anat_skullstrip, 'in_file')
     
