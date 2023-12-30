@@ -4,28 +4,25 @@ import nipype.interfaces.utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
 
 def pad(cropped_image_path, target_image_path):
-    import numpy as np
+    from numpy import asanyarray, zeros_like
     from nibabel import load, save, Nifti1Image
     from os import path, getcwd
 
-    cropped_image = np.asanyarray(load(cropped_image_path).dataobj)
-    target_image = np.asanyarray(load(target_image_path).dataobj)
+    cropped_image = asanyarray(load(cropped_image_path).dataobj)
+    target_image = asanyarray(load(target_image_path).dataobj)
 
-    r =20
-    c= 20
-    a = cropped_image[r, c, :]
-    b = target_image[r, c, :]
-    len_a = len(a)
-    len_b = len(b)
+    # Taking 1 slice to calculate the z dimension shift from top
+    row =target_image.shape[0]//2
+    column= target_image.shape[1]//2
+    a = cropped_image[row, column, :]
+    b = target_image[row, column, :]
 
-    for f in range(len_b - len_a + 1):
-        b[f:f+len_a]
-        if (b[f:f+len_a] == a).all():
+    for z_shift in range(len(b) - len(a) + 1):
+        if (b[z_shift:z_shift+len(a)] == a).all():
             break
-    print(f)
     
-    padded_image_matrix = np.zeros_like(target_image)
-    padded_image_matrix[:, :, f:cropped_image.shape[2]+f] = cropped_image
+    padded_image_matrix = zeros_like(target_image)
+    padded_image_matrix[:, :, z_shift:cropped_image.shape[2]+z_shift] = cropped_image
     padded_image_path = path.join(getcwd(),"padded_image_T1w.nii.gz")
     cropped_image = load(cropped_image_path)
     save(Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path)
