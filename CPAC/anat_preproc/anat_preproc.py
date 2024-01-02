@@ -609,7 +609,6 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'vertical_gradient']),
         name=f'BET_options_{pipe_num}')
 
-    
     anat_skullstrip = pe.Node(
         interface=fsl.BET(), name=f'anat_BET_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
@@ -678,7 +677,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
            wf.connect(anat_pad_RobustFOV_cropped, 'padded_image_path', anat_skullstrip,'in_file')
         else :
            wf.connect(node, out, anat_skullstrip, 'in_file')
-    
+
     wf.connect([
         (inputnode_bet, anat_skullstrip, [
             ('frac', 'frac'),
@@ -706,6 +705,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         outputs = {
             'space-T2w_desc-brain_mask': (anat_skullstrip, 'mask_file')
         }
+
     return (wf, outputs)
 
 

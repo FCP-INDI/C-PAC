@@ -342,7 +342,6 @@ anatomical_preproc:
       monkey: Off
 
     FSL-BET:
-
       # Set Robustfov on to crop neck regions before generating the mask for skull stripping.
       Robustfov: On
 
