@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2022  C-PAC Developers
+# Copyright (C) 2012-2023  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,8 +14,15 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import os
+from pathlib import Path
+from typing import Optional, Union
+import nibabel as nib
+from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.typing import ITERABLE, LIST
 
 
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
@@ -47,7 +54,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
         p_value = p_value / 2
 
     # Load in data and number of time pts
-    img = nb.load(datafile).get_data()
+    img = nb.load(datafile).get_fdata()
     t_pts = img.shape[-1]
 
     # N-2 degrees of freedom with Pearson correlation (two sample means)
@@ -66,8 +73,48 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     return r_value
 
 
-# Function to actually do the list merging
-def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
+def merge_lists(deg_list: Optional[LIST[str]] = None,
+                eig_list: Optional[LIST[str]] = None,
+                lfcd_list: Optional[LIST[str]] = None):
+    '''Function to actually do the list merging.
+
+    Parameters
+    ----------
+    deg_list : list of str, optional
+        list of paths to degree centrality outputs
+
+    eig_list : list of str, optional
+        list of paths to eigenvector centrality outputs
+
+    lfcd_list : list of str, optional
+        list of paths to local functional connectivity density outputs
+
+    Returns
+    -------
+    degree_weighted : str
+        path to weighted degree centrality output
+
+    degree_binarized : str
+        path to binarized degree centrality output
+
+    eigen_weighted : str
+        path to weighted eigenvector centrality output
+
+    eigen_binarized : str
+        path to binarized eigenvector centrality output
+
+    lfcd_weighted : str
+        path to weighted local functional connectivity density output
+
+    lfcd_binarized : str
+        path to binarized local functional connectivity density output
+    '''
+    if deg_list is None:
+        deg_list = []
+    if eig_list is None:
+        eig_list = []
+    if lfcd_list is None:
+        lfcd_list = []
     merged_list = []
     merged_list.extend(deg_list)
     merged_list.extend(eig_list)
@@ -98,14 +145,76 @@ def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
             eigen_binarized, lfcd_weighted, lfcd_binarized)
 
 
+def create_merge_node(pipe_num: int) -> Node:
+    '''Create a Function Node to merge lists for the centrality workflow
+
+    Parameters
+    ----------
+    pipe_num : int
+
+    Returns
+    -------
+    Node
+        a Function Node to merge lists for the centrality workflow
+
+    Notes
+    -----
+    Node Inputs::
+
+        deg_list : list of strings
+            list of paths to degree centrality outputs
+
+        eig_list : list of strings
+            list of paths to eigenvector centrality outputs
+
+        lfcd_list : list of strings
+            list of paths to local functional connectivity density outputs
+
+    Node Outputs::
+
+        degree_weighted : string
+            path to weighted degree centrality output
+
+        degree_binarized : string
+            path to binarized degree centrality output
+
+        eigen_weighted : string
+            path to weighted eigenvector centrality output
+
+        eigen_binarized : string
+            path to binarized eigenvector centrality output
+
+        lfcd_weighted : string
+            path to weighted local functional connectivity density output
+
+        lfcd_binarized : string
+            path to binarized local functional connectivity density output
+    '''
+    return Node(Function(input_names=['deg_list', 'eig_list', 'lfcd_list'],
+                         output_names=['degree_weighted',
+                                       'degree_binarized',
+                                       'eigen_weighted',
+                                       'eigen_binarized',
+                                       'lfcd_weighted',
+                                       'lfcd_binarized'],
+                         function=merge_lists, as_module=True),
+                name=f'centrality_merge_node_{pipe_num}')
+
+
+@Function.sig_imports(['from typing import Union', 'import os',
+                       'from pathlib import Path', 'import nibabel as nib',
+                       'from CPAC.pipeline.schema import valid_options',
+                       'from CPAC.utils.docs import docstring_parameter',
+                       'from CPAC.utils.typing import ITERABLE, LIST'])
 @docstring_parameter(
     weight_options=tuple(valid_options['centrality']['weight_options']))
-def sep_nifti_subbriks(nifti_file, out_names):
+def sep_nifti_subbriks(nifti_file: Union[Path, str], out_names: ITERABLE[str]
+                       ) -> LIST[str]:
     '''Separate sub-briks of niftis and save specified out
 
     Parameters
     ----------
-    nifti_file : str
+    nifti_file : ~pathlib.Path or str
         path to NIfTI output of an AFNI centrality tool
 
     out_names : iterable of str
@@ -113,22 +222,16 @@ def sep_nifti_subbriks(nifti_file, out_names):
 
     Returns
     -------
-    list
-        each of the specified outputs as its own file
+    list of str
+        paths to each of the specified outputs as its own file
     '''
-    # pylint: disable=redefined-outer-name,reimported,unused-import
-    import os
-    import nibabel as nib
-    from CPAC.pipeline.schema import valid_options
-    from CPAC.utils.docs import docstring_parameter  # noqa: F401
-
     output_niftis = []
     weight_options = valid_options['centrality']['weight_options']
     selected_options = {_[::-1].split('_', 1)[0][::-1]: _ for _ in out_names}
 
     nii_img = nib.load(nifti_file)
-    nii_arr = nii_img.get_data()
-    nii_affine = nii_img.get_affine()
+    nii_arr = nii_img.get_fdata()
+    nii_affine = nii_img.affine
     nii_dims = nii_arr.shape
 
     if nii_dims[-1] != len(weight_options):
@@ -301,10 +404,10 @@ class ThresholdOptionError(ValueError):
             method_option == 'local_functional_connectivity_density' and
             threshold_option == 'Sparsity threshold'
         ):
-            valid_options = ' or '.join([
+            _valid_options = ' or '.join([
                 f"'{t}'" for t in valid_options[
                     'centrality'
                 ]['threshold_options'] if t != threshold_option
             ])
-            self.message += f'. \'{method_option}\' must use {valid_options}.'
+            self.message += f'. \'{method_option}\' must use {_valid_options}.'
         super().__init__(self.message)

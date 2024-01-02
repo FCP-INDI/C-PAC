@@ -23,7 +23,6 @@ import pickle
 import copy
 import faulthandler
 
-from CPAC.utils.monitoring.custom_logging import getLogger
 from time import strftime
 
 import nipype
@@ -107,7 +106,6 @@ from CPAC.registration.registration import (
     warp_sbref_to_T1template,
     warp_bold_mask_to_T1template,
     warp_deriv_mask_to_T1template,
-    warp_denoiseNofilt_to_T1template,
     warp_timeseries_to_EPItemplate,
     warp_bold_mean_to_EPItemplate,
     warp_bold_mask_to_EPItemplate,
@@ -127,6 +125,15 @@ from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_freesurfer
 )
 
+from CPAC.func_preproc import (
+    calc_motion_stats,
+    func_motion_correct,
+    func_motion_correct_only,
+    func_motion_estimates,
+    get_motion_ref,
+    motion_estimate_filter
+)
+
 from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_truncate,
@@ -143,14 +150,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_ccs,
     bold_masking,
     func_mean,
-    func_normalize,
-    func_mask_normalize,
-    get_motion_ref,
-    func_motion_estimates,
-    motion_estimate_filter,
-    calc_motion_stats,
-    func_motion_correct_only,
-    func_motion_correct
+    func_normalize
 )
 
 from CPAC.distortion_correction.distortion_correction import (
@@ -173,7 +173,8 @@ from CPAC.nuisance.nuisance import (
     erode_mask_boldCSF,
     erode_mask_boldGM,
     erode_mask_boldWM,
-    nuisance_regression_template
+    nuisance_regression_template,
+    ingress_regressors
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
@@ -192,8 +193,9 @@ from CPAC.sca.sca import (
 
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
 from CPAC.reho.reho import reho, reho_space_template
-from CPAC.utils.serialization import save_workflow_json, WorkflowJSONMeta
+from flowdump import save_workflow_json, WorkflowJSONMeta
 
+from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import (
     smooth_func_vmhc,
     warp_timeseries_to_sym_template,
@@ -208,11 +210,12 @@ from CPAC.pipeline.random_state import set_up_random_state_logger
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, set_subject
-
+from CPAC.utils.docs import version_report
+from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.xcp import qc_xcp
 
-from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial, \
+from CPAC.utils.monitoring import getLogger, log_nodes_cb, log_nodes_initial, \
                                   LOGTAIL, set_up_logger, \
                                   WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
@@ -221,7 +224,7 @@ from CPAC.utils.utils import (
     check_system_deps,
 )
 
-logger = logging.getLogger('nipype.workflow')
+logger = getLogger('nipype.workflow')
 faulthandler.enable()
 
 # config.enable_debug_mode()
@@ -359,6 +362,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         encrypt_data = False
 
     information = """
+    Environment
+    ===========
+    {dependency_versions}
+
     Run command: {run_command}
 
     C-PAC version: {cpac_version}
@@ -392,6 +399,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     logger.info('%s', information.format(
         run_command=' '.join(['run', *sys.argv[1:]]),
         cpac_version=CPAC.__version__,
+        dependency_versions=version_report().replace('\n', '\n    '),
         cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
         participants=c.pipeline_setup['system_config'][
             'num_participants_at_once'],
@@ -419,15 +427,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                     'local_functional_connectivity_density'][
                                     'weight_options']) != 0
 
-    # Check system dependencies
-    check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
-    if isinstance(check_ica_aroma, list):
-        check_ica_aroma = True in check_ica_aroma
-    check_system_deps(check_ants='ANTS' in c.registration_workflows[
-        'anatomical_registration']['registration']['using'],
-                      check_ica_aroma=check_ica_aroma,
-                      check_centrality_degree=check_centrality_degree,
-                      check_centrality_lfcd=check_centrality_lfcd)
+    if not test_config:
+        # Check system dependencies
+        check_ica_aroma = c.nuisance_corrections['1-ICA-AROMA']['run']
+        if isinstance(check_ica_aroma, list):
+            check_ica_aroma = True in check_ica_aroma
+        check_system_deps(check_ants='ANTS' in c.registration_workflows[
+            'anatomical_registration']['registration']['using'],
+                        check_ica_aroma=check_ica_aroma,
+                        check_centrality_degree=check_centrality_degree,
+                        check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
     c.pipeline_setup['working_directory']['path'] = os.path.join(
@@ -465,14 +474,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                                        f'{graph2use}, {graph_format})'
                                        ) from exception
 
-    workflow_save = c.pipeline_setup['log_directory'].get('save_workflow', False)
-    if workflow_save:
-        workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
-        save_workflow_json(
-            filename=os.path.join(log_dir, workflow_meta.filename()),
-            workflow=workflow,
-            meta=workflow_meta
-        )
+    workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage='pre')
+    save_workflow_json(
+        filename=os.path.join(log_dir, workflow_meta.filename()),
+        workflow=workflow,
+        meta=workflow_meta,
+        custom_serializer=cpac_flowdump_serializer
+    )
 
     if test_config:
         logger.info('This has been a test of the pipeline configuration '
@@ -520,6 +528,7 @@ Please, make yourself aware of how it works and its assumptions:
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
+        workflow_result = None
         try:
             subject_info['resource_pool'] = []
 
@@ -547,11 +556,11 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.5.1'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.5.1\n" \
-                          % (CPAC.__version__)
-                logger.error(err_msg)
+            nipype_version = REQUIREMENTS['nipype']
+            if nipype.__version__ != nipype_version:
+                logger.warning('This version of Nipype may not be compatible '
+                               f'with CPAC v{CPAC.__version__}, please '
+                               f'install Nipype version {nipype_version}\n')
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
@@ -562,7 +571,8 @@ Please, make yourself aware of how it works and its assumptions:
 
             try:
                 # Actually run the pipeline now, for the current subject
-                workflow.run(plugin=plugin, plugin_args=plugin_args)
+                workflow_result = workflow.run(plugin=plugin,
+                                               plugin_args=plugin_args)
             except UnicodeDecodeError:
                 raise EnvironmentError(
                     "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
@@ -777,31 +787,41 @@ CPAC run error:
                                  c['subject_id'])
                 ))
 
-                if workflow_save:
+                if workflow_result is not None:
                     workflow_meta.stage = "post"
-                    workflow_filename = os.path.join(
-                        log_dir,
-                        workflow_meta.filename()
-                    )
                     save_workflow_json(
-                        filename=workflow_filename,
-                        workflow=workflow,
-                        meta=workflow_meta
+                        filename=os.path.join(log_dir,
+                                              workflow_meta.filename()),
+                        workflow=workflow_result,
+                        meta=workflow_meta,
+                        custom_serializer=cpac_flowdump_serializer
                     )
 
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
-                    try:
-                        if os.path.exists(working_dir):
-                            logger.info("Removing working dir: %s",
-                                        working_dir)
-                            shutil.rmtree(working_dir)
-                    except (FileNotFoundError, PermissionError):
-                        logger.warning(
-                            'Could not remove working directory %s',
-                            working_dir
-                        )
+                    remove_workdir(working_dir)
+                # Remove just .local from working directory
+                else:
+                    remove_workdir(os.path.join(os.environ["CPAC_WORKDIR"],
+                                                '.local'))
+
+
+def remove_workdir(wdpath: str) -> None:
+    """Remove a given working directory if possible, warn if impossible
+
+    Parameters
+    ----------
+    wdpath : str
+        path to working directory to remove
+    """
+    try:
+        if os.path.exists(wdpath):
+            logger.info("Removing working dir: %s", wdpath)
+            shutil.rmtree(wdpath)
+    except (FileNotFoundError, PermissionError):
+        logger.warning(
+            'Could not remove working directory %s', wdpath)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
@@ -859,7 +879,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
         pipeline_blocks = []
 
     # T1w Anatomical Preprocessing
-    if not rpool.check_rpool('desc-reorient_T1w'):
+    if not rpool.check_rpool('desc-reorient_T1w') and \
+        not rpool.check_rpool('desc-preproc_T1w'):
         anat_init_blocks = [
             anatomical_init
         ]
@@ -1106,14 +1127,23 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 LOGTAIL['warnings'].append(WARNING_FREESURFER_OFF_WITH_DATA)
                 continue
             previous_nb_str = (
-                f"after node block '{previous_nb.get_name()}': "
+                f"after node block '{previous_nb.get_name()}':"
             ) if previous_nb else 'at beginning:'
             # Alert user to block that raises error
-            e.args = (
-                'When trying to connect node block '
-                f"'{NodeBlock(block).get_name()}' "
-                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
-            )
+            if isinstance(block, list):
+                node_block_names = str([NodeBlock(b).get_name() for b in block])
+                e.args = (
+                    f'When trying to connect one of the node blocks '
+                    f"{node_block_names} "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
+            else:
+                node_block_names = NodeBlock(block).get_name()
+                e.args = (
+                    f'When trying to connect node block '
+                    f"'{node_block_names}' "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
             if cfg.pipeline_setup['Debugging']['verbose']:
                 verbose_logger = getLogger('engine')
                 verbose_logger.debug(e.args[0])
@@ -1216,7 +1246,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             func_prep_blocks += distcor_blocks
 
         func_motion_blocks = []
-        if not rpool.check_rpool('movement-parameters'):
+        if not rpool.check_rpool('desc-movementParameters_motion'):
             if cfg['functional_preproc']['motion_estimates_and_correction'][
                 'motion_estimates']['calculate_motion_first']:
                 func_motion_blocks = [
@@ -1295,9 +1325,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                           erode_mask_boldCSF,
                           erode_mask_boldGM,
                           erode_mask_boldWM]
-        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, generate_only)
+        nuisance += nuisance_masks + choose_nuisance_blocks(cfg, rpool, \
+                                    generate_only)
 
         pipeline_blocks += nuisance
+
+    pipeline_blocks.append(ingress_regressors)
 
     apply_func_warp = {}
     _r_w_f_r = cfg.registration_workflows['functional_registration']
@@ -1344,17 +1377,20 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     pipeline_blocks += [func_despike_template]
 
-    if 'Template' in target_space_alff and 'Native' in target_space_nuis:
+    if 'Template' in target_space_alff and target_space_nuis == 'native':
         pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['target_template']['using']
 
     if 'T1_template' in template:
-	    apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and _r_w_f_r['func_registration_to_template']['run_EPI'])
+        apply_func_warp['EPI'] = (_r_w_f_r['coregistration']['run'] and
+                                  _r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
     else:
-        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template']['run_EPI'])
-    
+        apply_func_warp['EPI'] = (_r_w_f_r['func_registration_to_template'
+                                           ]['run_EPI'])
+
     del _r_w_f_r
 
     template_funcs = [
@@ -1377,12 +1413,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                             warp_deriv_mask_to_EPItemplate]
 
     # Template-space nuisance regression
-    nuisance_template = 'template' in cfg[
-        'nuisance_corrections', '2-nuisance_regression', 'space'
-    ] and not generate_only
+    nuisance_template = (cfg['nuisance_corrections', '2-nuisance_regression',
+                             'space'] == 'template') and (not generate_only)
     if nuisance_template:
-        pipeline_blocks += [(nuisance_regression_template,
-                            ("desc-preproc_bold", "desc-stc_bold"))]
+        pipeline_blocks += [nuisance_regression_template]
+        # pipeline_blocks += [(nuisance_regression_template,
+        #                     ("desc-preproc_bold", "desc-stc_bold"))]
 
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool('space-fsLR_den-32k_bold.dtseries'):
@@ -1423,9 +1459,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             pipeline_blocks += [alff_falff]
 
     if 'Template' in target_space_alff:
-        if not nuisance_template and not rpool.check_rpool(
-                'space-template_desc-denoisedNofilt_bold'):
-            pipeline_blocks += [warp_denoiseNofilt_to_T1template]
         if not rpool.check_rpool('space-template_alff'):
             pipeline_blocks += [alff_falff_space_template]
 
@@ -1463,11 +1496,22 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     try:
         wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
     except LookupError as lookup_error:
-        errorstrings = lookup_error.args[0].split('\n')
-        missing_key = errorstrings[
-            errorstrings.index('[!] C-PAC says: The listed resource is not '
-                               'in the resource pool:') + 1]
-        if missing_key.endswith('_bold') and 'func' not in sub_dict:
+        missing_key = None
+        errorstrings = [arg for arg in lookup_error.args[0].split('\n') if
+                        arg.strip()]
+        if lookup_error.args[0].startswith('When trying to connect node b'):
+            missing_key = lookup_error.args[0].split("': ")[-1]
+        for errorstring in [
+            '[!] C-PAC says: The listed resource is not in the resource pool:',
+            '[!] C-PAC says: None of the listed resources are in the resource '
+            'pool:',
+            '[!] C-PAC says: None of the listed resources in the node block '
+            'being connected exist in the resource pool.\n\nResources:'
+        ]:
+            if errorstring in lookup_error.args[0]:
+                missing_key = errorstrings[errorstrings.index(errorstring) + 1]
+        if missing_key and missing_key.endswith('_bold'
+                                                ) and 'func' not in sub_dict:
             raise FileNotFoundError(
                 'The provided pipeline configuration requires functional '
                 'data but no functional data were found for ' +

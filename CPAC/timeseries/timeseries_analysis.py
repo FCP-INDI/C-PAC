@@ -14,6 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.pipeline.nodeblock import nodeblock
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni, fsl
 from nipype.interfaces.utility import Function
@@ -533,11 +534,11 @@ def gen_roi_timeseries(data_file, template, output_type):
     import os
     import shutil
 
-    unit_data = nib.load(template).get_data()
+    unit_data = nib.load(template).get_fdata()
     # Cast as rounded-up integer
     unit_data = np.int64(np.ceil(unit_data))
     datafile = nib.load(data_file)
-    img_data = datafile.get_data()
+    img_data = datafile.get_fdata()
     vol = img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
@@ -666,10 +667,10 @@ def gen_voxel_timeseries(data_file, template):
     import os
 
     unit = nib.load(template)
-    unit_data = unit.get_data()
+    unit_data = unit.get_fdata()
     datafile = nib.load(data_file)
-    img_data = datafile.get_data()
-    header_data = datafile.get_header()
+    img_data = datafile.get_fdata()
+    header_data = datafile.header
     qform = header_data.get_qform()
     sorted_list = []
     vol_dict = {}
@@ -704,7 +705,7 @@ def gen_voxel_timeseries(data_file, template):
     one = np.array([1])
     headers = ['volume/xyz']
     cordinates = np.argwhere(unit_data != 0)
-    for val in range(np.alen(cordinates)):
+    for val in range(len(cordinates)):
         ijk_mat = np.concatenate([cordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)
@@ -790,23 +791,23 @@ def resample_function() -> 'Function':
                     function=resample_func_roi, as_module=True)
 
 
+@nodeblock(
+    name="timeseries_extraction_AVG",
+    config=["timeseries_extraction"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold",
+            "space-template_desc-bold_mask"],
+    outputs=[
+        "space-template_desc-Mean_timeseries",
+        "space-template_desc-ndmg_correlations",
+        "atlas_name",
+        "space-template_desc-PearsonAfni_correlations",
+        "space-template_desc-PartialAfni_correlations",
+        "space-template_desc-PearsonNilearn_correlations",
+        "space-template_desc-PartialNilearn_correlations",
+    ],
+)
 def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "timeseries_extraction_AVG",
-     "config": ["timeseries_extraction"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-brain_mask"],
-     "outputs": ["space-template_desc-Mean_timeseries",
-                 "space-template_desc-ndmg_correlations",
-                 "atlas_name",
-                 "space-template_desc-PearsonAfni_correlations",
-                 "space-template_desc-PartialAfni_correlations",
-                 "space-template_desc-PearsonNilearn_correlations",
-                 "space-template_desc-PartialNilearn_correlations"]}
-    '''
     resample_functional_roi = pe.Node(resample_function(),
                                       name='resample_functional_roi_'
                                            f'{pipe_num}')
@@ -866,7 +867,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                     pipe_num=pipe_num
                 )
                 brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-brain_mask'])
+                    'space-template_desc-bold_mask'])
                 if 'func_to_ROI' in realignment:
                     resample_brain_mask_roi = pe.Node(
                         resample_function(),
@@ -931,17 +932,14 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="timeseries_extraction_Voxel",
+    config=["timeseries_extraction"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold"],
+    outputs=["desc-Voxel_timeseries", "atlas_name"],
+)
 def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    {"name": "timeseries_extraction_Voxel",
-     "config": ["timeseries_extraction"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold"],
-     "outputs": ["desc-Voxel_timeseries",
-                 "atlas_name"]}
-    '''
 
     resample_functional_to_mask = pe.Node(resample_function(),
                                           name='resample_functional_to_mask_'
@@ -985,6 +983,15 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+@nodeblock(
+    name="spatial_regression",
+    config=["timeseries_extraction"],
+    switch=["run"],
+    inputs=["space-template_desc-preproc_bold", 
+            ["space-template_desc-bold_mask",
+            "space-template_desc-brain_mask"]],
+    outputs=["desc-SpatReg_timeseries", "atlas_name"],
+)
 def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     '''Performs spatial regression, extracting the spatial map timeseries of
     the given atlases.
@@ -992,17 +999,6 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     Note: this is a standalone function for when only spatial regression is
           selected for the given atlases - if dual regression is selected,
           that spatial regression is performed in the dual_regression function
-
-    Node Block:
-    {"name": "spatial_regression",
-     "config": ["timeseries_extraction"],
-     "switch": ["run"],
-     "option_key": "None",
-     "option_val": "None",
-     "inputs": ["space-template_desc-preproc_bold",
-                "space-template_desc-bold_mask"],
-     "outputs": ["desc-SpatReg_timeseries",
-                 "atlas_name"]}
     '''
 
     resample_spatial_map_to_native_space = pe.Node(
@@ -1044,7 +1040,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(resample_spatial_map_to_native_space, 'out_file',
                spatial_map_timeseries, 'inputspec.spatial_map')
 
-    node, out = strat_pool.get_data('space-template_desc-bold_mask')
+    node, out = strat_pool.get_data(['space-template_desc-bold_mask', 'space-template_desc-brain_mask'])
     wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_mask')
 
     # 'atlas_name' will be an iterable and will carry through

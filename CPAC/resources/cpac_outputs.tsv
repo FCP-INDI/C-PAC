@@ -98,16 +98,11 @@ space-T1w_desc-eroded_mask	mask	T1w	anat	NIfTI
 space-template_desc-brain_mask	mask	template	anat	NIfTI					
 space-template_desc-bold_mask	mask	template	func	NIfTI					
 space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
-dvars	motion		func	text					
-framewise-displacement-jenkinson	motion		func	1D					
-framewise-displacement-power	motion		func	1D					
-max-displacement	motion		func	1D					
-motion-filter-info	motion		func	text					
+motion	motion		func	TSV					
+desc-summary_motion	motion		func	TSV					
 motion-filter-plot	motion		func	png					
-motion-params	motion		func	text					
-movement-parameters	motion		func	1D					
-power-params	motion		func	text					
-rels-displacement	motion		func	1D					
+desc-movementParameters_motion	motion		func	TSV					
+desc-movementParametersUnfiltered_motion	motion		func	TSV					
 label-CSF_probseg	probseg	T1w	anat	NIfTI					
 label-GM_probseg	probseg	T1w	anat	NIfTI					
 label-WM_probseg	probseg	T1w	anat	NIfTI					
@@ -126,7 +121,7 @@ desc-boldSnrSagittal_quality	qc		func	png
 desc-boldSnrHist_quality	qc		func	png					
 desc-boldSnr_quality	qc		func	png					
 space-template_desc-xcp_quality	qc		func	tsv					
-regressors	regressors		func	1D					
+desc-confounds_timeseries	regressors		func	1D					
 desc-sm_reho	reho	functional	func	NIfTI		Yes			
 desc-sm-zstd_reho	reho	functional	func	NIfTI					
 desc-zstd_reho	reho	functional	func	NIfTI					
@@ -222,3 +217,4 @@ space-EPItemplate_label-WM_mask	mask	template	func	NIfTI
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
+dseg			anat

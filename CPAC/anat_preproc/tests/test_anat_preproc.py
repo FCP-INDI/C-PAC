@@ -31,8 +31,8 @@ class TestAnatPreproc:
 
 
         self.preproc = anat_preproc.create_anat_preproc()
-        self.input_anat = os.path.abspath('/usr/share/data/fsl-mni152-templates/MNI152_T1_2mm.nii.gz')
-        self.input_anat_known_brain = os.path.abspath('/usr/share/data/fsl-mni152-templates/MNI152_T1_2mm_brain.nii.gz')
+        self.input_anat = os.path.abspath('$FSLDIR/data/standard/MNI152_T1_2mm.nii.gz')
+        self.input_anat_known_brain = os.path.abspath('$FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz')
         self.base_dir = os.path.abspath('/home/data/Projects/Pipelines_testing/Dickstein_CPAC_working_dir/')
         self.preproc.inputs.inputspec.anat = self.input_anat
         self.preproc.base_dir = self.base_dir
@@ -152,8 +152,8 @@ class TestAnatPreproc:
         else:
             deobliqued_anat = self.node_names_map['anat_deoblique']
 
-            de_img_data = nib.load(deobliqued_anat).get_data()
-            orig_image_data = nib.load(self.input_anat).get_data()
+            de_img_data = nib.load(deobliqued_anat).get_fdata()
+            orig_image_data = nib.load(self.input_anat).get_fdata()
 
 
             de_img_data = de_img_data.flatten()
@@ -161,11 +161,11 @@ class TestAnatPreproc:
 
             np.testing.assert_equal(de_img_data, orig_image_data)
 
-#            de_image_header = nib.load(deobliqued_anat).get_header()
+#            de_image_header = nib.load(deobliqued_anat).header
 #
 #            de_vox_offset = de_image_header.get_data_offset()
 #
-#            orig_image_header = nib.load(self.input_anat).get_header()
+#            orig_image_header = nib.load(self.input_anat).header
 #
 #            orig_vox_offset = orig_image_header.get_data_offset()
 #
@@ -285,8 +285,8 @@ class TestAnatPreproc:
 
             anat_skullstrip = self.node_names_map['anat_skullstrip']
 
-            skullstrip_data = nib.load(anat_skullstrip).get_data()
-            known_brain_data = nib.load(self.input_anat_known_brain).get_data()
+            skullstrip_data = nib.load(anat_skullstrip).get_fdata()
+            known_brain_data = nib.load(self.input_anat_known_brain).get_fdata()
 
             bin_skullstrip = binarize(skullstrip_data.flatten())
             bin_brain = binarize(known_brain_data.flatten())
@@ -320,12 +320,10 @@ class TestAnatPreproc:
 
         else:
 
-
             anat_brain = self.node_names_map['anat_brain_only']
 
-            brain_data = nib.load(anat_brain).get_data()
-            known_brain_data = nib.load(self.input_anat_known_brain).get_data()
-
+            brain_data = nib.load(anat_brain).get_fdata()
+            known_brain_data = nib.load(self.input_anat_known_brain).get_fdata()
 
             correlation = np.corrcoef(brain_data.flatten(), known_brain_data.flatten())
 

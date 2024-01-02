@@ -3,6 +3,10 @@ import sys
 
 from pathlib import Path
 
+import click
+import pytest
+import semver
+
 CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
 DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
@@ -11,16 +15,52 @@ from CPAC.__main__ import utils as CPAC_main_utils \
     # noqa: E402  # pylint: disable=wrong-import-position
 
 
-def test_build_data_config(cli_runner):
+def _click_backport(command, key):
+    """Switch back to underscores for older versions of click"""
+    return _resolve_alias(command,
+                          key.replace('-', '_').replace('opt_out', 'opt-out'))
+
+
+def _compare_version(left: str, right: str) -> int:
+    """Handle required verbosity after ``semver.compare`` deprecation"""
+    return semver.Version.compare(semver.Version.parse(left),
+                                  semver.Version.parse(right))
+
+
+try:
+    _BACKPORT_CLICK = _compare_version(click.__version__, '7.0.0') < 0
+except ValueError:
+    try:
+        _BACKPORT_CLICK = _compare_version(f'{click.__version__}.0',
+                                           '7.0.0') < 0
+    except ValueError:
+        _BACKPORT_CLICK = True
+
+
+def _resolve_alias(command, key):
+    """Resolve alias if possible"""
+    return command.resolve_alias(key) if hasattr(command,
+                                                'resolve_alias') else key
+
+
+@pytest.mark.parametrize('multiword_connector', ['-', '_'])
+def test_build_data_config(cli_runner, multiword_connector):
+    """Test CLI ``utils data-config new-settings-template`` and
+    ``utils data_config new_settings_template``"""
+    if multiword_connector == '-' and _BACKPORT_CLICK:
+        return
     os.chdir(DATA_DIR)
     test_yaml = os.path.join(DATA_DIR, "data_settings.yml")
     _delete_test_yaml(test_yaml)
-
-    result = cli_runner.invoke(
-        CPAC_main_utils.commands['data_config'].commands[
-            'new_settings_template'
-        ]
-    )
+    if multiword_connector == '_':
+        data_config = CPAC_main_utils.commands[
+            _click_backport(CPAC_main_utils, 'data-config')]
+        result = cli_runner.invoke(
+            data_config.commands[
+                _click_backport(data_config, 'new-settings-template')])
+    else:
+        result = cli_runner.invoke(CPAC_main_utils.commands[
+            'data-config'].commands['new-settings-template'])
 
     assert result.exit_code == 0
     assert result.output.startswith(
@@ -42,7 +82,9 @@ def test_new_settings_template(cli_runner):
         )
 
     result = cli_runner.invoke(
-        CPAC_main_utils.commands['data_config'].commands['build'],
+        CPAC_main_utils.commands[
+            _click_backport(CPAC_main_utils, 'data-config')
+                                 ].commands['build'],
         [os.path.join(
             DATA_DIR,
             "data_settings_bids_examples_ds051_default_BIDS.yml"

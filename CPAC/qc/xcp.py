@@ -68,11 +68,12 @@ from nipype.interfaces import afni, fsl
 from CPAC.generate_motion_statistics.generate_motion_statistics import \
     DVARS_strip_t0, ImageTo1D
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 
 motion_params = ['dvars', 'framewise-displacement-jenkinson',
-                 'movement-parameters']
+                 'desc-movementParametersUnfiltered_motion', 'desc-movementParameters_motion']
 
 
 def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
@@ -126,7 +127,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
         (cal_DVARS_strip, qc_file, [('out_file', 'dvars_after')]),
         *[(nodes[node].node, qc_file, [
             (nodes[node].out, node.replace('-', '_'))
-        ]) for node in motion_params]])
+        ]) for node in motion_params if node in nodes]])
     return wf
 
 
@@ -375,26 +376,36 @@ def get_bids_info(subject, scan, wf_name):
                  'subject', 'session', 'task', 'run'])
 
 
+@nodeblock(
+    name="qc_xcp",
+    config=["pipeline_setup", "output_directory", "quality_control"],
+    switch=["generate_xcpqc_files"],
+    inputs=[
+        (
+            "subject",
+            "scan",
+            "bold",
+            "desc-preproc_bold",
+            "space-T1w_sbref",
+            "space-T1w_desc-brain_mask",
+            "max-displacement",
+            "space-template_desc-preproc_bold",
+            "space-bold_desc-brain_mask",
+            ["T1w-brain-template-mask", "EPI-template-mask"],
+            ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"],
+            "regressors",
+            ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"],
+            ["desc-movementParametersUnfiltered_motion", "desc-movementParameters_motion"],
+            "dvars",
+            "framewise-displacement-jenkinson",
+        )
+    ],
+    outputs={
+        "space-template_desc-xcp_quality": {"Template": "T1w-brain-template-mask"}
+    },
+)
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=invalid-name, unused-argument
-    """
-    {'name': 'qc_xcp',
-     'config': ['pipeline_setup', 'output_directory', 'quality_control'],
-     'switch': ['generate_xcpqc_files'],
-     'option_key': 'None',
-     'option_val': 'None',
-     'inputs': [('subject', 'scan', 'bold', 'desc-preproc_bold',
-                 'space-T1w_sbref', 'space-T1w_desc-brain_mask',
-                 'max-displacement', 'space-template_desc-preproc_bold',
-                 'space-bold_desc-brain_mask', ['T1w-brain-template-mask',
-                 'EPI-template-mask'], ['space-template_desc-bold_mask',
-                 'space-EPItemplate_desc-bold_mask'], 'regressors',
-                 ['T1w-brain-template-funcreg', 'EPI-brain-template-funcreg'],
-                 'movement-parameters', 'dvars',
-                 'framewise-displacement-jenkinson')],
-     'outputs': {'space-template_desc-xcp_quality': {
-                     'Template': 'T1w-brain-template-mask'}}}
-    """
     if cfg['nuisance_corrections', '2-nuisance_regression', 'run'
            ] and not strat_pool.check_rpool('regressors'):
         return wf, {}
@@ -430,7 +441,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         'bold', 'desc-preproc_bold', 'max-displacement',
         'scan', 'space-bold_desc-brain_mask', 'space-T1w_desc-brain_mask',
         'space-T1w_sbref', 'space-template_desc-preproc_bold',
-        'subject', *motion_params]}
+        'subject', *motion_params] if strat_pool.check_rpool(key)}
     nodes['bold2template_mask'] = strat_pool.node_data([
         'space-template_desc-bold_mask', 'space-EPItemplate_desc-bold_mask'])
     nodes['template_mask'] = strat_pool.node_data(

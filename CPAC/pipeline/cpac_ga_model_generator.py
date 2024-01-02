@@ -184,9 +184,9 @@ def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
 
     # let's check if we need to resample the custom ROI mask
     raw_file_img = nb.load(data_file)
-    raw_file_hdr = raw_file_img.get_header()
+    raw_file_hdr = raw_file_img.header
     roi_mask_img = nb.load(roi_mask)
-    roi_mask_hdr = roi_mask_img.get_header()
+    roi_mask_hdr = roi_mask_img.header
 
     raw_file_dims = raw_file_hdr.get_zooms()
     roi_mask_dims = roi_mask_hdr.get_zooms()

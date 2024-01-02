@@ -1,5 +1,5 @@
 # CPAC Group-Level Analysis Configuration YAML file
-# Version 1.8.5
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -49,7 +49,7 @@ pipeline_setup:
   system_config:
 
     # The path to your FSL installation directory. This can be left as 'FSLDIR' to grab your system's default FSL installation. However, if you prefer to use a specific install of FSL, you can enter the path here.
-    FSLDIR: /usr/share/fsl/5.0
+    FSLDIR: FSLDIR
 
     # Number of CPUs to dedicate to the group-level analysis run. Parallelizes the pipeline where applicable.
     num_cpus: 1

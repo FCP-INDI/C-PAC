@@ -1,6 +1,6 @@
 """C-PAC Configuration class and related functions
 
-Copyright (C) 2022  C-PAC Developers
+Copyright (C) 2022-2023  C-PAC Developers
 
 This file is part of C-PAC.
 
@@ -18,15 +18,18 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
-from typing import Optional, Tuple
+from typing import Optional
 from warnings import warn
 import pkg_resources as p
+from click import BadParameter
 import yaml
-from CPAC.utils.utils import load_preconfig
+from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
                                r'${func_resolution}'}
+
+
 
 
 class ConfigurationDictUpdateConflation(SyntaxError):
@@ -39,30 +42,35 @@ class ConfigurationDictUpdateConflation(SyntaxError):
 
 
 class Configuration:
-    """Class to set dictionary keys as map attributes.
+    """
+    Class to set dictionary keys as map attributes.
 
-    If the given dictionary includes the key `FROM`, that key's value
+    If the given dictionary includes the key ``FROM``, that key's value
     will form the base of the Configuration object with the values in
     the given dictionary overriding matching keys in the base at any
-    depth. If no `FROM` key is included, the base Configuration is
+    depth. If no ``FROM`` key is included, the base Configuration is
     the default Configuration.
 
-    `FROM` accepts either the name of a preconfigured pipleine or a
+    ``FROM`` accepts either the name of a preconfigured pipleine or a
     path to a YAML file.
 
-    Given a Configuration `c`, and a list or tuple of an attribute name
-    and nested keys `keys = ['attribute', 'key0', 'key1']` or
-    `keys = ('attribute', 'key0', 'key1')`, the value 'value' nested in
+    Given a Configuration ``c``, and a list or tuple of an attribute name
+    and nested keys ``keys = ['attribute', 'key0', 'key1']`` or
+    ``keys = ('attribute', 'key0', 'key1')``, the value 'value' nested in
 
-    c.attribute = {'key0': {'key1': 'value'}}
+    .. code-block:: python
+
+        c.attribute = {'key0': {'key1': 'value'}}
 
     can be accessed (get and set) in any of the following ways (and
     more):
 
-    c.attribute['key0']['key1']
-    c['attribute']['key0']['key1']
-    c['attribute', 'key0', 'key1']
-    c[keys]
+    .. code-block:: python
+
+        c.attribute['key0']['key1']
+        c['attribute']['key0']['key1']
+        c['attribute', 'key0', 'key1']
+        c[keys]
 
     Examples
     --------
@@ -76,9 +84,22 @@ class Configuration:
     >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
     >>> c['pipeline_setup', 'pipeline_name']
     'new_pipeline2'
+
+    >>> from CPAC.utils.tests.configs import SLACK_420349
+
+    # test "FROM: /path/to/file"
+    >>> slack_420349_filepath = Configuration(
+    ...     yaml.safe_load(SLACK_420349['filepath']))
+    >>> slack_420349_filepath['pipeline_setup', 'pipeline_name']
+    'slack_420349_filepath'
+
+    # test "FROM: preconfig"
+    >>> slack_420349_preconfig = Configuration(
+    ...    yaml.safe_load(SLACK_420349['preconfig']))
+    >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
+    'slack_420349_preconfig'
     """
     def __init__(self, config_map=None):
-        from click import BadParameter
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
@@ -97,8 +118,8 @@ class Configuration:
             config_map = update_nested_dict(base_config.dict(), config_map)
         else:
             # base everything on blank pipeline for unspecified keys
-            with open(preconfig_yaml('blank'), 'r', encoding='utf-8') as _f:
-                config_map = update_nested_dict(yaml.safe_load(_f), config_map)
+            config_map = update_nested_dict(
+                preconfig_yaml('blank', load=True), config_map)
 
         config_map = self._nonestr_to_None(config_map)
 
@@ -114,8 +135,8 @@ class Configuration:
                 # set Regressor 'Name's if not provided
                 if 'Name' not in regressor:
                     regressor['Name'] = f'Regressor-{str(i + 1)}'
-                # replace spaces with hyphens in Regressor 'Name's
-                regressor['Name'] = regressor['Name'].replace(' ', '-')
+                # make Regressor 'Name's Nipype-friendly
+                regressor['Name'] = nipype_friendly_name(regressor['Name'])
 
         config_map = schema(config_map)
 
@@ -134,6 +155,10 @@ class Configuration:
             setattr(self, key, set_from_ENV(config_map[key]))
 
         self._update_attr()
+
+        # set working directory as an environment variable
+        os.environ['CPAC_WORKDIR'] = self[
+            'pipeline_setup', 'working_directory', 'path']
 
     def __str__(self):
         return ('C-PAC Configuration '
@@ -303,21 +328,23 @@ class Configuration:
                 new_key = self.check_pattern(attr_value)
             setattr(self, attr_key, new_key)
 
-    def update(self, key, val=ConfigurationDictUpdateConflation):
+    def update(self, key, val=ConfigurationDictUpdateConflation()):
         if isinstance(key, dict):
             raise ConfigurationDictUpdateConflation
+        if isinstance(val, Exception):
+            raise val
         setattr(self, key, val)
 
-    def get_nested(self, d, keys):
-        if d is None:
-            d = {}
+    def get_nested(self, _d, keys):
+        if _d is None:
+            _d = {}
         if isinstance(keys, str):
-            return d[keys]
+            return _d[keys]
         if isinstance(keys, (list, tuple)):
             if len(keys) > 1:
-                return self.get_nested(d[keys[0]], keys[1:])
-            return d[keys[0]]
-        return d
+                return self.get_nested(_d[keys[0]], keys[1:])
+            return _d[keys[0]]
+        return _d
 
     def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
         if isinstance(keys, str):
@@ -328,6 +355,181 @@ class Configuration:
             else:
                 d[keys[0]] = value
         return d
+
+    def _check_if_switch(self, key: ConfigKeyType,
+                         error: bool = False) -> bool:
+        '''Check if a given entity is a switch
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        error : bool
+            raise a TypeError if not a switch
+
+        Returns
+        -------
+        bool
+            True if the given key is a switch, False otherwise
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c._check_if_switch('anatomical_preproc')
+        False
+        >>> c._check_if_switch(['anatomical_preproc'])
+        False
+        >>> c._check_if_switch(['anatomical_preproc', 'run'])
+        True
+        '''
+        _maybe_switch = self[key]
+        if isinstance(_maybe_switch, bool):
+            return True
+        if isinstance(_maybe_switch, list):
+            _answer = all(isinstance(_, bool) for _ in _maybe_switch)
+            if _answer:
+                return _answer
+        if error:
+            raise TypeError(f'`{key}` is not a switch in {str(self)}.')
+        return False
+
+    def _switch_bool(self, key: ConfigKeyType, value: bool, exclusive: bool
+                     ) -> bool:
+        '''Return True if the given key is set to the given value or
+        False otherwise.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        value : bool
+            value to check for
+
+        exclusive : bool
+            return False if forking (both True and False)
+
+        Returns
+        -------
+        bool
+            True if the given key is set to the given value or False
+            otherwise. If exclusive is True, return False if the key
+            is set to both True and False.
+        '''
+        if not(exclusive and self.switch_is_on_off(key)):
+            if isinstance(self[key], bool):
+                return self[key] is value
+            if isinstance(self[key], list):
+                return value in self[key]
+        return False
+
+    def switch_is_off(self, key: ConfigKeyType, exclusive: bool = False
+                      ) -> bool:
+        '''Return True if the given key is set to 'off' OR 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        exclusive : bool, optional, default: False
+            return False if the key is set to 'on' and 'off'
+
+        Returns
+        -------
+        bool
+            True if key is set to 'off', False if not set to 'off'.
+            If exclusive is set to True, return False if the key is
+            set to 'on' and 'off'.
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'])
+        True
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'])
+        True
+        >>> c.switch_is_off(['nuisance_corrections', '2-nuisance_regression',
+        ...                  'run'], exclusive=True)
+        False
+        '''
+        self._check_if_switch(key, True)
+        return self._switch_bool(key, False, exclusive)
+
+    def switch_is_on(self, key: ConfigKeyType, exclusive: bool = False
+                     ) -> bool:
+        '''Return True if the given key is set to 'on' OR 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        exclusive : bool, optional, default: False
+            return False if the key is set to 'on' and 'off'
+
+        Returns
+        -------
+        bool
+            True if key is set to 'on', False if not set to 'on'.
+            If exclusive is set to True, return False if the key is
+            set to 'on' and 'off'.
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'])
+        False
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'])
+        True
+        >>> c.switch_is_on(['nuisance_corrections', '2-nuisance_regression',
+        ...                 'run'], exclusive=True)
+        False
+        '''
+        self._check_if_switch(key, True)
+        return self._switch_bool(key, True, exclusive)
+
+    def switch_is_on_off(self, key: ConfigKeyType) -> bool:
+        '''Return True if the given key is set to both 'on' and 'off'
+        or False otherwise. Used for tracking forking.
+
+        Parameters
+        ----------
+        key : str or list of str
+            key to check
+
+        Returns
+        -------
+        bool
+            True if key is set to 'on' and 'off', False otherwise
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.switch_is_on_off(['nuisance_corrections',
+        ...                     '2-nuisance_regression', 'run'])
+        False
+        >>> c = Configuration({'nuisance_corrections': {
+        ...     '2-nuisance_regression': {'run': [True, False]}}})
+        >>> c.switch_is_on_off(['nuisance_corrections',
+        ...                     '2-nuisance_regression', 'run'])
+        True
+        '''
+        self._check_if_switch(key, True)
+        if isinstance(self[key], list):
+            return True in self[key] and False in self[key]
+        return False
 
     def key_type_error(self, key):
         raise KeyError(' '.join([
@@ -420,7 +622,8 @@ def configuration_from_file(config_file):
 
 
 def preconfig_yaml(preconfig_name='default', load=False):
-    """Get the path to a preconfigured pipeline's YAML file
+    """Get the path to a preconfigured pipeline's YAML file.
+    Raises BadParameter if an invalid preconfig name is given.
 
     Parameters
     ----------
@@ -434,6 +637,13 @@ def preconfig_yaml(preconfig_name='default', load=False):
     str or dict
         path to YAML file or dict loaded from YAML
     """
+    from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
+    if preconfig_name not in ALL_PIPELINE_CONFIGS:
+        raise BadParameter(
+            f"The pre-configured pipeline name '{preconfig_name}' you "
+            "provided is not one of the available pipelines.\n\nAvailable "
+            f"pipelines:\n{str(AVAILABLE_PIPELINE_CONFIGS)}\n",
+            param='preconfig')
     if load:
         with open(preconfig_yaml(preconfig_name), 'r', encoding='utf-8') as _f:
             return yaml.safe_load(_f)
@@ -498,7 +708,7 @@ def set_from_ENV(conf):  # pylint: disable=invalid-name
 
 
 def set_subject(sub_dict: dict, pipe_config: 'Configuration',
-                p_name: Optional[str] = None) -> Tuple[str, str, str]:
+                p_name: Optional[str] = None) -> TUPLE[str, str, str]:
     '''Function to set pipeline name and log directory path for a given
     sub_dict
 
@@ -547,3 +757,18 @@ def set_subject(sub_dict: dict, pipe_config: 'Configuration',
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
     return subject_id, p_name, log_dir
+
+
+def nipype_friendly_name(name: str) -> str:
+    """Replace each sequence of non-alphanumeric characters with a single
+    underscore and remove any leading underscores
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    str
+    """
+    return re.sub(r'[^a-zA-Z0-9]+', '_', name).lstrip('_')
