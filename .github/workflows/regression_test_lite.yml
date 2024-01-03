@@ -28,9 +28,16 @@ jobs:
     name: Regression Test - Lite
     environment: ACCESS
     env:
+      COMPARISON_PATH: ${{ secrets.COMPARISON_PATH }}
+      DASHBOARD_REPO: ${{ vars.DASHBOARD_REPO}}
+      DOCKER_TAG:
+      GH_CLI_BIN_PATH: ${{ secrets.GH_CLI_BIN_PATH }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLURM_TESTING_OWNER: ${{ vars.SLURM_TESTING_OWNER }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_WORK_DIR: ${{ secrets.SSH_WORK_DIR }}
     if: |
       ${{ github.env.SSH_PRIVATE_KEY != '' &&
       (github.event_name == 'workflow_dispatch' ||
@@ -64,7 +71,7 @@ jobs:
       - name: Initiate check
         uses: guibranco/github-status-action-v2@v1.1.7
         with:
-          authToken: ${{ secrets.GITHUB_TOKEN }}
+          authToken: ${{ env.GITHUB_TOKEN }}
           context: Launch lite regression test
           description: launching
           state: pending
@@ -72,12 +79,12 @@ jobs:
       - name: Connect and Run Regression Test Lite
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
           command_timeout: 200m
           script: |
-            cd ${{ secrets.SSH_WORK_DIR }}
+            cd ${{ env.SSH_WORK_DIR }}
             if [ ! -d slurm_testing ] ; then
                 git clone https://github.com/${{ env.SLURM_TESTING_OWNER }}/slurm_testing slurm_testing
             else
@@ -86,7 +93,7 @@ jobs:
                 cd ..
             fi
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="HOME_DIR=${{ secrets.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ secrets.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }},TESTING_OWNER=$(echo ${{ env.SLURM_TESTING_OWNER }}) | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ secrets.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }},TESTING_OWNER=$(echo ${{ env.SLURM_TESTING_OWNER }}) | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
