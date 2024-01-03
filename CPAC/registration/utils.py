@@ -621,21 +621,31 @@ def run_c3d(reference_file, source_file, transform_file):
 
     cmd = ['c3d_affine_tool', '-ref', reference_file, '-src',
             source_file, transform_file, '-fsl2ras', '-oitk', itk_transform]
+    
+    def _horrible_hack():
 
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    retcode = process.returncode
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        retcode = process.returncode
 
-    if stdout:
-        print("Standard output from c3d_affine_tool:")
-        print(stdout.decode("utf-8"))
+        if stdout:
+            print("Standard output from c3d_affine_tool:")
+            print(stdout.decode("utf-8"))
 
-    if stderr:
-        print("Error output from c3d_affine_tool:")
-        print(stderr.decode("utf-8"))
+        if stderr:
+            print("Error output from c3d_affine_tool:")
+            print(stderr.decode("utf-8"))
+        
+        return retcode
 
+    retcode = _horrible_hack()
     if retcode != 0:
-        raise RuntimeError(f"c3d_affine_tool failed with return code {retcode}")
+        print(f"c3d_affine_tool failed with return code {retcode}. Trying again in 5 sec...")
+        import time
+        time.sleep(5)
+        retcode = _horrible_hack()
+        if retcode != 0:
+            raise RuntimeError(f"c3d_affine_tool failed with return code {retcode}")
 
     return itk_transform
 
