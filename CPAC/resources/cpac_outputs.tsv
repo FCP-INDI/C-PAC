@@ -100,7 +100,6 @@ space-template_desc-bold_mask	mask	template	func	NIfTI
 space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
 motion	motion		func	TSV					
 desc-summary_motion	motion		func	TSV					
-dvars	motion		func	TSV				Yes
 motion-filter-plot	motion		func	png					
 desc-movementParameters_motion	motion		func	TSV					
 desc-movementParametersUnfiltered_motion	motion		func	TSV					
