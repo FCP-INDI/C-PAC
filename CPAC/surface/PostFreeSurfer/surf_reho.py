@@ -1,10 +1,6 @@
-import numpy as np
-import nibabel as nb
-import os
-import sys
-
 
 def get_neighbours(faces, vertex_id, depth=1):
+    import numpy as np
     fois = np.where(faces == vertex_id)[0]
     nbrs = list(np.unique(faces[fois]))
     if depth > 1:
@@ -18,6 +14,7 @@ def get_neighbours(faces, vertex_id, depth=1):
 
 def ccs_ReHo(dt_file, surf_file):
 
+    import numpy as np
     #Finding neighbors
     print(surf_file)
     #surf = np.array(surf_file.agg_data()) # 2 separate arrays
@@ -60,8 +57,11 @@ def run_surf_reho(subject, dtseries, mask, cortex_file, \
                 surface_file, mean_timeseries, reho_filename, structure_name):
 
     import os
-    import subprocess
+    import nibabel as nb
+    import numpy as np
     from CPAC.utils.monitoring.custom_logging import log_subprocess
+    from CPAC.surface.PostFreeSurfer.surf_reho import ccs_ReHo
+    from CPAC.surface.PostFreeSurfer.surf_reho import get_neighbours
 
     dtseries = nb.load(dtseries) # dtseries file
     mask = nb.load(mask) # surface mask file

@@ -66,7 +66,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
       # DCAN-HCP PostFreeSurfer Block3
 
@@ -78,7 +78,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     #DCAN-HCP PostFreeSurfer Block3.5
     cmd = ['bash', '/code/CPAC/surface/PostFreeSurfer/block4.sh', post_freesurfer_folder, \
@@ -89,7 +89,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
     # DCAN-HCP PostFreeSurfer Block4
 
@@ -101,7 +101,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
   # DCAN-HCP PostFreeSurfer Block5
 
@@ -113,7 +113,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
 
    # DCAN-HCP PostFreeSurfer Block6
       
@@ -125,7 +125,7 @@ def run_surface(post_freesurfer_folder,
           high_res_mesh, low_res_mesh, \
           subcortical_gray_labels, freesurfer_labels]
 
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
     # DCAN-HCP fMRISurface
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
     cmd = ['bash', '/code/CPAC/surface/fMRISurface/run.sh',
@@ -1035,23 +1035,22 @@ def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
 
 def run_surf_falff(subject, dtseries):
     import os
-    import subprocess
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
     falff = os.path.join(os.getcwd(), f'{subject}_falff_surf.dscalar.nii')
     cmd = ['ciftify_falff', dtseries, falff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1']
-    subprocess.check_output(cmd)
+    log_subprocess(cmd)
     return falff
 
 def run_surf_alff(subject, dtseries):
    import os
-   import subprocess
+   from CPAC.utils.monitoring.custom_logging import log_subprocess
    alff = os.path.join(os.getcwd(), f'{subject}_alff_surf.dscalar.nii')
    cmd = ['ciftify_falff', dtseries, alff, '--min-low-freq', '0.01', '--max-low-freq' , '0.1' , '--calc-alff']
-   subprocess.check_output(cmd)
+   log_subprocess(cmd)
    return alff
     
 def run_get_cortex(subject, dtseries, structure, cortex_filename):
     import os
-    import subprocess
     from CPAC.utils.monitoring.custom_logging import log_subprocess
     cortex_file = os.path.join(os.getcwd(), f'{subject}_{cortex_filename}')
     cmd = ['wb_command', '-cifti-separate', dtseries , 'COLUMN', '-metric', structure, cortex_file]
@@ -1061,7 +1060,6 @@ def run_get_cortex(subject, dtseries, structure, cortex_filename):
 def run_mean_timeseries(subject, dtseries):
 
     import os
-    import subprocess
     from CPAC.utils.monitoring.custom_logging import log_subprocess
     mean_timeseries = os.path.join(os.getcwd(), f'{subject}_mean.dscalar.nii')
     cmd = ['wb_command', '-cifti-reduce', dtseries, 'MEAN', mean_timeseries]
@@ -1070,7 +1068,6 @@ def run_mean_timeseries(subject, dtseries):
     
 def run_ciftiparcellate(subject, dtseries, surf_atlaslabel):
     import os  
-    import subprocess
     from CPAC.utils.monitoring.custom_logging import log_subprocess
     parcellation_file = os.path.join(os.getcwd(), f'{subject}_parcellation.ptseries.nii')
     cmd = ['wb_command', '-cifti-parcellate', dtseries , surf_atlaslabel, 'COLUMN', parcellation_file ]
@@ -1079,7 +1076,6 @@ def run_ciftiparcellate(subject, dtseries, surf_atlaslabel):
 
 def run_cifticorrelation(subject, ptseries):
     import os  
-    import subprocess
     from CPAC.utils.monitoring.custom_logging import log_subprocess
     correlation_matrix = os.path.join(os.getcwd(), f'{subject}_cifti_corr.pconn.nii')
     cmd = ['wb_command', '-cifti-correlation', ptseries , correlation_matrix]
