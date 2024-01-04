@@ -170,7 +170,7 @@ VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
     "boto3",
-    "ciftify",
+    "ciftify @ git+https://git@github.com/e-kenneally/ciftify.git@bugfix/remove_giftiio#egg=ciftify",
     "click",
     "click-aliases",
     "configparser",
