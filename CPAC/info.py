@@ -52,3 +52,4 @@ _pyproject_toml = _read_pyproject_toml()
 __version__ = _pyproject_toml['tool']['poetry']['version']
 REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dependencies'].keys()) + \
     list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
+UNET_REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
