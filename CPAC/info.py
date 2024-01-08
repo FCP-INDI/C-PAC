@@ -32,181 +32,23 @@
 # Modifications Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
-"""This file contains defines parameters for CPAC that we use to fill
-settings in setup.py, the CPAC top-level docstring, and for building the
-docs.  In setup.py in particular, we exec this file, so it cannot import CPAC.
-This script was borrowed from and inspired by nipype's info.py file
-(https://github.com/nipy/nipype/blob/08391871/nipype/info.py)."""
-# CPAC version information.  An empty _version_extra corresponds to a
-# full release.  'dev' as a _version_extra string means this is a development
-# version
-_version_major = 1
-_version_minor = 8
-_version_micro = 6
-_version_extra = 'dev'
-
-
-def get_cpac_gitversion():
-    """CPAC version as reported by the last commit in git
-
-    Returns
-    -------
-    None or str
-
-        Version of C-PAC according to git.
-    """
-    import os
-    import subprocess
-
-    gitpath = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            os.path.pardir))
-
-    gitpathgit = os.path.join(gitpath, '.git')
-    if not os.path.exists(gitpathgit):
-        return None
-
-    ver = None
-
-    try:
-        o, _ = subprocess.Popen('git describe --always', shell=True,
-                                cwd=gitpath, stdout=subprocess.PIPE
-                                ).communicate()
-    except Exception:
-        pass
-    else:
-        ver = o.decode().strip().split('-')[-1]
-
-    return ver
-
-
-if 'dev' in _version_extra:
-    gitversion = get_cpac_gitversion()
-    if gitversion:
-        _version_extra = f'dev1+{gitversion}'
-
-
-__version__ = "%s.%s.%s" % (_version_major,
-                            _version_minor,
-                            _version_micro)
-
-if _version_extra:
-    __version__ += ".%s" % _version_extra
+import toml
 
 ga_tracker = 'UA-19224662-10'
 
-CLASSIFIERS = ["Development Status :: 4 - Beta",
-               "Environment :: Console",
-               "Intended Audience :: Science/Research",
-               "Operating System :: OS Independent",
-               "Programming Language :: Python",
-               "Topic :: Scientific/Engineering"]
 
-# pylint: disable=invalid-name
-description = 'Configurable Pipeline for the Analysis of Connectomes'
+# Below are legacy reconstructions of previously dynamically defined metadata
+# that are now defined in pyproject.toml.
+# These are kept for backwards compatibility.
 
-# Note: this long_description is actually a copy/paste from the top-level
-# README.md, so that it shows up nicely on PyPI.  So please remember to edit
-# it only in one place and sync it correctly.
-# pylint: disable=invalid-name
-long_description = """
-============================================================
-C-PAC: Configurable Pipeline for the Analysis of Connectomes
-============================================================
-
-A configurable, open-source, Nipype-based, automated processing pipeline for
-resting state fMRI data.
-Designed for use by both novice users and experts, C-PAC brings the power,
-flexibility and elegance of Nipype to users in a plug-and-play fashion; no
-programming required.
-
-Website
--------
-
-CPAC website is located here:  https://fcp-indi.github.io/
+def _read_pyproject_toml():
+    """Read pyproject.toml file."""
+    with open('pyproject.toml') as f:
+        pyproject = toml.load(f)
+    return pyproject
 
 
-Documentation
--------------
-
-User documentation can be found here: https://fcp-indi.github.io/docs/user
-
-Developer documention can be found here: https://fcp-indi.github.io/docs/developer
-
-Documentation pertaining to this latest release can be found here: https://fcp-indi.github.io/docs/latest
-
-
-Dicussion Forum
----------------
-
-CPAC Discussion forum is located here: https://neurostars.org/tag/cpac
-
-Troubleshooting and Help
-------------------------
-
-This is a beta version of CPAC, which means that it is still under active
-development. As such, although we have done our best to ensure a stable
-pipeline, there will likely still be a few bugs that we did not catch. If you
-find a bug, have a question that is not answered in the User Guide, or would
-like to suggest a new feature, please create an issue on CPAC github issue
-page: https://github.com/FCP-INDI/C-PAC/issues?state=open
-"""  # noqa: E501
-CYTHON_MIN_VERSION = '0.12.1'
-NAME = 'CPAC'
-MAINTAINER = "C-PAC developers"
-MAINTAINER_EMAIL = "CNL@childmind.org"
-DESCRIPTION = description
-LONG_DESCRIPTION = long_description
-URL = "https://fcp-indi.github.io"
-DOWNLOAD_URL = "https://github.com/FCP-INDI/C-PAC"
-LICENSE = "LGPL-3.0-or-later"
-AUTHOR = "C-PAC developers"
-AUTHOR_EMAIL = "CNL@childmind.org"
-PLATFORMS = "OS Independent"
-MAJOR = _version_major
-MINOR = _version_minor
-MICRO = _version_micro
-ISRELEASE = _version_extra == ''
-VERSION = __version__
-STATUS = 'stable'
-REQUIREMENTS = [
-    "boto3",
-    "ciftify",
-    "click",
-    "click-aliases",
-    "configparser",
-    "cython",
-    "flowdump==0.1.2",
-    "future",
-    "INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git#egg=INDI-Tools",
-    "lockfile",
-    "joblib",
-    "matplotlib",
-    "networkx",
-    "nibabel",
-    "nilearn",
-    "nipype",
-    "nose",
-    "numpy",
-    "pandas",
-    "pathvalidate",
-    "patsy",
-    "prov",
-    "psutil",
-    "PyBASC",
-    "pybids",
-    "pygraphviz",
-    "PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97#egg=PyPEER",
-    "python-dateutil",
-    "pyyaml",
-    "scikit-learn",
-    "scipy",
-    "sdcflows",
-    "semver",
-    "traits",
-    "voluptuous>=0.12.0",
-    "xvfbwrapper"
-]
-UNET_REQUIREMENTS = [
-    "torch==1.13.1",
-    "torchvision==0.14.1"
-]
+_pyproject_toml = _read_pyproject_toml()
+__version__ = _pyproject_toml['tool']['poetry']['version']
+REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dependencies'].keys()) + \
+    list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())

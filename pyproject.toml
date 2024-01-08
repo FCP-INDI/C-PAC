@@ -1,0 +1,73 @@
+[build-system]
+requires = ["poetry-core>=1.2.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "CPAC"
+version = "1.8.6-dev1"
+description = "Configurable Pipeline for the Analysis of Connectomes"
+readme = "docs/description.rst"
+authors = ["C-PAC developers <CNL@childmind.org>"]
+license = "LGPL-3.0-or-later"
+homepage = "https://fcp-indi.github.io/"
+repository = "https://github.com/FCP-INDI/C-PAC"
+documentation = "https://fcp-indi.github.io/docs/latest/user/index.html"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering"
+]
+packages = [
+    { include = "CPAC" },
+    #{ include = "CPAC/resources/*" },  # this is not needed because its under CPAC/ right?
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+boto3 = "1.28.4"
+ciftify = "2.3.3"
+click = "8.1.5"
+click-aliases = "1.0.1"
+configparser = "5.3.0"
+cython = ">=0.12.1"
+flowdump = "==0.1.2"
+future = "0.18.3"
+INDI-Tools = { git = "https://github.com/FCP-INDI/INDI-Tools.git", rev = "998c246c597209f06f8d5c5b92ddc2c9c1942f46" }
+lockfile = "0.12.2"
+joblib = "1.2.0"
+matplotlib = "3.7.1"
+networkx = "3.1"
+nibabel = "5.1.0"
+nilearn = "0.10.0"
+nipype = "1.8.6"
+nose = "1.3.7"
+numpy = "^1.24.1"
+pandas = "2.0.3"
+pathvalidate = "2.5.2"
+patsy = "0.5.3"
+prov = "2.0.0"
+psutil = "5.9.5"
+PyBASC = "0.6.1"
+pybids = "^0.15.6"
+pygraphviz = { version = "*", markers = "platform_system != 'Windows'" }
+PyPEER = { git = "https://github.com/ChildMindInstitute/PyPEER.git", rev = "6965d2b2bea0fef824e885fec33a8e0e6bd50a97" }
+python-dateutil = "2.8.2"
+pyyaml = "6.0"
+requests = "2.31.0"
+scikit-learn = "1.2.2"
+scipy = { version = "1.11.1", python = ">=3.9,<3.13" }
+sdcflows = "2.4.0"
+semver = "3.0.1"
+traits = "6.3.2"
+voluptuous = ">=0.12.0"
+xvfbwrapper = "*"
+
+[tool.poetry.dev-dependencies]
+torch = "==1.13.1"
+torchvision = "==0.14.1"
+
+[tool.poetry.scripts]
+cpac = "CPAC.__main__:main"
