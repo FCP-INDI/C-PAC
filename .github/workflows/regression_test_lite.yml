@@ -33,7 +33,8 @@ jobs:
       DOCKER_TAG:
       GH_CLI_BIN_PATH: ${{ secrets.GH_CLI_BIN_PATH }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SLURM_TESTING_OWNER: ${{ vars.SLURM_TESTING_OWNER }}
+      SLURM_TESTING_BRANCH: ${{ vars.SLURM_TESTING_BRANCH }}
+      SLURM_TESTING_REPO: ${{ vars.SLURM_TESTING_REPO }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
@@ -85,15 +86,15 @@ jobs:
           command_timeout: 200m
           script: |
             cd ${{ env.SSH_WORK_DIR }}
-            if [ ! -d slurm_testing ] ; then
-                git clone https://github.com/${{ env.SLURM_TESTING_OWNER }}/slurm_testing slurm_testing
-            else
-                cd slurm_testing
-                git pull origin main
-                cd ..
+            if [ -d C-PAC_slurm_testing ] ; then
+              rm -rf C-PAC_slurm_testing
             fi
+            git clone https://github.com/${{ env.SLURM_TESTING_REPO }} C-PAC_slurm_testing
+            cd C-PAC_slurm_testing
+            git checkout ${{ env.SLURM_TESTING_BRANCH }}
+            cd ..
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }},TESTING_OWNER=$(echo ${{ env.SLURM_TESTING_OWNER }}) | cut -d '/' -f 2),SHA=${{ github.sha }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=${{ github.repository }},TESTING_REPO=${{ env.SLURM_TESTING_REPO }},SHA=${{ github.sha }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log C-PAC_slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
