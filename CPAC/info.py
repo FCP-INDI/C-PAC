@@ -33,9 +33,7 @@
 
 # This file is part of C-PAC.
 
-import importlib.resources
 import importlib.metadata
-import toml
 
 ga_tracker = 'UA-19224662-10'
 
@@ -44,15 +42,9 @@ ga_tracker = 'UA-19224662-10'
 # that are now defined in pyproject.toml.
 # These are kept for backwards compatibility.
 
-def _read_pyproject_toml():
-    """Read pyproject.toml file."""
-    with importlib.resources.open_text('CPAC', 'pyproject.toml') as f:
-        pyproject = toml.load(f)
-    return pyproject
-
-
-_pyproject_toml = _read_pyproject_toml()
 __version__ = importlib.metadata.version('CPAC')
-REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dependencies'].keys()) + \
-    list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
-UNET_REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
+REQUIREMENTS = importlib.metadata.requires('CPAC')
+UNET_REQUIREMENTS = [
+    "torch==1.13.1",
+    "torchvision==0.14.1",
+]

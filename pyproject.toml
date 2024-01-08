@@ -22,7 +22,6 @@ classifiers = [
 ]
 packages = [
     { include = "CPAC" },
-    { include = "pyproject.toml" },
     #{ include = "CPAC/resources/*" },  # this is not needed because its under CPAC/ right?
 ]
 
