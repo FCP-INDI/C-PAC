@@ -47,7 +47,7 @@ jobs:
           sudo apt-get install -y graphviz graphviz-dev
       - name: Install dependencies
         run: |
-          poetry install --no-dev
+          poetry install
       - name: Check if version updated
         id: version_updated
         run: |
