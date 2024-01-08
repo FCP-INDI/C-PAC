@@ -41,6 +41,10 @@ jobs:
         with:
           python-version: '3.9'
           cache: poetry
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
       - name: Install dependencies
         run: |
           poetry install --no-dev
