@@ -73,3 +73,4 @@ torchvision = "==0.14.1"
 [tool.poetry.scripts]
 cpac = "CPAC.__main__:main"
 cpac-dev-update-preconfigs = "CPAC.utils.configuration.yaml_template:update_all_preconfigs"
+cpac-dev-print-version = "CPAC.utils.print_version:print_cpac_version"
