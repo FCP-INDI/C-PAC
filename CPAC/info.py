@@ -32,6 +32,9 @@
 # Modifications Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
+
+import importlib.resources
+import importlib.metadata
 import toml
 
 ga_tracker = 'UA-19224662-10'
@@ -43,13 +46,13 @@ ga_tracker = 'UA-19224662-10'
 
 def _read_pyproject_toml():
     """Read pyproject.toml file."""
-    with open('pyproject.toml') as f:
+    with importlib.resources.open_text('CPAC', 'pyproject.toml') as f:
         pyproject = toml.load(f)
     return pyproject
 
 
 _pyproject_toml = _read_pyproject_toml()
-__version__ = _pyproject_toml['tool']['poetry']['version']
+__version__ = importlib.metadata.version('CPAC')
 REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dependencies'].keys()) + \
     list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
 UNET_REQUIREMENTS = list(_pyproject_toml['tool']['poetry']['dev-dependencies'].keys())
