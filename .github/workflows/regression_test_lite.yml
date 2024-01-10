@@ -94,7 +94,7 @@ jobs:
             git checkout ${{ env.SLURM_TESTING_BRANCH }}
             cd ..
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=${{ github.repository }},TESTING_REPO=${{ env.SLURM_TESTING_REPO }},SHA=${{ github.sha }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log C-PAC_slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),TESTING_REPO=${{ env.SLURM_TESTING_REPO }},SHA=${{ github.sha }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log C-PAC_slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
       - name: Cleanup SSH
         run: |
