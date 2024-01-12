@@ -92,7 +92,12 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
             except (AttributeError, IndexError):
                 log_note = ''
             message = '\n'.join([string for string in [
-                'Missing expected outputs:', str(missing_outputs), log_note
+                'Missing expected outputs:', str(missing_outputs), log_note,
+                '┌──────────────────────────────────────────────────────┐\n'
+                '│Tip: Look for "crash-*.txt" files in the log directory│\n'
+                '│for more information. Usually the chronological first │\n'
+                '│crash file is the most informative.                   │\n'
+                '└──────────────────────────────────────────────────────┘'
             ] if string])
             missing_log.delete()
         else:

@@ -28,7 +28,7 @@ def get_operation(in_file):
     try:
         from nibabel import load
         img = load(in_file)
-        hdr = img.get_header()
+        hdr = img.header
         n_vol = int(hdr.get_data_shape()[3])
         op_string = '-abs -bin -Tmean -mul %d' % (n_vol)
         return op_string

@@ -119,5 +119,5 @@ def _copyxform(ref_image, out_image, message=None):
     header.set_sform(sform, int(sform_code))
     header['descrip'] = 'xform matrices modified by %s.' % (message or '(unknown)')
 
-    newimg = resampled.__class__(resampled.get_data(), orig.affine, header)
+    newimg = resampled.__class__(resampled.get_fdata(), orig.affine, header)
     newimg.to_filename(out_image)

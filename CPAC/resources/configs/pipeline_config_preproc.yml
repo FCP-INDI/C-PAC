@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.5
+# Version 1.8.6.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -32,10 +32,6 @@ pipeline_setup:
     # - It is recommended that you set this to a value that when multiplied by
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 3
-
-    # Full path to the FSL version to be used by CPAC.
-    # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR: FSLDIR
 
   working_directory:
 
@@ -72,7 +68,7 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: Regressor-1
+      - Name: Regressor_1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -96,7 +92,7 @@ nuisance_corrections:
           tissues:
           - WhiteMatter
           - CerebrospinalFluid
-      - Name: Regressor-2
+      - Name: Regressor_2
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1

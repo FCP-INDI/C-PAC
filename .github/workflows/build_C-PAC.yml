@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Maximize build space
-        uses: easimon/maximize-build-space@v4
+        uses: easimon/maximize-build-space@v6
         with:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           overprovision-lvm: 'true'
       - name: Check out C-PAC
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Set up Docker Buildx
@@ -34,15 +34,20 @@ jobs:
       - name: Set tag & Dockerfile
         if: github.ref_type == 'branch'
         run: |
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ inputs.variant }}" == "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
-          fi
-          if [[ "${{ inputs.variant }}" == "fMRIPrep-LTS" ]]
-          then
-            OS=xenial
+            OS=jammy
           else
-            OS=bionic
+            VARIANT=-${{ inputs.variant }}
+            if [[ "${{ inputs.variant }}" == "fMRIPrep-LTS" ]]
+            then
+              OS=xenial
+            elif [[ "${{ inputs.variant }}" == "ABCD-HCP" ]]
+            then
+              OS=bionic
+            else
+              OS=jammy
+            fi
           fi
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
@@ -92,10 +97,12 @@ jobs:
           echo $DOCKERFILE
           cat $DOCKERFILE
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.0.0
         with:
           context: .
           file: ${{ env.DOCKERFILE }}
+          provenance: false
+          sbom: false
           push: true
           tags: |
             ${{ env.DOCKER_TAG }}

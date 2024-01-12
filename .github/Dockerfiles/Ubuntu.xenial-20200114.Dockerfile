@@ -133,9 +133,10 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
     PYTHONNOUSERSITE=1
 
 # install conda dependencies
-RUN conda update conda -y && \
-    conda install nomkl && \
-    conda install -y  \
+RUN conda install -n base conda-forge::mamba conda-forge::libarchive==3.5.2 -y && \
+    mamba update conda -y && \
+    mamba install nomkl -y && \
+    mamba  install -y  \
         blas \
         cython \
         matplotlib==2.2.2 \
@@ -143,7 +144,6 @@ RUN conda update conda -y && \
         nose==1.3.7 \
         numpy==1.15.4 \
         pandas==1.0.5 \
-        scipy==1.6.3 \
         traits==4.6.0 \
         pip
 
@@ -151,11 +151,10 @@ RUN conda update conda -y && \
 RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # install python dependencies
-COPY requirements.txt /opt/requirements.txt
+COPY dev/docker_data/unpinned_requirements.txt /opt/requirements.txt
 RUN pip install --upgrade setuptools
 RUN pip install --upgrade pip
 RUN pip install -r /opt/requirements.txt
-RUN pip install xvfbwrapper
 
 # install cpac templates
 COPY --from=c-pac_templates /cpac_templates /cpac_templates

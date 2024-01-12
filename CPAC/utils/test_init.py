@@ -2,13 +2,44 @@
 #
 # Contributing authors (please append):
 # Daniel Clark
-
+# Jon Clucas
 '''
 This module contains functions that assist in initializing CPAC
 tests resources
 '''
+from typing import Optional
+
+from nipype.interfaces.utility import IdentityInterface
+
+from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.utils.typing import LIST
+
+
+def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
+    """
+    Create a dummy IdentityInterface Node source for resources upstream
+    in a graph from a section to be tested
+
+    Parameters
+    ----------
+    name : str
+        a name for the dummy Node
+
+    fields : list of str, optional
+        a list of resources to be present in the created Node. If not
+        provided, the only resource will be called 'resource'
+
+    Returns
+    -------
+    Node
+    """
+    if fields is None:
+        fields = ['resource']
+    return Node(IdentityInterface(fields=fields), name=name)
+
+
 # Return tests data config file
-def populate_template_config(config_type):
+def populate_template_config(config_type: str) -> str:
     '''
     Function to read in a template config file from the
     CPAC_RESOURCE_DIR and populate it with actual filepaths
@@ -488,11 +519,11 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
 
     # Init variables
     raw_nii = nib.load(nii_file)
-    raw_arr = raw_nii.get_data()
+    raw_arr = raw_nii.get_fdata()
 
     # Check parameters
     if mask_file:
-        mask_arr = nib.load(mask_file).get_data()
+        mask_arr = nib.load(mask_file).get_fdata()
         # Check the mask shape matches the raw nifti
         if mask_arr.shape != raw_arr.shape:
             err_msg = 'Mask file has different dimensions than nifti.\n' \
@@ -572,9 +603,10 @@ def setup_test_logger(logger_name, log_file, level, to_screen=False):
 
     # Import packages
     import logging
+    from CPAC.utils.monitoring.custom_logging import getLogger
 
     # Init logger, formatter, filehandler, streamhandler
-    logger = logging.getLogger(logger_name)
+    logger = getLogger(logger_name)
     logger.setLevel(level)
     formatter = logging.Formatter('%(asctime)s : %(message)s')
 
@@ -596,8 +628,8 @@ def pearson_correlation(nii_1, nii_2):
     import nibabel as nb
     import numpy as np
 
-    data_1 = nb.load(nii_1).get_data()
-    data_2 = nb.load(nii_2).get_data()
+    data_1 = nb.load(nii_1).get_fdata()
+    data_2 = nb.load(nii_2).get_fdata()
     R = np.corrcoef(data_1.flatten(), data_2.flatten())
     return(R[0,1])
 

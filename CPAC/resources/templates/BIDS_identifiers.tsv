@@ -4,14 +4,14 @@
 /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_desc-fMRIPrep_boldref.nii.gz	MNI152NLin2009cAsym	
 /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_label-brain_probseg.nii.gz	MNI152NLin2009cAsym	
 /code/CPAC/resources/templates/mni_icbm152_t1_tal_nlin_asym_09c.nii	MNI152NLin2009cAsym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*.nii.gz	MNI152NLin6ASym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain.nii.gz	MNI152NLin6ASym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask.nii.gz	MNI152NLin6ASym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_dil.nii.gz	MNI152NLin6ASym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_symmetric.nii.gz	MNI152NLin6Sym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_symmetric.nii.gz	MNI152NLin6Sym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric.nii.gz	MNI152NLin6Sym	
-/usr/share/fsl/5.0/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric_dil.nii.gz	MNI152NLin6Sym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*.nii.gz	MNI152NLin6ASym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain.nii.gz	MNI152NLin6ASym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask.nii.gz	MNI152NLin6ASym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_dil.nii.gz	MNI152NLin6ASym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_symmetric.nii.gz	MNI152NLin6Sym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_symmetric.nii.gz	MNI152NLin6Sym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric.nii.gz	MNI152NLin6Sym	
+$FSLDIR/data/standard/MNI152_T1_(res-){0,1}[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*_brain_mask_symmetric_dil.nii.gz	MNI152NLin6Sym	
 /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-2x2x2.nii.gz	AAL	
 /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-2x2x2.nii.gz	Brodmann	
 /cpac_templates/CC200.nii.gz	CC	200
