@@ -20,6 +20,6 @@ repos:
     hooks:
       - id: autoversioning
         name: Update Dockerfiles and version comments
-        entry: scripts/autoversioning.sh
+        entry: .github/scripts/autoversioning.sh
         language: script
-        files: '.*Dockerfile$'
+        files: '.*Dockerfile$|.*\.yaml$|^CPAC/info\.py$'
