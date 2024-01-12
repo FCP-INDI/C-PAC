@@ -86,24 +86,6 @@ jobs:
             fi
             cd ..
           fi
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]
-          then
-            cd $HOME/work/C-PAC/C-PAC
-            for DOCKERFILE in $(ls .github/Dockerfiles/C-PAC.develop-*.Dockerfile)
-            do
-              if [[ "$DOCKERFILE" =~ .*C-PAC.develop-(.*)-(bionic|xenial).Dockerfile ]]
-              then
-                cp $DOCKERFILE variant-${BASH_REMATCH[1]}.Dockerfile
-              else
-                cp $DOCKERFILE Dockerfile
-              fi
-            done
-            git add *ockerfile
-            git commit -m ":truck: Copy develop Dockerfiles to root directory \
-            \
-            [skip ci]"
-            git push origin HEAD:${GITHUB_BRANCH} || true
-          fi
       - name: Get changed files since last commit
         uses: tj-actions/changed-files@v41.0.0
         id: changed-files
