@@ -43,7 +43,7 @@ This script was borrowed from and inspired by nipype's info.py file
 _version_major = 1
 _version_minor = 8
 _version_micro = 6
-_version_extra = 'dev'
+_version_extra = 'rc1'
 
 
 def get_cpac_gitversion():
@@ -90,7 +90,7 @@ __version__ = "%s.%s.%s" % (_version_major,
                             _version_micro)
 
 if _version_extra:
-    __version__ += ".%s" % _version_extra
+    __version__ += "%s" % _version_extra
 
 ga_tracker = 'UA-19224662-10'
 
