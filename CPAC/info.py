@@ -90,7 +90,7 @@ __version__ = "%s.%s.%s" % (_version_major,
                             _version_micro)
 
 if _version_extra:
-    __version__ += "%s" % _version_extra
+    __version__ += ".%s" % _version_extra
 
 ga_tracker = 'UA-19224662-10'
 
