@@ -22,7 +22,14 @@ cd CPAC
 VERSION=$(python -c "from info import __version__; print(('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__).split('+', 1)[0])")
 cd ..
 echo "v${VERSION}" > version
-find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+export _SED_COMMAND="s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Mac OSX
+    find ./CPAC/resources/configs -name "*.yml" -exec sed -i '' -E "${_SED_COMMAND}" {} \;
+else
+    # Linux and others
+    find ./CPAC/resources/configs -name "*.yml" -exec sed -i'' -r "${_SED_COMMAND}" {} \;
+fi
 git add version
 VERSIONS=($(git diff origin/${GITHUB_BRANCH} -- version | tail -n 2))
 export PATTERN="(declare|typeset) -a"
