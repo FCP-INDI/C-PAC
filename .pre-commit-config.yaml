@@ -14,8 +14,48 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+fail_fast: false
 
 repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.13
+    hooks:
+    - id: ruff
+    - id: ruff-format
+
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.12.0
+    hooks:
+    - id: pretty-format-yaml
+      args:
+      - --autofix
+      - --indent=2
+    - id: pretty-format-toml
+      exclude: ^poetry.lock$
+      args:
+      - --autofix
+      - --indent=2
+      - --no-sort
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    - id: check-case-conflict
+    - id: end-of-file-fixer
+    - id: mixed-line-ending
+      args:
+      - --fix=lf
+    - id: trailing-whitespace
+    - id: pretty-format-json
+      args:
+      - --autofix
+      - --indent=4
+      - --no-sort-keys
+    - id: check-merge-conflict
+    - id: check-yaml
+    - id: check-json
+    - id: check-toml
+
   - repo: local
     hooks:
       - id: autoversioning
