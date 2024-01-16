@@ -21,6 +21,7 @@ repos:
     rev: v0.1.13
     hooks:
     - id: ruff
+      args: [--fix]
     - id: ruff-format
 
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
