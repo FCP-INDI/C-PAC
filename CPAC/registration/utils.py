@@ -2,6 +2,10 @@ import os
 
 import numpy as np
 
+from nipype.utils.subprocess import run_command
+
+from CPAC.utils.interfaces.function import Function
+
 
 def single_ants_xfm_to_list(transform):
     transform_list = [transform]
@@ -62,6 +66,7 @@ def generate_inverse_transform_flags(transform_list):
     return inverse_transform_flags
 
 
+@Function.sig_imports(["from nipype.utils.subprocess import run_command"])
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, ants_para, moving_mask=None,
                   reference_mask=None, fixed_image_mask=None, interp=None,
@@ -444,7 +449,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
         f.write(' '.join(regcmd))
 
     try:
-        retcode = subprocess.check_output(regcmd)
+        retcode = run_command(regcmd, output="file_split", write_cmdline=True)
     except Exception as e:
         raise Exception('[!] ANTS registration did not complete successfully.'
                         '\n\nError details:\n{0}\n{1}\n'.format(e, e.output))
