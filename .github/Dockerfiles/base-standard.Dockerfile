@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy as FreeSurfer
 
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6.dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.7dev1
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard images"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC

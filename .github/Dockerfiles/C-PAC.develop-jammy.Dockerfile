@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.6.dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.7dev1
 LABEL org.opencontainers.image.description "Full C-PAC image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
