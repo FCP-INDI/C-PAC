@@ -32,7 +32,6 @@ jobs:
       DASHBOARD_REPO: ${{ vars.DASHBOARD_REPO}}
       DOCKER_TAG:
       GH_CLI_BIN_PATH: ${{ secrets.GH_CLI_BIN_PATH }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLURM_TESTING_BRANCH: ${{ vars.SLURM_TESTING_BRANCH }}
       SLURM_TESTING_REPO: ${{ vars.SLURM_TESTING_REPO }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -69,14 +68,6 @@ jobs:
           echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
-      
-      - name: Initiate check
-        uses: guibranco/github-status-action-v2@v1.1.7
-        with:
-          authToken: ${{ env.GITHUB_TOKEN }}
-          context: lite regression test
-          description: launching
-          state: pending
 
       - name: Connect and Run Regression Test Lite
         uses: appleboy/ssh-action@v1.0.0
@@ -86,14 +77,12 @@ jobs:
           key: ${{ env.SSH_PRIVATE_KEY }}
           command_timeout: 200m
           script: |
+            set -x
             cd ${{ env.SSH_WORK_DIR }}
             if [ -d C-PAC_slurm_testing ] ; then
               rm -rf C-PAC_slurm_testing
             fi
-            git clone https://github.com/${{ env.SLURM_TESTING_REPO }} C-PAC_slurm_testing
-            cd C-PAC_slurm_testing
-            git checkout ${{ env.SLURM_TESTING_BRANCH }}
-            cd ..
+            git clone --branch ${{ env.SLURM_TESTING_BRANCH }} --depth 1 https://github.com/${{ env.SLURM_TESTING_REPO }} C-PAC_slurm_testing
             mkdir -p ./logs/${{ github.sha }}
             sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),TESTING_REPO=${{ env.SLURM_TESTING_REPO }},SHA=${{ github.sha }},TOKEN_FILE=${{ env.TOKEN_FILE }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log C-PAC_slurm_testing/.github/scripts/launch_regtest_lite.SLURM
 
