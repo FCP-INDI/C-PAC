@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2022  C-PAC Developers
+<!-- Copyright (C) 2022-2024  C-PAC Developers
 
 This file is part of C-PAC.
 
@@ -7,19 +7,47 @@ C-PAC is free software: you can redistribute it and/or modify it under the terms
 C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>. -->
+
+# CONTRIBUTING
+
+## pre-commit
+
+This project uses [pre-commit](https://pre-commit.com/), a framework for managing and maintaining git hooks. Pre-commit can be used to manage the hooks that run on every commit to automatically point out issues in code such as missing semicolons, trailing whitespace, and debug statements. By using these hooks, you can ensure code quality and prevent bad code from being uploaded.
+
+To install `pre-commit`, you can use `pip`:
+
+```bash
+pip install pre-commit
+```
+
+After installation, you can set up your git hooks with this command at the root of this repository:
+
+```bash
+pre-commit install
+```
+
+This will add a pre-commit script to your `.git/hooks/` directory. This script will run whenever you run `git commit`.
+
+For more details on how to configure and use pre-commit, please refer to the official documentation.
+
 ## Git branches, tags and continuous integration
+
 GitHub Actions builds C-PAC images for each branch and tag pushed to GitHub; these images are pushed to <span title="GitHub Container Registry">[GHCR](https://github.com/FCP-INDI/C-PAC/pkgs/container/c-pac/versions)</span> and deleted upon branch deletion on GitHub.
 
 If a commit is pushed or merged into [`develop` on GitHub](https://github.com/FCP-INDI/C-PAC/tree/develop), GitHub Actions will push [`nightly` and its variants to Docker Hub](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=nightly).
 
 If a tag is pushed to GitHub that matches the regular expression
+
 ```Regular Expression
 ^v[0-9]+\.[0-9]+\.[0-9]+$
 ```
+
 GitHub Actions will push [`release-${TAG}` and its variants](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=release-) and [`latest` and its variants to Docker Hub](https://hub.docker.com/repository/registry-1.docker.io/fcpindi/c-pac/tags?page=1&ordering=last_updated&name=latest).
 
 ## Software dependencies and variant images
+
 We currently have one main and 3 variant images:
+
 * `ABCD-HCP`: dependency versions matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/releases/tag/v0.1.1) versions
 * `fMRIPrep-LTS`: dependency versions matched to [fMRIPrep Long-term support](https://reproducibility.stanford.edu/fmriprep-lts/) versions
 * `lite`: same dependency versions as main image without FreeSurfer (smaller image)
