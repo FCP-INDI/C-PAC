@@ -31,17 +31,23 @@ else
     find ./CPAC/resources/configs -name "*.yml" -exec sed -i'' -r "${_SED_COMMAND}" {} \;
 fi
 git add version
-VERSIONS=($(git diff origin/${GITHUB_BRANCH} -- version | tail -n 2))
+VERSIONS=( `git show $(git log --pretty=format:'%h' -n 2 version | tail -n 1):version` `cat version` )
 export PATTERN="(declare|typeset) -a"
 if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
 then
   for DOCKERFILE in $(find ./.github/Dockerfiles -name "*.Dockerfile")
   do
     export IFS=""
-    for LINE in $(grep "FROM ghcr\.io/fcp\-indi/c\-pac/.*\-${VERSIONS[0]:1}" ${DOCKERFILE})
+    for LINE in $(grep "FROM ghcr\.io/fcp\-indi/c\-pac/.*\-${VERSIONS[0]}" ${DOCKERFILE})
     do
       echo "Updating stage tags in ${DOCKERFILE}"
-      sed -i "s/\-${VERSIONS[0]:1}/\-${VERSIONS[1]:1}/g" ${DOCKERFILE}
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+          # Mac OSX
+          sed -i "" "s/\-${VERSIONS[0]}/\-${VERSIONS[1]}/g" ${DOCKERFILE}
+      else
+          # Linux and others
+          sed -i "s/\-${VERSIONS[0]}/\-${VERSIONS[1]}/g" ${DOCKERFILE}
+      fi
     done
   done
   unset IFS
