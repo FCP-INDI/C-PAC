@@ -524,7 +524,6 @@ latest_schema = Schema({
             },
             'FSL-BET': {
                 'frac': Number,
-                'mask_boolean': bool1_1,
                 'mesh_boolean': bool1_1,
                 'outline': bool1_1,
                 'padding': bool1_1,
