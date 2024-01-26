@@ -1,0 +1,19 @@
+name: 'Close stale issues and PRs'
+on:
+  schedule:
+    - cron: '30 1 * * *'
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          close-issue-message:
+          days-before-close: 56  # 8 weeks
+          days-before-stale: 730  # 2 years
+          days-before-pr-stale: -1  # never
+          exempt-all-assignees: true
+          exempt-all-milestones: true
+          exempt-issue-labels: 'never-stale'
+          stale-issue-message: 'Issue has had no activity for 2 years and will be closed in 8 weeks if no further activity occurs.'
