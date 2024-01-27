@@ -14,12 +14,12 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-'''Tools for configuration differences'''
+"""Tools for configuration differences."""
 
 
 def dct_diff(dct1, dct2):
-    '''Function to compare 2 nested dicts, dropping values unspecified
-    in the second. Adapted from https://github.com/FCP-INDI/CPAC_regtest_pack/blob/9056ef63/cpac_pipe_diff.py#L31-L78
+    """Function to compare 2 nested dicts, dropping values unspecified
+    in the second. Adapted from https://github.com/FCP-INDI/CPAC_regtest_pack/blob/9056ef63/cpac_pipe_diff.py#L31-L78.
 
     Parameters
     ----------
@@ -45,7 +45,7 @@ def dct_diff(dct1, dct2):
     >>> pipeline2 = Preconfiguration('fmriprep-options')
     >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
     ('cpac-default-pipeline', 'cpac_fmriprep-options')
-    '''  # pylint: disable=line-too-long  # noqa: E501
+    """  # pylint: disable=line-too-long
     dcts = []
     for _d in [dct1, dct2]:
         if not isinstance(_d, dict):
@@ -53,7 +53,7 @@ def dct_diff(dct1, dct2):
                 _d = _d.dict()
             except AttributeError:
                 # pylint: disable=raise-missing-from
-                raise TypeError(f'{_d} is not a dict.')
+                raise TypeError(f"{_d} is not a dict.")
         dcts.append(_d)
     dct1, dct2 = dcts  # pylint: disable=unbalanced-tuple-unpacking
     del dcts
@@ -61,7 +61,7 @@ def dct_diff(dct1, dct2):
     for key, dct1_value in dct1.items():
         # handle parts of config where user-defined paths are keys
         dct2_value = dct2.get(key, {}) if isinstance(dct2, dict) else None
-        if key.endswith('_roi_paths') and isinstance(dct1_value, dict):
+        if key.endswith("_roi_paths") and isinstance(dct1_value, dict):
             paths1 = set(dct1_value.keys())
             paths2 = set(dct2_value.keys() if dct2_value else {})
             if paths1 != paths2:
@@ -84,8 +84,8 @@ def dct_diff(dct1, dct2):
 
 
 def diff_dict(diff):
-    '''Method to return a dict of only changes given a nested dict
-    of ``(dict1_value, dict2_value)`` tuples
+    """Method to return a dict of only changes given a nested dict
+    of ``(dict1_value, dict2_value)`` tuples.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def diff_dict(diff):
     ...         'using': DiffValue(['3dSkullStrip'],
     ...                            ['niworkflows-ants'])}}}})
     {'anatomical_preproc': {'brain_extraction': {'extraction': {'run': False, 'using': ['niworkflows-ants']}}}}
-    '''  # noqa: E501  # pylint: disable=line-too-long
+    """  # pylint: disable=line-too-long
     if isinstance(diff, DiffValue):
         return diff.t_value
     if isinstance(diff, dict):
@@ -122,8 +122,8 @@ def diff_dict(diff):
 
 
 class DiffDict(dict):
-    '''Class to semantically store a dictionary of set differences from
-    ``Configuration(S) - Configuration(T)``
+    """Class to semantically store a dictionary of set differences from
+    ``Configuration(S) - Configuration(T)``.
 
     Attributes
     ----------
@@ -148,13 +148,14 @@ class DiffDict(dict):
 
     t_value : dict
         dictionary of differing values from ``Configuration(T)``
-    '''
+    """
+
     def __init__(self, *args, **kwargs):
-        '''Dictionary of difference ``Configuration(S) - Configuration(T)``.
+        """Dictionary of difference ``Configuration(S) - Configuration(T)``.
 
         Each value in a ~DiffDict should be either a ``DiffDict`` or a
         ~DiffValue.
-        '''
+        """
         super().__init__(*args, **kwargs)
         self.left = self.minuend = self.s_value = self._s_value()
         self.right = self.subtrahend = self.t_value = self._t_value()
@@ -169,19 +170,21 @@ class DiffDict(dict):
         return return_dict
 
     def _s_value(self):
-        '''Get a dictionary of only the differing ``'S'`` values that differ
-        in ``S - T``'''
-        return self._return_one_value('s_value')
+        """Get a dictionary of only the differing ``'S'`` values that differ
+        in ``S - T``.
+        """
+        return self._return_one_value("s_value")
 
     def _t_value(self):
-        '''Get a dictionary of only the differing ``'T'`` values that differ
-        in ``S - T``'''
-        return self._return_one_value('t_value')
+        """Get a dictionary of only the differing ``'T'`` values that differ
+        in ``S - T``.
+        """
+        return self._return_one_value("t_value")
 
 
 class DiffValue:
-    '''Class to semantically store values of set difference from
-    ``Configuration(S) - Configuration(T)``
+    """Class to semantically store values of set difference from
+    ``Configuration(S) - Configuration(T)``.
 
     Attributes
     ----------
@@ -202,9 +205,10 @@ class DiffValue:
 
     t_value : any
         value from ``Configuration(T)``
-    '''
+    """
+
     def __init__(self, s_value, t_value):
-        '''Different values from ``Configuration(S) - Configuration(T)``
+        """Different values from ``Configuration(S) - Configuration(T)``.
 
         Parameters
         ----------
@@ -213,7 +217,7 @@ class DiffValue:
 
         t_value : any
            value from ``Configuration(T)``
-        '''
+        """
         self.left = self.minuend = self.s_value = s_value
         self.right = self.subtrahend = self.t_value = t_value
 
@@ -221,4 +225,4 @@ class DiffValue:
         return 2  # self.__repr__ should always be a 2-tuple
 
     def __repr__(self):
-        return str(tuple((self.s_value, self.t_value)))
+        return str((self.s_value, self.t_value))

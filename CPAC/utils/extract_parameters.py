@@ -1,69 +1,74 @@
 def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
     """
     Method to merge power parameters and motion
-    parameters file
+    parameters file.
     """
     import os
     import re
 
-    if threshold == None:
+    if threshold is None:
         filename = scan_name + "_all_params.csv"
         filename = filename.lstrip("_")
         outfile = os.path.join(output_dir, filename)
-        threshold_val = 0.0
     else:
         filename = scan_name + threshold + "_all_params.csv"
         filename = filename.lstrip("_")
         outfile = os.path.join(output_dir, filename)
-        threshold_val = float(re.sub(r"[a-zA-Z_]", '', threshold))
+        float(re.sub(r"[a-zA-Z_]", "", threshold))
 
     # Read in the motion and power parameters files
     try:
-        motion = open(motion_f, 'r').readlines()
+        motion = open(motion_f, "r").readlines()
     except Exception as e:
-        err_string = "\n\n[!] CPAC says: Could not read the motion " \
-                     "parameters file.\n\nFilepath: %s\n\nError details: %s" \
-                     "\n\n" % (motion_f, e)
+        err_string = (
+            "\n\n[!] CPAC says: Could not read the motion "
+            "parameters file.\n\nFilepath: %s\n\nError details: %s"
+            "\n\n" % (motion_f, e)
+        )
         raise Exception(err_string)
 
     try:
-        power = open(power_f, 'r').readlines()
+        power = open(power_f, "r").readlines()
     except Exception as e:
-        err_string = "\n\n[!] CPAC says: Could not read the power " \
-                     "parameters file.\n\nFilepath: %s\n\nError details: %s" \
-                     "\n\n" % (power_f, e)
+        err_string = (
+            "\n\n[!] CPAC says: Could not read the power "
+            "parameters file.\n\nFilepath: %s\n\nError details: %s"
+            "\n\n" % (power_f, e)
+        )
         raise Exception(err_string)
 
     # Write the combined motion and power parameters CSV file
     try:
         if flag:
-            f = open(outfile, 'w')
- 
+            f = open(outfile, "w")
+
             m = motion[0].strip("\n")
-            p = ','.join(power[0].split(",")[1:])
+            p = ",".join(power[0].split(",")[1:])
 
-            f.write(m+p)
+            f.write(m + p)
         else:
-             f = open(outfile, 'a')
- 
-        m = motion[1]
-        p = ','.join(power[1].split(",")[2:])
+            f = open(outfile, "a")
 
-        f.write(m+p+"\n")
+        m = motion[1]
+        p = ",".join(power[1].split(",")[2:])
+
+        f.write(m + p + "\n")
         f.close()
     except Exception as e:
-        err_string = "\n\n[!] CPAC says: Could not create or open the motion "\
-                     "and power parameters CSV file. Ensure you have write " \
-                     "permissions for the directory it is writing to.\n\n" \
-                     "Attempted write path: %s\n\nError details: %s\n\n" \
-                     % (outfile, e)
+        err_string = (
+            "\n\n[!] CPAC says: Could not create or open the motion "
+            "and power parameters CSV file. Ensure you have write "
+            "permissions for the directory it is writing to.\n\n"
+            "Attempted write path: %s\n\nError details: %s\n\n" % (outfile, e)
+        )
         raise Exception(err_string)
+
 
 def grab(output_dir, scrubbing):
     """
     Method to grab all the motion parameters
     and power parameters file from each subject
-    for each pipeline and merge them
+    for each pipeline and merge them.
 
     Parameters
     ----------
@@ -73,21 +78,21 @@ def grab(output_dir, scrubbing):
     import glob
     import os
     import re
+
     from sets import Set
 
-    pipelines = glob.glob(os.path.join(output_dir, 'pipeline*'))
-
+    pipelines = glob.glob(os.path.join(output_dir, "pipeline*"))
 
     for p in pipelines:
         scan_list = []
         threshold_list = []
 
-        pattern1 = re.compile(r'(\w)*scan(\w)*(\d)*(\w)*[/]')
-        pattern2 = re.compile(r'(\w)*threshold_[-+]?([0-9]*\.[0-9]+|[0-9]+)')
+        pattern1 = re.compile(r"(\w)*scan(\w)*(\d)*(\w)*[/]")
+        pattern2 = re.compile(r"(\w)*threshold_[-+]?([0-9]*\.[0-9]+|[0-9]+)")
 
-        scans = glob.glob(os.path.join(p, '*/power_params/*/*'))
+        scans = glob.glob(os.path.join(p, "*/power_params/*/*"))
 
-        #get the unique scans and threshold value
+        # get the unique scans and threshold value
         for s in scans:
             val = re.search(pattern1, s)
             if val:
@@ -103,44 +108,45 @@ def grab(output_dir, scrubbing):
         for scan in scan_list:
             for threshold in threshold_list:
                 Flag = 1
-                #merge files for each subject
+                # merge files for each subject
                 for sub in os.listdir(p):
                     sub = os.path.join(p, sub)
-                    motion_file = os.path.join(sub, 'motion_params', scan,
-                                               'motion_parameters.txt')
-                    power_file = os.path.join(sub, 'power_params', scan,
-                                              threshold, 'pow_params.txt')
-                    if os.path.exists(motion_file) and \
-                        os.path.exists(power_file):
-                        merge(p, scan, threshold,
-                              motion_file, power_file, Flag)
+                    motion_file = os.path.join(
+                        sub, "motion_params", scan, "motion_parameters.txt"
+                    )
+                    power_file = os.path.join(
+                        sub, "power_params", scan, threshold, "pow_params.txt"
+                    )
+                    if os.path.exists(motion_file) and os.path.exists(power_file):
+                        merge(p, scan, threshold, motion_file, power_file, Flag)
                         Flag = 0
 
             if 0 in scrubbing:
                 for sub in os.listdir(p):
                     sub = os.path.join(p, sub)
-                    motion_file = os.path.join(sub, 'motion_params', scan,
-                                               'motion_parameters.txt')
-                    power_file = os.path.join(sub, 'power_params', scan,
-                                              'pow_params.txt')
+                    motion_file = os.path.join(
+                        sub, "motion_params", scan, "motion_parameters.txt"
+                    )
+                    power_file = os.path.join(
+                        sub, "power_params", scan, "pow_params.txt"
+                    )
 
-                    if os.path.exists(motion_file) and \
-                        os.path.exists(power_file):
+                    if os.path.exists(motion_file) and os.path.exists(power_file):
                         threshold = None
-                        merge(p, scan, threshold, motion_file,
-                            power_file, Flag)
+                        merge(p, scan, threshold, motion_file, power_file, Flag)
                         Flag = 0
-                
+
     return threshold
+
 
 def run(output_path, scrubbing):
-    threshold = grab(output_path, scrubbing)
-    return threshold
+    return grab(output_path, scrubbing)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import sys
-    if (len(sys.argv) == 2):
+
+    if len(sys.argv) == 2:
         grab(sys.argv[1], [0])
     else:
-        print('Usage: python extract_parameters.py /path/to/output/dir')
-
+        pass

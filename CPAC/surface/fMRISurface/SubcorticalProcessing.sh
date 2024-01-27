@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 set -e
 script_name="SubcorticalProcessing.sh"
 echo "${script_name}: START"

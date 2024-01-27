@@ -36,7 +36,7 @@ jobs:
           fi
           TAG=${GITHUB_REF_NAME}
           TAG=$TAG$VARIANT
-          
+
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
           curl \
             -u ${GITHUB_TOKEN}: \

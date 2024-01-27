@@ -7,11 +7,11 @@ def patch_base_interface():
     """
     from nipype.interfaces.base.core import (
         BaseInterface,
+        InterfaceResult,
+        RuntimeContext,
         config,
         indirectory,
-        InterfaceResult,
         os,
-        RuntimeContext,
         str2bool,
         write_provenance,
     )
@@ -61,5 +61,5 @@ def patch_base_interface():
 
     # Apply patch
     import nipype.interfaces.base.core as base_core
-    base_core.BaseInterface.run = PatchedBaseInterface.run
 
+    base_core.BaseInterface.run = PatchedBaseInterface.run

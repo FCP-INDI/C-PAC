@@ -15,53 +15,56 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=invalid-name
-"""Tests for FSL interface"""
+"""Tests for FSL interface."""
 import os
 from pathlib import Path
+
 from ..fsl import Merge
 
 
 def test_HO_ventricles_exists():
     """Make sure we have this required file
-    Ref https://github.com/FCP-INDI/C-PAC/pull/1916#issuecomment-1579286459"""
-    assert (Path(os.environ["FSLDIR"]) /
-            'data/atlases/HarvardOxford/'
-            'HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz').exists()
+    Ref https://github.com/FCP-INDI/C-PAC/pull/1916#issuecomment-1579286459.
+    """
+    assert (
+        Path(os.environ["FSLDIR"]) / "data/atlases/HarvardOxford/"
+        "HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz"
+    ).exists()
 
 
 def test_Merge_inputs():
-    input_map = dict(
-        args=dict(
-            argstr="%s",
-        ),
-        dimension=dict(
-            argstr="-%s",
-            mandatory=True,
-            position=0,
-        ),
-        environ=dict(
-            nohash=True,
-            usedefault=True,
-        ),
-        in_files=dict(
-            argstr="%s",
-            mandatory=True,
-            position=2,
-        ),
-        merged_file=dict(
-            argstr="%s",
-            extensions=None,
-            hash_files=False,
-            name_source="in_files",
-            name_template="%s_merged",
-            position=1,
-        ),
-        output_type=dict(),
-        tr=dict(
-            argstr="%.2f",
-            position=-1,
-        ),
-    )
+    input_map = {
+        "args": {
+            "argstr": "%s",
+        },
+        "dimension": {
+            "argstr": "-%s",
+            "mandatory": True,
+            "position": 0,
+        },
+        "environ": {
+            "nohash": True,
+            "usedefault": True,
+        },
+        "in_files": {
+            "argstr": "%s",
+            "mandatory": True,
+            "position": 2,
+        },
+        "merged_file": {
+            "argstr": "%s",
+            "extensions": None,
+            "hash_files": False,
+            "name_source": "in_files",
+            "name_template": "%s_merged",
+            "position": 1,
+        },
+        "output_type": {},
+        "tr": {
+            "argstr": "%.2f",
+            "position": -1,
+        },
+    }
     inputs = Merge.input_spec()
 
     for key, metadata in list(input_map.items()):
@@ -70,11 +73,11 @@ def test_Merge_inputs():
 
 
 def test_Merge_outputs():
-    output_map = dict(
-        merged_file=dict(
-            extensions=None,
-        ),
-    )
+    output_map = {
+        "merged_file": {
+            "extensions": None,
+        },
+    }
     outputs = Merge.output_spec()
 
     for key, metadata in list(output_map.items()):

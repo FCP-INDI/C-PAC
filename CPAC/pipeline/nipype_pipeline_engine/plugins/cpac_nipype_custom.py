@@ -32,18 +32,20 @@ Modifications Copyright (C) 2022  C-PAC Developers
 
 This file is part of C-PAC.
 """
+from copy import deepcopy
 import gc
 import json
+from logging import INFO
 import platform
 import resource
 import sys
-from copy import deepcopy
-from logging import INFO
 from textwrap import indent
 from traceback import format_exception
-from nipype.pipeline.plugins.multiproc import logger
+
 from numpy import flatnonzero
-from CPAC.pipeline.nipype_pipeline_engine import MapNode, UNDEFINED_SIZE
+from nipype.pipeline.plugins.multiproc import logger
+
+from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE, MapNode
 from CPAC.utils.monitoring import log_nodes_cb
 
 
@@ -62,10 +64,10 @@ def get_peak_usage():
     proc_peak = self_usage.ru_maxrss
 
     # getrusage.ru_maxrss in bytes on Macs
-    if platform.system() == 'Darwin':
-        proc_peak /= 1024.
+    if platform.system() == "Darwin":
+        proc_peak /= 1024.0
 
-    return proc_peak / 1024. / 1024.
+    return proc_peak / 1024.0 / 1024.0
 
 
 def parse_previously_observed_mem_gb(callback_log_path):
@@ -81,32 +83,34 @@ def parse_previously_observed_mem_gb(callback_log_path):
     dict
         Dictionary of per-node memory usage.
     """
-    with open(callback_log_path, 'r') as cbl:
-        return {line['id'].split('.', 1)[-1]: line['runtime_memory_gb'] for
-                line in [json.loads(line) for line in cbl.readlines()] if
-                'runtime_memory_gb' in line}
+    with open(callback_log_path, "r") as cbl:
+        return {
+            line["id"].split(".", 1)[-1]: line["runtime_memory_gb"]
+            for line in [json.loads(line) for line in cbl.readlines()]
+            if "runtime_memory_gb" in line
+        }
 
 
 # pylint: disable=too-few-public-methods, missing-class-docstring
-class CpacNipypeCustomPluginMixin():
+class CpacNipypeCustomPluginMixin:
     def __init__(self, plugin_args=None):
         if not isinstance(plugin_args, dict):
             plugin_args = {}
-        if 'status_callback' not in plugin_args:
-            plugin_args['status_callback'] = log_nodes_cb
-        if 'runtime' in plugin_args:
-            self.runtime = {node_key: observation * (
-                1 + plugin_args['runtime']['buffer'] / 100
-            ) for node_key, observation in parse_previously_observed_mem_gb(
-                plugin_args['runtime']['usage']).items()}
+        if "status_callback" not in plugin_args:
+            plugin_args["status_callback"] = log_nodes_cb
+        if "runtime" in plugin_args:
+            self.runtime = {
+                node_key: observation * (1 + plugin_args["runtime"]["buffer"] / 100)
+                for node_key, observation in parse_previously_observed_mem_gb(
+                    plugin_args["runtime"]["usage"]
+                ).items()
+            }
         super().__init__(plugin_args=plugin_args)
         self.peak = 0
         self._stats = None
 
     def _check_resources_(self, running_tasks):
-        """
-        Make sure there are resources available
-        """
+        """Make sure there are resources available."""
         free_memory_gb = self.memory_gb
         free_processors = self.processors
         for _, jobid in running_tasks:
@@ -117,7 +121,8 @@ class CpacNipypeCustomPluginMixin():
 
     def _check_resources(self, running_tasks):
         """Make sure there are resources available, accounting for
-        Nipype memory usage"""
+        Nipype memory usage.
+        """
         free_memory_gb, free_processors = self._check_resources_(running_tasks)
 
         # Nipype memory usage
@@ -128,15 +133,12 @@ class CpacNipypeCustomPluginMixin():
 
     def _clean_exception(self, jobid, graph):
         traceback = format_exception(*sys.exc_info())
-        self._clean_queue(
-            jobid, graph, result={"result": None,
-                                  "traceback": traceback}
-        )
+        self._clean_queue(jobid, graph, result={"result": None, "traceback": traceback})
 
     def _override_memory_estimate(self, node):
         """
         Override node memory estimate with provided runtime memory
-        usage, buffered
+        usage, buffered.
 
         Parameters
         ----------
@@ -146,21 +148,21 @@ class CpacNipypeCustomPluginMixin():
         -------
         None
         """
-        if hasattr(node, 'list_node_names'):
+        if hasattr(node, "list_node_names"):
             for node_id in node.list_node_names():
                 # drop top-level node name
-                node_id = node_id.split('.', 1)[-1]
+                node_id = node_id.split(".", 1)[-1]
         else:
-            node_id = node.fullname.split('.', 1)[-1]
+            node_id = node.fullname.split(".", 1)[-1]
         if self._match_for_overrides(node, node_id):
             return
-        while '.' in node_id:  # iterate through levels of specificity
-            node_id = node_id.rsplit('.', 1)[0]
+        while "." in node_id:  # iterate through levels of specificity
+            node_id = node_id.rsplit(".", 1)[0]
             if self._match_for_overrides(node, node_id):
                 return
 
     def _match_for_overrides(self, node, node_id):
-        """Match node memory estimate with provided runtime memory usage key
+        """Match node memory estimate with provided runtime memory usage key.
 
         Parameters
         ----------
@@ -177,14 +179,14 @@ class CpacNipypeCustomPluginMixin():
             return True
         partial_matches = [nid for nid in self.runtime if node_id in nid]
         if any(partial_matches):
-            node.override_mem_gb(max(
-                self.runtime[partial_match] for
-                partial_match in partial_matches))
+            node.override_mem_gb(
+                max(self.runtime[partial_match] for partial_match in partial_matches)
+            )
             return True
         return False
 
     def _prerun_check(self, graph):
-        """Check if any node exeeds the available resources"""
+        """Check if any node exeeds the available resources."""
         tasks_mem_gb = []
         tasks_num_th = []
         overrun_message_mem = None
@@ -192,7 +194,7 @@ class CpacNipypeCustomPluginMixin():
         # estimate of C-PAC + Nipype overhead (GB):
         overhead_memory_estimate = 1
         for node in graph.nodes():
-            if hasattr(self, 'runtime'):
+            if hasattr(self, "runtime"):
                 self._override_memory_estimate(node)
             try:
                 node_memory_estimate = node.mem_gb
@@ -206,9 +208,9 @@ class CpacNipypeCustomPluginMixin():
                 tasks_num_th.append((node.name, node.n_procs))
 
         if tasks_mem_gb:
-            overrun_message_mem = '\n'.join([
-                f'\t{overrun[0]}: {overrun[1]} GB' for overrun in tasks_mem_gb
-            ])
+            overrun_message_mem = "\n".join(
+                [f"\t{overrun[0]}: {overrun[1]} GB" for overrun in tasks_mem_gb]
+            )
             logger.warning(
                 "The following nodes are estimated to exceed the total amount "
                 f"of memory available (%0.2fGB): \n{overrun_message_mem}",
@@ -216,9 +218,9 @@ class CpacNipypeCustomPluginMixin():
             )
 
         if tasks_num_th:
-            overrun_message_th = '\n'.join([
-                f'\t{overrun[0]}: {overrun[1]} threads' for overrun in
-                tasks_num_th])
+            overrun_message_th = "\n".join(
+                [f"\t{overrun[0]}: {overrun[1]} threads" for overrun in tasks_num_th]
+            )
             logger.warning(
                 "Some nodes demand for more threads than available (%d): "
                 f"\n{overrun_message_th}",
@@ -226,17 +228,26 @@ class CpacNipypeCustomPluginMixin():
             )
 
         if self.raise_insufficient and (tasks_mem_gb or tasks_num_th):
-            raise RuntimeError("\n".join([msg for msg in [
-                "Insufficient resources available for job:",
-                overrun_message_mem, overrun_message_th
-            ] if msg is not None]))
+            raise RuntimeError(
+                "\n".join(
+                    [
+                        msg
+                        for msg in [
+                            "Insufficient resources available for job:",
+                            overrun_message_mem,
+                            overrun_message_th,
+                        ]
+                        if msg is not None
+                    ]
+                )
+            )
 
     def _send_procs_to_workers(self, updatehash=False, graph=None):
         """
         Sends jobs to workers when system resources are available.
         Customized from https://github.com/nipy/nipype/blob/79e2fdfc/nipype/pipeline/plugins/legacymultiproc.py#L311-L462
-        to catch overhead deadlocks
-        """  # noqa: E501  # pylint: disable=line-too-long
+        to catch overhead deadlocks.
+        """  # pylint: disable=line-too-long
         # pylint: disable=too-many-branches, too-many-statements
         # Check to see if a job is available (jobs with all dependencies run)
         # See https://github.com/nipy/nipype/pull/2200#discussion_r141605722
@@ -246,8 +257,7 @@ class CpacNipypeCustomPluginMixin():
         )
 
         # Check available resources by summing all threads and memory used
-        free_memory_gb, free_processors = self._check_resources(
-            self.pending_tasks)
+        free_memory_gb, free_processors = self._check_resources(self.pending_tasks)
 
         num_pending = len(self.pending_tasks)
         num_ready = len(jobids)
@@ -274,7 +284,7 @@ class CpacNipypeCustomPluginMixin():
             logger.info(
                 "[%s] Running %d tasks, and %d jobs ready. Free "
                 "memory (GB): %0.2f/%0.2f, Free processors: %d/%d.%s",
-                type(self).__name__[:-len('Plugin')],
+                type(self).__name__[: -len("Plugin")],
                 num_pending,
                 num_ready,
                 free_memory_gb,
@@ -297,8 +307,7 @@ class CpacNipypeCustomPluginMixin():
                 )
                 return
 
-        jobids = self._sort_jobs(jobids,
-                                 scheduler=self.plugin_args.get("scheduler"))
+        jobids = self._sort_jobs(jobids, scheduler=self.plugin_args.get("scheduler"))
 
         # Run garbage collector before potentially submitting jobs
         gc.collect()
@@ -324,9 +333,7 @@ class CpacNipypeCustomPluginMixin():
             next_job_th = min(self.procs[jobid].n_procs, self.processors)
 
             # If node does not fit, skip at this moment
-            if not self.raise_insufficient and (
-                num_pending == 0 and num_ready > 0
-            ):
+            if not self.raise_insufficient and (num_pending == 0 and num_ready > 0):
                 force_allocate_job = True
                 free_processors -= 1
             if not force_allocate_job and (
@@ -364,8 +371,7 @@ class CpacNipypeCustomPluginMixin():
 
             # updatehash and run_without_submitting are also run locally
             if updatehash or self.procs[jobid].run_without_submitting:
-                logger.debug("Running node %s on master thread",
-                             self.procs[jobid])
+                logger.debug("Running node %s on master thread", self.procs[jobid])
                 try:
                     self.procs[jobid].run(updatehash=updatehash)
                 except Exception:  # pylint: disable=broad-except
@@ -387,8 +393,7 @@ class CpacNipypeCustomPluginMixin():
             # Send job to task manager and add to pending tasks
             if self._status_callback:
                 self._status_callback(self.procs[jobid], "start")
-            tid = self._submit_job(deepcopy(self.procs[jobid]),
-                                   updatehash=updatehash)
+            tid = self._submit_job(deepcopy(self.procs[jobid]), updatehash=updatehash)
             if tid is None:
                 self.proc_done[jobid] = False
                 self.proc_pending[jobid] = False

@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 set -e
 echo -e "\n START: SurfaceSmoothing"
 
@@ -16,4 +16,3 @@ for Hemisphere in L R ; do
 done
 
 echo " END: SurfaceSmoothing"
-

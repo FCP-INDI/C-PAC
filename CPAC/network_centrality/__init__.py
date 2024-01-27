@@ -16,4 +16,4 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from .utils import convert_pvalue_to_r, create_merge_node
 
-__all__ = ['convert_pvalue_to_r', 'create_merge_node']
+__all__ = ["convert_pvalue_to_r", "create_merge_node"]

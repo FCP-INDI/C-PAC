@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import six
 import nibabel as nib
@@ -7,8 +8,9 @@ import nibabel as nib
 def nifti_image_input(image):
     """
     Test if an input is a path or a nifti.image and the image loaded through
-    nibabel
-    Parameters
+    nibabel.
+
+    Parameters.
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file or the image already loaded through nibabel
@@ -30,10 +32,12 @@ def nifti_image_input(image):
         raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
     return img
 
+
 def more_zeros_than_ones(image):
     """
     Return True is there is more zeros than other values in a given nifti image.
-    Parameters
+
+    Parameters.
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file to be inverted or
@@ -56,14 +60,14 @@ def more_zeros_than_ones(image):
     data = img.get_fdata()
     nb_zeros = len(np.where(data == 0)[0])
     size = data.size
-    more_zeros = nb_zeros > size - nb_zeros
-    return more_zeros
+    return nb_zeros > size - nb_zeros
 
 
 def inverse_nifti_values(image):
     """
-    Replace zeros by ones and non-zero values by 1
-    Parameters
+    Replace zeros by ones and non-zero values by 1.
+
+    Parameters.
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file to be inverted or

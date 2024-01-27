@@ -42,32 +42,35 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-'''Module to import Nipype Pipeline engine and override some Classes.
+"""Module to import Nipype Pipeline engine and override some Classes.
 See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
-for Nipype's documentation.'''  # noqa: E501  # pylint: disable=line-too-long
-import os
-import re
+for Nipype's documentation.
+"""  # pylint: disable=line-too-long
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
+import os
+import re
+
+from numpy import prod
+from traits.trait_base import Undefined
+from traits.trait_handlers import TraitListObject
 from nibabel import load
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import (
     _create_dot_graph,
+    _replacefunk,
+    _run_dot,
     format_dot,
     generate_expanded_graph,
     get_print_name,
     load_resultfile as _load_resultfile,
-    _replacefunk,
-    _run_dot
 )
 from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
-from numpy import prod
-from traits.trait_base import Undefined
-from traits.trait_handlers import TraitListObject
+
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 # set global default mem_gb
@@ -78,7 +81,7 @@ logger = getLogger("nipype.workflow")
 
 
 def _check_mem_x_path(mem_x_path):
-    '''Function to check if a supplied multiplier path exists.
+    """Function to check if a supplied multiplier path exists.
 
     Parameters
     ----------
@@ -87,17 +90,16 @@ def _check_mem_x_path(mem_x_path):
     Returns
     -------
     bool
-    '''
+    """
     mem_x_path = _grab_first_path(mem_x_path)
     try:
-        return mem_x_path is not Undefined and os.path.exists(
-            mem_x_path)
+        return mem_x_path is not Undefined and os.path.exists(mem_x_path)
     except (TypeError, ValueError):
         return False
 
 
 def _doctest_skiplines(docstring, lines_to_skip):
-    '''
+    """
     Function to add '  # doctest: +SKIP' to the end of docstring lines
     to skip in imported docstrings.
 
@@ -115,23 +117,21 @@ def _doctest_skiplines(docstring, lines_to_skip):
     --------
     >>> _doctest_skiplines('skip this line', {'skip this line'})
     'skip this line  # doctest: +SKIP'
-    '''
-    if (
-        not isinstance(lines_to_skip, set) and
-        not isinstance(lines_to_skip, list)
-    ):
-        raise TypeError(
-            '_doctest_skiplines: `lines_to_skip` must be a set or list.')
+    """
+    if not isinstance(lines_to_skip, set) and not isinstance(lines_to_skip, list):
+        raise TypeError("_doctest_skiplines: `lines_to_skip` must be a set or list.")
 
-    return '\n'.join([
-        f'{line}  # doctest: +SKIP' if line in lines_to_skip else line
-        for line in docstring.split('\n')
-    ])
+    return "\n".join(
+        [
+            f"{line}  # doctest: +SKIP" if line in lines_to_skip else line
+            for line in docstring.split("\n")
+        ]
+    )
 
 
 def _grab_first_path(mem_x_path):
-    '''Function to grab the first path if multiple paths for given
-    multiplier input
+    """Function to grab the first path if multiple paths for given
+    multiplier input.
 
     Parameters
     ----------
@@ -140,7 +140,7 @@ def _grab_first_path(mem_x_path):
     Returns
     -------
     str, Undefined or None
-    '''
+    """
     if isinstance(mem_x_path, (list, TraitListObject, tuple)):
         mem_x_path = mem_x_path[0] if len(mem_x_path) else Undefined
     return mem_x_path
@@ -149,13 +149,13 @@ def _grab_first_path(mem_x_path):
 class Node(pe.Node):
     # pylint: disable=empty-docstring,too-many-instance-attributes
     __doc__ = _doctest_skiplines(
-        pe.Node.__doc__,
-        {"    >>> realign.inputs.in_files = 'functional.nii'"}
+        pe.Node.__doc__, {"    >>> realign.inputs.in_files = 'functional.nii'"}
     )
 
     def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
+
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
         self.logger = getLogger("nipype.workflow")
         self.seed = random_seed()
@@ -164,44 +164,48 @@ class Node(pe.Node):
         self._debug = False
         self.verbose_logger = None
         self._mem_x = {}
-        if 'mem_x' in kwargs and isinstance(
-            kwargs['mem_x'], (tuple, list)
-        ):
-            if len(kwargs['mem_x']) == 3:
+        if "mem_x" in kwargs and isinstance(kwargs["mem_x"], (tuple, list)):
+            if len(kwargs["mem_x"]) == 3:
                 (
-                    self._mem_x['multiplier'],
-                    self._mem_x['file'],
-                    self._mem_x['mode']
-                ) = kwargs['mem_x']
+                    self._mem_x["multiplier"],
+                    self._mem_x["file"],
+                    self._mem_x["mode"],
+                ) = kwargs["mem_x"]
             else:
-                self._mem_x['mode'] = 'xyzt'
-                if len(kwargs['mem_x']) == 2:
-                    (
-                        self._mem_x['multiplier'],
-                        self._mem_x['file']
-                    ) = kwargs['mem_x']
+                self._mem_x["mode"] = "xyzt"
+                if len(kwargs["mem_x"]) == 2:
+                    (self._mem_x["multiplier"], self._mem_x["file"]) = kwargs["mem_x"]
                 else:
-                    self._mem_x['multiplier'] = kwargs['mem_x']
-                    self._mem_x['file'] = None
+                    self._mem_x["multiplier"] = kwargs["mem_x"]
+                    self._mem_x["file"] = None
         else:
-            delattr(self, '_mem_x')
-        setattr(self, 'skip_timeout', False)
+            delattr(self, "_mem_x")
+        setattr(self, "skip_timeout", False)
 
     orig_sig_params = list(signature(pe.Node).parameters.items())
 
-    __init__.__signature__ = Signature(parameters=[
-        p[1] if p[0] != 'mem_gb' else (
-            'mem_gb',
-            Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
-                      default=DEFAULT_MEM_GB)
-        )[1] for p in orig_sig_params[:-1]] + [
-            Parameter('mem_x', Parameter.KEYWORD_ONLY),
-            orig_sig_params[-1][1]
-        ])
+    __init__.__signature__ = Signature(
+        parameters=[
+            p[1]
+            if p[0] != "mem_gb"
+            else (
+                "mem_gb",
+                Parameter(
+                    "mem_gb", Parameter.POSITIONAL_OR_KEYWORD, default=DEFAULT_MEM_GB
+                ),
+            )[1]
+            for p in orig_sig_params[:-1]
+        ]
+        + [Parameter("mem_x", Parameter.KEYWORD_ONLY), orig_sig_params[-1][1]]
+    )
 
-    __init__.__doc__ = re.sub(r'(?<!\s):', ' :', '\n'.join([
-        pe.Node.__init__.__doc__.rstrip(),
-        '''
+    __init__.__doc__ = re.sub(
+        r"(?<!\s):",
+        " :",
+        "\n".join(
+            [
+                pe.Node.__init__.__doc__.rstrip(),
+                """
         mem_gb : int or float
             Estimate (in GB) of constant memory to allocate for this
             node.
@@ -232,10 +236,13 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)''']))  # noqa: E501  # pylint: disable=line-too-long
+            * 't' (temporal)""",
+            ]
+        ),
+    )  # pylint: disable=line-too-long
 
     def _add_flags(self, flags):
-        r'''
+        r"""
         Parameters
         ----------
         flags : list or tuple
@@ -244,7 +251,8 @@ class Node(pe.Node):
 
             If a tuple, remove ``flags[1]`` from and add ``flags[0]``
             to ``self.inputs.flags`` or ``self.inputs.args``
-        '''
+        """
+
         def prep_flags(attr):
             to_remove = []
             if isinstance(flags, tuple):
@@ -254,26 +262,28 @@ class Node(pe.Node):
                 new_flags = flags
             old_flags = getattr(self.inputs, attr)
             if isinstance(old_flags, str):
-                to_remove.sort(key=lambda x: -x.count(' '))
+                to_remove.sort(key=lambda x: -x.count(" "))
                 for flag in to_remove:
-                    if f' {flag} ' in old_flags:
-                        old_flags = old_flags.replace(f' {flag}', '')
+                    if f" {flag} " in old_flags:
+                        old_flags = old_flags.replace(f" {flag}", "")
                 old_flags = [old_flags]
             if isinstance(old_flags, list):
-                new_flags = [flag for flag in old_flags if
-                             flag not in to_remove] + new_flags
-            if attr == 'args':
-                new_flags = ' '.join(new_flags)
-                while '  ' in new_flags:
-                    new_flags = new_flags.replace('  ', ' ')
+                new_flags = [
+                    flag for flag in old_flags if flag not in to_remove
+                ] + new_flags
+            if attr == "args":
+                new_flags = " ".join(new_flags)
+                while "  " in new_flags:
+                    new_flags = new_flags.replace("  ", " ")
             return new_flags
-        if hasattr(self.inputs, 'flags'):
-            self.inputs.flags = prep_flags('flags')
+
+        if hasattr(self.inputs, "flags"):
+            self.inputs.flags = prep_flags("flags")
         else:
-            self.inputs.args = prep_flags('args')
+            self.inputs.args = prep_flags("args")
 
     def _apply_mem_x(self, multiplicand=None):
-        '''Method to calculate and memoize a Node's estimated memory
+        """Method to calculate and memoize a Node's estimated memory
         footprint.
 
         Parameters
@@ -289,9 +299,10 @@ class Node(pe.Node):
         -------
         number
             estimated memory usage (GB)
-        '''
+        """
+
         def parse_multiplicand(multiplicand):
-            '''
+            """
             Returns an numeric value for a multiplicand if
             multipland is a string or None.
 
@@ -302,66 +313,73 @@ class Node(pe.Node):
             Returns
             -------
             int or float
-            '''
+            """
             if self._debug:
-                self.verbose_logger.debug('%s multiplicand: %s', self.name,
-                                          multiplicand)
+                self.verbose_logger.debug(
+                    "%s multiplicand: %s", self.name, multiplicand
+                )
             if isinstance(multiplicand, list):
                 return max([parse_multiplicand(part) for part in multiplicand])
             if isinstance(multiplicand, (int, float)):
                 return multiplicand
             if (
-                isinstance(multiplicand, tuple) and
-                3 <= len(multiplicand) <= 4 and
-                all(isinstance(i, (int, float)) for i in multiplicand)
+                isinstance(multiplicand, tuple)
+                and 3 <= len(multiplicand) <= 4
+                and all(isinstance(i, (int, float)) for i in multiplicand)
             ):
                 return get_data_size(
-                    multiplicand,
-                    getattr(self, '_mem_x', {}).get('mode'))
+                    multiplicand, getattr(self, "_mem_x", {}).get("mode")
+                )
             if _check_mem_x_path(multiplicand):
                 return get_data_size(
                     _grab_first_path(multiplicand),
-                    getattr(self, '_mem_x', {}).get('mode'))
+                    getattr(self, "_mem_x", {}).get("mode"),
+                )
             return 1
 
-        if hasattr(self, '_mem_x'):
+        if hasattr(self, "_mem_x"):
             if self._debug:
-                self.verbose_logger.debug('%s._mem_x: %s', self.name,
-                                          self._mem_x)
+                self.verbose_logger.debug("%s._mem_x: %s", self.name, self._mem_x)
             if multiplicand is None:
                 multiplicand = self._mem_x_file()
-            setattr(self, '_mem_gb', (
-                self._mem_gb +
-                self._mem_x.get('multiplier', 0) *
-                parse_multiplicand(multiplicand)))
+            setattr(
+                self,
+                "_mem_gb",
+                (
+                    self._mem_gb
+                    + self._mem_x.get("multiplier", 0)
+                    * parse_multiplicand(multiplicand)
+                ),
+            )
             try:
                 if self._mem_gb > 1000:
                     self.logger.warning(
-                        '%s is estimated to use %.3f GB (%s).',
+                        "%s is estimated to use %.3f GB (%s).",
                         self.name,
                         self._mem_gb,
-                        getattr(self, '_mem_x')
+                        getattr(self, "_mem_x"),
                     )
             except FileNotFoundError:
                 pass
             del self._mem_x
         if self._debug:
-            self.verbose_logger.debug('%s._mem_gb: %s', self.name,
-                                      self._mem_gb)
+            self.verbose_logger.debug("%s._mem_gb: %s", self.name, self._mem_gb)
         return self._mem_gb
 
     def _apply_random_seed(self):
-        '''Apply flags for the first matched interface'''
+        """Apply flags for the first matched interface."""
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed_flags
+
         if isinstance(self.interface, Function):
-            for rsf, flags in random_seed_flags()['functions'].items():
+            for rsf, flags in random_seed_flags()["functions"].items():
                 if self.interface.inputs.function_str == getsource(rsf):
                     self.interface.inputs.function_str = flags(
-                        self.interface.inputs.function_str)
+                        self.interface.inputs.function_str
+                    )
                     self.seed_applied = True
                     return
-        for rsf, flags in random_seed_flags()['interfaces'].items():
+        for rsf, flags in random_seed_flags()["interfaces"].items():
             if isinstance(self.interface, rsf):
                 self._add_flags(flags)
                 self.seed_applied = True
@@ -369,40 +387,45 @@ class Node(pe.Node):
 
     @property
     def mem_gb(self):
-        """Get estimated memory (GB)"""
+        """Get estimated memory (GB)."""
         if hasattr(self._interface, "estimated_memory_gb"):
             self._mem_gb = self._interface.estimated_memory_gb
             self.logger.warning(
                 'Setting "estimated_memory_gb" on Interfaces has been '
                 "deprecated as of nipype 1.0, please use Node.mem_gb."
             )
-        if hasattr(self, '_mem_x'):
-            if self._mem_x['file'] is None:
+        if hasattr(self, "_mem_x"):
+            if self._mem_x["file"] is None:
                 return self._apply_mem_x()
             try:
-                mem_x_path = getattr(self.inputs, self._mem_x['file'])
+                mem_x_path = getattr(self.inputs, self._mem_x["file"])
             except AttributeError as attribute_error:
                 raise AttributeError(
-                    f'{attribute_error.args[0]} in Node \'{self.name}\''
+                    f"{attribute_error.args[0]} in Node '{self.name}'"
                 ) from attribute_error
             if _check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
                 return self._apply_mem_x()
-            raise FileNotFoundError(2, 'The memory estimate for Node '
-                                    f"'{self.name}' depends on the input "
-                                    f"'{self._mem_x['file']}' but "
-                                    'no such file or directory', mem_x_path)
+            raise FileNotFoundError(
+                2,
+                "The memory estimate for Node "
+                f"'{self.name}' depends on the input "
+                f"'{self._mem_x['file']}' but "
+                "no such file or directory",
+                mem_x_path,
+            )
         return self._mem_gb
 
     @property
     def mem_x(self):
         """Get dict of 'multiplier' (memory multiplier), 'file' (input file)
         and multiplier mode (spatial * temporal, spatial only or
-        temporal only). Returns ``None`` if already consumed or not set."""
-        return getattr(self, '_mem_x', None)
+        temporal only). Returns ``None`` if already consumed or not set.
+        """
+        return getattr(self, "_mem_x", None)
 
     def _mem_x_file(self):
-        return getattr(self.inputs, getattr(self, '_mem_x', {}).get('file'))
+        return getattr(self.inputs, getattr(self, "_mem_x", {}).get("file"))
 
     def override_mem_gb(self, new_mem_gb):
         """Override the Node's memory estimate with a new value.
@@ -412,40 +435,50 @@ class Node(pe.Node):
         new_mem_gb : int or float
             new memory estimate in GB
         """
-        if hasattr(self, '_mem_x'):
-            delattr(self, '_mem_x')
-        setattr(self, '_mem_gb', new_mem_gb)
+        if hasattr(self, "_mem_x"):
+            delattr(self, "_mem_x")
+        setattr(self, "_mem_gb", new_mem_gb)
 
     def run(self, updatehash=False):
-        self.__doc__ = getattr(super(), '__doc__', '')
+        self.__doc__ = getattr(super(), "__doc__", "")
         if self.seed is not None:
             self._apply_random_seed()
             if self.seed_applied:
-                random_state_logger = getLogger('random')
-                random_state_logger.info('%s\t%s', '# (Atropos constant)' if
-                                         'atropos' in self.name else
-                                         str(self.seed), self.name)
+                random_state_logger = getLogger("random")
+                random_state_logger.info(
+                    "%s\t%s",
+                    "# (Atropos constant)"
+                    if "atropos" in self.name
+                    else str(self.seed),
+                    self.name,
+                )
         return super().run(updatehash)
 
 
 class MapNode(Node, pe.MapNode):
     # pylint: disable=empty-docstring
     __doc__ = _doctest_skiplines(
-        pe.MapNode.__doc__,
-        {"    ...                           'functional3.nii']"}
+        pe.MapNode.__doc__, {"    ...                           'functional3.nii']"}
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.name.endswith('_'):
-            self.name = f'{self.name}_'
+        if not self.name.endswith("_"):
+            self.name = f"{self.name}_"
 
-    __init__.__signature__ = Signature(parameters=[
-        p[1] if p[0] != 'mem_gb' else (
-            'mem_gb',
-            Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
-                      default=DEFAULT_MEM_GB)
-        )[1] for p in signature(pe.Node).parameters.items()])
+    __init__.__signature__ = Signature(
+        parameters=[
+            p[1]
+            if p[0] != "mem_gb"
+            else (
+                "mem_gb",
+                Parameter(
+                    "mem_gb", Parameter.POSITIONAL_OR_KEYWORD, default=DEFAULT_MEM_GB
+                ),
+            )[1]
+            for p in signature(pe.Node).parameters.items()
+        ]
+    )
 
 
 class Workflow(pe.Workflow):
@@ -453,7 +486,8 @@ class Workflow(pe.Workflow):
 
     def __init__(self, name, base_dir=None, debug=False):
         """Create a workflow object.
-        Parameters
+
+        Parameters.
         ----------
         name : alphanumeric string
             unique identifier for the workflow
@@ -466,14 +500,14 @@ class Workflow(pe.Workflow):
 
         super().__init__(name, base_dir)
         self._debug = debug
-        self.verbose_logger = getLogger('engine') if debug else None
+        self.verbose_logger = getLogger("engine") if debug else None
         self._graph = nx.DiGraph()
 
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
     def _configure_exec_nodes(self, graph):
-        """Ensure that each node knows where to get inputs from"""
+        """Ensure that each node knows where to get inputs from."""
         for node in graph.nodes():
             node._debug = self._debug  # pylint: disable=protected-access
             node.verbose_logger = self.verbose_logger
@@ -482,16 +516,20 @@ class Workflow(pe.Workflow):
                 data = graph.get_edge_data(*edge)
                 for sourceinfo, field in data["connect"]:
                     node.input_source[field] = (
-                        os.path.join(edge[0].output_dir(),
-                                     "result_%s.pklz" % edge[0].name),
+                        os.path.join(
+                            edge[0].output_dir(), "result_%s.pklz" % edge[0].name
+                        ),
                         sourceinfo,
                     )
-                    if node and hasattr(node, '_mem_x'):
-                        if isinstance(
-                            node._mem_x,  # pylint: disable=protected-access
-                            dict
-                        ) and node._mem_x[  # pylint: disable=protected-access
-                                          'file'] == field:
+                    if node and hasattr(node, "_mem_x"):
+                        if (
+                            isinstance(
+                                node._mem_x,  # pylint: disable=protected-access
+                                dict,
+                            )
+                            and node._mem_x["file"]  # pylint: disable=protected-access
+                            == field
+                        ):
                             input_resultfile = node.input_source.get(field)
                             if input_resultfile:
                                 # pylint: disable=protected-access
@@ -500,18 +538,16 @@ class Workflow(pe.Workflow):
                                 try:
                                     # memoize node._mem_gb if path
                                     # already exists
-                                    node._apply_mem_x(_load_resultfile(
-                                        input_resultfile
-                                    ).inputs[field])
-                                except (FileNotFoundError, KeyError,
-                                        TypeError):
+                                    node._apply_mem_x(
+                                        _load_resultfile(input_resultfile).inputs[field]
+                                    )
+                                except (FileNotFoundError, KeyError, TypeError):
                                     self._handle_just_in_time_exception(node)
 
     def _get_dot(
-        self, prefix=None, hierarchy=None, colored=False, simple_form=True,
-        level=0
+        self, prefix=None, hierarchy=None, colored=False, simple_form=True, level=0
     ):
-        """Create a dot file with connection info"""
+        """Create a dot file with connection info."""
         # pylint: disable=invalid-name,protected-access
         import networkx as nx
 
@@ -538,40 +574,45 @@ class Workflow(pe.Workflow):
         quoted_prefix = f'"{prefix}"' if len(prefix.strip()) else prefix
         dotlist = [f'{quoted_prefix}label="{self.name}";']
         for node in nx.topological_sort(self._graph):
-            fullname = ".".join(hierarchy + [node.fullname])
+            fullname = ".".join([*hierarchy, node.fullname])
             nodename = fullname.replace(".", "_")
             if not isinstance(node, Workflow):
                 node_class_name = get_print_name(node, simple_form=simple_form)
                 if not simple_form:
                     node_class_name = ".".join(node_class_name.split(".")[1:])
                 if hasattr(node, "iterables") and node.iterables:
-                    dotlist.append(f'"{nodename}"[label="{node_class_name}", '
-                                   "shape=box3d, style=filled, color=black, "
-                                   "colorscheme=greys7 fillcolor=2];")
+                    dotlist.append(
+                        f'"{nodename}"[label="{node_class_name}", '
+                        "shape=box3d, style=filled, color=black, "
+                        "colorscheme=greys7 fillcolor=2];"
+                    )
                 else:
                     if colored:
-                        dotlist.append(f'"{nodename}"[label="'
-                                       f'{node_class_name}", style=filled,'
-                                       f' fillcolor="{colorset[level]}"];')
+                        dotlist.append(
+                            f'"{nodename}"[label="'
+                            f'{node_class_name}", style=filled,'
+                            f' fillcolor="{colorset[level]}"];'
+                        )
                     else:
-                        dotlist.append(f'"{nodename}"[label="'
-                                       f'{node_class_name}"];')
+                        dotlist.append(f'"{nodename}"[label="' f'{node_class_name}"];')
 
         for node in nx.topological_sort(self._graph):
             if isinstance(node, Workflow):
-                fullname = ".".join(hierarchy + [node.fullname])
+                fullname = ".".join([*hierarchy, node.fullname])
                 nodename = fullname.replace(".", "_")
-                dotlist.append(f"subgraph \"cluster_{nodename}\" {{")
+                dotlist.append(f'subgraph "cluster_{nodename}" {{')
                 if colored:
-                    dotlist.append(f'{prefix}{prefix}edge [color="'
-                                   f'{colorset[level + 1]}"];')
+                    dotlist.append(
+                        f'{prefix}{prefix}edge [color="' f'{colorset[level + 1]}"];'
+                    )
                     dotlist.append(f"{prefix}{prefix}style=filled;")
-                    dotlist.append(f'{prefix}{prefix}fillcolor='
-                                   f'"{colorset[level + 2]}";')
+                    dotlist.append(
+                        f"{prefix}{prefix}fillcolor=" f'"{colorset[level + 2]}";'
+                    )
                 dotlist.append(
                     node._get_dot(
                         prefix=prefix + prefix,
-                        hierarchy=hierarchy + [self.name],
+                        hierarchy=[*hierarchy, self.name],
                         colored=colored,
                         simple_form=simple_form,
                         level=level + 3,
@@ -583,20 +624,17 @@ class Workflow(pe.Workflow):
                     if node._hierarchy != subnode._hierarchy:
                         continue
                     if not isinstance(subnode, Workflow):
-                        nodefullname = ".".join(hierarchy + [node.fullname])
-                        subnodefullname = ".".join(
-                            hierarchy + [subnode.fullname])
+                        nodefullname = ".".join([*hierarchy, node.fullname])
+                        subnodefullname = ".".join([*hierarchy, subnode.fullname])
                         nodename = nodefullname.replace(".", "_")
                         subnodename = subnodefullname.replace(".", "_")
-                        for _ in self._graph.get_edge_data(
-                            node, subnode
-                        )["connect"]:
+                        for _ in self._graph.get_edge_data(node, subnode)["connect"]:
                             dotlist.append(f'"{nodename}" -> "{subnodename}";')
                         logger.debug("connection: %s", dotlist[-1])
         # add between workflow connections
         for u, v, d in self._graph.edges(data=True):
-            uname = ".".join(hierarchy + [u.fullname])
-            vname = ".".join(hierarchy + [v.fullname])
+            uname = ".".join([*hierarchy, u.fullname])
+            vname = ".".join([*hierarchy, v.fullname])
             for src, dest in d["connect"]:
                 uname1 = uname
                 vname1 = vname
@@ -608,26 +646,25 @@ class Workflow(pe.Workflow):
                     uname1 += "." + ".".join(srcname.split(".")[:-1])
                 if "." in dest and "@" not in dest:
                     if not isinstance(v, Workflow):
-                        if "datasink" not in str(
-                            v._interface.__class__
-                        ).lower():
+                        if "datasink" not in str(v._interface.__class__).lower():
                             vname1 += "." + ".".join(dest.split(".")[:-1])
                     else:
                         vname1 += "." + ".".join(dest.split(".")[:-1])
                 if uname1.split(".")[:-1] != vname1.split(".")[:-1]:
-                    dotlist.append(f'"{uname1.replace(".", "_")}" -> '
-                                   f'"{vname1.replace(".", "_")}";')
+                    dotlist.append(
+                        f'"{uname1.replace(".", "_")}" -> '
+                        f'"{vname1.replace(".", "_")}";'
+                    )
                     logger.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
 
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
-        if hasattr(self, '_local_func_scans'):
-            node._apply_mem_x(
-                self._local_func_scans)  # pylint: disable=no-member
+        if hasattr(self, "_local_func_scans"):
+            node._apply_mem_x(self._local_func_scans)  # pylint: disable=no-member
         else:
             # TODO: handle S3 files
-            node._apply_mem_x(UNDEFINED_SIZE)  # noqa: W0212
+            node._apply_mem_x(UNDEFINED_SIZE)
 
     def write_graph(
         self,
@@ -652,8 +689,10 @@ class Workflow(pe.Workflow):
         os.makedirs(base_dir, exist_ok=True)
         if graph2use in ["hierarchical", "colored"]:
             if self.name[:1].isdigit():  # these graphs break if int
-                raise ValueError(f"{graph2use} graph failed, workflow name "
-                                 "cannot begin with a number")
+                raise ValueError(
+                    f"{graph2use} graph failed, workflow name "
+                    "cannot begin with a number"
+                )
             dotfilename = os.path.join(base_dir, dotfilename)
             self.write_hierarchical_dotfile(
                 dotfilename=dotfilename,
@@ -675,9 +714,12 @@ class Workflow(pe.Workflow):
                 simple_form=simple_form,
             )
 
-        logger.info("Generated workflow graph: %s "
-                    "(graph2use=%s, simple_form=%s).",
-                    outfname, graph2use, simple_form)
+        logger.info(
+            "Generated workflow graph: %s " "(graph2use=%s, simple_form=%s).",
+            outfname,
+            graph2use,
+            simple_form,
+        )
         return outfname
 
     write_graph.__doc__ = pe.Workflow.write_graph.__doc__
@@ -686,9 +728,10 @@ class Workflow(pe.Workflow):
         self, dotfilename=None, colored=False, simple_form=True
     ):
         # pylint: disable=invalid-name
-        dotlist = [f"digraph \"{self.name}\"{{"]
-        dotlist.append(self._get_dot(prefix="  ", colored=colored,
-                                     simple_form=simple_form))
+        dotlist = [f'digraph "{self.name}"{{']
+        dotlist.append(
+            self._get_dot(prefix="  ", colored=colored, simple_form=simple_form)
+        )
         dotlist.append("}")
         dotstr = "\n".join(dotlist)
         if dotfilename:
@@ -699,8 +742,8 @@ class Workflow(pe.Workflow):
             logger.info(dotstr)
 
 
-def get_data_size(filepath, mode='xyzt'):
-    """Function to return the size of a functional image (x * y * z * t)
+def get_data_size(filepath, mode="xyzt"):
+    """Function to return the size of a functional image (x * y * z * t).
 
     Parameters
     ----------
@@ -724,13 +767,13 @@ def get_data_size(filepath, mode='xyzt'):
         data_shape = load(filepath).shape
     elif isinstance(filepath, tuple) and len(filepath) == 4:
         data_shape = filepath
-    if mode == 't':
+    if mode == "t":
         # if the data has muptiple TRs, return that number
         if len(data_shape) > 3:
             return data_shape[3]
         # otherwise return 1
         return 1
-    if mode == 'xyz':
+    if mode == "xyz":
         return prod(data_shape[0:3]).item()
     return prod(data_shape).item()
 
@@ -748,7 +791,8 @@ def export_graph(
     """Displays the graph layout of the pipeline
     This function requires that pygraphviz and matplotlib are available on
     the system.
-    Parameters
+
+    Parameters.
     ----------
     show : boolean
     Indicate whether to generate pygraphviz output fromn
@@ -772,8 +816,9 @@ def export_graph(
         base_dir = os.getcwd()
 
     os.makedirs(base_dir, exist_ok=True)
-    out_dot = fname_presuffix(dotfilename, suffix="_detailed.dot",
-                              use_ext=False, newpath=base_dir)
+    out_dot = fname_presuffix(
+        dotfilename, suffix="_detailed.dot", use_ext=False, newpath=base_dir
+    )
     _write_detailed_dot(graph, out_dot)
 
     # Convert .dot if format != 'dot'
@@ -782,8 +827,9 @@ def export_graph(
         logger.warning("dot2png: %s", res.runtime.stderr)
 
     pklgraph = _create_dot_graph(graph, show_connectinfo, simple_form)
-    simple_dot = fname_presuffix(dotfilename, suffix=".dot", use_ext=False,
-                                 newpath=base_dir)
+    simple_dot = fname_presuffix(
+        dotfilename, suffix=".dot", use_ext=False, newpath=base_dir
+    )
     nx.drawing.nx_pydot.write_dot(pklgraph, simple_dot)
 
     # Convert .dot if format != 'dot'
@@ -811,7 +857,7 @@ def _write_detailed_dot(graph, dotfilename):
         struct1:f1 -> struct2:f0;
         struct1:f0 -> struct2:f1;
         struct1:f2 -> struct3:here;
-        }
+        }.
     """
     # pylint: disable=invalid-name
     import networkx as nx
@@ -831,15 +877,19 @@ def _write_detailed_dot(graph, dotfilename):
                 inport = cd[1]
                 ipstrip = f"in{_replacefunk(inport)}"
                 opstrip = f"out{_replacefunk(outport)}"
-                edges.append(f'"{u.itername.replace(".", "")}":'
-                             f'"{opstrip}":e -> '
-                             f'"{v.itername.replace(".", "")}":'
-                             f'"{ipstrip}":w;')
+                edges.append(
+                    f'"{u.itername.replace(".", "")}":'
+                    f'"{opstrip}":e -> '
+                    f'"{v.itername.replace(".", "")}":'
+                    f'"{ipstrip}":w;'
+                )
                 if inport not in inports:
                     inports.append(inport)
-        inputstr = (["{IN"]
-                    + [f"|<in{_replacefunk(ip)}> {ip}" for
-                       ip in sorted(inports)] + ["}"])
+        inputstr = (
+            ["{IN"]
+            + [f"|<in{_replacefunk(ip)}> {ip}" for ip in sorted(inports)]
+            + ["}"]
+        )
         outports = []
         for u, v, d in graph.out_edges(nbunch=n, data=True):
             for cd in d["connect"]:
@@ -851,18 +901,22 @@ def _write_detailed_dot(graph, dotfilename):
                     outports.append(outport)
         outputstr = (
             ["{OUT"]
-            + [f"|<out{_replacefunk(oport)}> {oport}" for
-               oport in sorted(outports)] + ["}"])
+            + [f"|<out{_replacefunk(oport)}> {oport}" for oport in sorted(outports)]
+            + ["}"]
+        )
         srcpackage = ""
         if hasattr(n, "_interface"):
             pkglist = n.interface.__class__.__module__.split(".")
             if len(pkglist) > 2:
                 srcpackage = pkglist[2]
         srchierarchy = ".".join(nodename.split(".")[1:-1])
-        nodenamestr = (f"{{ {nodename.split('.')[-1]} | {srcpackage} | "
-                       f"{srchierarchy} }}")
-        text += [f'"{nodename.replace(".", "")}" [label='
-                 f'"{"".join(inputstr)}|{nodenamestr}|{"".join(outputstr)}"];']
+        nodenamestr = (
+            f"{{ {nodename.split('.')[-1]} | {srcpackage} | " f"{srchierarchy} }}"
+        )
+        text += [
+            f'"{nodename.replace(".", "")}" [label='
+            f'"{"".join(inputstr)}|{nodenamestr}|{"".join(outputstr)}"];'
+        ]
     # write edges
     for edge in sorted(edges):
         text.append(edge)

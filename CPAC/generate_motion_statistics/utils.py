@@ -14,12 +14,15 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Utilities for motion parameters"""
+"""Utilities for motion parameters."""
+from typing import Optional
+
 import numpy as np
 
 
-def affine_file_from_params_file(params_file: str, affine_file: str = None
-                                 ) -> str:
+def affine_file_from_params_file(
+    params_file: str, affine_file: Optional[str] = None
+) -> str:
     """Convert a 6-DOF motion parameters array into a 4x4 affine matrix.
 
     Parameters
@@ -39,30 +42,40 @@ def affine_file_from_params_file(params_file: str, affine_file: str = None
         one timepoint per line)
     """
     import os
+
     import numpy as np
+
     from CPAC.generate_motion_statistics.utils import affine_from_params
 
     ## load parameters file into array
     affine = affine_from_params(np.genfromtxt(params_file))
-    header = ''
+    header = ""
     if affine_file:
         # grab comment(s), if any
-        with open(affine_file, 'r', encoding='utf-8') as _f:
-            header = '\n'.join([line for line in _f.readlines()
-                                if line.lstrip().startswith('#')])
-    basename = (os.path.basename(affine_file) if affine_file
-                else f'affine_{os.path.basename(params_file)}')
-    affine_file = f'{os.getcwd()}/filtered_{basename}'
+        with open(affine_file, "r", encoding="utf-8") as _f:
+            header = "\n".join(
+                [line for line in _f.readlines() if line.lstrip().startswith("#")]
+            )
+    basename = (
+        os.path.basename(affine_file)
+        if affine_file
+        else f"affine_{os.path.basename(params_file)}"
+    )
+    affine_file = f"{os.getcwd()}/filtered_{basename}"
 
     # drop bottom [0, 0, 0, 1] row from each matrix
     # insert original comments, if any, as header
-    np.savetxt(affine_file, affine[:, :3].reshape(affine.shape[0], 12),
-               header=header, comments='')
+    np.savetxt(
+        affine_file,
+        affine[:, :3].reshape(affine.shape[0], 12),
+        header=header,
+        comments="",
+    )
     return affine_file
 
 
 def affine_from_params(params: np.ndarray) -> np.ndarray:
-    """Convert a 6-DOF motion parameters array into a 4x4 affine matrix
+    """Convert a 6-DOF motion parameters array into a 4x4 affine matrix.
 
     Parameters
     ----------
@@ -87,9 +100,10 @@ def affine_from_params(params: np.ndarray) -> np.ndarray:
 
     out = []
     for i in range(params.shape[0]):
-        affine = _get_affine_matrix(params=params[i], source='AFNI')
-        affine[:3, :3] = Rotation.from_euler("ZXY", -params[i, :3],
-                                             degrees=True).as_matrix()
+        affine = _get_affine_matrix(params=params[i], source="AFNI")
+        affine[:3, :3] = Rotation.from_euler(
+            "ZXY", -params[i, :3], degrees=True
+        ).as_matrix()
         out.append(affine)
     return np.array(out)
 
@@ -97,7 +111,7 @@ def affine_from_params(params: np.ndarray) -> np.ndarray:
 def load_mats(mat_dir: str) -> np.ndarray:
     """
     Given a directory of affince matrices as output by MCFLIRT,
-    return an array of these matrices
+    return an array of these matrices.
 
     Parameters
     ----------
@@ -110,11 +124,12 @@ def load_mats(mat_dir: str) -> np.ndarray:
         t x 4 x 4 affine matrix
     """
     from pathlib import Path
+
     import numpy as np
+
     mats = []
-    mat_paths = sorted(list(Path(mat_dir).glob("MAT_*")))
+    mat_paths = sorted(Path(mat_dir).glob("MAT_*"))
     for path in mat_paths:
         mat = np.loadtxt(path)
         mats.append(mat)
-    mats = np.stack(mats)
-    return mats
+    return np.stack(mats)

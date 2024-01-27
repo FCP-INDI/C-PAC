@@ -14,22 +14,22 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Test to check if all expected outputs were generated"""
+"""Test to check if all expected outputs were generated."""
 from itertools import chain
 from logging import Logger
 import os
 from pathlib import Path
 import re
+
 import yaml
+
 from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
-from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, \
-                                                 set_up_logger
+from CPAC.utils.monitoring.custom_logging import MockLogger, getLogger, set_up_logger
 
 
-def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
-                  unique_id: str) -> str:
-    """Check if all expected outputs were generated
+def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str) -> str:
+    """Check if all expected outputs were generated.
 
     Parameters
     ----------
@@ -46,68 +46,90 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str,
     message : str
     """
     output_dir = Path(output_dir)
-    outputs_logger = getLogger(f'{unique_id}_expectedOutputs')
+    outputs_logger = getLogger(f"{unique_id}_expectedOutputs")
     missing_outputs = ExpectedOutputs()
-    subject, session = unique_id.split('_', 1)
+    subject, session = unique_id.split("_", 1)
     # allow any combination of keyed/unkeyed subject and session directories
-    containers = [os.path.join(f'pipeline_{pipe_name}',
-                               '/'.join((sub, ses))) for sub in [
-                      fxn(subject, 'sub') for fxn in (with_key, without_key)
-                      ] for ses in [fxn(session, 'ses') for fxn in
-                                    (with_key, without_key)]]
-    if (isinstance(outputs_logger, (Logger, MockLogger)) and
-            len(outputs_logger.handlers)):
-        outputs_log = getattr(outputs_logger.handlers[0], 'baseFilename', None)
+    containers = [
+        os.path.join(f"pipeline_{pipe_name}", "/".join((sub, ses)))
+        for sub in [fxn(subject, "sub") for fxn in (with_key, without_key)]
+        for ses in [fxn(session, "ses") for fxn in (with_key, without_key)]
+    ]
+    if isinstance(outputs_logger, (Logger, MockLogger)) and len(
+        outputs_logger.handlers
+    ):
+        outputs_log = getattr(outputs_logger.handlers[0], "baseFilename", None)
     else:
         outputs_log = None
     if outputs_log is None:
-        message = 'Could not find expected outputs log file'
+        message = "Could not find expected outputs log file"
     else:
-        with open(outputs_log, 'r', encoding='utf-8') as expected_outputs_file:
+        with open(outputs_log, "r", encoding="utf-8") as expected_outputs_file:
             expected_outputs = yaml.safe_load(expected_outputs_file.read())
         for subdir, filenames in expected_outputs.items():
-            observed_outputs = list(chain.from_iterable([
-                output_dir.glob(f'{container}/{subdir}') for
-                container in containers]))
+            observed_outputs = list(
+                chain.from_iterable(
+                    [
+                        output_dir.glob(f"{container}/{subdir}")
+                        for container in containers
+                    ]
+                )
+            )
             for filename in filenames:
                 try:
-                    if not (observed_outputs and list(
-                        observed_outputs[0].glob(
-                            re.sub(r'\*\**', r'*', f'*{filename}*')))):
+                    if not (
+                        observed_outputs
+                        and list(
+                            observed_outputs[0].glob(
+                                re.sub(r"\*\**", r"*", f"*{filename}*")
+                            )
+                        )
+                    ):
                         missing_outputs += (subdir, filename)
                 except Exception as exception:  # pylint: disable=broad-except
-                    logger = getLogger('nipype.workflow')
+                    logger = getLogger("nipype.workflow")
                     logger.error(str(exception))
         if missing_outputs:
-            missing_log = set_up_logger(f'missingOutputs_{unique_id}',
-                                        filename='_'.join([
-                                            bidsier_prefix(unique_id),
-                                            'missingOutputs.yml']),
-                                        level='info', log_dir=log_dir,
-                                        mock=True)
+            missing_log = set_up_logger(
+                f"missingOutputs_{unique_id}",
+                filename="_".join([bidsier_prefix(unique_id), "missingOutputs.yml"]),
+                level="info",
+                log_dir=log_dir,
+                mock=True,
+            )
             missing_log.info(missing_outputs)
             try:
-                log_note = 'Missing outputs have been logged in ' \
-                           f'{missing_log.handlers[0].baseFilename}'
+                log_note = (
+                    "Missing outputs have been logged in "
+                    f"{missing_log.handlers[0].baseFilename}"
+                )
             except (AttributeError, IndexError):
-                log_note = ''
-            message = '\n'.join([string for string in [
-                'Missing expected outputs:', str(missing_outputs), log_note,
-                '┌──────────────────────────────────────────────────────┐\n'
-                '│Tip: Look for "crash-*.txt" files in the log directory│\n'
-                '│for more information. Usually the chronological first │\n'
-                '│crash file is the most informative.                   │\n'
-                '└──────────────────────────────────────────────────────┘'
-            ] if string])
+                log_note = ""
+            message = "\n".join(
+                [
+                    string
+                    for string in [
+                        "Missing expected outputs:",
+                        str(missing_outputs),
+                        log_note,
+                        "┌──────────────────────────────────────────────────────┐\n"
+                        '│Tip: Look for "crash-*.txt" files in the log directory│\n'
+                        "│for more information. Usually the chronological first │\n"
+                        "│crash file is the most informative.                   │\n"
+                        "└──────────────────────────────────────────────────────┘",
+                    ]
+                    if string
+                ]
+            )
             missing_log.delete()
         else:
-            message = 'All expected outputs were generated'
+            message = "All expected outputs were generated"
     outputs_logger.delete()
     return message
 
 
 class ExpectedOutputs:
-    r'''Class to hold expected outputs for a pipeline
+    r"""Class to hold expected outputs for a pipeline.
 
     Attributes
     ----------
@@ -142,7 +164,8 @@ class ExpectedOutputs:
     - task-rest*_bold.nii.gz*
     >>> len(expected_outputs)
     4
-    '''   # noqa: E501  # pylint: disable=line-too-long
+    """  # pylint: disable=line-too-long
+
     def __init__(self, expected=None):
         self.expected_outputs = {} if expected is None else expected
         if not isinstance(self.expected_outputs, dict):
@@ -152,20 +175,28 @@ class ExpectedOutputs:
         return bool(len(self))
 
     def __iter__(self):
-        yield from {subdir: sorted(list(filename)) for
-                    subdir, filename in self.expected_outputs.items()}.items()
+        yield from {
+            subdir: sorted(filename)
+            for subdir, filename in self.expected_outputs.items()
+        }.items()
 
     def __iadd__(self, other):
         if not isinstance(other, tuple) or len(other) != 2:
             raise TypeError(
-                f'{self.__module__}.{self.__class__.__name__} requires a '
-                "tuple of ('subdir', 'output') for addition")
+                f"{self.__module__}.{self.__class__.__name__} requires a "
+                "tuple of ('subdir', 'output') for addition"
+            )
         self.add(*other)
         return self
 
     def __len__(self):
-        return len([filepath for subdir, filepaths in
-                    self.expected_outputs.items() for filepath in filepaths])
+        return len(
+            [
+                filepath
+                for subdir, filepaths in self.expected_outputs.items()
+                for filepath in filepaths
+            ]
+        )
 
     def __repr__(self):
         return str(self).rstrip()
@@ -174,7 +205,7 @@ class ExpectedOutputs:
         return yaml.dump(dict(self))
 
     def add(self, subdir, output):
-        '''Add an expected output to the expected outputs dictionary
+        """Add an expected output to the expected outputs dictionary.
 
         Parameters
         ----------
@@ -183,17 +214,17 @@ class ExpectedOutputs:
 
         output : str
             filename of expected output
-        '''
+        """
         # add wildcard to the end of each BIDS entity before the last
         # also add wildcard before dashes after the first in an entity
         # TODO: revisit once we only have one dash per BIDS entity
         new_output = []
-        for entity in output.split('_'):
-            if entity.count('-') > 1:
-                key, value = entity.split('-', 1)
-                entity = '-'.join([key, value.replace('-', '*-')])
+        for entity in output.split("_"):
+            if entity.count("-") > 1:
+                key, value = entity.split("-", 1)
+                entity = "-".join([key, value.replace("-", "*-")])
             new_output.append(entity)
-        output = f"{'*_'.join(new_output)}*".replace('**', '*')
+        output = f"{'*_'.join(new_output)}*".replace("**", "*")
         del new_output
         if subdir in self.expected_outputs:
             self.expected_outputs[subdir].add(output)

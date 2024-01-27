@@ -1,22 +1,20 @@
-"""Class and decorator for NodeBlock functions"""
-from typing import Callable, List, Union, Optional, Dict, Any
+"""Class and decorator for NodeBlock functions."""
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class NodeBlockFunction:
-    """
-    Stores a reference to the nodeblock function and all of its meta-data.
-    """
+    """Stores a reference to the nodeblock function and all of its meta-data."""
 
     def __init__(
-            self,
-            func: Callable,
-            name: Optional[str] = None,
-            config: Optional[List[str]] = None,
-            switch: Optional[Union[List[str], List[List[str]]]] = None,
-            option_key: Optional[Union[str, List[str]]] = None,
-            option_val: Optional[Union[str, List[str]]] = None,
-            inputs: Optional[List[Union[str, list, tuple]]] = None,
-            outputs: Optional[Union[List[str], Dict[str, Any]]] = None
+        self,
+        func: Callable,
+        name: Optional[str] = None,
+        config: Optional[List[str]] = None,
+        switch: Optional[Union[List[str], List[List[str]]]] = None,
+        option_key: Optional[Union[str, List[str]]] = None,
+        option_val: Optional[Union[str, List[str]]] = None,
+        inputs: Optional[List[Union[str, list, tuple]]] = None,
+        outputs: Optional[Union[List[str], Dict[str, Any]]] = None,
     ) -> None:
         self.func = func
         """Nodeblock function reference."""
@@ -54,9 +52,13 @@ class NodeBlockFunction:
         self.__name__ = func.__name__
         self.__qualname__ = func.__qualname__
         self.__annotations__ = func.__annotations__
-        self.__doc__ = ''.join([_.replace('        ', '') for _ in [
-            func.__doc__, '', '', NodeBlockFunction.__call__.__doc__
-        ] if _ is not None]).rstrip()
+        self.__doc__ = "".join(
+            [
+                _.replace("        ", "")
+                for _ in [func.__doc__, "", "", NodeBlockFunction.__call__.__doc__]
+                if _ is not None
+            ]
+        ).rstrip()
 
     # all node block functions have this signature
     def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
@@ -83,39 +85,39 @@ class NodeBlockFunction:
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
     def legacy_nodeblock_dict(self):
-        """
-        Returns nodeblock metadata as a dictionary. Helper for compatibility reasons.
-        """
+        """Returns nodeblock metadata as a dictionary. Helper for compatibility reasons."""
         return {
-            'name': self.name,
-            'config': self.config,
-            'switch': self.switch,
-            'option_key': self.option_key,
-            'option_val': self.option_val,
-            'inputs': self.inputs,
-            'outputs': self.outputs
+            "name": self.name,
+            "config": self.config,
+            "switch": self.switch,
+            "option_key": self.option_key,
+            "option_val": self.option_val,
+            "inputs": self.inputs,
+            "outputs": self.outputs,
         }
 
     def __repr__(self) -> str:
-        return (f'NodeBlockFunction({self.func.__module__}.'
-                f'{self.func.__name__}, "{self.name}", '
-                f'config={self.config}, switch={self.switch}, '
-                f'option_key={self.option_key}, option_val='
-                f'{self.option_val}, inputs={self.inputs}, '
-                f'outputs={self.outputs})')
+        return (
+            f"NodeBlockFunction({self.func.__module__}."
+            f'{self.func.__name__}, "{self.name}", '
+            f"config={self.config}, switch={self.switch}, "
+            f"option_key={self.option_key}, option_val="
+            f"{self.option_val}, inputs={self.inputs}, "
+            f"outputs={self.outputs})"
+        )
 
     def __str__(self) -> str:
-        return f'NodeBlockFunction({self.name})'
+        return f"NodeBlockFunction({self.name})"
 
 
 def nodeblock(
-        name: Optional[str] = None,
-        config: Optional[List[str]] = None,
-        switch: Optional[Union[List[str], List[List[str]]]] = None,
-        option_key: Optional[Union[str, List[str]]] = None,
-        option_val: Optional[Union[str, List[str]]] = None,
-        inputs: Optional[List[Union[str, list, tuple]]] = None,
-        outputs: Optional[Union[List[str], Dict[str, Any]]] = None
+    name: Optional[str] = None,
+    config: Optional[List[str]] = None,
+    switch: Optional[Union[List[str], List[List[str]]]] = None,
+    option_key: Optional[Union[str, List[str]]] = None,
+    option_val: Optional[Union[str, List[str]]] = None,
+    inputs: Optional[List[Union[str, list, tuple]]] = None,
+    outputs: Optional[Union[List[str], Dict[str, Any]]] = None,
 ):
     """
     Define a node block: Connections to the pipeline configuration and to other node blocks.
@@ -154,5 +156,5 @@ def nodeblock(
         option_key,
         option_val,
         inputs,
-        outputs
+        outputs,
     )

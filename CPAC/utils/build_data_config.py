@@ -1,7 +1,4 @@
-
-
 def gather_file_paths(base_directory, verbose=False):
-
     # this will go into core tools eventually
 
     # ideas: return number of paths, optionally instead
@@ -22,16 +19,17 @@ def gather_file_paths(base_directory, verbose=False):
             path_list.append(fullpath)
 
     if verbose:
-        print("Number of paths: {0}".format(len(path_list)))
+        pass
 
     return path_list
 
 
 def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     """Return a list of input data file paths that are available on an AWS S3
-    bucket on the cloud."""
-
+    bucket on the cloud.
+    """
     import os
+
     from indi_aws import fetch_creds
 
     if creds_path:
@@ -40,8 +38,6 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     s3_path = data_folder.split("s3://")[1]
     bucket_name = s3_path.split("/")[0]
     bucket_prefix = s3_path.split(bucket_name + "/")[1]
-
-    print("Pulling from {0} ...".format(data_folder))
 
     s3_list = []
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
@@ -60,22 +56,22 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
         else:
             s3_list.append(str(bk.key).replace(bucket_prefix, ""))
 
-    print("Finished pulling from S3. " \
-          "{0} file paths found.".format(len(s3_list)))
-
     if not s3_list:
-        err = "\n\n[!] No input data found matching your data settings in " \
-              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        err = (
+            "\n\n[!] No input data found matching your data settings in "
+            "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        )
         raise Exception(err)
 
     return s3_list
 
 
-def get_file_list(base_directory, creds_path=None, write_txt=None,
-                  write_pkl=None, write_info=False):
+def get_file_list(
+    base_directory, creds_path=None, write_txt=None, write_pkl=None, write_info=False
+):
     """Return a list of input and data file paths either stored locally or on
-    an AWS S3 bucket on the cloud."""
-
+    an AWS S3 bucket on the cloud.
+    """
     import os
 
     if "s3://" in base_directory:
@@ -87,8 +83,10 @@ def get_file_list(base_directory, creds_path=None, write_txt=None,
         file_list = gather_file_paths(base_directory)
 
     if len(file_list) == 0:
-        warn = "\n\n[!] No files were found in the base directory you " \
-               "provided.\n\nDirectory: {0}\n\n".format(base_directory)
+        warn = (
+            "\n\n[!] No files were found in the base directory you "
+            "provided.\n\nDirectory: {0}\n\n".format(base_directory)
+        )
         raise Exception(warn)
 
     if write_txt:
@@ -98,18 +96,15 @@ def get_file_list(base_directory, creds_path=None, write_txt=None,
         with open(write_txt, "wt") as f:
             for path in file_list:
                 f.write("{0}\n".format(path))
-        print("\nFilepath list text file written:\n" \
-              "{0}".format(write_txt))
 
     if write_pkl:
         import pickle
+
         if ".pkl" not in write_pkl:
             write_pkl = "{0}.pkl".format(write_pkl)
         write_pkl = os.path.abspath(write_pkl)
         with open(write_pkl, "wb") as f:
             pickle.dump(list(file_list), f)
-        print("\nFilepath list pickle file written:\n" \
-              "{0}".format(write_pkl))
 
     if write_info:
         niftis = []
@@ -132,24 +127,17 @@ def get_file_list(base_directory, creds_path=None, write_txt=None,
                 if "participants.tsv" in path:
                     part_tsvs.append(path)
 
-        print("\nBase directory: {0}".format(base_directory))
-        print("File paths found: {0}".format(len(file_list)))
-        print("..NIFTI files: {0}".format(len(niftis)))
-        print("..JSON files: {0}".format(len(jsons)))
         if jsons:
-            print("....{0} of which are scan parameter JSON files" \
-                  "".format(len(scan_jsons)))
-        print("..CSV files: {0}".format(len(csvs)))
-        print("..TSV files: {0}".format(len(tsvs)))
+            pass
         if tsvs:
-            print("....{0} of which are participants.tsv files" \
-                  "".format(len(part_tsvs)))
+            pass
 
     return file_list
 
 
-def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
-                            overwrite=False):
+def download_single_s3_path(
+    s3_path, download_dir=None, creds_path=None, overwrite=False
+):
     """Download a single file from an AWS s3 bucket.
 
     :type s3_path: str
@@ -161,11 +149,11 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
     :rtype: str
     :return: The local filepath of the downloaded s3 file.
     """
-
     # TODO: really for core tools and/or utility
 
     import os
-    from indi_aws import fetch_creds, aws_utils
+
+    from indi_aws import aws_utils, fetch_creds
 
     if "s3://" in s3_path:
         s3_prefix = s3_path.replace("s3://", "")
@@ -186,12 +174,9 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
 
     if os.path.isfile(local_dl):
         if overwrite:
-            print("\nS3 bucket file already downloaded! Overwriting..")
             aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
         else:
-            print("\nS3 bucket file already downloaded! Skipping download.")
-            print("S3 file: %s" % s3_path)
-            print("Local file already exists: %s\n" % local_dl)
+            pass
     else:
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
 
@@ -199,8 +184,8 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
 
 
 def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
-
     import os
+
     from indi_aws import fetch_creds
 
     if creds_path:
@@ -209,8 +194,6 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     s3_path = data_folder.split("s3://")[1]
     bucket_name = s3_path.split("/")[0]
     bucket_prefix = s3_path.split(bucket_name + "/")[1]
-
-    print("Pulling from {0} ...".format(data_folder))
 
     s3_list = []
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
@@ -229,33 +212,32 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
         else:
             s3_list.append(str(bk.key).replace(bucket_prefix, ""))
 
-    print("Finished pulling from S3. " \
-          "{0} file paths found.".format(len(s3_list)))
-
     if not s3_list:
-        err = "\n\n[!] No input data found matching your data settings in " \
-              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        err = (
+            "\n\n[!] No input data found matching your data settings in "
+            "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        )
         raise Exception(err)
 
     return s3_list
 
 
 def generate_group_analysis_files(data_config_outdir, data_config_name):
-    """Create the group-level analysis inclusion list.
-    """
-
-    import os
-    from sets import Set
+    """Create the group-level analysis inclusion list."""
     import csv
+    import os
+
+    from sets import Set
     import yaml
 
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
-        subjects_list = yaml.safe_load(open(data_config_path, 'r'))
+        subjects_list = yaml.safe_load(open(data_config_path, "r"))
     except:
-        err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
-              "path: {0}\n".format(data_config_path)
+        "\n\n[!] Data configuration file couldn't be read!\nFile " "path: {0}\n".format(
+            data_config_path
+        )
 
     subject_scan_set = Set()
     subID_set = Set()
@@ -266,41 +248,38 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
 
     try:
         for sub in subjects_list:
-            if sub['unique_id']:
-                subject_id = sub['subject_id'] + "_" + sub['unique_id']
+            if sub["unique_id"]:
+                subject_id = sub["subject_id"] + "_" + sub["unique_id"]
             else:
-                subject_id = sub['subject_id']
+                subject_id = sub["subject_id"]
 
             try:
-                for scan in sub['func']:
+                for scan in sub["func"]:
                     subject_scan_set.add((subject_id, scan))
-                    subID_set.add(sub['subject_id'])
-                    session_set.add(sub['unique_id'])
+                    subID_set.add(sub["subject_id"])
+                    session_set.add(sub["unique_id"])
                     subject_set.add(subject_id)
                     scan_set.add(scan)
             except KeyError:
                 try:
-                    for scan in sub['rest']:
+                    for scan in sub["rest"]:
                         subject_scan_set.add((subject_id, scan))
-                        subID_set.add(sub['subject_id'])
-                        session_set.add(sub['unique_id'])
+                        subID_set.add(sub["subject_id"])
+                        session_set.add(sub["unique_id"])
                         subject_set.add(subject_id)
                         scan_set.add(scan)
                 except KeyError:
                     # one of the participants in the subject list has no
                     # functional scans
-                    subID_set.add(sub['subject_id'])
-                    session_set.add(sub['unique_id'])
+                    subID_set.add(sub["subject_id"])
+                    session_set.add(sub["unique_id"])
                     subject_set.add(subject_id)
 
-    except TypeError as e:
-        print('Subject list could not be populated!')
-        print('This is most likely due to a mis-formatting in your ' \
-              'inclusion and/or exclusion subjects txt file or your ' \
-              'anatomical and/or functional path templates.')
-        print('Error: %s' % e)
-        err_str = 'Check formatting of your anatomical/functional path ' \
-                  'templates and inclusion/exclusion subjects text files'
+    except TypeError:
+        err_str = (
+            "Check formatting of your anatomical/functional path "
+            "templates and inclusion/exclusion subjects text files"
+        )
         raise TypeError(err_str)
 
     for item in subject_scan_set:
@@ -321,52 +300,40 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
         data_list.append(list1)
 
     # generate the phenotypic file templates for group analysis
-    file_name = os.path.join(data_config_outdir, 'phenotypic_template_%s.csv'
-                             % data_config_name)
+    file_name = os.path.join(
+        data_config_outdir, "phenotypic_template_%s.csv" % data_config_name
+    )
 
     try:
-        f = open(file_name, 'wb')
+        f = open(file_name, "wb")
     except:
-        print('\n\nCPAC says: I couldn\'t save this file to your drive:\n')
-        print(file_name, '\n\n')
-        print('Make sure you have write access? Then come back. Don\'t ' \
-              'worry.. I\'ll wait.\n\n')
         raise IOError
 
     writer = csv.writer(f)
 
-    writer.writerow(['participant', 'EV1', '..'])
+    writer.writerow(["participant", "EV1", ".."])
     for sub in sorted(subID_set):
-        writer.writerow([sub, ''])
+        writer.writerow([sub, ""])
 
     f.close()
 
-    print("Template Phenotypic file for group analysis - %s" % file_name)
-
     # generate the group analysis subject lists
-    file_name = os.path.join(data_config_outdir,
-                             'participant_list_group_analysis_%s.txt'
-                             % data_config_name)
+    file_name = os.path.join(
+        data_config_outdir, "participant_list_group_analysis_%s.txt" % data_config_name
+    )
 
     try:
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             for sub in sorted(subID_set):
                 print(sub, file=f)
     except:
-        print('\n\nCPAC says: I couldn\'t save this file to your drive:\n')
-        print(file_name, '\n\n')
-        print('Make sure you have write access? Then come back. Don\'t ' \
-              'worry.. I\'ll wait.\n\n')
         raise IOError
-
-    print("Participant list required later for group analysis - %s\n\n" \
-          % file_name)
 
 
 def extract_scan_params_csv(scan_params_csv):
     """
     Function to extract the site-based scan parameters from a csv file
-    and return a dictionary of their values
+    and return a dictionary of their values.
 
     Parameters
     ----------
@@ -379,45 +346,45 @@ def extract_scan_params_csv(scan_params_csv):
         a dictionary where site names are the keys and the scan
         parameters for that site are the values stored as a dictionary
     """
-
     # Import packages
     import csv
 
     # Init variables
-    csv_open = open(scan_params_csv, 'r')
+    csv_open = open(scan_params_csv, "r")
     site_dict = {}
 
     # Init csv dictionary reader
     reader = csv.DictReader(csv_open)
 
-    placeholders = ['None', 'NONE', 'none', 'All', 'ALL', 'all', '', ' ']
+    placeholders = ["None", "NONE", "none", "All", "ALL", "all", "", " "]
 
-    keys = {"TR (seconds)": "TR",
-            "TE (seconds)": "TE",
-            "Reference (slice no)": "reference",
-            "Acquisition (pattern)": "acquisition",
-            "FirstTR (start volume index)": "first_TR",
-            "LastTR (final volume index)": "last_TR"}
+    keys = {
+        "TR (seconds)": "TR",
+        "TE (seconds)": "TE",
+        "Reference (slice no)": "reference",
+        "Acquisition (pattern)": "acquisition",
+        "FirstTR (start volume index)": "first_TR",
+        "LastTR (final volume index)": "last_TR",
+    }
 
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
-
-        if dict_row['Site'] in placeholders:
-            site = 'All'
+        if dict_row["Site"] in placeholders:
+            site = "All"
         else:
-            site = dict_row['Site']
+            site = dict_row["Site"]
 
         sub = "All"
         if "Participant" in dict_row.keys():
             if dict_row["Participant"] not in placeholders:
                 sub = dict_row["Participant"]
 
-        ses = 'All'
-        if 'Session' in dict_row.keys():
-            if dict_row['Session'] not in placeholders:
-                ses = dict_row['Session']
+        ses = "All"
+        if "Session" in dict_row.keys():
+            if dict_row["Session"] not in placeholders:
+                ses = dict_row["Session"]
 
-        if ses != 'All':
+        if ses != "All":
             # for session-specific scan parameters
             if site not in site_dict.keys():
                 site_dict[site] = {}
@@ -425,15 +392,14 @@ def extract_scan_params_csv(scan_params_csv):
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
-                keys[key]: val for key, val in dict_row.items(
-                ) if key != 'Site' and
-                key != 'Participant' and
-                key != 'Session' and key != 'Series'
+                keys[key]: val
+                for key, val in dict_row.items()
+                if key not in ("Site", "Participant", "Session", "Series")
             }
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            #site_dict[site][sub][ses]['tr'] = \
+            # site_dict[site][sub][ses]['tr'] = \
             #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         elif sub != "All":
@@ -444,15 +410,14 @@ def extract_scan_params_csv(scan_params_csv):
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
-                keys[key]: val for key, val in dict_row.items(
-                ) if key != 'Site' and
-                key != 'Participant' and
-                key != 'Session' and key != 'Series'
+                keys[key]: val
+                for key, val in dict_row.items()
+                if key not in ("Site", "Participant", "Session", "Series")
             }
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            #site_dict[site][sub][ses]['tr'] =
+            # site_dict[site][sub][ses]['tr'] =
             #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         else:
@@ -463,33 +428,33 @@ def extract_scan_params_csv(scan_params_csv):
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
-                keys[key]: val for key, val in dict_row.items(
-                ) if key != 'Site' and
-                key != 'Participant' and
-                key != 'Session' and key != 'Series'
+                keys[key]: val
+                for key, val in dict_row.items()
+                if key not in ("Site", "Participant", "Session", "Series")
             }
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            #site_dict[site][sub][ses]['tr'] = \
+            # site_dict[site][sub][ses]['tr'] = \
             #    site_dict[site][sub][ses].pop('tr (seconds)')
 
     return site_dict
 
 
-def format_incl_excl_dct(incl_list, info_type='participants'):
+def format_incl_excl_dct(incl_list, info_type="participants"):
     """Create either an inclusion or exclusion dictionary to determine which
-    input files to include or not include in the data configuration file."""
-
+    input files to include or not include in the data configuration file.
+    """
     incl_dct = {}
 
     if isinstance(incl_list, str):
-        if '.txt' in incl_list:
-            with open(incl_list, 'r') as f:
-                incl_dct[info_type] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
-        elif ',' in incl_list:
-            incl_dct[info_type] = \
-                [x.replace(" ", "") for x in incl_list.split(",")]
+        if ".txt" in incl_list:
+            with open(incl_list, "r") as f:
+                incl_dct[info_type] = [
+                    x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != ""
+                ]
+        elif "," in incl_list:
+            incl_dct[info_type] = [x.replace(" ", "") for x in incl_list.split(",")]
         elif incl_list:
             # if there's only one item in the box, most common probably
             if "None" in incl_list or "none" in incl_list:
@@ -501,10 +466,17 @@ def format_incl_excl_dct(incl_list, info_type='participants'):
     return incl_dct
 
 
-def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
-                      aws_creds_path=None, freesurfer_dir=None,
-                      brain_mask_template=None,inclusion_dct=None,
-                      exclusion_dct=None, config_dir=None):
+def get_BIDS_data_dct(
+    bids_base_dir,
+    file_list=None,
+    anat_scan=None,
+    aws_creds_path=None,
+    freesurfer_dir=None,
+    brain_mask_template=None,
+    inclusion_dct=None,
+    exclusion_dct=None,
+    config_dir=None,
+):
     """Return a data dictionary mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
     directory.
@@ -517,96 +489,109 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
           derivatives. Thus, we allow users to modify what the expected BIDS
           layout is for their anatomical brain masks.
     """
-
+    import glob
     import os
     import re
-    import glob
 
     if not config_dir:
         config_dir = os.getcwd()
 
-    anat_sess = os.path.join(bids_base_dir,
-                             "sub-{participant}/ses-{session}/anat/sub-"
-                             "{participant}_ses-{session}_T1w.nii.gz")
-    anat = os.path.join(bids_base_dir,
-                        "sub-{participant}/anat/sub-{participant}_T1w.nii.gz")
+    anat_sess = os.path.join(
+        bids_base_dir,
+        "sub-{participant}/ses-{session}/anat/sub-"
+        "{participant}_ses-{session}_T1w.nii.gz",
+    )
+    anat = os.path.join(
+        bids_base_dir, "sub-{participant}/anat/sub-{participant}_T1w.nii.gz"
+    )
 
     if anat_scan:
-        anat_sess = anat_sess.replace("_T1w", "_*T1w") #"_*_T1w")
-        anat = anat.replace("_T1w", "_*T1w") #"_*_T1w")
+        anat_sess = anat_sess.replace("_T1w", "_*T1w")  # "_*_T1w")
+        anat = anat.replace("_T1w", "_*T1w")  # "_*_T1w")
 
-    func_sess = os.path.join(bids_base_dir,
-                             "sub-{participant}"
-                             "/ses-{session}/func/sub-"
-                             "{participant}_ses-{session}_task-{scan}_"
-                             "bold.nii.gz")
-    func = os.path.join(bids_base_dir,
-                        "sub-{participant}/func/sub-{participant}_task-"
-                        "{scan}_bold.nii.gz")
+    func_sess = os.path.join(
+        bids_base_dir,
+        "sub-{participant}"
+        "/ses-{session}/func/sub-"
+        "{participant}_ses-{session}_task-{scan}_"
+        "bold.nii.gz",
+    )
+    func = os.path.join(
+        bids_base_dir,
+        "sub-{participant}/func/sub-{participant}_task-" "{scan}_bold.nii.gz",
+    )
 
-    fmap_phase_sess = os.path.join(bids_base_dir,
-                                   "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}*phase"
-                                   "diff.nii.gz")
-    fmap_phase = os.path.join(bids_base_dir,
-                              "sub-{participant}/fmap/sub-{participant}"
-                              "*phasediff.nii.gz")
+    fmap_phase_sess = os.path.join(
+        bids_base_dir,
+        "sub-{participant}/ses-{session}/fmap/"
+        "sub-{participant}_ses-{session}*phase"
+        "diff.nii.gz",
+    )
+    fmap_phase = os.path.join(
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*phasediff.nii.gz"
+    )
 
-    fmap_mag_sess = os.path.join(bids_base_dir,
-                                 "sub-{participant}/ses-{session}/fmap/"
-                                 "sub-{participant}_ses-{session}*"
-                                 "magnitud*.nii.gz")
+    fmap_mag_sess = os.path.join(
+        bids_base_dir,
+        "sub-{participant}/ses-{session}/fmap/"
+        "sub-{participant}_ses-{session}*"
+        "magnitud*.nii.gz",
+    )
 
-    fmap_mag = os.path.join(bids_base_dir,
-                            "sub-{participant}/fmap/sub-{participant}"
-                            "*magnitud*.nii.gz")
+    fmap_mag = os.path.join(
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*magnitud*.nii.gz"
+    )
 
-    fmap_pedir_sess = os.path.join(bids_base_dir,
-                                   "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}/"
-                                   "*acq-fMR*_epi.nii.gz")
+    fmap_pedir_sess = os.path.join(
+        bids_base_dir,
+        "sub-{participant}/ses-{session}/fmap/"
+        "sub-{participant}_ses-{session}/"
+        "*acq-fMR*_epi.nii.gz",
+    )
 
-    fmap_pedir = os.path.join(bids_base_dir,
-                              "sub-{participant}/fmap/sub-{participant}"
-                              "*acq-fMR*_epi.nii.gz")
+    fmap_pedir = os.path.join(
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*acq-fMR*_epi.nii.gz"
+    )
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
-    fmap_phase_scan_glob = os.path.join(bids_base_dir,
-                                        "sub-*fmap/"
-                                        "sub-*phasediff.nii.gz")
+    fmap_phase_scan_glob = os.path.join(
+        bids_base_dir, "sub-*fmap/" "sub-*phasediff.nii.gz"
+    )
 
-    fmap_mag_scan_glob = os.path.join(bids_base_dir,
-                                      "sub-*fmap/"
-                                      "sub-*magnitud*.nii.gz")
+    fmap_mag_scan_glob = os.path.join(
+        bids_base_dir, "sub-*fmap/" "sub-*magnitud*.nii.gz"
+    )
 
-    fmap_pedir_scan_glob = os.path.join(bids_base_dir,
-                                        "sub-*fmap/"
-                                        "sub-*_*acq-fMR*_epi.nii.gz")
+    os.path.join(bids_base_dir, "sub-*fmap/" "sub-*_*acq-fMR*_epi.nii.gz")
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
-    '''
+    """
     site_jsons_glob = os.path.join(bids_base_dir, "*bold.json")
     sub_jsons_glob = os.path.join(bids_base_dir, "*sub-*/*bold.json")
     ses_jsons_glob = os.path.join(bids_base_dir, "*ses-*bold.json")
     ses_scan_jsons_glob = os.path.join(bids_base_dir, "*ses-*task-*bold.json")
     scan_jsons_glob = os.path.join(bids_base_dir, "*task-*bold.json")
-    '''
+    """
 
     site_dir_glob = os.path.join(bids_base_dir, "*", "sub-*/*/*.nii*")
 
-    json_globs = [os.path.join(bids_base_dir, "sub-*/ses-*/func/*bold.json"),
-                  os.path.join(bids_base_dir, "sub-*/ses-*/*bold.json"),
-                  os.path.join(bids_base_dir, "sub-*/func/*bold.json"),
-                  os.path.join(bids_base_dir, "sub-*/*bold.json"),
-                  os.path.join(bids_base_dir, "*bold.json")]
+    json_globs = [
+        os.path.join(bids_base_dir, "sub-*/ses-*/func/*bold.json"),
+        os.path.join(bids_base_dir, "sub-*/ses-*/*bold.json"),
+        os.path.join(bids_base_dir, "sub-*/func/*bold.json"),
+        os.path.join(bids_base_dir, "sub-*/*bold.json"),
+        os.path.join(bids_base_dir, "*bold.json"),
+    ]
 
-    site_json_globs = [os.path.join(bids_base_dir, "*/sub-*/ses-*/func/*bold.json"),
-                       os.path.join(bids_base_dir, "*/sub-*/ses-*/*bold.json"),
-                       os.path.join(bids_base_dir, "*/sub-*/func/*bold.json"),
-                       os.path.join(bids_base_dir, "*/sub-*/*bold.json"),
-                       os.path.join(bids_base_dir, "*/*bold.json")]
+    site_json_globs = [
+        os.path.join(bids_base_dir, "*/sub-*/ses-*/func/*bold.json"),
+        os.path.join(bids_base_dir, "*/sub-*/ses-*/*bold.json"),
+        os.path.join(bids_base_dir, "*/sub-*/func/*bold.json"),
+        os.path.join(bids_base_dir, "*/sub-*/*bold.json"),
+        os.path.join(bids_base_dir, "*/*bold.json"),
+    ]
 
     ses = False
     site_dir = False
@@ -619,8 +604,10 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         import fnmatch
 
         for filepath in file_list:
-            if fnmatch.fnmatch(filepath, site_dir_glob) and \
-                    "derivatives" not in filepath:
+            if (
+                fnmatch.fnmatch(filepath, site_dir_glob)
+                and "derivatives" not in filepath
+            ):
                 # check if there is a directory level encoding site ID, even
                 # though that is not BIDS format
                 site_dir = True
@@ -632,24 +619,30 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
             if fnmatch.fnmatch(filepath, fmap_phase_scan_glob):
                 # check if there is a scan level for the fmap phase files
-                fmap_phase_sess = os.path.join(bids_base_dir,
-                                               "sub-{participant}/ses-{session}/fmap/"
-                                               "sub-{participant}_ses-{session}*phase"
-                                               "diff.nii.gz")
-                fmap_phase = os.path.join(bids_base_dir,
-                                          "sub-{participant}/fmap/sub-{participant}"
-                                          "*phasediff.nii.gz")
+                fmap_phase_sess = os.path.join(
+                    bids_base_dir,
+                    "sub-{participant}/ses-{session}/fmap/"
+                    "sub-{participant}_ses-{session}*phase"
+                    "diff.nii.gz",
+                )
+                fmap_phase = os.path.join(
+                    bids_base_dir,
+                    "sub-{participant}/fmap/sub-{participant}" "*phasediff.nii.gz",
+                )
 
             if fnmatch.fnmatch(filepath, fmap_mag_scan_glob):
                 # check if there is a scan level for the fmap magnitude files
-                fmap_mag_sess = os.path.join(bids_base_dir,
-                                             "sub-{participant}/ses-{session}/fmap/"
-                                             "sub-{participant}_ses-{session}*magnitud*.nii.gz")
-                fmap_mag = os.path.join(bids_base_dir,
-                                        "sub-{participant}/fmap/sub-{participant}"
-                                        "*magnitud*.nii.gz")
-            
-            '''
+                fmap_mag_sess = os.path.join(
+                    bids_base_dir,
+                    "sub-{participant}/ses-{session}/fmap/"
+                    "sub-{participant}_ses-{session}*magnitud*.nii.gz",
+                )
+                fmap_mag = os.path.join(
+                    bids_base_dir,
+                    "sub-{participant}/fmap/sub-{participant}" "*magnitud*.nii.gz",
+                )
+
+            """
             if fnmatch.fnmatch(filepath, fmap_pedir_scan_glob):
                 # check if there is a scan level for the fmap magnitude files
                 fmap_pedir_sess = os.path.join(bids_base_dir,
@@ -658,7 +651,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 fmap_pedir = os.path.join(bids_base_dir,
                                         "sub-{participant}/fmap/sub-{participant}"
                                         "task-{scan}_magnitud*.nii.gz")
-            '''
+            """
 
             if fnmatch.fnmatch(filepath, part_tsv_glob):
                 # check if there is a participants.tsv file
@@ -705,13 +698,9 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         import csv
 
         if part_tsv.startswith("s3://"):
-            print("\n\nFound a participants.tsv file in your BIDS data " \
-                  "set on the S3 bucket. Downloading..\n")
-            part_tsv = download_single_s3_path(part_tsv, config_dir,
-                                               aws_creds_path, overwrite=True)
-
-        print("Checking participants.tsv file for site information:" \
-              "\n{0}".format(part_tsv))
+            part_tsv = download_single_s3_path(
+                part_tsv, config_dir, aws_creds_path, overwrite=True
+            )
 
         with open(part_tsv, "r") as f:
             tsv = csv.DictReader(f)
@@ -726,29 +715,29 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         if sites_dct:
             # check for duplicates
             sites = sites_dct.keys()
-            print("{0} sites found in the participant.tsv " \
-                  "file.".format(len(sites)))
             for site in sites:
                 for other_site in sites:
                     if site == other_site:
                         continue
                     dups = set(sites_dct[site]) & set(sites_dct[other_site])
                     if dups:
-                        err = "\n\n[!] There are duplicate participant IDs " \
-                              "in different sites, as defined by your " \
-                              "participants.tsv file! Consider pre-fixing " \
-                              "the participant IDs with the site names.\n\n" \
-                              "Duplicates:\n" \
-                              "Sites: {0}, {1}\n" \
-                              "Duplicate IDs: {2}" \
-                              "\n\n".format(site, other_site, str(dups))
+                        err = (
+                            "\n\n[!] There are duplicate participant IDs "
+                            "in different sites, as defined by your "
+                            "participants.tsv file! Consider pre-fixing "
+                            "the participant IDs with the site names.\n\n"
+                            "Duplicates:\n"
+                            "Sites: {0}, {1}\n"
+                            "Duplicate IDs: {2}"
+                            "\n\n".format(site, other_site, str(dups))
+                        )
                         raise Exception(err)
 
                 # now invert
                 for sub in sites_dct[site]:
                     sites_subs_dct[sub] = site
         else:
-            print("No site information found in the participants.tsv file.")
+            pass
 
     if not sites_subs_dct:
         # if there was no participants.tsv file, (or no site column in the
@@ -756,8 +745,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         # sites might be encoded
         if site_dir:
             sub_dir = os.path.join(bids_base_dir, "sub-{participant}")
-            new_dir = os.path.join(bids_base_dir, "{site}",
-                                   "sub-{participant}")
+            new_dir = os.path.join(bids_base_dir, "{site}", "sub-{participant}")
             if ses:
                 anat_sess = anat_sess.replace(sub_dir, new_dir)
                 func_sess = func_sess.replace(sub_dir, new_dir)
@@ -777,7 +765,6 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         #     example: /bids_dir/site01/sub-01/func/sub-01_task-rest_bold.json
         #     instead of /bids_dir/sub-01/func/sub-01_task-rest_bold.json
         for json_file in site_jsons:
-
             # get site ID
             site_id = json_file.replace("{0}/".format(bids_base_dir), "").split("/")[0]
             if "site-" in site_id:
@@ -836,7 +823,6 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     elif jsons:
         for json_file in jsons:
-
             # get other IDs, from the BIDS format tags, such as "sub-01" or
             # "task-rest". also handle things like "task-rest_run-1"
             ids = re.split("/|_", json_file)
@@ -867,8 +853,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                     # including any run- and acq- tags, since the rest of
                     # CPAC encodes all of the task-, acq-, and run- tags
                     # together for each series/scan
-                    scan_id = json_filename.split("task-")[1].split("_bold")[
-                        0]
+                    scan_id = json_filename.split("task-")[1].split("_bold")[0]
                 elif "_" in json_filename:
                     # if this is an all-scan JSON file, but specific only to
                     # the run or acquisition: create a tag that reads
@@ -892,41 +877,48 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     if ses:
         # if there is a session level in the BIDS dataset
-        data_dct = get_nonBIDS_data(anat_sess, func_sess, file_list=file_list,
-                                    anat_scan=anat_scan,
-                                    scan_params_dct=scan_params_dct,
-                                    brain_mask_template=brain_mask_template,
-                                    fmap_phase_template=fmap_phase_sess,
-                                    fmap_mag_template=fmap_mag_sess,
-                                    fmap_pedir_template=fmap_pedir_sess,
-                                    freesurfer_dir=freesurfer_dir,
-                                    aws_creds_path=aws_creds_path,
-                                    inclusion_dct=inclusion_dct,
-                                    exclusion_dct=exclusion_dct,
-                                    sites_dct=sites_subs_dct)
+        data_dct = get_nonBIDS_data(
+            anat_sess,
+            func_sess,
+            file_list=file_list,
+            anat_scan=anat_scan,
+            scan_params_dct=scan_params_dct,
+            brain_mask_template=brain_mask_template,
+            fmap_phase_template=fmap_phase_sess,
+            fmap_mag_template=fmap_mag_sess,
+            fmap_pedir_template=fmap_pedir_sess,
+            freesurfer_dir=freesurfer_dir,
+            aws_creds_path=aws_creds_path,
+            inclusion_dct=inclusion_dct,
+            exclusion_dct=exclusion_dct,
+            sites_dct=sites_subs_dct,
+        )
     else:
         # no session level
-        data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
-                                    anat_scan=anat_scan,
-                                    scan_params_dct=scan_params_dct,
-                                    brain_mask_template=brain_mask_template,
-                                    fmap_phase_template=fmap_phase,
-                                    fmap_mag_template=fmap_mag,
-                                    fmap_pedir_template=fmap_pedir,
-                                    freesurfer_dir=freesurfer_dir,
-                                    aws_creds_path=aws_creds_path,
-                                    inclusion_dct=inclusion_dct,
-                                    exclusion_dct=exclusion_dct,
-                                    sites_dct=sites_subs_dct)
+        data_dct = get_nonBIDS_data(
+            anat,
+            func,
+            file_list=file_list,
+            anat_scan=anat_scan,
+            scan_params_dct=scan_params_dct,
+            brain_mask_template=brain_mask_template,
+            fmap_phase_template=fmap_phase,
+            fmap_mag_template=fmap_mag,
+            fmap_pedir_template=fmap_pedir,
+            freesurfer_dir=freesurfer_dir,
+            aws_creds_path=aws_creds_path,
+            inclusion_dct=inclusion_dct,
+            exclusion_dct=exclusion_dct,
+            sites_dct=sites_subs_dct,
+        )
 
     return data_dct
 
 
-def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
-                            scan_id):
+def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id, scan_id):
     """Return the scan parameters information stored in the provided scan
-     parameters dictionary for the IDs of a specific functional input scan."""
-
+    parameters dictionary for the IDs of a specific functional input scan.
+    """
     scan_params = None
 
     if site_id not in scan_params_dct.keys():
@@ -934,7 +926,6 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
         try:
             scan_params_dct[site_id] = {}
         except:
-            print(scan_params_dct)
             scan_params_dct = {site_id: {}}
     if sub_id not in scan_params_dct[site_id]:
         sub_id = "All"
@@ -961,40 +952,49 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
         scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
     except TypeError:
         # this ideally should never fire
-        err = "\n[!] The scan parameters dictionary supplied to the data " \
-              "configuration builder is not in the proper format.\n\n The " \
-              "key combination that caused this error:\n{0}, {1}, {2}, {3}" \
-              "\n\n".format(site_id, sub_id, ses_id, scan_id)
+        err = (
+            "\n[!] The scan parameters dictionary supplied to the data "
+            "configuration builder is not in the proper format.\n\n The "
+            "key combination that caused this error:\n{0}, {1}, {2}, {3}"
+            "\n\n".format(site_id, sub_id, ses_id, scan_id)
+        )
         raise Exception(err)
     except KeyError:
         pass
 
     if not scan_params:
-        warn = "\n[!] No scan parameter information found in your scan " \
-               "parameter configuration for the functional input file:\n" \
-               "site: {0}, participant: {1}, session: {2}, series: {3}\n\n" \
-               "".format(site_id, sub_id, ses_id, scan_id)
-        print(warn)
+        "\n[!] No scan parameter information found in your scan " "parameter configuration for the functional input file:\n" "site: {0}, participant: {1}, session: {2}, series: {3}\n\n" "".format(
+            site_id, sub_id, ses_id, scan_id
+        )
 
     return scan_params
 
 
-def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
-                    anat_scan=None, sites_dct=None, scan_params_dct=None,
-                    inclusion_dct=None, exclusion_dct=None,
-                    aws_creds_path=None, verbose=True):
+def update_data_dct(
+    file_path,
+    file_template,
+    data_dct=None,
+    data_type="anat",
+    anat_scan=None,
+    sites_dct=None,
+    scan_params_dct=None,
+    inclusion_dct=None,
+    exclusion_dct=None,
+    aws_creds_path=None,
+    verbose=True,
+):
     """Return a data dictionary with a new file path parsed and added in,
-    keyed with its appropriate ID labels."""
-
-    import os
+    keyed with its appropriate ID labels.
+    """
     import glob
+    import os
     from pathlib import Path
 
     if not data_dct:
         data_dct = {}
 
     # NIFTIs only
-    if '.nii' not in file_path and 'freesurfer' not in data_type:
+    if ".nii" not in file_path and "freesurfer" not in data_type:
         return data_dct
 
     if data_type == "anat":
@@ -1016,8 +1016,11 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                             # one of the BIDS tags
                             anat_scan_identifier = True
                         else:
-                            if "sub-" not in tag and "ses-" not in tag and \
-                                "T1w" not in tag:
+                            if (
+                                "sub-" not in tag
+                                and "ses-" not in tag
+                                and "T1w" not in tag
+                            ):
                                 bids_tags.append(tag)
                             if anat_scan in tag:
                                 # the "anatomical_scan" substring provided was
@@ -1044,7 +1047,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #   file_template =
     #     /path/to/{site}/sub-{participant}/ses-{session}/func/
     #         sub-{participant}_ses-{session}_task-{scan}_bold.nii.gz
-    site_parts = file_template.split('{site}')
+    site_parts = file_template.split("{site}")
 
     # Example, cont.
     # site_parts =
@@ -1052,7 +1055,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
     partic_parts = []
     for part in site_parts:
-        partic_parts = partic_parts + part.split('{participant}')
+        partic_parts = partic_parts + part.split("{participant}")
 
     # Example, cont.
     # partic_parts =
@@ -1060,21 +1063,20 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
     ses_parts = []
     for part in partic_parts:
-        ses_parts = ses_parts + part.split('{session}')
+        ses_parts = ses_parts + part.split("{session}")
 
     # Example, cont.
     # ses_parts =
     #   ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
     #    '_task-{scan}_bold.nii.gz']
 
-    if data_type == "anat" or data_type == "brain_mask" \
-        or data_type == "freesurfer_dir":
+    if data_type in ("anat", "brain_mask", "freesurfer_dir"):
         parts = ses_parts
     else:
         # if functional, or field map files
         parts = []
         for part in ses_parts:
-            parts = parts + part.split('{scan}')
+            parts = parts + part.split("{scan}")
 
         # Example, cont.
         #   parts = ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
@@ -1083,7 +1085,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     if "*" in file_template:
         wild_parts = []
         for part in parts:
-            wild_parts = wild_parts + part.split('*')
+            wild_parts = wild_parts + part.split("*")
         parts = wild_parts
 
     new_template = file_template
@@ -1100,7 +1102,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         except IndexError:
             break
         label = new_template.split(part1, 1)[1]
-        if 'freesurfer' not in data_type:
+        if "freesurfer" not in data_type:
             label = label.split(part2, 1)[0]
 
         if label in path_dct.keys():
@@ -1114,7 +1116,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
         except:
-            print(f"Path split exception: {new_path} // {part1}, {part2}")
+            pass
 
         # example, ideally at this point, something like this:
         #   template: /path/to/sub-{participant}/etc.
@@ -1127,35 +1129,40 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             skip = False
         else:
             if path_dct[label] != id:
-                warn = "\n\n[!] WARNING: While parsing your input data " \
-                    "files, a file path was found with conflicting " \
-                    "IDs for the same data level.\n\n" \
-                    "File path: {0}\n" \
-                    "Level: {1}\n" \
-                    "Conflicting IDs: {2}, {3}\n\n" \
-                    "Thus, we can't tell which {4} it belongs to, and " \
-                    "whether this file should be included or excluded! " \
-                    "Therefore, this file has not been added to the " \
-                    "data configuration.".format(file_path, label,
-                                                    path_dct[label], id,
-                                                    label.replace("{", "").replace("}", ""))
-                print(warn)
+                warn = (
+                    "\n\n[!] WARNING: While parsing your input data "
+                    "files, a file path was found with conflicting "
+                    "IDs for the same data level.\n\n"
+                    "File path: {0}\n"
+                    "Level: {1}\n"
+                    "Conflicting IDs: {2}, {3}\n\n"
+                    "Thus, we can't tell which {4} it belongs to, and "
+                    "whether this file should be included or excluded! "
+                    "Therefore, this file has not been added to the "
+                    "data configuration.".format(
+                        file_path,
+                        label,
+                        path_dct[label],
+                        id,
+                        label.replace("{", "").replace("}", ""),
+                    )
+                )
                 skip = True
                 break
 
-        new_template = new_template.replace(part1, '', 1)
-        new_template = new_template.replace(label, '', 1)
+        new_template = new_template.replace(part1, "", 1)
+        new_template = new_template.replace(label, "", 1)
 
-        new_path = new_path.replace(part1, '', 1)
-        new_path = new_path.replace(id, '', 1)
+        new_path = new_path.replace(part1, "", 1)
+        new_path = new_path.replace(id, "", 1)
 
     if skip:
         return data_dct
 
-    sub_id = path_dct['{participant}']
+    sub_id = path_dct["{participant}"]
 
-    if '{site}' in path_dct.keys():
-        site_id = path_dct['{site}']
+    if "{site}" in path_dct.keys():
+        site_id = path_dct["{site}"]
     elif sites_dct:
         # mainly if we're pulling site info from a participants.tsv file
         # for a BIDS data set
@@ -1164,80 +1171,84 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         except KeyError:
             site_id = "site-1"
     else:
-        site_id = 'site-1'
+        site_id = "site-1"
 
-    if '{session}' in path_dct.keys():
-        ses_id = path_dct['{session}']
+    if "{session}" in path_dct.keys():
+        ses_id = path_dct["{session}"]
     else:
-        ses_id = 'ses-1'
+        ses_id = "ses-1"
 
-    if data_type != "anat" and data_type != "brain_mask":
-        if '{scan}' in path_dct.keys():
-            scan_id = path_dct['{scan}']
+    if data_type not in ("anat", "brain_mask"):
+        if "{scan}" in path_dct.keys():
+            scan_id = path_dct["{scan}"]
         else:
             if data_type == "func":
-                scan_id = 'func-1'
+                scan_id = "func-1"
             else:
                 # field map files - keep these open as "None" so that they
                 # can be applied to all scans, if there isn't one specified
                 scan_id = None
 
     if inclusion_dct:
-        if 'sites' in inclusion_dct.keys():
-            if site_id not in inclusion_dct['sites']:
+        if "sites" in inclusion_dct.keys():
+            if site_id not in inclusion_dct["sites"]:
                 return data_dct
-        if 'sessions' in inclusion_dct.keys():
-            if ses_id not in inclusion_dct['sessions']:
+        if "sessions" in inclusion_dct.keys():
+            if ses_id not in inclusion_dct["sessions"]:
                 return data_dct
-        if 'participants' in inclusion_dct.keys():
-            if all([
-                sub_id not in inclusion_dct['participants'],
-                f"sub-{sub_id}" not in inclusion_dct['participants'],
-                sub_id.split("sub-")[-1] not in inclusion_dct['participants']
-            ]):
+        if "participants" in inclusion_dct.keys():
+            if all(
+                [
+                    sub_id not in inclusion_dct["participants"],
+                    f"sub-{sub_id}" not in inclusion_dct["participants"],
+                    sub_id.split("sub-")[-1] not in inclusion_dct["participants"],
+                ]
+            ):
                 return data_dct
         if data_type != "anat":
-            if 'scans' in inclusion_dct.keys():
-                if scan_id not in inclusion_dct['scans']:
+            if "scans" in inclusion_dct.keys():
+                if scan_id not in inclusion_dct["scans"]:
                     return data_dct
 
     if exclusion_dct:
-        if 'sites' in exclusion_dct.keys():
-            if site_id in exclusion_dct['sites']:
+        if "sites" in exclusion_dct.keys():
+            if site_id in exclusion_dct["sites"]:
                 return data_dct
-        if 'sessions' in exclusion_dct.keys():
-            if ses_id in exclusion_dct['sessions']:
+        if "sessions" in exclusion_dct.keys():
+            if ses_id in exclusion_dct["sessions"]:
                 return data_dct
-        if 'participants' in exclusion_dct.keys():
-            if any([
-                sub_id in exclusion_dct['participants'],
-                f"sub-{sub_id}" in exclusion_dct['participants'],
-                sub_id.split("sub-")[-1] in exclusion_dct['participants']
-            ]):
+        if "participants" in exclusion_dct.keys():
+            if any(
+                [
+                    sub_id in exclusion_dct["participants"],
+                    f"sub-{sub_id}" in exclusion_dct["participants"],
+                    sub_id.split("sub-")[-1] in exclusion_dct["participants"],
+                ]
+            ):
                 return data_dct
         if data_type != "anat":
-            if 'scans' in exclusion_dct.keys():
-                if scan_id in exclusion_dct['scans']:
+            if "scans" in exclusion_dct.keys():
+                if scan_id in exclusion_dct["scans"]:
                     return data_dct
     # start the data dictionary updating
-    if data_type == 'anat':
+    if data_type == "anat":
         if "*" in file_path:
             if "s3://" in file_path:
-                err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
-                      "(s3://) paths!"
+                err = (
+                    "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket "
+                    "(s3://) paths!"
+                )
                 raise Exception(err)
-            paths = glob.glob(file_path)
+            glob.glob(file_path)
 
-        temp_sub_dct = {'subject_id': sub_id,
-                        'unique_id': ses_id,
-                        'site': site_id,
-                        'anat': {
-                            'T1w': file_path,
-                            'freesurfer_dir': None
-                            }
-                        }
+        temp_sub_dct = {
+            "subject_id": sub_id,
+            "unique_id": ses_id,
+            "site": site_id,
+            "anat": {"T1w": file_path, "freesurfer_dir": None},
+        }
         if aws_creds_path:
-            temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
+            temp_sub_dct.update({"creds_path": str(aws_creds_path)})
 
         if site_id not in data_dct.keys():
             data_dct[site_id] = {}
@@ -1247,89 +1258,78 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
             # doubt this ever happens, but just be safe
-            warn = "\n\n[!] WARNING: Multiple site-participant-session " \
-                   "entries found for anatomical scans in your input data " \
-                   "directory.\n\nDuplicate sets:\n\n{0}\n\n{1}\n\nOnly " \
-                   "adding the first one to the data configuration file." \
-                   "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
-                                 str(temp_sub_dct))
-            print(warn)
+            warn = (
+                "\n\n[!] WARNING: Multiple site-participant-session "
+                "entries found for anatomical scans in your input data "
+                "directory.\n\nDuplicate sets:\n\n{0}\n\n{1}\n\nOnly "
+                "adding the first one to the data configuration file."
+                "\n\n".format(str(data_dct[site_id][sub_id][ses_id]), str(temp_sub_dct))
+            )
 
-    elif data_type == 'freesurfer_dir':
+    elif data_type == "freesurfer_dir":
         if site_id not in data_dct.keys():
             if verbose:
-                print("No anatomical entries found for freesurfer for " \
-                      "site {0}:" \
-                      "\n{1}\n".format(site_id, file_path))
+                pass
             return data_dct
         if sub_id not in data_dct[site_id]:
             if verbose:
-                print("No anatomical found for freesurfer for participant " \
-                      "{0}:\n{1}\n".format(sub_id, file_path))
+                pass
             return data_dct
         if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
-                print("No anatomical found for freesurfer for session {0}:" \
-                      "\n{1}\n".format(ses_id, file_path))
+                pass
             return data_dct
-        data_dct[site_id][sub_id][ses_id]['anat']['freesurfer_dir'] = file_path
+        data_dct[site_id][sub_id][ses_id]["anat"]["freesurfer_dir"] = file_path
 
-    elif data_type == 'brain_mask':
+    elif data_type == "brain_mask":
         if site_id not in data_dct.keys():
             if verbose:
-                print("No anatomical entries found for brain mask for " \
-                      "site {0}:" \
-                      "\n{1}\n".format(site_id, file_path))
+                pass
             return data_dct
         if sub_id not in data_dct[site_id]:
             if verbose:
-                print("No anatomical found for brain mask for participant " \
-                      "{0}:\n{1}\n".format(sub_id, file_path))
+                pass
             return data_dct
         if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
-                print("No anatomical found for brain mask for session {0}:" \
-                      "\n{1}\n".format(ses_id, file_path))
+                pass
             return data_dct
 
-        data_dct[site_id][sub_id][ses_id]['brain_mask'] = file_path
+        data_dct[site_id][sub_id][ses_id]["brain_mask"] = file_path
 
-    elif data_type == 'func':
+    elif data_type == "func":
         temp_func_dct = {scan_id: {"scan": file_path, "scan_parameters": None}}
         _fp = Path(file_path)
 
         # scan parameters time
         scan_params = None
         if scan_params_dct:
-            scan_params = find_unique_scan_params(scan_params_dct, site_id,
-                                                  sub_id, ses_id, scan_id)
+            scan_params = find_unique_scan_params(
+                scan_params_dct, site_id, sub_id, ses_id, scan_id
+            )
         else:
-            scan_params = str(_fp.absolute()).replace(''.join(_fp.suffixes), '.json')
+            scan_params = str(_fp.absolute()).replace("".join(_fp.suffixes), ".json")
 
         if scan_params:
-            temp_func_dct[scan_id]['scan_parameters'] = scan_params
+            temp_func_dct[scan_id]["scan_parameters"] = scan_params
 
         if site_id not in data_dct.keys():
             if verbose:
-                print("No anatomical entries found for functional for " \
-                      "site {0}:" \
-                      "\n{1}\n".format(site_id, file_path))
+                pass
             return data_dct
         if sub_id not in data_dct[site_id]:
             if verbose:
-                print("No anatomical found for functional for participant " \
-                      "{0}:\n{1}\n".format(sub_id, file_path))
+                pass
             return data_dct
         if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
-                print("No anatomical found for functional for session {0}:" \
-                      "\n{1}\n".format(ses_id, file_path))
+                pass
             return data_dct
 
-        if 'func' not in data_dct[site_id][sub_id][ses_id]:
-            data_dct[site_id][sub_id][ses_id]['func'] = temp_func_dct
+        if "func" not in data_dct[site_id][sub_id][ses_id]:
+            data_dct[site_id][sub_id][ses_id]["func"] = temp_func_dct
         else:
-            data_dct[site_id][sub_id][ses_id]['func'].update(temp_func_dct)
+            data_dct[site_id][sub_id][ses_id]["func"].update(temp_func_dct)
 
     else:
         # field map files!
@@ -1352,18 +1352,16 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             # how we use the function in "get_nonBIDS_data" below
             #     but what if we want to use this manually as part of an API?
             try:
-                scan_ids = data_dct[site_id][sub_id][ses_id]['func']
+                scan_ids = data_dct[site_id][sub_id][ses_id]["func"]
                 for func_scan_id in scan_ids:
                     if run_id and acq_id:
                         if run_id and acq_id in func_scan_id:
                             scan_id = func_scan_id
                     elif run_id:
-                        if run_id in func_scan_id and \
-                                "acq-" not in func_scan_id:
+                        if run_id in func_scan_id and "acq-" not in func_scan_id:
                             scan_id = func_scan_id
                     elif acq_id:
-                        if acq_id in func_scan_id and \
-                                "run-" not in func_scan_id:
+                        if acq_id in func_scan_id and "run-" not in func_scan_id:
                             scan_id = func_scan_id
             except KeyError:
                 # TODO: error msg
@@ -1373,75 +1371,91 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         if site_id not in data_dct.keys():
             if verbose:
-                print("No anatomical entries found for field map file for " \
-                      "site {0}:\n{1}\n".format(site_id, file_path))
+                pass
             return data_dct
         if sub_id not in data_dct[site_id]:
             if verbose:
-                print("No anatomical found for field map file for " \
-                      "participant {0}:\n{1}\n".format(sub_id, file_path))
+                pass
             return data_dct
         if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
                 for temp_ses in data_dct[site_id][sub_id]:
-                    if 'anat' in data_dct[site_id][sub_id][temp_ses]:
-                        warn = "Field map file found for session {0}, but " \
-                               "the anatomical scan chosen for this " \
-                               "participant-session is for session {1}, " \
-                               "so this field map file is being " \
-                               "skipped:\n{2}\n".format(ses_id, temp_ses,
-                                                        file_path)
-                        warn = "{0}\nIf you wish to use the anatomical " \
-                               "scan for session {1} for all participants " \
-                               "with this session instead, use the 'Which " \
-                               "Anatomical Scan?' option in the data " \
-                               "configuration builder (or populate the " \
-                               "'anatomical_scan' field in the data " \
-                               "settings file).\n".format(warn, ses_id)
+                    if "anat" in data_dct[site_id][sub_id][temp_ses]:
+                        warn = (
+                            "Field map file found for session {0}, but "
+                            "the anatomical scan chosen for this "
+                            "participant-session is for session {1}, "
+                            "so this field map file is being "
+                            "skipped:\n{2}\n".format(ses_id, temp_ses, file_path)
+                        )
+                        warn = (
+                            "{0}\nIf you wish to use the anatomical "
+                            "scan for session {1} for all participants "
+                            "with this session instead, use the 'Which "
+                            "Anatomical Scan?' option in the data "
+                            "configuration builder (or populate the "
+                            "'anatomical_scan' field in the data "
+                            "settings file).\n".format(warn, ses_id)
+                        )
                         break
                 else:
-                    warn = "No anatomical found for field map file for " \
-                           "session {0}:\n{1}\n".format(ses_id, file_path)
-                print(warn)
+                    warn = (
+                        "No anatomical found for field map file for "
+                        "session {0}:\n{1}\n".format(ses_id, file_path)
+                    )
             return data_dct
 
-        if 'fmap' not in data_dct[site_id][sub_id][ses_id]:
+        if "fmap" not in data_dct[site_id][sub_id][ses_id]:
             # would this ever fire? the way we're using this function now
-            data_dct[site_id][sub_id][ses_id]['fmap'] = {}
-        data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
+            data_dct[site_id][sub_id][ses_id]["fmap"] = {}
+        data_dct[site_id][sub_id][ses_id]["fmap"].update(temp_fmap_dct)
 
     return data_dct
 
 
-def get_nonBIDS_data(anat_template, func_template, file_list=None,
-                     anat_scan=None, scan_params_dct=None,
-                     brain_mask_template=None, fmap_phase_template=None,
-                     fmap_mag_template=None, fmap_pedir_template=None,
-                     freesurfer_dir=None, aws_creds_path=None,
-                     inclusion_dct=None, exclusion_dct=None,
-                     sites_dct=None, verbose=False):
+def get_nonBIDS_data(
+    anat_template,
+    func_template,
+    file_list=None,
+    anat_scan=None,
+    scan_params_dct=None,
+    brain_mask_template=None,
+    fmap_phase_template=None,
+    fmap_mag_template=None,
+    fmap_pedir_template=None,
+    freesurfer_dir=None,
+    aws_creds_path=None,
+    inclusion_dct=None,
+    exclusion_dct=None,
+    sites_dct=None,
+    verbose=False,
+):
     """Prepare a data dictionary for the data configuration file when given
-    file path templates describing the input data directories."""
-
-    import os
-    import glob
+    file path templates describing the input data directories.
+    """
     import fnmatch
+    import glob
+    import os
 
     if not func_template:
-        func_template = ''
+        func_template = ""
 
     # should have the {participant} label at the very least
-    if '{participant}' not in anat_template:
-        err = "\n[!] The {participant} keyword is missing from your " \
-              "anatomical path template.\n"
+    if "{participant}" not in anat_template:
+        err = (
+            "\n[!] The {participant} keyword is missing from your "
+            "anatomical path template.\n"
+        )
         raise Exception(err)
 
-    if len(func_template) > 0 and '{participant}' not in func_template:
-        err = "\n[!] The {participant} keyword is missing from your " \
-              "functional path template.\n"
+    if len(func_template) > 0 and "{participant}" not in func_template:
+        err = (
+            "\n[!] The {participant} keyword is missing from your "
+            "functional path template.\n"
+        )
         raise Exception(err)
 
-    keywords = ['{site}', '{participant}', '{session}', '{scan}']
+    keywords = ["{site}", "{participant}", "{session}", "{scan}"]
 
     # make globby templates, to use them to filter down the path_list into
     # only paths that will work with the templates
@@ -1449,20 +1463,22 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     func_glob = func_template
 
     # backwards compatibility
-    if '{series}' in anat_glob:
-        anat_template = anat_template.replace('{series}', '{scan}')
-        anat_glob = anat_glob.replace('{series}', '{scan}')
+    if "{series}" in anat_glob:
+        anat_template = anat_template.replace("{series}", "{scan}")
+        anat_glob = anat_glob.replace("{series}", "{scan}")
 
-    if '{series}' in func_glob:
-        func_template = func_template.replace('{series}', '{scan}')
-        func_glob = func_glob.replace('{series}', '{scan}')
+    if "{series}" in func_glob:
+        func_template = func_template.replace("{series}", "{scan}")
+        func_glob = func_glob.replace("{series}", "{scan}")
 
-    if '{scan}' in anat_glob:
-        err = "\n[!] CPAC does not support multiple anatomical scans. You " \
-              "are seeing this message because you have a {scan} or " \
-              "{series} keyword in your anatomical path template.\n\nSee " \
-              "the help details for the 'Which Anatomical Scan?' " \
-              "(anatomical_scan) setting for more information.\n\n"
+    if "{scan}" in anat_glob:
+        err = (
+            "\n[!] CPAC does not support multiple anatomical scans. You "
+            "are seeing this message because you have a {scan} or "
+            "{series} keyword in your anatomical path template.\n\nSee "
+            "the help details for the 'Which Anatomical Scan?' "
+            "(anatomical_scan) setting for more information.\n\n"
+        )
         raise Exception(err)
 
     if anat_scan:
@@ -1472,9 +1488,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # replace the keywords with wildcards
     for keyword in keywords:
         if keyword in anat_glob:
-            anat_glob = anat_glob.replace(keyword, '*')
+            anat_glob = anat_glob.replace(keyword, "*")
         if keyword in func_glob:
-            func_glob = func_glob.replace(keyword, '*')
+            func_glob = func_glob.replace(keyword, "*")
 
     # presumably, the paths contained in each of these pools should be anat
     # and func files only, respectively, if the templates were set up properly
@@ -1500,21 +1516,33 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     func_pool = func_pool + [x for x in func_local_pool if x not in func_pool]
 
     if not anat_pool:
-        err = "\n\n[!] No anatomical input file paths found given the data " \
-              "settings provided.\n\nAnatomical file template being used: " \
-              "{0}\n".format(anat_glob)
+        err = (
+            "\n\n[!] No anatomical input file paths found given the data "
+            "settings provided.\n\nAnatomical file template being used: "
+            "{0}\n".format(anat_glob)
+        )
         if anat_scan:
-            err = "{0}Anatomical scan identifier provided: {1}" \
-                  "\n\n".format(err, anat_scan)
+            err = "{0}Anatomical scan identifier provided: {1}" "\n\n".format(
+                err, anat_scan
+            )
         raise Exception(err)
 
     # pull out the site/participant/etc. IDs from each path and connect them
     # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
-        data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
-                                    anat_scan, sites_dct, None, inclusion_dct,
-                                    exclusion_dct, aws_creds_path)
+        data_dct = update_data_dct(
+            anat_path,
+            anat_template,
+            data_dct,
+            "anat",
+            anat_scan,
+            sites_dct,
+            None,
+            inclusion_dct,
+            exclusion_dct,
+            aws_creds_path,
+        )
 
     if not data_dct:
         # this fires if no anatomicals were found
@@ -1522,52 +1550,70 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         possible_anats = []
         all_tags = []
         for anat_path in anat_pool:
-            if "T1w" in anat_path or "mprage" in anat_path or \
-                    "anat" in anat_path:
+            if "T1w" in anat_path or "mprage" in anat_path or "anat" in anat_path:
                 possible_anats.append(anat_path)
-                all_tags += anat_path.replace('.nii', '').replace('.gz', '').split('_')
+                all_tags += anat_path.replace(".nii", "").replace(".gz", "").split("_")
 
         from collections import Counter
+
         count = Counter(all_tags)
         all_tags = [k for k, v in count.items() if v > 1]
 
         tags = []
         for tag in all_tags:
-            if '/' in tag or 'ses-' in tag:
+            if "/" in tag or "ses-" in tag:
                 continue
             tags.append(tag)
 
-        err = "\n\n[!] No anatomical input files were found given the " \
-              "data settings provided.\n\n"
+        err = (
+            "\n\n[!] No anatomical input files were found given the "
+            "data settings provided.\n\n"
+        )
         if possible_anats:
-            err = "{0}There are some file paths found in the directories " \
-                  "described in the data settings that may be anatomicals " \
-                  "that were missed. Here are a few examples:\n".format(err)
+            err = (
+                "{0}There are some file paths found in the directories "
+                "described in the data settings that may be anatomicals "
+                "that were missed. Here are a few examples:\n".format(err)
+            )
             for anat in possible_anats[0:5]:
                 err = "{0}{1}\n".format(err, anat)
-            err = "{0}\nAnd here are some of the possible tags that were " \
-                  "found in the anatomical file paths that were grabbed:" \
-                  "\n".format(err)
+            err = (
+                "{0}\nAnd here are some of the possible tags that were "
+                "found in the anatomical file paths that were grabbed:"
+                "\n".format(err)
+            )
             for tag in tags[0:20]:
                 err = "{0}{1}\n".format(err, tag)
-            err = "{0}\nCPAC only needs one anatomical scan defined for " \
-                  "each participant-session. If there are multiple " \
-                  "anatomical scans per participant-session, you can use " \
-                  "the 'Which Anatomical Scan?' (anatomical_scan) " \
-                  "parameter to choose which anatomical to " \
-                  "select.\n".format(err)
-            err = "{0}\nIf you are already using the 'anatomical_scan' " \
-                  "option in the data settings, check the setting to make " \
-                  "sure you are properly selecting which anatomical scan " \
-                  "to use for your analysis.\n\n".format(err)
+            err = (
+                "{0}\nCPAC only needs one anatomical scan defined for "
+                "each participant-session. If there are multiple "
+                "anatomical scans per participant-session, you can use "
+                "the 'Which Anatomical Scan?' (anatomical_scan) "
+                "parameter to choose which anatomical to "
+                "select.\n".format(err)
+            )
+            err = (
+                "{0}\nIf you are already using the 'anatomical_scan' "
+                "option in the data settings, check the setting to make "
+                "sure you are properly selecting which anatomical scan "
+                "to use for your analysis.\n\n".format(err)
+            )
         raise Exception(err)
 
     # now gather the functionals
     for func_path in func_pool:
-        data_dct = update_data_dct(func_path, func_template, data_dct, "func",
-                                   None, sites_dct, scan_params_dct,
-                                   inclusion_dct, exclusion_dct,
-                                   aws_creds_path)
+        data_dct = update_data_dct(
+            func_path,
+            func_template,
+            data_dct,
+            "func",
+            None,
+            sites_dct,
+            scan_params_dct,
+            inclusion_dct,
+            exclusion_dct,
+            aws_creds_path,
+        )
 
     if freesurfer_dir:
         # make globby templates, to use them to filter down the path_list into
@@ -1575,7 +1621,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         for keyword in keywords:
             if keyword in freesurfer_dir:
-                freesurfer_glob = freesurfer_dir.replace(keyword, '*')
+                freesurfer_glob = freesurfer_dir.replace(keyword, "*")
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
@@ -1587,15 +1633,21 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     freesurfer_pool.append(filepath)
         else:
             for dir in os.listdir(str(os.path.dirname(freesurfer_glob))):
-                freesurfer_pool.append(freesurfer_glob.replace('*', dir))
-
+                freesurfer_pool.append(freesurfer_glob.replace("*", dir))
 
         for freesurfer_path in freesurfer_pool:
-            data_dct = update_data_dct(freesurfer_path, freesurfer_dir,
-                                       data_dct, "freesurfer_dir", None,
-                                       sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
-                                       aws_creds_path)
+            data_dct = update_data_dct(
+                freesurfer_path,
+                freesurfer_dir,
+                data_dct,
+                "freesurfer_dir",
+                None,
+                sites_dct,
+                scan_params_dct,
+                inclusion_dct,
+                exclusion_dct,
+                aws_creds_path,
+            )
     if brain_mask_template:
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
@@ -1603,7 +1655,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         for keyword in keywords:
             if keyword in brain_mask_glob:
-                brain_mask_glob = brain_mask_glob.replace(keyword, '*')
+                brain_mask_glob = brain_mask_glob.replace(keyword, "*")
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
@@ -1617,11 +1669,18 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             brain_mask_pool = glob.glob(brain_mask_glob)
 
         for brain_mask in brain_mask_pool:
-            data_dct = update_data_dct(brain_mask, brain_mask_template,
-                                       data_dct, "brain_mask", None,
-                                       sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
-                                       aws_creds_path)
+            data_dct = update_data_dct(
+                brain_mask,
+                brain_mask_template,
+                data_dct,
+                "brain_mask",
+                None,
+                sites_dct,
+                scan_params_dct,
+                inclusion_dct,
+                exclusion_dct,
+                aws_creds_path,
+            )
 
     # do the same for the fieldmap files, if applicable
     if fmap_phase_template and fmap_mag_template:
@@ -1633,18 +1692,18 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         fmap_mag_glob = fmap_mag_template
 
         # backwards compatibility
-        if '{series}' in fmap_phase_glob:
-            fmap_phase_template = fmap_phase_template.replace('{series}', '{scan}')
-            fmap_phase_glob = fmap_phase_glob.replace('{series}', '{scan}')
-        if '{series}' in fmap_mag_glob:
-            fmap_mag_template = fmap_mag_template.replace('{series}', '{scan}')
-            fmap_mag_glob = fmap_mag_glob.replace('{series}', '{scan}')
+        if "{series}" in fmap_phase_glob:
+            fmap_phase_template = fmap_phase_template.replace("{series}", "{scan}")
+            fmap_phase_glob = fmap_phase_glob.replace("{series}", "{scan}")
+        if "{series}" in fmap_mag_glob:
+            fmap_mag_template = fmap_mag_template.replace("{series}", "{scan}")
+            fmap_mag_glob = fmap_mag_glob.replace("{series}", "{scan}")
 
         for keyword in keywords:
             if keyword in fmap_phase_glob:
-                fmap_phase_glob = fmap_phase_glob.replace(keyword, '*')
+                fmap_phase_glob = fmap_phase_glob.replace(keyword, "*")
             if keyword in fmap_mag_glob:
-                fmap_mag_glob = fmap_mag_glob.replace(keyword, '*')
+                fmap_mag_glob = fmap_mag_glob.replace(keyword, "*")
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
@@ -1662,18 +1721,32 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             fmap_mag_pool = glob.glob(fmap_mag_glob)
 
         for fmap_phase in fmap_phase_pool:
-            data_dct = update_data_dct(fmap_phase, fmap_phase_template,
-                                       data_dct, "diff_phase", None,
-                                       sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
-                                       aws_creds_path)
+            data_dct = update_data_dct(
+                fmap_phase,
+                fmap_phase_template,
+                data_dct,
+                "diff_phase",
+                None,
+                sites_dct,
+                scan_params_dct,
+                inclusion_dct,
+                exclusion_dct,
+                aws_creds_path,
+            )
 
         for fmap_mag in fmap_mag_pool:
-            data_dct = update_data_dct(fmap_mag, fmap_mag_template,
-                                       data_dct, "diff_mag", None,
-                                       sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
-                                       aws_creds_path)
+            data_dct = update_data_dct(
+                fmap_mag,
+                fmap_mag_template,
+                data_dct,
+                "diff_mag",
+                None,
+                sites_dct,
+                scan_params_dct,
+                inclusion_dct,
+                exclusion_dct,
+                aws_creds_path,
+            )
 
     if fmap_pedir_template:
         # make globby templates, to use them to filter down the path_list into
@@ -1682,7 +1755,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         for keyword in keywords:
             if keyword in fmap_pedir_glob:
-                fmap_pedir_glob = fmap_pedir_glob.replace(keyword, '*')
+                fmap_pedir_glob = fmap_pedir_glob.replace(keyword, "*")
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
@@ -1695,15 +1768,22 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         else:
             fmap_pedir_pool = glob.glob(fmap_pedir_glob)
 
-        #TODO: must now deal with phase encoding direction!!!!
-        #TODO: have to check scan params, first!!!
+        # TODO: must now deal with phase encoding direction!!!!
+        # TODO: have to check scan params, first!!!
 
         for fmap_pedir in fmap_pedir_pool:
-            data_dct = update_data_dct(fmap_pedir, fmap_pedir_template,
-                                       data_dct, "fmap_pedir", None,
-                                       sites_dct, scan_params_dct,
-                                       inclusion_dct, exclusion_dct,
-                                       aws_creds_path)
+            data_dct = update_data_dct(
+                fmap_pedir,
+                fmap_pedir_template,
+                data_dct,
+                "fmap_pedir",
+                None,
+                sites_dct,
+                scan_params_dct,
+                inclusion_dct,
+                exclusion_dct,
+                aws_creds_path,
+            )
 
     return data_dct
 
@@ -1712,208 +1792,226 @@ def util_copy_template(template_type=None):
     """Copy the data settings YAML file template to the current directory."""
     import os
     import shutil
+
     import pkg_resources as p
+
     from CPAC.utils.configuration import preconfig_yaml
 
     template_type = "data_settings" if not template_type else template_type
 
-    settings_template = preconfig_yaml('default') if (
-        template_type == "pipeline_config"
-    ) else p.resource_filename("CPAC", os.path.join(
-        "resources", "configs", f"{template_type}_template.yml"))
+    settings_template = (
+        preconfig_yaml("default")
+        if (template_type == "pipeline_config")
+        else p.resource_filename(
+            "CPAC",
+            os.path.join("resources", "configs", f"{template_type}_template.yml"),
+        )
+    )
 
     settings_file = os.path.join(os.getcwd(), f"{template_type}.yml")
 
     try:
         if os.path.exists(settings_file):
-            settings_file = os.path.join(os.getcwd(),
-                                         f"{template_type}_1.yml")
+            settings_file = os.path.join(os.getcwd(), f"{template_type}_1.yml")
             while os.path.exists(settings_file):
                 idx = int(
-                    os.path.basename(settings_file).split("_")[2].replace(
-                        ".yml", ""))
-                settings_file = os.path.join(os.getcwd(),
-                                             f"{template_type}_{idx + 1}.yml")
+                    os.path.basename(settings_file).split("_")[2].replace(".yml", "")
+                )
+                settings_file = os.path.join(
+                    os.getcwd(), f"{template_type}_{idx + 1}.yml"
+                )
         shutil.copy(settings_template, settings_file)
     except Exception as exception:
-        raise Exception(f"\n[!] Could not write the {template_type} file "
-                        "template to the current directory.\n") from exception
+        raise Exception(
+            f"\n[!] Could not write the {template_type} file "
+            "template to the current directory.\n"
+        ) from exception
 
-    print(f"\nGenerated a default {template_type} YAML file for editing:\n"
-          f"{settings_file}\n\n")
-    if type == 'data_settings':
-        print("This file can be completed and entered into the C-PAC "
-              "command-line interface to generate a data configuration file "
-              "for individual-level analysis by running 'cpac utils "
-              "data_config build {data settings file}'.\nAdditionally, it can "
-              "also be loaded into the CPAC data configuration file builder "
-              "UI using the 'Load Preset' button.\n")
-    elif type == 'pipeline_config':
-        print("This file can be edited and then used in a C-PAC run by "
-              "running 'cpac run --pipe_config {pipeline config file} "
-              "{data config file}'.\n")
+    if type == "data_settings":
+        pass
+    elif type == "pipeline_config":
+        pass
 
 
 def run(data_settings_yml):
     """Generate and write out a CPAC data configuration (participant list)
-    YAML file."""
-
+    YAML file.
+    """
     import os
+
     import yaml
+
     import CPAC
 
-    print("\nGenerating data configuration file..")
+    settings_dct = yaml.safe_load(open(data_settings_yml, "r"))
 
-    settings_dct = yaml.safe_load(open(data_settings_yml, 'r'))
-
-    if "awsCredentialsFile" not in settings_dct or \
-            not settings_dct["awsCredentialsFile"]:
+    if (
+        "awsCredentialsFile" not in settings_dct
+        or not settings_dct["awsCredentialsFile"]
+    ):
         settings_dct["awsCredentialsFile"] = None
-    elif "None" in settings_dct["awsCredentialsFile"] or \
-            "none" in settings_dct["awsCredentialsFile"]:
+    elif (
+        "None" in settings_dct["awsCredentialsFile"]
+        or "none" in settings_dct["awsCredentialsFile"]
+    ):
         settings_dct["awsCredentialsFile"] = None
 
-    if "anatomical_scan" not in settings_dct or \
-        not settings_dct["anatomical_scan"]:
+    if "anatomical_scan" not in settings_dct or not settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
-    elif "None" in settings_dct["anatomical_scan"] or \
-            "none" in settings_dct["anatomical_scan"]:
+    elif (
+        "None" in settings_dct["anatomical_scan"]
+        or "none" in settings_dct["anatomical_scan"]
+    ):
         settings_dct["anatomical_scan"] = None
 
     # inclusion lists
-    incl_dct = format_incl_excl_dct(settings_dct.get('siteList', None), 'sites')
-    incl_dct.update(format_incl_excl_dct(settings_dct.get('subjectList', None),
-                                         'participants'))
-    incl_dct.update(format_incl_excl_dct(settings_dct.get('sessionList', None),
-                                         'sessions'))
-    incl_dct.update(format_incl_excl_dct(settings_dct.get('scanList', None), 'scans'))
+    incl_dct = format_incl_excl_dct(settings_dct.get("siteList", None), "sites")
+    incl_dct.update(
+        format_incl_excl_dct(settings_dct.get("subjectList", None), "participants")
+    )
+    incl_dct.update(
+        format_incl_excl_dct(settings_dct.get("sessionList", None), "sessions")
+    )
+    incl_dct.update(format_incl_excl_dct(settings_dct.get("scanList", None), "scans"))
 
     # exclusion lists
-    excl_dct = format_incl_excl_dct(settings_dct.get('exclusionSiteList', None),
-                                    'sites')
-    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionSubjectList', None),
-                                         'participants'))
-    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionSessionList', None),
-                                         'sessions'))
-    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionScanList', None),
-                                         'scans'))
+    excl_dct = format_incl_excl_dct(
+        settings_dct.get("exclusionSiteList", None), "sites"
+    )
+    excl_dct.update(
+        format_incl_excl_dct(
+            settings_dct.get("exclusionSubjectList", None), "participants"
+        )
+    )
+    excl_dct.update(
+        format_incl_excl_dct(settings_dct.get("exclusionSessionList", None), "sessions")
+    )
+    excl_dct.update(
+        format_incl_excl_dct(settings_dct.get("exclusionScanList", None), "scans")
+    )
 
-    if 'bids' in settings_dct['dataFormat'].lower():
+    if "bids" in settings_dct["dataFormat"].lower():
+        file_list = get_file_list(
+            settings_dct["bidsBaseDir"], creds_path=settings_dct["awsCredentialsFile"]
+        )
 
-        file_list = get_file_list(settings_dct["bidsBaseDir"],
-                                  creds_path=settings_dct["awsCredentialsFile"])
+        data_dct = get_BIDS_data_dct(
+            settings_dct["bidsBaseDir"],
+            file_list=file_list,
+            brain_mask_template=settings_dct["brain_mask_template"],
+            anat_scan=settings_dct["anatomical_scan"],
+            aws_creds_path=settings_dct["awsCredentialsFile"],
+            inclusion_dct=incl_dct,
+            exclusion_dct=excl_dct,
+            config_dir=settings_dct["outputSubjectListLocation"],
+        )
 
-        data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
-                                     file_list=file_list,
-                                     brain_mask_template=settings_dct['brain_mask_template'],
-                                     anat_scan=settings_dct['anatomical_scan'],
-                                     aws_creds_path=settings_dct['awsCredentialsFile'],
-                                     inclusion_dct=incl_dct,
-                                     exclusion_dct=excl_dct,
-                                     config_dir=settings_dct["outputSubjectListLocation"])
-
-    elif 'custom' in settings_dct['dataFormat'].lower():
-
+    elif "custom" in settings_dct["dataFormat"].lower():
         # keep as None if local data set (not on AWS S3 bucket)
         file_list = None
         base_dir = None
 
         if "s3://" in settings_dct["anatomicalTemplate"]:
             # hosted on AWS S3 bucket
-            if '{site}' in settings_dct["anatomicalTemplate"]:
-                base_dir = \
-                    settings_dct["anatomicalTemplate"].split('{site}')[0]
-            elif '{participant}' in settings_dct["anatomicalTemplate"]:
-                base_dir = \
-                    settings_dct["anatomicalTemplate"].split('{participant}')[0]
+            if "{site}" in settings_dct["anatomicalTemplate"]:
+                base_dir = settings_dct["anatomicalTemplate"].split("{site}")[0]
+            elif "{participant}" in settings_dct["anatomicalTemplate"]:
+                base_dir = settings_dct["anatomicalTemplate"].split("{participant}")[0]
 
         elif "s3://" in settings_dct["functionalTemplate"]:
             # hosted on AWS S3 bucket
-            if '{site}' in settings_dct["functionalTemplate"]:
-                base_dir = \
-                    settings_dct["functionalTemplate"].split('{site}')[0]
-            elif '{participant}' in settings_dct["functionalTemplate"]:
-                base_dir = \
-                    settings_dct["functionalTemplate"].split('{participant}')[0]
+            if "{site}" in settings_dct["functionalTemplate"]:
+                base_dir = settings_dct["functionalTemplate"].split("{site}")[0]
+            elif "{participant}" in settings_dct["functionalTemplate"]:
+                base_dir = settings_dct["functionalTemplate"].split("{participant}")[0]
 
         if base_dir:
-            file_list = pull_s3_sublist(base_dir,
-                                        settings_dct['awsCredentialsFile'])
+            file_list = pull_s3_sublist(base_dir, settings_dct["awsCredentialsFile"])
 
         params_dct = None
-        if settings_dct['scanParametersCSV']:
-            if '.csv' in settings_dct['scanParametersCSV']:
-                params_dct = \
-                    extract_scan_params_csv(settings_dct['scanParametersCSV'])
+        if settings_dct["scanParametersCSV"]:
+            if ".csv" in settings_dct["scanParametersCSV"]:
+                params_dct = extract_scan_params_csv(settings_dct["scanParametersCSV"])
 
-        data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
-                                    settings_dct['functionalTemplate'],
-                                    file_list=file_list,
-                                    anat_scan=settings_dct['anatomical_scan'],
-                                    scan_params_dct=params_dct,
-                                    brain_mask_template=settings_dct['brain_mask_template'],
-                                    fmap_phase_template=settings_dct['fieldMapPhase'],
-                                    fmap_mag_template=settings_dct['fieldMapMagnitude'],
-                                    freesurfer_dir=settings_dct['freesurfer_dir'],
-                                    aws_creds_path=settings_dct['awsCredentialsFile'],
-                                    inclusion_dct=incl_dct,
-                                    exclusion_dct=excl_dct)
+        data_dct = get_nonBIDS_data(
+            settings_dct["anatomicalTemplate"],
+            settings_dct["functionalTemplate"],
+            file_list=file_list,
+            anat_scan=settings_dct["anatomical_scan"],
+            scan_params_dct=params_dct,
+            brain_mask_template=settings_dct["brain_mask_template"],
+            fmap_phase_template=settings_dct["fieldMapPhase"],
+            fmap_mag_template=settings_dct["fieldMapMagnitude"],
+            freesurfer_dir=settings_dct["freesurfer_dir"],
+            aws_creds_path=settings_dct["awsCredentialsFile"],
+            inclusion_dct=incl_dct,
+            exclusion_dct=excl_dct,
+        )
 
     else:
-        err = "\n\n[!] You must select a data format- either 'BIDS' or " \
-              "'Custom', in the 'dataFormat' field in the data settings " \
-              "YAML file.\n\n"
+        err = (
+            "\n\n[!] You must select a data format- either 'BIDS' or "
+            "'Custom', in the 'dataFormat' field in the data settings "
+            "YAML file.\n\n"
+        )
         raise Exception(err)
 
     if len(data_dct) > 0:
+        data_config_outfile = os.path.join(
+            settings_dct["outputSubjectListLocation"],
+            "data_config_{0}.yml" "".format(settings_dct["subjectListName"]),
+        )
 
-        data_config_outfile = \
-            os.path.join(settings_dct['outputSubjectListLocation'],
-                         "data_config_{0}.yml"
-                         "".format(settings_dct['subjectListName']))
-
-        group_list_outfile = \
-            os.path.join(settings_dct['outputSubjectListLocation'],
-                         "group_analysis_participants_{0}.txt"
-                         "".format(settings_dct['subjectListName']))
+        group_list_outfile = os.path.join(
+            settings_dct["outputSubjectListLocation"],
+            "group_analysis_participants_{0}.txt" "".format(
+                settings_dct["subjectListName"]
+            ),
+        )
 
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
         group_list = []
 
-        included = {'site': [], 'sub': []}
+        included = {"site": [], "sub": []}
         num_sess = num_scan = 0
 
         for site in sorted(data_dct.keys()):
             for sub in sorted(data_dct[site]):
                 for ses in sorted(data_dct[site][sub]):
                     # if there are scans, get some numbers
-                    included['site'].append(site)
-                    included['sub'].append(sub)
+                    included["site"].append(site)
+                    included["sub"].append(sub)
                     num_sess += 1
-                    if 'func' in data_dct[site][sub][ses]:
-                        for scan in data_dct[site][sub][ses]['func']:
+                    if "func" in data_dct[site][sub][ses]:
+                        for scan in data_dct[site][sub][ses]["func"]:
                             num_scan += 1
 
                     data_list.append(data_dct[site][sub][ses])
                     group_list.append("{0}_{1}".format(sub, ses))
 
         # calculate numbers
-        num_sites = len(set(included['site']))
-        num_subs = len(set(included['sub']))
+        len(set(included["site"]))
+        len(set(included["sub"]))
 
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
             # read-able)
-            f.write("# CPAC Data Configuration File\n# Version {0}"
-                    "\n".format(CPAC.__version__))
-            f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
-                    "# Tip: This file can be edited manually with "
-                    "a text editor for quick modifications.\n\n")
+            f.write(
+                "# CPAC Data Configuration File\n# Version {0}" "\n".format(
+                    CPAC.__version__
+                )
+            )
+            f.write(
+                "#\n# http://fcp-indi.github.io for more info.\n#\n"
+                "# Tip: This file can be edited manually with "
+                "a text editor for quick modifications.\n\n"
+            )
             noalias_dumper = yaml.dumper.SafeDumper
             noalias_dumper.ignore_aliases = lambda self, data: True
-            f.write(yaml.dump(data_list, default_flow_style=False,
-                              Dumper=noalias_dumper))
+            f.write(
+                yaml.dump(data_list, default_flow_style=False, Dumper=noalias_dumper)
+            )
 
         with open(group_list_outfile, "wt") as f:
             # write the inclusion list (mainly the group analysis sublist)
@@ -1922,24 +2020,14 @@ def run(data_settings_yml):
                 f.write("{0}\n".format(id))
 
         if os.path.exists(data_config_outfile):
-            print("\nCPAC DATA SETTINGS file entered (use this preset file " \
-                  "to modify/regenerate the data configuration file):" \
-                  "\n{0}\n".format(data_settings_yml))
-            print("Number of:")
-            print("...sites: {0}".format(num_sites))
-            print("...participants: {0}".format(num_subs))
-            print("...participant-sessions: {0}".format(num_sess))
-            print("...functional scans: {0}".format(num_scan))
-            print("\nCPAC DATA CONFIGURATION file created (use this for " \
-                  "individual-level analysis):" \
-                  "\n{0}\n".format(data_config_outfile))
+            pass
 
         if os.path.exists(group_list_outfile):
-            print("Group-level analysis participant-session list text " \
-                  "file created (use this for group-level analysis):\n{0}" \
-                  "\n".format(group_list_outfile))
+            pass
 
     else:
-        err = "\n\n[!] No anatomical input files were found given the data " \
-              "settings provided.\n\n"
+        err = (
+            "\n\n[!] No anatomical input files were found given the data "
+            "settings provided.\n\n"
+        )
         raise Exception(err)

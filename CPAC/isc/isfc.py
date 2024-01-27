@@ -1,11 +1,10 @@
 import numpy as np
-from CPAC.utils import correlation
 
+from CPAC.utils import correlation
 from .utils import p_from_null, phase_randomize
 
 
 def isfc(D, std=None, collapse_subj=True):
-
     assert D.ndim == 3
 
     n_vox, _, n_subj = D.shape
@@ -19,9 +18,7 @@ def isfc(D, std=None, collapse_subj=True):
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
             ISFC += correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                symmetric=True
+                loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, symmetric=True
             )
         ISFC /= n_subj
 
@@ -35,9 +32,7 @@ def isfc(D, std=None, collapse_subj=True):
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
             ISFC[:, :, loo_subj] = correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                symmetric=True
+                loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, symmetric=True
             )
 
     if masked is not None:
@@ -49,17 +44,10 @@ def isfc(D, std=None, collapse_subj=True):
 
 
 def isfc_significance(ISFC, min_null, max_null, two_sided=False):
-    p = p_from_null(ISFC,
-                    max_null=max_null,
-                    min_null=min_null,
-                    two_sided=two_sided)
-    return p
+    return p_from_null(ISFC, max_null=max_null, min_null=min_null, two_sided=two_sided)
 
 
 def isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
-
-    print("Permutation", permutation)
-
     min_null = 1
     max_null = -1
 
@@ -77,19 +65,16 @@ def isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0)
 
     for loo_subj in range(n_subj):
         loo_subj_ts = D[:, :, loo_subj]
-        ISFC_subj = \
-            correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                symmetric=True
-            )
+        ISFC_subj = correlation(
+            loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, symmetric=True
+        )
 
         if collapse_subj:
             ISFC_null += ISFC_subj
         else:
             max_null = max(np.max(ISFC_subj), max_null)
             min_null = min(np.min(ISFC_subj), min_null)
-    
+
     if collapse_subj:
         ISFC_null /= n_subj
         max_null = np.max(ISFC_null)

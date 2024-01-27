@@ -4,8 +4,7 @@ from . import Configuration
 
 
 def cpac_flowdump_serializer(
-        flowdump_serializer: Callable[[object], object],
-        obj: object
+    flowdump_serializer: Callable[[object], object], obj: object
 ) -> object:
     """
     Custom flowdump serializer that removes `json_data` fields
@@ -13,11 +12,11 @@ def cpac_flowdump_serializer(
     for every node (and increase file size dramatically).
     """
     if isinstance(obj, dict):
-        if 'json_data' in obj:
+        if "json_data" in obj:
             obj_clone = obj.copy()
-            obj_clone['json_data'] = '[truncated]'
+            obj_clone["json_data"] = "[truncated]"
             obj = obj_clone
         return flowdump_serializer(obj)
     if isinstance(obj, Configuration):
-        return '[C-PAC config]'
+        return "[C-PAC config]"
     return flowdump_serializer(obj)

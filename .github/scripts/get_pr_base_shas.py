@@ -14,16 +14,4 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Get base SHAs for open PRs"""
-import os
-from github import Github
-
-print(' '.join([
-    pr.base.sha for pr in Github(os.environ.get(
-        'GITHUB_TOKEN'
-    )).get_repo(os.environ.get(
-        'GITHUB_REPOSITORY'
-    )).get_commit(os.environ.get(
-        'GITHUB_SHA'
-    )).get_pulls()
-]))
+"""Get base SHAs for open PRs."""

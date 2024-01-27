@@ -4,7 +4,8 @@ import numpy as np
 def custom_corrcoef(X, Y=None):
     """Each of the columns in X will be correlated with each of the
     columns in Y. Each column represents a variable, with the rows
-    containing the observations."""
+    containing the observations.
+    """
     if Y is None:
         Y = X
 
@@ -20,6 +21,4 @@ def custom_corrcoef(X, Y=None):
     xx = np.sum(X**2, axis=0)
     yy = np.sum(Y**2, axis=0)
 
-    r = np.dot(X.T, Y)/np.sqrt(np.multiply.outer(xx, yy))
-
-    return r
+    return np.dot(X.T, Y) / np.sqrt(np.multiply.outer(xx, yy))

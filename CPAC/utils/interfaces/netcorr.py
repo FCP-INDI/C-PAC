@@ -1,11 +1,15 @@
-"""Interface for AFNI 3dNetCorr"""
+"""Interface for AFNI 3dNetCorr."""
 import glob
 import os
 import subprocess
-from nipype.interfaces.afni.base import AFNICommand, AFNICommandInputSpec, \
-                                        AFNICommandOutputSpec
-from nipype.interfaces.base import File, isdefined
+
 from traits.api import Bool, List
+from nipype.interfaces.afni.base import (
+    AFNICommand,
+    AFNICommandInputSpec,
+    AFNICommandOutputSpec,
+)
+from nipype.interfaces.base import File, isdefined
 
 
 class NetCorrInputSpec(AFNICommandInputSpec):
@@ -30,9 +34,9 @@ class NetCorrInputSpec(AFNICommandInputSpec):
     )
     automask_off = Bool(
         False,
-        desc='If you want to neither put in a mask '
-             '*nor* have the automasking occur',
-        argstr='-automask_off', usedefault=True
+        desc="If you want to neither put in a mask " "*nor* have the automasking occur",
+        argstr="-automask_off",
+        usedefault=True,
     )
     weight_ts = File(
         desc="input a 1D file WTS of weights that will be applied "
@@ -57,9 +61,7 @@ class NetCorrInputSpec(AFNICommandInputSpec):
         "high Pearson-r value",
         argstr="-fish_z",
     )
-    part_corr = Bool(
-        desc="output the partial correlation matrix", argstr="-part_corr"
-    )
+    part_corr = Bool(desc="output the partial correlation matrix", argstr="-part_corr")
     ts_out = Bool(
         desc="switch to output the mean time series of the ROIs that "
         "have been used to generate the correlation matrices. "
@@ -160,7 +162,7 @@ class NetCorrInputSpec(AFNICommandInputSpec):
 class NetCorrOutputSpec(AFNICommandOutputSpec):
     out_corr_matrix = File(
         desc="output correlation matrix between ROIs written to a text "
-             "file with .netcc suffix"
+        "file with .netcc suffix"
     )
     out_corr_maps = List(
         File(), desc="output correlation maps in Pearson and/or Z-scores"
@@ -189,7 +191,8 @@ class NetCorr(AFNICommand):
     '3dNetCorr -prefix sub0.tp1.ncorr -fish_z -inset functional.nii -in_rois maps.nii -mask mask.nii -ts_wb_Z -ts_wb_corr'
     >>> res = ncorr.run()  # doctest: +SKIP
 
-    """  # noqa: E501  # pylint: disable=line-too-long
+    """  # pylint: disable=line-too-long
+
     _cmd = "3dNetCorr"
     input_spec = NetCorrInputSpec
     output_spec = NetCorrOutputSpec
@@ -204,22 +207,16 @@ class NetCorr(AFNICommand):
 
         # All outputs should be in the same directory as the prefix
         odir = os.path.dirname(os.path.abspath(prefix))
-        outputs["out_corr_matrix"] = glob.glob(
-            os.path.join(odir, "*.netcc"))[0]
+        outputs["out_corr_matrix"] = glob.glob(os.path.join(odir, "*.netcc"))[0]
 
-        if (
-            isdefined(self.inputs.ts_wb_corr) or
-            isdefined(self.inputs.ts_wb_Z)
-        ):
+        if isdefined(self.inputs.ts_wb_corr) or isdefined(self.inputs.ts_wb_Z):
             corrdir = os.path.join(odir, prefix + "_000_INDIV")
-            outputs["out_corr_maps"] = glob.glob(
-                os.path.join(corrdir, "*.nii.gz"))
+            outputs["out_corr_maps"] = glob.glob(os.path.join(corrdir, "*.nii.gz"))
 
         return outputs
 
 
 def strip_afni_output_header(in_file, out_file):
-    """Function to rewrite a file with all but the first 6 lines"""
-    subprocess.run(f'tail -n +7 {in_file} > {out_file}', shell=True,
-                   check=True)
+    """Function to rewrite a file with all but the first 6 lines."""
+    subprocess.run(f"tail -n +7 {in_file} > {out_file}", shell=True, check=True)
     return out_file

@@ -14,21 +14,22 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Gather and report dependency versions alphabetically"""
+"""Gather and report dependency versions alphabetically."""
 try:
     from importlib.metadata import distributions
 except ModuleNotFoundError:
     from importlib_metadata import distributions
 from pathlib import Path
-from subprocess import PIPE, Popen, STDOUT
+from subprocess import PIPE, STDOUT, Popen
 import sys
 
-__all__ = ['PYTHON_PACKAGES', 'REPORTED', 'REQUIREMENTS']
+__all__ = ["PYTHON_PACKAGES", "REPORTED", "REQUIREMENTS"]
 
 
-def cli_version(command, dependency=None, in_result=True, delimiter=' ',
-                formatting=None):
-    """Collect a version from a CLI
+def cli_version(
+    command, dependency=None, in_result=True, delimiter=" ", formatting=None
+):
+    """Collect a version from a CLI.
 
     Parameters
     ----------
@@ -52,7 +53,7 @@ def cli_version(command, dependency=None, in_result=True, delimiter=' ',
         {software: version}
     """
     with Popen(command, stdout=PIPE, stderr=STDOUT, shell=True) as _command:
-        _version = _command.stdout.read().decode('utf-8')
+        _version = _command.stdout.read().decode("utf-8")
         _command_poll = _command.poll()
         if _command_poll is None or int(_command_poll) == 127:
             # handle missing command
@@ -65,38 +66,47 @@ def cli_version(command, dependency=None, in_result=True, delimiter=' ',
 
 
 def first_line(stdout):
-    """Return first line of stdout"""
-    if '\n' in stdout:
-        return stdout.split('\n', 1)[0]
+    """Return first line of stdout."""
+    if "\n" in stdout:
+        return stdout.split("\n", 1)[0]
     return stdout
 
 
-def last_line(stdout : str) -> str:
-    """Return final line of stdout"""
-    if '\n' in stdout:
-        return stdout.rstrip().split('\n')[-1]
+def last_line(stdout: str) -> str:
+    """Return final line of stdout."""
+    if "\n" in stdout:
+        return stdout.rstrip().split("\n")[-1]
     return stdout
 
 
 def _version_sort(_version_item):
-    """Key to report by case-insensitive dependecy name"""
+    """Key to report by case-insensitive dependecy name."""
     return _version_item[0].lower()
 
 
-PYTHON_PACKAGES = dict(sorted({
-  getattr(d, 'name', d.metadata['Name']): d.version for d in
-          list(distributions())}.items(),
-  key=_version_sort))
+PYTHON_PACKAGES = dict(
+    sorted(
+        {
+            getattr(d, "name", d.metadata["Name"]): d.version
+            for d in list(distributions())
+        }.items(),
+        key=_version_sort,
+    )
+)
 
 
 def requirements() -> dict:
-    """Create a dictionary from requirements.txt"""
+    """Create a dictionary from requirements.txt."""
     import CPAC
-    delimiters = ['==', ' @ ', '>=']
+
+    delimiters = ["==", " @ ", ">="]
     reqs = {}
     try:
-        with open(Path(CPAC.__path__[0]).parent.joinpath('requirements.txt'),
-                  'r', encoding='utf8') as _req:
+        with open(
+            Path(CPAC.__path__[0]).parent.joinpath("requirements.txt"),
+            "r",
+            encoding="utf8",
+        ) as _req:
             for line in _req.readlines():
                 for delimiter in delimiters:
                     if delimiter in line:
@@ -105,7 +115,8 @@ def requirements() -> dict:
                         continue
     except FileNotFoundError:
         from requests.structures import CaseInsensitiveDict
-        _reqs = {_req: '' for _req in CPAC.info.REQUIREMENTS}
+
+        _reqs = {_req: "" for _req in CPAC.info.REQUIREMENTS}
         for _req in _reqs:
             _delimited = False
             for delimiter in delimiters:
@@ -114,14 +125,22 @@ def requirements() -> dict:
                     reqs[_package] = _version
                     _delimited = True
             if not _delimited:
-                reqs[_req] = CaseInsensitiveDict(PYTHON_PACKAGES).get(_req, '')
+                reqs[_req] = CaseInsensitiveDict(PYTHON_PACKAGES).get(_req, "")
     return reqs
 
 
-REPORTED = dict(sorted({
-    **cli_version('ldd --version', formatting=first_line),
-    'Python': sys.version.replace('\n', ' ').replace('  ', ' '),
-    **cli_version('3dECM -help', delimiter='_',
-                  formatting=lambda _: last_line(_).split('{')[-1].rstrip('}'))
-}.items(), key=_version_sort))
+REPORTED = dict(
+    sorted(
+        {
+            **cli_version("ldd --version", formatting=first_line),
+            "Python": sys.version.replace("\n", " ").replace("  ", " "),
+            **cli_version(
+                "3dECM -help",
+                delimiter="_",
+                formatting=lambda _: last_line(_).split("{")[-1].rstrip("}"),
+            ),
+        }.items(),
+        key=_version_sort,
+    )
+)
 REQUIREMENTS = requirements()

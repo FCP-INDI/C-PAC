@@ -1,12 +1,10 @@
-
-
 def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
     """Set up a basic template Nipype workflow for testing single nodes or
     small sub-workflows.
     """
-
     import os
     import shutil
+
     from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.datasource import check_for_s3
     from CPAC.utils.interfaces.datasink import DataSink
@@ -25,7 +23,6 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
         for dirname in os.listdir(work_dir):
             if workdirs_to_keep:
                 for keepdir in workdirs_to_keep:
-                    print("{0} --- {1}\n".format(dirname, keepdir))
                     if keepdir in dirname:
                         continue
             try:
@@ -41,12 +38,12 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
 
     wf = pe.Workflow(name=test_name)
     wf.base_dir = os.path.join(work_dir)
-    wf.config['execution'] = {
-        'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(test_dir)
+    wf.config["execution"] = {
+        "hash_method": "timestamp",
+        "crashdump_dir": os.path.abspath(test_dir),
     }
 
-    ds = pe.Node(DataSink(), name='sinker_{0}'.format(test_name))
+    ds = pe.Node(DataSink(), name="sinker_{0}".format(test_name))
     ds.inputs.base_directory = out_dir
     ds.inputs.parameterization = True
 

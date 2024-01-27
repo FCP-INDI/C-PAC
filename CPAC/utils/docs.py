@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Utilties for documentation."""
-import ast
 from urllib import request
 from urllib.error import ContentTooShortError, HTTPError, URLError
+
 from CPAC import __version__
 from CPAC.utils import versioning
 
@@ -41,41 +41,46 @@ def docstring_parameter(*args, **kwargs):
     >>> print(how_about_now.__doc__)
     How about { this }?
     """
+
     def dec(obj):
         if obj.__doc__ is None:
-            obj.__doc__ = ''
+            obj.__doc__ = ""
         obj.__doc__ = obj.__doc__.format(*args, **kwargs)
         return obj
+
     return dec
 
 
 def _docs_url_prefix():
-    """Function to determine the URL prefix for this version of C-PAC"""
+    """Function to determine the URL prefix for this version of C-PAC."""
+
     def _url(url_version):
-        return f'https://fcp-indi.github.io/docs/{url_version}'
-    url_version = f'v{__version__}'
+        return f"https://fcp-indi.github.io/docs/{url_version}"
+
+    url_version = f"v{__version__}"
     try:
         request.urlopen(  # pylint: disable=consider-using-with
-                        _url(url_version))
+            _url(url_version)
+        )
     except (ContentTooShortError, HTTPError, URLError):
-        if 'dev' in url_version:
-            url_version = 'nightly'
+        if "dev" in url_version:
+            url_version = "nightly"
         else:
-            url_version = 'latest'
+            url_version = "latest"
     return _url(url_version)
 
 
 def version_report() -> str:
-    """A formatted block of versions included in CPAC's environment"""
+    """A formatted block of versions included in CPAC's environment."""
     version_list = []
     for pkg, version in versioning.REPORTED.items():
-        version_list.append(f'{pkg}: {version}')
-        if pkg == 'Python':
-            version_list.append('  Python packages')
-            version_list.append('  ---------------')
+        version_list.append(f"{pkg}: {version}")
+        if pkg == "Python":
+            version_list.append("  Python packages")
+            version_list.append("  ---------------")
             for ppkg, pversion in versioning.PYTHON_PACKAGES.items():
-                version_list.append(f'  {ppkg}: {pversion}')
-    return '\n'.join(version_list)
+                version_list.append(f"  {ppkg}: {pversion}")
+    return "\n".join(version_list)
 
 
 DOCS_URL_PREFIX = _docs_url_prefix()

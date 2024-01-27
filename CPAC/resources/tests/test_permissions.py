@@ -14,16 +14,17 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Tests for appropriate permissions on resources"""
+"""Tests for appropriate permissions on resources."""
 from os import environ
 from pathlib import Path
 import stat
+
 import pytest
 
 
-@pytest.mark.parametrize('template',
-                         list(Path(f'{environ.get("FSLDIR")}/data/standard'
-                                   ).glob('*.nii.gz')))
+@pytest.mark.parametrize(
+    "template", list(Path(f'{environ.get("FSLDIR")}/data/standard').glob("*.nii.gz"))
+)
 def test_read_fsl_templates(template):
-    """For each FSL template, make sure its permissions include 444"""
-    assert stat.filemode(template.stat().st_mode).count('r') == 3
+    """For each FSL template, make sure its permissions include 444."""
+    assert stat.filemode(template.stat().st_mode).count("r") == 3

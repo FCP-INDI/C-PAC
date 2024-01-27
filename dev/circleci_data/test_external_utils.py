@@ -1,7 +1,6 @@
 import os
-import sys
-
 from pathlib import Path
+import sys
 
 import click
 import pytest
@@ -9,58 +8,60 @@ import semver
 
 CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
-DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
+DATA_DIR = os.path.join(CPAC_DIR, "dev", "circleci_data")
 
-from CPAC.__main__ import utils as CPAC_main_utils \
-    # noqa: E402  # pylint: disable=wrong-import-position
+from CPAC.__main__ import utils as CPAC_main_utils
+
+# pylint: disable=wrong-import-position
 
 
 def _click_backport(command, key):
-    """Switch back to underscores for older versions of click"""
-    return _resolve_alias(command,
-                          key.replace('-', '_').replace('opt_out', 'opt-out'))
+    """Switch back to underscores for older versions of click."""
+    return _resolve_alias(command, key.replace("-", "_").replace("opt_out", "opt-out"))
 
 
 def _compare_version(left: str, right: str) -> int:
-    """Handle required verbosity after ``semver.compare`` deprecation"""
-    return semver.Version.compare(semver.Version.parse(left),
-                                  semver.Version.parse(right))
+    """Handle required verbosity after ``semver.compare`` deprecation."""
+    return semver.Version.compare(
+        semver.Version.parse(left), semver.Version.parse(right)
+    )
 
 
 try:
-    _BACKPORT_CLICK = _compare_version(click.__version__, '7.0.0') < 0
+    _BACKPORT_CLICK = _compare_version(click.__version__, "7.0.0") < 0
 except ValueError:
     try:
-        _BACKPORT_CLICK = _compare_version(f'{click.__version__}.0',
-                                           '7.0.0') < 0
+        _BACKPORT_CLICK = _compare_version(f"{click.__version__}.0", "7.0.0") < 0
     except ValueError:
         _BACKPORT_CLICK = True
 
 
 def _resolve_alias(command, key):
-    """Resolve alias if possible"""
-    return command.resolve_alias(key) if hasattr(command,
-                                                'resolve_alias') else key
+    """Resolve alias if possible."""
+    return command.resolve_alias(key) if hasattr(command, "resolve_alias") else key
 
 
-@pytest.mark.parametrize('multiword_connector', ['-', '_'])
+@pytest.mark.parametrize("multiword_connector", ["-", "_"])
 def test_build_data_config(cli_runner, multiword_connector):
     """Test CLI ``utils data-config new-settings-template`` and
-    ``utils data_config new_settings_template``"""
-    if multiword_connector == '-' and _BACKPORT_CLICK:
+    ``utils data_config new_settings_template``.
+    """
+    if multiword_connector == "-" and _BACKPORT_CLICK:
         return
     os.chdir(DATA_DIR)
     test_yaml = os.path.join(DATA_DIR, "data_settings.yml")
     _delete_test_yaml(test_yaml)
-    if multiword_connector == '_':
+    if multiword_connector == "_":
         data_config = CPAC_main_utils.commands[
-            _click_backport(CPAC_main_utils, 'data-config')]
+            _click_backport(CPAC_main_utils, "data-config")
+        ]
         result = cli_runner.invoke(
-            data_config.commands[
-                _click_backport(data_config, 'new-settings-template')])
+            data_config.commands[_click_backport(data_config, "new-settings-template")]
+        )
     else:
-        result = cli_runner.invoke(CPAC_main_utils.commands[
-            'data-config'].commands['new-settings-template'])
+        result = cli_runner.invoke(
+            CPAC_main_utils.commands["data-config"].commands["new-settings-template"]
+        )
 
     assert result.exit_code == 0
     assert result.output.startswith(
@@ -73,27 +74,23 @@ def test_build_data_config(cli_runner, multiword_connector):
 def test_new_settings_template(cli_runner):
     os.chdir(CPAC_DIR)
 
-    example_dir = os.path.join(CPAC_DIR, 'bids-examples')
+    example_dir = os.path.join(CPAC_DIR, "bids-examples")
     if not os.path.exists(example_dir):
         from git import Repo
+
         Repo.clone_from(
-            "https://github.com/bids-standard/bids-examples.git",
-            example_dir
+            "https://github.com/bids-standard/bids-examples.git", example_dir
         )
 
     result = cli_runner.invoke(
         CPAC_main_utils.commands[
-            _click_backport(CPAC_main_utils, 'data-config')
-                                 ].commands['build'],
-        [os.path.join(
-            DATA_DIR,
-            "data_settings_bids_examples_ds051_default_BIDS.yml"
-        )]
+            _click_backport(CPAC_main_utils, "data-config")
+        ].commands["build"],
+        [os.path.join(DATA_DIR, "data_settings_bids_examples_ds051_default_BIDS.yml")],
     )
 
     participant_yaml = os.path.join(DATA_DIR, "data_config_ds051.yml")
-    group_yaml = os.path.join(DATA_DIR,
-                              "group_analysis_participants_ds051.txt")
+    group_yaml = os.path.join(DATA_DIR, "group_analysis_participants_ds051.txt")
 
     assert result.exit_code == 0
     assert result.output.startswith("\nGenerating data configuration file..")
@@ -104,39 +101,33 @@ def test_new_settings_template(cli_runner):
 
 
 def test_repickle(cli_runner):
-    fn = 'python_2_pickle.pkl'
+    fn = "python_2_pickle.pkl"
     pickle_path = os.path.join(DATA_DIR, fn)
-    backups = [_Backup(pickle_path), _Backup(f'{pickle_path}z')]
+    backups = [_Backup(pickle_path), _Backup(f"{pickle_path}z")]
 
-    result = cli_runner.invoke(
-        CPAC_main_utils.commands['repickle'],
-        [DATA_DIR]
-    )
+    result = cli_runner.invoke(CPAC_main_utils.commands["repickle"], [DATA_DIR])
 
     assert result.exit_code == 0
     assert (
-        f'Converted pickle {fn} from a Python 2 pickle to a Python 3 '
-        'pickle.' in result.output
+        f"Converted pickle {fn} from a Python 2 pickle to a Python 3 "
+        "pickle." in result.output
     )
 
-    result = cli_runner.invoke(
-        CPAC_main_utils.commands['repickle'],
-        [DATA_DIR]
-    )
+    result = cli_runner.invoke(CPAC_main_utils.commands["repickle"], [DATA_DIR])
     assert result.exit_code == 0
-    assert f'Pickle {fn} is a Python 3 pickle.' in result.output
+    assert f"Pickle {fn} is a Python 3 pickle." in result.output
 
     [backup.restore() for backup in backups]
 
 
-class _Backup():
+class _Backup:
     def __init__(self, filepath):
         self.path = filepath
-        with open(self.path, 'rb') as r:
+        with open(self.path, "rb") as r:
             self.data = r.read()
 
     def restore(self):
-        with open(self.path, 'wb') as w:
+        with open(self.path, "wb") as w:
             w.write(self.data)
 
 

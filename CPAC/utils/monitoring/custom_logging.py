@@ -15,13 +15,16 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
+License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""
 import logging
 import os
 import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
+
 from nipype import logging as nipype_logging
+
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
@@ -37,9 +40,8 @@ def failed_to_start(log_dir, exception):
 
     exception : Exception
     """
-    logger = set_up_logger('failedToStart', 'failedToStart.log', 'error',
-                           log_dir, True)
-    logger.exception('C-PAC failed to start')
+    logger = set_up_logger("failedToStart", "failedToStart.log", "error", log_dir, True)
+    logger.exception("C-PAC failed to start")
     logger.exception(exception)
 
 
@@ -62,13 +64,13 @@ def getLogger(name):  # pylint: disable=invalid-name
 
 
 def log_failed_subprocess(cpe):
-    """Pass STDERR from a subprocess to the interface's logger
+    """Pass STDERR from a subprocess to the interface's logger.
 
     Parameters
     ----------
     cpe : subprocess.CalledProcessError
     """
-    logger = getLogger('nipype.interface')
+    logger = getLogger("nipype.interface")
     logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
 
 
@@ -115,10 +117,11 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
 
     exit_code : int
     """
-    logger = getLogger('nipype.interface')
+    logger = getLogger("nipype.interface")
     try:
-        output = subprocess.check_output(cmd, *args, stderr=subprocess.STDOUT,
-                                         universal_newlines=True, **kwargs)
+        output = subprocess.check_output(
+            cmd, *args, stderr=subprocess.STDOUT, universal_newlines=True, **kwargs
+        )
         logger.info(output)
     except subprocess.CalledProcessError as cpe:
         log_failed_subprocess(cpe)
@@ -131,6 +134,7 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
 # pylint: disable=too-few-public-methods
 class MockHandler:
     """Handler for MockLogger."""
+
     def __init__(self, filename):
         self.baseFilename = filename  # pylint: disable=invalid-name
 
@@ -138,13 +142,15 @@ class MockHandler:
 # pylint: disable=too-few-public-methods
 class MockLogger:
     """Mock logging.Logger to provide the same API without keeping the
-    logger in memory."""
+    logger in memory.
+    """
+
     def __init__(self, name, filename, level, log_dir):
         self.name = name
         self.level = level
         self.handlers = [MockHandler(os.path.join(log_dir, filename))]
         MOCK_LOGGERS[name] = self
-        for loglevel in ['debug', 'info', 'warning', 'error', 'critical']:
+        for loglevel in ["debug", "info", "warning", "error", "critical"]:
             # set up log methods for all built-in levels
             setattr(self, loglevel, self._factory_log(loglevel))
 
@@ -156,21 +162,29 @@ class MockLogger:
 
     def _factory_log(self, level):
         r"""Generate a log method like `self.log(message)` for a given
-        built-in level."""
+        built-in level.
+        """
+
         @docstring_parameter(level=level)
         def _log(message, *items, exc_info=False):
             """Log a message if logging level >= {level}. See `Logging Levels <https://docs.python.org/3/library/logging.html#levels>`_ for a list of levels."""
-            if self.level == 0 or self.level >= getattr(logging, level.upper(),
-                                                        logging.NOTSET):
-                with open(self.handlers[0].baseFilename, 'a',
-                          encoding='utf-8') as log_file:
+            if self.level == 0 or self.level >= getattr(
+                logging, level.upper(), logging.NOTSET
+            ):
+                with open(
+                    self.handlers[0].baseFilename, "a", encoding="utf-8"
+                ) as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
-                        print_exception(_lazy_sub(message, *items),
-                                        value=value, tb=traceback,
-                                        file=log_file)
+                        print_exception(
+                            _lazy_sub(message, *items),
+                            value=value,
+                            tb=traceback,
+                            file=log_file,
+                        )
                     else:
                         print(_lazy_sub(message, *items), file=log_file)
+
         return _log
 
     def delete(self):
@@ -179,7 +193,7 @@ class MockLogger:
 
 
 def _lazy_sub(message, *items):
-    """Given lazy-logging syntax, return string with substitutions
+    """Given lazy-logging syntax, return string with substitutions.
 
     Parameters
     ----------
@@ -206,9 +220,10 @@ def _lazy_sub(message, *items):
         return str([message, *items])
 
 
-def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
-                  overwrite_existing=False):
-    r"""Function to initialize a logger
+def set_up_logger(
+    name, filename=None, level=None, log_dir=None, mock=False, overwrite_existing=False
+):
+    r"""Function to initialize a logger.
 
     Parameters
     ----------
@@ -257,7 +272,7 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
     False
     """
     if filename is None:
-        filename = f'{name}.log'
+        filename = f"{name}.log"
     try:
         level = getattr(logging, level.upper())
     except AttributeError:
@@ -266,8 +281,8 @@ def set_up_logger(name, filename=None, level=None, log_dir=None, mock=False,
         log_dir = os.getcwd()
     filepath = os.path.join(log_dir, filename)
     if overwrite_existing and os.path.exists(filepath):
-        with open(filepath, 'w') as log_file:
-            log_file.write('')
+        with open(filepath, "w") as log_file:
+            log_file.write("")
     if mock:
         return MockLogger(name, filename, level, log_dir)
     logger = getLogger(name)
