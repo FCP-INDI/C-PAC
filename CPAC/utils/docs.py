@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Utilties for documentation."""
+"""Utilties for C-PAC documentation."""
 from functools import wraps
 from typing import Callable, Optional
 from urllib import request
@@ -73,8 +73,8 @@ def deprecated(
     return decorator
 
 
-def docstring_parameter(*args, **kwargs):
-    """Decorator to parameterize docstrings.
+def docstring_parameter(*args, **kwargs) -> Callable:
+    """Parameterize docstrings.
 
     Use double-curly-braces ({{}}) for literal curly braces.
 
@@ -94,7 +94,7 @@ def docstring_parameter(*args, **kwargs):
     How about { this }?
     """
 
-    def dec(obj):
+    def dec(obj: Callable) -> Callable:
         if obj.__doc__ is None:
             obj.__doc__ = ""
         obj.__doc__ = obj.__doc__.format(*args, **kwargs)
@@ -103,10 +103,10 @@ def docstring_parameter(*args, **kwargs):
     return dec
 
 
-def _docs_url_prefix():
-    """Function to determine the URL prefix for this version of C-PAC."""
+def _docs_url_prefix() -> str:
+    """Determine the URL prefix for this version of C-PAC."""
 
-    def _url(url_version):
+    def _url(url_version: str) -> str:
         return f"https://fcp-indi.github.io/docs/{url_version}"
 
     url_version = f"v{__version__}"
@@ -123,7 +123,7 @@ def _docs_url_prefix():
 
 
 def version_report() -> str:
-    """A formatted block of versions included in CPAC's environment."""
+    """Return a formatted block of versions included in CPAC's environment."""
     version_list = []
     for pkg, version in versioning.REPORTED.items():
         version_list.append(f"{pkg}: {version}")
