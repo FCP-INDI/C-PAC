@@ -1,10 +1,29 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""General utilities for nuisance regression."""
 from collections import OrderedDict
 import os
 import re
+from typing import Optional
 
 from nipype import logging
 from nipype.interfaces import afni, ants, fsl
 import nipype.interfaces.utility as util
+from nipype.pipeline.engine import Workflow
 
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -26,8 +45,7 @@ def find_offending_time_points(
     number_of_subsequent_trs_to_censor=0,
 ):
     """
-    Applies criterion in method to find time points whose FD or DVARS (or both)
-    are above threshold.
+    Find time points whose FD and/or DVARS are > threshold.
 
     :param fd_j_file_path: path to TSV containing framewise displacement as a
         single column. If not specified, it will not be used.
@@ -59,14 +77,14 @@ def find_offending_time_points(
     offending_time_points = set()
     time_course_len = 0
 
-    types = ["FDJ", "FDP", "DVARS"]
+    motion_measures = ["FDJ", "FDP", "DVARS"]
     file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
     thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
-    # types = ['FDP', 'DVARS']
-    # file_paths = [fd_p_file_path, dvars_file_path]
-    # thresholds = [fd_p_threshold, dvars_threshold]
 
-    for type, file_path, threshold in zip(types, file_paths, thresholds):
+    for motion_measure, file_path, _threshold in zip(
+        motion_measures, file_paths, thresholds
+    ):
+        threshold = _threshold
         if not file_path:
             continue
 
@@ -79,7 +97,7 @@ def find_offending_time_points(
             )
 
         metric = np.loadtxt(file_path)
-        if type == "DVARS":
+        if motion_measure == "DVARS":
             metric = np.array([0.0, *metric.tolist()])
 
         if not time_course_len:
@@ -97,7 +115,7 @@ def find_offending_time_points(
                 threshold = metric.mean() + threshold_sd * metric.std()
             else:
                 threshold = float(threshold)
-        except:
+        except (AttributeError, re.error, IndexError, TypeError, ValueError):
             raise ValueError(
                 "Could not translate threshold {0} into a " "meaningful value".format(
                     threshold
@@ -131,10 +149,12 @@ def find_offending_time_points(
 
 
 def compute_threshold(in_file, mask, threshold):
+    """Return a given threshold."""
     return threshold
 
 
 def compute_pct_threshold(in_file, mask, threshold_pct):
+    """Compute the threshold based on the percentile of the data."""
     import numpy as np
     import nibabel as nib
 
@@ -146,6 +166,7 @@ def compute_pct_threshold(in_file, mask, threshold_pct):
 
 
 def compute_sd_threshold(in_file, mask, threshold_sd):
+    """Compute the threshold based on the mean and standard deviation of the data."""
     import numpy as np
     import nibabel as nib
 
@@ -156,7 +177,10 @@ def compute_sd_threshold(in_file, mask, threshold_sd):
     return d.mean() + threshold_sd * d.std()
 
 
-def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
+def temporal_variance_mask(
+    threshold, by_slice=False, erosion=False, degree=1
+) -> Workflow:
+    """Create a mask based on the temporal variance of the data."""
     threshold_method = "VAR"
 
     if isinstance(threshold, str):
@@ -173,7 +197,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
 
     try:
         threshold_value = float(threshold_value)
-    except:
+    except (TypeError, ValueError):
         raise ValueError(
             "Error converting threshold value {0} from {1} to a "
             "floating point number. The threshold value can "
@@ -189,7 +213,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
             )
         )
 
-    if threshold_method == "PCT" and threshold_value >= 100.0:
+    if threshold_method == "PCT" and threshold_value >= 100.0:  # noqa: PLR2004
         raise ValueError(
             "Percentile should be less than 100, received {0}.".format(threshold_value)
         )
@@ -441,14 +465,15 @@ def generate_summarize_tissue_mask(
 
 def generate_summarize_tissue_mask_ventricles_masking(
     nuisance_wf,
-    pipeline_resource_pool,
+    pipeline_resource_pool: dict,
     regressor_descriptor,
     regressor_selector,
     mask_key,
     csf_mask_exist,
     use_ants=True,
     ventricle_mask_exist=True,
-):
+) -> Optional[dict]:
+    """Update CSF mask to include only the lateral ventricles."""
     if csf_mask_exist is False:
         logger.warning(
             "Segmentation is Off, - therefore will be using "
@@ -626,23 +651,29 @@ def generate_summarize_tissue_mask_ventricles_masking(
 
 
 class NuisanceRegressor(object):
+    """Class to represent a nuisance regressor."""
+
     def __init__(self, selector):
+        """Initialize the nuisance regressor."""
         self.selector = selector
 
         if "Bandpass" in self.selector:
             s = self.selector["Bandpass"]
-            if type(s) is not dict or (
+            if not isinstance(s, dict) or (
                 not s.get("bottom_frequency") and not s.get("top_frequency")
             ):
                 del self.selector["Bandpass"]
 
     def get(self, key, default=None):
+        """Return the value of the key in the selector."""
         return self.selector.get(key, default)
 
     def __contains__(self, key):
+        """Return whether the key is in the selector."""
         return key in self.selector
 
     def __getitem__(self, key):
+        """Return the value of the key in the selector."""
         return self.selector[key]
 
     @staticmethod
@@ -675,7 +706,7 @@ class NuisanceRegressor(object):
             "DetrendNormMean": "DNM",
         }
 
-        if type(summ) == dict:
+        if isinstance(summ, dict):
             method = summ["method"]
             rep = methods[method]
             if method in ["DetrendPC", "PC"]:
@@ -686,7 +717,8 @@ class NuisanceRegressor(object):
         return rep
 
     @staticmethod
-    def encode(selector):
+    def encode(selector: dict) -> str:
+        """Return a brief string representation of the nuisance regressor."""
         regs = OrderedDict(
             [
                 ("GreyMatter", "GM"),
@@ -747,7 +779,7 @@ class NuisanceRegressor(object):
                     threshold += "S"
                 t = s.get("threshold")
                 if t:
-                    if type(t) != str:
+                    if not isinstance(t, str):
                         t = "%.2f" % t
                     threshold += t
                 if s.get("erode_mask"):
@@ -822,7 +854,7 @@ class NuisanceRegressor(object):
                 threshs = sorted(s["thresholds"], reverse=True, key=lambda d: d["type"])
                 for st in threshs:
                     thresh = thresholds[st["type"]]
-                    if type(st["value"]) == str:
+                    if isinstance(st["value"], str):
                         thresh += st["value"]
                     else:
                         thresh += "%.2g" % st["value"]
@@ -833,5 +865,6 @@ class NuisanceRegressor(object):
 
         return "_".join(selectors_representations)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the nuisance regressor."""
         return NuisanceRegressor.encode(self.selector)
