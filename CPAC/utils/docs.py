@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,15 +15,67 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Utilties for documentation."""
+from functools import wraps
+from typing import Callable, Optional
 from urllib import request
 from urllib.error import ContentTooShortError, HTTPError, URLError
+from warnings import warn
 
 from CPAC import __version__
 from CPAC.utils import versioning
 
 
+def deprecated(
+    version: Optional[str] = None, explanation: Optional[str] = None
+) -> Callable:
+    """Mark a function as deprecated.
+
+    Parameters
+    ----------
+    version : str, optional
+        The version in which the function was deprecated.
+
+    explanation : str, optional
+        An explanation of why the function was deprecated.
+
+    Returns
+    -------
+    Callable
+        The decorated function.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        if func.__doc__ is None:
+            func.__doc__ = ""
+
+        note = ".. deprecated::"
+        if version:
+            note += f" {version}"
+        if explanation:
+            note += f"\n   {explanation}\n"
+        func.__doc__ = note + "\n" + func.__doc__
+
+        @wraps(func)
+        def new_func(*args, **kwargs) -> Callable:
+            """Warn that the function is deprecated."""
+            _warning = f"Call to deprecated function '{func.__qualname__}'."
+            if explanation:
+                _warning += f" {explanation}\n"
+            warn(
+                _warning,
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+
+        return new_func
+
+    return decorator
+
+
 def docstring_parameter(*args, **kwargs):
     """Decorator to parameterize docstrings.
+
     Use double-curly-braces ({{}}) for literal curly braces.
 
     Examples

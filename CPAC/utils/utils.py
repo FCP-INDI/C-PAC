@@ -14,6 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""General-purpose utilities for C-PAC."""
 import collections.abc
 from copy import deepcopy
 import fnmatch
@@ -27,6 +28,8 @@ import pickle
 import numpy as np
 from voluptuous.error import Invalid
 import yaml
+
+from CPAC.utils.docs import deprecated
 
 CONFIGS_DIR = os.path.abspath(
     os.path.join(__file__, *repeat(os.path.pardir, 2), "resources/configs/")
@@ -1385,10 +1388,13 @@ def ordereddict_to_dict(value):
     return dict(value)
 
 
+@deprecated(
+    "1.8.7",
+    "Python 2's end of life was over 4 years prior to this release. A user jumping from a C-PAC version that used Python 2 can use this function in any C-PAC version from 1.6.2 up until its removal in an upcoming version.",
+)
 def repickle(directory):
     """
-    Function to check all of the pickles in a given directory, recursively, and
-    convert any Python 2 pickles found to Python 3 pickles.
+    Recursively check a directory; convert Python 2 pickles to Python 3 pickles.
 
     Parameters
     ----------
@@ -1427,8 +1433,9 @@ def repickle(directory):
 
 def _pickle2(p, z=False):
     """
-    Helper function to check if a pickle is a Python 2 pickle. Also prints
-    other exceptions raised by trying to load the file at p.
+    Helper function to check if a pickle is a Python 2 pickle.
+
+    Also prints other exceptions raised by trying to load the file at p.
 
     Parameters
     ----------
