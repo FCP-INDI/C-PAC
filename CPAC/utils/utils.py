@@ -491,46 +491,6 @@ def get_operand_string(mean, std_dev):
     return str1 + " -mas %s"
 
 
-def get_roi_num_list(timeseries_file, prefix=None):
-    # extracts the ROI labels from the 3dROIstats output CSV file
-    with open(timeseries_file, "r") as f:
-        roi_file_lines = f.read().splitlines()
-
-    roi_err = (
-        "\n\n[!] The output of 3dROIstats, used in extracting the "
-        "timeseries, is either empty, or not in the expected "
-        "format.\n\nROI output file: {0}\n\nIf there are no rows "
-        "in the output file, double-check your ROI/mask selection."
-        "\n\n".format(str(timeseries_file))
-    )
-
-    for line in roi_file_lines:
-        if "Mean_" in line:
-            try:
-                roi_list = line.split(",")
-                # clear out any blank strings/non ROI labels in the list
-                roi_list = [x for x in roi_list if "Mean" in x]
-                # rename labels
-                roi_list = [
-                    x.replace("Mean", "ROI").replace(" ", "").replace("#", "")
-                    for x in roi_list
-                ]
-            except:
-                raise Exception(roi_err)
-            break
-    else:
-        raise Exception(roi_err)
-
-    if prefix:
-        temp_rois = []
-        for roi in roi_list:
-            roi = prefix + "_" + str(roi)
-            temp_rois.append(roi)
-        roi_list = temp_rois
-
-    return roi_list
-
-
 def safe_shape(*vol_data):
     """
     Checks if the volume (first three dimensions) of multiple ndarrays
@@ -553,45 +513,6 @@ def safe_shape(*vol_data):
         same_volume &= first_vol_shape == vol.shape[:3]
 
     return same_volume
-
-
-def extract_one_d(list_timeseries):
-    if isinstance(list_timeseries, str):
-        if ".1D" in list_timeseries or ".csv" in list_timeseries:
-            return list_timeseries
-
-    for timeseries in list_timeseries:
-        if ".1D" in timeseries or ".csv" in timeseries:
-            return timeseries
-
-    raise Exception(
-        "Unable to retrieve roi timeseries 1D or csv"
-        " file. Files found:" + list_timeseries
-    )
-
-
-def extract_txt(list_timeseries):
-    """
-    Method to extract txt file containing
-    roi timeseries required for dual regression.
-    """
-    if isinstance(list_timeseries, str):
-        if list_timeseries.endswith(".txt"):
-            return list_timeseries
-
-    out_file = None
-    for timeseries in list_timeseries:
-        if timeseries.endswith(".txt"):
-            out_file = timeseries
-
-    if not out_file:
-        raise Exception(
-            "Unable to retrieve roi timeseries txt"
-            " file required for dual regression."
-            " Existing files are:%s" % (list_timeseries)
-        )
-
-    return out_file
 
 
 def zscore(data, axis):
@@ -1014,53 +935,6 @@ def get_scan_params(
     )
 
 
-def get_tr(tr):
-    """Method to return TR in seconds."""
-    import re
-
-    if tr:
-        tr = re.search(r"\d+.\d+", str(tr)).group(0)
-        tr = float(tr)
-        if tr > 10:
-            tr = tr / 1000.0
-    else:
-        tr = ""
-    return tr
-
-
-def check_tr(tr, in_file):
-    # imageData would have to be the image data from the funcFlow workflow,
-    # funcFlow outputspec.subject
-    import nibabel as nib
-
-    img = nib.load(in_file)
-
-    # get header from image data, then extract TR information, TR is fourth
-    # item in list returned by get_zooms()
-    imageHeader = img.header
-    imageZooms = imageHeader.get_zooms()
-    header_tr = imageZooms[3]
-
-    # If the TR information from header_tr (funcFlow) and convert_tr node
-    # (TR from config file) do not match, prepare to update the TR information
-    # from either convert_tr or header_tr using afni 3drefit, then append to
-    # func_to_mni
-    if header_tr != tr:
-        if tr is not None and tr != "":
-            TR = tr
-        else:
-            TR = header_tr
-
-        import warnings
-
-        warnings.warn(
-            "Warning: The TR information does not match between "
-            "the config and subject list files."
-        )
-
-    return TR
-
-
 def add_afni_prefix(tpattern):
     if ".txt" in tpattern:
         tpattern = "@{0}".format(tpattern)
@@ -1222,11 +1096,6 @@ def create_log(wf_name="log", scan_id=None):
     return wf
 
 
-def pick_wm(seg_prob_list):
-    seg_prob_list.sort()
-    return seg_prob_list[-1]
-
-
 def find_files(directory, pattern):
     for root, dirs, files in os.walk(directory):
         for basename in files:
@@ -1303,53 +1172,6 @@ def extract_output_mean(in_file, output_name):
             f.write(line)
 
     return output_means_file
-
-
-def create_output_mean_csv(subject_dir):
-    """
-    this function finds all of the mean_{output}.txt files in the subject's
-    output directory, collects the data and organizes them into one .csv
-    file in the subject directory.
-    """
-    import os
-
-    output_vals = {}
-
-    subID = subject_dir.split("/")[len(subject_dir.split("/")) - 1]
-    means_dir = os.path.join(subject_dir, "output_means")
-
-    # extract the mean values
-    for root, _, files in os.walk(means_dir):
-        for filename in files:
-            if "mean_" in filename:
-                output = filename.replace("mean_", "")
-                output = output.replace(".txt", "")
-
-                filepath = os.path.join(root, filename)
-
-                if os.path.exists(filepath):
-                    try:
-                        mean_file = open(filepath, "rU")
-                        val = mean_file.readline()
-                        val = val.strip("\n")
-                    except:
-                        raise Exception
-
-                else:
-                    raise Exception
-
-                output_vals[output] = val
-
-    # now take the extracted mean values and write them into the .csv file!
-    csv_file_path = os.path.join(subject_dir, "output_means_%s.csv" % subID)
-    with open(csv_file_path, "wt") as csv_file:
-        output_items = list(output_vals.items())
-
-        deriv_string = ",".join(v for v, _ in output_items)
-        val_string = ",".join(v for _, v in output_items)
-
-        csv_file.write(deriv_string + "\n")
-        csv_file.write(val_string + "\n")
 
 
 def check_command_path(path):
