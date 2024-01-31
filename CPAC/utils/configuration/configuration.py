@@ -26,7 +26,7 @@ from click import BadParameter
 import pkg_resources as p
 import yaml
 
-from CPAC.utils.typing import TUPLE, ConfigKeyType
+from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r"${resolution_for_anat}", r"${func_resolution}"}

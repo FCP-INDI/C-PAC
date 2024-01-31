@@ -45,7 +45,7 @@ from traceback import format_exception
 from numpy import flatnonzero
 from nipype.pipeline.plugins.multiproc import logger
 
-from CPAC.pipeline.nipype_pipeline_engine import UNDEFINED_SIZE, MapNode
+from CPAC.pipeline.nipype_pipeline_engine import MapNode, UNDEFINED_SIZE
 from CPAC.utils.monitoring import log_nodes_cb
 
 

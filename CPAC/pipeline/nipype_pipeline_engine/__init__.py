@@ -28,12 +28,12 @@ from nipype.pipeline.engine import *  # noqa: F403
 # import our DEFAULT_MEM_GB and override Node, MapNode
 from .engine import (
     DEFAULT_MEM_GB,
-    UNDEFINED_SIZE,
-    MapNode,
-    Node,
-    Workflow,
     export_graph,
     get_data_size,
+    MapNode,
+    Node,
+    UNDEFINED_SIZE,
+    Workflow,
 )
 
 __all__ = [interface for interface in dir(pe) if not interface.startswith("_")] + [

@@ -16,12 +16,12 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for generating motion statistics."""
 from .generate_motion_statistics import (
-    ImageTo1D,
     calculate_DVARS,
     calculate_FD_J,
     calculate_FD_P,
     gen_motion_parameters,
     gen_power_parameters,
+    ImageTo1D,
     motion_power_statistics,
 )
 from .utils import affine_file_from_params_file, affine_from_params

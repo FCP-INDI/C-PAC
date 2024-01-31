@@ -17,10 +17,10 @@
 """C-PAC Configuration module."""
 from . import configuration, diff
 from .configuration import (
-    Configuration,
-    Preconfiguration,
     check_pname,
+    Configuration,
     preconfig_yaml,
+    Preconfiguration,
     set_subject,
 )
 

@@ -6,11 +6,11 @@ from nipype import logging
 from nipype.interfaces.base import (
     BaseInterfaceInputSpec,
     DynamicTraitedSpec,
-    Undefined,
     isdefined,
     traits,
+    Undefined,
 )
-from nipype.interfaces.io import IOBase, add_traits
+from nipype.interfaces.io import add_traits, IOBase
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import create_function_from_source, getsource
 

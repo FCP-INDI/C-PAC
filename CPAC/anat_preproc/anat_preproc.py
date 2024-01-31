@@ -24,13 +24,13 @@ import nipype.interfaces.utility as util
 
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import (
-    VolumeRemoveIslands,
     create_3dskullstrip_arg_string,
     freesurfer_hemispheres,
     fsl_aff_to_rigid,
     fslmaths_command,
     mri_convert,
     normalize_wmparc,
+    VolumeRemoveIslands,
     wb_command,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe

@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """General utilities for C-PAC."""
 from . import build_data_config, create_fsl_flame_preset, versioning
-from .configuration import Configuration, check_pname, set_subject
+from .configuration import check_pname, Configuration, set_subject
 from .datatypes import ListFromItem
 from .interfaces import function
 from .utils import (

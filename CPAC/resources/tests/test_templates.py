@@ -20,7 +20,7 @@ import os
 import pytest
 
 from CPAC.pipeline import ALL_PIPELINE_CONFIGS
-from CPAC.pipeline.engine import ResourcePool, ingress_pipeconfig_paths
+from CPAC.pipeline.engine import ingress_pipeconfig_paths, ResourcePool
 from CPAC.utils.configuration import Preconfiguration
 from CPAC.utils.datasource import get_highest_local_res
 

@@ -18,9 +18,9 @@
 from . import compcor
 from .compcor import calc_compcor_components
 from .utils import (
-    NuisanceRegressor,
     find_offending_time_points,
     generate_summarize_tissue_mask,
+    NuisanceRegressor,
     temporal_variance_mask,
 )
 

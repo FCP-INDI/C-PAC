@@ -14,7 +14,7 @@ Nipype translation of ANTs workflows.
 from collections import OrderedDict
 from logging import getLogger
 
-from packaging.version import Version, parse as parseversion
+from packaging.version import parse as parseversion, Version
 from pkg_resources import resource_filename as pkgr_fn
 from nipype.interfaces import utility as niu
 from nipype.interfaces.ants import Atropos, MultiplyImages, N4BiasFieldCorrection

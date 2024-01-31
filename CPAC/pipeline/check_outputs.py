@@ -25,7 +25,7 @@ import yaml
 
 from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
-from CPAC.utils.monitoring.custom_logging import MockLogger, getLogger, set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, set_up_logger
 
 
 def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str) -> str:

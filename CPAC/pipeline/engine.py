@@ -53,7 +53,7 @@ from CPAC.utils.datasource import (
 )
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.monitoring import LOGTAIL, WARNING_FREESURFER_OFF_WITH_DATA, getLogger
+from CPAC.utils.monitoring import getLogger, LOGTAIL, WARNING_FREESURFER_OFF_WITH_DATA
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import (

@@ -23,7 +23,7 @@ import tempfile
 import pytest
 import yaml
 
-from CPAC.utils.configuration import Configuration, Preconfiguration, preconfig_yaml
+from CPAC.utils.configuration import Configuration, preconfig_yaml, Preconfiguration
 from CPAC.utils.configuration.yaml_template import create_yaml_from_template
 from .configs import NEUROSTARS_23786, NEUROSTARS_24035
 

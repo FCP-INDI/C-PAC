@@ -27,7 +27,7 @@ from time import strftime
 import yaml
 import nipype
 from nipype import config, logging
-from flowdump import WorkflowJSONMeta, save_workflow_json
+from flowdump import save_workflow_json, WorkflowJSONMeta
 from indi_aws import aws_utils, fetch_creds
 
 import CPAC
@@ -108,10 +108,6 @@ from CPAC.func_preproc.func_preproc import (
 )
 from CPAC.network_centrality.pipeline import network_centrality
 from CPAC.nuisance.nuisance import (
-    ICA_AROMA_ANTsEPIreg,
-    ICA_AROMA_ANTsreg,
-    ICA_AROMA_FSLEPIreg,
-    ICA_AROMA_FSLreg,
     choose_nuisance_blocks,
     erode_mask_bold,
     erode_mask_boldCSF,
@@ -121,6 +117,10 @@ from CPAC.nuisance.nuisance import (
     erode_mask_GM,
     erode_mask_T1w,
     erode_mask_WM,
+    ICA_AROMA_ANTsEPIreg,
+    ICA_AROMA_ANTsreg,
+    ICA_AROMA_FSLEPIreg,
+    ICA_AROMA_FSLreg,
     ingress_regressors,
     nuisance_regression_template,
 )
@@ -128,7 +128,7 @@ from CPAC.nuisance.nuisance import (
 # pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import NodeBlock, initiate_rpool
+from CPAC.pipeline.engine import initiate_rpool, NodeBlock
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -171,7 +171,7 @@ from CPAC.registration.registration import (
     warp_wholeheadT1_to_template,
 )
 from CPAC.reho.reho import reho, reho_space_template
-from CPAC.sca.sca import SCA_AVG, dual_regression, multiple_regression
+from CPAC.sca.sca import dual_regression, multiple_regression, SCA_AVG
 from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_ants_prior,
     tissue_seg_EPI_template_based,
@@ -188,12 +188,12 @@ from CPAC.timeseries.timeseries_analysis import (
 from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
-    LOGTAIL,
-    WARNING_FREESURFER_OFF_WITH_DATA,
     getLogger,
     log_nodes_cb,
     log_nodes_initial,
+    LOGTAIL,
     set_up_logger,
+    WARNING_FREESURFER_OFF_WITH_DATA,
 )
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.trimmer import the_trimmer

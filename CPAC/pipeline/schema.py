@@ -23,8 +23,8 @@ import re
 import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import (
-    ALLOW_EXTRA,
     All,
+    ALLOW_EXTRA,
     Any,
     BooleanInvalid,
     Capitalize,

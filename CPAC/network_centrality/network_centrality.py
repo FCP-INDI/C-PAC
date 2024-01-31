@@ -17,7 +17,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from nipype.interfaces.afni.preprocess import LFCD, DegreeCentrality
+from nipype.interfaces.afni.preprocess import DegreeCentrality, LFCD
 from nipype.pipeline.engine import Workflow
 
 from CPAC.network_centrality.utils import ThresholdOptionError

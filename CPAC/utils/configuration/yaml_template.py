@@ -24,8 +24,8 @@ import re
 from click import BadParameter
 import yaml
 
-from CPAC.utils.configuration import Configuration, Preconfiguration, preconfig_yaml
-from CPAC.utils.utils import YAML_BOOLS, update_config_dict, update_pipeline_values_1_8
+from CPAC.utils.configuration import Configuration, preconfig_yaml, Preconfiguration
+from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for yaml_str in value}
 

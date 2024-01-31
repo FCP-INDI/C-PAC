@@ -6,10 +6,10 @@ See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.profiler.
 from .config import LOGTAIL, WARNING_FREESURFER_OFF_WITH_DATA
 from .custom_logging import failed_to_start, getLogger, set_up_logger
 from .monitoring import (
-    LoggingHTTPServer,
-    LoggingRequestHandler,
     log_nodes_cb,
     log_nodes_initial,
+    LoggingHTTPServer,
+    LoggingRequestHandler,
     monitor_server,
     recurse_nodes,
 )

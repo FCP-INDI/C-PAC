@@ -34,9 +34,9 @@ from CPAC.nuisance.utils import (
     temporal_variance_mask,
 )
 from CPAC.nuisance.utils.compcor import (
-    TR_string_to_float,
     calc_compcor_components,
     cosine_filter,
+    TR_string_to_float,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.engine import ResourcePool

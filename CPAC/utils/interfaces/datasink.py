@@ -6,13 +6,13 @@ from shutil import SameFileError
 import time
 
 from nipype import config, logging
-from nipype.interfaces.base import Undefined, isdefined, traits
+from nipype.interfaces.base import isdefined, traits, Undefined
 from nipype.interfaces.io import (
+    copytree,
     DataSinkInputSpec,
     DataSinkOutputSpec,
     IOBase,
     ProgressPercentage,
-    copytree,
 )
 from nipype.utils.filemanip import copyfile, ensure_list
 from nipype.utils.misc import str2bool
