@@ -651,7 +651,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
 
 
 class NuisanceRegressor(object):
-    """Class to represent a nuisance regressor."""
+    """A nuisance regressor."""
 
     def __init__(self, selector):
         """Initialize the nuisance regressor."""
