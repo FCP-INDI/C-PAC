@@ -19,7 +19,7 @@ combine-as-imports = true
 force-sort-within-sections = true
 known-first-party = ["CPAC"]
 no-lines-before = ["collab", "other-first-party", "local-folder"]
-order-by-type = true
+order-by-type = false
 section-order = ["future", "standard-library", "third-party", "collab", "other-first-party", "first-party", "local-folder"]
 
 [lint.isort.sections]
