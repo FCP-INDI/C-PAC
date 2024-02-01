@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2018-2023  C-PAC Developers
+# Copyright (C) 2018-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,13 +15,16 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Run C-PAC in a container."""
 import argparse
 import datetime
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import sys
 import time
+from typing import Optional, Union
 from warnings import simplefilter
 
 import yaml
@@ -53,7 +56,8 @@ logger = logging.getLogger("nipype.workflow")
 DEFAULT_TMP_DIR = "/tmp"
 
 
-def run(command, env=None):
+def run(command: str, env: Optional[dict] = None) -> None:
+    """Run a command in the shell."""
     if env is None:
         env = {}
     process = subprocess.Popen(
@@ -66,7 +70,8 @@ def run(command, env=None):
             break
 
 
-def parse_yaml(value):
+def parse_yaml(value: str) -> dict:
+    """Parse a string as a YAML dictionary."""
     try:
         config = yaml.safe_load(value)
         if not isinstance(config, dict):
@@ -77,7 +82,8 @@ def parse_yaml(value):
         raise argparse.ArgumentTypeError(f"Invalid configuration: '{value}'")
 
 
-def resolve_aws_credential(source):
+def resolve_aws_credential(source: Union[Path, str]) -> str:
+    """Set AWS credentials from a file or environment variable."""
     if source == "env":
         from urllib.request import urlopen
 
@@ -98,8 +104,7 @@ def resolve_aws_credential(source):
 
     if os.path.isfile(source):
         return source
-    else:
-        raise IOError("Could not find aws credentials {0}".format(source))
+    raise IOError("Could not find aws credentials {0}".format(source))
 
 
 def run_main():
@@ -823,13 +828,27 @@ def run_main():
 
             monitoring = None
             if args.monitoring:
+                from json import JSONDecodeError
+
                 try:
                     monitoring = monitor_server(
                         c["pipeline_setup"]["pipeline_name"],
                         c["pipeline_setup"]["log_directory"]["path"],
                     )
-                except:
-                    pass
+                except (
+                    AttributeError,
+                    FileNotFoundError,
+                    JSONDecodeError,
+                    KeyError,
+                    OSError,
+                    PermissionError,
+                    TypeError,
+                    ValueError,
+                ) as e:
+                    logger.warning(
+                        "The run will continue without monitoring. Monitoring was configured to be enabled, but the monitoring server failed to start, so : %s\n",
+                        e,
+                    )
 
             plugin_args = {
                 "n_procs": int(
@@ -894,5 +913,10 @@ if __name__ == "__main__":
     except Exception as exception:
         # if we hit an exception before the pipeline starts to build but
         # we're still able to create a logfile, log the error in the file
-        failed_to_start(sys.argv[2] if len(sys.argv) > 2 else os.getcwd(), exception)
+        failed_to_start(
+            sys.argv[2]
+            if len(sys.argv) > 2  # noqa: PLR2004
+            else os.getcwd(),
+            exception,
+        )
         raise exception

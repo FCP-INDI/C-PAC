@@ -1,3 +1,14 @@
+#!/bin/bash
+# Copyright (C) 2021-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Generate a run command for testing C-PAC on CircleCI."""
 import os
 import random
 from warnings import warn
@@ -7,7 +18,7 @@ import yaml
 
 def get_random_subject(species="human"):
     """
-    Function to get a random data config file and subject for a given species.
+    Get a random data config file and subject for a given species.
 
     Note: only human data are configured at the moment
 
@@ -37,8 +48,7 @@ def get_random_subject(species="human"):
 
 def get_random_test_run_command():
     """
-    Function to choose a random preconfig, an appropriate subject, and
-    return a string command to pass to coverage_run.sh.
+    Choose a random preconfig, an appropriate subject, and return a string command to pass to coverage_run.sh.
 
     Parameters
     ----------
@@ -76,7 +86,7 @@ def get_random_test_run_command():
         data_config_file, participant_ndx = get_random_subject(data_species)
         command = " ".join(
             [
-                "python -m coverage run /code/dev/docker_data/run.py",
+                "python -m coverage run /code/CPAC/endpoints/run.py",
                 "/home/circleci/project",
                 "/home/circleci/project/outputs participant",
                 f"--save_working_dir --data_config_file {data_config_file}",
