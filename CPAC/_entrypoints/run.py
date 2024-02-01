@@ -474,6 +474,8 @@ def run_main():
         if not args.group_file or not os.path.exists(args.group_file):
             import pkg_resources as p
 
+            logger.warning("\nNo group analysis configuration file was supplied.\n")
+
             args.group_file = p.resource_filename(
                 "CPAC",
                 os.path.join("resources", "configs", "group_config_template.yml"),
@@ -488,15 +490,25 @@ def run_main():
                 if not os.path.exists(output_group):
                     shutil.copyfile(args.group_file, output_group)
             except (Exception, IOError):
-                pass
+                logger.warning(
+                    "Could not create group analysis configuration file.\nPlease refer to the C-PAC documentation for group analysis setup."
+                )
             else:
-                pass
+                logger.warning(
+                    "Please refer to the output directory for a template of  the file and, after customizing to your analysis, add the flag\n\n    --group_file %s\n\nto your `docker run` command\n",
+                    output_group,
+                )
 
             sys.exit(1)
 
         else:
             import CPAC.pipeline.cpac_group_runner as cgr
 
+            logger.info(
+                "Starting group level analysis of data in %s using %s",
+                bids_dir,
+                args.group_file,
+            )
             cgr.run(args.group_file)
 
             sys.exit(0)
@@ -508,28 +520,28 @@ def run_main():
             and not bids_dir_is_s3
             and not os.path.exists(bids_dir)
         ):
-            sys.exit(1)
+            raise FileNotFoundError(f"Error! Could not find {bids_dir}")
 
         # check to make sure that the output directory exists
         if not output_dir_is_s3 and not os.path.exists(output_dir):
             try:
                 os.makedirs(output_dir)
-            except Exception:
-                sys.exit(1)
+            except Exception as e:
+                raise FileNotFoundError(
+                    f"Error! Could not find/create output dir {output_dir}"
+                ) from e
 
         # validate input dir (if skip_bids_validator is not set)
         if not args.data_config_file:
             if args.bids_validator_config:
-                run(
-                    "bids-validator --config {config} {bids_dir}".format(
-                        config=args.bids_validator_config, bids_dir=bids_dir
-                    )
-                )
+                logger.info("Running BIDS validator...")
+                run(f"bids-validator --config {args.bids_validator_config} {bids_dir}")
             elif args.skip_bids_validator:
-                pass
+                logger.info("Skipping BIDS validator...")
             elif bids_dir_is_s3:
-                pass
+                logger.info("Skipping BIDS validator for S3 datasets...")
             else:
+                logger.info("Running BIDS validator...")
                 run(f"bids-validator {bids_dir}")
 
         if args.preconfig:
@@ -718,12 +730,30 @@ def run_main():
             ]["calculate_motion_after"] = True
 
         if args.participant_label:
-            pass
+            logger.info("#### Running C-PAC for %s", ", ".join(args.participant_label))
         else:
-            pass
+            logger.info("#### Running C-PAC")
+
+        logger.info(
+            "Number of participants to run in parallel: %s",
+            c["pipeline_setup", "system_config", "num_participants_at_once"],
+        )
 
         if not args.data_config_file:
-            pass
+            logger.info("Input directory: %s", bids_dir)
+
+        logger.info(
+            "Output directory: %s\nWorking directory: %s\nLog directory: %s\n"
+            "Remove working directory: %s\nAvailable memory: %s (GB)\n"
+            "Available threads: %s\nNumber of threads for ANTs: %s",
+            c["pipeline_setup", "output_directory", "path"],
+            c["pipeline_setup", "working_directory", "path"],
+            c["pipeline_setup", "log_directory", "path"],
+            c["pipeline_setup", "working_directory", "remove_working_dir"],
+            c["pipeline_setup", "system_config", "maximum_memory_per_participant"],
+            c["pipeline_setup", "system_config", "max_cores_per_participant"],
+            c["pipeline_setup", "system_config", "num_ants_threads"],
+        )
 
         # create a timestamp for writing config files
         # pylint: disable=invalid-name
@@ -772,6 +802,11 @@ def run_main():
                 args.participant_ndx = os.environ["AWS_BATCH_JOB_ARRAY_INDEX"]
 
             if 0 <= participant_ndx < len(sub_list):
+                logger.info(
+                    "Processing data for participant %s (%s)",
+                    args.participant_ndx,
+                    sub_list[participant_ndx]["subject_id"],
+                )
                 sub_list = [sub_list[participant_ndx]]
                 data_hash = hash_data_config(sub_list)
                 data_config_file = (
@@ -779,7 +814,9 @@ def run_main():
                     f"{args.participant_ndx}_{st}.yml"
                 )
             else:
-                sys.exit(1)
+                raise IndexError(
+                    f"Participant ndx {participant_ndx} is out of bounds [0, {len(sub_list)})"
+                )
         else:
             data_hash = hash_data_config(sub_list)
             data_config_file = f"cpac_data_config_{data_hash}_{st}.yml"
@@ -877,6 +914,7 @@ def run_main():
                     ],
                 }
 
+            logger.info("Starting participant level processing")
             exitcode = CPAC.pipeline.cpac_runner.run(
                 data_config_file,
                 pipeline_config_file,
