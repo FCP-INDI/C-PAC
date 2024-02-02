@@ -50,11 +50,12 @@ def apply_transform(
     num_ants_cores=1,
 ):
     if not reg_tool:
-        raise Exception(
+        msg = (
             "\n[!] Developer info: the 'reg_tool' parameter sent "
             f"to the 'apply_transform' node for '{wf_name}' is "
             f"empty.\n"
         )
+        raise Exception(msg)
 
     wf = pe.Workflow(name=wf_name)
 
@@ -352,15 +353,15 @@ def convert_pedir(pedir, convert="xyz_to_int"):
     if isinstance(pedir, bytes):
         pedir = pedir.decode()
     if not isinstance(pedir, str):
-        raise Exception(
+        msg = (
             "\n\nPhase-encoding direction must be a "
-            "string value.\n\nValue: {0}"
-            "\n\n".format(pedir)
+            f"string value.\n\nValue: {pedir}"
+            "\n\n"
         )
+        raise Exception(msg)
     if pedir not in conv_dct.keys():
-        raise Exception(
-            "\n\nInvalid phase-encoding direction " "entered: {0}\n\n".format(pedir)
-        )
+        msg = "\n\nInvalid phase-encoding direction " f"entered: {pedir}\n\n"
+        raise Exception(msg)
     return conv_dct[pedir]
 
 

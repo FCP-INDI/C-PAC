@@ -107,7 +107,8 @@ def id_from_tag(owner, image, tag, api_token=None):
     if len(versions):
         return versions[0]
     else:
-        raise LookupError(f"Image not found: ghcr.io/{owner}/{image}:{tag}")
+        msg = f"Image not found: ghcr.io/{owner}/{image}:{tag}"
+        raise LookupError(msg)
 
 
 if __name__ == "__main__":

@@ -98,7 +98,7 @@ def fsl_apply_transform_func_to_mni(
         # func_mni_warp
         func_mni_warp = pe.MapNode(
             interface=fsl.ApplyWarp(),
-            name="func_mni_fsl_warp_{0}_{1:d}".format(output_name, num_strat),
+            name=f"func_mni_fsl_warp_{output_name}_{num_strat:d}",
             iterfield=["in_file"],
             mem_gb=1.5,
         )
@@ -106,14 +106,14 @@ def fsl_apply_transform_func_to_mni(
         # func_mni_warp
         func_mni_warp = pe.Node(
             interface=fsl.ApplyWarp(),
-            name="func_mni_fsl_warp_{0}_{1:d}".format(output_name, num_strat),
+            name=f"func_mni_fsl_warp_{output_name}_{num_strat:d}",
         )
 
     func_mni_warp.inputs.interp = interpolation_method
 
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and func_ts:
-        node_id = "{0}_{1:d}".format(output_name, num_strat)
+        node_id = f"{output_name}_{num_strat:d}"
 
         chunk_imports = ["import nibabel as nb"]
         chunk = pe.Node(
@@ -168,7 +168,7 @@ def fsl_apply_transform_func_to_mni(
         if output_name == "functional_to_standard":
             write_composite_xfm = pe.Node(
                 interface=fsl.ConvertWarp(),
-                name="combine_fsl_warps_{0}_{1:d}".format(output_name, num_strat),
+                name=f"combine_fsl_warps_{output_name}_{num_strat:d}",
             )
 
             workflow.connect(ref_node, ref_out_file, write_composite_xfm, "reference")
@@ -187,7 +187,7 @@ def fsl_apply_transform_func_to_mni(
         if "functional_to_mni_linear_xfm" not in strat:
             combine_transforms = pe.Node(
                 interface=fsl.ConvertXFM(),
-                name="combine_fsl_xforms_{0}_{1:d}".format(output_name, num_strat),
+                name=f"combine_fsl_xforms_{output_name}_{num_strat:d}",
             )
 
             combine_transforms.inputs.concat_xfm = True
@@ -208,7 +208,8 @@ def fsl_apply_transform_func_to_mni(
         workflow.connect(combine_transforms, outfile, func_mni_warp, "premat")
 
     else:
-        raise ValueError("Could not find flirt or fnirt registration in nodes")
+        msg = "Could not find flirt or fnirt registration in nodes"
+        raise ValueError(msg)
 
     strat.append_name(func_mni_warp.name)
 
@@ -346,9 +347,7 @@ def ants_apply_warps_func_mni(
 
     # make sure that resource pool has some required resources before proceeding
     if "fsl_mat_as_itk" not in strat and registration_template == "t1":
-        fsl_reg_2_itk = pe.Node(
-            c3.C3dAffineTool(), name="fsl_reg_2_itk_{0}".format(num_strat)
-        )
+        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name=f"fsl_reg_2_itk_{num_strat}")
         fsl_reg_2_itk.inputs.itk_transform = True
         fsl_reg_2_itk.inputs.fsl2ras = True
 
@@ -371,7 +370,7 @@ def ants_apply_warps_func_mni(
                 function=change_itk_transform_type,
                 imports=itk_imports,
             ),
-            name="change_transform_type_{0}".format(num_strat),
+            name=f"change_transform_type_{num_strat}",
         )
 
         workflow.connect(
@@ -386,7 +385,7 @@ def ants_apply_warps_func_mni(
 
     # stack of transforms to be combined to acheive the desired transformation
     num_transforms = 5
-    collect_transforms_key = "collect_transforms{0}".format(inverse_string)
+    collect_transforms_key = f"collect_transforms{inverse_string}"
 
     if distcor is True and func_type not in "ica-aroma":
         num_transforms = 6
@@ -742,11 +741,10 @@ def output_func_to_standard(
     image_types = ["func_derivative", "func_derivative_multi", "func_4d", "func_mask"]
 
     if input_image_type not in image_types:
-        raise ValueError(
-            "Input image type {0} should be one of {1}".format(
-                input_image_type, ", ".join(image_types)
-            )
+        msg = "Input image type {0} should be one of {1}".format(
+            input_image_type, ", ".join(image_types)
         )
+        raise ValueError(msg)
 
     nodes = strat.get_nodes_names()
 
@@ -822,9 +820,10 @@ def output_func_to_standard(
         )
 
     else:
-        raise ValueError(
+        msg = (
             "Cannot determine whether a ANTS or FSL registration"
             "is desired, check your pipeline."
         )
+        raise ValueError(msg)
 
     return workflow

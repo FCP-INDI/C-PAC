@@ -20,11 +20,12 @@ try:
         train_model,
     )
 except ImportError:
-    raise ImportError(
+    msg = (
         "\n\n[!] PyPEER is not installed. Please double-"
         "check your Python environment and ensure that the "
         "PyPEER package is available."
     )
+    raise ImportError(msg)
 
 
 def make_pypeer_dir(dirpath):
@@ -32,11 +33,12 @@ def make_pypeer_dir(dirpath):
         if not os.path.isdir(dirpath):
             os.makedirs(dirpath)
     except:
-        raise Exception(
+        msg = (
             "\n\n[!] Could not create the output directory for "
             "PyPEER. Double-check your permissions?\n\nAttempted "
-            "directory path:\n{0}\n".format(dirpath)
+            f"directory path:\n{dirpath}\n"
         )
+        raise Exception(msg)
 
 
 def pypeer_eye_masking(data_path, eye_mask_path):
@@ -111,11 +113,12 @@ def prep_for_pypeer(
     func_standard_paths = glob.glob(cpac_func_standard_paths)
 
     if not func_standard_paths:
-        raise Exception(
+        msg = (
             "\n\n[!] Could not find any 'functional_to_standard' "
             "file paths in your output directory - did your "
             "C-PAC run complete successfully?\n\n"
         )
+        raise Exception(msg)
 
     eye_mask_glob = os.path.join(
         output_dir, "pipeline_*", sub_id, "template_eye_mask", "*"
@@ -123,11 +126,12 @@ def prep_for_pypeer(
     eye_mask_path = glob.glob(eye_mask_glob)[0]
 
     if not os.path.isfile(eye_mask_path):
-        raise Exception(
+        msg = (
             "\n\n[!] Could not find the template eye mask "
             "file path in your output directory - did your "
             "C-PAC run complete successfully?\n\n"
         )
+        raise Exception(msg)
 
     pypeer_outdir = func_standard_paths[0].split("functional_to_standard")[0]
     pypeer_outdir = os.path.join(pypeer_outdir, "PyPEER")
@@ -155,11 +159,12 @@ def prep_for_pypeer(
             fd_path = fd_path.replace(fd_path.split("/")[-1], "FD.1D")
 
             if not os.path.isfile(fd_path):
-                raise Exception(
+                msg = (
                     "\n\n[!] Could not find the mean framewise "
                     "displacement 1D file in your C-PAC output "
                     "directory."
                 )
+                raise Exception(msg)
 
             removed_indices = motion_scrub(fd_path, scrub_thresh)
 
@@ -180,7 +185,7 @@ def prep_for_pypeer(
             data_for_training, calibration_points_removed, stim_path
         )
 
-        model_dir = os.path.join(pypeer_outdir, "peer_model-{0}".format(peername))
+        model_dir = os.path.join(pypeer_outdir, f"peer_model-{peername}")
         make_pypeer_dir(model_dir)
 
         save_model(
@@ -200,7 +205,7 @@ def prep_for_pypeer(
             xfix, yfix = predict_fixations(xmodel, ymodel, data)
 
             estimate_dir = os.path.join(
-                pypeer_outdir, "estimations-{0}_model-{1}".format(name, peername)
+                pypeer_outdir, f"estimations-{name}_model-{peername}"
             )
             make_pypeer_dir(estimate_dir)
 

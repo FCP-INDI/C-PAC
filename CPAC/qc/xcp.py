@@ -161,10 +161,11 @@ def dvcorr(dvars, fdj):
     dvars = np.loadtxt(dvars)
     fdj = np.loadtxt(fdj)
     if len(dvars) != len(fdj) - 1:
-        raise ValueError(
+        msg = (
             "len(DVARS) should be 1 less than len(FDJ), but their respective "
             f"lengths are {len(dvars)} and {len(fdj)}."
         )
+        raise ValueError(msg)
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 

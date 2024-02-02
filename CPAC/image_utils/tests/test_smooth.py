@@ -54,14 +54,14 @@ def test_smooth():
         out_name1 = os.path.join(
             c.workingDirectory,
             test_name,
-            "_fwhm_{0}/mean_functional_smooth_0/".format(fwhm),
+            f"_fwhm_{fwhm}/mean_functional_smooth_0/",
             "sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_maths.nii.gz",
         )
 
         out_name2 = os.path.join(
             c.workingDirectory,
             test_name,
-            "_fwhm_{0}/mean_functional_smooth_nodes_0/".format(fwhm),
+            f"_fwhm_{fwhm}/mean_functional_smooth_nodes_0/",
             "sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_maths.nii.gz",
         )
 
@@ -119,10 +119,8 @@ def test_smooth_mapnode():
             os.path.join(
                 c.workingDirectory,
                 test_name,
-                "_fwhm_{0}/dr_tempreg_maps_smooth_multi_0/mapflow".format(fwhm),
-                "_dr_tempreg_maps_smooth_multi_0{0}/temp_reg_map_000{0}_maths.nii.gz".format(
-                    n
-                ),
+                f"_fwhm_{fwhm}/dr_tempreg_maps_smooth_multi_0/mapflow",
+                f"_dr_tempreg_maps_smooth_multi_0{n}/temp_reg_map_000{n}_maths.nii.gz",
             )
             for n in range(0, 10)
         ]
@@ -131,10 +129,8 @@ def test_smooth_mapnode():
             os.path.join(
                 c.workingDirectory,
                 test_name,
-                "_fwhm_{0}/dr_tempreg_maps_smooth_nodes_multi_0/mapflow".format(fwhm),
-                "_dr_tempreg_maps_smooth_nodes_multi_0{0}/temp_reg_map_000{0}_maths.nii.gz".format(
-                    n
-                ),
+                f"_fwhm_{fwhm}/dr_tempreg_maps_smooth_nodes_multi_0/mapflow",
+                f"_dr_tempreg_maps_smooth_nodes_multi_0{n}/temp_reg_map_000{n}_maths.nii.gz",
             )
             for n in range(0, 10)
         ]

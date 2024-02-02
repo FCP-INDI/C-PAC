@@ -34,7 +34,8 @@ def get_operation(in_file):
         n_vol = int(hdr.get_data_shape()[3])
         return "-abs -bin -Tmean -mul %d" % (n_vol)
     except:
-        raise IOError("Unable to load the input nifti image")
+        msg = "Unable to load the input nifti image"
+        raise IOError(msg)
 
 
 def label_zstat_files(zstat_list, con_file):
@@ -55,7 +56,7 @@ def label_zstat_files(zstat_list, con_file):
 
     for zstat_file, con_name in zip(zstat_list, cons):
         # filename = os.path.basename(zstat_file)
-        new_name = "zstat_{0}".format(con_name)
+        new_name = f"zstat_{con_name}"
         # new_zstat_list.append(zstat_file.replace(filename, new_name))
         new_zstat_list.append(new_name)
 

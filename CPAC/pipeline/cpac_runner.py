@@ -38,9 +38,8 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     try:
         sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), "r"))
     except:
-        raise Exception(
-            "Subject list is not in proper YAML format. Please check your file"
-        )
+        msg = "Subject list is not in proper YAML format. Please check your file"
+        raise Exception(msg)
 
     cluster_files_dir = os.path.join(os.getcwd(), "cluster_files")
     subject_bash_file = os.path.join(
@@ -117,16 +116,14 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
         pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), "r"))
         pipeline_config = Configuration(pipeline_dict)
     except:
-        raise Exception(
-            "Pipeline config is not in proper YAML format. " "Please check your file"
-        )
+        msg = "Pipeline config is not in proper YAML format. " "Please check your file"
+        raise Exception(msg)
     # Load in the subject list
     try:
         sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), "r"))
     except:
-        raise Exception(
-            "Subject list is not in proper YAML format. " "Please check your file"
-        )
+        msg = "Subject list is not in proper YAML format. " "Please check your file"
+        raise Exception(msg)
 
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
@@ -337,19 +334,21 @@ def run(
         raise
     except yaml.parser.ParserError as e:
         error_detail = '"%s" at line %d' % (e.problem, e.problem_mark.line)
-        raise Exception(
-            "Error parsing config file: {0}\n\n"
+        msg = (
+            f"Error parsing config file: {config_file}\n\n"
             "Error details:\n"
-            "    {1}"
-            "\n\n".format(config_file, error_detail)
+            f"    {error_detail}"
+            "\n\n"
         )
+        raise Exception(msg)
     except Exception as e:
-        raise Exception(
-            "Error parsing config file: {0}\n\n"
+        msg = (
+            f"Error parsing config file: {config_file}\n\n"
             "Error details:\n"
-            "    {1}"
-            "\n\n".format(config_file, e)
+            f"    {e}"
+            "\n\n"
         )
+        raise Exception(msg)
 
     c.pipeline_setup["log_directory"]["path"] = os.path.abspath(
         c.pipeline_setup["log_directory"]["path"]
@@ -366,14 +365,16 @@ def run(
 
     if num_subs_at_once:
         if not str(num_subs_at_once).isdigit():
-            raise Exception("[!] Value entered for --num_cores not a digit.")
+            msg = "[!] Value entered for --num_cores not a digit."
+            raise Exception(msg)
         c.pipeline_setup["system_config"]["num_participants_at_once"] = int(
             num_subs_at_once
         )
 
     # Do some validation
     if not c.pipeline_setup["working_directory"]["path"]:
-        raise Exception("Working directory not specified")
+        msg = "Working directory not specified"
+        raise Exception(msg)
 
     if len(c.pipeline_setup["working_directory"]["path"]) > 70:
         warnings.warn(

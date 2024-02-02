@@ -53,7 +53,7 @@ def write_group_list_text_file(group_list, out_file=None):
 
     with open(out_file, "wt") as f:
         for part_id in new_group_list:
-            f.write("{0}\n".format(part_id))
+            f.write(f"{part_id}\n")
 
     if os.path.exists(out_file):
         pass
@@ -101,7 +101,7 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
             os.makedirs(dir_path)
 
     if not out_file.endswith(".yml"):
-        out_file = "{0}.yml".format(out_file)
+        out_file = f"{out_file}.yml"
 
     field_order = [
         "pipeline_dir",
@@ -156,7 +156,7 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
         )
         for key in field_order:
             val = config_dct[key]
-            f.write("{0}: {1}\n\n".format(key, val))
+            f.write(f"{key}: {val}\n\n")
 
             if key == "FSLDIR":
                 f.write(
@@ -235,7 +235,8 @@ def create_design_matrix_df(
         # file
         if not pheno_sub_label:
             # TODO: exception message
-            raise Exception("there's a pheno file, but no pheno sub label")
+            msg = "there's a pheno file, but no pheno sub label"
+            raise Exception(msg)
         else:
             # rename the pheno sub label thingy
             pheno_df = pheno_df.rename(columns={pheno_sub_label: "participant_id"})
@@ -286,12 +287,13 @@ def create_design_matrix_df(
                         map_df["participant_id"] = new_sublist_subs
                         break
                 else:
-                    raise Exception(
+                    msg = (
                         "the participant IDs in your group "
                         "analysis participant list and the "
                         "participant IDs in your phenotype file "
                         "do not match"
                     )
+                    raise Exception(msg)
 
             # merge
             if pheno_ses_label:
@@ -327,11 +329,12 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
             if (len(contrast_dct) - 1) != len(contrast_cols):
                 # it's -1 because of the "contrast" column in contrast_dct
                 # TODO: message
-                raise Exception(
+                msg = (
                     "number of columns in the contrast vector "
                     "does not match the number of covariate "
                     "columns in the design matrix"
                 )
+                raise Exception(msg)
 
     else:
         # if default, start it up with a blank "template" contrast vector
@@ -421,17 +424,17 @@ def preset_single_group_avg(
 
     # create design and contrasts matrix file paths
     design_mat_path = os.path.join(
-        output_dir, model_name, "design_matrix_{0}.csv".format(model_name)
+        output_dir, model_name, f"design_matrix_{model_name}.csv"
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, "contrasts_matrix_{0}.csv" "".format(model_name)
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
     )
 
     # start group config yaml dictionary
     design_formula = "Group_Mean"
     if covariate:
-        design_formula = "{0} + {1}".format(design_formula, covariate)
+        design_formula = f"{design_formula} + {covariate}"
 
     group_config = {
         "pheno_file": design_mat_path,
@@ -532,28 +535,31 @@ def preset_unpaired_two_group(
         # two groups encoded in this EV!
         if len(group_set) > 2:
             # TODO: message
-            raise Exception(
+            msg = (
                 "more than two groups provided, but this is a"
                 "model for a two-group difference\n\ngroups "
-                "found in column:\n{0}".format(str(group_set))
+                f"found in column:\n{group_set!s}"
             )
+            raise Exception(msg)
         elif len(group_set) == 0:
-            raise Exception(
+            msg = (
                 "no groups were found - something went wrong "
                 "with reading the phenotype information"
             )
+            raise Exception(msg)
         elif len(group_set) == 1:
-            raise Exception(
+            msg = (
                 "only one group found in the column provided, "
                 "but this is a model for a two-group difference"
                 "\n\ngroups found in column:\n"
-                "{0}".format(str(group_set))
+                f"{group_set!s}"
             )
+            raise Exception(msg)
 
         # create the two new dummy-coded columns
         # column 1
         # new column name
-        new_name = "{0}_{1}".format(groups[0], new_group_set[0])
+        new_name = f"{groups[0]}_{new_group_set[0]}"
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's
@@ -565,7 +571,7 @@ def preset_unpaired_two_group(
 
         # column 2
         # new column name
-        new_name = "{0}_{1}".format(groups[0], new_group_set[1])
+        new_name = f"{groups[0]}_{new_group_set[1]}"
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's
@@ -582,8 +588,8 @@ def preset_unpaired_two_group(
         groups = new_groups
 
     # start the contrasts
-    contrast_one = {"Contrasts": "{0} - {1}".format(groups[0], groups[1])}
-    contrast_two = {"Contrasts": "{0} - {1}".format(groups[1], groups[0])}
+    contrast_one = {"Contrasts": f"{groups[0]} - {groups[1]}"}
+    contrast_two = {"Contrasts": f"{groups[1]} - {groups[0]}"}
 
     # make these loops in case we expand this to handle additional covariates
     # past the "prescribed" ones in the model/preset
@@ -605,15 +611,15 @@ def preset_unpaired_two_group(
 
     # create design and contrasts matrix file paths
     design_mat_path = os.path.join(
-        output_dir, model_name, "design_matrix_{0}.csv".format(model_name)
+        output_dir, model_name, f"design_matrix_{model_name}.csv"
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, "contrasts_matrix_{0}.csv" "".format(model_name)
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
     )
 
     # start group config yaml dictionary
-    design_formula = "{0} + {1}".format(groups[0], groups[1])
+    design_formula = f"{groups[0]} + {groups[1]}"
 
     group_config = {
         "pheno_file": design_mat_path,
@@ -727,22 +733,20 @@ def preset_paired_two_group(
     for val in condition_ev[0 : (len(condition_ev) / 2) - 1]:
         if past_val:
             if val != past_val:
-                raise Exception(
-                    "Non-equal amount of participants for each " "{0}.\n".format(
-                        condition_type
-                    )
+                msg = (
+                    "Non-equal amount of participants for each " f"{condition_type}.\n"
                 )
+                raise Exception(msg)
         past_val = val
     #   second half
     past_val = None
     for val in condition_ev[(len(condition_ev) / 2) :]:
         if past_val:
             if val != past_val:
-                raise Exception(
-                    "Non-equal amount of participants for each " "{0}.\n".format(
-                        condition_type
-                    )
+                msg = (
+                    "Non-equal amount of participants for each " f"{condition_type}.\n"
                 )
+                raise Exception(msg)
         past_val = val
 
     design_df[condition_type] = condition_ev
@@ -751,13 +755,13 @@ def preset_paired_two_group(
     contrast_one = {}
     contrast_two = {}
 
-    design_formula = "{0}".format(condition_type)
+    design_formula = f"{condition_type}"
 
     # create the participant identity columns
     for sub_ses_id in design_df["participant_id"]:
         new_part_col = []
         sub_id = sub_ses_id.split("_")[0]
-        new_part_label = "participant_{0}".format(sub_id)
+        new_part_label = f"participant_{sub_id}"
         for moving_sub_ses_id in design_df["participant_id"]:
             moving_sub_id = moving_sub_ses_id.split("_")[0]
             if moving_sub_id == sub_id:
@@ -768,7 +772,7 @@ def preset_paired_two_group(
         contrast_one.update({new_part_label: 0})
         contrast_two.update({new_part_label: 0})
         if new_part_label not in design_formula:
-            design_formula = "{0} + {1}".format(design_formula, new_part_label)
+            design_formula = f"{design_formula} + {new_part_label}"
 
     # finish the contrasts
     #   should be something like
@@ -803,11 +807,11 @@ def preset_paired_two_group(
 
     # create design and contrasts matrix file paths
     design_mat_path = os.path.join(
-        output_dir, model_name, "design_matrix_{0}.csv".format(model_name)
+        output_dir, model_name, f"design_matrix_{model_name}.csv"
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, "contrasts_matrix_{0}.csv" "".format(model_name)
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
     )
 
     # start group config yaml dictionary
@@ -859,7 +863,8 @@ def preset_tripled_two_group(
 
     if len(conditions) != 3:
         # TODO: msg
-        raise Exception("Three conditions are required for the tripled " "t-test.\n")
+        msg = "Three conditions are required for the tripled " "t-test.\n"
+        raise Exception(msg)
 
     sess_conditions = ["session", "Session", "sessions", "Sessions"]
     scan_conditions = ["scan", "scans", "series", "Series/Scans", "Series"]
@@ -963,8 +968,8 @@ def preset_tripled_two_group(
             raise Exception
 
     # label the two covariate columns which encode the three conditions
-    column_one = "{0}_column_one".format(condition_type)
-    column_two = "{0}_column_two".format(condition_type)
+    column_one = f"{condition_type}_column_one"
+    column_two = f"{condition_type}_column_two"
 
     design_df[column_one] = condition_ev_one
     design_df[column_two] = condition_ev_two
@@ -974,12 +979,12 @@ def preset_tripled_two_group(
     contrast_two = {}
     contrast_three = {}
 
-    design_formula = "{0} + {1}".format(column_one, column_two)
+    design_formula = f"{column_one} + {column_two}"
 
     # create the participant identity columns
     for sub_id in design_df["participant_id"]:
         new_part_col = []
-        new_part_label = "participant_{0}".format(sub_id)
+        new_part_label = f"participant_{sub_id}"
         for moving_sub_ses_id in design_df["participant_id"]:
             moving_sub_id = moving_sub_ses_id.split("_")[0]
             if moving_sub_id == sub_id:
@@ -991,7 +996,7 @@ def preset_tripled_two_group(
         contrast_two.update({new_part_label: 0})
         contrast_three.update({new_part_label: 0})
         if new_part_label not in design_formula:
-            design_formula = "{0} + {1}".format(design_formula, new_part_label)
+            design_formula = f"{design_formula} + {new_part_label}"
 
     # finish the contrasts
     #   should be something like
@@ -1036,11 +1041,11 @@ def preset_tripled_two_group(
 
     # create design and contrasts matrix file paths
     design_mat_path = os.path.join(
-        output_dir, model_name, "design_matrix_{0}.csv".format(model_name)
+        output_dir, model_name, f"design_matrix_{model_name}.csv"
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, "contrasts_matrix_{0}.csv" "".format(model_name)
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
     )
 
     # start group config yaml dictionary
@@ -1097,7 +1102,7 @@ def run(
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.csv "
-            "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+            f"resource file:\n{keys_csv}\n\nError details {e}\n"
         )
         raise Exception(err)
 
@@ -1115,11 +1120,13 @@ def run(
 
     if pheno_file and not pheno_sub_label:
         # TODO: message
-        raise Exception("pheno file provided, but no pheno sub label")
+        msg = "pheno file provided, but no pheno sub label"
+        raise Exception(msg)
 
     if pheno_sub_label and not pheno_file:
         # TODO: message
-        raise Exception("pheno sub label provided, but no pheno file")
+        msg = "pheno sub label provided, but no pheno file"
+        raise Exception(msg)
 
     try:
         if "None" in group_list_text_file or "none" in group_list_text_file:
@@ -1137,7 +1144,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" "{0}.txt".format(model_name),
+            "group_participant_list_" f"{model_name}.txt",
         )
 
     elif isinstance(group_list_text_file, list):
@@ -1148,7 +1155,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" "{0}.txt".format(model_name),
+            "group_participant_list_" f"{model_name}.txt",
         )
     elif os.path.isfile(group_list_text_file):
         group_list = read_group_list_text_file(group_list_text_file)
@@ -1158,7 +1165,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" "{0}.txt".format(model_name),
+            "group_participant_list_" f"{model_name}.txt",
         )
 
     if len(group_list) == 0:
@@ -1167,7 +1174,7 @@ def run(
             "directory you provided. Make sure the directory is the "
             "individual-level pipeline directory that contains the sub-"
             "directories labeled with the participant_session IDs.\n\n"
-            "Pipeline directory provided: {0}\n\n".format(pipeline_dir)
+            f"Pipeline directory provided: {pipeline_dir}\n\n"
         )
         raise Exception(msg)
 
@@ -1213,11 +1220,13 @@ def run(
     elif preset == "single_grp_cov":
         if not pheno_file:
             # TODO: message
-            raise Exception("pheno file not provided")
+            msg = "pheno file not provided"
+            raise Exception(msg)
 
         if not covariate:
             # TODO: message
-            raise Exception("covariate not provided")
+            msg = "covariate not provided"
+            raise Exception(msg)
 
         pheno_df = read_pheno_csv_into_df(pheno_file, pheno_sub_label)
 
@@ -1235,11 +1244,13 @@ def run(
     elif preset == "unpaired_two":
         if not pheno_file:
             # TODO: message
-            raise Exception("pheno file not provided")
+            msg = "pheno file not provided"
+            raise Exception(msg)
 
         if not covariate:
             # TODO: message
-            raise Exception("the two groups were not provided")
+            msg = "the two groups were not provided"
+            raise Exception(msg)
 
         # we're assuming covariate will be coming in as a string of either one
         # covariate name, or a string with two covariates separated by a comma
@@ -1270,14 +1281,16 @@ def run(
 
         if not covariate:
             # TODO: message
-            raise Exception("the two conditions were not provided")
+            msg = "the two conditions were not provided"
+            raise Exception(msg)
 
         if not condition_type:
             # TODO: message
-            raise Exception(
+            msg = (
                 "you didn't specify whether the two groups are "
                 "sessions or series/scans"
             )
+            raise Exception(msg)
 
         # we're assuming covariate (which in this case, is the two sessions,
         # or two scans) will be coming in as a string of either one covariate
@@ -1309,14 +1322,16 @@ def run(
 
         if not covariate:
             # TODO: message
-            raise Exception("the three conditions were not provided")
+            msg = "the three conditions were not provided"
+            raise Exception(msg)
 
         if not condition_type:
             # TODO: message
-            raise Exception(
+            msg = (
                 "you didn't specify whether the three groups are "
                 "sessions or series/scans"
             )
+            raise Exception(msg)
 
         # we're assuming covariate (which in this case, is the three sessions,
         # or three scans) will be coming in as a string of either one
@@ -1341,7 +1356,8 @@ def run(
 
     else:
         # TODO: not a real preset!
-        raise Exception("not one of the valid presets")
+        msg = "not one of the valid presets"
+        raise Exception(msg)
 
     # write participant list text file
     write_group_list_text_file(design_df["participant_id"], group_list_text_file)
@@ -1353,9 +1369,7 @@ def run(
     write_dataframe_to_csv(contrasts_df, group_config["custom_contrasts"])
 
     # write group-level analysis config YAML
-    out_config = os.path.join(
-        output_dir, model_name, "group_config_{0}.yml".format(model_name)
-    )
+    out_config = os.path.join(output_dir, model_name, f"group_config_{model_name}.yml")
     write_config_dct_to_yaml(group_config, out_config)
 
     if run:

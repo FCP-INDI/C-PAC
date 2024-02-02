@@ -151,7 +151,8 @@ def calc_target_angle(mean_bolds, median_angles):
     import numpy as np
 
     if len(mean_bolds) != len(median_angles):
-        raise ValueError("Length of parameters do not match")
+        msg = "Length of parameters do not match"
+        raise ValueError(msg)
 
     X = np.ones((len(mean_bolds), 2))
     X[:, 1] = np.array(mean_bolds)

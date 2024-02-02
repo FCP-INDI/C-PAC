@@ -119,7 +119,8 @@ def _doctest_skiplines(docstring, lines_to_skip):
     'skip this line  # doctest: +SKIP'
     """
     if not isinstance(lines_to_skip, set) and not isinstance(lines_to_skip, list):
-        raise TypeError("_doctest_skiplines: `lines_to_skip` must be a set or list.")
+        msg = "_doctest_skiplines: `lines_to_skip` must be a set or list."
+        raise TypeError(msg)
 
     return "\n".join(
         [
@@ -400,9 +401,8 @@ class Node(pe.Node):
             try:
                 mem_x_path = getattr(self.inputs, self._mem_x["file"])
             except AttributeError as attribute_error:
-                raise AttributeError(
-                    f"{attribute_error.args[0]} in Node '{self.name}'"
-                ) from attribute_error
+                msg = f"{attribute_error.args[0]} in Node '{self.name}'"
+                raise AttributeError(msg) from attribute_error
             if _check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
                 return self._apply_mem_x()
@@ -689,10 +689,11 @@ class Workflow(pe.Workflow):
         os.makedirs(base_dir, exist_ok=True)
         if graph2use in ["hierarchical", "colored"]:
             if self.name[:1].isdigit():  # these graphs break if int
-                raise ValueError(
+                msg = (
                     f"{graph2use} graph failed, workflow name "
                     "cannot begin with a number"
                 )
+                raise ValueError(msg)
             dotfilename = os.path.join(base_dir, dotfilename)
             self.write_hierarchical_dotfile(
                 dotfilename=dotfilename,

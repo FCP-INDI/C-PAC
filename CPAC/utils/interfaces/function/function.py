@@ -86,11 +86,12 @@ class Function(IOBase):
                 try:
                     self.inputs.function_str = getsource(function)
                 except IOError:
-                    raise Exception(
+                    msg = (
                         "Interface Function does not accept "
                         "function objects defined interactively "
                         "in a python session"
                     )
+                    raise Exception(msg)
                 else:
                     if input_names is None:
                         fninfo = function.__code__
@@ -99,7 +100,8 @@ class Function(IOBase):
                 if input_names is None:
                     fninfo = create_function_from_source(function, imports).__code__
             else:
-                raise Exception("Unknown type of function")
+                msg = "Unknown type of function"
+                raise Exception(msg)
             if input_names is None:
                 input_names = fninfo.co_varnames[: fninfo.co_argcount]
 
@@ -227,7 +229,8 @@ class Function(IOBase):
             self._out[self._output_names[0]] = out
         else:
             if isinstance(out, tuple) and (len(out) != len(self._output_names)):
-                raise RuntimeError("Mismatch in number of expected outputs")
+                msg = "Mismatch in number of expected outputs"
+                raise RuntimeError(msg)
 
             else:
                 for idx, name in enumerate(self._output_names):

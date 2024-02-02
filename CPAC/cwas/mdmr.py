@@ -81,7 +81,8 @@ def mdmr(D, X, columns, permutations):
 
     subjects = X.shape[0]
     if subjects != D.shape[1]:
-        raise Exception("# of subjects incompatible between X and D")
+        msg = "# of subjects incompatible between X and D"
+        raise Exception(msg)
 
     voxels = D.shape[0]
     Gs = np.zeros((subjects**2, voxels))

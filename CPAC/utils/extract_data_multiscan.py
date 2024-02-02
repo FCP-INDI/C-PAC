@@ -83,17 +83,19 @@ def extract_data(c, param_map):
     # check if Template is correct
     def checkTemplate(template):
         if template.count("%s") != 2:
-            raise Exception(
+            msg = (
                 "Please provide '%s' in the template"
                 "where your site and subjects are present"
                 "Please see examples"
             )
+            raise Exception(msg)
 
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
 
         if ext not in [".nii", ".nii.gz"]:
-            raise Exception("Invalid file name", os.path.basename(template))
+            msg = "Invalid file name"
+            raise Exception(msg, os.path.basename(template))
 
     def get_site_list(path):
         base = path.split("%s")[0]
@@ -165,17 +167,20 @@ def extract_data(c, param_map):
     func_base, func_relative, subject_map = getPath(c.functionalTemplate)
 
     if not anat_base:
-        raise Exception("Anatomical Data template incorrect")
+        msg = "Anatomical Data template incorrect"
+        raise Exception(msg)
 
     if not func_base:
-        raise Exception("Functional Data template incorrect")
+        msg = "Functional Data template incorrect"
+        raise Exception(msg)
 
     if len(anat_base) != len(func_base):
-        raise Exception(
+        msg = (
             " Base length Unequal. Some sites are missing."
             "extract_data doesn't script support this.Please"
             "Provide your own subjects_list file"
         )
+        raise Exception(msg)
 
     # calculate the length of relative paths(path after subject directory)
     func_relative_len = len(func_relative.split("/"))
@@ -194,12 +199,13 @@ def extract_data(c, param_map):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            raise Exception(
+            msg = (
                 "extract_data script currently doesn't support"
                 "this directory structure.Please provide the"
                 "subjects_list file to run CPAC."
                 "For more information refer to manual"
             )
+            raise Exception(msg)
 
         return session_present, session_path, relative_path
 
@@ -489,7 +495,8 @@ def read_csv(csv_input):
             ]
 
         if len(dict_labels) < 1:
-            raise Exception("Scan Parameters File is either empty" "or missing header")
+            msg = "Scan Parameters File is either empty" "or missing header"
+            raise Exception(msg)
     except:
         raise
 

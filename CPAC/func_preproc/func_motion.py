@@ -306,7 +306,7 @@ def get_mcflirt_rms_abs(rms_files):
 )
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt not in get_motion_ref.option_val:
-        raise ValueError(
+        msg = (
             "\n\n[!] Error: The 'motion_correction_reference' "
             "parameter of the 'motion_correction' workflow "
             "must be one of:\n\t{0}.\n\nTool input: '{1}'"
@@ -314,6 +314,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                 " or ".join([f"'{val}'" for val in get_motion_ref.option_val]), opt
             )
         )
+        raise ValueError(msg)
 
     if opt == "mean":
         func_get_RPI = pe.Node(
@@ -667,12 +668,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     """Check opt for valid option, then connect that option."""
     motion_correct_options = valid_options["motion_correction"]
     if opt not in motion_correct_options:
-        raise KeyError(
+        msg = (
             "\n\n[!] Error: The 'tool' parameter of the "
             "'motion_correction' workflow must be one of "
             f"{str(motion_correct_options).strip('[{()}]')}"
             f".\n\nTool input: {opt}\n\n"
         )
+        raise KeyError(msg)
     return motion_correct[opt](wf, cfg, strat_pool, pipe_num)
 
 

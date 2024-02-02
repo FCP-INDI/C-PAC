@@ -159,7 +159,7 @@ def map_to_roi(timeseries, maps):
     roi_err = (
         "\n\n[!] The output of 3dROIstats, used in extracting "
         "the timeseries, was not in the expected format.\n\nROI "
-        "output file: {0}\n\n".format(timeseries)
+        f"output file: {timeseries}\n\n"
     )
 
     for line in roi_file_lines:

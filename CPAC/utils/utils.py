@@ -145,7 +145,8 @@ def read_json(json_file):
         with open(json_file, "r") as f:
             json_dct = json.load(f)
     except json.decoder.JSONDecodeError as err:
-        raise Exception(f"\n\n{err}\n\nJSON file: {json_file}\n")
+        msg = f"\n\n{err}\n\nJSON file: {json_file}\n"
+        raise Exception(msg)
     return json_dct
 
 
@@ -210,7 +211,8 @@ def create_id_string(
                 out_filename = out_filename.replace(tag, newtag)
                 break
         else:
-            raise Exception("\n[!] FWHM provided but no desc-sm?\n")
+            msg = "\n[!] FWHM provided but no desc-sm?\n"
+            raise Exception(msg)
 
     # drop space- entities from from native-space filenames
     if subdir == "anat":
@@ -561,11 +563,8 @@ def correlation(matrix1, matrix2, match_rows=False, z_scored=False, symmetric=Fa
 def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
     if val_to_check not in params_dct:
         if throw_exception:
-            raise Exception(
-                "Missing Value for {0} for participant " "{1}".format(
-                    val_to_check, subject_id
-                )
-            )
+            msg = f"Missing Value for {val_to_check} for participant " f"{subject_id}"
+            raise Exception(msg)
         return None
 
     if isinstance(params_dct[val_to_check], dict):
@@ -575,20 +574,16 @@ def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
 
     if ret_val == "None":
         if throw_exception:
-            raise Exception(
-                "'None' Parameter Value for {0} for participant " "{1}".format(
-                    val_to_check, subject_id
-                )
+            msg = "'None' Parameter Value for {0} for participant " "{1}".format(
+                val_to_check, subject_id
             )
+            raise Exception(msg)
         else:
             ret_val = None
 
     if ret_val == "" and throw_exception:
-        raise Exception(
-            "Missing Value for {0} for participant " "{1}".format(
-                val_to_check, subject_id
-            )
-        )
+        msg = f"Missing Value for {val_to_check} for participant " f"{subject_id}"
+        raise Exception(msg)
 
     return ret_val
 
@@ -856,31 +851,33 @@ def get_scan_params(
             try:
                 with open(tpattern_file, "wt") as f:
                     for time in slice_timings:
-                        f.write("{0}\n".format(time).replace(" ", ""))
+                        f.write(f"{time}\n".replace(" ", ""))
             except:
                 err = (
                     "\n[!] Could not write the slice timing file meant as "
                     "an input for AFNI 3dTshift (slice timing correction):"
-                    "\n{0}\n\n".format(tpattern_file)
+                    f"\n{tpattern_file}\n\n"
                 )
                 raise Exception(err)
 
         elif ".txt" in pattern and not os.path.exists(pattern):
             # if the user provided an acquisition pattern text file for
             # 3dTshift
-            raise Exception(
-                "Invalid Pattern file path {0}, Please provide "
-                "the correct path".format(pattern)
+            msg = (
+                f"Invalid Pattern file path {pattern}, Please provide "
+                "the correct path"
             )
+            raise Exception(msg)
         elif ".txt" in pattern:
             with open(pattern, "r") as f:
                 lines = f.readlines()
             if len(lines) < 2:
-                raise Exception(
+                msg = (
                     "Invalid slice timing file format. The file "
                     "should contain only one value per row. Use "
                     "new line char as delimiter"
                 )
+                raise Exception(msg)
             tpattern_file = pattern
             slice_timings = [float(l.rstrip("\r\n")) for l in lines]
         else:
@@ -890,7 +887,7 @@ def get_scan_params(
             err = (
                 "\n[!] The slice timing acquisition pattern provided is "
                 "not supported by AFNI 3dTshift:\n"
-                "{0}\n".format(str(pattern))
+                f"{pattern!s}\n"
             )
             raise Exception(err)
 
@@ -918,7 +915,7 @@ def get_scan_params(
 
     # swap back in
     if TR:
-        tr = "{0}{1}".format(str(TR), unit)
+        tr = f"{TR!s}{unit}"
     else:
         tr = ""
 
@@ -940,7 +937,7 @@ def get_scan_params(
 
 def add_afni_prefix(tpattern):
     if ".txt" in tpattern:
-        tpattern = "@{0}".format(tpattern)
+        tpattern = f"@{tpattern}"
     return tpattern
 
 
@@ -1003,7 +1000,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
             )
         )
 
-    out_file = os.path.join(file_path, "log_{0}.yml".format(strategy))
+    out_file = os.path.join(file_path, f"log_{strategy}.yml")
 
     iflogger.info("CPAC custom log:")
 
@@ -1013,38 +1010,34 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     if os.path.exists(inputs):
         status_msg = "wf_status: DONE"
         iflogger.info(
-            "version: {0}, "
-            "timestamp: {1}, "
-            "subject_id: {2}, "
-            "scan_id: {3}, "
-            "strategy: {4}, "
-            "workflow: {5}, "
-            "status: COMPLETED".format(
-                str(version), str(stamp), subject_id, scan_id, strategy, workflow
-            )
+            f"version: {version!s}, "
+            f"timestamp: {stamp!s}, "
+            f"subject_id: {subject_id}, "
+            f"scan_id: {scan_id}, "
+            f"strategy: {strategy}, "
+            f"workflow: {workflow}, "
+            "status: COMPLETED"
         )
     else:
         status_msg = "wf_status: ERROR"
         iflogger.info(
-            "version: {0}, "
-            "timestamp: {1}, "
-            "subject_id: {2}, "
-            "scan_id: {3}, "
-            "strategy: {4}, "
-            "workflow: {5}, "
-            "status: ERROR".format(
-                str(version), str(stamp), subject_id, scan_id, strategy, workflow
-            )
+            f"version: {version!s}, "
+            f"timestamp: {stamp!s}, "
+            f"subject_id: {subject_id}, "
+            f"scan_id: {scan_id}, "
+            f"strategy: {strategy}, "
+            f"workflow: {workflow}, "
+            "status: ERROR"
         )
 
     with open(out_file, "w") as f:
-        f.write("version: {0}\n".format(str(version)))
-        f.write("timestamp: {0}\n".format(str(stamp)))
-        f.write("pipeline_index: {0}\n".format(index))
-        f.write("subject_id: {0}\n".format(subject_id))
-        f.write("scan_id: {0}\n".format(scan_id))
-        f.write("strategy: {0}\n".format(strategy))
-        f.write("workflow_name: {0}\n".format(workflow))
+        f.write(f"version: {version!s}\n")
+        f.write(f"timestamp: {stamp!s}\n")
+        f.write(f"pipeline_index: {index}\n")
+        f.write(f"subject_id: {subject_id}\n")
+        f.write(f"scan_id: {scan_id}\n")
+        f.write(f"strategy: {strategy}\n")
+        f.write(f"workflow_name: {workflow}\n")
         f.write(status_msg)
 
     return out_file
@@ -1138,7 +1131,7 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = "{0}_{1}_{2}".format(output_name, maskname, filename)
+            resource_name = f"{output_name}_{maskname}_{filename}"
 
         elif "_spatial_map_" in in_file and "dr_tempreg" in in_file:
             for dirname in split_fullpath:
@@ -1150,7 +1143,7 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = "{0}_{1}_{2}".format(output_name, mapname, filename)
+            resource_name = f"{output_name}_{mapname}_{filename}"
 
         elif "_mask_" in in_file and "centrality" in in_file:
             for dirname in split_fullpath:
@@ -1162,14 +1155,12 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = "{0}_{1}_{2}".format(output_name, maskname, filename)
+            resource_name = f"{output_name}_{maskname}_{filename}"
 
         else:
             resource_name = output_name
 
-        output_means_file = os.path.join(
-            os.getcwd(), "mean_{0}.txt".format(resource_name)
-        )
+        output_means_file = os.path.join(os.getcwd(), f"mean_{resource_name}.txt")
 
         with open(output_means_file, "w") as f:
             f.write(line)
@@ -1345,9 +1336,11 @@ def check_config_resources(c):
 def _check_nested_types(d, keys):
     """Helper function to check types for *_nested_value functions."""
     if not isinstance(d, dict):
-        raise TypeError(f"Expected dict, got {type(d).__name__}: {d!s}")
+        msg = f"Expected dict, got {type(d).__name__}: {d!s}"
+        raise TypeError(msg)
     if not isinstance(keys, list) and not isinstance(keys, tuple):
-        raise TypeError(f"Expected list, got {type(keys).__name__}: {keys!s}")
+        msg = f"Expected list, got {type(keys).__name__}: {keys!s}"
+        raise TypeError(msg)
 
 
 def delete_nested_value(d, keys):

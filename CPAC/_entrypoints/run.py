@@ -75,11 +75,13 @@ def parse_yaml(value: str) -> dict:
     try:
         config = yaml.safe_load(value)
         if not isinstance(config, dict):
-            raise TypeError("config must be a dictionary")
+            msg = "config must be a dictionary"
+            raise TypeError(msg)
         return config
     except Exception:
         # pylint: disable=raise-missing-from
-        raise argparse.ArgumentTypeError(f"Invalid configuration: '{value}'")
+        msg = f"Invalid configuration: '{value}'"
+        raise argparse.ArgumentTypeError(msg)
 
 
 def resolve_aws_credential(source: Union[Path, str]) -> str:
@@ -98,13 +100,14 @@ def resolve_aws_credential(source: Union[Path, str]) -> str:
                 ("AccessKeyId", "AWSAcessKeyId"),
                 ("SecretAccessKey", "AWSSecretKey"),
             ]:
-                ofd.write("{0}={1}".format(vname, aws_creds[key]))
+                ofd.write(f"{vname}={aws_creds[key]}")
 
         return aws_input_creds
 
     if os.path.isfile(source):
         return source
-    raise IOError("Could not find aws credentials {0}".format(source))
+    msg = f"Could not find aws credentials {source}"
+    raise IOError(msg)
 
 
 def run_main():
@@ -520,16 +523,16 @@ def run_main():
             and not bids_dir_is_s3
             and not os.path.exists(bids_dir)
         ):
-            raise FileNotFoundError(f"Error! Could not find {bids_dir}")
+            msg = f"Error! Could not find {bids_dir}"
+            raise FileNotFoundError(msg)
 
         # check to make sure that the output directory exists
         if not output_dir_is_s3 and not os.path.exists(output_dir):
             try:
                 os.makedirs(output_dir)
             except Exception as e:
-                raise FileNotFoundError(
-                    f"Error! Could not find/create output dir {output_dir}"
-                ) from e
+                msg = f"Error! Could not find/create output dir {output_dir}"
+                raise FileNotFoundError(msg) from e
 
         # validate input dir (if skip_bids_validator is not set)
         if not args.data_config_file:
@@ -814,9 +817,8 @@ def run_main():
                     f"{args.participant_ndx}_{st}.yml"
                 )
             else:
-                raise IndexError(
-                    f"Participant ndx {participant_ndx} is out of bounds [0, {len(sub_list)})"
-                )
+                msg = f"Participant ndx {participant_ndx} is out of bounds [0, {len(sub_list)})"
+                raise IndexError(msg)
         else:
             data_hash = hash_data_config(sub_list)
             data_config_file = f"cpac_data_config_{data_hash}_{st}.yml"

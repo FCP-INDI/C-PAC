@@ -46,7 +46,8 @@ def read_mat(input_mat):
         )
 
     if mat.shape != (4, 4):
-        raise ValueError("ERROR norm_transformation: the matrix should be 4x4")
+        msg = "ERROR norm_transformation: the matrix should be 4x4"
+        raise ValueError(msg)
 
     # Translation vector
     translation = mat[0:3, 3]
@@ -95,7 +96,8 @@ def norm_transformation(input_mat):
         )
 
     if mat.shape != (4, 4):
-        raise ValueError("ERROR norm_transformation: the matrix should be 4x4")
+        msg = "ERROR norm_transformation: the matrix should be 4x4"
+        raise ValueError(msg)
 
     # Translation vector
     translation = mat[0:3, 3]
@@ -175,7 +177,8 @@ def create_temporary_template(
         temporary longitudinal skull template
     """
     if not input_brain_list or not input_skull_list:
-        raise ValueError("ERROR create_temporary_template: image list is empty")
+        msg = "ERROR create_temporary_template: image list is empty"
+        raise ValueError(msg)
 
     if len(input_brain_list) == 1 and len(input_skull_list) == 1:
         return input_brain_list[0], input_skull_list[0]
@@ -246,7 +249,8 @@ def register_img_list(
         matrix
     """
     if not input_brain_list:
-        raise ValueError("ERROR register_img_list: image list is empty")
+        msg = "ERROR register_img_list: image list is empty"
+        raise ValueError(msg)
 
     basename_list = [
         str(os.path.basename(img).split(".")[0]) for img in input_brain_list
@@ -378,7 +382,8 @@ def template_creation_flirt(
     # return 'CECI_EST_UN_TEST'
 
     if not input_brain_list or not input_skull_list:
-        raise ValueError("ERROR create_temporary_template: image list is empty")
+        msg = "ERROR create_temporary_template: image list is empty"
+        raise ValueError(msg)
 
     warp_list = []
 
@@ -448,7 +453,8 @@ def template_creation_flirt(
             ]
             converged = all(convergence_list)
         else:
-            raise ValueError("init_reg must be a list of FLIRT nipype nodes files")
+            msg = "init_reg must be a list of FLIRT nipype nodes files"
+            raise ValueError(msg)
     else:
         output_brain_list = input_brain_list
         output_skull_list = input_skull_list

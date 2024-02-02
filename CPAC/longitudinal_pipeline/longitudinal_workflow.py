@@ -122,7 +122,8 @@ def create_datasink(
             )
 
             if not s3_write_access:
-                raise Exception("Not able to write to bucket!")
+                msg = "Not able to write to bucket!"
+                raise Exception(msg)
 
     except Exception as e:
         if (
@@ -140,11 +141,11 @@ def create_datasink(
     if map_node_iterfield is not None:
         ds = pe.MapNode(
             DataSink(infields=map_node_iterfield),
-            name="sinker_{}".format(datasink_name),
+            name=f"sinker_{datasink_name}",
             iterfield=map_node_iterfield,
         )
     else:
-        ds = pe.Node(DataSink(), name="sinker_{}".format(datasink_name))
+        ds = pe.Node(DataSink(), name=f"sinker_{datasink_name}")
 
     ds.inputs.base_directory = config.pipeline_setup["output_directory"]["path"]
     ds.inputs.creds_path = creds_path

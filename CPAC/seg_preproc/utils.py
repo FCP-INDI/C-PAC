@@ -25,10 +25,10 @@ def check_if_file_is_empty(in_file):
     nii = nb.load(in_file)
     data = nii.get_fdata()
     if data.size == 0 or np.all(data == 0) or np.all(data == np.nan):
-        raise ValueError(
-            "File {0} is empty. Use a lower threshold or turn "
-            "off regressors.".format(in_file)
+        msg = (
+            f"File {in_file} is empty. Use a lower threshold or turn " "off regressors."
         )
+        raise ValueError(msg)
     return in_file
 
 
@@ -364,11 +364,12 @@ def hardcoded_antsJointLabelFusion(
     # pylint: disable=unused-variable
     except Exception as e:  # pylint: disable=broad-except,invalid-name
         # pylint: disable=raise-missing-from
-        raise Exception(
+        msg = (
             "[!] antsJointLabel segmentation method did not "
             "complete successfully.\n\nError "
             "details:\n{0}\n{1}\n".format(e, getattr(e, "output", ""))
         )
+        raise Exception(msg)
 
     multiatlas_Intensity = None
     multiatlas_Labels = None
@@ -382,11 +383,12 @@ def hardcoded_antsJointLabelFusion(
             multiatlas_Labels = os.getcwd() + "/" + f
 
     if not multiatlas_Labels:
-        raise Exception(
+        msg = (
             "\n\n[!] No multiatlas labels file found. "
             "antsJointLabelFusion may not have completed "
             "successfully.\n\n"
         )
+        raise Exception(msg)
 
     return multiatlas_Intensity, multiatlas_Labels
 

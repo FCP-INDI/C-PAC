@@ -11,7 +11,8 @@ class Merge(fslMerge):
     def _format_arg(self, name, spec, value):
         if name == "tr":
             if self.inputs.dimension != "t":
-                raise ValueError("When TR is specified, dimension must be t")
+                msg = "When TR is specified, dimension must be t"
+                raise ValueError(msg)
             return spec.argstr % value
         if name == "dimension":
             if isdefined(self.inputs.tr):

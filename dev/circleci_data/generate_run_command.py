@@ -38,9 +38,8 @@ def get_random_subject(species="human"):
             "CPAC/resources/configs/test_configs/" "data-test_4-projects_5-subjects.yml"
         )
     else:
-        raise NotImplementedError(
-            f"Data configurations not yet set for random test of {species}"
-        )
+        msg = f"Data configurations not yet set for random test of {species}"
+        raise NotImplementedError(msg)
     with open(data_config_file, "r") as data_config:
         subject_list = yaml.safe_load(data_config)
     return (data_config_file, random.randrange(len(subject_list)))

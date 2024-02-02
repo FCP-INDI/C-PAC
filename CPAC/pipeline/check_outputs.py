@@ -169,7 +169,8 @@ class ExpectedOutputs:
     def __init__(self, expected=None):
         self.expected_outputs = {} if expected is None else expected
         if not isinstance(self.expected_outputs, dict):
-            raise TypeError("ExpectedOutputs.expected_outputs must be a dict")
+            msg = "ExpectedOutputs.expected_outputs must be a dict"
+            raise TypeError(msg)
 
     def __bool__(self):
         return bool(len(self))
@@ -182,10 +183,11 @@ class ExpectedOutputs:
 
     def __iadd__(self, other):
         if not isinstance(other, tuple) or len(other) != 2:
-            raise TypeError(
+            msg = (
                 f"{self.__module__}.{self.__class__.__name__} requires a "
                 "tuple of ('subdir', 'output') for addition"
             )
+            raise TypeError(msg)
         self.add(*other)
         return self
 

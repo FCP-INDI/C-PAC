@@ -103,7 +103,7 @@ def check_merged_file(list_of_output_files, merged_outfile):
         test_string = [
             "3ddot",
             "-demean",
-            "{0}[{1}]".format(merged_outfile, str(i)),
+            f"{merged_outfile}[{i!s}]",
             output_file,
         ]
 
@@ -429,12 +429,12 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 
     # pad end with single space so the formula.replace below won't miss the last
     # covariate when relevant
-    formula = "{0} ".format(formula)
+    formula = f"{formula} "
 
     for ev in categorical_list:
         if ev in formula:
             new_ev = "C(" + ev + closer
-            formula = formula.replace(" {0} ".format(ev), new_ev)
+            formula = formula.replace(f" {ev} ", new_ev)
 
     # remove Intercept - if user wants one, they should add "+ Intercept" when
     # specifying the design formula
@@ -585,8 +585,8 @@ def build_feat_model(
         group_config_obj.output_dir,
         "cpac_group_analysis",
         "FSL_FEAT",
-        "{0}".format(pipeline_ID),
-        "group_model_{0}".format(model_name),
+        f"{pipeline_ID}",
+        f"group_model_{model_name}",
     )
 
     out_dir = os.path.join(
@@ -829,7 +829,7 @@ def build_feat_model(
                             "to model each group's variances separately) "
                             "either have more than 2 levels (1/0), or are "
                             "not encoded as 1's and 0's.\n\nCovariates:\n"
-                            "{0}\n{1}\n\n".format(group_ev[0], group_ev[1])
+                            f"{group_ev[0]}\n{group_ev[1]}\n\n"
                         )
                         raise Exception(err)
 
@@ -850,9 +850,7 @@ def build_feat_model(
                             "to model each group's variances separately) "
                             "either have more than 2 levels (1/0), or are "
                             "not encoded as 1's and 0's.\n\nCovariates:\n"
-                            "{0}\n{1}\n{2}\n\n".format(
-                                group_ev[0], group_ev[1], group_ev[2]
-                            )
+                            f"{group_ev[0]}\n{group_ev[1]}\n{group_ev[2]}\n\n"
                         )
                         raise Exception(err)
 
@@ -868,8 +866,8 @@ def build_feat_model(
                     "3. For some reason, the configuration has been set up "
                     "in a way where CPAC currently thinks you're including "
                     "only one group, or more than three, neither of which "
-                    "are supported.\n\nGroups provided:\n{0}"
-                    "\n\n".format(str(group_ev))
+                    f"are supported.\n\nGroups provided:\n{group_ev!s}"
+                    "\n\n"
                 )
                 raise Exception(err)
 
@@ -1070,7 +1068,7 @@ def build_feat_model(
         contrasts_columns = column_names
         if group_config_obj.f_tests:
             for i in group_config_obj.f_tests[1 : len(group_config_obj.f_tests) - 1]:
-                contrasts_columns.append("f_test_{0}".format(i))
+                contrasts_columns.append(f"f_test_{i}")
     else:
         pass
 
@@ -1091,15 +1089,15 @@ def build_feat_model(
                     "\n\n[!] C-PAC says: It appears you have modified your "
                     "contrasts CSV file already- back up this file before "
                     "building your model again to avoid overwriting your "
-                    "changes.\n\nContrasts file:\n{0}"
-                    "\n\n".format(contrast_out_path)
+                    f"changes.\n\nContrasts file:\n{contrast_out_path}"
+                    "\n\n"
                 )
                 raise Exception(msg)
 
         with open(contrast_out_path, "w") as f:
             f.write("Contrasts")
             for col in contrasts_columns:
-                f.write(",{0}".format(col))
+                f.write(f",{col}")
             f.write("\ncontrast_1")
             for col in contrasts_columns:
                 f.write(",0")
@@ -1107,7 +1105,7 @@ def build_feat_model(
     groups_out_path = os.path.join(model_path, "groups.txt")
     with open(groups_out_path, "w") as f:
         for val in grp_vector:
-            f.write("{0}\n".format(val))
+            f.write(f"{val}\n")
 
     msg = (
         "Model successfully generated for..\nDerivative: {0}\nSession: {1}"

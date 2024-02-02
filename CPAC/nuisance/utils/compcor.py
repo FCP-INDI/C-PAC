@@ -13,11 +13,8 @@ iflogger = logging.getLogger("nipype.interface")
 
 def calc_compcor_components(data_filename, num_components, mask_filename):
     if num_components < 1:
-        raise ValueError(
-            "Improper value for num_components ({0}), should be >= 1.".format(
-                num_components
-            )
-        )
+        msg = f"Improper value for num_components ({num_components}), should be >= 1."
+        raise ValueError(msg)
 
     try:
         image_data = nib.load(data_filename).get_fdata().astype(np.float64)
@@ -30,11 +27,10 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         pass
 
     if not safe_shape(image_data, binary_mask):
-        raise ValueError(
-            "The data in {0} and {1} do not have a consistent shape".format(
-                data_filename, mask_filename
-            )
+        msg = "The data in {0} and {1} do not have a consistent shape".format(
+            data_filename, mask_filename
         )
+        raise ValueError(msg)
 
     # make sure that the values in binary_mask are binary
     binary_mask[binary_mask > 0] = 1
@@ -212,7 +208,8 @@ def TR_string_to_float(tr):
     tr in seconds (float)
     """
     if not isinstance(tr, str):
-        raise TypeError(f"Improper type for TR_string_to_float ({tr}).")
+        msg = f"Improper type for TR_string_to_float ({tr})."
+        raise TypeError(msg)
 
     tr_str = tr.replace(" ", "")
 
@@ -224,6 +221,7 @@ def TR_string_to_float(tr):
         else:
             tr_numeric = float(tr_str)
     except Exception as exc:
-        raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
+        msg = f'Can not convert TR string to float: "{tr}".'
+        raise ValueError(msg) from exc
 
     return tr_numeric

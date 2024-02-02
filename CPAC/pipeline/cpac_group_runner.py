@@ -156,7 +156,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.tsv "
-            "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
+            f"resource file:\n{keys_tsv}\n\nError details {e}\n"
         )
         raise Exception(err)
 
@@ -368,7 +368,7 @@ def create_output_dict_list(
         except Exception as e:
             err = (
                 "\n[!] Could not access or read the cpac_outputs.csv "
-                "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
+                f"resource file:\n{keys_tsv}\n\nError details {e}\n"
             )
             raise Exception(err)
 
@@ -560,7 +560,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         "Sessions" in pheno_df.columns or "Sessions_column_one" in pheno_df.columns
     ):
         for part_id in pheno_df["participant_id"]:
-            if "participant_{0}".format(part_id) in pheno_df.columns:
+            if f"participant_{part_id}" in pheno_df.columns:
                 continue
             break
         else:
@@ -619,7 +619,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
 
     # add new participant ID columns
     for sub_id in sublist:
-        new_col = "participant_{0}".format(sub_id)
+        new_col = f"participant_{sub_id}"
         pheno_df[new_col] = participant_id_cols[new_col]
 
     return pheno_df.astype("object")
@@ -643,7 +643,7 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, repeated_sessions=F
             num_partic_cols += 1
     if num_partic_cols > 1 and "Series" in pheno_df.columns:
         for part_id in pheno_df["participant_id"]:
-            if "participant_{0}".format(part_id) in pheno_df.columns:
+            if f"participant_{part_id}" in pheno_df.columns:
                 continue
             break
         else:
@@ -729,7 +729,7 @@ def prep_feat_inputs(group_config_file):
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.tsv "
-            "resource file:\n{0}\n\nError details {1}\n".format(keys_tsv, e)
+            f"resource file:\n{keys_tsv}\n\nError details {e}\n"
         )
         raise Exception(err)
 
@@ -758,12 +758,13 @@ def prep_feat_inputs(group_config_file):
         inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
     elif "." in group_model.participant_list:
         if not os.path.isfile(group_model.participant_list):
-            raise Exception(
+            msg = (
                 "\n[!] C-PAC says: Your participant "
                 "inclusion list is not a valid file!\n\n"
-                "File path: {0}"
-                "\n".format(group_model.participant_list)
+                f"File path: {group_model.participant_list}"
+                "\n"
             )
+            raise Exception(msg)
         else:
             inclusion_list = load_text_file(
                 group_model.participant_list, "group-level analysis participant " "list"
@@ -813,7 +814,7 @@ def prep_feat_inputs(group_config_file):
             "\n\n[!] There are no derivatives listed in the "
             "derivative_list field of your group analysis "
             "configuration file.\n\nConfiguration file: "
-            "{0}\n".format(group_config_file)
+            f"{group_config_file}\n"
         )
         raise Exception(err)
 
@@ -869,7 +870,8 @@ def prep_feat_inputs(group_config_file):
             )
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
         else:
-            raise Exception("\nCannot read group-level analysis participant " "list.\n")
+            msg = "\nCannot read group-level analysis participant " "list.\n"
+            raise Exception(msg)
 
         new_pheno_df = pheno_df.copy()
 
@@ -891,12 +893,13 @@ def prep_feat_inputs(group_config_file):
                     output_df["participant_id"] = new_sublist_subs
                     break
             else:
-                raise Exception(
+                msg = (
                     "the participant IDs in your group "
                     "analysis participant list and the "
                     "participant IDs in your phenotype file "
                     "do not match"
                 )
+                raise Exception(msg)
 
         repeated_measures = False
         repeated_sessions = False
@@ -983,7 +986,7 @@ def prep_feat_inputs(group_config_file):
                     series = "repeated_measures_multiple_series"
                     if "session" in output_df:
                         for ses_df_tuple in new_pheno_df.groupby("Sessions"):
-                            session = "ses-{0}".format(ses_df_tuple[0])
+                            session = f"ses-{ses_df_tuple[0]}"
                             ses_df = ses_df_tuple[1]
 
                             # send it in
@@ -1094,7 +1097,7 @@ def prep_feat_inputs(group_config_file):
                 # multiple sessions?
                 if "Sessions" in series_df:
                     for ses_df_tuple in series_df.groupby("Sessions"):
-                        session = "ses-{0}".format(ses_df_tuple[0])
+                        session = f"ses-{ses_df_tuple[0]}"
                         ses_df = ses_df_tuple[1]
                         newer_ses_pheno_df = pd.merge(
                             newer_pheno_df, ses_df, how="inner", on=["participant_id"]
@@ -1203,8 +1206,8 @@ def run_feat(group_config_file, feat=True):
         out_dir,
         "cpac_group_analysis",
         "FSL_FEAT",
-        "{0}".format(pipeline_name),
-        "group_model_{0}".format(model_name),
+        f"{pipeline_name}",
+        f"group_model_{model_name}",
     )
 
     custom_contrasts_csv = os.path.join(model_dir, "contrasts.csv")
@@ -1257,9 +1260,9 @@ def run_feat(group_config_file, feat=True):
     if len(models) == 0:
         err = (
             "\n\n[!] C-PAC says: Cannot find the FSL-FEAT/Randomise model "
-            "files.\n\nI am looking here:\n{0}\n\nIf that doesn't sound "
+            f"files.\n\nI am looking here:\n{model_dir}\n\nIf that doesn't sound "
             "right, double-check your group configuration file.\n\nDid you "
-            "build the model beforehand?\n\n".format(model_dir)
+            "build the model beforehand?\n\n"
         )
         raise Exception(err)
 
@@ -1446,7 +1449,7 @@ def run_cwas_group(
                 plugin = "MultiProc"
 
             cwas_wf = create_cwas(
-                name="MDMR_{0}".format(df_scan),
+                name=f"MDMR_{df_scan}",
                 working_dir=working_dir,
                 crash_dir=crash_dir,
             )
@@ -1531,16 +1534,17 @@ def find_other_res_template(template_path, new_resolution):
 
         if len(template_parts) < 2:
             # TODO: better message
-            raise Exception("no resolution in the file path!")
+            msg = "no resolution in the file path!"
+            raise Exception(msg)
 
         template_parts[0] = str(new_resolution).join(
             template_parts[0].rsplit(template_parts[0][-1], 1)
         )
-        ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
+        ref_file = f"{template_parts[0]}{template_parts[1]}"
 
     elif "${resolution_for_func_preproc}" in template_path:
         ref_file = template_path.replace(
-            "${resolution_for_func_preproc}", "{0}mm".format(new_resolution)
+            "${resolution_for_func_preproc}", f"{new_resolution}mm"
         )
 
     if ref_file:
@@ -1590,7 +1594,8 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=F
                 os.makedirs(out_path.replace(os.path.basename(out_path), ""))
             except:
                 # TODO: better message
-                raise Exception("couldn't make the dirs!")
+                msg = "couldn't make the dirs!"
+                raise Exception(msg)
 
         cmd = ["flirt", "-in", image_path, "-ref", reference_path, "-out", out_path]
         if roi_file:
@@ -1734,17 +1739,14 @@ def run_basc(pipeline_config):
     # did that actually work?
     if not os.path.isfile(ref_file):
         # TODO: better message
-        raise Exception(
-            "\n[!] The reference file could not be found.\nPath: " "{0}\n".format(
-                ref_file
-            )
-        )
+        msg = "\n[!] The reference file could not be found.\nPath: " f"{ref_file}\n"
+        raise Exception(msg)
 
     working_dir = os.path.join(
         working_dir,
         "cpac_group_analysis",
         "PyBASC",
-        "{0}mm_resolution".format(basc_resolution),
+        f"{basc_resolution}mm_resolution",
         "working_dir",
     )
 
@@ -1781,7 +1783,7 @@ def run_basc(pipeline_config):
         output_dir,
         "cpac_group_analysis",
         "PyBASC",
-        "{0}mm_resolution".format(basc_resolution),
+        f"{basc_resolution}mm_resolution",
         os.path.basename(pipeline_dir),
     )
     working_dir = os.path.join(working_dir, os.path.basename(pipeline_dir))

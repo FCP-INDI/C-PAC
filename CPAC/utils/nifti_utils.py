@@ -29,7 +29,8 @@ def nifti_image_input(image):
         else:
             img = nib.load(image)
     else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
+        msg = "Image can be either a string or a nifti1.Nifti1Image"
+        raise TypeError(msg)
     return img
 
 
@@ -55,7 +56,8 @@ def more_zeros_than_ones(image):
         else:
             img = nib.load(image)
     else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
+        msg = "Image can be either a string or a nifti1.Nifti1Image"
+        raise TypeError(msg)
 
     data = img.get_fdata()
     nb_zeros = len(np.where(data == 0)[0])
@@ -85,7 +87,8 @@ def inverse_nifti_values(image):
         else:
             img = nib.load(image)
     else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
+        msg = "Image can be either a string or a nifti1.Nifti1Image"
+        raise TypeError(msg)
 
     data = img.get_fdata()
     zeros = np.where(data)

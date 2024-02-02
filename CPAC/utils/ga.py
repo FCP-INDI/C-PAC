@@ -43,9 +43,7 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        headers = {
-            "User-Agent": "C-PAC/{} (https://fcp-indi.github.io)".format(__version__)
-        }
+        headers = {"User-Agent": f"C-PAC/{__version__} (https://fcp-indi.github.io)"}
         return requests.post(
             "https://www.google-analytics.com/collect",
             data=data,

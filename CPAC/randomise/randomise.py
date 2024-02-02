@@ -36,9 +36,7 @@ def prep_randomise_workflow(
     wf = pe.Workflow(name="randomise_workflow")
     wf.base_dir = c.work_dir
 
-    randomise = pe.Node(
-        interface=fsl.Randomise(), name="fsl-randomise_{0}".format(model_name)
-    )
+    randomise = pe.Node(interface=fsl.Randomise(), name=f"fsl-randomise_{model_name}")
     randomise.inputs.base_name = model_name
     randomise.inputs.in_file = merged_file
     randomise.inputs.mask = mask_file

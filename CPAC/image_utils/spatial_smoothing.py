@@ -52,11 +52,11 @@ def spatial_smoothing(wf_name, fwhm, input_image_type="func_derivative", opt=Non
     image_types = ["func_derivative", "func_derivative_multi", "func_4d", "func_mask"]
 
     if input_image_type not in image_types:
-        raise ValueError(
-            "Input image type {0} should be one of " "{1}".format(
-                input_image_type, ", ".join(image_types)
-            )
+        msg = (
+            f"Input image type {input_image_type} should be one of"
+            f" {', '.join(image_types)}"
         )
+        raise ValueError(msg)
 
     if opt == "FSL":
         output_smooth_mem_gb = 4.0

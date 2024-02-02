@@ -43,7 +43,7 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
         "crashdump_dir": os.path.abspath(test_dir),
     }
 
-    ds = pe.Node(DataSink(), name="sinker_{0}".format(test_name))
+    ds = pe.Node(DataSink(), name=f"sinker_{test_name}")
     ds.inputs.base_directory = out_dir
     ds.inputs.parameterization = True
 

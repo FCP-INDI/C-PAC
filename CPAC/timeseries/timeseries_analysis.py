@@ -547,11 +547,12 @@ def gen_roi_timeseries(data_file, template, output_type):
     img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception(
+        msg = (
             "\n\n[!] CPAC says: Invalid Shape Error."
             "Please check the voxel dimensions. "
             "Data and roi should have the same shape.\n\n"
         )
+        raise Exception(msg)
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
@@ -570,7 +571,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     for n in nodes:
         if n > 0:
             node_array = img_data[unit_data == n]
-            node_str = "node_{0}".format(n)
+            node_str = f"node_{n}"
             avg = np.mean(node_array, axis=0)
             avg = np.round(avg, 6)
             list1 = [n, *avg.tolist()]
@@ -593,7 +594,7 @@ def gen_roi_timeseries(data_file, template, output_type):
         roi_number_str.append("#" + number)
 
     for key in new_keys:
-        value_list.append(str("{0}\n".format(node_dict["node_{0}".format(key)])))
+        value_list.append(str("{0}\n".format(node_dict[f"node_{key}"])))
 
     column_list = list(zip(*value_list))
 
@@ -690,7 +691,7 @@ def gen_voxel_timeseries(data_file, template):
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        string = "vol {0}".format(t)
+        string = f"vol {t}"
         vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
         f.write("\n")

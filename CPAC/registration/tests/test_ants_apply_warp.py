@@ -129,10 +129,8 @@ def test_ants_apply_warps_func_mni_mapnode():
             test_name,
             "apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0",
             "mapflow",
-            "_apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0{0}".format(
-                n
-            ),
-            "temp_reg_map_000{0}_antswarp_antswarp.nii.gz".format(n),
+            f"_apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0{n}",
+            f"temp_reg_map_000{n}_antswarp_antswarp.nii.gz",
         )
         for n in range(0, 10)
     ]
@@ -270,10 +268,8 @@ def test_ants_apply_warps_func_mni_mapnode_symm():
             test_name,
             "apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0",
             "mapflow",
-            "_apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0{0}".format(
-                n
-            ),
-            "temp_reg_map_000{0}_antswarp_antswarp.nii.gz".format(n),
+            f"_apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0{n}",
+            f"temp_reg_map_000{n}_antswarp_antswarp.nii.gz",
         )
         for n in range(0, 10)
     ]

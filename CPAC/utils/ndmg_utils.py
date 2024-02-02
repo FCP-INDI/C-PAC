@@ -75,7 +75,7 @@ def ndmg_roi_timeseries(func_file, label_file):
             err = (
                 "\n[!] Error: functional data and ROI mask may not be in "
                 "the same space or be the same size.\nDetails: "
-                "{0}".format(e)
+                f"{e}"
             )
             raise IndexError(err)
         # take the mean for the voxel timeseries, and ignore voxels with
@@ -235,7 +235,8 @@ class graph(object):
                 header=",".join([str(n) for n in self.n_ids]),
             )
         else:
-            raise ValueError("Unsupported Modality.")
+            msg = "Unsupported Modality."
+            raise ValueError(msg)
         pass
 
     def summary(self):

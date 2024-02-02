@@ -39,7 +39,7 @@ from CPAC.utils.interfaces.function import Function
 
 
 def create_afni_arg(shrink_fac):
-    return "-shrink_fac {0} ".format(shrink_fac)
+    return f"-shrink_fac {shrink_fac} "
 
 
 @nodeblock(
@@ -282,12 +282,12 @@ def same_pe_direction_prep(same_pe_epi, func_mean):
         qwarp_input = func_mean
     elif same_pe_epi:
         skullstrip_outfile = os.path.join(
-            os.getcwd(), "{0}_mask.nii.gz".format(os.path.basename(same_pe_epi))
+            os.getcwd(), f"{os.path.basename(same_pe_epi)}_mask.nii.gz"
         )
         skullstrip_cmd = [
             "3dAutomask",
             "-apply_prefix",
-            "{0}_masked.nii.gz".format(os.path.basename(same_pe_epi)),
+            f"{os.path.basename(same_pe_epi)}_masked.nii.gz",
             "-prefix",
             skullstrip_outfile,
             same_pe_epi,
@@ -295,7 +295,7 @@ def same_pe_direction_prep(same_pe_epi, func_mean):
         subprocess.check_output(skullstrip_cmd)
 
         extract_brain_outfile = os.path.join(
-            os.getcwd(), "{0}_calc.nii.gz".format(os.path.basename(same_pe_epi))
+            os.getcwd(), f"{os.path.basename(same_pe_epi)}_calc.nii.gz"
         )
         extract_brain_cmd = [
             "3dcalc",
@@ -311,7 +311,7 @@ def same_pe_direction_prep(same_pe_epi, func_mean):
         subprocess.check_output(extract_brain_cmd)
 
         align_epi_outfile = os.path.join(
-            os.getcwd(), "{0}_calc_flirt.nii.gz".format(os.path.basename(same_pe_epi))
+            os.getcwd(), f"{os.path.basename(same_pe_epi)}_calc_flirt.nii.gz"
         )
         align_epi_cmd = [
             "flirt",

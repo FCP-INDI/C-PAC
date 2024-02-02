@@ -247,7 +247,7 @@ def hardcoded_reg(
                                         )
                                     )
                                 SyN_para = ",".join([str(elem) for elem in SyN_para])
-                                regcmd.append("{0}[{1}]".format(trans_type, SyN_para))
+                                regcmd.append(f"{trans_type}[{SyN_para}]")
 
                         if (
                             ants_para[para_index][para_type][trans_index][trans_type][
@@ -393,9 +393,7 @@ def hardcoded_reg(
                                 CC_para = ",".join([str(elem) for elem in CC_para])
                                 regcmd.append("--metric")
                                 regcmd.append(
-                                    "CC[{0},{1},{2}]".format(
-                                        reference_skull, moving_skull, CC_para
-                                    )
+                                    f"CC[{reference_skull},{moving_skull},{CC_para}]"
                                 )
 
                         if (
@@ -461,7 +459,7 @@ def hardcoded_reg(
                                     [str(elem) for elem in convergence_para]
                                 )
                                 regcmd.append("--convergence")
-                                regcmd.append("[{0}]".format(convergence_para))
+                                regcmd.append(f"[{convergence_para}]")
 
                         if (
                             "smoothing-sigmas"
@@ -543,9 +541,7 @@ def hardcoded_reg(
                                 trans_type
                             ]["masks"]:
                                 regcmd.append("--masks")
-                                regcmd.append(
-                                    "[{0},{1}]".format(reference_mask, moving_mask)
-                                )
+                                regcmd.append(f"[{reference_mask},{moving_mask}]")
                             else:
                                 regcmd.append("--masks")
                                 regcmd.append("[NULL,NULL]")
@@ -589,7 +585,7 @@ def hardcoded_reg(
 
     if interp is not None:
         regcmd.append("--interpolation")
-        regcmd.append("{0}".format(interp))
+        regcmd.append(f"{interp}")
 
     regcmd.append("--output")
     regcmd.append("[transform,transform_Warped.nii.gz]")
@@ -602,10 +598,11 @@ def hardcoded_reg(
     try:
         subprocess.check_output(regcmd)
     except Exception as e:
-        raise Exception(
+        msg = (
             "[!] ANTS registration did not complete successfully."
-            "\n\nError details:\n{0}\n{1}\n".format(e, e.output)
+            f"\n\nError details:\n{e}\n{e.output}\n"
         )
+        raise Exception(msg)
 
     warp_list = []
     warped_image = None
@@ -619,11 +616,12 @@ def hardcoded_reg(
             warped_image = os.getcwd() + "/" + f
 
     if not warped_image:
-        raise Exception(
+        msg = (
             "\n\n[!] No registration output file found. ANTS "
             "registration may not have completed "
             "successfully.\n\n"
         )
+        raise Exception(msg)
 
     return warp_list, warped_image
 

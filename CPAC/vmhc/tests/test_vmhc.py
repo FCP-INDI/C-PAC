@@ -29,7 +29,7 @@ def test_vmhc_ants():
         num_strat,
         strat,
         pipeline_config,
-        output_name="vmhc_{0}".format(num_strat),
+        output_name=f"vmhc_{num_strat}",
     )
 
     workflow.run()

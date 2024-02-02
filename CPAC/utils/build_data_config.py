@@ -84,7 +84,7 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     if not s3_list:
         err = (
             "\n\n[!] No input data found matching your data settings in "
-            "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+            f"the AWS S3 bucket provided:\n{data_folder}\n\n"
         )
         raise Exception(err)
 
@@ -110,23 +110,23 @@ def get_file_list(
     if len(file_list) == 0:
         warn = (
             "\n\n[!] No files were found in the base directory you "
-            "provided.\n\nDirectory: {0}\n\n".format(base_directory)
+            f"provided.\n\nDirectory: {base_directory}\n\n"
         )
         raise Exception(warn)
 
     if write_txt:
         if ".txt" not in write_txt:
-            write_txt = "{0}.txt".format(write_txt)
+            write_txt = f"{write_txt}.txt"
         write_txt = os.path.abspath(write_txt)
         with open(write_txt, "wt") as f:
             for path in file_list:
-                f.write("{0}\n".format(path))
+                f.write(f"{path}\n")
 
     if write_pkl:
         import pickle
 
         if ".pkl" not in write_pkl:
-            write_pkl = "{0}.pkl".format(write_pkl)
+            write_pkl = f"{write_pkl}.pkl"
         write_pkl = os.path.abspath(write_pkl)
         with open(write_pkl, "wb") as f:
             pickle.dump(list(file_list), f)
@@ -240,7 +240,7 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     if not s3_list:
         err = (
             "\n\n[!] No input data found matching your data settings in "
-            "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+            f"the AWS S3 bucket provided:\n{data_folder}\n\n"
         )
         raise Exception(err)
 
@@ -752,9 +752,9 @@ def get_BIDS_data_dct(
                             "participants.tsv file! Consider pre-fixing "
                             "the participant IDs with the site names.\n\n"
                             "Duplicates:\n"
-                            "Sites: {0}, {1}\n"
-                            "Duplicate IDs: {2}"
-                            "\n\n".format(site, other_site, str(dups))
+                            f"Sites: {site}, {other_site}\n"
+                            f"Duplicate IDs: {dups!s}"
+                            "\n\n"
                         )
                         raise Exception(err)
 
@@ -791,7 +791,7 @@ def get_BIDS_data_dct(
         #     instead of /bids_dir/sub-01/func/sub-01_task-rest_bold.json
         for json_file in site_jsons:
             # get site ID
-            site_id = json_file.replace("{0}/".format(bids_base_dir), "").split("/")[0]
+            site_id = json_file.replace(f"{bids_base_dir}/", "").split("/")[0]
             if "site-" in site_id:
                 site_id = site_id.replace("site-", "")
 
@@ -833,7 +833,7 @@ def get_BIDS_data_dct(
                     scan_id = "[All]"
                     for id in json_filename.split("_"):
                         if "run-" in id or "acq-" in id:
-                            scan_id = "{0}_{1}".format(scan_id, id)
+                            scan_id = f"{scan_id}_{id}"
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
@@ -887,7 +887,7 @@ def get_BIDS_data_dct(
                     scan_id = "[All]"
                     for id in json_filename.split("_"):
                         if "run-" in id or "acq-" in id:
-                            scan_id = "{0}_{1}".format(scan_id, id)
+                            scan_id = f"{scan_id}_{id}"
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
@@ -1407,26 +1407,26 @@ def update_data_dct(
                 for temp_ses in data_dct[site_id][sub_id]:
                     if "anat" in data_dct[site_id][sub_id][temp_ses]:
                         warn = (
-                            "Field map file found for session {0}, but "
+                            f"Field map file found for session {ses_id}, but "
                             "the anatomical scan chosen for this "
-                            "participant-session is for session {1}, "
+                            f"participant-session is for session {temp_ses}, "
                             "so this field map file is being "
-                            "skipped:\n{2}\n".format(ses_id, temp_ses, file_path)
+                            f"skipped:\n{file_path}\n"
                         )
                         warn = (
-                            "{0}\nIf you wish to use the anatomical "
-                            "scan for session {1} for all participants "
+                            f"{warn}\nIf you wish to use the anatomical "
+                            f"scan for session {ses_id} for all participants "
                             "with this session instead, use the 'Which "
                             "Anatomical Scan?' option in the data "
                             "configuration builder (or populate the "
                             "'anatomical_scan' field in the data "
-                            "settings file).\n".format(warn, ses_id)
+                            "settings file).\n"
                         )
                         break
                 else:
                     warn = (
                         "No anatomical found for field map file for "
-                        "session {0}:\n{1}\n".format(ses_id, file_path)
+                        f"session {ses_id}:\n{file_path}\n"
                     )
             return data_dct
 
@@ -1544,12 +1544,10 @@ def get_nonBIDS_data(
         err = (
             "\n\n[!] No anatomical input file paths found given the data "
             "settings provided.\n\nAnatomical file template being used: "
-            "{0}\n".format(anat_glob)
+            f"{anat_glob}\n"
         )
         if anat_scan:
-            err = "{0}Anatomical scan identifier provided: {1}" "\n\n".format(
-                err, anat_scan
-            )
+            err = f"{err}Anatomical scan identifier provided: {anat_scan}" "\n\n"
         raise Exception(err)
 
     # pull out the site/participant/etc. IDs from each path and connect them
@@ -1596,32 +1594,32 @@ def get_nonBIDS_data(
         )
         if possible_anats:
             err = (
-                "{0}There are some file paths found in the directories "
+                f"{err}There are some file paths found in the directories "
                 "described in the data settings that may be anatomicals "
-                "that were missed. Here are a few examples:\n".format(err)
+                "that were missed. Here are a few examples:\n"
             )
             for anat in possible_anats[0:5]:
-                err = "{0}{1}\n".format(err, anat)
+                err = f"{err}{anat}\n"
             err = (
-                "{0}\nAnd here are some of the possible tags that were "
+                f"{err}\nAnd here are some of the possible tags that were "
                 "found in the anatomical file paths that were grabbed:"
-                "\n".format(err)
+                "\n"
             )
             for tag in tags[0:20]:
-                err = "{0}{1}\n".format(err, tag)
+                err = f"{err}{tag}\n"
             err = (
-                "{0}\nCPAC only needs one anatomical scan defined for "
+                f"{err}\nCPAC only needs one anatomical scan defined for "
                 "each participant-session. If there are multiple "
                 "anatomical scans per participant-session, you can use "
                 "the 'Which Anatomical Scan?' (anatomical_scan) "
                 "parameter to choose which anatomical to "
-                "select.\n".format(err)
+                "select.\n"
             )
             err = (
-                "{0}\nIf you are already using the 'anatomical_scan' "
+                f"{err}\nIf you are already using the 'anatomical_scan' "
                 "option in the data settings, check the setting to make "
                 "sure you are properly selecting which anatomical scan "
-                "to use for your analysis.\n\n".format(err)
+                "to use for your analysis.\n\n"
             )
         raise Exception(err)
 
@@ -1847,10 +1845,11 @@ def util_copy_template(template_type=None):
                 )
         shutil.copy(settings_template, settings_file)
     except Exception as exception:
-        raise IOError(
+        msg = (
             f"\n[!] Could not write the {template_type} file "
             "template to the current directory.\n"
-        ) from exception
+        )
+        raise IOError(msg) from exception
 
     logger.info(
         "\nGenerated a default %s YAML file for editing:\n%s\n\n",
@@ -2027,7 +2026,7 @@ def run(data_settings_yml):
                             num_scan += 1
 
                     data_list.append(data_dct[site][sub][ses])
-                    group_list.append("{0}_{1}".format(sub, ses))
+                    group_list.append(f"{sub}_{ses}")
 
         # calculate numbers
         len(set(included["site"]))
@@ -2037,9 +2036,7 @@ def run(data_settings_yml):
             # Make sure YAML doesn't dump aliases (so it's more human
             # read-able)
             f.write(
-                "# CPAC Data Configuration File\n# Version {0}" "\n".format(
-                    CPAC.__version__
-                )
+                f"# CPAC Data Configuration File\n# Version {CPAC.__version__}" "\n"
             )
             f.write(
                 "#\n# http://fcp-indi.github.io for more info.\n#\n"
@@ -2056,7 +2053,7 @@ def run(data_settings_yml):
             # write the inclusion list (mainly the group analysis sublist)
             # text file
             for id in sorted(group_list):
-                f.write("{0}\n".format(id))
+                f.write(f"{id}\n")
 
         if os.path.exists(data_config_outfile):
             pass

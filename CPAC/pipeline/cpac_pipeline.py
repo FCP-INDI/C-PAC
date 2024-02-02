@@ -251,12 +251,13 @@ def run_workflow(
     from CPAC.utils.datasource import bidsier_prefix
 
     if plugin is not None and not isinstance(plugin, str):
-        raise TypeError(
+        msg = (
             'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
             'string for the optional "plugin" argument, but a '
             f'{getattr(type(plugin), "__name__", str(type(plugin)))} '
             'was provided.'
         )
+        raise TypeError(msg)
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -484,10 +485,11 @@ def run_workflow(
                         simple_form=wf_graph.get("simple_form", True),
                     )
                 except Exception as exception:
-                    raise RuntimeError(
+                    msg = (
                         f"Failed to visualize {p_name} ("
                         f"{graph2use}, {graph_format})"
-                    ) from exception
+                    )
+                    raise RuntimeError(msg) from exception
 
     workflow_meta = WorkflowJSONMeta(pipeline_name=p_name, stage="pre")
     save_workflow_json(
@@ -594,7 +596,7 @@ Please, make yourself aware of how it works and its assumptions:
                 # Actually run the pipeline now, for the current subject
                 workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
             except UnicodeDecodeError:
-                raise EnvironmentError(
+                msg = (
                     "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
                     "release notes). Your working directory contains Python 2 "
                     "pickles, probably from an older version of C-PAC. If you "
@@ -609,6 +611,7 @@ Please, make yourself aware of how it works and its assumptions:
                     "utils repickle /path/to/working_dir\n\n"
                     "before running C-PAC >=v1.6.2"
                 )
+                raise EnvironmentError(msg)
 
             # PyPEER kick-off
             # if c.PyPEER['run']:
@@ -876,19 +879,21 @@ def load_cpac_pipe_config(pipe_config):
         raise
     except yaml.parser.ParserError as e:
         error_detail = '"%s" at line %d' % (e.problem, e.problem_mark.line)
-        raise Exception(
-            "Error parsing config file: {0}\n\n"
+        msg = (
+            f"Error parsing config file: {config_file}\n\n"
             "Error details:\n"
-            "    {1}"
-            "\n\n".format(config_file, error_detail)
+            f"    {error_detail}"
+            "\n\n"
         )
+        raise Exception(msg)
     except Exception as e:
-        raise Exception(
-            "Error parsing config file: {0}\n\n"
+        msg = (
+            f"Error parsing config file: {config_file}\n\n"
             "Error details:\n"
-            "    {1}"
-            "\n\n".format(config_file, e)
+            f"    {e}"
+            "\n\n"
         )
+        raise Exception(msg)
     return cfg
 
 
@@ -1644,7 +1649,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
             )
 
             if not s3_write_access:
-                raise Exception("Not able to write to bucket!")
+                msg = "Not able to write to bucket!"
+                raise Exception(msg)
 
     except Exception as e:
         if cfg.pipeline_setup["output_directory"]["path"].lower().startswith("s3://"):

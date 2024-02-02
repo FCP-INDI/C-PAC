@@ -157,20 +157,21 @@ def check_func_scan(func_scan_dct, scan):
     # actual 4D time series file
     if "scan" not in scan_resources.keys():
         err = (
-            "\n\n[!] The {0} scan is missing its actual time-series "
+            f"\n\n[!] The {scan} scan is missing its actual time-series "
             "scan file, which should be a filepath labeled with the "
-            "'scan' key.\n\n".format(scan)
+            "'scan' key.\n\n"
         )
         raise Exception(err)
 
     # Nipype restriction (may have changed)
     if "." in scan or "+" in scan or "*" in scan:
-        raise Exception(
+        msg = (
             "\n\n[!] Scan names cannot contain any special "
             "characters (., +, *, etc.). Please update this "
-            "and try again.\n\nScan: {0}"
-            "\n\n".format(scan)
+            f"and try again.\n\nScan: {scan}"
+            "\n\n"
         )
+        raise Exception(msg)
 
 
 def create_func_datasource(rest_dict, rpool, wf_name="func_datasource"):
@@ -429,11 +430,12 @@ def calc_delta_te_and_asym_ratio(
     ees_asym_ratio : float
     """
     if not isinstance(effective_echo_spacing, float):
-        raise LookupError(
+        msg = (
             "C-PAC could not find `EffectiveEchoSpacing` in "
             "either fmap or func sidecar JSON, but that field "
             "is required for PhaseDiff distortion correction."
         )
+        raise LookupError(msg)
 
     # convert into milliseconds if necessary
     # these values will/should never be more than 10ms
@@ -451,11 +453,12 @@ def gather_echo_times(echotime_1, echotime_2, echotime_3=None, echotime_4=None):
     echotime_list = list(filter(lambda item: item is not None, echotime_list))
     echotime_list = list(set(echotime_list))
     if len(echotime_list) != 2:
-        raise Exception(
+        msg = (
             "\n[!] Something went wrong with the field map echo "
             "times - there should be two distinct values.\n\n"
             f"Echo Times:\n{echotime_list}\n"
         )
+        raise Exception(msg)
     return echotime_list
 
 
@@ -996,7 +999,8 @@ def check_for_s3(
                 )
             )
         else:
-            raise FileNotFoundError(f"File {local_path} does not exist!")
+            msg = f"File {local_path} does not exist!"
+            raise FileNotFoundError(msg)
 
     if verbose:
         pass
@@ -1124,7 +1128,8 @@ def get_highest_local_res(template: Union[Path, str], tagname: str) -> Path:
     try:
         return matching_templates[0]
     except (FileNotFoundError, IndexError):
-        raise LookupError(f"Could not find template {template}")
+        msg = f"Could not find template {template}"
+        raise LookupError(msg)
 
 
 def res_string_to_tuple(resolution):
@@ -1270,11 +1275,12 @@ def create_roi_mask_dataflow(masks, wf_name="datasource_roi_mask"):
 
             except IndexError:
                 # pylint: disable=raise-missing-from
-                raise ValueError(
+                msg = (
                     "Error in spatial_map_dataflow: File "
                     f'extension of {base_file} not ".nii" or '
                     ".nii.gz"
                 )
+                raise ValueError(msg)
 
             except Exception as e:
                 raise e
@@ -1282,10 +1288,11 @@ def create_roi_mask_dataflow(masks, wf_name="datasource_roi_mask"):
             base_name = format_identifier(name, desc)
 
         if base_name in mask_dict:
-            raise ValueError(
+            msg = (
                 "Duplicate templates/atlases not allowed: "
                 f"{mask_file} {mask_dict[base_name]}"
             )
+            raise ValueError(msg)
 
         mask_dict[base_name] = mask_file
 
@@ -1360,10 +1367,11 @@ def create_spatial_map_dataflow(spatial_maps, wf_name="datasource_maps"):
             spatial_map_dict[base_name] = spatial_map_file
 
         except IndexError:
-            raise Exception(
+            msg = (
                 "Error in spatial_map_dataflow: "
                 "File extension not in .nii and .nii.gz"
             )
+            raise Exception(msg)
 
     inputnode = pe.Node(
         util.IdentityInterface(

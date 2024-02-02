@@ -282,7 +282,7 @@ def qa_montages(
                     function=gen_histogram,
                     as_module=True,
                 ),
-                name="hist_{0}_{1}".format(measure, num_strat),
+                name=f"hist_{measure}_{num_strat}",
                 iterfield=["measure_file"],
             )
         else:
@@ -293,7 +293,7 @@ def qa_montages(
                     function=gen_histogram,
                     as_module=True,
                 ),
-                name="hist_{0}_{1}".format(measure, num_strat),
+                name=f"hist_{measure}_{num_strat}",
             )
 
         histogram.inputs.measure = measure

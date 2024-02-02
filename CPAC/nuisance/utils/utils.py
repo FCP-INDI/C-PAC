@@ -89,12 +89,12 @@ def find_offending_time_points(
             continue
 
         if not os.path.isfile(file_path):
-            raise ValueError("File {0} could not be found.".format(file_path))
+            msg = f"File {file_path} could not be found."
+            raise ValueError(msg)
 
         if not threshold:
-            raise ValueError(
-                "Method requires the specification of a threshold, none received"
-            )
+            msg = "Method requires the specification of a threshold, none received"
+            raise ValueError(msg)
 
         metric = np.loadtxt(file_path)
         if motion_measure == "DVARS":
@@ -116,11 +116,10 @@ def find_offending_time_points(
             else:
                 threshold = float(threshold)
         except (AttributeError, re.error, IndexError, TypeError, ValueError):
-            raise ValueError(
-                "Could not translate threshold {0} into a " "meaningful value".format(
-                    threshold
-                )
+            msg = (
+                f"Could not translate threshold {threshold} into a " "meaningful value"
             )
+            raise ValueError(msg)
 
         offending_time_points |= set(np.where(metric > threshold)[0].tolist())
 
@@ -198,25 +197,22 @@ def temporal_variance_mask(
     try:
         threshold_value = float(threshold_value)
     except (TypeError, ValueError):
-        raise ValueError(
-            "Error converting threshold value {0} from {1} to a "
+        msg = (
+            f"Error converting threshold value {threshold_value} from {threshold} to a "
             "floating point number. The threshold value can "
             "contain SD or PCT for selecting a threshold based on "
             "the variance distribution, otherwise it should be a "
-            "floating point number.".format(threshold_value, threshold)
+            "floating point number."
         )
+        raise ValueError(msg)
 
     if threshold_value < 0:
-        raise ValueError(
-            "Threshold value should be positive, instead of {0}.".format(
-                threshold_value
-            )
-        )
+        msg = f"Threshold value should be positive, instead of {threshold_value}."
+        raise ValueError(msg)
 
     if threshold_method == "PCT" and threshold_value >= 100.0:  # noqa: PLR2004
-        raise ValueError(
-            "Percentile should be less than 100, received {0}.".format(threshold_value)
-        )
+        msg = f"Percentile should be less than 100, received {threshold_value}."
+        raise ValueError(msg)
 
     threshold = threshold_value
 
@@ -230,7 +226,7 @@ def temporal_variance_mask(
 
     # C-PAC default performs linear regression while nipype performs quadratic regression
     detrend = pe.Node(
-        afni.Detrend(args="-polort {0}".format(degree), outputtype="NIFTI"),
+        afni.Detrend(args=f"-polort {degree}", outputtype="NIFTI"),
         name="detrend",
     )
     wf.connect(input_node, "functional_file_path", detrend, "in_file")
@@ -384,7 +380,7 @@ def generate_summarize_tissue_mask(
             if csf_mask_exist:
                 mask_to_epi = pe.Node(
                     interface=fsl.FLIRT(),
-                    name="{}_flirt".format(node_mask_key),
+                    name=f"{node_mask_key}_flirt",
                     mem_gb=3.63,
                     mem_x=(3767129957844731 / 1208925819614629174706176, "in_file"),
                 )
@@ -416,7 +412,7 @@ def generate_summarize_tissue_mask(
 
                     nuisance_wf.connect(
                         *(
-                            pipeline_resource_pool["Anatomical_{}mm".format(resolution)]
+                            pipeline_resource_pool[f"Anatomical_{resolution}mm"]
                             + (mask_to_epi, "reference")
                         )
                     )
@@ -448,7 +444,7 @@ def generate_summarize_tissue_mask(
                     expr="a*(1-amongst(0,b,c,d,e,f,g))",
                     outputtype="NIFTI_GZ",
                 ),
-                name="{}".format(node_mask_key),
+                name=f"{node_mask_key}",
             )
 
             nuisance_wf.connect(
@@ -481,7 +477,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
         )
 
     # Mask CSF with Ventricles
-    if "{}_Unmasked".format(mask_key) not in pipeline_resource_pool:
+    if f"{mask_key}_Unmasked" not in pipeline_resource_pool:
         if ventricle_mask_exist:
             ventricles_key = "VentriclesToAnat"
 
@@ -494,7 +490,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
                 if use_ants is True:
                     # perform the transform using ANTS
                     collect_linear_transforms = pe.Node(
-                        util.Merge(3), name="{}_ants_transforms".format(ventricles_key)
+                        util.Merge(3), name=f"{ventricles_key}_ants_transforms"
                     )
 
                     nuisance_wf.connect(
@@ -511,7 +507,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
                             output_names=["inverse_transform_flags"],
                             function=generate_inverse_transform_flags,
                         ),
-                        name="{0}_inverse_transform_flags".format(ventricles_key),
+                        name=f"{ventricles_key}_inverse_transform_flags",
                     )
                     nuisance_wf.connect(
                         collect_linear_transforms,
@@ -522,7 +518,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
 
                     lat_ven_mni_to_anat = pe.Node(
                         interface=ants.ApplyTransforms(),
-                        name="{}_ants".format(ventricles_key),
+                        name=f"{ventricles_key}_ants",
                         mem_gb=0.683,
                         mem_x=(
                             3811976743057169 / 302231454903657293676544,
@@ -570,9 +566,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
                     else:
                         nuisance_wf.connect(
                             *(
-                                pipeline_resource_pool[
-                                    "Anatomical_{}mm".format(resolution)
-                                ]
+                                pipeline_resource_pool[f"Anatomical_{resolution}mm"]
                                 + (lat_ven_mni_to_anat, "reference_image")
                             )
                         )
@@ -586,7 +580,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
                     # perform the transform using FLIRT
                     lat_ven_mni_to_anat = pe.Node(
                         interface=fsl.ApplyWarp(),
-                        name="{}_fsl_applywarp".format(ventricles_key),
+                        name=f"{ventricles_key}_fsl_applywarp",
                     )
                     lat_ven_mni_to_anat.inputs.interp = "nn"
 
@@ -618,7 +612,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
                 # reduce CSF mask to the lateral ventricles
                 mask_csf_with_lat_ven = pe.Node(
                     interface=afni.Calc(outputtype="NIFTI_GZ"),
-                    name="{}_Ventricles".format(mask_key),
+                    name=f"{mask_key}_Ventricles",
                 )
                 mask_csf_with_lat_ven.inputs.expr = "a*b"
                 mask_csf_with_lat_ven.inputs.out_file = "csf_lat_ven_mask.nii.gz"
@@ -636,9 +630,9 @@ def generate_summarize_tissue_mask_ventricles_masking(
                     )
                 )
 
-                pipeline_resource_pool[
-                    "{}_Unmasked".format(mask_key)
-                ] = pipeline_resource_pool[mask_key]
+                pipeline_resource_pool[f"{mask_key}_Unmasked"] = pipeline_resource_pool[
+                    mask_key
+                ]
                 pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, "out_file")
 
             else:

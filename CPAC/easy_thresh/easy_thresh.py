@@ -444,7 +444,8 @@ def copy_geom(infile_a, infile_b):
         subprocess.check_output(cmd)
         return out_file
     except Exception:
-        raise Exception("Error while using fslcpgeom to copy geometry")
+        msg = "Error while using fslcpgeom to copy geometry"
+        raise Exception(msg)
 
 
 def get_standard_background_img(in_file, file_parameters):
@@ -476,12 +477,13 @@ def get_standard_background_img(in_file, file_parameters):
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
         standard_path = os.path.join(
-            FSLDIR, "data/standard/", "{0}_T1_{1}mm_brain.nii.gz".format(MNI, group_mm)
+            FSLDIR, "data/standard/", f"{MNI}_T1_{group_mm}mm_brain.nii.gz"
         )
         return os.path.abspath(standard_path)
 
     except Exception:
-        raise Exception("Error while loading background image")
+        msg = "Error while loading background image"
+        raise Exception(msg)
 
 
 def get_tuple(infile_a, infile_b):

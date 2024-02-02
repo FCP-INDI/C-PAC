@@ -10,7 +10,8 @@ def custom_corrcoef(X, Y=None):
         Y = X
 
     if X.shape[0] != Y.shape[0]:
-        raise Exception("X and Y must have the same number of rows.")
+        msg = "X and Y must have the same number of rows."
+        raise Exception(msg)
 
     X = X.astype(float)
     Y = Y.astype(float)

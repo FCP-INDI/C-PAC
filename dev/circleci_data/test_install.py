@@ -14,7 +14,8 @@ def test_AFNI_libraries():
                 if (d.endswith(".simg") or d.endswith(".sif"))
             )
         except:
-            raise Exception("Singularity image not in expected location.")
+            msg = "Singularity image not in expected location."
+            raise Exception(msg)
     if os.path.exists(SINGULARITY_IMAGE_PATH):
         afni_libraries = Client.execute(
             Client.instance(SINGULARITY_IMAGE_PATH),

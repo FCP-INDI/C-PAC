@@ -129,10 +129,12 @@ def nifti_cwas(
 
     regressor_cols = list(regressor_data.columns)
     if participant_column not in regressor_cols:
-        raise ValueError("Participant column was not found in regressor file.")
+        msg = "Participant column was not found in regressor file."
+        raise ValueError(msg)
 
     if participant_column in columns_string:
-        raise ValueError("Participant column can not be a regressor.")
+        msg = "Participant column can not be a regressor."
+        raise ValueError(msg)
 
     subject_ids = list(subjects.keys())
     subject_files = list(subjects.values())
@@ -168,7 +170,8 @@ def nifti_cwas(
     elif len(regressor.shape) != 2:
         raise ValueError("Bad regressor shape: %s" % str(regressor.shape))
     if len(subject_files) != regressor.shape[0]:
-        raise ValueError("Number of subjects does not match regressor size")
+        msg = "Number of subjects does not match regressor size"
+        raise ValueError(msg)
     mask = nib.load(mask_file).get_fdata().astype("bool")
     mask_indices = np.where(mask)
     subjects_data = np.array(

@@ -229,7 +229,8 @@ class ResampleImageBySpacing(ANTSCommand):
     def _format_arg(self, name, trait_spec, value):
         if name == "out_spacing":
             if len(value) != self.inputs.dimension:
-                raise ValueError("out_spacing dimensions should match dimension")
+                msg = "out_spacing dimensions should match dimension"
+                raise ValueError(msg)
 
             value = " ".join(["%d" % d for d in value])
 

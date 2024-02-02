@@ -418,7 +418,7 @@ def generate_gantt_chart(
     html_string += (
         "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
     )
-    html_string += "<p>Duration: " + "{0:.2f}".format(duration / 60) + " minutes</p>"
+    html_string += "<p>Duration: " + f"{duration / 60:.2f}" + " minutes</p>"
     html_string += "<p>Nodes: " + str(len(nodes_list)) + "</p>"
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
@@ -654,7 +654,8 @@ def _timing_timestamp(node):
     dict
     """
     if node is None or node.items() is None:
-        raise ProcessLookupError("No logged nodes have timing information.")
+        msg = "No logged nodes have timing information."
+        raise ProcessLookupError(msg)
     return {
         k: (
             datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f")

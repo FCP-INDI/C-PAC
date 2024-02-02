@@ -77,8 +77,8 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
 
     if "scantype" not in f_dict:
         msg = (
-            "Filename ({0}) does not appear to contain"
-            " scan type, does it conform to the BIDS format?".format(fname)
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
         )
         if raise_error:
             raise ValueError(msg)
@@ -86,8 +86,8 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
             pass
     elif not f_dict["scantype"]:
         msg = (
-            "Filename ({0}) does not appear to contain"
-            " scan type, does it conform to the BIDS format?".format(fname)
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
         )
         if raise_error:
             raise ValueError(msg)
@@ -96,9 +96,9 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
     else:
         if "bold" in f_dict["scantype"] and not f_dict["task"]:
             msg = (
-                "Filename ({0}) is a BOLD file, but "
+                f"Filename ({fname}) is a BOLD file, but "
                 "doesn't contain a task, does it conform to the"
-                " BIDS format?".format(fname)
+                " BIDS format?"
             )
             if raise_error:
                 raise ValueError(msg)
@@ -720,11 +720,11 @@ def bids_gen_cpac_sublist(
                         if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if (
-                            "epi_{0}".format(pe_dir)
+                            f"epi_{pe_dir}"
                             not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]
                         ):
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
-                                "epi_{0}".format(pe_dir)
+                                f"epi_{pe_dir}"
                             ] = task_info
 
     sublist = []
@@ -815,17 +815,17 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                                     }
                                 )
                             except UnicodeDecodeError:
-                                raise Exception(
-                                    "Could not decode {0}".format(os.path.join(root, f))
-                                )
+                                msg = f"Could not decode {os.path.join(root, f)}"
+                                raise Exception(msg)
 
     if not file_paths and not config_dict:
-        raise IOError(
-            "Didn't find any files in {0}. Please verify that the "
+        msg = (
+            f"Didn't find any files in {bids_dir}. Please verify that the "
             "path is typed correctly, that you have read access to "
             "the directory, and that it is not "
-            "empty.".format(bids_dir)
+            "empty."
         )
+        raise IOError(msg)
 
     return file_paths, config_dict
 
