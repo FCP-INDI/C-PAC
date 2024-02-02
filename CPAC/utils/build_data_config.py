@@ -1,3 +1,28 @@
+# Copyright (C) 2017-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Build a C-PAC data configuration."""
+from logging import basicConfig, INFO
+
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("CPAC.utils.data-config")
+basicConfig(format="%(message)s", level=INFO)
+
+
 def gather_file_paths(base_directory, verbose=False):
     # this will go into core tools eventually
 
@@ -1822,15 +1847,29 @@ def util_copy_template(template_type=None):
                 )
         shutil.copy(settings_template, settings_file)
     except Exception as exception:
-        raise Exception(
+        raise IOError(
             f"\n[!] Could not write the {template_type} file "
             "template to the current directory.\n"
         ) from exception
 
-    if type == "data_settings":
-        pass
-    elif type == "pipeline_config":
-        pass
+    logger.info(
+        "\nGenerated a default %s YAML file for editing:\n%s\n\n",
+        template_type,
+        settings_file,
+    )
+    if template_type == "data_settings":
+        logger.info(
+            "This file can be completed and entered into the C-PAC command-line"
+            " interface to generate a data configuration file for individual-level"
+            " analysis by running 'cpac utils data_config build {data settings file}'."
+            "\n"
+        )
+    elif template_type == "pipeline_config":
+        logger.info(
+            "This file can be edited and then used in a C-PAC run by running 'cpac run"
+            " $BIDS_DIR $OUTPUT_DIR participant --pipeline-file {pipeline config file"
+            "}'.\n"
+        )
 
 
 def run(data_settings_yml):
