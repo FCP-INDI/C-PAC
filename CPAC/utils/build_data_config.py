@@ -18,9 +18,19 @@
 from logging import basicConfig, INFO
 
 from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.typing import PATHSTR
 
 logger = getLogger("CPAC.utils.data-config")
 basicConfig(format="%(message)s", level=INFO)
+
+
+def _cannot_write(file_name: PATHSTR) -> None:
+    """Raise an IOError when a file cannot be written to disk."""
+    msg = (
+        f"\n\nCPAC says: I couldn't save this file to your drive:\n{file_name}\n\nMake"
+        " sure you have write access? Then come back. Don't worry.. I'll wait.\n\n"
+    )
+    raise IOError(msg)
 
 
 def gather_file_paths(base_directory, verbose=False):
@@ -44,9 +54,29 @@ def gather_file_paths(base_directory, verbose=False):
             path_list.append(fullpath)
 
     if verbose:
-        pass
+        logger.info("Number of paths: %s", len(path_list))
 
     return path_list
+
+
+def _no_anatomical_found(
+    data_dct: dict,
+    verbose: bool,
+    purpose: str,
+    entity: str,
+    id: str,
+    file_path: PATHSTR,
+) -> dict:
+    """Return the data dictionary and warn no anatomical entries are found."""
+    if verbose:
+        logger.warning(
+            "No anatomical entries found for %s for %s %s:\n%s\n",
+            purpose,
+            entity,
+            id,
+            file_path,
+        )
+    return data_dct
 
 
 def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
@@ -63,6 +93,8 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     s3_path = data_folder.split("s3://")[1]
     bucket_name = s3_path.split("/")[0]
     bucket_prefix = s3_path.split(bucket_name + "/")[1]
+
+    logger.info("Pulling from %s ...", data_folder)
 
     s3_list = []
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
@@ -81,12 +113,14 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
         else:
             s3_list.append(str(bk.key).replace(bucket_prefix, ""))
 
+    logger.info("Finished pulling from S3. %s file paths found.", len(s3_list))
+
     if not s3_list:
         err = (
             "\n\n[!] No input data found matching your data settings in "
             f"the AWS S3 bucket provided:\n{data_folder}\n\n"
         )
-        raise Exception(err)
+        raise FileNotFoundError(err)
 
     return s3_list
 
@@ -112,7 +146,7 @@ def get_file_list(
             "\n\n[!] No files were found in the base directory you "
             f"provided.\n\nDirectory: {base_directory}\n\n"
         )
-        raise Exception(warn)
+        raise FileNotFoundError(warn)
 
     if write_txt:
         if ".txt" not in write_txt:
@@ -121,6 +155,7 @@ def get_file_list(
         with open(write_txt, "wt") as f:
             for path in file_list:
                 f.write(f"{path}\n")
+        logger.info("\nFilepath list text file written:\n%s", write_txt)
 
     if write_pkl:
         import pickle
@@ -130,6 +165,7 @@ def get_file_list(
         write_pkl = os.path.abspath(write_pkl)
         with open(write_pkl, "wb") as f:
             pickle.dump(list(file_list), f)
+        logger.info("\nFilepath list pickle file written:\n%s", write_pkl)
 
     if write_info:
         niftis = []
@@ -152,10 +188,21 @@ def get_file_list(
                 if "participants.tsv" in path:
                     part_tsvs.append(path)
 
+        logger.info(
+            "\nBase directory: %s\nFile paths found: %s\n..NIFTI files: %s\n..JSON files: %s",
+            base_directory,
+            len(file_list),
+            len(niftis),
+            len(jsons),
+        )
+
         if jsons:
-            pass
+            logger.info(
+                "....%s of which are scan parameter JSON files", len(scan_jsons)
+            )
+        logger.info("..CSV files: %s\n..TSV files: %s", len(csvs), len(tsvs))
         if tsvs:
-            pass
+            logger.info("....%s of which are participants.tsv files", len(part_tsvs))
 
     return file_list
 
@@ -184,7 +231,7 @@ def download_single_s3_path(
         s3_prefix = s3_path.replace("s3://", "")
     else:
         err = "[!] S3 file paths must be pre-pended with the 's3://' prefix."
-        raise Exception(err)
+        raise SyntaxError(err)
 
     bucket_name = s3_prefix.split("/")[0]
     data_dir = s3_path.split(bucket_name + "/")[1]
@@ -199,9 +246,14 @@ def download_single_s3_path(
 
     if os.path.isfile(local_dl):
         if overwrite:
+            logger.info("\nS3 bucket file already downloaded! Overwriting..")
             aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
         else:
-            pass
+            logger.info(
+                "\nS3 bucket file already downloaded! Skipping download.\nS3 file: %s\nLocal file already exists: %s\n",
+                s3_path,
+                local_dl,
+            )
     else:
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
 
@@ -242,7 +294,7 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
             "\n\n[!] No input data found matching your data settings in "
             f"the AWS S3 bucket provided:\n{data_folder}\n\n"
         )
-        raise Exception(err)
+        raise FileNotFoundError(err)
 
     return s3_list
 
@@ -301,9 +353,14 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
                     subject_set.add(subject_id)
 
     except TypeError:
+        logger.error(
+            "Subject list could not be populated!\nThis is most likely due to a"
+            " mis-formatting in your inclusion and/or exclusion subjects txt file or"
+            " your anatomical and/or functional path templates."
+        )
         err_str = (
-            "Check formatting of your anatomical/functional path "
-            "templates and inclusion/exclusion subjects text files"
+            "Check formatting of your anatomical/functional path templates and"
+            " inclusion/exclusion subjects text files"
         )
         raise TypeError(err_str)
 
@@ -331,8 +388,8 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
 
     try:
         f = open(file_name, "wb")
-    except:
-        raise IOError
+    except (OSError, TypeError):
+        _cannot_write(file_name)
 
     writer = csv.writer(f)
 
@@ -342,6 +399,8 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
 
     f.close()
 
+    logger.info("Template phenotypic file for group analysis - %s", file_name)
+
     # generate the group analysis subject lists
     file_name = os.path.join(
         data_config_outdir, "participant_list_group_analysis_%s.txt" % data_config_name
@@ -350,9 +409,13 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
     try:
         with open(file_name, "w") as f:
             for sub in sorted(subID_set):
-                print(sub, file=f)
+                f.write(f"{sub}\n")
     except:
-        raise IOError
+        _cannot_write(file_name)
+
+    logger.info(
+        "Participant list required later for group analysis - %s\n\n", file_name
+    )
 
 
 def extract_scan_params_csv(scan_params_csv):
@@ -723,9 +786,17 @@ def get_BIDS_data_dct(
         import csv
 
         if part_tsv.startswith("s3://"):
+            logger.info(
+                "\n\nFound a participants.tsv file in your BIDS data set on the S3"
+                " bucket. Downloading..\n"
+            )
             part_tsv = download_single_s3_path(
                 part_tsv, config_dir, aws_creds_path, overwrite=True
             )
+
+        logger.info(
+            "Checking participants.tsv file for site information:\n%s", part_tsv
+        )
 
         with open(part_tsv, "r") as f:
             tsv = csv.DictReader(f)
@@ -740,6 +811,7 @@ def get_BIDS_data_dct(
         if sites_dct:
             # check for duplicates
             sites = sites_dct.keys()
+            logger.info("%s sites found in the participant.tsv file.", len(sites))
             for site in sites:
                 for other_site in sites:
                     if site == other_site:
@@ -747,22 +819,19 @@ def get_BIDS_data_dct(
                     dups = set(sites_dct[site]) & set(sites_dct[other_site])
                     if dups:
                         err = (
-                            "\n\n[!] There are duplicate participant IDs "
-                            "in different sites, as defined by your "
-                            "participants.tsv file! Consider pre-fixing "
-                            "the participant IDs with the site names.\n\n"
-                            "Duplicates:\n"
-                            f"Sites: {site}, {other_site}\n"
-                            f"Duplicate IDs: {dups!s}"
-                            "\n\n"
+                            "\n\n[!] There are duplicate participant IDs in different"
+                            " sites, as defined by your participants.tsv file!"
+                            " Consider prefixing the participant IDs with the site"
+                            f" names.\n\nDuplicates:\nSites: {site}, {other_site}\n"
+                            f"Duplicate IDs: {dups!s}\n\n"
                         )
-                        raise Exception(err)
+                        raise LookupError(err)
 
                 # now invert
                 for sub in sites_dct[site]:
                     sites_subs_dct[sub] = site
         else:
-            pass
+            logger.warning("No site information found in the participants.tsv file.")
 
     if not sites_subs_dct:
         # if there was no participants.tsv file, (or no site column in the
@@ -951,6 +1020,7 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id, scan_id):
         try:
             scan_params_dct[site_id] = {}
         except:
+            logger.info("%s", scan_params_dct)
             scan_params_dct = {site_id: {}}
     if sub_id not in scan_params_dct[site_id]:
         sub_id = "All"
@@ -975,21 +1045,26 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id, scan_id):
 
     try:
         scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
-    except TypeError:
+    except TypeError as type_error:
         # this ideally should never fire
         err = (
-            "\n[!] The scan parameters dictionary supplied to the data "
-            "configuration builder is not in the proper format.\n\n The "
-            "key combination that caused this error:\n{0}, {1}, {2}, {3}"
-            "\n\n".format(site_id, sub_id, ses_id, scan_id)
+            "\n[!] The scan parameters dictionary supplied to the data configuration"
+            " builder is not in the proper format.\n\n The key combination that caused"
+            f" this error:\n{site_id}, {sub_id}, {ses_id}, {scan_id}\n\n"
         )
-        raise Exception(err)
+        raise SyntaxError(err) from type_error
     except KeyError:
         pass
 
     if not scan_params:
-        "\n[!] No scan parameter information found in your scan " "parameter configuration for the functional input file:\n" "site: {0}, participant: {1}, session: {2}, series: {3}\n\n" "".format(
-            site_id, sub_id, ses_id, scan_id
+        logger.warning(
+            "\n[!] No scan parameter information found in your scan parameter"
+            " configuration for the functional input file:\nsite: %s, participant: %s,"
+            " session: %s, series: %s\n\n",
+            site_id,
+            sub_id,
+            ses_id,
+            scan_id,
         )
 
     return scan_params
@@ -1023,8 +1098,7 @@ def update_data_dct(
         return data_dct
 
     if data_type == "anat":
-        # pick the right anatomical scan, if "anatomical_scan" has been
-        # provided
+        # pick the right anatomical scan, if "anatomical_scan" has been provided
         if anat_scan:
             file_name = os.path.basename(file_path)
             if anat_scan not in file_name:
@@ -1141,7 +1215,7 @@ def update_data_dct(
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
         except:
-            pass
+            logger.error("Path split exception: %s // %s, %s", new_path, part1, part2)
 
         # example, ideally at this point, something like this:
         #   template: /path/to/sub-{participant}/etc.
@@ -1154,23 +1228,18 @@ def update_data_dct(
             skip = False
         else:
             if path_dct[label] != id:
-                warn = (
-                    "\n\n[!] WARNING: While parsing your input data "
-                    "files, a file path was found with conflicting "
-                    "IDs for the same data level.\n\n"
-                    "File path: {0}\n"
-                    "Level: {1}\n"
-                    "Conflicting IDs: {2}, {3}\n\n"
-                    "Thus, we can't tell which {4} it belongs to, and "
-                    "whether this file should be included or excluded! "
-                    "Therefore, this file has not been added to the "
-                    "data configuration.".format(
-                        file_path,
-                        label,
-                        path_dct[label],
-                        id,
-                        label.replace("{", "").replace("}", ""),
-                    )
+                logger.warning(
+                    "\n\n[!] WARNING: While parsing your input data files, a file path"
+                    " was found with conflicting IDs for the same data level.\n\nFile"
+                    " path: %s\nLevel: %s\nConflicting IDs: %s, %s\n\nThus, we can't"
+                    " tell which %s it belongs to, and whether this file should be"
+                    " included or excluded! Therefore, this file has not been added to"
+                    " the data configuration.",
+                    file_path,
+                    label,
+                    path_dct[label],
+                    id,
+                    label.replace("{", "").replace("}", ""),
                 )
                 skip = True
                 break
@@ -1283,42 +1352,31 @@ def update_data_dct(
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
             # doubt this ever happens, but just be safe
-            warn = (
-                "\n\n[!] WARNING: Multiple site-participant-session "
-                "entries found for anatomical scans in your input data "
-                "directory.\n\nDuplicate sets:\n\n{0}\n\n{1}\n\nOnly "
-                "adding the first one to the data configuration file."
-                "\n\n".format(str(data_dct[site_id][sub_id][ses_id]), str(temp_sub_dct))
+            logger.warning(
+                "\n\n[!] WARNING: Multiple site-participant-session entries found for"
+                " anatomical scans in your input data directory.\n\nDuplicate sets:"
+                "\n\n%s\n\n%s\n\nOnly adding the first one to the data configuration"
+                " file.\n\n",
+                data_dct[site_id][sub_id][ses_id],
+                temp_sub_dct,
             )
 
     elif data_type == "freesurfer_dir":
         if site_id not in data_dct.keys():
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("freesurfer", "site", site_id, file_path)
         if sub_id not in data_dct[site_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("freesurfer", "participant", sub_id, file_path)
         if ses_id not in data_dct[site_id][sub_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("freesurfer", "session", ses_id, file_path)
         data_dct[site_id][sub_id][ses_id]["anat"]["freesurfer_dir"] = file_path
 
     elif data_type == "brain_mask":
         if site_id not in data_dct.keys():
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("brain mask", "site", site_id, file_path)
         if sub_id not in data_dct[site_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("brain mask", "participant", sub_id, file_path)
         if ses_id not in data_dct[site_id][sub_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("brain mask", "session", ses_id, file_path)
 
         data_dct[site_id][sub_id][ses_id]["brain_mask"] = file_path
 
@@ -1339,17 +1397,11 @@ def update_data_dct(
             temp_func_dct[scan_id]["scan_parameters"] = scan_params
 
         if site_id not in data_dct.keys():
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("functional", "site", site_id, file_path)
         if sub_id not in data_dct[site_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("functional", "participant", sub_id, file_path)
         if ses_id not in data_dct[site_id][sub_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("functional", "session", ses_id, file_path)
 
         if "func" not in data_dct[site_id][sub_id][ses_id]:
             data_dct[site_id][sub_id][ses_id]["func"] = temp_func_dct
@@ -1395,38 +1447,35 @@ def update_data_dct(
         temp_fmap_dct = {data_type: file_path}
 
         if site_id not in data_dct.keys():
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found("field map file", "site", site_id, file_path)
         if sub_id not in data_dct[site_id]:
-            if verbose:
-                pass
-            return data_dct
+            return _no_anatomical_found(
+                "field map file", "participant", sub_id, file_path
+            )
         if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
                 for temp_ses in data_dct[site_id][sub_id]:
                     if "anat" in data_dct[site_id][sub_id][temp_ses]:
-                        warn = (
-                            f"Field map file found for session {ses_id}, but "
-                            "the anatomical scan chosen for this "
-                            f"participant-session is for session {temp_ses}, "
-                            "so this field map file is being "
-                            f"skipped:\n{file_path}\n"
-                        )
-                        warn = (
-                            f"{warn}\nIf you wish to use the anatomical "
-                            f"scan for session {ses_id} for all participants "
-                            "with this session instead, use the 'Which "
-                            "Anatomical Scan?' option in the data "
-                            "configuration builder (or populate the "
-                            "'anatomical_scan' field in the data "
-                            "settings file).\n"
+                        logger.warning(
+                            "Field map file found for session %s, but the anatomical"
+                            " scan chosen for this participant-session is for session"
+                            " %s, so this field map file is being skipped:\n%s\n\n\nIf"
+                            " you wish to use the anatomical scan for session %s for"
+                            " all participants with this session instead, use the"
+                            " 'Which Anatomical Scan?' option in the data"
+                            " configuration builder (or populate the 'anatomical_scan'"
+                            " field in the data settings file).\n",
+                            ses_id,
+                            temp_ses,
+                            file_path,
+                            ses_id,
                         )
                         break
                 else:
-                    warn = (
-                        "No anatomical found for field map file for "
-                        f"session {ses_id}:\n{file_path}\n"
+                    logger.warning(
+                        "No anatomical found for field map file for session %s:\n%s\n",
+                        ses_id,
+                        file_path,
                     )
             return data_dct
 
@@ -1871,15 +1920,15 @@ def util_copy_template(template_type=None):
         )
 
 
-def run(data_settings_yml):
-    """Generate and write out a CPAC data configuration (participant list)
-    YAML file.
-    """
+def run(data_settings_yml: str):
+    """Generate and write a CPAC data configuration (participant list) YAML file."""
     import os
 
     import yaml
 
     import CPAC
+
+    logger.info("\nGenerating data configuration file..")
 
     settings_dct = yaml.safe_load(open(data_settings_yml, "r"))
 
@@ -2029,8 +2078,8 @@ def run(data_settings_yml):
                     group_list.append(f"{sub}_{ses}")
 
         # calculate numbers
-        len(set(included["site"]))
-        len(set(included["sub"]))
+        num_sites = len(set(included["site"]))
+        num_subs = len(set(included["sub"]))
 
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
@@ -2056,14 +2105,30 @@ def run(data_settings_yml):
                 f.write(f"{id}\n")
 
         if os.path.exists(data_config_outfile):
-            pass
+            logger.info(
+                "\nCPAC DATA SETTINGS file entered (use this preset file to modify"
+                "/regenerate the data configuration file):\n%s\n\nNumber of:"
+                "\n...sites: %s\n...participants: %s\n...participant-sessions: %s"
+                "\n...functional scans: %s\n\nCPAC DATA CONFIGURATION file created"
+                " (use this for individual-level analysis):\n%s\n",
+                data_settings_yml,
+                num_sites,
+                num_subs,
+                num_sess,
+                num_scan,
+                data_config_outfile,
+            )
 
         if os.path.exists(group_list_outfile):
-            pass
+            logger.info(
+                "Group-level analysis participant-session list text file created (use"
+                " this for group-level analysis):\n%s\n",
+                group_list_outfile,
+            )
 
     else:
         err = (
-            "\n\n[!] No anatomical input files were found given the data "
-            "settings provided.\n\n"
+            "\n\n[!] No anatomical input files were found given the data settings"
+            " provided.\n\n"
         )
-        raise Exception(err)
+        raise FileNotFoundError(err)

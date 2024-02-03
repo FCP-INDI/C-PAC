@@ -21,6 +21,7 @@ Once all variants (see {DOCS_URL_PREFIX}/user/versions#variants)
 run Python ≥ 3.10, these global variables can be replaced with the
 current preferred syntax.
 """
+from pathlib import Path
 import sys
 from typing import Union
 
@@ -54,5 +55,14 @@ else:
     LIST_OR_STR = Union[LIST[str], str]  # pylint: disable=invalid-name
     TUPLE = Tuple
 ITERABLE = Iterable
+PATHSTR = Union[Path, str]
 ConfigKeyType = Union[str, LIST[str]]
-__all__ = ["ConfigKeyType", "ITERABLE", "LIST", "LIST_OR_STR", "LITERAL", "TUPLE"]
+__all__ = [
+    "ConfigKeyType",
+    "ITERABLE",
+    "LIST",
+    "LIST_OR_STR",
+    "LITERAL",
+    "PATHSTR",
+    "TUPLE",
+]
