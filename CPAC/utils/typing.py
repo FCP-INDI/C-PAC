@@ -28,15 +28,19 @@ from typing import Union
 from CPAC.utils.docs import DOCS_URL_PREFIX
 
 # Set the version-specific documentation URL in the module docstring:
-__doc__ = __doc__.replace(r"{DOCS_URL_PREFIX}", DOCS_URL_PREFIX)
+__doc__ = __doc__.replace(r"{DOCS_URL_PREFIX}", DOCS_URL_PREFIX)  # noqa: A001
 
 if sys.version_info >= (3, 8):
     from typing import Literal
 
+    DICT = dict
     LITERAL = Literal
 else:
+    from typing import Dict
+
     from typing_extensions import Literal
 
+    DICT = Dict
     LITERAL = Literal
 if sys.version_info >= (3, 9):
     from collections.abc import Iterable
@@ -59,6 +63,7 @@ PATHSTR = Union[Path, str]
 ConfigKeyType = Union[str, LIST[str]]
 __all__ = [
     "ConfigKeyType",
+    "DICT",
     "ITERABLE",
     "LIST",
     "LIST_OR_STR",

@@ -16,9 +16,10 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Build a C-PAC data configuration."""
 from logging import basicConfig, INFO
+from typing import Any
 
 from CPAC.utils.monitoring.custom_logging import getLogger
-from CPAC.utils.typing import PATHSTR
+from CPAC.utils.typing import DICT, LIST, PATHSTR
 
 logger = getLogger("CPAC.utils.data-config")
 basicConfig(format="%(message)s", level=INFO)
@@ -33,7 +34,8 @@ def _cannot_write(file_name: PATHSTR) -> None:
     raise IOError(msg)
 
 
-def gather_file_paths(base_directory, verbose=False):
+def gather_file_paths(base_directory, verbose=False) -> LIST[PATHSTR]:
+    """Return a list of file paths from a base directory."""
     # this will go into core tools eventually
 
     # ideas: return number of paths, optionally instead
@@ -64,7 +66,7 @@ def _no_anatomical_found(
     verbose: bool,
     purpose: str,
     entity: str,
-    id: str,
+    _id: str,
     file_path: PATHSTR,
 ) -> dict:
     """Return the data dictionary and warn no anatomical entries are found."""
@@ -73,16 +75,14 @@ def _no_anatomical_found(
             "No anatomical entries found for %s for %s %s:\n%s\n",
             purpose,
             entity,
-            id,
+            _id,
             file_path,
         )
     return data_dct
 
 
-def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
-    """Return a list of input data file paths that are available on an AWS S3
-    bucket on the cloud.
-    """
+def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True) -> LIST[PATHSTR]:
+    """Return a list of input data file paths that are available from AWS S3."""
     import os
 
     from indi_aws import fetch_creds
@@ -127,9 +127,10 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
 
 def get_file_list(
     base_directory, creds_path=None, write_txt=None, write_pkl=None, write_info=False
-):
-    """Return a list of input and data file paths either stored locally or on
-    an AWS S3 bucket on the cloud.
+) -> LIST[PATHSTR]:
+    """Return a list of input and data file paths.
+    
+    These paths are either stored locally or on an AWS S3 bucket on the cloud.
     """
     import os
 
@@ -260,67 +261,29 @@ def download_single_s3_path(
     return local_dl
 
 
-def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
-    import os
-
-    from indi_aws import fetch_creds
-
-    if creds_path:
-        creds_path = os.path.abspath(creds_path)
-
-    s3_path = data_folder.split("s3://")[1]
-    bucket_name = s3_path.split("/")[0]
-    bucket_prefix = s3_path.split(bucket_name + "/")[1]
-
-    s3_list = []
-    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
-    # ensure slash at end of bucket_prefix, so that if the final
-    # directory name is a substring in other directory names, these
-    # other directories will not be pulled into the file list
-    if "/" not in bucket_prefix[-1]:
-        bucket_prefix += "/"
-
-    # Build S3-subjects to download
-    for bk in bucket.objects.filter(Prefix=bucket_prefix):
-        if keep_prefix:
-            fullpath = os.path.join("s3://", bucket_name, str(bk.key))
-            s3_list.append(fullpath)
-        else:
-            s3_list.append(str(bk.key).replace(bucket_prefix, ""))
-
-    if not s3_list:
-        err = (
-            "\n\n[!] No input data found matching your data settings in "
-            f"the AWS S3 bucket provided:\n{data_folder}\n\n"
-        )
-        raise FileNotFoundError(err)
-
-    return s3_list
-
-
 def generate_group_analysis_files(data_config_outdir, data_config_name):
     """Create the group-level analysis inclusion list."""
     import csv
     import os
 
-    from sets import Set
     import yaml
 
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
         subjects_list = yaml.safe_load(open(data_config_path, "r"))
-    except:
-        "\n\n[!] Data configuration file couldn't be read!\nFile " "path: {0}\n".format(
-            data_config_path
+    except (OSError, TypeError) as e:
+        msg = (
+            "\n\n[!] Data configuration file couldn't be read!\nFile path:"
+            f"{data_config_path}\n"
         )
+        raise OSError(msg) from e
 
-    subject_scan_set = Set()
-    subID_set = Set()
-    session_set = Set()
-    subject_set = Set()
-    scan_set = Set()
+    subject_scan_set = set()
+    subID_set = set()
+    session_set = set()
+    subject_set = set()
+    scan_set = set()
     data_list = []
 
     try:
@@ -410,7 +373,7 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
         with open(file_name, "w") as f:
             for sub in sorted(subID_set):
                 f.write(f"{sub}\n")
-    except:
+    except (AttributeError, OSError, TypeError, ValueError):
         _cannot_write(file_name)
 
     logger.info(
@@ -418,10 +381,11 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
     )
 
 
-def extract_scan_params_csv(scan_params_csv):
+def extract_scan_params_csv(scan_params_csv: PATHSTR) -> DICT[str, Any]:
     """
-    Function to extract the site-based scan parameters from a csv file
-    and return a dictionary of their values.
+    Extract the site-based scan parameters from a csv file.
+
+    Returns a dictionary of their values.
 
     Parameters
     ----------
@@ -530,8 +494,10 @@ def extract_scan_params_csv(scan_params_csv):
 
 
 def format_incl_excl_dct(incl_list, info_type="participants"):
-    """Create either an inclusion or exclusion dictionary to determine which
-    input files to include or not include in the data configuration file.
+    """Create either an inclusion or exclusion dictionary...
+
+    ...to determine which input files to include or not include in the data
+    configuration file.
     """
     incl_dct = {}
 
@@ -565,7 +531,9 @@ def get_BIDS_data_dct(
     exclusion_dct=None,
     config_dir=None,
 ):
-    """Return a data dictionary mapping input file paths to participant,
+    """Return a data dictionary...
+
+    ...mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
     directory.
 
@@ -874,17 +842,17 @@ def get_BIDS_data_dct(
             run_id = None
             acq_id = None
 
-            for id in ids:
-                if "sub-" in id:
-                    sub_id = id.replace("sub-", "")
-                if "ses-" in id:
-                    ses_id = id.replace("ses-", "")
-                if "task-" in id:
-                    scan_id = id.replace("task-", "")
-                if "run-" in id:
-                    run_id = id.replace("run-", "")
-                if "acq-" in id:
-                    acq_id = id.replace("acq-", "")
+            for _id in ids:
+                if "sub-" in _id:
+                    sub_id = _id.replace("sub-", "")
+                if "ses-" in _id:
+                    ses_id = _id.replace("ses-", "")
+                if "task-" in _id:
+                    scan_id = _id.replace("task-", "")
+                if "run-" in _id:
+                    run_id = _id.replace("run-", "")
+                if "acq-" in _id:
+                    acq_id = _id.replace("acq-", "")
 
             if run_id or acq_id:
                 json_filename = os.path.basename(json_file)
@@ -900,9 +868,9 @@ def get_BIDS_data_dct(
                     # {All}_run-1, for example, to be interpreted later when
                     # matching scan params JSONs to each func scan
                     scan_id = "[All]"
-                    for id in json_filename.split("_"):
-                        if "run-" in id or "acq-" in id:
-                            scan_id = f"{scan_id}_{id}"
+                    for additional_id in json_filename.split("_"):
+                        if "run-" in additional_id or "acq-" in additional_id:
+                            scan_id = f"{scan_id}_{additional_id}"
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
@@ -928,17 +896,17 @@ def get_BIDS_data_dct(
             run_id = None
             acq_id = None
 
-            for id in ids:
-                if "sub-" in id:
-                    sub_id = id.replace("sub-", "")
-                if "ses-" in id:
-                    ses_id = id.replace("ses-", "")
-                if "task-" in id:
-                    scan_id = id.replace("task-", "")
-                if "run-" in id:
-                    run_id = id.replace("run-", "")
-                if "acq-" in id:
-                    acq_id = id.replace("acq-", "")
+            for _id in ids:
+                if "sub-" in _id:
+                    sub_id = _id.replace("sub-", "")
+                if "ses-" in _id:
+                    ses_id = _id.replace("ses-", "")
+                if "task-" in _id:
+                    scan_id = _id.replace("task-", "")
+                if "run-" in _id:
+                    run_id = _id.replace("run-", "")
+                if "acq-" in _id:
+                    acq_id = _id.replace("acq-", "")
 
             if run_id or acq_id:
                 json_filename = os.path.basename(json_file)
@@ -954,9 +922,9 @@ def get_BIDS_data_dct(
                     # {All}_run-1, for example, to be interpreted later when
                     # matching scan params JSONs to each func scan
                     scan_id = "[All]"
-                    for id in json_filename.split("_"):
-                        if "run-" in id or "acq-" in id:
-                            scan_id = f"{scan_id}_{id}"
+                    for additional_id in json_filename.split("_"):
+                        if "run-" in additional_id or "acq-" in additional_id:
+                            scan_id = f"{scan_id}_{additional_id}"
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
@@ -1010,8 +978,10 @@ def get_BIDS_data_dct(
 
 
 def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id, scan_id):
-    """Return the scan parameters information stored in the provided scan
-    parameters dictionary for the IDs of a specific functional input scan.
+    """Return the scan parameters information...
+
+    ...stored in the provided scan parameters dictionary for the IDs of a specific
+    functional input scan.
     """
     scan_params = None
 
@@ -1019,7 +989,7 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id, scan_id):
         site_id = "All"
         try:
             scan_params_dct[site_id] = {}
-        except:
+        except TypeError:
             logger.info("%s", scan_params_dct)
             scan_params_dct = {site_id: {}}
     if sub_id not in scan_params_dct[site_id]:
@@ -1082,9 +1052,10 @@ def update_data_dct(
     exclusion_dct=None,
     aws_creds_path=None,
     verbose=True,
-):
-    """Return a data dictionary with a new file path parsed and added in,
-    keyed with its appropriate ID labels.
+) -> DICT[str, Any]:
+    """Return a data dictionary with a new file path parsed and added in,...
+
+    ...keyed with its appropriate ID labels.
     """
     import glob
     import os
@@ -1103,41 +1074,36 @@ def update_data_dct(
             file_name = os.path.basename(file_path)
             if anat_scan not in file_name:
                 return data_dct
-            else:
-                # if we're dealing with BIDS here
-                if "sub-" in file_name and "T1w." in file_name:
-                    anat_scan_identifier = False
-                    # BIDS tags are delineated with underscores
-                    bids_tags = []
-                    for tag in file_name.split("_"):
-                        if anat_scan == tag:
-                            # the "anatomical_scan" substring provided is
-                            # one of the BIDS tags
+            # if we're dealing with BIDS here
+            if "sub-" in file_name and "T1w." in file_name:
+                anat_scan_identifier = False
+                # BIDS tags are delineated with underscores
+                bids_tags = []
+                for tag in file_name.split("_"):
+                    if anat_scan == tag:
+                        # the "anatomical_scan" substring provided is
+                        # one of the BIDS tags
+                        anat_scan_identifier = True
+                    else:
+                        if "sub-" not in tag and "ses-" not in tag and "T1w" not in tag:
+                            bids_tags.append(tag)
+                        if anat_scan in tag:
+                            # the "anatomical_scan" substring provided was
+                            # found in one of the BIDS tags
                             anat_scan_identifier = True
-                        else:
-                            if (
-                                "sub-" not in tag
-                                and "ses-" not in tag
-                                and "T1w" not in tag
-                            ):
-                                bids_tags.append(tag)
-                            if anat_scan in tag:
-                                # the "anatomical_scan" substring provided was
-                                # found in one of the BIDS tags
-                                anat_scan_identifier = True
-                    if anat_scan_identifier:
-                        if len(bids_tags) > 1:
-                            # if this fires, then there are other tags as well
-                            # in addition to what was defined in the
-                            # "anatomical_scan" field in the data settings,
-                            #     for example, we might be looking for only
-                            #     run-1, but we found acq-inv_run-1 instead
-                            return data_dct
+                if anat_scan_identifier:
+                    if len(bids_tags) > 1:
+                        # if this fires, then there are other tags as well
+                        # in addition to what was defined in the
+                        # "anatomical_scan" field in the data settings,
+                        #     for example, we might be looking for only
+                        #     run-1, but we found acq-inv_run-1 instead
+                        return data_dct
 
-                # if we're dealing with a custom data directory format
-                else:
-                    # TODO: more involved processing here? or not necessary?
-                    pass
+            # if we're dealing with a custom data directory format
+            else:
+                # TODO: more involved processing here? or not necessary?
+                pass
 
     # reduce the template down to only the sub-strings that do not have
     # these tags or IDs
@@ -1212,43 +1178,42 @@ def update_data_dct(
             continue
 
         try:
-            id = new_path.split(part1, 1)[1]
-            id = id.split(part2, 1)[0]
-        except:
+            id_value = new_path.split(part1, 1)[1]
+            id_value = id_value.split(part2, 1)[0]
+        except (IndexError, TypeError):
             logger.error("Path split exception: %s // %s, %s", new_path, part1, part2)
 
         # example, ideally at this point, something like this:
-        #   template: /path/to/sub-{participant}/etc.
-        #   filepath: /path/to/sub-200/etc.
-        #   label = {participant}
-        #   id    = '200'
+        #   template = /path/to/sub-{participant}/etc.
+        #   filepath = /path/to/sub-200/etc.
+        #   label    = {participant}
+        #   id_value = '200'
 
         if label not in path_dct.keys():
-            path_dct[label] = id
+            path_dct[label] = id_value
             skip = False
-        else:
-            if path_dct[label] != id:
-                logger.warning(
-                    "\n\n[!] WARNING: While parsing your input data files, a file path"
-                    " was found with conflicting IDs for the same data level.\n\nFile"
-                    " path: %s\nLevel: %s\nConflicting IDs: %s, %s\n\nThus, we can't"
-                    " tell which %s it belongs to, and whether this file should be"
-                    " included or excluded! Therefore, this file has not been added to"
-                    " the data configuration.",
-                    file_path,
-                    label,
-                    path_dct[label],
-                    id,
-                    label.replace("{", "").replace("}", ""),
-                )
-                skip = True
-                break
+        elif path_dct[label] != id_value:
+            logger.warning(
+                "\n\n[!] WARNING: While parsing your input data files, a file path"
+                " was found with conflicting IDs for the same data level.\n\nFile"
+                " path: %s\nLevel: %s\nConflicting IDs: %s, %s\n\nThus, we can't"
+                " tell which %s it belongs to, and whether this file should be"
+                " included or excluded! Therefore, this file has not been added to"
+                " the data configuration.",
+                file_path,
+                label,
+                path_dct[label],
+                id_value,
+                label.replace("{", "").replace("}", ""),
+            )
+            skip = True
+            break
 
         new_template = new_template.replace(part1, "", 1)
         new_template = new_template.replace(label, "", 1)
 
         new_path = new_path.replace(part1, "", 1)
-        new_path = new_path.replace(id, "", 1)
+        new_path = new_path.replace(id_value, "", 1)
 
     if skip:
         return data_dct
@@ -1275,13 +1240,12 @@ def update_data_dct(
     if data_type not in ("anat", "brain_mask"):
         if "{scan}" in path_dct.keys():
             scan_id = path_dct["{scan}"]
+        elif data_type == "func":
+            scan_id = "func-1"
         else:
-            if data_type == "func":
-                scan_id = "func-1"
-            else:
-                # field map files - keep these open as "None" so that they
-                # can be applied to all scans, if there isn't one specified
-                scan_id = None
+            # field map files - keep these open as "None" so that they
+            # can be applied to all scans, if there isn't one specified
+            scan_id = None
 
     if inclusion_dct:
         if "sites" in inclusion_dct.keys():
@@ -1502,10 +1466,10 @@ def get_nonBIDS_data(
     inclusion_dct=None,
     exclusion_dct=None,
     sites_dct=None,
-    verbose=False,
 ):
-    """Prepare a data dictionary for the data configuration file when given
-    file path templates describing the input data directories.
+    """Prepare a data dictionary for the data configuration file...
+
+    ...when given file path templates describing the input data directories.
     """
     import fnmatch
     import glob
@@ -1704,8 +1668,8 @@ def get_nonBIDS_data(
                 if fnmatch.fnmatch(filepath, freesurfer_glob):
                     freesurfer_pool.append(filepath)
         else:
-            for dir in os.listdir(str(os.path.dirname(freesurfer_glob))):
-                freesurfer_pool.append(freesurfer_glob.replace("*", dir))
+            for fsdir in os.listdir(str(os.path.dirname(freesurfer_glob))):
+                freesurfer_pool.append(freesurfer_glob.replace("*", fsdir))
 
         for freesurfer_path in freesurfer_pool:
             data_dct = update_data_dct(
@@ -2101,8 +2065,8 @@ def run(data_settings_yml: str):
         with open(group_list_outfile, "wt") as f:
             # write the inclusion list (mainly the group analysis sublist)
             # text file
-            for id in sorted(group_list):
-                f.write(f"{id}\n")
+            for group_id in sorted(group_list):
+                f.write(f"{group_id}\n")
 
         if os.path.exists(data_config_outfile):
             logger.info(
