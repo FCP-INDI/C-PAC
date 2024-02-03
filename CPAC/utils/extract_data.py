@@ -454,8 +454,6 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     import csv
     import os
 
-    from sets import Set
-
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
@@ -465,11 +463,11 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
             data_config_path
         )
 
-    subject_scan_set = Set()
-    subID_set = Set()
-    session_set = Set()
-    subject_set = Set()
-    scan_set = Set()
+    subject_scan_set = set()
+    subID_set = set()
+    session_set = set()
+    subject_set = set()
+    scan_set = set()
     data_list = []
 
     try:

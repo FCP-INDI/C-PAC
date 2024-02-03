@@ -129,7 +129,7 @@ def get_file_list(
     base_directory, creds_path=None, write_txt=None, write_pkl=None, write_info=False
 ) -> LIST[PATHSTR]:
     """Return a list of input and data file paths.
-    
+
     These paths are either stored locally or on an AWS S3 bucket on the cloud.
     """
     import os

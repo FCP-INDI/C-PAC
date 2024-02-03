@@ -79,8 +79,6 @@ def grab(output_dir, scrubbing):
     import os
     import re
 
-    from sets import Set
-
     pipelines = glob.glob(os.path.join(output_dir, "pipeline*"))
 
     for p in pipelines:
@@ -102,8 +100,8 @@ def grab(output_dir, scrubbing):
             if val:
                 threshold_list.append(val.group(0))
 
-        scan_list = Set(scan_list)
-        threshold_list = Set(threshold_list)
+        scan_list = set(scan_list)
+        threshold_list = set(threshold_list)
 
         for scan in scan_list:
             for threshold in threshold_list:

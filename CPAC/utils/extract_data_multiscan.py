@@ -403,15 +403,13 @@ def generate_suplimentary_files(output_path):
     """
     import csv
 
-    from sets import Set
-
     subjects_list = yaml.safe_load(
         open(os.path.join(output_path, "CPAC_subject_list.yml"), "r")
     )
 
-    subject_scan_set = Set()
-    subject_set = Set()
-    scan_set = Set()
+    subject_scan_set = set()
+    subject_set = set()
+    scan_set = set()
     data_list = []
 
     for sub in subjects_list:
