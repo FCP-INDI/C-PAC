@@ -29,7 +29,7 @@ repos:
     hooks:
     - id: check-case-conflict
     - id: end-of-file-fixer
-      exclude: '.*\.?sv'
+      exclude: '.*\.?sv|.*\.pkl(z)?'
     - id: mixed-line-ending
       args:
       - --fix=lf
