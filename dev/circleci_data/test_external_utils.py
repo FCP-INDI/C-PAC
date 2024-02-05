@@ -1,3 +1,21 @@
+# Copyright (C) 2021-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Tests for CLI utilities."""
+from logging import INFO
 import os
 from pathlib import Path
 import sys
@@ -10,7 +28,7 @@ CPAC_DIR = str(Path(__file__).parent.parent.parent)
 sys.path.append(CPAC_DIR)
 DATA_DIR = os.path.join(CPAC_DIR, "dev", "circleci_data")
 
-from CPAC.__main__ import utils as CPAC_main_utils
+from CPAC.__main__ import utils as CPAC_main_utils  # noqa: E402
 
 # pylint: disable=wrong-import-position
 
@@ -42,10 +60,13 @@ def _resolve_alias(command, key):
 
 
 @pytest.mark.parametrize("multiword_connector", ["-", "_"])
-def test_build_data_config(cli_runner, multiword_connector):
-    """Test CLI ``utils data-config new-settings-template`` and
-    ``utils data_config new_settings_template``.
+def test_build_data_config(caplog, cli_runner, multiword_connector):
     """
+    Test CLI ``utils data-config new-settings-template``...
+
+    ...and ``utils data_config new_settings_template``.
+    """
+    caplog.set_level(INFO)
     if multiword_connector == "-" and _BACKPORT_CLICK:
         return
     os.chdir(DATA_DIR)
@@ -64,14 +85,16 @@ def test_build_data_config(cli_runner, multiword_connector):
         )
 
     assert result.exit_code == 0
-    assert result.output.startswith(
+    assert "\n".join(caplog.messages).startswith(
         "\nGenerated a default data_settings YAML file for editing"
     )
     assert os.path.exists(test_yaml)
     _delete_test_yaml(test_yaml)
 
 
-def test_new_settings_template(cli_runner):
+def test_new_settings_template(caplog, cli_runner):
+    """Test CLI ``utils new-settings-template``."""
+    caplog.set_level(INFO)
     os.chdir(CPAC_DIR)
 
     example_dir = os.path.join(CPAC_DIR, "bids-examples")
@@ -93,14 +116,16 @@ def test_new_settings_template(cli_runner):
     group_yaml = os.path.join(DATA_DIR, "group_analysis_participants_ds051.txt")
 
     assert result.exit_code == 0
-    assert result.output.startswith("\nGenerating data configuration file..")
+    assert "\n".join(caplog.messages).startswith(
+        "\nGenerating data configuration file.."
+    )
     assert os.path.exists(participant_yaml)
     assert os.path.exists(group_yaml)
     _delete_test_yaml(participant_yaml)
     _delete_test_yaml(group_yaml)
 
 
-def test_repickle(cli_runner):
+def test_repickle(cli_runner):  # noqa
     fn = "python_2_pickle.pkl"
     pickle_path = os.path.join(DATA_DIR, fn)
     backups = [_Backup(pickle_path), _Backup(f"{pickle_path}z")]
