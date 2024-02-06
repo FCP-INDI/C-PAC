@@ -1,3 +1,20 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""CWAS module for CPAC."""
 import os
 
 import numpy as np
@@ -15,8 +32,9 @@ from CPAC.utils import correlation
 
 
 def joint_mask(subjects, mask_file=None):
-    """
-    Creates a joint mask (intersection) common to all the subjects in a provided list
+    """Create a joint mask.
+
+    A joint mask is an intersection common to all the subjects in a provided list
     and a provided mask.
 
     Parameters
@@ -42,12 +60,14 @@ def joint_mask(subjects, mask_file=None):
 
 
 def calc_mdmrs(D, regressor, cols, permutations):
+    """Calculate pseudo-F values and significance probabilities."""
     cols = np.array(cols, dtype=np.int32)
     F_set, p_set = mdmr(D, regressor, cols, permutations)
     return F_set, p_set
 
 
 def calc_subdists(subjects_data, voxel_range):
+    """Calculate the subdistributions of the subjects data."""
     subjects, voxels, _ = subjects_data.shape
     D = np.zeros((len(voxel_range), subjects, subjects))
     for i, v in enumerate(voxel_range):
@@ -64,12 +84,14 @@ def calc_subdists(subjects_data, voxel_range):
 def calc_cwas(
     subjects_data, regressor, regressor_selected_cols, permutations, voxel_range
 ):
+    """Calculate CWAS pseudo-F values and significance probabilities."""
     D = calc_subdists(subjects_data, voxel_range)
     F_set, p_set = calc_mdmrs(D, regressor, regressor_selected_cols, permutations)
     return F_set, p_set
 
 
 def pval_to_zval(p_set, permu):
+    """Convert p-values to z-values."""
     inv_pval = 1 - p_set
     zvals = t.ppf(inv_pval, (len(p_set) - 1))
     zvals[zvals == -inf] = permu / (permu + 1)
@@ -86,8 +108,7 @@ def nifti_cwas(
     permutations,
     voxel_range,
 ):
-    """
-    Performs CWAS for a group of subjects.
+    """Perform CWAS for a group of subjects.
 
     Parameters
     ----------
@@ -120,7 +141,7 @@ def nifti_cwas(
         regressor_data = pd.read_table(
             regressor_file, sep=None, engine="python", dtype={participant_column: str}
         )
-    except:
+    except (KeyError, OSError, pd.errors.ParserError, ValueError):
         regressor_data = pd.read_table(regressor_file, sep=None, engine="python")
         regressor_data = regressor_data.astype({participant_column: str})
 
@@ -167,7 +188,7 @@ def nifti_cwas(
     )
     if len(regressor.shape) == 1:
         regressor = regressor[:, np.newaxis]
-    elif len(regressor.shape) != 2:
+    elif len(regressor.shape) != 2:  # noqa: PLR2004
         raise ValueError("Bad regressor shape: %s" % str(regressor.shape))
     if len(subject_files) != regressor.shape[0]:
         msg = "Number of subjects does not match regressor size"
@@ -195,19 +216,22 @@ def nifti_cwas(
 
 
 def create_cwas_batches(mask_file, batches):
+    """Create batches of voxels to process in parallel."""
     mask = nib.load(mask_file).get_fdata().astype("bool")
     voxels = mask.sum(dtype=int)
     return np.array_split(np.arange(voxels), batches)
 
 
 def volumize(mask_image, data):
+    """Create a volume from a mask and data."""
     mask_data = mask_image.get_fdata().astype("bool")
     volume = np.zeros_like(mask_data, dtype=data.dtype)
-    volume[np.where(mask_data is True)] = data
+    volume[mask_data] = data
     return nib.Nifti1Image(volume, header=mask_image.header, affine=mask_image.affine)
 
 
 def merge_cwas_batches(cwas_batches, mask_file, z_score, permutations):
+    """Merge CWAS batches into a single volume."""
     _, _, voxel_range = zip(*cwas_batches)
     voxels = np.array(np.concatenate(voxel_range))
 
@@ -248,6 +272,7 @@ def merge_cwas_batches(cwas_batches, mask_file, z_score, permutations):
 
 
 def zstat_image(zvals, mask_file):
+    """Create a zstat image from zvals and mask_file."""
     mask_image = nib.load(mask_file)
 
     z_vol = volumize(mask_image, zvals)
