@@ -141,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated some output filenaming conventions for human-readability and to move closer to BIDS-derivatives compliance
 - Changed motion filter from single dictionary to list of dictionaries
 - Changed CI logic to allow non-release tags
+- Added `Robustfov` in the `FSL-BET` config
 
 ### Upgraded dependencies
 
