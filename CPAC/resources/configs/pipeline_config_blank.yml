@@ -344,6 +344,9 @@ anatomical_preproc:
     FSL-BET:
       Robustfov: On
 
+      # Set Robustfov on to crop neck regions before generating the mask for skull stripping.
+      Robustfov: On
+
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
 
