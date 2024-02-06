@@ -85,7 +85,6 @@ anatomical_preproc:
     # this is a fork option
     using: [niworkflows-ants]
 
-
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
 
