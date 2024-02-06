@@ -45,8 +45,6 @@ pipeline_setup:
     s3_encryption: On
 
 anatomical_preproc:
-  brain_extraction:
-    run: On
 
   # N4 bias field correction via ANTs
   n4_bias_field_correction:

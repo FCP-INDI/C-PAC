@@ -85,7 +85,6 @@ anatomical_preproc:
     # this is a fork option
     using: [BET]
 
-
 segmentation:
 
   # Automatically segment anatomical images into white matter, gray matter,
