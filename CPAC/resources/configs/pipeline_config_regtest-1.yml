@@ -73,6 +73,12 @@ anatomical_preproc:
   acpc_alignment:
     T1w_brain_ACPC_template: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
+  brain_extraction:
+    run: On
+
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
+    # this is a fork option
+    using: [BET]
 
 segmentation:
 

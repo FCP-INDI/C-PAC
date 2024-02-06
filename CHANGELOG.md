@@ -195,6 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CI to only rebuild software dependencies on change
 - Replaced deprecated `optparse.OptionError` with to `click.BadParameter`
 - Relicensed C-PAC from BSD-3-Clause to LGPL-3.0-or-later
+- Updated `FSL-BET` config to default `-mask-boolean` flag as on, and removed all removed `mask-boolean` keys from configs.
 
 ### Fixed
 
