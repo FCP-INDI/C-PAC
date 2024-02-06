@@ -46,7 +46,7 @@ pipeline_setup:
 
 anatomical_preproc:
   brain_extraction:
-    FSL-BET:
+    run: On
 
   # N4 bias field correction via ANTs
   n4_bias_field_correction:
