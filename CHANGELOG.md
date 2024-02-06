@@ -228,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
 - Moved some ephemeral logging statements into `pypeline.log`
+- Added `Robustfov` option in `FSL-BET` config. This can be turned on to crop out neck and other non-brain regions.
 
 ### Fixed
 
