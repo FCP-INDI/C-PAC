@@ -3,8 +3,8 @@ extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RE
 # variants still use 3.7
 target-version = "py37"
 
-[per-file-ignores]
-"CPAC/func_preproc/func_preproc.py" = ["E402"]
+[lint]
+external = ["T20"]
 
 [lint.flake8-import-conventions.extend-aliases]
 "CPAC.pipeline.cpac_group_runner" = "cgr"
@@ -39,3 +39,8 @@ max-statements = 100
 [lint.pyupgrade]
 # Until variants Python ≥ 3.10
 keep-runtime-typing = true
+
+[per-file-ignores]
+"CPAC/func_preproc/func_preproc.py" = ["E402"]
+"CPAC/utils/sklearn.py" = ["RUF003"]
+"CPAC/utils/utils.py" = ["T201"]  # until `repickle` is removed

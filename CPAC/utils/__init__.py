@@ -19,8 +19,8 @@ from . import build_data_config, create_fsl_flame_preset, versioning
 from .configuration import check_pname, Configuration, set_subject
 from .datatypes import ListFromItem
 from .interfaces import function
+from .sklearn import check_random_state
 from .utils import (
-    check_random_state,
     correlation,
     find_files,
     get_zscore,

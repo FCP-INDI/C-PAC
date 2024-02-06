@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,15 +21,17 @@ import fnmatch
 import gzip
 from itertools import repeat
 import json
-import numbers
 import os
 import pickle
+from typing import Any, Union
 
 import numpy as np
 from voluptuous.error import Invalid
 import yaml
 
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import deprecated
+from CPAC.utils.typing import LIST, TUPLE
 
 CONFIGS_DIR = os.path.abspath(
     os.path.join(__file__, *repeat(os.path.pardir, 2), "resources/configs/")
@@ -42,6 +44,18 @@ with open(
     os.path.join(CONFIGS_DIR, "1.7-1.8-deprecations.yml"), "r", encoding="utf-8"
 ) as _f:
     NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(_f)
+VALID_PATTERNS = [
+    "alt+z",
+    "altplus",
+    "alt+z2",
+    "alt-z",
+    "altminus",
+    "alt-z2",
+    "seq+z",
+    "seqplus",
+    "seq-z",
+    "seqminus",
+]
 YAML_BOOLS = {
     True: ("on", "t", "true", "y", "yes"),
     False: ("f", "false", "n", "no", "off"),
@@ -49,82 +63,62 @@ YAML_BOOLS = {
 
 
 def get_last_prov_entry(prov):
+    """Get the last provenance entry."""
     while not isinstance(prov[-1], str):
         prov = prov[-1]
     return prov[-1]
 
 
 def check_prov_for_regtool(prov):
+    """Check provenance for registration tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
     if "ants" in last_node.lower():
         return "ants"
-    elif "fsl" in last_node.lower():
+    if "fsl" in last_node.lower():
         return "fsl"
-    else:
-        # go further back in case we're checking against a concatenated
-        # downstream xfm like bold-to-template (and prov is the provenance of
-        # that downstream xfm)
-        if "from-T1w_to-template_mode-image_xfm:" in str(prov):
-            splitprov = str(prov).split("from-T1w_to-template_mode-image_xfm:")
+    # go further back in case we're checking against a concatenated
+    # downstream xfm like bold-to-template (and prov is the provenance of
+    # that downstream xfm)
+    for key in [
+        "from-T1w_to-template_mode-image_xfm:",
+        "from-bold_to-template_mode-image_xfm:",
+        "from-T1w_to-symtemplate_mode-image_xfm:",
+        "from-bold_to-symtemplate_mode-image_xfm:",
+    ]:
+        if key in str(prov):
+            splitprov = str(prov).split(key)
             node_name = splitprov[1].split("']")[0]
             if "ANTs" in node_name:
                 return "ants"
-            elif "FSL" in node_name:
+            if "FSL" in node_name:
                 return "fsl"
             return None
-        elif "from-bold_to-template_mode-image_xfm:" in str(prov):
-            splitprov = str(prov).split("from-bold_to-template_mode-image_xfm:")
-            node_name = splitprov[1].split("']")[0]
-            if "ANTs" in node_name:
-                return "ants"
-            elif "FSL" in node_name:
-                return "fsl"
-            else:
-                return None
-        elif "from-T1w_to-symtemplate_mode-image_xfm:" in str(prov):
-            splitprov = str(prov).split("from-T1w_to-symtemplate_mode-image_xfm:")
-            node_name = splitprov[1].split("']")[0]
-            if "ANTs" in node_name:
-                return "ants"
-            elif "FSL" in node_name:
-                return "fsl"
-            return None
-        elif "from-bold_to-symtemplate_mode-image_xfm:" in str(prov):
-            splitprov = str(prov).split("from-bold_to-symtemplate_mode-image_xfm:")
-            node_name = splitprov[1].split("']")[0]
-            if "ANTs" in node_name:
-                return "ants"
-            elif "FSL" in node_name:
-                return "fsl"
-            else:
-                return None
-        else:
-            return None
+    return None
 
 
 def check_prov_for_motion_tool(prov):
+    """Check provenance for motion correction tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
     if "3dvolreg" in last_node.lower():
         return "3dvolreg"
-    elif "mcflirt" in last_node.lower():
+    if "mcflirt" in last_node.lower():
         return "mcflirt"
-    else:
-        # check entire prov
-        if "3dvolreg" in str(prov):
-            return "3dvolreg"
-        elif "mcflirt" in str(prov):
-            return "mcflirt"
-        else:
-            return None
+    # check entire prov
+    if "3dvolreg" in str(prov):
+        return "3dvolreg"
+    if "mcflirt" in str(prov):
+        return "mcflirt"
+    return None
 
 
-def get_flag(in_flag):
+def _get_flag(in_flag):
     return in_flag
 
 
 def get_flag_wf(wf_name="get_flag"):
+    """Create a workflow to get a flag."""
     import nipype.interfaces.utility as util
 
     from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -134,13 +128,14 @@ def get_flag_wf(wf_name="get_flag"):
     input_node = pe.Node(util.IdentityInterface(fields=["in_flag"]), name="inputspec")
 
     get_flag = pe.Node(
-        util.Function(input_names=["in_flag"], function=get_flag), name="get_flag"
+        util.Function(input_names=["in_flag"], function=_get_flag), name="get_flag"
     )
 
     wf.connect(input_node, "in_flag", get_flag, "in_flag")
 
 
 def read_json(json_file):
+    """Read a JSON file and return the contents as a dictionary."""
     try:
         with open(json_file, "r") as f:
             json_dct = json.load(f)
@@ -160,8 +155,7 @@ def create_id_string(
     fwhm=None,
     subdir=None,
 ):
-    """Create the unique key-value identifier string for BIDS-Derivatives
-    compliant file names.
+    """Create the unique key-value identifier string for BIDS-Derivatives file names.
 
     This is used in the file renaming performed during the Datasink
     connections.
@@ -223,6 +217,7 @@ def create_id_string(
 
 
 def write_output_json(json_data, filename, indent=3, basedir=None):
+    """Write a dictionary to a JSON file."""
     if not basedir:
         basedir = os.getcwd()
     if ".json" not in filename:
@@ -374,7 +369,7 @@ def get_zscore(map_node=False, wf_name="z_score"):
 
 
 def get_fisher_zscore(input_name, map_node=False, wf_name="fisher_z_score"):
-    """Runs the compute_fisher_z_score function as part of a one-node workflow."""
+    """Run the compute_fisher_z_score function as part of a one-node workflow."""
     import nipype.interfaces.utility as util
 
     from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -421,11 +416,10 @@ def get_fisher_zscore(input_name, map_node=False, wf_name="fisher_z_score"):
 
 
 def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
-    """
-    Computes the fisher z transform of the input correlation map
+    """Compute the fisher z transform of the input correlation map.
+
     If the correlation map contains data for multiple ROIs then
-    the function returns z score for each ROI as a seperate nifti
-    file.
+    return z score for each ROI as a seperate NIfTI file.
 
 
     Parameters
@@ -476,9 +470,22 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     return out_file
 
 
-def get_operand_string(mean, std_dev):
+def fetch_and_convert(
+    scan_parameters: dict, scan: str, keys: LIST[str], convert_to: type, fallback: Any
+) -> Any:
+    """Fetch a parameter from a scan parameters dictionary and convert it to a given type.
+
+    Catch TypeError exceptions and return a fallback value in those cases.
     """
-    Method to get operand string for Fsl Maths.
+    try:
+        value = convert_to(scan_parameters, None, scan, keys)
+    except TypeError:
+        value = fallback
+    return value
+
+
+def get_operand_string(mean, std_dev):
+    """Get operand string for fslmaths.
 
     Parameters
     ----------
@@ -497,9 +504,9 @@ def get_operand_string(mean, std_dev):
 
 
 def safe_shape(*vol_data):
-    """
-    Checks if the volume (first three dimensions) of multiple ndarrays
-    are the same shape.
+    """Check if the volume of multiple ndarrays are the same shape.
+
+    The volume is encoded in the first three dimensions of the ndarray.
 
     Parameters
     ----------
@@ -521,6 +528,7 @@ def safe_shape(*vol_data):
 
 
 def zscore(data, axis):
+    """Calculate the z-score of a dataset along a given axis."""
     data = data.copy()
     data -= data.mean(axis=axis, keepdims=True)
     data /= data.std(axis=axis, keepdims=True)
@@ -529,12 +537,13 @@ def zscore(data, axis):
 
 
 def correlation(matrix1, matrix2, match_rows=False, z_scored=False, symmetric=False):
+    """Calcluate the correlation between two matrices."""
     d1 = matrix1.shape[-1]
     d2 = matrix2.shape[-1]
 
     assert d1 == d2
-    assert matrix1.ndim <= 2
-    assert matrix2.ndim <= 2
+    assert matrix1.ndim <= 2  # noqa: PLR2004
+    assert matrix2.ndim <= 2  # noqa: PLR2004
     if match_rows:
         assert matrix1.shape == matrix2.shape
 
@@ -561,10 +570,11 @@ def correlation(matrix1, matrix2, match_rows=False, z_scored=False, symmetric=Fa
 
 
 def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
+    """Check that a value is populated for a given key in a parameters dictionary."""
     if val_to_check not in params_dct:
         if throw_exception:
             msg = f"Missing Value for {val_to_check} for participant " f"{subject_id}"
-            raise Exception(msg)
+            raise ValueError(msg)
         return None
 
     if isinstance(params_dct[val_to_check], dict):
@@ -574,49 +584,26 @@ def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
 
     if ret_val == "None":
         if throw_exception:
-            msg = "'None' Parameter Value for {0} for participant " "{1}".format(
-                val_to_check, subject_id
+            msg = (
+                f"'None' Parameter Value for {val_to_check} for"
+                f" participant {subject_id}"
             )
-            raise Exception(msg)
-        else:
-            ret_val = None
+            raise ValueError(msg)
+        ret_val = None
 
     if ret_val == "" and throw_exception:
-        msg = f"Missing Value for {val_to_check} for participant " f"{subject_id}"
-        raise Exception(msg)
+        msg = f"Missing Value for {val_to_check} for participant {subject_id}"
+        raise ValueError(msg)
 
     return ret_val
 
 
-def check_random_state(seed):
-    """
-    Turn seed into a np.random.RandomState instance
-    Code from scikit-learn (https://github.com/scikit-learn/scikit-learn).
-
-    Parameters
-    ----------
-    seed : None | int | instance of RandomState
-        If seed is None, return the RandomState singleton used by np.random.
-        If seed is an int, return a new RandomState instance seeded with seed.
-        If seed is already a RandomState instance, return it.
-        Otherwise raise ValueError.
-    """
-    if seed is None or seed is np.random:
-        return np.random.mtrand._rand
-    if isinstance(seed, (numbers.Integral, np.integer)):
-        return np.random.RandomState(seed)
-    if isinstance(seed, np.random.RandomState):
-        return seed
-    raise ValueError(
-        "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
-    )
-
-
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
+    """Try to fetch a parameter from a scan parameters dictionary."""
     scan_parameters = {k.lower(): v for k, v in scan_parameters.items()}
 
-    for key in keys:
-        key = key.lower()
+    for _key in keys:
+        key = _key.lower()
 
         if key not in scan_parameters:
             continue
@@ -642,9 +629,7 @@ def get_scan_params(
     pipeconfig_stop_indx,
     data_config_scan_params=None,
 ):
-    """
-    Method to extract slice timing correction parameters
-    and scan parameters.
+    """Extract slice timing correction parameters and scan parameters.
 
     Parameters
     ----------
@@ -682,15 +667,9 @@ def get_scan_params(
         return val if val is None or val == "" or isinstance(val, str) else int(val)
 
     # initialize vars to empty
-    TR = ""
-    pattern = ""
-    ref_slice = ""
-    first_tr = ""
-    last_tr = ""
+    TR = pattern = ref_slice = first_tr = last_tr = pe_direction = ""
     unit = "s"
-    pe_direction = ""
-    effective_echo_spacing = None
-    template = None
+    effective_echo_spacing = template = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -699,11 +678,10 @@ def get_scan_params(
         if ".json" in data_config_scan_params:
             if not os.path.exists(data_config_scan_params):
                 err = (
-                    "\n[!] WARNING: Scan parameters JSON file listed in "
-                    "your data configuration file does not exist:\n{0}"
-                    "\n\n".format(data_config_scan_params)
+                    "\n[!] WARNING: Scan parameters JSON file listed in your data"
+                    f" configuration file does not exist:\n{data_config_scan_params}"
                 )
-                raise Exception(err)
+                raise FileNotFoundError(err)
 
             with open(data_config_scan_params, "r") as f:
                 params_dct = json.load(f)
@@ -740,23 +718,12 @@ def get_scan_params(
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
             # get details from the configuration
-            try:
-                TR = float(
-                    try_fetch_parameter(
-                        params_dct, subject_id, scan, ["TR", "RepetitionTime"]
-                    )
-                )
-            except TypeError:
-                TR = None
-
-            try:
-                template = str(
-                    try_fetch_parameter(
-                        params_dct, subject_id, scan, ["Template", "template"]
-                    )
-                )
-            except TypeError:
-                template = None
+            TR = fetch_and_convert(
+                params_dct, scan, ["TR", "RepetitionTime"], float, None
+            )
+            template = fetch_and_convert(
+                params_dct, scan, ["Template", "template"], str, None
+            )
 
             pattern = str(
                 try_fetch_parameter(
@@ -768,28 +735,24 @@ def get_scan_params(
             )
 
             ref_slice = check(params_dct, subject_id, scan, "reference", False)
-            if ref_slice:
-                ref_slice = int(ref_slice)
+            ref_slice = int(ref_slice) if ref_slice else ref_slice
 
             first_tr = check(params_dct, subject_id, scan, "first_TR", False)
-            if first_tr:
-                first_tr = check2(first_tr)
+            first_tr = check2(first_tr) if first_tr else first_tr
 
             last_tr = check(params_dct, subject_id, scan, "last_TR", False)
-            if last_tr:
-                last_tr = check2(last_tr)
+            last_tr = check2(last_tr) if last_tr else last_tr
 
             pe_direction = check(
                 params_dct, subject_id, scan, "PhaseEncodingDirection", False
             )
-            try:
-                effective_echo_spacing = float(
-                    try_fetch_parameter(
-                        params_dct, subject_id, scan, ["EffectiveEchoSpacing"]
-                    )
-                )
-            except TypeError:
-                pass
+            effective_echo_spacing = fetch_and_convert(
+                params_dct,
+                scan,
+                ["EffectiveEchoSpacing"],
+                float,
+                effective_echo_spacing,
+            )
 
         else:
             err = (
@@ -797,17 +760,10 @@ def get_scan_params(
                 "information included in the data configuration file for "
                 f"the participant {subject_id}.\n\n"
             )
-            raise Exception(err)
-    if first_tr == "" or first_tr is None:
-        first_tr = pipeconfig_start_indx
-
-    if last_tr == "" or last_tr is None:
-        last_tr = pipeconfig_stop_indx
-
-    unit = "s"
-
-    if "None" in pattern or "none" in pattern:
-        pattern = None
+            raise OSError(err)
+    first_tr = pipeconfig_start_indx if first_tr == "" or first_tr is None else first_tr
+    last_tr = pipeconfig_stop_indx if last_tr == "" or last_tr is None else last_tr
+    pattern = None if "None" in pattern or "none" in pattern else pattern
 
     """
     if not pattern:
@@ -822,19 +778,7 @@ def get_scan_params(
     # indicates that the images header information should be used
     tpattern_file = None
 
-    valid_patterns = [
-        "alt+z",
-        "altplus",
-        "alt+z2",
-        "alt-z",
-        "altminus",
-        "alt-z2",
-        "seq+z",
-        "seqplus",
-        "seq-z",
-        "seqminus",
-    ]
-    if pattern and pattern != "" and pattern not in valid_patterns:
+    if pattern and pattern != "" and pattern not in VALID_PATTERNS:
         if isinstance(pattern, list) or (
             "[" in pattern and "]" in pattern and "," in pattern
         ):
@@ -852,13 +796,13 @@ def get_scan_params(
                 with open(tpattern_file, "wt") as f:
                     for time in slice_timings:
                         f.write(f"{time}\n".replace(" ", ""))
-            except:
+            except (OSError, TypeError) as e:
                 err = (
                     "\n[!] Could not write the slice timing file meant as "
                     "an input for AFNI 3dTshift (slice timing correction):"
                     f"\n{tpattern_file}\n\n"
                 )
-                raise Exception(err)
+                raise OSError(err) from e
 
         elif ".txt" in pattern and not os.path.exists(pattern):
             # if the user provided an acquisition pattern text file for
@@ -871,15 +815,14 @@ def get_scan_params(
         elif ".txt" in pattern:
             with open(pattern, "r") as f:
                 lines = f.readlines()
-            if len(lines) < 2:
+            if len(lines) < 2:  # noqa: PLR2004
                 msg = (
-                    "Invalid slice timing file format. The file "
-                    "should contain only one value per row. Use "
-                    "new line char as delimiter"
+                    "Invalid slice timing file format. The file should contain only one"
+                    " value per row. Use new line char as delimiter"
                 )
                 raise Exception(msg)
             tpattern_file = pattern
-            slice_timings = [float(l.rstrip("\r\n")) for l in lines]
+            slice_timings = [float(l.rstrip("\r\n")) for l in lines]  # noqa: E741
         else:
             # this only happens if there is a non-path string set in the data
             # config dictionary for acquisition pattern (like "alt+z"), except
@@ -906,19 +849,14 @@ def get_scan_params(
             TR = TR * 1000
             unit = "ms"
 
-    else:
+    elif TR and TR > 10:  # noqa: PLR2004
         # check to see, if TR is in milliseconds, convert it into seconds
-        if TR and TR > 10:
-            warnings.warn("TR is in milliseconds, Converting it into seconds")
-            TR = TR / 1000.0
-            unit = "s"
+        warnings.warn("TR is in milliseconds, Converting it into seconds")
+        TR = TR / 1000.0
+        unit = "s"
 
     # swap back in
-    if TR:
-        tr = f"{TR!s}{unit}"
-    else:
-        tr = ""
-
+    tr = f"{TR!s}{unit}" if TR else ""
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
@@ -936,13 +874,14 @@ def get_scan_params(
 
 
 def add_afni_prefix(tpattern):
+    """Add '@' prefix to tpattern.txt filename."""
     if ".txt" in tpattern:
         tpattern = f"@{tpattern}"
     return tpattern
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id):
-    """Method to write into log file the status of the workflow run."""
+    """Write into log file the status of the workflow run."""
     import datetime
     import os
     import time
@@ -980,10 +919,10 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
             try:
                 os.makedirs(file_path)
             except Exception:
-                iflogger.info(
-                    "filepath already exist, filepath- {0}, " "curr_dir - {1}".format(
-                        file_path, os.getcwd()
-                    )
+                iflogger.error(
+                    "filepath already exist, filepath- %s, curr_dir - %s",
+                    file_path,
+                    os.getcwd(),
                 )
 
         else:
@@ -994,10 +933,8 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     try:
         os.makedirs(file_path)
     except Exception:
-        iflogger.info(
-            "filepath already exist, " "filepath: {0}, " "curr_dir: {1}".format(
-                file_path, os.getcwd()
-            )
+        iflogger.error(
+            "filepath already exist, filepath: %s, curr_dir: %s", file_path, os.getcwd()
         )
 
     out_file = os.path.join(file_path, f"log_{strategy}.yml")
@@ -1010,24 +947,36 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     if os.path.exists(inputs):
         status_msg = "wf_status: DONE"
         iflogger.info(
-            f"version: {version!s}, "
-            f"timestamp: {stamp!s}, "
-            f"subject_id: {subject_id}, "
-            f"scan_id: {scan_id}, "
-            f"strategy: {strategy}, "
-            f"workflow: {workflow}, "
-            "status: COMPLETED"
+            "version: %s, "
+            "timestamp: %s, "
+            "subject_id: %s, "
+            "scan_id: %s, "
+            "strategy: %s, "
+            "workflow: %s, "
+            "status: COMPLETED",
+            version,
+            stamp,
+            subject_id,
+            scan_id,
+            strategy,
+            workflow,
         )
     else:
         status_msg = "wf_status: ERROR"
-        iflogger.info(
-            f"version: {version!s}, "
-            f"timestamp: {stamp!s}, "
-            f"subject_id: {subject_id}, "
-            f"scan_id: {scan_id}, "
-            f"strategy: {strategy}, "
-            f"workflow: {workflow}, "
-            "status: ERROR"
+        iflogger.error(
+            "version: %s, "
+            "timestamp: %s, "
+            "subject_id: %s, "
+            "scan_id: %s, "
+            "strategy: %s, "
+            "workflow: %s, "
+            "status: ERROR",
+            version,
+            stamp,
+            subject_id,
+            scan_id,
+            strategy,
+            workflow,
         )
 
     with open(out_file, "w") as f:
@@ -1093,6 +1042,7 @@ def create_log(wf_name="log", scan_id=None):
 
 
 def find_files(directory, pattern):
+    """Find files in directory."""
     for root, dirs, files in os.walk(directory):
         for basename in files:
             if fnmatch.fnmatch(basename, pattern):
@@ -1101,7 +1051,8 @@ def find_files(directory, pattern):
 
 
 def extract_output_mean(in_file, output_name):
-    """
+    """Copy from a 1D file to a text file.
+
     function takes 'in_file', which should be an intermediary 1D file
     from individual-level analysis, containing the mean of the output across
     all voxels.
@@ -1169,9 +1120,10 @@ def extract_output_mean(in_file, output_name):
 
 
 def check_command_path(path):
+    """Chek if command path exists."""
     import os
 
-    return os.system("%s >/dev/null 2>&1" % path) != 32512
+    return os.system("%s >/dev/null 2>&1" % path) != 32512  # noqa: PLR2004
 
 
 def check_system_deps(
@@ -1180,10 +1132,7 @@ def check_system_deps(
     check_centrality_degree=False,
     check_centrality_lfcd=False,
 ):
-    """
-    Function to check system for neuroimaging tools AFNI, C3D, FSL,
-    and (optionally) ANTs.
-    """
+    """Check system for neuroimaging tools AFNI, C3D, FSL and ANTs."""
     missing_install = []
 
     # Check AFNI
@@ -1226,8 +1175,10 @@ def check_system_deps(
         raise Exception(err)
 
 
-# Check pipeline config againts computer resources
-def check_config_resources(c):
+def check_config_resources(
+    c: Union[Configuration, dict],
+) -> TUPLE[Union[float, int], int, int, int]:
+    """Check pipeline config againts computer resources."""
     # Import packages
     from multiprocessing import cpu_count
 
@@ -1334,7 +1285,7 @@ def check_config_resources(c):
 
 
 def _check_nested_types(d, keys):
-    """Helper function to check types for *_nested_value functions."""
+    """Check types for *_nested_value functions."""
     if not isinstance(d, dict):
         msg = f"Expected dict, got {type(d).__name__}: {d!s}"
         raise TypeError(msg)
@@ -1344,7 +1295,7 @@ def _check_nested_types(d, keys):
 
 
 def delete_nested_value(d, keys):
-    """Helper function to delete nested values.
+    """Delete nested values.
 
     Parameters
     ----------
@@ -1373,19 +1324,11 @@ def delete_nested_value(d, keys):
     return d
 
 
-def ordereddict_to_dict(value):
-    """This function convert ordereddict into regular dict."""
-    for k, v in value.items():
-        if isinstance(v, dict):
-            value[k] = ordereddict_to_dict(v)
-    return dict(value)
-
-
 @deprecated(
     "1.8.7",
     "Python 2's end of life was over 4 years prior to this release. A user jumping from a C-PAC version that used Python 2 can use this function in any C-PAC version from 1.6.2 up until its removal in an upcoming version.",
 )
-def repickle(directory):
+def repickle(directory):  # noqa: T20
     """
     Recursively check a directory; convert Python 2 pickles to Python 3 pickles.
 
@@ -1407,10 +1350,16 @@ def repickle(directory):
                             f = pickle.load(fp, encoding="latin1")
                         with open(p, "wb") as fp:
                             pickle.dump(f, fp)
-                    except Exception:
-                        pass
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} " f"because {e}\n"
+                        )
                 else:
-                    pass
+                    print(f"Pickle {fn} is a Python 3 pickle.")
             elif fn.endswith(".pklz"):
                 if _pickle2(p, True):
                     try:
@@ -1418,17 +1367,27 @@ def repickle(directory):
                             f = pickle.load(fp, encoding="latin1")
                         with gzip.open(p, "wb") as fp:
                             pickle.dump(f, fp)
-                    except Exception:
-                        pass
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} " f"because {e}\n"
+                        )
                 else:
-                    pass
+                    print(f"Pickle {fn} is a Python 3 pickle.")
 
 
-def _pickle2(p, z=False):
+@deprecated(
+    "1.8.7",
+    "Python 2's end of life was over 4 years prior to this release. A user jumping from a C-PAC version that used Python 2 can use this function in any C-PAC version from 1.6.2 up until its removal in an upcoming version.",
+)
+def _pickle2(p, z=False):  # noqa: T20
     """
-    Helper function to check if a pickle is a Python 2 pickle.
+    Check if a pickle is a Python 2 pickle.
 
-    Also prints other exceptions raised by trying to load the file at p.
+    Also print other exceptions raised by trying to load the file at p.
 
     Parameters
     ----------
@@ -1449,21 +1408,26 @@ def _pickle2(p, z=False):
                 pickle.load(fp)
             except UnicodeDecodeError:
                 return True
-            except Exception:
-                pass
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised " f"exception {e}"
+                )
     else:
         with open(p, "rb") as fp:
             try:
                 pickle.load(fp)
             except UnicodeDecodeError:
                 return True
-            except Exception:
-                pass
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised " f"exception {e}"
+                )
     return False
 
 
-def _changes_1_8_0_to_1_8_1(config_dict):
-    """
+def _changes_1_8_0_to_1_8_1(config_dict: dict) -> dict:
+    """Automatically update a configuration dictionary from 1.8.0 to 1.8.1.
+
     Examples
     --------
     Starting with 1.8.0
@@ -1590,9 +1554,7 @@ def _changes_1_8_0_to_1_8_1(config_dict):
 
 
 def _combine_labels(config_dict, list_to_combine, new_key):
-    """
-    Helper function to combine formerly separate keys into a
-    combined key.
+    """Combine formerly separate keys into a combined key.
 
     Parameters
     ----------
@@ -1627,7 +1589,8 @@ def _combine_labels(config_dict, list_to_combine, new_key):
 
 
 def concat_list(in_list1=None, in_list2=None):
-    """
+    """Concatenate a pair of lists.
+
     Parameters
     ----------
     in_list1 : list or str
@@ -1661,7 +1624,7 @@ def list_item_replace(
     old,
     new,
 ):
-    """Function to replace an item in a list.
+    """Replace an item in a list.
 
     Parameters
     ----------
@@ -1693,7 +1656,7 @@ def list_item_replace(
 
 
 def lookup_nested_value(d, keys):
-    """Helper method to look up nested values.
+    """Look up nested values.
 
     Parameters
     ----------
@@ -1718,18 +1681,15 @@ def lookup_nested_value(d, keys):
         if value is None:
             return ""
         return value
-    else:
-        try:
-            return lookup_nested_value(d[keys[0]], keys[1:])
-        except KeyError as e:
-            e.args = (keys,)
-            raise
+    try:
+        return lookup_nested_value(d[keys[0]], keys[1:])
+    except KeyError as e:
+        e.args = (keys,)
+        raise
 
 
 def _now_runswitch(config_dict, key_sequence):
-    """
-    Helper function to convert a formerly forkable value to a
-    runswitch.
+    """Convert a formerly forkable value to a runswitch.
 
     Parameters
     ----------
@@ -1751,8 +1711,7 @@ def _now_runswitch(config_dict, key_sequence):
 
 
 def _remove_somethings(value, things_to_remove):
-    """Helper function to remove instances of any in a given set of
-    values from a list.
+    """Remove instances of any in a given set of values from a list.
 
     Parameters
     ----------
@@ -1772,7 +1731,7 @@ def _remove_somethings(value, things_to_remove):
 
 
 def remove_False(d, k):
-    """Function to remove "Off" and False from a list at a given nested key.
+    """Remove "Off" and False from a list at a given nested key.
 
     Parameters
     ----------
@@ -1795,7 +1754,7 @@ def remove_False(d, k):
 
 
 def remove_None(d, k):
-    """Function to remove "None" and None from a list at a given nested key.
+    """Remove "None" and None from a list at a given nested key.
 
     Parameters
     ----------
@@ -1818,7 +1777,7 @@ def remove_None(d, k):
 
 
 def replace_in_strings(d, replacements=None):
-    """Helper function to recursively replace substrings.
+    """Recursively replace substrings.
 
     Parameters
     ----------
@@ -1853,7 +1812,7 @@ def replace_in_strings(d, replacements=None):
 
 
 def set_nested_value(d, keys, value):
-    """Helper method to set nested values.
+    """Set nested values.
 
     Parameters
     ----------
@@ -1882,7 +1841,7 @@ def set_nested_value(d, keys, value):
 
 
 def update_config_dict(old_dict):
-    """Function to convert an old config dict to a new config dict.
+    """Convert an old config dict to a new config dict.
 
     Parameters
     ----------
@@ -1912,9 +1871,9 @@ def update_config_dict(old_dict):
     """
 
     def _append_to_list(current_value, new_value):
-        """Helper function to add new_value to the current_value list
-        or create a list if one does not exist. Skips falsy elements
-        in new_value.
+        """Add new_value to the current_value list, creating list if it does not exist.
+
+        Skips falsy elements in new_value.
 
         Parameters
         ----------
@@ -1955,8 +1914,7 @@ def update_config_dict(old_dict):
         return current_value
 
     def _bool_to_str(old_value, value_if_true):
-        """Helper function to convert a True or a list containing a
-        True to a given string.
+        """Convert a True or a list containing a True to a given string.
 
         Parameters
         ----------
@@ -1991,8 +1949,7 @@ def update_config_dict(old_dict):
         return None
 
     def _get_old_values(old_dict, new_dict, key):
-        """Helper function to get old and current values of a special key
-        being updated.
+        """Get old and current values of a special key being updated.
 
         Parameters
         ----------
@@ -2302,8 +2259,7 @@ def update_nested_dict(d_base, d_update, fully_specified=False):
 
 
 def update_pipeline_values_1_8(d_old):
-    """Function to update pipeline config values that changed from
-    C-PAC 1.7 to 1.8.
+    """Update pipeline config values that changed from C-PAC 1.7 to 1.8.
 
     Parameters
     ----------
@@ -2437,10 +2393,10 @@ def update_pipeline_values_1_8(d_old):
 
 
 def update_values_from_list(d_old, last_exception=None):
-    """Function to convert 1-length lists of an expected type to
-    single items of that type, or to convert singletons of an expected
-    list of a type into lists thereof. Also handles some type
-    conversions against the schema.
+    """Convert 1-length lists of an expected type to single items of that type...
+
+    ...or to convert singletons of an expected list of a type into lists thereof.
+    Also handles some type conversions against the schema.
 
     Parameters
     ----------
@@ -2497,53 +2453,45 @@ def update_values_from_list(d_old, last_exception=None):
                 return update_values_from_list(
                     set_nested_value(d, e.path, bool(observed)), e
                 )
-            elif isinstance(observed, list):
+            if isinstance(observed, list):
                 if len(observed) == 0:  # pylint: disable=no-else-return
                     return update_values_from_list(
                         set_nested_value(d, e.path, False), e
                     )
-                else:
-                    # maintain a list if list expected
-                    list_expected = e.path[-1] == 0
-                    e_path = e.path[:-1] if list_expected else e.path
-                    if len(observed) == 1:  # pylint: disable=no-else-return
-                        if isinstance(observed[0], int):
-                            value = bool(observed[0])
-                        elif observed[0].lower() in YAML_BOOLS[True]:
-                            value = True
-                        elif observed[0].lower() in YAML_BOOLS[False]:
-                            value = False
-                        return update_values_from_list(
-                            set_nested_value(
-                                d, e_path, [value] if list_expected else value
-                            ),
-                            e,
-                        )
-                    else:
-                        return update_values_from_list(
-                            set_nested_value(
-                                d, e_path, [bool(value) for value in observed]
-                            ),
-                            e,
-                        )
-            elif observed.lower() in YAML_BOOLS[True]:
-                return update_values_from_list(set_nested_value(d, e.path, True), e)
-            elif observed.lower() in YAML_BOOLS[False]:
-                return update_values_from_list(set_nested_value(d, e.path, False), e)
-            else:
+                # maintain a list if list expected
+                list_expected = e.path[-1] == 0
+                e_path = e.path[:-1] if list_expected else e.path
+                if len(observed) == 1:  # pylint: disable=no-else-return
+                    if isinstance(observed[0], int):
+                        value = bool(observed[0])
+                    elif observed[0].lower() in YAML_BOOLS[True]:
+                        value = True
+                    elif observed[0].lower() in YAML_BOOLS[False]:
+                        value = False
+                    return update_values_from_list(
+                        set_nested_value(
+                            d, e_path, [value] if list_expected else value
+                        ),
+                        e,
+                    )
                 return update_values_from_list(
-                    set_nested_value(d, e_path, observed[0]), e
+                    set_nested_value(d, e_path, [bool(value) for value in observed]),
+                    e,
                 )
+            if observed.lower() in YAML_BOOLS[True]:
+                return update_values_from_list(set_nested_value(d, e.path, True), e)
+            if observed.lower() in YAML_BOOLS[False]:
+                return update_values_from_list(set_nested_value(d, e.path, False), e)
+            return update_values_from_list(set_nested_value(d, e_path, observed[0]), e)
 
-        elif expected == "a list":
+        if expected == "a list":
             return update_values_from_list(set_nested_value(d, e.path, [observed]), e)
-        else:
-            raise e
+        raise e
     return d
 
 
 def _replace_changed_values(d, nested_key, replacement_list):
-    """Helper function to replace values changed from C-PAC 1.7 to C-PAC 1.8.
+    """Replace values changed from C-PAC 1.7 to C-PAC 1.8.
 
     Parameters
     ----------
@@ -2580,8 +2528,7 @@ def _replace_changed_values(d, nested_key, replacement_list):
 
 
 def _replace_in_value_list(current_value, replacement_tuple):
-    """Helper function to make character replacements in
-    `current_value` and drop falsy values.
+    """Make character replacements and drop falsy values.
 
     Parameters
     ----------
