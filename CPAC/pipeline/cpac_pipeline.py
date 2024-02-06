@@ -800,16 +800,28 @@ CPAC run error:
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
-                    try:
-                        if os.path.exists(working_dir):
-                            logger.info("Removing working dir: %s",
-                                        working_dir)
-                            shutil.rmtree(working_dir)
-                    except (FileNotFoundError, PermissionError):
-                        logger.warning(
-                            'Could not remove working directory %s',
-                            working_dir
-                        )
+                    remove_workdir(working_dir)
+                # Remove just .local from working directory
+                else:
+                    remove_workdir(os.path.join(os.environ["CPAC_WORKDIR"],
+                                                '.local'))
+
+
+def remove_workdir(wdpath: str) -> None:
+    """Remove a given working directory if possible, warn if impossible
+
+    Parameters
+    ----------
+    wdpath : str
+        path to working directory to remove
+    """
+    try:
+        if os.path.exists(wdpath):
+            logger.info("Removing working dir: %s", wdpath)
+            shutil.rmtree(wdpath)
+    except (FileNotFoundError, PermissionError):
+        logger.warning(
+            'Could not remove working directory %s', wdpath)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
@@ -1118,10 +1130,20 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                 f"after node block '{previous_nb.get_name()}':"
             ) if previous_nb else 'at beginning:'
             # Alert user to block that raises error
-            e.args = (
-                'When trying to connect node block '
-                f"'{NodeBlock(block).get_name()}' "
-                f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",)
+            if isinstance(block, list):
+                node_block_names = str([NodeBlock(b).get_name() for b in block])
+                e.args = (
+                    f'When trying to connect one of the node blocks '
+                    f"{node_block_names} "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
+            else:
+                node_block_names = NodeBlock(block).get_name()
+                e.args = (
+                    f'When trying to connect node block '
+                    f"'{node_block_names}' "
+                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                )
             if cfg.pipeline_setup['Debugging']['verbose']:
                 verbose_logger = getLogger('engine')
                 verbose_logger.debug(e.args[0])

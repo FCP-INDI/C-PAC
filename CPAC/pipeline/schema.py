@@ -1183,6 +1183,23 @@ def schema(config_dict):
                 " Try turning one option off.\n ")
     except KeyError:
         pass
+    try:
+        if 'unet' in [using.lower() for using in
+                      partially_validated['anatomical_preproc'][
+                          'brain_extraction']['using']]:
+            try:
+                from importlib import import_module
+                import_module('CPAC.unet')
+            except (ImportError, ModuleNotFoundError, OSError) as error:
+                import site
+                raise OSError(
+                    'U-Net brain extraction requires torch to be installed, '
+                    'but the installation path in this container is '
+                    'read-only. Please bind a local writable path to '
+                    f'"{site.USER_BASE}" in the container to use U-Net.'
+                ) from error
+    except KeyError:
+        pass
     return partially_validated
 
 

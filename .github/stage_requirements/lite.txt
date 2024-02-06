@@ -1,4 +1,4 @@
 base-lite
-AFNI.23.1.10-jammy
+AFNI.23.3.09-jammy
 ICA-AROMA.0.4.4-beta-jammy
 Ubuntu.jammy-non-free

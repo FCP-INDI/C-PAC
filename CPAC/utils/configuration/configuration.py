@@ -156,6 +156,10 @@ class Configuration:
 
         self._update_attr()
 
+        # set working directory as an environment variable
+        os.environ['CPAC_WORKDIR'] = self[
+            'pipeline_setup', 'working_directory', 'path']
+
     def __str__(self):
         return ('C-PAC Configuration '
                 f"('{self['pipeline_setup', 'pipeline_name']}')")
