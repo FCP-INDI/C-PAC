@@ -118,7 +118,7 @@ def select_model_files(model, ftest, model_name):
         elif (model_name + ".con") in filename:
             con_file = filename
 
-    if ftest is True and fts_file == "":
+    if ftest and fts_file == "":
         errmsg = (
             "\n[!] CPAC says: You have f-tests included in your group "
             "analysis model '%s', but no .fts files were found in the "

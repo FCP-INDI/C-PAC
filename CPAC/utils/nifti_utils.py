@@ -36,7 +36,7 @@ def nifti_image_input(image):
 
 def more_zeros_than_ones(image):
     """
-    Return True is there is more zeros than other values in a given nifti image.
+    Return True if there are more zeros than other values in a given nifti image.
 
     Parameters.
     ----------

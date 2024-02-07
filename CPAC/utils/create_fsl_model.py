@@ -892,7 +892,7 @@ def positive(dmat, a, coding, group_sep, grouping_var):
     evs = dmat.design_info.column_name_indexes
     con = np.zeros(dmat.shape[1])
 
-    if group_sep is True:
+    if group_sep:
         if "__" in a and grouping_var in a:
             ev_desc = a.split("__")
 
@@ -1263,7 +1263,7 @@ def process_contrast(
                 # are being modeled separately, and we don't want the EV
                 # that is the grouping variable (which is now present in
                 # other EV names) to confound this operation
-                if group_sep is True:
+                if group_sep:
                     gpvar = grouping_var
                 else:
                     gpvar = "..."

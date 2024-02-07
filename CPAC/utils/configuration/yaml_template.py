@@ -419,7 +419,7 @@ def yaml_bool(value):
             **{k: yaml_bool(value[k]) for k in value if k != "Name"},
         }
     if isinstance(value, bool):
-        if value is True:
+        if value:
             return "On"
         return "Off"
     return value

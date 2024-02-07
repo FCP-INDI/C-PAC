@@ -76,7 +76,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
     wf.connect(func_single_volume, "out_file", func_tmp_brain, "in_file_a")
 
     # 2.1 get a tmp func brain mask
-    if init_bold_mask is True:
+    if init_bold_mask:
         # 2.1.1 N4BiasFieldCorrection single volume of raw_func
         func_single_volume_n4_corrected = pe.Node(
             interface=ants.N4BiasFieldCorrection(
@@ -164,7 +164,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 
     wf.connect(reg_anat_mask_to_func, "out_file", func_mask, "operand_files")
 
-    if init_bold_mask is True:
+    if init_bold_mask:
         wf.connect(func_tmp_brain_mask_dil, "out_file", func_mask, "in_file")
     else:
         wf.connect(input_node, "init_func_brain_mask", func_mask, "in_file")

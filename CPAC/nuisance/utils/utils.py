@@ -470,7 +470,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
     ventricle_mask_exist=True,
 ) -> Optional[dict]:
     """Update CSF mask to include only the lateral ventricles."""
-    if csf_mask_exist is False:
+    if not csf_mask_exist:
         logger.warning(
             "Segmentation is Off, - therefore will be using "
             "lateral_ventricle_mask as CerebrospinalFluid_mask."
@@ -487,7 +487,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
             if ventricles_key not in pipeline_resource_pool:
                 transforms = pipeline_resource_pool["Transformations"]
 
-                if use_ants is True:
+                if use_ants:
                     # perform the transform using ANTS
                     collect_linear_transforms = pe.Node(
                         util.Merge(3), name=f"{ventricles_key}_ants_transforms"

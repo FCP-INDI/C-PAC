@@ -553,9 +553,8 @@ def hardcoded_reg(
                     regcmd.append(str(fixed_image_mask))
                 else:
                     if (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is False
+                        not ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is True
                     ):
                         err_msg = (
                             "Masks option in ANTs parameters: %d is not supported. "
@@ -565,18 +564,16 @@ def hardcoded_reg(
                         )
                         raise Exception(err_msg)
                     elif (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is True
+                        ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is True
                     ):
                         regcmd.append("--masks")
                         regcmd.append(
                             "[" + str(reference_mask) + "," + str(moving_mask) + "]"
                         )
                     elif (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is True
+                        ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is False
                     ):
                         regcmd.append("--masks")
                         regcmd.append("[" + str(reference_mask) + "]")

@@ -196,7 +196,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
         # ends with a NIFTI file
         prog_string = ".."
         while len(glob.glob(glob_string)) != 0:
-            if any(exts in x for x in glob.glob(glob_string)) is True:
+            if any(exts in x for x in glob.glob(glob_string)):
                 nifti_globs.append(glob_string)
 
             glob_string = os.path.join(glob_string, "*")

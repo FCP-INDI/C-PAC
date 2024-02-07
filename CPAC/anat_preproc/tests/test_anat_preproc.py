@@ -155,7 +155,7 @@ class TestAnatPreproc:
     #                    for i in range(0, len(header_values_input)):
     #
     #                        a = (header_values_de[i] == header_values_input[i])
-    #                        if not (a.all() == True):
+    #                        if not (a.all()):
     #
     #                            not_match_count += 1
     #                    print 'not_match_count: ', not_match_count

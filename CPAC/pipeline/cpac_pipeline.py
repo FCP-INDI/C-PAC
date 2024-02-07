@@ -514,7 +514,7 @@ def run_workflow(
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
         #        pickle.dump(strat_list, f)
 
-        # if c.pipeline_setup['working_directory']['regenerate_outputs'] is True:
+        # if c.pipeline_setup['working_directory']['regenerate_outputs']:
 
         #     erasable = list(find_files(working_dir, '*sink*')) + \
         #         list(find_files(working_dir, '*link*')) + \
@@ -732,7 +732,7 @@ Please, make yourself aware of how it works and its assumptions:
                             if "Start_Time" in line:
                                 headerExists = True
 
-                        if headerExists is False:
+                        if not headerExists:
                             timeWriter.writerow(timeHeader)
 
                         timeWriter.writerow(pipelineTimeDict)

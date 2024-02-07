@@ -2337,7 +2337,7 @@ def update_pipeline_values_1_8(d_old):
             centr_value = lookup_nested_value(d, centr_keys)
             if any(isinstance(v, bool) for v in centr_value):
                 for i in range(2):
-                    if centr_value[i] is True:
+                    if centr_value[i]:
                         centr_value[i] = valid_options["centrality"]["weight_options"][
                             i
                         ]
