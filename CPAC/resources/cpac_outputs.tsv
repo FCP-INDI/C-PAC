@@ -223,10 +223,10 @@ space-EPItemplate_label-WM_mask	mask	template	func	NIfTI
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
-AtlasSubcortical_s2	surface_derived		func						
+AtlasSubcortical-s2	surface_derived		func						
 space-fsLR_den-32k_bold	surface_derived		func	CIFTI dtseries					
 goodvoxels	surface_derived		func						
-ribbon_only	surface_derived		func						
+ribbon-only	surface_derived		func						
 hemi-L_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func    	GIFTI func					
 hemi-R_space-fsLR_den-32k_desc-atlasroi_bold	surface_derived		func	GIFTI func					
 hemi-L_space-fsLR_den-32k_desc-atlasroi_mask	surface_derived		func	GIFTI shape					
