@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 from typing import Optional
 
+from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -51,11 +52,10 @@ def apply_transform(
 ):
     if not reg_tool:
         msg = (
-            "\n[!] Developer info: the 'reg_tool' parameter sent "
-            f"to the 'apply_transform' node for '{wf_name}' is "
-            f"empty.\n"
+            "\n[!] Developer info: the 'reg_tool' parameter sent to the"
+            f" 'apply_transform' node for '{wf_name}' is empty.\n"
         )
-        raise Exception(msg)
+        raise RequiredFieldInvalid(msg)
 
     wf = pe.Workflow(name=wf_name)
 
@@ -353,15 +353,11 @@ def convert_pedir(pedir, convert="xyz_to_int"):
     if isinstance(pedir, bytes):
         pedir = pedir.decode()
     if not isinstance(pedir, str):
-        msg = (
-            "\n\nPhase-encoding direction must be a "
-            f"string value.\n\nValue: {pedir}"
-            "\n\n"
-        )
-        raise Exception(msg)
+        msg = f"\n\nPhase-encoding direction must be a string value.\n\nValue: {pedir}\n\n"
+        raise ValueError(msg)
     if pedir not in conv_dct.keys():
-        msg = "\n\nInvalid phase-encoding direction " f"entered: {pedir}\n\n"
-        raise Exception(msg)
+        msg = f"\n\nInvalid phase-encoding direction entered: {pedir}\n\n"
+        raise ValueError(msg)
     return conv_dct[pedir]
 
 
@@ -1689,12 +1685,11 @@ def ANTs_registration_connector(
 
     if params is None:
         err_msg = (
-            "\n\n[!] C-PAC says: \nYou have selected ANTs as your "
-            "anatomical registration method.\n"
-            "However, no ANTs parameters were specified.\n"
-            "Please specify ANTs parameters properly and try again."
+            "\n\n[!] C-PAC says: \nYou have selected ANTs as your"
+            " anatomical registration method.\nHowever, no ANTs parameters were"
+            " specified.\nPlease specify ANTs parameters properly and try again."
         )
-        raise Exception(err_msg)
+        raise RequiredFieldInvalid(err_msg)
 
     ants_reg_anat_mni = create_wf_calculate_ants_warp(
         f"anat_mni_ants_register{symm}",
@@ -2965,7 +2960,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # -mcs: -multicomponent-split, -oo: -output-multiple
         split_combined_warp = pe.Node(
             util.Function(
-                input_names=["input", "output_name"],
+                input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
             ),
@@ -2974,13 +2969,16 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         split_combined_warp.inputs.output_name = "e"
 
         wf.connect(
-            ants_apply_warp_t1_to_template, "output_image", split_combined_warp, "input"
+            ants_apply_warp_t1_to_template,
+            "output_image",
+            split_combined_warp,
+            "input_name",
         )
 
         # c4d -mcs ${WD}/xfms/ANTs_CombinedInvWarp.nii.gz -oo ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
         split_combined_inv_warp = pe.Node(
             util.Function(
-                input_names=["input", "output_name"],
+                input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
             ),
@@ -2992,7 +2990,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             ants_apply_warp_template_to_t1,
             "output_image",
             split_combined_inv_warp,
-            "input",
+            "input_name",
         )
 
         # fslmaths ${WD}/xfms/e2.nii.gz -mul -1 ${WD}/xfms/e-2.nii.gz

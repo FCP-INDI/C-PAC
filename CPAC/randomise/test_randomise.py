@@ -1,3 +1,20 @@
+# Copyright (C) 2018-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Test randomise."""
 import os
 
 import pytest
@@ -12,6 +29,7 @@ from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
     "inputs", [["subjects", "design_matrix_file", "contrast_file", "permutations"]]
 )
 def test_run_randomize(inputs, output_dir=None, run=True):
+    """Test randomize."""
     from . import pipeline
 
     randomise_workflow = pe.Workflow(name="preproc")
@@ -60,5 +78,4 @@ def test_run_randomize(inputs, output_dir=None, run=True):
             plugin=MultiProcPlugin(plugin_args), plugin_args=plugin_args
         )
         return None
-    else:
-        return randomise_workflow, randomise_workflow.base_dir
+    return randomise_workflow, randomise_workflow.base_dir

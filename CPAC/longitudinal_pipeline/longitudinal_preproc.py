@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2020-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from collections import Counter
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 
 import numpy as np
-import six
 import nibabel as nib
 from nipype.interfaces import fsl
 import nipype.interfaces.utility as util
@@ -32,7 +47,7 @@ def read_ants_mat(ants_mat_file):
 def read_mat(input_mat):
     if isinstance(input_mat, np.ndarray):
         mat = input_mat
-    elif isinstance(input_mat, six.string_types):
+    elif isinstance(input_mat, str):
         if os.path.exists(input_mat):
             mat = np.loadtxt(input_mat)
         else:
@@ -82,7 +97,7 @@ def norm_transformation(input_mat):
     """
     if isinstance(input_mat, np.ndarray):
         mat = input_mat
-    elif isinstance(input_mat, six.string_types):
+    elif isinstance(input_mat, str):
         if os.path.exists(input_mat):
             mat = np.loadtxt(input_mat)
         else:

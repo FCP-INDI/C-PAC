@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2022  C-PAC Developers
+# Copyright (C) 2018-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import logging
-
-import six
 
 from CPAC.pipeline.engine import ResourcePool
 
@@ -81,7 +79,7 @@ class Strategy:
         return self.resource_pool.get(resource_key)
 
     def __getitem__(self, resource_key):
-        assert isinstance(resource_key, six.string_types)
+        assert isinstance(resource_key, str)
         try:
             return self.resource_pool[resource_key]
         except:
@@ -89,7 +87,7 @@ class Strategy:
             raise
 
     def __contains__(self, resource_key):
-        assert isinstance(resource_key, six.string_types)
+        assert isinstance(resource_key, str)
         return resource_key in self.resource_pool
 
     def fork(self):
