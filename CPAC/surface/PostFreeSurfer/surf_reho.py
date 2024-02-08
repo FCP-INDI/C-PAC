@@ -15,8 +15,8 @@ def get_neighbours(faces, vertex_id, depth=1):
 def ccs_ReHo(dt_file, surf_file):
 
     import numpy as np
+
     #Finding neighbors
-    print(surf_file)
     #surf = np.array(surf_file.agg_data()) # 2 separate arrays
     faces = np.array(surf_file.agg_data('triangle'))
     vertex = np.array(surf_file.agg_data('pointset'))
@@ -26,13 +26,13 @@ def ccs_ReHo(dt_file, surf_file):
         output = get_neighbours(faces, voi, depth = 1)
         nbrs.append(output)
 
-    #Ting ReHo Calculation
+    #ReHo Calculation
     tsmat = np.array(dt_file.agg_data())
     nsp = (tsmat.shape)[1] #vertex
     ntp = (tsmat.shape)[0] #timepoints
 
     tmp_ts = []
-    cReHo = []
+    cReHo = np.zeros(nsp)
     for i in range(0,nsp):
         tmp_ts = np.squeeze(tsmat[:,i])
         tmp_ts = tmp_ts.reshape(-1,1)
@@ -48,7 +48,7 @@ def ccs_ReHo(dt_file, surf_file):
             R = np.argsort(I, axis = 0, kind = 'mergesort')
             S = (np.sum((np.sum(R, axis = 1)**2))) - (ntp*np.mean(np.sum(R,axis=1))**2)
             F = m*m*(ntp*ntp*ntp-ntp)
-            cReHo = np.append(cReHo, (12 * (S/F)))
+            cReHo[i] = 12 * S / F
             cReHo = cReHo.reshape(-1,1)
 
     return(cReHo)    
@@ -71,23 +71,25 @@ def run_surf_reho(subject, dtseries, mask, cortex_file, \
     surf_reho = os.path.join(os.getcwd(), f'{subject}_{reho_filename}')
 
     cReHo = ccs_ReHo(cortex_file, surf_file)
+    structure_names = [structure_name]
 
-    ## Axes and Header stuff ##
+    ## Get header information from dtseries and mean timeseries ##
     axes = [dtseries.header.get_axis(i) for i in range(dtseries.ndim)]
     axes1 = [scalar_dt.header.get_axis(i) for i in range(scalar_dt.ndim)]
 
-    time_axis, brain_model_axis = axes #dtseries
     time_axis1, brain_axis1 = axes1 #dscalar
+    brain_model_axis = nb.cifti2.cifti2_axes.BrainModelAxis.from_surface(
+                    vertices=cReHo[:, 0], nvertex=cReHo.shape[0], name=structure_name)
 
-    # Select the structures you want
-    structure_names = [structure_name]  # List of structure names
-
+    # Only use data from specific region
     brain_models = [bm for bm in brain_model_axis.iter_structures()
                     if bm[0] in structure_names]
 
+    # Extract data from dtseries for every element in brain models and make into dataobj
     new_dataobj = np.concatenate([dtseries.dataobj[0, bm[1]] for bm in brain_models], axis=0)
     new_dataobj = np.transpose(new_dataobj.reshape(-1,1))
 
+    # Get axis information for new dataobj
     new_brain_model_axis = sum(
         (bm[2] for bm in brain_models[1:]), brain_models[0][2])
 
@@ -96,7 +98,7 @@ def run_surf_reho(subject, dtseries, mask, cortex_file, \
                         nifti_header=dtseries.nifti_header)
 
     ## Saving image ##                       
-    img = nb.Cifti2Image(np.transpose(cReHo), header = new_cifti.header, nifti_header=new_cifti.nifti_header)
+    img = nb.Cifti2Image(np.transpose(cReHo), header=new_cifti.header, nifti_header=new_cifti.nifti_header)                     
     reho_file = surf_reho
     img.to_filename(reho_file)
 
