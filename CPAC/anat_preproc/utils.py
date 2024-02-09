@@ -2,6 +2,11 @@
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from nibabel import load as nib_load, Nifti1Image
+from numpy import zeros
+
+def get_shape(nifti_image):
+    return nib_load(nifti_image).shape
 
 def pad(cropped_image_path, target_image_path):
     """

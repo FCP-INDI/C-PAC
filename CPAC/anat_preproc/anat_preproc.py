@@ -609,6 +609,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'vertical_gradient']),
         name=f'BET_options_{pipe_num}')
 
+    
     anat_skullstrip = pe.Node(
         interface=fsl.BET(), name=f'anat_BET_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.output_type = 'NIFTI_GZ'

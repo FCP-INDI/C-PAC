@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev1
+# Version 1.8.6
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -342,8 +342,6 @@ anatomical_preproc:
       monkey: Off
 
     FSL-BET:
-
-      # Set Robustfov on to crop neck regions before generating the mask for skull stripping.
       Robustfov: On
 
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5

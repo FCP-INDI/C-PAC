@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 
+- `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
+
+## Changed
+
+- Moved autoversioning from CI to pre-commit
+
+## [1.8.6] - 2024-01-15
+
+## Added
+
 - Some automatic handling of user-provided BIDSy atlas names.
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
 - Ability to ingress an fmriprep output directory and run derivatives with C-PAC
@@ -26,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `switch_is_off`, `switch_is_on` and `switch_is_on_off` methods to `Configuration` class
 - `__repr__` and `__str__` methods to `ResourcePool`s and `NodeBlockFunction`s
 
-## Fixed
+### Fixed
 
 - Fixed a bug where some connectivity matrices wouldn't generate if anatomical and functional outputs were in different resolutions.
 - Handling of `3dECM` outputs for AFNI ≥ 21.1.1.
@@ -100,7 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `voluptuous` 0.12.0 → 0.13.1
 - `wb_command` neurodebian latest → 1.5.0
 
-## [1.8.5]
+## [1.8.5] - 2023-05-24
 
 ### Added
 
@@ -272,7 +282,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
-[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.4...develop
+[unreleased]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.6...develop
+[1.8.6]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.6
+[1.8.5]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.5
 [1.8.4]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.4
 [1.8.3]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.3
 [1.8.2]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.2
