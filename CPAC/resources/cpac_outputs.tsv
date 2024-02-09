@@ -314,4 +314,4 @@ space-fsLR_den-32k_bold_surf_falff	surface_derived		func	CIFTI dscalar
 space-fsLR_den-32k_bold_surf_alff	surface_derived		func	CIFTI dscalar					
 space-fsLR_den-32k_bold_surf-L_reho	surface_derived		func	CIFTI dscalar					
 space-fsLR_den-32k_bold_surf-R_reho	surface_derived		func	CIFTI dscalar					
-space-fsLR_den-32k_bold_surf-correlation_matrix	surface_derived		func	CIFTI dscalar					
+space-fsLR_den-32k_bold_surf-correlation_matrix	surface_derived		func	CIFTI pconn					
