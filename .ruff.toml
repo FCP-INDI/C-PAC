@@ -1,5 +1,6 @@
 extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
 extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]
+# proposed rules to add next release cylce: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
 # variants still use 3.7
 target-version = "py37"
 

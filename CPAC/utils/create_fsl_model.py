@@ -1487,7 +1487,7 @@ def run(
 
             if len(contrast_items) > 2:
                 idx = 0
-                for item in contrast_items:
+                for _item in contrast_items:
                     # they need to be put back into Patsy formatted header
                     # titles because the dmatrix gets passed into the function
                     # that writes out the contrast matrix

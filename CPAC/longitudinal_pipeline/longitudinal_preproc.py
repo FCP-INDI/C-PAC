@@ -15,6 +15,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Preprocessing for longitudinal pipelines."""
 from collections import Counter
 from multiprocessing.dummy import Pool as ThreadPool
 import os
@@ -25,10 +26,14 @@ from nipype.interfaces import fsl
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.nifti_utils import nifti_image_input
+
+logger = getLogger("nipype.workflow")
 
 
 def read_ants_mat(ants_mat_file):
+    """Read a matrix, returning (translation) and (other transformations) matrices."""
     if not os.path.exists(ants_mat_file):
         raise ValueError(str(ants_mat_file) + " does not exist.")
 
@@ -45,6 +50,7 @@ def read_ants_mat(ants_mat_file):
 
 
 def read_mat(input_mat):
+    """Read a matrix, returning (translation) and (other transformations) matrices."""
     if isinstance(input_mat, np.ndarray):
         mat = input_mat
     elif isinstance(input_mat, str):
@@ -73,27 +79,29 @@ def read_mat(input_mat):
 
 
 def norm_transformations(translation, oth_transform):
+    """Calculate the sum of squares of norm translation and Frobenius norm."""
     tr_norm = np.linalg.norm(translation)
     affine_norm = np.linalg.norm(oth_transform - np.identity(3), "fro")
     return pow(tr_norm, 2) + pow(affine_norm, 2)
 
 
 def norm_transformation(input_mat):
-    """
+    """Calculate the sum of squares of norm translation and Frobenius norm.
+
     Calculate the squared norm of the translation + squared Frobenium norm
     of the difference between other affine transformations and the identity
     from an fsl FLIRT transformation matrix.
 
     Parameters
     ----------
-    input_mat : str or numpy.ndarray
+    input_mat : str or ~numpy.ndarray
         Either the path to text file matrix or a matrix already imported.
 
     Returns
     -------
-        numpy.float64
-            squared norm of the translation + squared Frobenius norm of the
-            difference between other affine transformations and the identity
+    ~numpy.float64
+        squared norm of the translation + squared Frobenius norm of the
+        difference between other affine transformations and the identity
     """
     if isinstance(input_mat, np.ndarray):
         mat = input_mat
@@ -101,14 +109,14 @@ def norm_transformation(input_mat):
         if os.path.exists(input_mat):
             mat = np.loadtxt(input_mat)
         else:
-            raise IOError(
-                "ERROR norm_transformation: " + input_mat + " file does not exist"
-            )
+            msg = f"ERROR norm_transformation: {input_mat} file does not exist"
+            raise IOError(msg)
     else:
-        raise TypeError(
-            "ERROR norm_transformation: input_mat should be"
-            + " either a str (file_path) or a numpy.ndarray matrix"
+        msg = (
+            "ERROR norm_transformation: input_mat should be either a str"
+            " (file_path) or a numpy.ndarray matrix"
         )
+        raise TypeError(msg)
 
     if mat.shape != (4, 4):
         msg = "ERROR norm_transformation: the matrix should be 4x4"
@@ -126,9 +134,9 @@ def norm_transformation(input_mat):
 def template_convergence(
     mat_file, mat_type="matrix", convergence_threshold=np.finfo(np.float64).eps
 ):
-    """
-    Calculate the distance between transformation matrix with a matrix of no
-    transformation.
+    """Check that the deistance between matrices is smaller than the threshold.
+
+    Calculate the distance between transformation matrix with a matrix of no transformation.
 
     Parameters
     ----------
@@ -144,16 +152,15 @@ def template_convergence(
 
     Returns
     -------
-
+    bool
     """
     if mat_type == "matrix":
         translation, oth_transform = read_mat(mat_file)
     elif mat_type == "ITK":
         translation, oth_transform = read_ants_mat(mat_file)
     else:
-        raise ValueError(
-            "ERROR template_convergence: this matrix type does " + "not exist"
-        )
+        msg = f"template_convergence: matrix type {mat_type} does not exist"
+        raise ValueError(msg)
     distance = norm_transformations(translation, oth_transform)
 
     return abs(distance) <= convergence_threshold
@@ -166,9 +173,11 @@ def create_temporary_template(
     output_skull_path,
     avg_method="median",
 ):
-    """
-    Average all the 3D images of the list into one 3D image
-    WARNING---the function assumes that all the images have the same header,
+    """Average all the 3D images of the list into one 3D image.
+
+    Warnings
+    --------
+    The function assumes that all the images have the same header,
     the output image will have the same header as the first image of the list.
 
     Parameters
@@ -177,18 +186,18 @@ def create_temporary_template(
         list of brain image paths
     input_skull_list : list of str
         list of skull image paths
-    output_brain_path : Nifti1Image
+    output_brain_path : ~nibabel.Nifti1Image
         temporary longitudinal brain template
-    output_skull_path : Nifti1Image
+    output_skull_path : ~nibabel.Nifti1Image
         temporary longitudinal skull template
     avg_method : str
         function names from numpy library such as 'median', 'mean', 'std' ...
 
     Returns
     -------
-    output_brain_path : Nifti1Image
+    output_brain_path : ~nibabel.Nifti1Image
         temporary longitudinal brain template
-    output_skull_path : Nifti1Image
+    output_skull_path : ~nibabel.Nifti1Image
         temporary longitudinal skull template
     """
     if not input_brain_list or not input_skull_list:
@@ -350,7 +359,8 @@ def template_creation_flirt(
     thread_pool=2,
     unique_id_list=None,
 ):
-    """
+    """Create a temporary template from a list of images.
+
     Parameters
     ----------
     input_brain_list : list of str
@@ -419,18 +429,17 @@ def template_creation_flirt(
             )
             for img in input_brain_list
         ]
-    else:
-        if len(unique_id_list) == len(input_brain_list):
-            warp_list_filenames = [
-                os.path.join(
-                    os.getcwd(),
-                    str(os.path.basename(img).split(".")[0])
-                    + "_"
-                    + unique_id_list[i]
-                    + "_anat_to_template.mat",
-                )
-                for i, img in enumerate(input_brain_list)
-            ]
+    elif len(unique_id_list) == len(input_brain_list):
+        warp_list_filenames = [
+            os.path.join(
+                os.getcwd(),
+                str(os.path.basename(img).split(".")[0])
+                + "_"
+                + unique_id_list[i]
+                + "_anat_to_template.mat",
+            )
+            for i, img in enumerate(input_brain_list)
+        ]
 
     if isinstance(thread_pool, int):
         pool = ThreadPool(thread_pool)
@@ -441,8 +450,9 @@ def template_creation_flirt(
         convergence_threshold = np.finfo(np.float64).eps
 
     if len(input_brain_list) == 1 or len(input_skull_list) == 1:
-        warnings.warn(
-            "input_brain_list or input_skull_list contains only 1 image, no need to calculate template"
+        logger.warning(
+            "input_brain_list or input_skull_list contains only 1 image, "
+            "no need to calculate template"
         )
         warp_list.append(np.identity(4, dtype=float))  # return an identity matrix
         return (
@@ -580,14 +590,17 @@ def template_creation_flirt(
 def subject_specific_template(
     workflow_name="subject_specific_template", method="flirt"
 ):
-    """
+    """Create a subject specific template from a list of images.
+
     Parameters
     ----------
-    workflow_name
-    method
+    workflow_name : str
+
+    method : str
 
     Returns
     -------
+    template_gen_node : ~nipype.pipeline.engine.Node
     """
     imports = [
         "import os",

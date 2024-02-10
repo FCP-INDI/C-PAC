@@ -14,63 +14,59 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Run a group-level analysis with C-PAC."""
 import fnmatch
 import os
 
+from CPAC.utils.typing import LIST
 
-def load_config_yml(config_file, individual=False):
-    # loads a configuration YAML file
-    #
-    # input
-    #   config_file: full filepath to YAML (.yml) file
-    #
-    # output
-    #   config: Configuration object
 
+def load_config_yml(config_file: str) -> dict:
+    """Load a configuration YAML file.
+
+    Parameters
+    ----------
+    config_file : str
+        full filepath to YAML (.yml) file
+
+    Returns
+    -------
+    config : dict
+    """
     import os
 
     import yaml
 
     try:
         config_path = os.path.realpath(config_file)
-
         config_dict = yaml.safe_load(open(config_path, "r"))
-
         config = config_dict
 
-    except Exception as e:
+    except (OSError, TypeError, yaml.YAMLError) as e:
         err = (
             "\n\n[!] CPAC says: Could not load or read the configuration "
-            "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
+            f"YAML file:\n{config_file}\n"
         )
-        raise Exception(err)
-
-    if individual:
-        config.logDirectory = os.path.abspath(
-            config["pipeline_setup"]["log_directory"]["path"]
-        )
-        config.workingDirectory = os.path.abspath(
-            config["pipeline_setup"]["working_directory"]["path"]
-        )
-        config.outputDirectory = os.path.abspath(
-            config["pipeline_setup"]["output_directory"]["output_path"]
-        )
-        config.crashLogDirectory = os.path.abspath(
-            config["pipeline_setup"]["crash_log_directory"]["path"]
-        )
+        raise yaml.YAMLError(err) from e
 
     return config
 
 
-def load_text_file(filepath, label="file"):
-    # loads a text file and returns the lines in a list
-    #
-    # input
-    #   filepath: full filepath to the text file
-    #
-    # output
-    #   lines_list: list of lines from text file
+def load_text_file(filepath: str, label: str = "file") -> LIST[str]:
+    """Load a text file and returns the lines in a list.
 
+    Parameters
+    ----------
+    filepath : str
+        full filepath to the text file
+
+    label : str
+
+    Returns
+    -------
+    lines_list : list of str
+        list of lines from text file
+    """
     if not filepath.endswith(".txt"):
         err = (
             "\n\n[!] CPAC says: The %s should be a text file (.txt).\n"
@@ -93,6 +89,7 @@ def load_text_file(filepath, label="file"):
 
 
 def grab_pipeline_dir_subs(pipeline_dir, ses=False):
+    """Grab the subject IDs from the pipeline output directory."""
     import os
 
     inclusion_list = []
@@ -124,23 +121,24 @@ def read_pheno_csv_into_df(pheno_csv, id_label=None):
                 pheno_df = pd.read_table(f, dtype={id_label: object})
             else:
                 pheno_df = pd.read_csv(f, dtype={id_label: object})
+        elif ".tsv" in pheno_csv or ".TSV" in pheno_csv:
+            pheno_df = pd.read_table(f)
         else:
-            if ".tsv" in pheno_csv or ".TSV" in pheno_csv:
-                pheno_df = pd.read_table(f)
-            else:
-                pheno_df = pd.read_csv(f)
+            pheno_df = pd.read_csv(f)
 
     return pheno_df
 
 
 def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
-    # the number of directory levels under each participant's output folder
-    # can vary depending on what preprocessing strategies were chosen, and
-    # there may be several output filepaths with varying numbers of directory
-    # levels
+    """Gather the NIFTI file globs for the derivatives selected.
 
-    # this parses them quickly while also catching each preprocessing strategy
+    The number of directory levels under each participant's output folder
+    can vary depending on what preprocessing strategies were chosen, and
+    there may be several output filepaths with varying numbers of directory
+    levels.
 
+    This parses them quickly while also catching each preprocessing strategy.
+    """
     import glob
     import os
 
@@ -215,6 +213,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
 
 
 def grab_raw_score_filepath(filepath, resource_id):
+    """Grab the filepath for the raw score of the resource."""
     # this lives in the output path collector
 
     import glob
@@ -250,7 +249,7 @@ def grab_raw_score_filepath(filepath, resource_id):
             raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1], "")
             try:
                 raw_score_path = glob.glob(os.path.join(raw_score_path, "*"))[0]
-            except:
+            except (FileNotFoundError, IndexError, TypeError):
                 raw_score_path = os.path.join(raw_score_path, "*")
 
     if (raw_score_path is None) or (not os.path.exists(raw_score_path)):
@@ -266,6 +265,7 @@ def grab_raw_score_filepath(filepath, resource_id):
 
 
 def find_power_params_file(filepath, resource_id, series_id):
+    """Find the power parameters file for the participant and series."""
     import os
 
     try:
@@ -302,13 +302,14 @@ def find_power_params_file(filepath, resource_id, series_id):
 
 
 def extract_power_params(power_params_lines, power_params_filepath):
+    """Extract the power parameters from the power parameters file."""
     # check formatting
-    if len(power_params_lines) != 2:
+    if len(power_params_lines) != 2:  # noqa: PLR2004
         err = (
             "\n\n[!] There is something wrong with the formatting of the "
-            "power parameters file.\nFilepath: %s\n\n" % power_params_filepath
+            f"power parameters file.\nFilepath: {power_params_filepath}\n\n"
         )
-        raise Exception(err)
+        raise ValueError(err)
 
     names_list = power_params_lines[0].split(",")
     values_list = power_params_lines[1].split(",")
@@ -352,6 +353,7 @@ def create_output_dict_list(
     derivatives=None,
     exts=["nii", "nii.gz"],
 ):
+    """Create a dictionary of output filepaths and their associated information."""
     import os
 
     import pandas as pd
@@ -475,6 +477,7 @@ def create_output_dict_list(
 
 
 def create_output_df_dict(output_dict_list, inclusion_list=None):
+    """Create a dictionary of dataframes from the output_dict_list."""
     import pandas as pd
 
     output_df_dict = {}
@@ -509,6 +512,7 @@ def gather_outputs(
     get_func=False,
     derivatives=None,
 ):
+    """Gather the output filepaths and their associated information."""
     nifti_globs = gather_nifti_globs(pipeline_folder, resource_list, get_func)
 
     output_dict_list = create_output_dict_list(
@@ -525,9 +529,9 @@ def gather_outputs(
 
 
 def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
-    import pandas as pd
+    """Match participant-session IDs for FEAT repeated measures analysis.
 
-    """Take in the selected session names, and match them to the unique
+    Take in the selected session names, and match them to the unique
     participant-session IDs appropriately for an FSL FEAT repeated measures
     analysis.
 
@@ -547,6 +551,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
           sub01          ses02                  1                  0
           sub02          ses02                  0                  1
     """
+    import pandas as pd
 
     # first, check to see if this design matrix setup has already been done
     # in the pheno CSV file
@@ -626,14 +631,15 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
 
 
 def pheno_series_to_repeated_measures(pheno_df, series_list, repeated_sessions=False):
-    import pandas as pd
+    """Take in the selected series/scans, and create all of the permutations...
 
-    # take in the selected series/scans, and create all of the permutations
-    # of unique participant IDs (participant_site_session) and series/scans
-    # and populate the pheno
-    #   this is so the user does not have to have a specially-formatted
-    #   version of the phenotype CSV for repeated measures; they can just
-    #   enter the regular one
+    ...of unique participant IDs (participant_site_session) and series/scans
+    and populate the pheno
+
+    This is so the user does not have to have a specially-formatted version of the
+    phenotype CSV for repeated measures; they can just enter the regular one.
+    """
+    import pandas as pd
 
     # first, check to see if this design matrix setup has already been done
     # in the pheno CSV file
@@ -682,16 +688,18 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, repeated_sessions=F
 
 
 def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
-    # this is for repeated measures only.
-    # if the user selects a participant list like this:
-    #    sub001_session_1
-    #    sub001_session_2
-    #    sub002_session_1
-    #    sub002_session_2
-    #    sub003_session_1
-    # then have this drop "sub003_session_1", because repeated measures
-    # requires a uniform balance of repeats
+    """Balance the repeated measures design matrix.
 
+    This is for repeated measures only.
+    If the user selects a participant list like this:
+       sub001_session_1
+       sub001_session_2
+       sub002_session_1
+       sub002_session_2
+       sub003_session_1
+    then have this drop "sub003_session_1", because repeated measures
+    requires a uniform balance of repeats
+    """
     from collections import Counter
 
     part_ID_count = Counter(pheno_df["participant_id"])
@@ -706,18 +714,22 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
         if part_ID_count[part_ID] != sessions_x_series:
             pheno_df = pheno_df[pheno_df.participant_id != part_ID]
             try:
-                del pheno_df["participant_%s" % part_ID]
-            except:
+                del pheno_df[f"participant_{part_ID}"]
+            except (KeyError, TypeError):
                 pass
             dropped_parts.append(part_ID)
 
     return pheno_df, dropped_parts
 
 
-def prep_feat_inputs(group_config_file):
-    # Preps group analysis run
-    # config_file: filepath to the C-PAC group-level config file
+def prep_feat_inputs(group_config_file: str) -> dict:
+    """Prep group analysis run.
 
+    Parameters
+    ----------
+    config_file : str
+        filepath to the C-PAC group-level config file
+    """
     import os
 
     import pandas as pd
@@ -764,11 +776,12 @@ def prep_feat_inputs(group_config_file):
                 f"File path: {group_model.participant_list}"
                 "\n"
             )
-            raise Exception(msg)
-        else:
-            inclusion_list = load_text_file(
-                group_model.participant_list, "group-level analysis participant " "list"
-            )
+            if os.path.exists(group_model.participant_list):
+                raise ValueError(msg)
+            raise FileNotFoundError(msg)
+        inclusion_list = load_text_file(
+            group_model.participant_list, "group-level analysis participant " "list"
+        )
     else:
         inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
 
@@ -1144,6 +1157,7 @@ def prep_feat_inputs(group_config_file):
 
 
 def build_feat_models(group_config_file):
+    """Build FSL's FEAT models for group analysis."""
     import os
 
     from CPAC.pipeline.cpac_ga_model_generator import build_feat_model
@@ -1176,11 +1190,11 @@ def build_feat_models(group_config_file):
 
     if os.path.isfile(empty_csv):
         return 0
-    else:
-        return -1
+    return -1
 
 
 def run_feat(group_config_file, feat=True):
+    """Run FSL's FEAT tool for group analysis."""
     from multiprocessing import Process
     import os
 
@@ -1389,6 +1403,7 @@ def run_cwas_group(
     z_score,
     inclusion=None,
 ):
+    """Run a group-level CWAS analysis."""
     import os
 
     from CPAC.cwas.pipeline import create_cwas
@@ -1465,6 +1480,7 @@ def run_cwas_group(
 
 
 def run_cwas(pipeline_config):
+    """Run CWAS."""
     import os
 
     import yaml
@@ -1514,15 +1530,20 @@ def run_cwas(pipeline_config):
     )
 
 
-def find_other_res_template(template_path, new_resolution):
-    """
-    Find the same template/standard file in another resolution, if it
-    exists.
-    template_path: file path to the template NIfTI file.
+def find_other_res_template(template_path: str, new_resolution: int) -> str:
+    """Find the same template/standard file in another resolution, if it exists.
 
-    new_resolution: (int) the resolution of the template file you need
-    NOTE: Makes an assumption regarding the filename format of the files.
+    Parameters
+    ----------
+    template_path : str
+        file path to the template NIfTI file.
 
+    new_resolution : int
+        the resolution of the template file you need
+
+    Notes
+    -----
+    Makes an assumption regarding the filename format of the files.
     """
     # TODO: this is assuming there is a mm resolution in the file path - not
     # TODO: robust to varying templates - look into alternatives
@@ -1530,30 +1551,29 @@ def find_other_res_template(template_path, new_resolution):
     ref_file = None
 
     if "mm" in template_path:
-        template_parts = template_path.rsplit("mm", 1)
-
-        if len(template_parts) < 2:
+        parts = {}
+        try:
+            parts["left"], parts["right"] = template_path.rsplit("mm", 1)
+        except ValueError:
             # TODO: better message
             msg = "no resolution in the file path!"
             raise Exception(msg)
 
-        template_parts[0] = str(new_resolution).join(
-            template_parts[0].rsplit(template_parts[0][-1], 1)
+        parts["left"] = str(new_resolution).join(
+            parts["left"].rsplit(parts["left"][-1], 1)
         )
-        ref_file = f"{template_parts[0]}{template_parts[1]}"
+        ref_file = f"{parts['left']}{parts['right']}"
 
     elif "${resolution_for_func_preproc}" in template_path:
         ref_file = template_path.replace(
             "${resolution_for_func_preproc}", f"{new_resolution}mm"
         )
 
-    if ref_file:
-        pass
-
     return ref_file
 
 
 def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=False):
+    """Check if the image needs to be resampled. If so, return the command."""
     import os
 
     import nibabel as nib
@@ -1592,33 +1612,36 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=F
         if not os.path.isdir(out_path.replace(os.path.basename(out_path), "")):
             try:
                 os.makedirs(out_path.replace(os.path.basename(out_path), ""))
-            except:
+            except (OSError, TypeError) as os_error:
                 # TODO: better message
                 msg = "couldn't make the dirs!"
-                raise Exception(msg)
+                raise OSError(msg) from os_error
 
         cmd = ["flirt", "-in", image_path, "-ref", reference_path, "-out", out_path]
         if roi_file:
             cmd.append("-interp")
             cmd.append("nearestneighbour")
         return cmd
-    else:
-        return resample
+    return resample
 
 
 def resample_cpac_output_image(cmd_args):
+    """Run resampling command and return the output file path."""
     import subprocess
 
-    subprocess.check_output(cmd_args)
+    flag = "resampled_input_images"
 
     for arg in cmd_args:
-        if "resampled_input_images" in arg:
+        if flag in arg:
             out_file = arg
-
-    return out_file
+            subprocess.check_output(cmd_args)
+            return out_file
+    msg = f"Missing required argument '{flag}'"
+    raise ValueError(msg)
 
 
 def launch_PyBASC(pybasc_config):
+    """Run PyBASC."""
     import subprocess
 
     cmd_args = ["PyBASC", pybasc_config]
@@ -1740,7 +1763,7 @@ def run_basc(pipeline_config):
     if not os.path.isfile(ref_file):
         # TODO: better message
         msg = "\n[!] The reference file could not be found.\nPath: " f"{ref_file}\n"
-        raise Exception(msg)
+        raise FileNotFoundError(msg)
 
     working_dir = os.path.join(
         working_dir,
@@ -1914,6 +1937,7 @@ def run_isc_group(
     roi_inclusion=None,
     num_cpus=1,
 ):
+    """Run the ISC pipeline for group-level analysis."""
     import os
 
     from CPAC.isc.pipeline import create_isc, create_isfc
@@ -2037,6 +2061,7 @@ def run_isc_group(
 
 
 def run_isc(pipeline_config):
+    """Run the ISC pipeline."""
     import os
 
     import yaml
@@ -2072,7 +2097,7 @@ def run_isc(pipeline_config):
     permutations = pipeconfig_dct.get("isc_permutations", 1000)
     std_filter = pipeconfig_dct.get("isc_level_voxel_std_filter", None)
 
-    if std_filter == 0.0:
+    if std_filter == 0.0:  # noqa: PLR2004
         std_filter = None
 
     levels = []
@@ -2116,6 +2141,7 @@ def run_isc(pipeline_config):
 
 
 def run_qpp(group_config_file):
+    """Run the QPP pipeline."""
     from CPAC.qpp.pipeline import create_qpp
 
     c = load_config_yml(group_config_file)
@@ -2146,7 +2172,7 @@ def run_qpp(group_config_file):
         os.makedirs(out_dir)
         os.makedirs(working_dir)
         os.makedirs(crash_dir)
-    except:
+    except OSError:
         pass
 
     outputs = gather_outputs(
@@ -2169,7 +2195,8 @@ def run_qpp(group_config_file):
     else:
         qpp_stratification = []
 
-    for (resource_id, strat_info), output_df in outputs.items():
+    for _output_df in outputs.values():
+        output_df = _output_df
         if c["qpp"]["session_inclusion"]:
             output_df = output_df[
                 output_df["Sessions"].isin(c["qpp"]["session_inclusion"])
@@ -2182,7 +2209,8 @@ def run_qpp(group_config_file):
         else:
             output_df_groups = [([], output_df)]
 
-        for group_id, output_df_group in output_df_groups:
+        for _group_id, _output_df_group in output_df_groups:
+            group_id, output_df_group = _group_id, _output_df_group
             group = list(zip(qpp_stratification, group_id))
 
             group_id = "_".join(
@@ -2234,6 +2262,7 @@ def run_qpp(group_config_file):
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
+    """Manage multiple processes in parallel."""
     import os
 
     # start kicking it off
@@ -2279,9 +2308,11 @@ def manage_processes(procss, output_dir, num_parallel=1):
 
 
 def run(config_file):
-    # this runs all group analyses, and this function only really exists for
-    # the "Run Group-Level Analysis" command on the GUI
+    """Run all group analyses.
 
+    This function only really exists for
+    the "Run Group-Level Analysis" command on the GUI
+    """
     # get MAIN pipeline config loaded
     c = load_config_yml(config_file)
 
