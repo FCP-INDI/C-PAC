@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 
 - Moved autoversioning from CI to pre-commit
+- Added `dvars` as optional output in `cpac_outputs`
+
 
 ## [1.8.6] - 2024-01-15
 
