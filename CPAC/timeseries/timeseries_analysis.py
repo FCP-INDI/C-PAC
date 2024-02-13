@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -30,6 +30,9 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     resample_func_roi,
 )
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nipype.workflow")
 
 
 def get_voxel_timeseries(wf_name="voxel_timeseries"):
@@ -579,7 +582,7 @@ def gen_roi_timeseries(data_file, template, output_type):
             node_dict[node_str] = avg.tolist()
 
     # writing to 1Dfile
-
+    logger.info("writing 1D file..")
     f = open(oneD_file, "w")
     writer = csv.writer(f, delimiter=",")
 
@@ -613,7 +616,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     # if csv is required
     """
     if output_type[0]:
-        print("writing csv file..")
+        logger.info("writing csv file..")
         f = open(csv_file, 'wt')
         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
         headers = ['node/volume'] + np.arange(vol).tolist()
@@ -624,7 +627,7 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # if npz file is required
     if output_type[1]:
-        print("writing npz file..")
+        logger.info("writing npz file..")
         np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
@@ -755,7 +758,7 @@ def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     mghobj1.load(rh_surface_file)
     vol = mghobj1.vol
     (x, y) = vol.shape
-    #        print "rh shape", x, y
+    #        logger.info("rh shape %s %s", x, y)
 
     np.savetxt(rh_file, vol, delimiter="\t")
     out_list.append(rh_file)
@@ -766,7 +769,7 @@ def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     mghobj2.load(lh_surface_file)
     vol = mghobj2.vol
     (x, y) = vol.shape
-    #        print "lh shape", x, y
+    #        logger.info("lh shape %s %s", x, y)
 
     np.savetxt(lh_file, vol, delimiter=",")
     out_list.append(lh_file)
