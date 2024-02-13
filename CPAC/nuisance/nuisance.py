@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -307,8 +307,9 @@ def gather_nuisance(
 
         try:
             regressors = np.loadtxt(regressor_file)
-        except:
-            raise
+        except (OSError, TypeError, UnicodeDecodeError, ValueError) as error:
+            msg = f"Could not read regressor {regressor_type} from {regressor_file}."
+            raise OSError(msg) from error
 
         if regressors.shape[0] != regressor_length:
             msg = (
@@ -411,10 +412,15 @@ def gather_nuisance(
         regressor_file = censor_file_path
 
         if not regressor_file:
-            # ↓ This section is gross and temporary ↓
-            len(selector["thresholds"])
-            [thresh.get("value") for thresh in selector["thresholds"]]
-            # ↑ This section is gross and temporary ↑
+            num_thresh = len(selector["thresholds"])
+            logger.warning(
+                "%s Censor specified with %sthreshold%s %s in selectors but threshold"
+                " was not reached.",
+                selector["method"],
+                "no " if num_thresh == 0 else "",
+                "" if num_thresh == 1 else "s",
+                [thresh.get("value") for thresh in selector["thresholds"]],
+            )
             # All good to pass through if nothing to censor
             censor_volumes = np.ones((regressor_length,), dtype=int)
         else:
