@@ -594,9 +594,6 @@ def run_suite(show_list: Union[bool, str] = False, pipeline_filter=""):
     )
 
     if show_list:
-        from CPAC.utils.monitoring.custom_logging import getLogger
-
-        logger = getLogger("nipype.workflow")
         show_list = "\nAvailables pipelines:"
 
     no_params = False
