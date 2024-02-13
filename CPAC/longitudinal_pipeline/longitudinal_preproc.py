@@ -162,6 +162,7 @@ def template_convergence(
         msg = f"template_convergence: matrix type {mat_type} does not exist"
         raise ValueError(msg)
     distance = norm_transformations(translation, oth_transform)
+    logger.info("distance = %s", abs(distance))
 
     return abs(distance) <= convergence_threshold
 
