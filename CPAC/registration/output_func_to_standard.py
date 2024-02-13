@@ -132,7 +132,7 @@ def fsl_apply_transform_func_to_mni(
     if int(num_cpus) > 1 and func_ts:
         node_id = f"{output_name}_{num_strat:d}"
 
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_cpus"],
@@ -684,7 +684,7 @@ def ants_apply_warps_func_mni(
     if int(num_cpus) > 1 and input_image_type == 3:  # noqa: PLR2004
         node_id = f"_{output_name}_{inverse_string}_{registration_template}_{num_strat}"
 
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_cpus"],

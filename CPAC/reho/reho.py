@@ -94,7 +94,7 @@ def create_reho(wf_name):
     reho_imports = [
         "import os",
         "import sys",
-        "import nibabel as nb",
+        "import nibabel as nib",
         "import numpy as np",
         "from CPAC.reho.utils import f_kendall",
     ]

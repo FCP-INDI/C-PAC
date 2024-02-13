@@ -378,7 +378,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
     """Calculate motion parameters with 3dvolreg."""
     if int(cfg.pipeline_setup["system_config"]["max_cores_per_participant"]) > 1:
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_chunks", "chunk_size"],

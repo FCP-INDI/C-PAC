@@ -133,7 +133,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
@@ -220,7 +220,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],

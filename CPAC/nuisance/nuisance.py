@@ -125,7 +125,7 @@ def erode_mask(name, segmentmap=True):
     ero_imports = [
         "import scipy.ndimage as nd",
         "import numpy as np",
-        "import nibabel as nb",
+        "import nibabel as nib",
         "import os",
         "from CPAC.seg_preproc.utils import _erode",
     ]
@@ -1312,7 +1312,7 @@ def create_regressor_workflow(
                     compcor_imports = [
                         "import os",
                         "import scipy.signal as signal",
-                        "import nibabel as nb",
+                        "import nibabel as nib",
                         "import numpy as np",
                         "from CPAC.utils import safe_shape",
                     ]
@@ -1358,7 +1358,7 @@ def create_regressor_workflow(
                         cosfilter_imports = [
                             "import os",
                             "import numpy as np",
-                            "import nibabel as nb",
+                            "import nibabel as nib",
                             "from nipype import logging",
                         ]
 
