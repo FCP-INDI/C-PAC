@@ -1,11 +1,32 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from logging import basicConfig, INFO
 import os
 
 import pytest
 
 from CPAC.image_utils import spatial_smoothing
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.monitoring.custom_logging import getLogger
 import CPAC.utils.test_init as test_utils
 from CPAC.utils.test_mocks import configuration_strategy_mock
+
+logger = getLogger("nipype.workflow")
+basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.skip(reason="needs refactoring")
@@ -45,7 +66,7 @@ def test_smooth():
         num_strat,
         c,
     )
-
+    logger.info("%s", workflow.list_node_names())
     workflow.run()
 
     correlations = []
@@ -109,7 +130,7 @@ def test_smooth_mapnode():
         c,
         input_image_type="func_derivative_multi",
     )
-
+    logger.info("%s", workflow.list_node_names())
     workflow.run()
 
     correlations = []
