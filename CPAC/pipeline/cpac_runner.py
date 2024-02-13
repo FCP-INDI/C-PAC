@@ -1,20 +1,19 @@
-"""Copyright (C) 2022  C-PAC Developers.
+# Copyright (C) 2022-2024  C-PAC Developers.
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from multiprocessing import Process
 import os
 from time import strftime
@@ -95,6 +94,7 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     f.close()
 
     # commands.getoutput('chmod +x %s' % subject_bash_file )
+    logger.info(subprocess.getoutput("condor_submit %s ", subject_bash_file))
 
 
 # Create and run script for CPAC to run on cluster
@@ -259,7 +259,6 @@ def run_T1w_longitudinal(sublist, cfg):
             )
 
 
-# Run C-PAC subjects via job queue
 def run(
     subject_list_file,
     config_file=None,
@@ -271,7 +270,8 @@ def run(
     debug=False,
     test_config=False,
 ) -> int:
-    """
+    """Run C-PAC subjects via job queue.
+
     Returns
     -------
     int
@@ -284,6 +284,8 @@ def run(
     import time
 
     from CPAC.pipeline.cpac_pipeline import run_workflow
+
+    logger.info("Run called with config file %s", config_file)
 
     if plugin_args is None:
         plugin_args = {"status_callback": log_nodes_cb}
@@ -308,6 +310,7 @@ def run(
         (file_paths, config) = collect_bids_files_configs(subject_list_file, None)
         sublist = bids_gen_cpac_sublist(subject_list_file, file_paths, config, None)
         if not sublist:
+            logger.error("Did not find data in %s", subject_list_file)
             return 1
 
     # take date+time stamp for run identification purposes
@@ -327,11 +330,16 @@ def run(
                     upgrade_pipeline_to_1_8(config_file)
                     c = Configuration(yaml.safe_load(open(config_file, "r")))
                 except Exception as e:
-                    raise e
+                    msg = (
+                        "C-PAC could not upgrade pipeline configuration file "
+                        f"{config_file} to v1.8 syntax"
+                    )
+                    raise RuntimeError(msg) from e
             except Exception as e:
                 raise e
-    except IOError:
-        raise
+    except IOError as e:
+        msg = f"config file {config_file} doesn't exist"
+        raise FileNotFoundError(msg) from e
     except yaml.parser.ParserError as e:
         error_detail = '"%s" at line %d' % (e.problem, e.problem_mark.line)
         msg = (
@@ -395,7 +403,8 @@ def run(
         if not sublist:
             sublist = yaml.safe_load(open(subject_list_file, "r"))
     except:
-        raise Exception
+        msg = "Subject list is not in proper YAML format. Please check your file"
+        raise FileNotFoundError(msg)
 
     # Populate subject scan map
     sub_scan_map = {}
@@ -416,8 +425,12 @@ def run(
                     scan_ids.append("scan_" + str(id))
 
             sub_scan_map[s] = scan_ids
-    except:
-        raise Exception
+    except Exception as e:
+        msg = (
+            "\n\nERROR: Subject list file not in proper format - check if you loaded"
+            " the correct file?\nError name: cpac_runner_0001\n\n"
+        )
+        raise ValueError(msg) from e
 
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
@@ -431,7 +444,7 @@ def run(
                 participants=len(sublist),
             )
         except:
-            pass
+            logger.error("Usage tracking failed for this run.")
 
     # If we're running on cluster, execute job scheduler
     if c.pipeline_setup["system_config"]["on_grid"]["run"]:
@@ -622,7 +635,7 @@ def run(
                                 pass
 
                 yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
-                print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
+                logger.info("\n\nLongitudinal pipeline completed.\n\n")
 
                 # skip main preprocessing
                 if (
@@ -726,6 +739,7 @@ def run(
                         for job in job_queue:
                             # If the job is not alive
                             if not job.is_alive():
+                                logger.warning("found dead job %s", job)
                                 # Find job and delete it from queue
                                 loc = job_queue.index(job)
                                 del job_queue[loc]

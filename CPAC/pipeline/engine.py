@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -244,6 +244,7 @@ class ResourcePool:
         if label:
             if not logdir:
                 logdir = self.logdir
+            logger.info("\n\nPrinting out strategy info for %s in %s\n", label, logdir)
             write_output_json(
                 strat_info, f"{label}_strat_info", indent=4, basedir=logdir
             )
@@ -1902,6 +1903,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
+        logger.warning("No anatomical data present.")
         return rpool
 
     if "creds_path" not in data_paths:
@@ -1946,6 +1948,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
 
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
+        logger.warning("No FreeSurfer data present.")
         return rpool
 
     if "freesurfer_dir" in data_paths["anat"]:
@@ -2061,6 +2064,8 @@ def ingress_output_dir(
     wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, creds_path=None
 ):
     dir_path = data_paths["derivatives_dir"]
+
+    logger.info("\nPulling outputs from %s.\n", dir_path)
 
     anat = os.path.join(dir_path, "anat")
     func = os.path.join(dir_path, "func")
@@ -2214,6 +2219,9 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
     jsonpath = f"{jsonpath}.json"
 
     if not os.path.exists(jsonpath):
+        logger.info(
+            "\n\n[!] No JSON found for file %s.\nCreating %s..\n\n", filepath, jsonpath
+        )
         json_info = {
             "Description": "This data was generated elsewhere and "
             "supplied by the user into this C-PAC run's "
@@ -2668,11 +2676,11 @@ def run_node_blocks(blocks, data_paths, cfg=None):
 
     run_blocks = []
     if rpool.check_rpool("desc-preproc_T1w"):
-        pass
+        logger.info("Preprocessed T1w found, skipping anatomical preprocessing.")
     else:
         run_blocks += blocks[0]
     if rpool.check_rpool("desc-preproc_bold"):
-        pass
+        logger.info("Preprocessed BOLD found, skipping functional preprocessing.")
     else:
         run_blocks += blocks[1]
 

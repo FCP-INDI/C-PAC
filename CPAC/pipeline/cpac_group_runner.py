@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,7 +18,10 @@
 import fnmatch
 import os
 
+from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.typing import LIST
+
+logger = getLogger("nipype.workflow")
 
 
 def load_config_yml(config_file: str) -> dict:
@@ -174,6 +177,10 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
+
+    logger.info(
+        "\n\nGathering the output file paths from %s...", pipeline_output_folder
+    )
 
     # this is just to keep the fsl feat config file derivative_list entries
     # nice and lean
@@ -387,6 +394,10 @@ def create_output_dict_list(
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
 
+    logger.info(
+        "\n\nGathering the output file paths from %s...", pipeline_output_folder
+    )
+
     # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
     search_dirs = []
@@ -450,6 +461,8 @@ def create_output_dict_list(
             new_row_dict["Series"] = series_id
             new_row_dict["Filepath"] = filepath
 
+            logger.info("%s - %s - %s", unique_id.split("_")[0], series_id, resource_id)
+
             if get_motion:
                 # if we're including motion measures
                 power_params_file = find_power_params_file(
@@ -494,6 +507,12 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
             new_df = new_df[new_df.participant_id.isin(inclusion_list)]
 
         if new_df.empty:
+            logger.warning(
+                "No outputs found for %s for the participants listed in the the group"
+                " analysis participant list you used. Skipping generating a model for"
+                " this output.",
+                unique_resource_id,
+            )
             continue
 
         # unique_resource_id is tuple (resource_id,strat_info)
@@ -1334,8 +1353,17 @@ def run_feat(group_config_file, feat=True):
             f_test = False
 
         if not con:
-            "\n\n################## MODEL NOT BEING INCLUDED ###########" "#######" "\n\n[!] C-PAC says: There is a mismatch between the design " "matrix and contrasts matrix for this model:\n\n" "Derivative: {0}\nSession: {1}\nScan: {2}\nPreprocessing " "strategy:\n    {3}\n\nThe model is not proceeding into the " "FSL-FEAT FLAME run.\n\n" "#########################################################" "\n".format(
-                id_tuple[0], id_tuple[1], id_tuple[2], id_tuple[3]
+            logger.warning(
+                "\n\n################## MODEL NOT BEING INCLUDED ##################"
+                "\n\n[!] C-PAC says: There is a mismatch between the design matrix and"
+                " contrasts matrix for this model:\n\nDerivative: %s\nSession: %s"
+                "\nScan: %s\nPreprocessing strategy:\n    %s\n\nThe model is not"
+                " proceeding into the FSL-FEAT FLAME run."
+                "\n\n#########################################################\n",
+                id_tuple[0],
+                id_tuple[1],
+                id_tuple[2],
+                id_tuple[3],
             )
             continue
 
@@ -1569,6 +1597,13 @@ def find_other_res_template(template_path: str, new_resolution: int) -> str:
             "${resolution_for_func_preproc}", f"{new_resolution}mm"
         )
 
+    if ref_file:
+        logger.info(
+            "\nAttempting to find %smm version of the template:\n%s\n\n",
+            new_resolution,
+            ref_file,
+        )
+
     return ref_file
 
 
@@ -1604,8 +1639,18 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=F
 
     # check: do we even need to resample?
     if int(image_nb.header.get_zooms()[0]) != int(ref_nb.header.get_zooms()[0]):
+        logger.info(
+            "Input image resolution is %smm\nTemplate image resolution is %smm\n",
+            image_nb.header.get_zooms()[0],
+            ref_nb.header.get_zooms()[0],
+        )
         resample = True
     if image_nb.shape != ref_nb.shape:
+        logger.info(
+            "Input image shape is %s\nTemplate image shape is %s\n",
+            image_nb.shape,
+            ref_nb.shape,
+        )
         resample = True
 
     if resample:
@@ -1617,6 +1662,13 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=F
                 msg = "couldn't make the dirs!"
                 raise OSError(msg) from os_error
 
+        logger.info(
+            "Resampling input image:\n%s\n\n..to this reference:\n%s\n\n..and writing"
+            " this file here:\n%s\n",
+            image_path,
+            reference_path,
+            out_path,
+        )
         cmd = ["flirt", "-in", image_path, "-ref", reference_path, "-out", out_path]
         if roi_file:
             cmd.append("-interp")
@@ -1628,6 +1680,8 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None, roi_file=F
 def resample_cpac_output_image(cmd_args):
     """Run resampling command and return the output file path."""
     import subprocess
+
+    logger.info("Running:\n%s\n\n", " ".join(cmd_args))
 
     flag = "resampled_input_images"
 
@@ -1643,6 +1697,8 @@ def resample_cpac_output_image(cmd_args):
 def launch_PyBASC(pybasc_config):
     """Run PyBASC."""
     import subprocess
+
+    logger.info("Running PyBASC with configuration file:\n%s", pybasc_config)
 
     cmd_args = ["PyBASC", pybasc_config]
     return subprocess.check_output(cmd_args)
@@ -1910,6 +1966,11 @@ def run_basc(pipeline_config):
             basc_config_dct["subject_file_list"] = func_paths
 
             basc_config_outfile = os.path.join(scan_working_dir, "PyBASC_config.yml")
+            logger.info(
+                "\nWriting PyBASC configuration file for %s scan in\n%s",
+                df_scan,
+                basc_config_outfile,
+            )
             with open(basc_config_outfile, "wt") as f:
                 noalias_dumper = yaml.dumper.SafeDumper
                 noalias_dumper.ignore_aliases = lambda self, data: True
@@ -1985,6 +2046,9 @@ def run_isc_group(
                     if roi_label in _:
                         break
                 else:
+                    logger.warning(
+                        "ROI label '%s' not found in\n%s/%s\n", roi_label, derivative, _
+                    )
                     continue
 
         df_dct = {}
@@ -2111,6 +2175,10 @@ def run_isc(pipeline_config):
         return
 
     if not isc and not isfc:
+        logger.info(
+            "\nISC and ISFC are not enabled to run in the group-level analysis"
+            " configuration YAML file, and will not run.\n"
+        )
         return
 
     pipeline_dirs = []
@@ -2121,7 +2189,13 @@ def run_isc(pipeline_config):
             pipeline_dirs.append(os.path.join(pipeline_dir, dirname))
 
     if not pipeline_dirs:
-        pass
+        logger.error(
+            "\nNo pipeline output directories found- make sure your 'pipeline_dir'"
+            " field in the group configuration YAML file is pointing to a C-PAC"
+            " pipeline output directory populated with a folder or folders that begin"
+            " with the 'pipeline_' prefix.\n\nPipeline directory provided:\n%s\n",
+            pipeline_dir,
+        )
 
     for pipeline in pipeline_dirs:
         run_isc_group(
@@ -2298,6 +2372,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
             else:
                 for job in jobQueue:
                     if not job.is_alive():
+                        logger.warning("found dead job %s", job)
                         loc = jobQueue.index(job)
                         del jobQueue[loc]
                         procss[idx].start()

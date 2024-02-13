@@ -1,3 +1,19 @@
+# Copyright (C) 2013-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import subprocess
 
@@ -7,6 +23,10 @@ import numpy as np
 from numpy import ma
 import pkg_resources as p
 import nibabel as nib
+
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nipype.workflow")
 
 mpl.use("Agg")
 from matplotlib import cm, gridspec as mgs, pyplot as plt
@@ -34,8 +54,12 @@ def generate_qc_pages(qc_dir):
     try:
         if not os.path.exists(qc_dir):
             os.makedirs(qc_dir)
-    except IOError:
-        raise IOError
+    except OSError as os_error:
+        msg = (
+            "\n\n[!] Could not create a directory for the QC dashboard. Please check"
+            f" write permissions.\n\nDirectory attempted:\n {qc_dir}"
+        )
+        raise OSError(msg) from os_error
 
     files = []
     for root, _, fs in os.walk(qc_dir):
@@ -547,6 +571,18 @@ def determine_start_and_end(data, direction, percent):
     return start, end
 
 
+def _log_graphing_error(which_montagee: str, image_name: str, error: Exception):
+    logger.error(
+        "\n[!] QC Interface: Had a problem with creating the %s montage for %s"
+        "\n\nDetails:%s. This error might occur because of a registration error"
+        " encountered while using ANTs.\nPlease refer to the png image located in your"
+        " working directory for more insight.",
+        which_montage,
+        image_name,
+        error,
+    )
+
+
 def montage_axial(overlay, underlay, png_name, cbar_name):
     """Draws Montage using overlay on Anatomical brain in Axial Direction,
     calls make_montage_axial.
@@ -669,9 +705,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             break
         try:
             im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
-        except IndexError:
-            # TODO: send this to the logger instead
-            pass
+        except IndexError as index_error:
+            _log_graphing_error("axial", png_name, index_error)
         zz += spacing
 
     x, y, z = X.shape
@@ -709,9 +744,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
                     vmin=-max_,
                     vmax=max_,
                 )
-        except IndexError:
-            # TODO: send this to the logger instead
-            pass
+        except IndexError as index_error:
+            _log_graphing_error("axial", png_name, index_error)
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -879,9 +913,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
         try:
             im = grid[i].imshow(np.rot90(Y[xx, :, :]), cmap=cm.Greys_r)
-        except IndexError:
-            # TODO: send this to the logger instead
-            pass
+        except IndexError as index_error:
+            _log_graphing_error("sagittal", png_name, index_error)
 
         grid[i].get_xaxis().set_visible(False)
         grid[i].get_yaxis().set_visible(False)
@@ -921,9 +954,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
                     vmin=-max_,
                     vmax=max_,
                 )
-        except IndexError:
-            # TODO: send this to the logger instead
-            pass
+        except IndexError as index_error:
+            _log_graphing_error("sagittal", png_name, index_error)
 
         xx += spacing
 
@@ -942,9 +974,13 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         ):
             cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
-    except AttributeError:
-        # TODO: send this to the logger instead
-        pass
+    except AttributeError as attribute_error:
+        logger.error(
+            "\n[!] QC Interface: Had a problem with creating the sagittal montage for"
+            " %s\n\nDetails:%s\n",
+            png_name,
+            attribute_error,
+        )
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
