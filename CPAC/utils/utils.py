@@ -755,6 +755,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     unit = 's'
     pe_direction = ''
     effective_echo_spacing = None
+    template = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:

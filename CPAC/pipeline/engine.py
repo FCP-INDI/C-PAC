@@ -266,7 +266,7 @@ class ResourcePool:
                              "Try turning on create_regressors or "
                              "ingress_regressors.")
         _nr = cfg['nuisance_corrections', '2-nuisance_regression']
-        if not hasattr(self, 'regressors'):
+        if not hasattr(self, 'timeseries'):
             self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
         if self.check_rpool('parsed_regressors'):  # ingressed regressor
             # name regressor workflow without regressor_prov
