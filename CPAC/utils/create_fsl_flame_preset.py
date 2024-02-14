@@ -1,3 +1,23 @@
+# Copyright (C) 2018-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nipype.workflow")
+
 # TODO: create a function that can help easily map raw pheno files that do not
 # TODO: have the participant_session id that CPAC uses
 
@@ -56,7 +76,7 @@ def write_group_list_text_file(group_list, out_file=None):
             f.write(f"{part_id}\n")
 
     if os.path.exists(out_file):
-        pass
+        logger.info("Group-level analysis participant list written:\n%s\n", out_file)
 
     return out_file
 
@@ -83,7 +103,7 @@ def write_dataframe_to_csv(matrix_df, out_file=None):
     matrix_df.to_csv(out_file, index=False)
 
     if os.path.exists(out_file):
-        pass
+        logger.info("CSV file written:\n%s\n", out_file)
 
 
 def write_config_dct_to_yaml(config_dct, out_file=None):
@@ -170,7 +190,9 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
                 )
 
     if os.path.exists(out_file):
-        pass
+        logger.info(
+            "Group-level analysis configuration YAML file written:\n%s\n", out_file
+        )
 
 
 def create_design_matrix_df(

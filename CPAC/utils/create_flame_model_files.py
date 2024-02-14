@@ -1,3 +1,24 @@
+# Copyright (C) 2016-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nipype.workflow")
+
+
 def create_dummy_string(length):
     ppstring = ""
     for i in range(0, length):
@@ -126,6 +147,8 @@ def create_fts_file(ftest_list, con_names, model_name, current_output, out_dir):
 
     import numpy as np
 
+    logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
+
     try:
         out_file = os.path.join(out_dir, model_name + ".fts")
 
@@ -202,7 +225,8 @@ def create_con_ftst_file(
     evs = evs.rstrip("\r\n").split(",")
 
     if evs[0].strip().lower() != "contrasts":
-        raise Exception
+        msg = "first cell in contrasts file should contain 'Contrasts'"
+        raise ValueError(msg)
 
     # remove "Contrasts" label and replace it with "Intercept"
     # evs[0] = "Intercept"
@@ -217,7 +241,8 @@ def create_con_ftst_file(
     try:
         contrasts_data = np.genfromtxt(con_file, names=True, delimiter=",", dtype=None)
     except:
-        raise Exception
+        msg = f"Could not successfully read in contrast file: {con_file}"
+        raise OSError(msg)
 
     lst = contrasts_data.tolist()
     # lst = list of rows of the contrast matrix (each row represents a
@@ -291,27 +316,31 @@ def create_con_ftst_file(
         fts_n = fts_columns.T
 
     if len(column_names) != (num_EVs_in_con_file):
-        "\n\n[!] CPAC says: The number of EVs in your model " "design matrix (found in the %s.mat file) does not " "match the number of EVs (columns) in your custom " "contrasts matrix CSV file.\n\nCustom contrasts matrix " "file: %s\n\nNumber of EVs in design matrix: %d\n" "Number of EVs in contrasts file: %d\n\nThe column " "labels in the design matrix should match those in " "your contrasts .CSV file.\nColumn labels in design " "matrix:\n%s" % (
+        logger.error(
+            "\n\n[!] CPAC says: The number of EVs in your model design matrix (found"
+            " in the %s.mat file) does not match the number of EVs (columns) in your"
+            " custom contrasts matrix CSV file.\n\nCustom contrasts matrix file:"
+            " %s\n\nNumber of EVs in design matrix: %d\nNumber of EVs in contrasts"
+            " file: %d\n\nThe column labels in the design matrix should match those in"
+            "your contrasts .CSV file.\nColumn labels in design matrix:\n%s",
             model_name,
             con_file,
             len(column_names),
             num_EVs_in_con_file,
             str(column_names),
         )
-
-        # raise Exception(err_string)
         return None, None
 
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
         if con_csv_col not in design_mat_col:
-            errmsg = (
-                "\n\n[!] CPAC says: The names of the EVs in your "
-                "custom contrasts .csv file do not match the names or "
-                "order of the EVs in the design matrix. Please make "
-                "sure these are consistent.\nDesign matrix EV columns: "
-                "%s\nYour contrasts matrix columns: %s\n\n" % (column_names, evs[1:])
+            logger.error(
+                "\n\n[!] CPAC says: The names of the EVs in your custom contrasts .csv"
+                " file do not match the names or order of the EVs in the design"
+                " matrix. Please make sure these are consistent.\nDesign matrix EV"
+                " columns: %s\nYour contrasts matrix columns: %s\n\n",
+                column_names,
+                evs[1:],
             )
-
             return None, None
 
     out_file = os.path.join(output_dir, model_name + ".con")
@@ -344,6 +373,7 @@ def create_con_ftst_file(
 
     ftest_out_file = None
     if fTest:
+        logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         ftest_out_file = os.path.join(output_dir, model_name + ".fts")
 
         with open(ftest_out_file, "wt") as f:
