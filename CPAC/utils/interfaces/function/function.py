@@ -3,6 +3,7 @@
 # CHANGES:
 #     * Adds `as_module` argument and property
 #     * Adds `sig_imports` decorator
+#     * Automatically assigns logger and iflogger variables in function nodes
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #     Copyright (c) 2009-2016, Nipype developers
@@ -56,10 +57,18 @@ from nipype.interfaces.utility.wrappers import Function as NipypeFunction
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import create_function_from_source, getsource
 
+from CPAC.utils.docs import outdent_lines
+
 iflogger = logging.getLogger("nipype.interface")
 
 
-class Function(NipypeFunction):  # noqa: D101
+class Function(NipypeFunction):
+    """Can automatically set a module name on the interface.
+
+    Automatically sets ``iflogger`` and ``logger`` variables to "nipype.interface" and
+    "nipype.workflow" respectively.
+    """
+
     def __init__(
         self,
         input_names=None,
@@ -132,7 +141,12 @@ class Function(NipypeFunction):  # noqa: D101
         self._input_names = ensure_list(input_names)
         self._output_names = ensure_list(output_names)
         add_traits(self.inputs, list(self._input_names))
-        self.imports = imports
+        self.imports = [
+            *imports,
+            "from CPAC.utils.monitoring.custom_logging import getLogger",
+            "iflogger = getLogger('nipype.interface')",
+            "logger = getLogger('nipype.workflow')",
+        ]
         self._out = {}
         for name in self._output_names:
             self._out[name] = None
@@ -251,4 +265,6 @@ class Function(NipypeFunction):  # noqa: D101
         return runtime
 
 
-Function.__doc__ = NipypeFunction.__doc__
+Function.__doc__ = "\n\n".join(
+    [NipypeFunction.__doc__.rstrip(), outdent_lines(Function.__doc__)]
+)
