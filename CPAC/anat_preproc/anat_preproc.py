@@ -615,9 +615,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     inputnode_bet.inputs.set(
         frac=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['frac'],
-        mask_boolean=
-        cfg.anatomical_preproc['brain_extraction'][
-            'FSL-BET']['mask_boolean'],
+        mask_boolean= True,
         mesh_boolean=
         cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['mesh_boolean'],
