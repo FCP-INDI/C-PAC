@@ -631,7 +631,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             )
 
             rpool.set_data(
-                "from-T1w_to-longitudinal_mode-image_" "desc-linear_xfm",
+                "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
                 select_sess,
                 "warp_path",
                 {},

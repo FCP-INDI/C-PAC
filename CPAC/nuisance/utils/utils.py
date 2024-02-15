@@ -116,9 +116,7 @@ def find_offending_time_points(
             else:
                 threshold = float(threshold)
         except (AttributeError, re.error, IndexError, TypeError, ValueError):
-            msg = (
-                f"Could not translate threshold {threshold} into a " "meaningful value"
-            )
+            msg = f"Could not translate threshold {threshold} into a meaningful value"
             raise ValueError(msg)
 
         offending_time_points |= set(np.where(metric > threshold)[0].tolist())

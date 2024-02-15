@@ -25,9 +25,7 @@ def check_if_file_is_empty(in_file):
     nii = nib.load(in_file)
     data = nii.get_fdata()
     if data.size == 0 or np.all(data == 0) or np.all(data == np.nan):
-        msg = (
-            f"File {in_file} is empty. Use a lower threshold or turn " "off regressors."
-        )
+        msg = f"File {in_file} is empty. Use a lower threshold or turn off regressors."
         raise ValueError(msg)
     return in_file
 

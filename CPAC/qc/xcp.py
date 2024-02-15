@@ -457,7 +457,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         Function(
             input_names=["subject", "scan", "wf_name"],
             output_names=["subject", "session", "task", "run"],
-            imports=["from bids.layout import " "parse_file_entities"],
+            imports=["from bids.layout import parse_file_entities"],
             function=get_bids_info,
             as_module=True,
         ),

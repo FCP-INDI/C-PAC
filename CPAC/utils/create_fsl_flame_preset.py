@@ -64,7 +64,7 @@ def write_group_list_text_file(group_list, out_file=None):
             new_group_list.append(sub_ses_id)
 
     if not out_file:
-        out_file = os.path.join(os.getcwd(), "group_analysis_participant_" "list.txt")
+        out_file = os.path.join(os.getcwd(), "group_analysis_participant_list.txt")
     else:
         out_file = os.path.abspath(out_file)
         dir_path = out_file.split(os.path.basename(out_file))[0]
@@ -160,7 +160,7 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
 
     with open(out_file, "wt") as f:
         f.write(
-            "# CPAC Group-Level Analysis Configuration File\n" "# Version {0}\n".format(
+            "# CPAC Group-Level Analysis Configuration File\n# Version {0}\n".format(
                 CPAC.__version__
             )
         )
@@ -450,7 +450,7 @@ def preset_single_group_avg(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -637,7 +637,7 @@ def preset_unpaired_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -833,7 +833,7 @@ def preset_paired_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -885,7 +885,7 @@ def preset_tripled_two_group(
 
     if len(conditions) != 3:
         # TODO: msg
-        msg = "Three conditions are required for the tripled " "t-test.\n"
+        msg = "Three conditions are required for the tripled t-test.\n"
         raise Exception(msg)
 
     sess_conditions = ["session", "Session", "sessions", "Sessions"]
@@ -1067,7 +1067,7 @@ def preset_tripled_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary

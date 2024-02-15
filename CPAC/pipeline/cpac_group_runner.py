@@ -799,7 +799,7 @@ def prep_feat_inputs(group_config_file: str) -> dict:
                 raise ValueError(msg)
             raise FileNotFoundError(msg)
         inclusion_list = load_text_file(
-            group_model.participant_list, "group-level analysis participant " "list"
+            group_model.participant_list, "group-level analysis participant list"
         )
     else:
         inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
@@ -898,11 +898,11 @@ def prep_feat_inputs(group_config_file: str) -> dict:
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
         elif os.path.isfile(group_model.participant_list):
             inclusion_list = load_text_file(
-                group_model.participant_list, "group-level analysis " "participant list"
+                group_model.participant_list, "group-level analysis participant list"
             )
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
         else:
-            msg = "\nCannot read group-level analysis participant " "list.\n"
+            msg = "\nCannot read group-level analysis participant list.\n"
             raise Exception(msg)
 
         new_pheno_df = pheno_df.copy()
@@ -1453,7 +1453,7 @@ def run_cwas_group(
     inclusion_list = None
 
     if inclusion:
-        inclusion_list = load_text_file(inclusion, "MDMR participant " "inclusion list")
+        inclusion_list = load_text_file(inclusion, "MDMR participant inclusion list")
 
     output_df_dct = gather_outputs(
         pipeline_dir,
@@ -1872,7 +1872,7 @@ def run_basc(pipeline_config):
 
     if basc_inclusion:
         inclusion_list = load_text_file(
-            basc_inclusion, "BASC participant" " inclusion list"
+            basc_inclusion, "BASC participant inclusion list"
         )
 
     if "none" in basc_scan_inclusion.lower():

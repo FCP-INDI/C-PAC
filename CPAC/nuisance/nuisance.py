@@ -993,14 +993,14 @@ def create_regressor_workflow(
 
             if regressor_type == "aCompCor":
                 if not regressor_selector.get("tissues"):
-                    msg = "Tissue type required for aCompCor, " "but none specified"
+                    msg = "Tissue type required for aCompCor, but none specified"
                     raise ValueError(msg)
 
                 regressor_descriptor = {"tissue": regressor_selector["tissues"]}
 
             if regressor_type == "tCompCor":
                 if not regressor_selector.get("threshold"):
-                    msg = "Threshold required for tCompCor, " "but none specified."
+                    msg = "Threshold required for tCompCor, but none specified."
                     raise ValueError(msg)
 
                 regressor_descriptor = {
@@ -1121,8 +1121,8 @@ def create_regressor_workflow(
                 regressor_descriptor["erosion"] = "Eroded"
 
             if not regressor_selector.get("summary"):
-                msg = "Summary method required for {0}, " "but none specified".format(
-                    regressor_type
+                msg = (
+                    f"Summary method required for {regressor_type}, but none specified"
                 )
                 raise ValueError(msg)
 
@@ -1130,7 +1130,7 @@ def create_regressor_workflow(
 
             if regressor_descriptor["extraction"] in ["DetrendPC", "PC"]:
                 if not regressor_selector["summary"].get("components"):
-                    msg = "Summary method PC requires components, " "but received none."
+                    msg = "Summary method PC requires components, but received none."
                     raise ValueError(msg)
 
                 regressor_descriptor["extraction"] += "_{0}".format(
@@ -1776,7 +1776,7 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
 
     if nuisance_selectors.get("PolyOrt"):
         if not nuisance_selectors["PolyOrt"].get("degree"):
-            msg = "Polynomial orthogonalization requested, " "but degree not provided."
+            msg = "Polynomial orthogonalization requested, but degree not provided."
             raise ValueError(msg)
 
         nuisance_regression.inputs.polort = nuisance_selectors["PolyOrt"]["degree"]
@@ -2483,8 +2483,8 @@ def nuisance_regressors_generation(
     ventricle = strat_pool.check_rpool("lateral-ventricles-mask")
     csf_mask = strat_pool.check_rpool(
         [
-            f"{prefixes[0]}label-CSF_" "desc-eroded_mask",
-            f"{prefixes[0]}label-CSF_" "desc-preproc_mask",
+            f"{prefixes[0]}label-CSF_desc-eroded_mask",
+            f"{prefixes[0]}label-CSF_desc-preproc_mask",
             f"{prefixes[0]}label-CSF_mask",
         ]
     )
@@ -2529,8 +2529,8 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-CSF_" "desc-eroded_mask",
-                f"{prefixes[0]}label-CSF_" "desc-preproc_mask",
+                f"{prefixes[0]}label-CSF_desc-eroded_mask",
+                f"{prefixes[0]}label-CSF_desc-preproc_mask",
                 f"{prefixes[0]}label-CSF_mask",
             ]
         )
@@ -2547,8 +2547,8 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-WM_" "desc-eroded_mask",
-                f"{prefixes[0]}label-WM_" "desc-preproc_mask",
+                f"{prefixes[0]}label-WM_desc-eroded_mask",
+                f"{prefixes[0]}label-WM_desc-preproc_mask",
                 f"{prefixes[0]}label-WM_mask",
             ]
         )
@@ -2565,8 +2565,8 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-GM_" "desc-eroded_mask",
-                f"{prefixes[0]}label-GM_" "desc-preproc_mask",
+                f"{prefixes[0]}label-GM_desc-eroded_mask",
+                f"{prefixes[0]}label-GM_desc-preproc_mask",
                 f"{prefixes[0]}label-GM_mask",
             ]
         )

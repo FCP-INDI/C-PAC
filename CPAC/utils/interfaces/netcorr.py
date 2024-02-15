@@ -34,7 +34,7 @@ class NetCorrInputSpec(AFNICommandInputSpec):
     )
     automask_off = Bool(
         False,
-        desc="If you want to neither put in a mask " "*nor* have the automasking occur",
+        desc="If you want to neither put in a mask *nor* have the automasking occur",
         argstr="-automask_off",
         usedefault=True,
     )

@@ -5329,7 +5329,7 @@ def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-T1w_to-template_mode-image_" "xfm",
+        xfm="from-T1w_to-template_mode-image_xfm",
         template_space="T1",
     )
 
@@ -5364,7 +5364,7 @@ def warp_tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-bold_to-EPItemplate_" "mode-image_xfm",
+        xfm="from-bold_to-EPItemplate_mode-image_xfm",
         template_space="EPI",
     )
 

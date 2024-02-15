@@ -716,7 +716,7 @@ class Workflow(pe.Workflow):
             )
 
         logger.info(
-            "Generated workflow graph: %s " "(graph2use=%s, simple_form=%s).",
+            "Generated workflow graph: %s (graph2use=%s, simple_form=%s).",
             outfname,
             graph2use,
             simple_form,

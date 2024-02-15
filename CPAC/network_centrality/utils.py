@@ -264,9 +264,7 @@ def sep_nifti_subbriks(
         if len(nii_dims) == 3 and len(out_names) == 1:
             pass
         else:
-            err_msg = (
-                "out_names must have same number of elements as " "nifti sub-briks"
-            )
+            err_msg = "out_names must have same number of elements as nifti sub-briks"
             raise Exception(err_msg)
 
     for brik, option in enumerate(weight_options):

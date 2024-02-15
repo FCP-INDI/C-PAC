@@ -319,7 +319,7 @@ class DataSink(IOBase):
             import boto3
             import botocore
         except ImportError:
-            err_msg = "Boto3 package is not installed - install boto3 and " "try again."
+            err_msg = "Boto3 package is not installed - install boto3 and try again."
             raise Exception(err_msg)
 
         # Init variables

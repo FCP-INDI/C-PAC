@@ -574,7 +574,7 @@ def get_BIDS_data_dct(
     )
     func = os.path.join(
         bids_base_dir,
-        "sub-{participant}/func/sub-{participant}_task-" "{scan}_bold.nii.gz",
+        "sub-{participant}/func/sub-{participant}_task-{scan}_bold.nii.gz",
     )
 
     fmap_phase_sess = os.path.join(
@@ -584,7 +584,7 @@ def get_BIDS_data_dct(
         "diff.nii.gz",
     )
     fmap_phase = os.path.join(
-        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*phasediff.nii.gz"
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}*phasediff.nii.gz"
     )
 
     fmap_mag_sess = os.path.join(
@@ -595,7 +595,7 @@ def get_BIDS_data_dct(
     )
 
     fmap_mag = os.path.join(
-        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*magnitud*.nii.gz"
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}*magnitud*.nii.gz"
     )
 
     fmap_pedir_sess = os.path.join(
@@ -606,20 +606,18 @@ def get_BIDS_data_dct(
     )
 
     fmap_pedir = os.path.join(
-        bids_base_dir, "sub-{participant}/fmap/sub-{participant}" "*acq-fMR*_epi.nii.gz"
+        bids_base_dir, "sub-{participant}/fmap/sub-{participant}*acq-fMR*_epi.nii.gz"
     )
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
     fmap_phase_scan_glob = os.path.join(
-        bids_base_dir, "sub-*fmap/" "sub-*phasediff.nii.gz"
+        bids_base_dir, "sub-*fmap/sub-*phasediff.nii.gz"
     )
 
-    fmap_mag_scan_glob = os.path.join(
-        bids_base_dir, "sub-*fmap/" "sub-*magnitud*.nii.gz"
-    )
+    fmap_mag_scan_glob = os.path.join(bids_base_dir, "sub-*fmap/sub-*magnitud*.nii.gz")
 
-    os.path.join(bids_base_dir, "sub-*fmap/" "sub-*_*acq-fMR*_epi.nii.gz")
+    os.path.join(bids_base_dir, "sub-*fmap/sub-*_*acq-fMR*_epi.nii.gz")
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
@@ -683,7 +681,7 @@ def get_BIDS_data_dct(
                 )
                 fmap_phase = os.path.join(
                     bids_base_dir,
-                    "sub-{participant}/fmap/sub-{participant}" "*phasediff.nii.gz",
+                    "sub-{participant}/fmap/sub-{participant}*phasediff.nii.gz",
                 )
 
             if fnmatch.fnmatch(filepath, fmap_mag_scan_glob):
@@ -695,7 +693,7 @@ def get_BIDS_data_dct(
                 )
                 fmap_mag = os.path.join(
                     bids_base_dir,
-                    "sub-{participant}/fmap/sub-{participant}" "*magnitud*.nii.gz",
+                    "sub-{participant}/fmap/sub-{participant}*magnitud*.nii.gz",
                 )
 
             """
@@ -1560,7 +1558,7 @@ def get_nonBIDS_data(
             f"{anat_glob}\n"
         )
         if anat_scan:
-            err = f"{err}Anatomical scan identifier provided: {anat_scan}" "\n\n"
+            err = f"{err}Anatomical scan identifier provided: {anat_scan}\n\n"
         raise Exception(err)
 
     # pull out the site/participant/etc. IDs from each path and connect them
@@ -2010,12 +2008,12 @@ def run(data_settings_yml: str):
     if len(data_dct) > 0:
         data_config_outfile = os.path.join(
             settings_dct["outputSubjectListLocation"],
-            "data_config_{0}.yml" "".format(settings_dct["subjectListName"]),
+            "data_config_{0}.yml".format(settings_dct["subjectListName"]),
         )
 
         group_list_outfile = os.path.join(
             settings_dct["outputSubjectListLocation"],
-            "group_analysis_participants_{0}.txt" "".format(
+            "group_analysis_participants_{0}.txt".format(
                 settings_dct["subjectListName"]
             ),
         )
@@ -2048,9 +2046,7 @@ def run(data_settings_yml: str):
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
             # read-able)
-            f.write(
-                f"# CPAC Data Configuration File\n# Version {CPAC.__version__}" "\n"
-            )
+            f.write(f"# CPAC Data Configuration File\n# Version {CPAC.__version__}\n")
             f.write(
                 "#\n# http://fcp-indi.github.io for more info.\n#\n"
                 "# Tip: This file can be edited manually with "

@@ -444,7 +444,7 @@ def extract_data(c, param_map):
             raise
 
         except:
-            err_msg = "Please make sessions are consistent across all " "subjects.\n\n"
+            err_msg = "Please make sessions are consistent across all subjects.\n\n"
 
             logger.exception(err_msg)
             raise Exception(err_msg)
@@ -489,7 +489,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     try:
         subjects_list = yaml.safe_load(open(data_config_path, "r"))
     except:
-        "\n\n[!] Data configuration file couldn't be read!\nFile " "path: {0}\n".format(
+        "\n\n[!] Data configuration file couldn't be read!\nFile path: {0}\n".format(
             data_config_path
         )
 
@@ -684,7 +684,7 @@ def read_csv(csv_input):
             ]
 
         if len(dict_labels) < 1:
-            msg = "Scan Parameters File is either empty" "or missing header"
+            msg = "Scan Parameters File is either empty or missing header"
             logger.exception(msg)
             raise Exception(msg)
 

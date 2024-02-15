@@ -1687,7 +1687,7 @@ class NodeBlock:
                             continue
 
                         if not outs:
-                            if block_function.__name__ == "freesurfer_" "postproc":
+                            if block_function.__name__ == "freesurfer_postproc":
                                 logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
                                 LOGTAIL["warnings"].append(
                                     WARNING_FREESURFER_OFF_WITH_DATA

@@ -567,10 +567,8 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
     return smooth_arr
 
 
-# Download test resource from S3 bucket
 def download_resource_from_s3(s3_url_path):
-    """ """
-
+    """Download test resource from S3 bucket."""
     # Import packages
     import os
     import tempfile

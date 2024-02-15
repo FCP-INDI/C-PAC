@@ -116,13 +116,13 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
         pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), "r"))
         pipeline_config = Configuration(pipeline_dict)
     except:
-        msg = "Pipeline config is not in proper YAML format. " "Please check your file"
+        msg = "Pipeline config is not in proper YAML format. Please check your file"
         raise Exception(msg)
     # Load in the subject list
     try:
         sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), "r"))
     except:
-        msg = "Subject list is not in proper YAML format. " "Please check your file"
+        msg = "Subject list is not in proper YAML format. Please check your file"
         raise Exception(msg)
 
     # Init variables

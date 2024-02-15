@@ -558,7 +558,7 @@ def run_main():
             c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
         if "pipeline_setup" not in c:
-            _url = f"{DOCS_URL_PREFIX}/user/pipelines/" "1.7-1.8-nesting-mappings"
+            _url = f"{DOCS_URL_PREFIX}/user/pipelines/1.7-1.8-nesting-mappings"
 
             logger.warning(
                 "\nC-PAC changed its pipeline configuration "

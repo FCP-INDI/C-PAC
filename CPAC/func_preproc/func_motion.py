@@ -734,9 +734,9 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     notch_imports = [
         "import os",
         "import numpy as np",
-        "from scipy.signal import iirnotch, filtfilt, firwin, " "freqz",
+        "from scipy.signal import iirnotch, filtfilt, firwin, freqz",
         "from matplotlib import pyplot as plt",
-        "from CPAC.func_preproc.utils import degrees_to_mm, " "mm_to_degrees",
+        "from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees",
     ]
     notch = pe.Node(
         Function(

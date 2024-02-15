@@ -1319,7 +1319,7 @@ def make_resample_1mm(file_):
 
     new_fname = "".join([remainder, "_1mm", ext])
     new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
-    cmd = " 3dresample -dxyz 1.0 1.0 1.0 -prefix %s " "-inset %s " % (new_fname, file_)
+    cmd = f" 3dresample -dxyz 1.0 1.0 1.0 -prefix {new_fname} -inset {file_} "
     subprocess.getoutput(cmd)
 
     return new_fname

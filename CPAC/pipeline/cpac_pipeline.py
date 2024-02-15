@@ -1236,9 +1236,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     cfg.pipeline_setup["input_creds_path"] = input_creds_path
 
-    """""" """""" """""" """""" """""" """""" """""" """""" """
-     PREPROCESSING
-    """ """""" """""" """""" """""" """""" """""" """""" """"""
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
+    # PREPROCESSING
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
 
     wf, rpool = initiate_rpool(wf, cfg, sub_dict)
 
@@ -1600,7 +1600,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             missing_key = lookup_error.args[0].split("': ")[-1]
         for errorstring in [
             "[!] C-PAC says: The listed resource is not in the resource pool:",
-            "[!] C-PAC says: None of the listed resources are in the resource " "pool:",
+            "[!] C-PAC says: None of the listed resources are in the resource pool:",
             "[!] C-PAC says: None of the listed resources in the node block "
             "being connected exist in the resource pool.\n\nResources:",
         ]:
