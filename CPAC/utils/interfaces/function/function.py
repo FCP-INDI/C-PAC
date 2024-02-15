@@ -52,7 +52,7 @@ from nipype import logging
 from nipype.interfaces.base import (
     isdefined,
 )
-from nipype.interfaces.io import add_traits
+from nipype.interfaces.io import add_traits, IOBase
 from nipype.interfaces.utility.wrappers import Function as NipypeFunction
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import create_function_from_source, getsource
@@ -99,7 +99,9 @@ class Function(NipypeFunction):
             decorator, the imports given as a parameter here will take
             precedence over those from the decorator.
         """
-        super().__init__(**inputs)
+        super(IOBase, self).__init__(**inputs)
+        if imports is None:
+            imports = []
         if function:
             if hasattr(function, "ns_imports"):
                 # prepend the ns_imports from the decorator to
@@ -108,7 +110,7 @@ class Function(NipypeFunction):
                     "from CPAC.utils.interfaces.function import Function",
                     *function.ns_imports,
                 ]
-                imports = _ns_imports if imports is None else [*_ns_imports, *imports]
+                imports = _ns_imports if not imports else [*_ns_imports, *imports]
             if as_module:
                 module = inspect.getmodule(function).__name__
                 full_name = "%s.%s" % (module, function.__name__)
@@ -116,13 +118,13 @@ class Function(NipypeFunction):
             elif hasattr(function, "__call__"):
                 try:
                     self.inputs.function_str = getsource(function)
-                except IOError:
+                except IOError as os_error:
                     msg = (
                         "Interface Function does not accept "
                         "function objects defined interactively "
                         "in a python session"
                     )
-                    raise Exception(msg)
+                    raise ValueError(msg) from os_error
                 else:
                     if input_names is None:
                         fninfo = function.__code__
@@ -132,7 +134,7 @@ class Function(NipypeFunction):
                     fninfo = create_function_from_source(function, imports).__code__
             else:
                 msg = "Unknown type of function"
-                raise Exception(msg)
+                raise TypeError(msg)
             if input_names is None:
                 input_names = fninfo.co_varnames[: fninfo.co_argcount]
 
@@ -235,10 +237,9 @@ class Function(NipypeFunction):
             function = pieces[-1]
             try:
                 function_handle = getattr(importlib.import_module(module), function)
-            except ImportError:
-                raise RuntimeError(
-                    "Could not import module: %s" % self.inputs.function_str
-                )
+            except ImportError as import_error:
+                msg = f"Could not import module: {self.inputs.function_str}"
+                raise RuntimeError(msg) from import_error
         else:
             function_handle = create_function_from_source(
                 self.inputs.function_str, self.imports
