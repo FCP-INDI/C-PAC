@@ -1,43 +1,65 @@
+# from https://github.com/nipy/nipype/blob/0.13.1/nipype/interfaces/utility/wrappers.py
+
+# CHANGES:
+#     * Adds `as_module` argument and property
+#     * Adds `sig_imports` decorator
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2018-2024 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Interface for wrapping Python functions.
+
+Like the built-in nipype Function interace, except includes
+- `as_module` to allow module.function name
+- `sig_imports` to set necessary imports on function nodes with a decorator
+"""
 from builtins import bytes, str
 import inspect
 from typing import Callable, List
 
 from nipype import logging
 from nipype.interfaces.base import (
-    BaseInterfaceInputSpec,
-    DynamicTraitedSpec,
     isdefined,
-    traits,
-    Undefined,
 )
-from nipype.interfaces.io import add_traits, IOBase
+from nipype.interfaces.io import add_traits
+from nipype.interfaces.utility.wrappers import Function as NipypeFunction
 from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import create_function_from_source, getsource
 
 iflogger = logging.getLogger("nipype.interface")
 
 
-class FunctionInputSpec(DynamicTraitedSpec, BaseInterfaceInputSpec):
-    function_str = traits.Str(mandatory=True, desc="code for function")
-
-
-class Function(IOBase):
-    """Runs arbitrary function as an interface.
-
-    Examples
-    --------
-    >>> func = 'def func(arg1, arg2=5): return arg1 + arg2'
-    >>> fi = Function(input_names=['arg1', 'arg2'], output_names=['out'])
-    >>> fi.inputs.function_str = func
-    >>> res = fi.run(arg1=1)
-    >>> res.outputs.out
-    6
-
-    """
-
-    input_spec = FunctionInputSpec
-    output_spec = DynamicTraitedSpec
-
+class Function(NipypeFunction):  # noqa: D101
     def __init__(
         self,
         input_names=None,
@@ -47,7 +69,7 @@ class Function(IOBase):
         as_module=False,
         **inputs,
     ):
-        """
+        """Initialize a :py:func`~CPAC.utils.interfaces.function.Function` interface.
 
         Parameters
         ----------
@@ -117,9 +139,8 @@ class Function(IOBase):
 
     @staticmethod
     def sig_imports(imports: List[str]) -> Callable:
-        """
-        Sets an ``ns_imports`` attribute on a function for
-        Function-node functions.
+        """Set an ``ns_imports`` attribute on a function for Function-node functions.
+
         This can be useful for classes needed for decorators, typehints
         and for avoiding redefinitions.
 
@@ -190,14 +211,6 @@ class Function(IOBase):
             add_traits(self.inputs, list(new_names))
             self._input_names.extend(new_names)
 
-    def _add_output_traits(self, base):
-        undefined_traits = {}
-        for key in self._output_names:
-            base.add_trait(key, traits.Any)
-            undefined_traits[key] = Undefined
-        base.trait_set(trait_change_notify=False, **undefined_traits)
-        return base
-
     def _run_interface(self, runtime):
         # Create function handle
         if self.as_module:
@@ -232,14 +245,10 @@ class Function(IOBase):
                 msg = "Mismatch in number of expected outputs"
                 raise RuntimeError(msg)
 
-            else:
-                for idx, name in enumerate(self._output_names):
-                    self._out[name] = out[idx]
+            for idx, name in enumerate(self._output_names):
+                self._out[name] = out[idx]
 
         return runtime
 
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        for key in self._output_names:
-            outputs[key] = self._out[key]
-        return outputs
+
+Function.__doc__ = NipypeFunction.__doc__
