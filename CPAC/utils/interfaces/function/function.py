@@ -136,7 +136,10 @@ class Function(NipypeFunction):
                 msg = "Unknown type of function"
                 raise TypeError(msg)
             if input_names is None:
-                input_names = fninfo.co_varnames[: fninfo.co_argcount]
+                try:
+                    input_names = fninfo.co_varnames[: fninfo.co_argcount]
+                except NameError:
+                    input_names = []
 
         self.as_module = as_module
         self.inputs.on_trait_change(self._set_function_string, "function_str")
@@ -236,14 +239,15 @@ class Function(NipypeFunction):
             module = ".".join(pieces[:-1])
             function = pieces[-1]
             try:
-                function_handle = getattr(importlib.import_module(module), function)
+                function_str = inspect.getsource(
+                    getattr(importlib.import_module(module), function)
+                )
             except ImportError as import_error:
                 msg = f"Could not import module: {self.inputs.function_str}"
                 raise RuntimeError(msg) from import_error
         else:
-            function_handle = create_function_from_source(
-                self.inputs.function_str, self.imports
-            )
+            function_str = self.inputs.function_str
+        function_handle = create_function_from_source(function_str, self.imports)
 
         # Get function args
         args = {}

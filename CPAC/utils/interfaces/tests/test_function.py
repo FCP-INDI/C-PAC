@@ -15,27 +15,36 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test Function interface."""
-from pytest import raises
+from pytest import mark, raises
 
 from CPAC.utils.interfaces.function.function import Function
 
 
-def test_autologger():
+def faux_fxn(_loggers: bool = True):
+    """Require autoassignment (for testing)."""
+    if _loggers:
+        return logger, iflogger  # noqa: F821
+    return luigi_mario  # noqa: F821
+
+
+@mark.parametrize("as_module", [True, False])
+def test_autologger(as_module: bool) -> None:
     """Test autoassignment of `logger` and `iflogger`."""
-
-    def faux_fxn():
-        return luigi_mario  # noqa: F821
-
-    interface = Function(function=faux_fxn)
+    interface = Function(
+        function=faux_fxn, input_names=["_loggers"], as_module=as_module
+    )
+    interface.inputs._loggers = False
     with raises(NameError) as name_error:
         interface.run()
         assert "name 'luigi_mario' is not defined" in str(name_error.value)
 
-    def faux_fxn():
-        return logger, iflogger
-
-    interface = Function(function=faux_fxn, outputs=["logger", "iflogger"])
+    interface = Function(
+        function=faux_fxn,
+        input_names=["_loggers"],
+        output_names=["logger", "iflogger"],
+        as_module=as_module,
+    )
+    interface.inputs._loggers = True
     res = interface.run()
-    logger, iflogger = res.outputs.out
-    assert logger.name == "nipype.workflow"
-    assert iflogger.name == "nipype.interface"
+    assert res.outputs.logger.name == "nipype.workflow"
+    assert res.outputs.iflogger.name == "nipype.interface"
