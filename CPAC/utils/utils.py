@@ -663,6 +663,10 @@ def get_scan_params(
     import os
     import warnings
 
+    from nipype import logging
+
+    iflogger = logging.getLogger("nipype.interface")
+
     def check2(val):
         return val if val is None or val == "" or isinstance(val, str) else int(val)
 
@@ -847,12 +851,14 @@ def get_scan_params(
                 "milliseconds. Converting TR into milliseconds"
             )
             TR = TR * 1000
+            iflogger.info("New TR value %s ms", TR)
             unit = "ms"
 
     elif TR and TR > 10:  # noqa: PLR2004
         # check to see, if TR is in milliseconds, convert it into seconds
         warnings.warn("TR is in milliseconds, Converting it into seconds")
         TR = TR / 1000.0
+        iflogger.info("New TR value %s s", TR)
         unit = "s"
 
     # swap back in
@@ -927,8 +933,9 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
 
         else:
             file_path = os.path.join(log_dir, scan_id)
-    except Exception:
-        raise
+    except Exception as e:
+        msg = "ERROR in write log"
+        raise OSError(msg) from e
 
     try:
         os.makedirs(file_path)
