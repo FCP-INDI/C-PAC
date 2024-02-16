@@ -60,6 +60,11 @@ from nipype.utils.functions import create_function_from_source, getsource
 from CPAC.utils.docs import outdent_lines
 
 iflogger = logging.getLogger("nipype.interface")
+_AUTOLOGGING_IMPORTS = [
+    "from CPAC.utils.monitoring.custom_logging import getLogger",
+    "iflogger = getLogger('nipype.interface')",
+    "logger = getLogger('nipype.workflow')",
+]
 
 
 class Function(NipypeFunction):
@@ -146,12 +151,7 @@ class Function(NipypeFunction):
         self._input_names = ensure_list(input_names)
         self._output_names = ensure_list(output_names)
         add_traits(self.inputs, list(self._input_names))
-        self.imports = [
-            *imports,
-            "from CPAC.utils.monitoring.custom_logging import getLogger",
-            "iflogger = getLogger('nipype.interface')",
-            "logger = getLogger('nipype.workflow')",
-        ]
+        self.imports = [*imports, *_AUTOLOGGING_IMPORTS]
         self._out = {}
         for name in self._output_names:
             self._out[name] = None
@@ -186,14 +186,9 @@ class Function(NipypeFunction):
         ...                     output_names=['out_file'],
         ...                     function=calculate_FD_J,
         ...                     as_module=True)
-        >>> calc_fdj.imports  # doctest: +NORMALIZE_WHITESPACE
-        ['from CPAC.utils.interfaces.function import Function',
-         'import os',
-         'import sys',
-         'from typing import Optional',
-         'import numpy as np',
-         'from CPAC.utils.pytest import skipif',
-         'from CPAC.utils.typing import LITERAL, TUPLE']
+        >>> calc_fdj.imports == ["from CPAC.utils.interfaces.function import Function",
+        ...     *calculate_FD_J.ns_imports, *_AUTOLOGGING_IMPORTS]
+        True
         >>> from inspect import signature
         >>> from nipype.utils.functions import (getsource,
         ...     create_function_from_source)
