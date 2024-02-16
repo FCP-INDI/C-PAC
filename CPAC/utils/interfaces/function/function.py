@@ -45,8 +45,9 @@ Like the built-in nipype Function interace, except includes
 - `sig_imports` to set necessary imports on function nodes with a decorator
 """
 from builtins import bytes, str
+from importlib import import_module
 import inspect
-from typing import Callable, List
+from typing import Callable, Optional
 
 from nipype import logging
 from nipype.interfaces.base import (
@@ -58,6 +59,7 @@ from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import getsource
 
 from CPAC.utils.docs import outdent_lines
+from CPAC.utils.typing import LIST, TUPLE
 
 iflogger = logging.getLogger("nipype.interface")
 _AUTOLOGGING_IMPORTS = [
@@ -67,8 +69,16 @@ _AUTOLOGGING_IMPORTS = [
 ]
 
 
-def create_function_from_source(function_source, imports=None):
-    """Return a function object from a function source
+def _as_module(fxn: str, ns: dict) -> TUPLE[str, dict]:
+    """Get full module name and namespace."""
+    module = inspect.getmodule(fxn).__name__
+    return f"{module}.{fxn.__name__}", _module_imports(module, ns)
+
+
+def create_function_from_source(
+    function_source: str, imports: Optional[LIST[str]] = None, ns: Optional[dict] = None
+):
+    """Return a function object from a function source.
 
     Parameters
     ----------
@@ -77,10 +87,12 @@ def create_function_from_source(function_source, imports=None):
     imports : list of strings
         list of import statements in string form that allow the function
         to be executed in an otherwise empty namespace
+    ns : dict
+        namespace dictionary
     """
-    ns = {}
+    if ns is None:
+        ns = {}
     import_keys = []
-
     try:
         if imports is not None:
             for statement in imports:
@@ -97,10 +109,9 @@ def create_function_from_source(function_source, imports=None):
             "imports should be done inside the function."
         )
         raise RuntimeError(msg) from e
-    ns_funcs = list(set(ns) - set(import_keys + ["__builtins__"]))
+    ns_funcs = list(set(ns) - {*import_keys, "__builtins__"})
     assert len(ns_funcs) == 1, "Function or inputs are ill-defined"
-    func = ns[ns_funcs[0]]
-    return func
+    return ns[ns_funcs[0]]
 
 
 class Function(NipypeFunction):
@@ -141,6 +152,7 @@ class Function(NipypeFunction):
             precedence over those from the decorator.
         """
         super(IOBase, self).__init__(**inputs)
+        ns = {}
         if imports is None:
             imports = []
         if function:
@@ -153,9 +165,7 @@ class Function(NipypeFunction):
                 ]
                 imports = _ns_imports if not imports else [*_ns_imports, *imports]
             if as_module:
-                module = inspect.getmodule(function).__name__
-                full_name = "%s.%s" % (module, function.__name__)
-                self.inputs.function_str = full_name
+                self.inputs.function_str, ns = _as_module(function, ns)
             elif hasattr(function, "__call__"):
                 try:
                     self.inputs.function_str = getsource(function)
@@ -172,7 +182,7 @@ class Function(NipypeFunction):
             elif isinstance(function, (str, bytes)):
                 self.inputs.function_str = function
                 if input_names is None:
-                    fninfo = create_function_from_source(function, imports).__code__
+                    fninfo = create_function_from_source(function, imports, ns).__code__
             else:
                 msg = "Unknown type of function"
                 raise TypeError(msg)
@@ -193,7 +203,7 @@ class Function(NipypeFunction):
             self._out[name] = None
 
     @staticmethod
-    def sig_imports(imports: List[str]) -> Callable:
+    def sig_imports(imports: LIST[str]) -> Callable:
         """Set an ``ns_imports`` attribute on a function for Function-node functions.
 
         This can be useful for classes needed for decorators, typehints
@@ -242,16 +252,15 @@ class Function(NipypeFunction):
 
     def _set_function_string(self, obj, name, old, new):
         if name == "function_str":
+            ns = {}
             if self.as_module:
-                module = inspect.getmodule(new).__name__
-                full_name = "%s.%s" % (module, new.__name__)
-                self.inputs.function_str = full_name
+                self.inputs.function_str, ns = _as_module(new, ns)
             elif hasattr(new, "__call__"):
                 function_source = getsource(new)
                 fninfo = new.__code__
             elif isinstance(new, (str, bytes)):
                 function_source = new
-                fninfo = create_function_from_source(new, self.imports).__code__
+                fninfo = create_function_from_source(new, self.imports, ns).__code__
             self.inputs.trait_set(
                 trait_change_notify=False, **{"%s" % name: function_source}
             )
@@ -263,12 +272,14 @@ class Function(NipypeFunction):
 
     def _run_interface(self, runtime):
         # Create function handle
+        ns = {}
         if self.as_module:
             import importlib
 
             pieces = self.inputs.function_str.split(".")
             module = ".".join(pieces[:-1])
             function = pieces[-1]
+            ns = _module_imports(module, ns)
             try:
                 function_str = inspect.getsource(
                     getattr(importlib.import_module(module), function)
@@ -278,7 +289,7 @@ class Function(NipypeFunction):
                 raise RuntimeError(msg) from import_error
         else:
             function_str = self.inputs.function_str
-        function_handle = create_function_from_source(function_str, self.imports)
+        function_handle = create_function_from_source(function_str, self.imports, ns)
 
         # Get function args
         args = {}
@@ -304,3 +315,11 @@ class Function(NipypeFunction):
 Function.__doc__ = "\n\n".join(
     [NipypeFunction.__doc__.rstrip(), outdent_lines(Function.__doc__)]
 )
+
+
+def _module_imports(module: str, ns: dict) -> dict:
+    """Import module-level imports to a namespace."""
+    for name, val in vars(import_module(module)).items():
+        if inspect.ismodule(val):
+            ns[name] = val
+    return ns
