@@ -44,6 +44,7 @@ Like the built-in nipype Function interace, except includes
 - `as_module` to allow module.function name
 - `sig_imports` to set necessary imports on function nodes with a decorator
 """
+from ast import FunctionDef, parse
 from builtins import bytes, str
 from importlib import import_module
 import inspect
@@ -72,7 +73,43 @@ _AUTOLOGGING_IMPORTS = [
 def _as_module(fxn: str, ns: dict) -> TUPLE[str, dict]:
     """Get full module name and namespace."""
     module = inspect.getmodule(fxn).__name__
-    return f"{module}.{fxn.__name__}", _module_imports(module, ns)
+    return f"{module}.{fxn.__name__}", _module_imports(module, ns, fxn.__name__)
+
+
+def get_function_name_from_source(function_source: str) -> str:
+    r"""Get the name of a function from its source code.
+
+    Parameters
+    ----------
+    function_source: str
+        The source code of the function.
+
+    Returns
+    -------
+    str
+        The name of the function.
+
+    Examples
+    --------
+    >>> get_function_name_from_source("def fake_function():\n    return")
+    'fake_function'
+    >>> get_function_name_from_source("not a def")
+    Traceback (most recent call last):
+       ...
+    ValueError: No function definition found in the provided source.
+    >>> get_function_name_from_source("class FakeClass:\n    pass")
+    Traceback (most recent call last):
+       ...
+    ValueError: No function definition found in the provided source.
+    """
+    value_error = ValueError("No function definition found in the provided source.")
+    try:
+        for node in parse(function_source).body:
+            if isinstance(node, FunctionDef):
+                return node.name
+    except SyntaxError as syntax_error:
+        raise value_error from syntax_error
+    raise value_error
 
 
 def create_function_from_source(
@@ -274,15 +311,13 @@ class Function(NipypeFunction):
         # Create function handle
         ns = {}
         if self.as_module:
-            import importlib
-
             pieces = self.inputs.function_str.split(".")
             module = ".".join(pieces[:-1])
             function = pieces[-1]
-            ns = _module_imports(module, ns)
+            ns = _module_imports(module, ns, function)
             try:
                 function_str = inspect.getsource(
-                    getattr(importlib.import_module(module), function)
+                    getattr(import_module(module), function)
                 )
             except ImportError as import_error:
                 msg = f"Could not import module: {self.inputs.function_str}"
@@ -297,7 +332,6 @@ class Function(NipypeFunction):
             value = getattr(self.inputs, name)
             if isdefined(value):
                 args[name] = value
-
         out = function_handle(**args)
         if len(self._output_names) == 1:
             self._out[self._output_names[0]] = out
@@ -317,9 +351,11 @@ Function.__doc__ = "\n\n".join(
 )
 
 
-def _module_imports(module: str, ns: dict) -> dict:
+def _module_imports(module: str, ns: dict, fxn: str) -> dict:
     """Import module-level imports to a namespace."""
-    for name, val in vars(import_module(module)).items():
-        if inspect.ismodule(val):
-            ns[name] = val
+    exec(f"from {module} import *", ns)
+    try:
+        exec(f"del {fxn}", ns)  # We'll redefine the function itself...
+    except NameError:
+        pass  # ...unless the function isn't defined in a module
     return ns
