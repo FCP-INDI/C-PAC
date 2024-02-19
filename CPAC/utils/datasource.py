@@ -29,11 +29,9 @@ from CPAC.resources.templates.lookup_table import format_identifier, lookup_iden
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import FMLOGGER
 from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import get_scan_params
-
-logger = getLogger("nipype.workflow")
 
 
 def bidsier_prefix(unique_id):
@@ -931,12 +929,12 @@ def check_for_s3(
             os.makedirs(local_dir, exist_ok=True)
 
         if os.path.exists(local_path):
-            logger.info("%s already exists- skipping download.", local_path)
+            FMLOGGER.info("%s already exists- skipping download.", local_path)
         else:
             # Download file
             try:
                 bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-                logger.info("Attempting to download from AWS S3: %s", file_path)
+                FMLOGGER.info("Attempting to download from AWS S3: %s", file_path)
                 bucket.download_file(Key=s3_key, Filename=local_path)
             except botocore.exceptions.ClientError as exc:
                 error_code = int(exc.response["Error"]["Code"])
@@ -1012,7 +1010,7 @@ def check_for_s3(
         raise FileNotFoundError(msg)
 
     if verbose:
-        logger.info("Downloaded file:\n%s\n", local_path)
+        FMLOGGER.info("Downloaded file:\n%s\n", local_path)
 
     # Check image dimensionality
     if local_path.endswith(".nii") or local_path.endswith(".nii.gz"):

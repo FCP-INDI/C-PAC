@@ -17,7 +17,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
-from nipype import logging
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
 from indi_aws import aws_utils
@@ -46,8 +45,6 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.strategy import Strategy
 from CPAC.utils.utils import check_config_resources, check_prov_for_regtool
-
-logger = logging.getLogger("nipype.workflow")
 
 
 @nodeblock(

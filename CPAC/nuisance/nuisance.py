@@ -18,12 +18,9 @@ import os
 
 import numpy as np
 import nibabel as nib
-from nipype import logging
 from nipype.interfaces import afni, fsl
 from nipype.interfaces.afni import utils as afni_utils
 import nipype.interfaces.utility as util
-
-# pylint: disable=wrong-import-order
 from nipype.pipeline.engine.workflows import Workflow
 
 import CPAC
@@ -52,11 +49,10 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
+from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.typing import LITERAL, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
-
-logger = logging.getLogger("nipype.workflow")
 
 
 def choose_nuisance_blocks(cfg, rpool, generate_only=False):
@@ -413,7 +409,7 @@ def gather_nuisance(
 
         if not regressor_file:
             num_thresh = len(selector["thresholds"])
-            logger.warning(
+            IFLOGGER.warning(
                 "%s Censor specified with %sthreshold%s %s in selectors but threshold"
                 " was not reached.",
                 selector["method"],
@@ -2518,7 +2514,7 @@ def nuisance_regressors_generation(
             node, out, regressors, "inputspec.anatomical_eroded_brain_mask_file_path"
         )
     else:
-        logger.warning("No %s-space brain mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space brain mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2536,7 +2532,7 @@ def nuisance_regressors_generation(
         )
         wf.connect(node, out, regressors, "inputspec.csf_mask_file_path")
     else:
-        logger.warning("No %s-space CSF mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space CSF mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2554,7 +2550,7 @@ def nuisance_regressors_generation(
         )
         wf.connect(node, out, regressors, "inputspec.wm_mask_file_path")
     else:
-        logger.warning("No %s-space WM mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space WM mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2572,7 +2568,7 @@ def nuisance_regressors_generation(
         )
         wf.connect(node, out, regressors, "inputspec.gm_mask_file_path")
     else:
-        logger.warning("No %s-space GM mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space GM mask found in resource pool.", space)
 
     if ventricle:
         node, out = strat_pool.get_data("lateral-ventricles-mask")
@@ -2867,7 +2863,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
     # Will need to generalize the name
     node, out = strat_pool.get_data("pipeline-ingress_desc-confounds_timeseries")
     if not regressors_list:
-        logger.warning(
+        IFLOGGER.warning(
             "\n[!] Ingress regressors is on, but no regressors provided. "
             "The whole regressors file will be applied, but it may be"
             "too large for the timeseries data!"
@@ -2879,8 +2875,6 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
             "import numpy as np",
             "import os",
             "import CPAC",
-            "from nipype import logging",
-            'logger = logging.getLogger("nipype.workflow")',
         ]
         ingress_regressors = pe.Node(
             Function(
@@ -2931,7 +2925,7 @@ def parse_regressors(regressors_file, regressors_list):
                 header.append(regressor)
                 parsed_regressors[regressor] = full_file.loc[:, regressor]
             else:
-                logger.warning(
+                IFLOGGER.warning(
                     f"\n[!] Regressor {regressor} not found in {regressors_file}"
                 )
     if parsed_regressors.empty:

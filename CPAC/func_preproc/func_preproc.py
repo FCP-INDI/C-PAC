@@ -16,10 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
-from nipype import logging
 from nipype.interfaces import afni, ants, fsl, utility as util
-
-logger = logging.getLogger("nipype.workflow")
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import nullify

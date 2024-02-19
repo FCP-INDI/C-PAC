@@ -22,14 +22,13 @@ from warnings import warn
 
 import numpy as np
 from nilearn.connectome import ConnectivityMeasure
-from nipype import logging
 from nipype.interfaces import utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.netcorr import NetCorr, strip_afni_output_header
+from CPAC.utils.monitoring import IFLOGGER
 
-logger = logging.getLogger("nipype.workflow")
 connectome_methods = {
     "afni": {"Pearson": "", "Partial": "-part_corr"},
     "nilearn": {"Pearson": "correlation", "Partial": "partial correlation"},
@@ -85,8 +84,8 @@ def get_connectome_method(method, tool):
     cm_method = connectome_methods[tool.lower()].get(method, NotImplemented)
     if cm_method is NotImplemented:
         warning_message = f"{method} has not yet been implemented for {tool} in C-PAC."
-        if logger:
-            logger.warning(NotImplementedError(warning_message))
+        if IFLOGGER:
+            IFLOGGER.warning(NotImplementedError(warning_message))
         else:
             warn(warning_message, category=Warning)
     return cm_method

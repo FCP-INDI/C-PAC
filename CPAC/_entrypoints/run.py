@@ -28,7 +28,6 @@ from typing import Optional, Union
 from warnings import simplefilter
 
 import yaml
-from nipype import logging
 
 from CPAC import __version__, license_notice
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
@@ -48,11 +47,10 @@ from CPAC.utils.configuration.yaml_template import (
     upgrade_pipeline_to_1_8,
 )
 from CPAC.utils.docs import DOCS_URL_PREFIX
-from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
+from CPAC.utils.monitoring import failed_to_start, FMLOGGER, log_nodes_cb, WFLOGGER
 from CPAC.utils.utils import update_nested_dict
 
 simplefilter(action="ignore", category=FutureWarning)
-logger = logging.getLogger("nipype.workflow")
 DEFAULT_TMP_DIR = "/tmp"
 
 
@@ -477,7 +475,7 @@ def run_main():
         if not args.group_file or not os.path.exists(args.group_file):
             import pkg_resources as p
 
-            logger.warning("\nNo group analysis configuration file was supplied.\n")
+            WFLOGGER.warning("\nNo group analysis configuration file was supplied.\n")
 
             args.group_file = p.resource_filename(
                 "CPAC",
@@ -493,11 +491,11 @@ def run_main():
                 if not os.path.exists(output_group):
                     shutil.copyfile(args.group_file, output_group)
             except (Exception, IOError):
-                logger.warning(
+                FMLOGGER.warning(
                     "Could not create group analysis configuration file.\nPlease refer to the C-PAC documentation for group analysis setup."
                 )
             else:
-                logger.warning(
+                WFLOGGER.warning(
                     "Please refer to the output directory for a template of  the file and, after customizing to your analysis, add the flag\n\n    --group_file %s\n\nto your `docker run` command\n",
                     output_group,
                 )
@@ -507,7 +505,7 @@ def run_main():
         else:
             import CPAC.pipeline.cpac_group_runner as cgr
 
-            logger.info(
+            WFLOGGER.info(
                 "Starting group level analysis of data in %s using %s",
                 bids_dir,
                 args.group_file,
@@ -537,14 +535,14 @@ def run_main():
         # validate input dir (if skip_bids_validator is not set)
         if not args.data_config_file:
             if args.bids_validator_config:
-                logger.info("Running BIDS validator...")
+                WFLOGGER.info("Running BIDS validator...")
                 run(f"bids-validator --config {args.bids_validator_config} {bids_dir}")
             elif args.skip_bids_validator:
-                logger.info("Skipping BIDS validator...")
+                WFLOGGER.info("Skipping BIDS validator...")
             elif bids_dir_is_s3:
-                logger.info("Skipping BIDS validator for S3 datasets...")
+                WFLOGGER.info("Skipping BIDS validator for S3 datasets...")
             else:
-                logger.info("Running BIDS validator...")
+                WFLOGGER.info("Running BIDS validator...")
                 run(f"bids-validator {bids_dir}")
 
         if args.preconfig:
@@ -560,7 +558,7 @@ def run_main():
         if "pipeline_setup" not in c:
             _url = f"{DOCS_URL_PREFIX}/user/pipelines/1.7-1.8-nesting-mappings"
 
-            logger.warning(
+            WFLOGGER.warning(
                 "\nC-PAC changed its pipeline configuration "
                 "format in v1.8.0.\nSee %s for details.\n",
                 _url,
@@ -711,7 +709,7 @@ def run_main():
                 output_dir, "working"
             )
         else:
-            logger.warning(
+            FMLOGGER.warning(
                 "Cannot write working directory to S3 bucket. "
                 "Either change the output directory to something "
                 "local or turn off the --save_working_dir flag"
@@ -733,19 +731,21 @@ def run_main():
             ]["calculate_motion_after"] = True
 
         if args.participant_label:
-            logger.info("#### Running C-PAC for %s", ", ".join(args.participant_label))
+            WFLOGGER.info(
+                "#### Running C-PAC for %s", ", ".join(args.participant_label)
+            )
         else:
-            logger.info("#### Running C-PAC")
+            WFLOGGER.info("#### Running C-PAC")
 
-        logger.info(
+        WFLOGGER.info(
             "Number of participants to run in parallel: %s",
             c["pipeline_setup", "system_config", "num_participants_at_once"],
         )
 
         if not args.data_config_file:
-            logger.info("Input directory: %s", bids_dir)
+            WFLOGGER.info("Input directory: %s", bids_dir)
 
-        logger.info(
+        WFLOGGER.info(
             "Output directory: %s\nWorking directory: %s\nLog directory: %s\n"
             "Remove working directory: %s\nAvailable memory: %s (GB)\n"
             "Available threads: %s\nNumber of threads for ANTs: %s",
@@ -805,7 +805,7 @@ def run_main():
                 args.participant_ndx = os.environ["AWS_BATCH_JOB_ARRAY_INDEX"]
 
             if 0 <= participant_ndx < len(sub_list):
-                logger.info(
+                WFLOGGER.info(
                     "Processing data for participant %s (%s)",
                     args.participant_ndx,
                     sub_list[participant_ndx]["subject_id"],
@@ -884,7 +884,7 @@ def run_main():
                     TypeError,
                     ValueError,
                 ) as e:
-                    logger.warning(
+                    WFLOGGER.warning(
                         "The run will continue without monitoring. Monitoring was configured to be enabled, but the monitoring server failed to start, so : %s\n",
                         e,
                     )
@@ -916,7 +916,7 @@ def run_main():
                     ],
                 }
 
-            logger.info("Starting participant level processing")
+            WFLOGGER.info("Starting participant level processing")
             exitcode = CPAC.pipeline.cpac_runner.run(
                 data_config_file,
                 pipeline_config_file,
@@ -931,7 +931,7 @@ def run_main():
 
             if args.analysis_level == "test_config":
                 if exitcode == 0:
-                    logger.info(
+                    WFLOGGER.info(
                         "\nPipeline and data configuration files should"
                         " have been written to %s and %s respectively.\n",
                         pipeline_config_file,
@@ -942,7 +942,7 @@ def run_main():
             from CPAC.utils.monitoring import LOGTAIL
 
             for warning in LOGTAIL["warnings"]:
-                logger.warning("%s\n", warning.rstrip())
+                WFLOGGER.warning("%s\n", warning.rstrip())
 
     sys.exit(exitcode)
 

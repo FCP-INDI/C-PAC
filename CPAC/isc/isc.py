@@ -17,10 +17,8 @@
 import numpy as np
 
 from CPAC.utils import correlation
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import IFLOGGER
 from .utils import p_from_null, phase_randomize
-
-logger = getLogger("nipype.workflow")
 
 
 def isc(D, std=None, collapse_subj=True):
@@ -65,7 +63,7 @@ def isc_significance(ISC, min_null, max_null, two_sided=False):
 
 
 def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
-    logger.info("Permutation %s", permutation)
+    IFLOGGER.info("Permutation %s", permutation)
     min_null = 1
     max_null = -1
 

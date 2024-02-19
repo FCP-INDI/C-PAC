@@ -14,9 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import WFLOGGER
 
 
 def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
@@ -44,7 +42,7 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
         for dirname in os.listdir(work_dir):
             if workdirs_to_keep:
                 for keepdir in workdirs_to_keep:
-                    logger.info("%s --- %s\n", dirname, keepdir)
+                    WFLOGGER.info("%s --- %s\n", dirname, keepdir)
                     if keepdir in dirname:
                         continue
             try:

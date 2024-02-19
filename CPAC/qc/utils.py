@@ -24,9 +24,7 @@ from numpy import ma
 import pkg_resources as p
 import nibabel as nib
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 mpl.use("Agg")
 from matplotlib import cm, gridspec as mgs, pyplot as plt
@@ -572,7 +570,7 @@ def determine_start_and_end(data, direction, percent):
 
 
 def _log_graphing_error(which_montagee: str, image_name: str, error: Exception):
-    logger.error(
+    IFLOGGER.error(
         "\n[!] QC Interface: Had a problem with creating the %s montage for %s"
         "\n\nDetails:%s. This error might occur because of a registration error"
         " encountered while using ANTs.\nPlease refer to the png image located in your"
@@ -975,7 +973,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
             cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     except AttributeError as attribute_error:
-        logger.error(
+        IFLOGGER.error(
             "\n[!] QC Interface: Had a problem with creating the sagittal montage for"
             " %s\n\nDetails:%s\n",
             png_name,

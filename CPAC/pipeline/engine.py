@@ -53,7 +53,12 @@ from CPAC.utils.datasource import (
 )
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.monitoring import getLogger, LOGTAIL, WARNING_FREESURFER_OFF_WITH_DATA
+from CPAC.utils.monitoring import (
+    getLogger,
+    LOGTAIL,
+    WARNING_FREESURFER_OFF_WITH_DATA,
+    WFLOGGER,
+)
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import (
@@ -63,8 +68,6 @@ from CPAC.utils.utils import (
     read_json,
     write_output_json,
 )
-
-logger = getLogger("nipype.workflow")
 
 
 class ResourcePool:
@@ -244,7 +247,9 @@ class ResourcePool:
         if label:
             if not logdir:
                 logdir = self.logdir
-            logger.info("\n\nPrinting out strategy info for %s in %s\n", label, logdir)
+            WFLOGGER.info(
+                "\n\nPrinting out strategy info for %s in %s\n", label, logdir
+            )
             write_output_json(
                 strat_info, f"{label}_strat_info", indent=4, basedir=logdir
             )
@@ -567,7 +572,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("\nresources: %s", resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -591,7 +596,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("linked_resources: %s", linked_resources)
             verbose_logger.debug("resource_list: %s", resource_list)
         for resource in resource_list:
@@ -619,7 +624,7 @@ class ResourcePool:
                             variant_pool[fetched_resource].append(f"NO-{val[0]}")
 
             if debug:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("%s sub_pool: %s\n", resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -657,7 +662,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("len(strat_list_list): %s\n", len(strat_list_list))
             for strat_list in strat_list_list:
                 json_dct = {}
@@ -1350,7 +1355,7 @@ class ResourcePool:
                 try:
                     wf.connect(node, out, nii_name, "in_file")
                 except OSError as os_error:
-                    logger.warning(os_error)
+                    WFLOGGER.warning(os_error)
                     continue
 
                 write_json_imports = ["import os", "import json"]
@@ -1465,11 +1470,11 @@ class NodeBlock:
             if node_block_function.outputs is not None:
                 self.options = node_block_function.outputs
 
-            logger.info("Connecting %s...", name)
+            WFLOGGER.info("Connecting %s...", name)
             if debug:
                 config.update_config({"logging": {"workflow_level": "DEBUG"}})
                 logging.update_logging(config)
-                logger.debug(
+                WFLOGGER.debug(
                     '"inputs": %s\n\t "outputs": %s%s',
                     node_block_function.inputs,
                     list(self.outputs.keys()),
@@ -1683,12 +1688,12 @@ class NodeBlock:
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool, pipe_x, opt)
                         except IOError as e:  # duplicate node
-                            logger.warning(e)
+                            WFLOGGER.warning(e)
                             continue
 
                         if not outs:
                             if block_function.__name__ == "freesurfer_postproc":
-                                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
                                 LOGTAIL["warnings"].append(
                                     WARNING_FREESURFER_OFF_WITH_DATA
                                 )
@@ -1700,7 +1705,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
-                            verbose_logger = getLogger("engine")
+                            verbose_logger = getLogger("CPAC.engine")
                             verbose_logger.debug("\n=======================")
                             verbose_logger.debug("Node name: %s", node_name)
                             prov_dct = rpool.get_resource_strats_from_prov(
@@ -1903,7 +1908,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
-        logger.warning("No anatomical data present.")
+        WFLOGGER.warning("No anatomical data present.")
         return rpool
 
     if "creds_path" not in data_paths:
@@ -1948,7 +1953,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
 
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
-        logger.warning("No FreeSurfer data present.")
+        WFLOGGER.warning("No FreeSurfer data present.")
         return rpool
 
     if "freesurfer_dir" in data_paths["anat"]:
@@ -2053,7 +2058,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup["Debugging"]["verbose"]:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("local_func_scans: %s", local_func_scans)
     del local_func_scans
 
@@ -2065,7 +2070,7 @@ def ingress_output_dir(
 ):
     dir_path = data_paths["derivatives_dir"]
 
-    logger.info("\nPulling outputs from %s.\n", dir_path)
+    WFLOGGER.info("\nPulling outputs from %s.\n", dir_path)
 
     anat = os.path.join(dir_path, "anat")
     func = os.path.join(dir_path, "func")
@@ -2219,7 +2224,7 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
     jsonpath = f"{jsonpath}.json"
 
     if not os.path.exists(jsonpath):
-        logger.info(
+        WFLOGGER.info(
             "\n\n[!] No JSON found for file %s.\nCreating %s..\n\n", filepath, jsonpath
         )
         json_info = {
@@ -2676,11 +2681,11 @@ def run_node_blocks(blocks, data_paths, cfg=None):
 
     run_blocks = []
     if rpool.check_rpool("desc-preproc_T1w"):
-        logger.info("Preprocessed T1w found, skipping anatomical preprocessing.")
+        WFLOGGER.info("Preprocessed T1w found, skipping anatomical preprocessing.")
     else:
         run_blocks += blocks[0]
     if rpool.check_rpool("desc-preproc_bold"):
-        logger.info("Preprocessed BOLD found, skipping functional preprocessing.")
+        WFLOGGER.info("Preprocessed BOLD found, skipping functional preprocessing.")
     else:
         run_blocks += blocks[1]
 

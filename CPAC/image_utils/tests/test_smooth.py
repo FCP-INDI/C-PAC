@@ -25,7 +25,7 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 import CPAC.utils.test_init as test_utils
 from CPAC.utils.test_mocks import configuration_strategy_mock
 
-logger = getLogger("nipype.workflow")
+logger = getLogger("CPAC.image_utils.tests")
 basicConfig(format="%(message)s", level=INFO)
 
 

@@ -26,7 +26,7 @@ from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_w
 from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8
 from CPAC.utils.ga import track_run
-from CPAC.utils.monitoring import failed_to_start, log_nodes_cb
+from CPAC.utils.monitoring import failed_to_start, log_nodes_cb, WFLOGGER
 
 
 # Run condor jobs
@@ -94,7 +94,7 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     f.close()
 
     # commands.getoutput('chmod +x %s' % subject_bash_file )
-    logger.info(subprocess.getoutput("condor_submit %s ", subject_bash_file))
+    WFLOGGER.info(subprocess.getoutput("condor_submit %s ", subject_bash_file))
 
 
 # Create and run script for CPAC to run on cluster
@@ -285,7 +285,7 @@ def run(
 
     from CPAC.pipeline.cpac_pipeline import run_workflow
 
-    logger.info("Run called with config file %s", config_file)
+    WFLOGGER.info("Run called with config file %s", config_file)
 
     if plugin_args is None:
         plugin_args = {"status_callback": log_nodes_cb}
@@ -310,7 +310,7 @@ def run(
         (file_paths, config) = collect_bids_files_configs(subject_list_file, None)
         sublist = bids_gen_cpac_sublist(subject_list_file, file_paths, config, None)
         if not sublist:
-            logger.error("Did not find data in %s", subject_list_file)
+            WFLOGGER.error("Did not find data in %s", subject_list_file)
             return 1
 
     # take date+time stamp for run identification purposes
@@ -444,7 +444,7 @@ def run(
                 participants=len(sublist),
             )
         except:
-            logger.error("Usage tracking failed for this run.")
+            WFLOGGER.error("Usage tracking failed for this run.")
 
     # If we're running on cluster, execute job scheduler
     if c.pipeline_setup["system_config"]["on_grid"]["run"]:
@@ -635,7 +635,7 @@ def run(
                                 pass
 
                 yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
-                logger.info("\n\nLongitudinal pipeline completed.\n\n")
+                WFLOGGER.info("\n\nLongitudinal pipeline completed.\n\n")
 
                 # skip main preprocessing
                 if (
@@ -739,7 +739,7 @@ def run(
                         for job in job_queue:
                             # If the job is not alive
                             if not job.is_alive():
-                                logger.warning("found dead job %s", job)
+                                WFLOGGER.warning("found dead job %s", job)
                                 # Find job and delete it from queue
                                 loc = job_queue.index(job)
                                 del job_queue[loc]

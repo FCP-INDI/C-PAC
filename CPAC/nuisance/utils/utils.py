@@ -20,7 +20,6 @@ import os
 import re
 from typing import Optional
 
-from nipype import logging
 from nipype.interfaces import afni, ants, fsl
 import nipype.interfaces.utility as util
 from nipype.pipeline.engine import Workflow
@@ -30,8 +29,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.registration.utils import generate_inverse_transform_flags
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function import Function
-
-logger = logging.getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def find_offending_time_points(
@@ -469,7 +467,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
 ) -> Optional[dict]:
     """Update CSF mask to include only the lateral ventricles."""
     if not csf_mask_exist:
-        logger.warning(
+        IFLOGGER.warning(
             "Segmentation is Off, - therefore will be using "
             "lateral_ventricle_mask as CerebrospinalFluid_mask."
         )

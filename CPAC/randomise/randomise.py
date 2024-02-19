@@ -15,9 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def select(input_list):
@@ -27,7 +25,7 @@ def select(input_list):
         img = nib.load(i)
         hdr = img.header
         if hdr["cal_min"] == 0 and hdr["cal_max"] == 0:
-            logger.warning(
+            IFLOGGER.warning(
                 "Warning! %s is an empty image because of no positive values in the"
                 " unpermuted statistic image, and it could not be processed with"
                 " tfce.",

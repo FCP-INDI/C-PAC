@@ -22,10 +22,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_group_runner import load_config_yml
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.monitoring import log_nodes_cb
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import log_nodes_cb, WFLOGGER
 
 
 def load_subject_file(group_config_path):
@@ -53,9 +50,9 @@ def randomise_merged_mask(s_paths):
 
 
 def prep_randomise_workflow(c, subject_infos):
-    logger.info("Preparing Randomise workflow")
+    WFLOGGER.info("Preparing Randomise workflow")
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    logger.info("Subjects %s", s_ids)
+    WFLOGGER.info("Subjects %s", s_ids)
 
     wf = pe.Workflow(name="randomise_workflow")
     wf.base_dir = c.pipeline_setup["working_directory"]["path"]

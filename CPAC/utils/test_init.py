@@ -26,10 +26,8 @@ from typing import Optional
 from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline.nipype_pipeline_engine import Node
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.typing import LIST
-
-logger = getLogger("nipype.workflow")
 
 
 def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
@@ -145,7 +143,7 @@ def populate_all_templates():
 
     # Check that they all returned a value
     if len(outputs) == len(config_types):
-        logger.info("Successfully populated and saved templates!")
+        UTLOGGER.info("Successfully populated and saved templates!")
     else:
         err_msg = "Something went wrong during template population"
         raise Exception(err_msg)
@@ -175,7 +173,7 @@ def return_aws_creds():
 
     # Check if set
     if not creds_path:
-        logger.error(
+        UTLOGGER.error(
             "CPAC_AWS_CREDS environment variable not set!\n"
             "Set this to the filepath location of your AWS credentials."
         )
@@ -284,7 +282,7 @@ def download_cpac_resources_from_s3(local_base):
             )
 
     # Print done
-    logger.info("CPAC resources folder in %s is complete!", local_base)
+    UTLOGGER.info("CPAC resources folder in %s is complete!", local_base)
 
 
 # Look for CPAC_RESOURCE_DIR to be in environment
@@ -311,7 +309,7 @@ def return_resource_dir():
     # Check if set
     if not resource_dir:
         # Print notification of cpac resources directory
-        logger.error(
+        UTLOGGER.error(
             "CPAC_RESOURCE_DIR environment variable not set! Enter directory of the"
             " cpac_resources folder.\n\n*If the folder does not exist, it will be"
             " downloaded under the directory specified."
@@ -489,7 +487,7 @@ def return_test_subj():
 
     # Check if set and exists
     if not test_subj:
-        logger.error("CPAC_TEST_SUBJ environment variable not set!")
+        UTLOGGER.error("CPAC_TEST_SUBJ environment variable not set!")
         # Get user input
         test_subj = input("Enter C-PAC benchmark test subject id: ")
 

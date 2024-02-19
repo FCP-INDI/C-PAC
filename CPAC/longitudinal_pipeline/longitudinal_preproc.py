@@ -26,10 +26,8 @@ from nipype.interfaces import fsl
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.nifti_utils import nifti_image_input
-
-logger = getLogger("nipype.workflow")
 
 
 def read_ants_mat(ants_mat_file):
@@ -162,7 +160,7 @@ def template_convergence(
         msg = f"template_convergence: matrix type {mat_type} does not exist"
         raise ValueError(msg)
     distance = norm_transformations(translation, oth_transform)
-    logger.info("distance = %s", abs(distance))
+    IFLOGGER.info("distance = %s", abs(distance))
 
     return abs(distance) <= convergence_threshold
 
@@ -451,7 +449,7 @@ def template_creation_flirt(
         convergence_threshold = np.finfo(np.float64).eps
 
     if len(input_brain_list) == 1 or len(input_skull_list) == 1:
-        logger.warning(
+        IFLOGGER.warning(
             "input_brain_list or input_skull_list contains only 1 image, "
             "no need to calculate template"
         )

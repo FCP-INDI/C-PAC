@@ -16,9 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from click import BadParameter
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 class MyParser(BadParameter):
@@ -131,7 +129,7 @@ def predict_volumes(
 
     NoneType = type(None)
     if isinstance(rimg_in, NoneType) and isinstance(cimg_in, NoneType):
-        logger.error("Input rimg_in or cimg_in")
+        IFLOGGER.error("Input rimg_in or cimg_in")
         sys.exit(1)
 
     if save_dice:
@@ -176,7 +174,7 @@ def predict_volumes(
                 rescale_dim=rescale_dim,
             )
         else:
-            logger.error("Invalid Volume Dataset!")
+            IFLOGGER.error("Invalid Volume Dataset!")
             sys.exit(2)
 
         rescale_shape = block_dataset.get_rescale_shape()
@@ -242,7 +240,7 @@ def predict_volumes(
             bmsk = bmsk.data[0].numpy()
             dice = estimate_dice(bmsk, pr_bmsk_final)
             if verbose:
-                logger.info(dice)
+                IFLOGGER.info(dice)
 
         t1w_nii = volume_dataset.getCurCimgNii()
         t1w_path = t1w_nii.get_filename()

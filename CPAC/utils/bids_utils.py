@@ -23,9 +23,7 @@ from warnings import warn
 from botocore.exceptions import BotoCoreError
 import yaml
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import UTLOGGER
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -39,17 +37,17 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         raise IOError(msg)
 
     if dbg:
-        logger.debug("parsing %s", file_path)
+        UTLOGGER.debug("parsing %s", file_path)
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
     file_path_vals = os.path.dirname(file_path).split("/")
     sub = [s for s in file_path_vals if "sub-" in s]
     if dbg:
-        logger.debug("found subject %s in %s", sub, file_path_vals)
+        UTLOGGER.debug("found subject %s in %s", sub, file_path_vals)
 
     if len(sub) > 1:
-        logger.debug(
+        UTLOGGER.debug(
             "Odd that there is more than one subject directory in (%s), does the"
             " filename conform to BIDS format?",
             file_path,
@@ -58,13 +56,13 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
             if dbg:
-                logger.debug("setting site to %s", file_path_vals[sub_ndx - 1])
+                UTLOGGER.debug("setting site to %s", file_path_vals[sub_ndx - 1])
             f_dict["site"] = file_path_vals[sub_ndx - 1]
         else:
             f_dict["site"] = "none"
     elif file_path_vals[-1]:
         if dbg:
-            logger.debug(
+            UTLOGGER.debug(
                 "looking for subject id didn't pan out settling for last subdir %s",
                 file_path_vals[-1],
             )
@@ -94,7 +92,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         if raise_error:
             raise ValueError(msg)
         else:
-            logger.error(msg)
+            UTLOGGER.error(msg)
     elif not f_dict["scantype"]:
         msg = (
             f"Filename ({fname}) does not appear to contain"
@@ -103,7 +101,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         if raise_error:
             raise ValueError(msg)
         else:
-            logger.error(msg)
+            UTLOGGER.error(msg)
     else:
         if "bold" in f_dict["scantype"] and not f_dict["task"]:
             msg = (
@@ -113,7 +111,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
             if raise_error:
                 raise ValueError(msg)
             else:
-                logger.error(msg)
+                UTLOGGER.error(msg)
 
     return f_dict
 
@@ -285,14 +283,14 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             key = "-".join([level, "none"])
 
         if dbg:
-            logger.debug(key)
+            UTLOGGER.debug(key)
         # if the key doesn't exist in the config dictionary, check to see if
         # the generic key exists and return that
         if key in t_dict:
             t_dict = t_dict[key]
         else:
             if dbg:
-                logger.debug(
+                UTLOGGER.debug(
                     "Couldn't find %s, so going with %s", key, "-".join([level, "none"])
                 )
             key = "-".join([level, "none"])
@@ -305,7 +303,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # sidecar files
 
     if dbg:
-        logger.debug(t_dict)
+        UTLOGGER.debug(t_dict)
 
     for key in t_dict.keys():
         if "RepetitionTime" in key:
@@ -346,7 +344,7 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
         t_dict = t_dict[key]
 
     if dbg:
-        logger.debug(bids_config_dict)
+        UTLOGGER.debug(bids_config_dict)
 
     # get the paths to the json yaml files in config_dict, the paths contain
     # the information needed to map the parameters from the jsons (the vals
@@ -357,11 +355,11 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
     config_paths = sorted(config_dict.keys(), key=lambda p: len(p.split("/")))
 
     if dbg:
-        logger.debug(config_paths)
+        UTLOGGER.debug(config_paths)
 
     for cp in config_paths:
         if dbg:
-            logger.debug("processing %s", cp)
+            UTLOGGER.debug("processing %s", cp)
 
         # decode the filepath into its various components as defined by  BIDS
         f_dict = bids_decode_fname(cp, raise_error=raise_error)
@@ -515,7 +513,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             if run_info not in subjdict[subj_info]["funcs"]:
                 subjdict[subj_info]["funcs"][run_info] = {"run_info": run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
-                logger.warning("resource %s already exists in subjdict ??", resource)
+                UTLOGGER.warning("resource %s already exists in subjdict ??", resource)
             subjdict[subj_info]["funcs"][run_info][resource] = p
         else:
             subjdict[subj_info][resource] = p
@@ -525,7 +523,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
         missing = 0
         for tkey in top_keys:
             if tkey not in subj_res:
-                logger.warning("%s not found for %s", tkey, subj_info)
+                UTLOGGER.warning("%s not found for %s", tkey, subj_info)
                 missing += 1
                 break
 
@@ -533,11 +531,13 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             for func_key, func_res in subj_res["funcs"].items():
                 for bkey in bot_keys:
                     if bkey not in func_res:
-                        logger.warning("%s not found for %s", bkey, func_key)
+                        UTLOGGER.warning("%s not found for %s", bkey, func_key)
                         missing += 1
                         break
                 if missing == 0:
-                    logger.info("adding: %s, %s, %d", subj_info, func_key, len(sublist))
+                    UTLOGGER.info(
+                        "adding: %s, %s, %d", subj_info, func_key, len(sublist)
+                    )
                     tdict = copy.deepcopy(subj_res)
                     del tdict["funcs"]
                     tdict.update(func_res)
@@ -599,7 +599,7 @@ def bids_gen_cpac_sublist(
         to be processed
     """
     if dbg:
-        logger.debug(
+        UTLOGGER.debug(
             "gen_bids_sublist called with:\n  bids_dir: %s\n  # paths: %s"
             "\n  config_dict: %s\n  creds_path: %s",
             bids_dir,
@@ -637,7 +637,7 @@ def bids_gen_cpac_sublist(
             if config_dict:
                 t_params = bids_retrieve_params(bids_config_dict, f_dict)
                 if not t_params:
-                    logger.warning(
+                    UTLOGGER.warning(
                         "Did not receive any parameters for %s, is this a problem?", p
                     )
 
@@ -676,7 +676,7 @@ def bids_gen_cpac_sublist(
                             "lesion_mask"
                         ] = task_info["scan"]
                     else:
-                        logger.warning(
+                        UTLOGGER.warning(
                             "Lesion mask file (%s) already found for (%s:%s)"
                             " discarding %s",
                             subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"],
@@ -721,7 +721,7 @@ def bids_gen_cpac_sublist(
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = task_info
 
                 else:
-                    logger.warning(
+                    UTLOGGER.warning(
                         "Func file (%s) already found for (%s: %s: %s) discarding %s",
                         subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key],
                         f_dict["sub"],
@@ -773,14 +773,14 @@ def bids_gen_cpac_sublist(
                 sublist.append(ses)
             else:
                 if "anat" not in ses:
-                    logger.warning(
+                    UTLOGGER.warning(
                         "%s %s %s is missing an anat",
                         ses["site_id"] if "none" not in ses["site_id"] else "",
                         ses["subject_id"],
                         ses["unique_id"],
                     )
                 if "func" not in ses:
-                    logger.warning(
+                    UTLOGGER.warning(
                         "%s %s %s is missing a func",
                         ses["site_id"] if "none" not in ses["site_id"] else "",
                         ses["subject_id"],
@@ -826,7 +826,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
 
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
-        logger.info("gathering files from S3 bucket (%s) for %s", bucket, prefix)
+        UTLOGGER.info("gathering files from S3 bucket (%s) for %s", bucket, prefix)
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
@@ -1075,7 +1075,7 @@ def create_cpac_data_config(
     -------
     list
     """
-    logger.info("Parsing %s..", bids_dir)
+    UTLOGGER.info("Parsing %s..", bids_dir)
 
     (file_paths, config) = collect_bids_files_configs(bids_dir, aws_input_creds)
 
@@ -1090,7 +1090,7 @@ def create_cpac_data_config(
         ]
 
     if not file_paths:
-        logger.error("Did not find data for %s", ", ".join(participant_labels))
+        UTLOGGER.error("Did not find data for %s", ", ".join(participant_labels))
         sys.exit(1)
 
     raise_error = not skip_bids_validator
@@ -1105,7 +1105,7 @@ def create_cpac_data_config(
     )
 
     if not sub_list:
-        logger.error("Did not find data in %s", bids_dir)
+        UTLOGGER.error("Did not find data in %s", bids_dir)
         sys.exit(1)
 
     return sub_list
@@ -1143,7 +1143,7 @@ def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds)
         ]
 
         if not sub_list:
-            logger.error(
+            UTLOGGER.error(
                 "Did not find data for %s in %s",
                 ", ".join(participant_labels),
                 data_config_file

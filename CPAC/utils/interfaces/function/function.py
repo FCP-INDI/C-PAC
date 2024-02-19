@@ -3,7 +3,7 @@
 # CHANGES:
 #     * Adds `as_module` argument and property
 #     * Adds `sig_imports` decorator
-#     * Automatically assigns logger and iflogger variables in function nodes
+#     * Automatically imports global Nipype loggers in function nodes
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #     Copyright (c) 2009-2016, Nipype developers
@@ -50,7 +50,6 @@ from importlib import import_module
 import inspect
 from typing import Callable, Optional
 
-from nipype import logging
 from nipype.interfaces.base import (
     isdefined,
 )
@@ -62,11 +61,9 @@ from nipype.utils.functions import getsource
 from CPAC.utils.docs import outdent_lines
 from CPAC.utils.typing import LIST, TUPLE
 
-iflogger = logging.getLogger("nipype.interface")
 _AUTOLOGGING_IMPORTS = [
-    "from CPAC.utils.monitoring.custom_logging import getLogger",
-    "iflogger = getLogger('nipype.interface')",
-    "logger = getLogger('nipype.workflow')",
+    "from CPAC.utils.monitoring.custom_logging import FMLOGGER, IFLOGGER, UTLOGGER,"
+    " WFLOGGER"
 ]
 
 
@@ -154,8 +151,7 @@ def create_function_from_source(
 class Function(NipypeFunction):
     """Can automatically set a module name on the interface.
 
-    Automatically sets ``iflogger`` and ``logger`` variables to "nipype.interface" and
-    "nipype.workflow" respectively.
+    Automatically imports global Nipype loggers.
     """
 
     def __init__(

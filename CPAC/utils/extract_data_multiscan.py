@@ -14,14 +14,13 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
 import glob
 import os
 import string
 
 import yaml
+
+from CPAC.utils.monitoring import UTLOGGER
 
 
 def extract_data(c, param_map):
@@ -301,7 +300,7 @@ def extract_data(c, param_map):
                                 " parameters csv file" % (subject_map.get(sub), scan[0])
                             )
 
-                    logger.info("site for sub %s -> %s", sub, subject_map.get(sub))
+                    UTLOGGER.info("site for sub %s -> %s", sub, subject_map.get(sub))
                     print("    scan_parameters: ", file=f)
                     print("        tr:", file=f)
                     print_scan_param(4)
@@ -396,7 +395,7 @@ def extract_data(c, param_map):
                             index, sub, os.path.join(sub, session_id), session_id
                         )
             else:
-                logger.info("No sessions")
+                UTLOGGER.info("No sessions")
                 session_id = ""
                 fetch_path(index, sub, sub, session_id)
 
@@ -410,15 +409,15 @@ def extract_data(c, param_map):
                 # check if subject is present in subject_list
                 if subject_list:
                     if sub in subject_list and sub not in exclusion_list:
-                        logger.info("extracting data for subject: %s", sub)
+                        UTLOGGER.info("extracting data for subject: %s", sub)
                         walk(i, sub)
                 # check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in ".DS_Store":
-                    logger.info("extracting data for subject: %s", sub)
+                    UTLOGGER.info("extracting data for subject: %s", sub)
                     walk(i, sub)
 
         name = os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
-        logger.info("Extraction Complete...Input Subjects_list for CPAC - %s", name)
+        UTLOGGER.info("Extraction Complete...Input Subjects_list for CPAC - %s", name)
     except Exception:
         raise
     finally:
@@ -489,7 +488,7 @@ def generate_suplimentary_files(output_path):
 
     f.close()
 
-    logger.info("Template Phenotypic file for group analysis - %s", file_name)
+    UTLOGGER.info("Template Phenotypic file for group analysis - %s", file_name)
 
     file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
     f = open(file_name, "w")
@@ -497,7 +496,7 @@ def generate_suplimentary_files(output_path):
     for sub in subject_set:
         print(sub, file=f)
 
-    logger.info("Subject list required later for group analysis - %s", file_name)
+    UTLOGGER.info("Subject list required later for group analysis - %s", file_name)
     f.close()
 
 
@@ -557,7 +556,7 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        logger.warning(
+        UTLOGGER.warning(
             "no scan parameters csv included. make sure you turn off slice timing"
             " correction option in CPAC configuration"
         )

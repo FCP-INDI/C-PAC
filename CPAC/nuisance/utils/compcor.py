@@ -19,13 +19,11 @@ import os
 import numpy as np
 import nibabel as nib
 from nibabel.filebasedimages import ImageFileError
-from nipype import logging
 from scipy import signal
 from scipy.linalg import svd
 
 from CPAC.utils import safe_shape
-
-iflogger = logging.getLogger("nipype.interface")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def calc_compcor_components(data_filename, num_components, mask_filename):
@@ -60,7 +58,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
     image_data = image_data[binary_mask == 1, :]
 
     # filter out any voxels whose variance equals 0
-    iflogger.info("Removing zero variance components")
+    IFLOGGER.info("Removing zero variance components")
     image_data = image_data[image_data.std(1) != 0, :]
 
     if image_data.shape.count(0):
@@ -70,11 +68,11 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         )
         raise Exception(err)
 
-    iflogger.info("Detrending and centering data")
+    IFLOGGER.info("Detrending and centering data")
     Y = signal.detrend(image_data, axis=1, type="linear").T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
     Yc = Yc / np.tile(np.array(Yc.std(0)).reshape(1, Yc.shape[1]), (Yc.shape[0], 1))
-    iflogger.info("Calculating SVD decomposition of Y*Y'")
+    IFLOGGER.info("Calculating SVD decomposition of Y*Y'")
     U, S, Vh = np.linalg.svd(Yc, full_matrices=False)
 
     # write out the resulting regressor file
@@ -197,7 +195,7 @@ def _full_rank(X, cmax=1e15):
     c = smax / smin
     if c < cmax:
         return X, c
-    iflogger.warning("Matrix is singular at working precision, regularizing...")
+    IFLOGGER.warning("Matrix is singular at working precision, regularizing...")
     lda = (smax - cmax * smin) / (cmax - 1)
     s = s + lda
     X = np.dot(U, np.dot(np.diag(s), V))

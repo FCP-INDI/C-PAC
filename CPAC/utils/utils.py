@@ -31,6 +31,7 @@ import yaml
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import deprecated
+from CPAC.utils.monitoring import FMLOGGER, WFLOGGER
 from CPAC.utils.typing import LIST, TUPLE
 
 CONFIGS_DIR = os.path.abspath(
@@ -663,10 +664,6 @@ def get_scan_params(
     import os
     import warnings
 
-    from nipype import logging
-
-    iflogger = logging.getLogger("nipype.interface")
-
     def check2(val):
         return val if val is None or val == "" or isinstance(val, str) else int(val)
 
@@ -851,14 +848,14 @@ def get_scan_params(
                 "milliseconds. Converting TR into milliseconds"
             )
             TR = TR * 1000
-            iflogger.info("New TR value %s ms", TR)
+            WFLOGGER.info("New TR value %s ms", TR)
             unit = "ms"
 
     elif TR and TR > 10:  # noqa: PLR2004
         # check to see, if TR is in milliseconds, convert it into seconds
         warnings.warn("TR is in milliseconds, Converting it into seconds")
         TR = TR / 1000.0
-        iflogger.info("New TR value %s s", TR)
+        WFLOGGER.info("New TR value %s s", TR)
         unit = "s"
 
     # swap back in
@@ -892,11 +889,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     import os
     import time
 
-    from nipype import logging
-
     from CPAC import __version__
-
-    iflogger = logging.getLogger("nipype.interface")
 
     version = __version__
     subject_id = os.path.basename(log_dir)
@@ -925,7 +918,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
             try:
                 os.makedirs(file_path)
             except Exception:
-                iflogger.error(
+                FMLOGGER.error(
                     "filepath already exist, filepath- %s, curr_dir - %s",
                     file_path,
                     os.getcwd(),
@@ -940,20 +933,20 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     try:
         os.makedirs(file_path)
     except Exception:
-        iflogger.error(
+        FMLOGGER.error(
             "filepath already exist, filepath: %s, curr_dir: %s", file_path, os.getcwd()
         )
 
     out_file = os.path.join(file_path, f"log_{strategy}.yml")
 
-    iflogger.info("CPAC custom log:")
+    WFLOGGER.info("CPAC custom log:")
 
     if isinstance(inputs, list):
         inputs = inputs[0]
 
     if os.path.exists(inputs):
         status_msg = "wf_status: DONE"
-        iflogger.info(
+        WFLOGGER.info(
             "version: %s, "
             "timestamp: %s, "
             "subject_id: %s, "
@@ -970,7 +963,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         )
     else:
         status_msg = "wf_status: ERROR"
-        iflogger.error(
+        WFLOGGER.error(
             "version: %s, "
             "timestamp: %s, "
             "subject_id: %s, "

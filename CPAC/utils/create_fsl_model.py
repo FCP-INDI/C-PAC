@@ -14,9 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def load_pheno_file(pheno_file):
@@ -498,14 +496,14 @@ def model_group_var_separately(
 def check_multicollinearity(matrix):
     import numpy as np
 
-    logger.info("\nChecking for multicollinearity in the model..")
+    IFLOGGER.info("\nChecking for multicollinearity in the model..")
 
     U, s, V = np.linalg.svd(matrix)
 
     max_singular = np.max(s)
     min_singular = np.min(s)
 
-    logger.info(
+    IFLOGGER.info(
         "Max singular: %s\nMin singular: %s\nRank: %s\n\n",
         max_singular,
         min_singular,
@@ -518,13 +516,13 @@ def check_multicollinearity(matrix):
     )
 
     if min_singular == 0:
-        logger.warning(_warning)
+        IFLOGGER.warning(_warning)
 
     else:
         condition_number = float(max_singular) / float(min_singular)
-        logger.info("Condition number: %f\n\n", condition_number)
+        IFLOGGER.info("Condition number: %f\n\n", condition_number)
         if condition_number > 30:
-            logger.warning(_warning)
+            IFLOGGER.warning(_warning)
 
 
 def write_mat_file(
@@ -1027,7 +1025,7 @@ def create_dummy_string(length):
 def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
     import os
 
-    logger.info("col names: %s", col_names)
+    IFLOGGER.info("col names: %s", col_names)
 
     with open(os.path.join(out_dir, file_name) + ".con", "w+") as f:
         # write header
@@ -1065,7 +1063,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, out_dir):
     import numpy as np
 
     try:
-        logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
+        IFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         with open(os.path.join(out_dir, model_name + ".fts"), "w") as f:
             print("/NumWaves\t", len(con_dict), file=f)
             print("/NumContrasts\t", len(ftest_list), file=f)
@@ -1143,7 +1141,7 @@ def create_con_ftst_file(
     # evs[0] = "Intercept"
 
     fTest = False
-    logger.info("evs: %s", evs)
+    IFLOGGER.info("evs: %s", evs)
     for ev in evs:
         if "f_test" in ev:
             count_ftests += 1
@@ -1274,7 +1272,7 @@ def create_con_ftst_file(
         np.savetxt(f, contrasts, fmt="%1.5e", delimiter="\t")
 
     if fTest:
-        logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
+        IFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         ftest_out_dir = os.path.join(output_dir, model_name + ".fts")
 
         with open(ftest_out_dir, "wt") as f:
@@ -1613,7 +1611,7 @@ def run(
         or (custom_contrasts == "")
         or ("None" in custom_contrasts)
     ):
-        logger.info(
+        IFLOGGER.info(
             "Writing contrasts file (.con) based on contrasts provided using the group"
             " analysis model builder's contrasts editor.."
         )
@@ -1627,7 +1625,7 @@ def run(
             )
 
     else:
-        logger.info(
+        IFLOGGER.info(
             "\nWriting contrasts file (.con) based on contrasts provided with a custom"
             " contrasts matrix CSV file..\n"
         )

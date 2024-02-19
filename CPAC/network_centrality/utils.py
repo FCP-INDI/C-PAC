@@ -24,10 +24,8 @@ from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.typing import ITERABLE, LIST
-
-logger = getLogger("nipype.workflow")
 
 
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
@@ -395,7 +393,7 @@ class ThresholdError(ValueError):
     def __init__(self, threshold_option, threshold):
         self.threshold_option = threshold_option
         self.threshold = threshold
-        logger.error("%s", type(threshold))
+        IFLOGGER.error("%s", type(threshold))
         self.message = f"For '{threshold_option}', threshold value must be "
         if threshold_option in ("Significance threshold", "Sparsity threshold"):
             self.message += "a positive number greater than 0 "

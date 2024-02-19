@@ -20,6 +20,8 @@ import sys
 import numpy as np
 import nibabel as nib
 
+from CPAC.utils.monitoring import IFLOGGER
+
 
 def getOpString(mean, std_dev):
     """
@@ -117,7 +119,7 @@ def compute_reho(in_file, mask_file, cluster_size):
     res_data = res_img.get_fdata()
     res_mask_data = res_mask_img.get_fdata()
 
-    logger.info(res_data.shape)
+    IFLOGGER.info(res_data.shape)
     (n_x, n_y, n_z, n_t) = res_data.shape
 
     # "flatten" each volume of the timeseries into one big array instead of

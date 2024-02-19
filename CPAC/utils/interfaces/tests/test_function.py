@@ -23,13 +23,13 @@ from CPAC.utils.interfaces.function.function import Function
 def faux_fxn(_loggers: bool = True):
     """Require autoassignment (for testing)."""
     if _loggers:
-        return logger, iflogger  # noqa: F821
+        return WFLOGGER, IFLOGGER  # noqa: F821
     return luigi_mario  # noqa: F821
 
 
 @mark.parametrize("as_module", [True, False])
 def test_autologger(as_module: bool) -> None:
-    """Test autoassignment of `logger` and `iflogger`."""
+    """Test autoassignment of global Nipype loggers`."""
     interface = Function(
         function=faux_fxn, input_names=["_loggers"], as_module=as_module
     )

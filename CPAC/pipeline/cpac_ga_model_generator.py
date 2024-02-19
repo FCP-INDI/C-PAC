@@ -17,9 +17,7 @@
 import os
 import re
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
@@ -201,7 +199,7 @@ def check_mask_file_resolution(
     roi_mask_dims = roi_mask_hdr.get_zooms()
 
     if raw_file_dims != roi_mask_dims:
-        logger.warning(
+        IFLOGGER.warning(
             "The custom ROI mask file is a different resolution than the output data!"
             " Resampling the ROI mask file to match the original output data!"
             "\n\nCustom ROI mask file: %s\n\nOutput measure: %s\n\n",
@@ -466,14 +464,14 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 def check_multicollinearity(matrix):
     import numpy as np
 
-    logger.info("\nChecking for multicollinearity in the model..")
+    IFLOGGER.info("\nChecking for multicollinearity in the model..")
 
     U, s, V = np.linalg.svd(matrix)
 
     max_singular = np.max(s)
     min_singular = np.min(s)
 
-    logger.info(
+    IFLOGGER.info(
         "Max singular:  %s\nMin singular:  %s\nRank:  %s\n",
         max_singular,
         min_singular,
@@ -481,21 +479,21 @@ def check_multicollinearity(matrix):
     )
 
     if min_singular == 0:
-        logger.warning(
+        IFLOGGER.warning(
             "[!] CPAC warns: Detected multicollinearity in the computed group-level"
             " analysis model. Please double-check your model design.\n\n"
         )
     else:
         condition_number = float(max_singular) / float(min_singular)
-        logger.info("Condition number: %f", condition_number)
+        IFLOGGER.info("Condition number: %f", condition_number)
         if condition_number > 30:
-            logger.warning(
+            IFLOGGER.warning(
                 "[!] CPAC warns: Detected multicollinearity in the computed"
                 " group-level analysis model. Please double-check your model"
                 " design.\n\n"
             )
         else:
-            logger.info("Looks good..\n")
+            IFLOGGER.info("Looks good..\n")
 
 
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
@@ -558,7 +556,7 @@ def build_feat_model(
     # sublist_txt = group_config_obj.participant_list
 
     # if sublist_txt == None:
-    #    logger.warning("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory")
+    #    IFLOGGER.warning("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory")
     #    sublist_txt = group_config_obj.participant_list
     # else:
     #    sublist_txt = group_config_obj.particpant_list
@@ -1001,7 +999,7 @@ def build_feat_model(
 
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
-        logger.error(
+        IFLOGGER.error(
             "\n\n################## MODEL NOT GENERATED ##################\n\n[!] CPAC"
             " says: There are more EVs than there are participants currently included"
             " in the model for:\n\nDerivative: %s\nSession: %s\nScan: %s\nPreproc"
@@ -1130,7 +1128,7 @@ def build_feat_model(
             f.write(f"{val}\n")
 
     hrow = "-------------------------------------------------------------------\n"
-    logger.info(
+    IFLOGGER.info(
         "%sModel successfully generated for..\nDerivative: %s\nSession: %s\nScan: %s"
         "\nPreprocessing strategy:\n    %s\n\nModel directory:\n%s\n\nGroup"
         " configuration file:\n%s\n\nContrasts template CSV:\n%s\n\nDefine your"

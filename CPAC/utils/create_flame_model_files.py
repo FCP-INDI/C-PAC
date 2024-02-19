@@ -14,9 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import WFLOGGER
 
 
 def create_dummy_string(length):
@@ -147,7 +145,7 @@ def create_fts_file(ftest_list, con_names, model_name, current_output, out_dir):
 
     import numpy as np
 
-    logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
+    WFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
 
     try:
         out_file = os.path.join(out_dir, model_name + ".fts")
@@ -316,7 +314,7 @@ def create_con_ftst_file(
         fts_n = fts_columns.T
 
     if len(column_names) != (num_EVs_in_con_file):
-        logger.error(
+        WFLOGGER.error(
             "\n\n[!] CPAC says: The number of EVs in your model design matrix (found"
             " in the %s.mat file) does not match the number of EVs (columns) in your"
             " custom contrasts matrix CSV file.\n\nCustom contrasts matrix file:"
@@ -333,7 +331,7 @@ def create_con_ftst_file(
 
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
         if con_csv_col not in design_mat_col:
-            logger.error(
+            WFLOGGER.error(
                 "\n\n[!] CPAC says: The names of the EVs in your custom contrasts .csv"
                 " file do not match the names or order of the EVs in the design"
                 " matrix. Please make sure these are consistent.\nDesign matrix EV"
@@ -373,7 +371,7 @@ def create_con_ftst_file(
 
     ftest_out_file = None
     if fTest:
-        logger.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
+        WFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         ftest_out_file = os.path.join(output_dir, model_name + ".fts")
 
         with open(ftest_out_file, "wt") as f:

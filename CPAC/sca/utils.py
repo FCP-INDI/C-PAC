@@ -16,6 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
+from CPAC.utils.monitoring import IFLOGGER
+
 
 def compute_fisher_z_score(correlation_file, timeseries_one_d):
     """
@@ -150,15 +152,12 @@ def map_to_roi(timeseries, maps):
         (which == 'RT')
     """
     import pandas as pd
-    from nipype import logging
-
-    logger = logging.getLogger("nipype.workflow")
 
     testMat = pd.read_csv(timeseries)
     timepoints, rois = testMat.shape
 
     if rois > timepoints:
-        logger.warning(
+        IFLOGGER.warning(
             "The number of timepoints is smaller than the number "
             "of ROIs to run - therefore the GLM is "
             "underspecified and can't run."

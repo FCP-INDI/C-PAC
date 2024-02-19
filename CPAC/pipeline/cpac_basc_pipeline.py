@@ -21,15 +21,13 @@ import nipype.interfaces.io as nio
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils import Configuration
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def prep_basc_workflow(c, subject_infos):
-    logger.info("Preparing BASC workflow")
+    IFLOGGER.info("Preparing BASC workflow")
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    logger.info("Subjects %s", s_ids)
+    IFLOGGER.info("Subjects %s", s_ids)
 
     wf = pe.Workflow(name="basc_workflow")
     wf.base_dir = c.pipeline_setup["working_directory"]["path"]

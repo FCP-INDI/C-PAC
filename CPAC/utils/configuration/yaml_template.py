@@ -26,10 +26,9 @@ from click import BadParameter
 import yaml
 
 from CPAC.utils.configuration import Configuration, preconfig_yaml, Preconfiguration
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, YAML_BOOLS
 
-logger = getLogger("nipype.workflow")
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for yaml_str in value}
 
 
@@ -454,7 +453,7 @@ def upgrade_pipeline_to_1_8(path):
     # back up original config
     now = datetime.isoformat(datetime.now()).replace(":", "_")
     backup = f"{path}.{now}.bak"
-    logger.info("Backing up %s to %s and upgrading to C-PAC 1.8", path, backup)
+    UTLOGGER.info("Backing up %s to %s and upgrading to C-PAC 1.8", path, backup)
     with open(path, "r", encoding="utf-8") as _f:
         original = _f.read()
     with open(backup, "w", encoding="utf-8") as _f:
@@ -485,7 +484,7 @@ def update_a_preconfig(preconfig, import_from):
 
     import_from : str
     """
-    logger.info("Updating %s preconfig…", preconfig)
+    UTLOGGER.info("Updating %s preconfig…", preconfig)
     updated = create_yaml_from_template(
         Preconfiguration(preconfig), import_from=import_from
     )

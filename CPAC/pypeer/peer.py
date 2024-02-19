@@ -21,9 +21,7 @@ import os
 import numpy as np
 import nibabel as nib
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 # check if they have PyPEER installed
 try:
@@ -126,7 +124,7 @@ def prep_for_pypeer(
     scrub=False,
     scrub_thresh=None,
 ):
-    logger.info(
+    IFLOGGER.info(
         "\n\n=== C-PAC now executing PyPEER for %s. ===\n\nPEER scans for training"
         " model:\n%s\n\nData scans to estimate eye movements for:\n%s\n\n",
         sub_id,
@@ -159,7 +157,7 @@ def prep_for_pypeer(
         )
         raise FileNotFoundError(msg)
 
-    logger.info("Found input files:\n%s\n", func_standard_paths)
+    IFLOGGER.info("Found input files:\n%s\n", func_standard_paths)
 
     pypeer_outdir = func_standard_paths[0].split("functional_to_standard")[0]
     pypeer_outdir = os.path.join(pypeer_outdir, "PyPEER")
@@ -173,17 +171,17 @@ def prep_for_pypeer(
         scan_label = func_path.split("/")[-2].replace("_scan_", "")
 
         if scan_label in peer_scan_names or scan_label in data_scan_names:
-            logger.info("Eye-masking and z-score standardizing %s..", scan_label)
+            IFLOGGER.info("Eye-masking and z-score standardizing %s..", scan_label)
             masked_data = pypeer_eye_masking(func_path, eye_mask_path)
             data = pypeer_zscore(masked_data)
 
         if gsr:
-            logger.info("Global signal regression for %s..", scan_label)
+            IFLOGGER.info("Global signal regression for %s..", scan_label)
             data = global_signal_regression(data, eye_mask_path)
 
         removed_indices = None
         if scrub and scan_label in peer_scan_names:
-            logger.info("Motion scrubbing (Power 2012) for %s..", scan_label)
+            IFLOGGER.info("Motion scrubbing (Power 2012) for %s..", scan_label)
             fd_path = func_path.replace(
                 "functional_to_standard", "frame_wise_displacement_power"
             )
@@ -206,7 +204,9 @@ def prep_for_pypeer(
             data_scans[func_path] = [raveled_data, scan_label]
 
     for peer_scan_path in peer_scans.keys():
-        logger.info("Training the eye estimation model using:\n%s\n\n", peer_scan_path)
+        IFLOGGER.info(
+            "Training the eye estimation model using:\n%s\n\n", peer_scan_path
+        )
         data = peer_scans[peer_scan_path][0]
         peername = peer_scans[peer_scan_path][1]
         removed_indices = peer_scans[peer_scan_path][2]
@@ -230,7 +230,7 @@ def prep_for_pypeer(
         )
 
         for data_scan_path in data_scans.keys():
-            logger.info("Estimating eye movements for:\n%s\n\n", data_scan_path)
+            IFLOGGER.info("Estimating eye movements for:\n%s\n\n", data_scan_path)
             data = data_scans[data_scan_path][0]
             name = data_scans[data_scan_path][1]
 

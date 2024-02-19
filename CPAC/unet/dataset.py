@@ -23,9 +23,7 @@ from torch import nn
 from torch.utils import data
 import nibabel as nib
 
-from CPAC.utils.monitoring.custom_logging import getLogger
-
-logger = getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 class VolumeDataset(data.Dataset):
@@ -49,7 +47,7 @@ class VolumeDataset(data.Dataset):
                 self.rimg_dir = rimg_dir
                 self.rimg_files = [rimg_file]
             else:
-                logger.error("Invalid rimg_in: %s", rimg_in)
+                IFLOGGER.error("Invalid rimg_in: %s", rimg_in)
                 sys.exit(1)
 
         # Corrected Images
@@ -68,7 +66,7 @@ class VolumeDataset(data.Dataset):
                 self.cimg_dir = cimg_dir
                 self.cimg_files = [cimg_file]
             else:
-                logger.error("Invalid cimg_in: %s", cimg_in)
+                IFLOGGER.error("Invalid cimg_in: %s", cimg_in)
                 sys.exit(1)
 
         # Brain Masks
@@ -86,7 +84,7 @@ class VolumeDataset(data.Dataset):
                 self.bmsk_dir = bmsk_dir
                 self.bmsk_files = [bmsk_file]
             else:
-                logger.error("Invalid bmsk_in: %s", bmsk_in)
+                IFLOGGER.error("Invalid bmsk_in: %s", bmsk_in)
                 sys.exit(1)
 
         self.cur_rimg_nii = None
@@ -110,11 +108,11 @@ class VolumeDataset(data.Dataset):
     def __getitem__(self, index):
         if self.debug:
             if isinstance(self.rimg_files, list):
-                logger.debug(self.rimg_files[index])
+                IFLOGGER.debug(self.rimg_files[index])
             if isinstance(self.cimg_files, list):
-                logger.debug(self.cimg_files[index])
+                IFLOGGER.debug(self.cimg_files[index])
             if isinstance(self.bmsk_files, list):
-                logger.debug(self.bmsk_files[index])
+                IFLOGGER.debug(self.bmsk_files[index])
 
         Out = []
         if isinstance(self.rimg_files, list):
@@ -164,7 +162,7 @@ class BlockDataset(data.Dataset):
         super(BlockDataset, self).__init__()
 
         if isinstance(bmsk, torch.Tensor) and rimg.shape != bmsk.shape:
-            logger.error("Invalid shape of image %s", rimg.shape)
+            IFLOGGER.error("Invalid shape of image %s", rimg.shape)
             return
         raw_shape = rimg.data[0].shape
         max_dim = torch.tensor(raw_shape).max()
