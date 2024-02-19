@@ -1,7 +1,11 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
+<<<<<<< HEAD
 # Version 1.8.6
+=======
+# Version 1.8.7.dev1
+>>>>>>> origin/develop
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -75,10 +79,6 @@ anatomical_preproc:
 
   brain_extraction:
     run: On
-    FSL-BET:
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
 
 segmentation:
 

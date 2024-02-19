@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -25,8 +25,8 @@ from voluptuous import All, ALLOW_EXTRA, Any, BooleanInvalid, Capitalize, \
                        Coerce, CoerceInvalid, ExclusiveInvalid, In, Length, \
                        LengthInvalid, Lower, Match, Maybe, MultipleInvalid, \
                        Optional, Range, Required, Schema, Title
-from CPAC import docs_prefix
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
+from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -249,7 +249,7 @@ motion_estimate_filter = Any({  # notch filter with breathing_rate_* set
         Required('lowpass_cutoff'): Number,
         'Name': Maybe(str)},
     msg='`motion_estimate_filter` configuration is invalid.\nSee '
-        f'{docs_prefix}/user/'
+        f'{DOCS_URL_PREFIX}/user/'
         'func#motion-estimate-filter-valid-options for details.\n')
 target_space = All(Coerce(ListFromItem),
                    [All(Title, In(valid_options['target_space']))])
@@ -524,8 +524,6 @@ latest_schema = Schema({
             },
             'FSL-BET': {
                 'frac': Number,
-                'Robustfov': bool1_1,
-                'mask_boolean': bool1_1,
                 'mesh_boolean': bool1_1,
                 'outline': bool1_1,
                 'padding': bool1_1,

@@ -1,7 +1,11 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
+<<<<<<< HEAD
 # Version 1.8.6
+=======
+# Version 1.8.7.dev1
+>>>>>>> origin/develop
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -99,10 +103,6 @@ anatomical_preproc:
       # Perform final surface smoothing after all iterations. Default is 20.
       smooth_final: 22
 
-    FSL-BET:
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:

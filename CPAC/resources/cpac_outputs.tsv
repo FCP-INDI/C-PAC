@@ -100,7 +100,7 @@ space-template_desc-bold_mask	mask	template	func	NIfTI
 space-template_res-derivative_desc-bold_mask	mask	template	func	NIfTI					
 motion	motion		func	TSV					
 desc-summary_motion	motion		func	TSV					
-dvars	motion		func	TSV				Yes
+dvars	motion		func	TSV				Yes	
 motion-filter-plot	motion		func	png					
 desc-movementParameters_motion	motion		func	TSV					
 desc-movementParametersUnfiltered_motion	motion		func	TSV					
@@ -218,4 +218,4 @@ space-EPItemplate_label-WM_mask	mask	template	func	NIfTI
 space-EPItemplate_label-GM_mask	mask	template	func	NIfTI					
 mdmr	group	functional	group_analysis	NIfTI					
 desc-zstd-mdmr	group	functional	group_analysis	NIfTI		Yes			
-dseg			anat
+dseg			anat						
