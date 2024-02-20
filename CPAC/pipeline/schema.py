@@ -21,6 +21,7 @@ import re
 from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
+from subprocess import CalledProcessError
 from voluptuous import All, ALLOW_EXTRA, Any, BooleanInvalid, Capitalize, \
                        Coerce, CoerceInvalid, ExclusiveInvalid, In, Length, \
                        LengthInvalid, Lower, Match, Maybe, MultipleInvalid, \
@@ -355,6 +356,7 @@ def sanitize(filename):
 
 latest_schema = Schema({
     'FROM': Maybe(str),
+    'skip env check': Maybe(bool),  # flag for skipping an environment check
     'pipeline_setup': {
         'pipeline_name': All(str, Length(min=1), sanitize),
         'output_directory': {
@@ -1182,13 +1184,14 @@ def schema(config_dict):
     except KeyError:
         pass
     try:
-        if 'unet' in [using.lower() for using in
-                      partially_validated['anatomical_preproc'][
-                          'brain_extraction']['using']]:
+        if not partially_validated.get("skip env check"
+                                       ) and 'unet' in [using.lower() for using in
+                partially_validated['anatomical_preproc'][
+                    'brain_extraction']['using']]:
             try:
                 from importlib import import_module
                 import_module('CPAC.unet')
-            except (ImportError, ModuleNotFoundError, OSError) as error:
+            except (CalledProcessError, ImportError, ModuleNotFoundError, OSError) as error:
                 import site
                 raise OSError(
                     'U-Net brain extraction requires torch to be installed, '

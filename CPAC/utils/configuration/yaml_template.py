@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright (C) 2022  C-PAC Developers
 
 # This file is part of C-PAC.
@@ -18,6 +19,7 @@
 from copy import deepcopy
 import os
 import re
+from typing import Optional, Union
 from datetime import datetime
 from hashlib import sha1
 from click import BadParameter
@@ -226,8 +228,10 @@ def _count_indent(line):
     return (len(line) - len(line.lstrip())) // 2
 
 
-def create_yaml_from_template(d,  # pylint: disable=invalid-name
-                              template='default', import_from=None):
+def create_yaml_from_template(
+        d: Union[Configuration, dict],  # pylint: disable=invalid-name
+        template: str = 'default', import_from: Optional[str] = None,
+        skip_env_check: Optional[bool] = False) -> str:
     """Save dictionary to a YAML file, keeping the structure
     (such as first level comments and ordering) from the template
 
@@ -243,6 +247,9 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
 
     import_from : str, optional
         name of a preconfig. Full config is generated if omitted
+
+    skip_env_check : bool, optional
+        skip environment check (for validating a config without running)
 
     Examples
     --------
@@ -284,7 +291,7 @@ def create_yaml_from_template(d,  # pylint: disable=invalid-name
         base_config = None
     else:  # config based on preconfig
         d = Configuration(d) if not isinstance(d, Configuration) else d
-        base_config = Preconfiguration(import_from)
+        base_config = Preconfiguration(import_from, skip_env_check=skip_env_check)
         d = (d - base_config).left
         d.update({'FROM': import_from})
     yaml_template = YamlTemplate(template, base_config)
@@ -466,8 +473,9 @@ def update_a_preconfig(preconfig, import_from):
     """
     import sys
     print(f'Updating {preconfig} preconfig…', file=sys.stderr)
-    updated = create_yaml_from_template(Preconfiguration(preconfig),
-                                        import_from=import_from)
+    updated = create_yaml_from_template(Preconfiguration(preconfig,
+                                                         skip_env_check=True),
+                                        import_from=import_from, skip_env_check=True)
     with open(preconfig_yaml(preconfig), 'w', encoding='utf-8') as _f:
         _f.write(updated)
 
