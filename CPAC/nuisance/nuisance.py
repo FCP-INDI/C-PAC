@@ -1281,8 +1281,9 @@ def create_regressor_workflow(nuisance_selectors,
                                         output_names=['cosfiltered_img'],
                                         function=cosine_filter,
                                         imports=cosfilter_imports),
-                            name='{}_cosine_filter'.format(regressor_type),
-                            mem_gb=8.0)
+                            name=f'{regressor_type}_cosine_filter',
+                            mem_gb=8.0,
+                            throttle=regressor_type.lower() == "acompcor")
                         nuisance_wf.connect(
                             summary_filter_input[0], summary_filter_input[1],
                             cosfilter_node, 'input_image_path'
