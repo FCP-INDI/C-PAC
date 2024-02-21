@@ -194,6 +194,10 @@ class CpacNipypeCustomPluginMixin():
         for node in graph.nodes():
             if hasattr(self, 'runtime'):
                 self._override_memory_estimate(node)
+            elif hasattr(node, "throttle"):
+                # for a throttled node without an observation run,
+                # assume all available memory will be needed
+                node._mem_gb = self.memory_gb
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:
