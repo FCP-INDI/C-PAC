@@ -75,10 +75,6 @@ anatomical_preproc:
 
   brain_extraction:
     run: On
-    FSL-BET:
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
 
 segmentation:
 
