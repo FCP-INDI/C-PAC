@@ -463,11 +463,8 @@ def normalize_wmparc(source_file, target_file, xfm, out_file):
 
 
 """This module provides interfaces for workbench -volume-remove-islands commands"""
-from nipype import logging
 from nipype.interfaces.base import CommandLineInputSpec, File, TraitedSpec
 from nipype.interfaces.workbench.base import WBCommand
-
-iflogger = logging.getLogger("nipype.interface")
 
 
 class VolumeRemoveIslandsInputSpec(CommandLineInputSpec):

@@ -87,8 +87,9 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str)
                     ):
                         missing_outputs += (subdir, filename)
                 except Exception as exception:  # pylint: disable=broad-except
-                    logger = getLogger("nipype.workflow")
-                    logger.error(str(exception))
+                    from CPAC.utils.monitoring import WFLOGGER
+
+                    WFLOGGER.error(str(exception))
         if missing_outputs:
             missing_log = set_up_logger(
                 f"missingOutputs_{unique_id}",

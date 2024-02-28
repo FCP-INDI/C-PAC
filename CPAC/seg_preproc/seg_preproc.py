@@ -402,7 +402,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
                 "anatomical_brain",
                 "anatomical_brain_mask",
                 "template_brain_list",
-                "template_segmentation" "_list",
+                "template_segmentation_list",
                 "csf_label",
                 "gm_label",
                 "wm_label",

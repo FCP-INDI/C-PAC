@@ -35,7 +35,7 @@ def get_random_subject(species="human"):
     """
     if species == "human":
         data_config_file = (
-            "CPAC/resources/configs/test_configs/" "data-test_4-projects_5-subjects.yml"
+            "CPAC/resources/configs/test_configs/data-test_4-projects_5-subjects.yml"
         )
     else:
         msg = f"Data configurations not yet set for random test of {species}"

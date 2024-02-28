@@ -1,4 +1,22 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
+
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def compute_fisher_z_score(correlation_file, timeseries_one_d):
@@ -97,14 +115,11 @@ def check_ts(in_file):
         np.savetxt(out_file, csv_array, delimiter="\t")
     if rois > timepoints:
         message = (
-            "\n\n\n****The number of timepoints ("
-            + str(timepoints)
-            + ") is smaller than the number of ROIs to run ("
-            + str(rois)
-            + ") - therefore the GLM is"
-            + " underspecified and can't run.****\n\n\n"
+            f"\n\n\n****The number of timepoints ({timepoints}) is smaller than the"
+            f" number of ROIs to run ({rois}) - therefore the GLM is underspecified"
+            " and can't run.****\n\n\n"
         )
-        raise Exception(message)
+        raise ValueError(message)
     else:
         return out_file
 
@@ -137,15 +152,12 @@ def map_to_roi(timeseries, maps):
         (which == 'RT')
     """
     import pandas as pd
-    from nipype import logging
-
-    logger = logging.getLogger("nipype.workflow")
 
     testMat = pd.read_csv(timeseries)
     timepoints, rois = testMat.shape
 
     if rois > timepoints:
-        logger.warning(
+        IFLOGGER.warning(
             "The number of timepoints is smaller than the number "
             "of ROIs to run - therefore the GLM is "
             "underspecified and can't run."

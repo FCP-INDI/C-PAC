@@ -133,7 +133,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
@@ -220,7 +220,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
@@ -5329,7 +5329,7 @@ def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-T1w_to-template_mode-image_" "xfm",
+        xfm="from-T1w_to-template_mode-image_xfm",
         template_space="T1",
     )
 
@@ -5364,7 +5364,7 @@ def warp_tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-bold_to-EPItemplate_" "mode-image_xfm",
+        xfm="from-bold_to-EPItemplate_mode-image_xfm",
         template_space="EPI",
     )
 

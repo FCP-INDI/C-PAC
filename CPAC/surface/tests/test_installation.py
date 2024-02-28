@@ -26,7 +26,7 @@ from CPAC.utils.tests.test_utils import _installation_check
 @pytest.mark.skipif(
     "FREESURFER_HOME" not in os.environ
     or not os.path.exists(os.environ["FREESURFER_HOME"]),
-    reason="We don't need these dependencies if we don't" "have FreeSurfer.",
+    reason="We don't need these dependencies if we don't have FreeSurfer.",
 )
 def test_executable(executable):
     """Make sure executable is installed."""

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,12 +18,9 @@ import os
 
 import numpy as np
 import nibabel as nib
-from nipype import logging
 from nipype.interfaces import afni, fsl
 from nipype.interfaces.afni import utils as afni_utils
 import nipype.interfaces.utility as util
-
-# pylint: disable=wrong-import-order
 from nipype.pipeline.engine.workflows import Workflow
 
 import CPAC
@@ -52,11 +49,10 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
+from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.typing import LITERAL, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
-
-logger = logging.getLogger("nipype.workflow")
 
 
 def choose_nuisance_blocks(cfg, rpool, generate_only=False):
@@ -125,7 +121,7 @@ def erode_mask(name, segmentmap=True):
     ero_imports = [
         "import scipy.ndimage as nd",
         "import numpy as np",
-        "import nibabel as nb",
+        "import nibabel as nib",
         "import os",
         "from CPAC.seg_preproc.utils import _erode",
     ]
@@ -307,8 +303,9 @@ def gather_nuisance(
 
         try:
             regressors = np.loadtxt(regressor_file)
-        except:
-            raise
+        except (OSError, TypeError, UnicodeDecodeError, ValueError) as error:
+            msg = f"Could not read regressor {regressor_type} from {regressor_file}."
+            raise OSError(msg) from error
 
         if regressors.shape[0] != regressor_length:
             msg = (
@@ -411,10 +408,15 @@ def gather_nuisance(
         regressor_file = censor_file_path
 
         if not regressor_file:
-            # ↓ This section is gross and temporary ↓
-            len(selector["thresholds"])
-            [thresh.get("value") for thresh in selector["thresholds"]]
-            # ↑ This section is gross and temporary ↑
+            num_thresh = len(selector["thresholds"])
+            IFLOGGER.warning(
+                "%s Censor specified with %sthreshold%s %s in selectors but threshold"
+                " was not reached.",
+                selector["method"],
+                "no " if num_thresh == 0 else "",
+                "" if num_thresh == 1 else "s",
+                [thresh.get("value") for thresh in selector["thresholds"]],
+            )
             # All good to pass through if nothing to censor
             censor_volumes = np.ones((regressor_length,), dtype=int)
         else:
@@ -987,14 +989,14 @@ def create_regressor_workflow(
 
             if regressor_type == "aCompCor":
                 if not regressor_selector.get("tissues"):
-                    msg = "Tissue type required for aCompCor, " "but none specified"
+                    msg = "Tissue type required for aCompCor, but none specified"
                     raise ValueError(msg)
 
                 regressor_descriptor = {"tissue": regressor_selector["tissues"]}
 
             if regressor_type == "tCompCor":
                 if not regressor_selector.get("threshold"):
-                    msg = "Threshold required for tCompCor, " "but none specified."
+                    msg = "Threshold required for tCompCor, but none specified."
                     raise ValueError(msg)
 
                 regressor_descriptor = {
@@ -1115,8 +1117,8 @@ def create_regressor_workflow(
                 regressor_descriptor["erosion"] = "Eroded"
 
             if not regressor_selector.get("summary"):
-                msg = "Summary method required for {0}, " "but none specified".format(
-                    regressor_type
+                msg = (
+                    f"Summary method required for {regressor_type}, but none specified"
                 )
                 raise ValueError(msg)
 
@@ -1124,7 +1126,7 @@ def create_regressor_workflow(
 
             if regressor_descriptor["extraction"] in ["DetrendPC", "PC"]:
                 if not regressor_selector["summary"].get("components"):
-                    msg = "Summary method PC requires components, " "but received none."
+                    msg = "Summary method PC requires components, but received none."
                     raise ValueError(msg)
 
                 regressor_descriptor["extraction"] += "_{0}".format(
@@ -1306,7 +1308,7 @@ def create_regressor_workflow(
                     compcor_imports = [
                         "import os",
                         "import scipy.signal as signal",
-                        "import nibabel as nb",
+                        "import nibabel as nib",
                         "import numpy as np",
                         "from CPAC.utils import safe_shape",
                     ]
@@ -1352,7 +1354,7 @@ def create_regressor_workflow(
                         cosfilter_imports = [
                             "import os",
                             "import numpy as np",
-                            "import nibabel as nb",
+                            "import nibabel as nib",
                             "from nipype import logging",
                         ]
 
@@ -1770,7 +1772,7 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
 
     if nuisance_selectors.get("PolyOrt"):
         if not nuisance_selectors["PolyOrt"].get("degree"):
-            msg = "Polynomial orthogonalization requested, " "but degree not provided."
+            msg = "Polynomial orthogonalization requested, but degree not provided."
             raise ValueError(msg)
 
         nuisance_regression.inputs.polort = nuisance_selectors["PolyOrt"]["degree"]
@@ -2477,8 +2479,8 @@ def nuisance_regressors_generation(
     ventricle = strat_pool.check_rpool("lateral-ventricles-mask")
     csf_mask = strat_pool.check_rpool(
         [
-            f"{prefixes[0]}label-CSF_" "desc-eroded_mask",
-            f"{prefixes[0]}label-CSF_" "desc-preproc_mask",
+            f"{prefixes[0]}label-CSF_desc-eroded_mask",
+            f"{prefixes[0]}label-CSF_desc-preproc_mask",
             f"{prefixes[0]}label-CSF_mask",
         ]
     )
@@ -2512,7 +2514,7 @@ def nuisance_regressors_generation(
             node, out, regressors, "inputspec.anatomical_eroded_brain_mask_file_path"
         )
     else:
-        logger.warning("No %s-space brain mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space brain mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2523,14 +2525,14 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-CSF_" "desc-eroded_mask",
-                f"{prefixes[0]}label-CSF_" "desc-preproc_mask",
+                f"{prefixes[0]}label-CSF_desc-eroded_mask",
+                f"{prefixes[0]}label-CSF_desc-preproc_mask",
                 f"{prefixes[0]}label-CSF_mask",
             ]
         )
         wf.connect(node, out, regressors, "inputspec.csf_mask_file_path")
     else:
-        logger.warning("No %s-space CSF mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space CSF mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2541,14 +2543,14 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-WM_" "desc-eroded_mask",
-                f"{prefixes[0]}label-WM_" "desc-preproc_mask",
+                f"{prefixes[0]}label-WM_desc-eroded_mask",
+                f"{prefixes[0]}label-WM_desc-preproc_mask",
                 f"{prefixes[0]}label-WM_mask",
             ]
         )
         wf.connect(node, out, regressors, "inputspec.wm_mask_file_path")
     else:
-        logger.warning("No %s-space WM mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space WM mask found in resource pool.", space)
 
     if strat_pool.check_rpool(
         [
@@ -2559,14 +2561,14 @@ def nuisance_regressors_generation(
     ):
         node, out = strat_pool.get_data(
             [
-                f"{prefixes[0]}label-GM_" "desc-eroded_mask",
-                f"{prefixes[0]}label-GM_" "desc-preproc_mask",
+                f"{prefixes[0]}label-GM_desc-eroded_mask",
+                f"{prefixes[0]}label-GM_desc-preproc_mask",
                 f"{prefixes[0]}label-GM_mask",
             ]
         )
         wf.connect(node, out, regressors, "inputspec.gm_mask_file_path")
     else:
-        logger.warning("No %s-space GM mask found in resource pool.", space)
+        IFLOGGER.warning("No %s-space GM mask found in resource pool.", space)
 
     if ventricle:
         node, out = strat_pool.get_data("lateral-ventricles-mask")
@@ -2861,7 +2863,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
     # Will need to generalize the name
     node, out = strat_pool.get_data("pipeline-ingress_desc-confounds_timeseries")
     if not regressors_list:
-        logger.warning(
+        IFLOGGER.warning(
             "\n[!] Ingress regressors is on, but no regressors provided. "
             "The whole regressors file will be applied, but it may be"
             "too large for the timeseries data!"
@@ -2873,8 +2875,6 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
             "import numpy as np",
             "import os",
             "import CPAC",
-            "from nipype import logging",
-            'logger = logging.getLogger("nipype.workflow")',
         ]
         ingress_regressors = pe.Node(
             Function(
@@ -2925,7 +2925,7 @@ def parse_regressors(regressors_file, regressors_list):
                 header.append(regressor)
                 parsed_regressors[regressor] = full_file.loc[:, regressor]
             else:
-                logger.warning(
+                IFLOGGER.warning(
                     f"\n[!] Regressor {regressor} not found in {regressors_file}"
                 )
     if parsed_regressors.empty:

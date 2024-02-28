@@ -135,4 +135,36 @@ def version_report() -> str:
     return "\n".join(version_list)
 
 
+def outdent_lines(docstring: str, spaces: int = 4) -> str:
+    """Outdent lines in a string by specified number of spaces.
+
+    Only outdents lines that are at least that indented.
+    Useful for combining docstrings.
+
+    Examples
+    --------
+    >>> import re
+    >>> re.findall(r'^    Only.*$', outdent_lines.__doc__, flags=re.MULTILINE)
+    ['    Only outdents lines that are at least that indented.']
+    >>> re.findall(r'^Only.*$', outdent_lines.__doc__, flags=re.MULTILINE)
+    []
+    >>> re.findall(r'^    Only.*$', outdent_lines(outdent_lines.__doc__),
+    ...     flags=re.MULTILINE)
+    []
+    >>> re.findall(r'^Only.*$', outdent_lines(outdent_lines.__doc__),
+    ...     flags=re.MULTILINE)
+    ['Only outdents lines that are at least that indented.']
+    >>> re.findall(r'^ Only.*$', outdent_lines(outdent_lines.__doc__, 3),
+    ...     flags=re.MULTILINE)
+    [' Only outdents lines that are at least that indented.']
+    """
+    new_docstring = []
+    for line in docstring.split("\n"):
+        if line.startswith(" " * spaces):
+            new_docstring.append(line[spaces:])
+        else:
+            new_docstring.append(line)
+    return "\n".join(new_docstring)
+
+
 DOCS_URL_PREFIX = _docs_url_prefix()

@@ -1,3 +1,28 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import os
+import sys
+
+import numpy as np
+import nibabel as nib
+
+from CPAC.utils.monitoring import IFLOGGER
+
+
 def getOpString(mean, std_dev):
     """
     Generate the Operand String to be used in workflow nodes to supply
@@ -88,12 +113,13 @@ def compute_reho(in_file, mask_file, cluster_size):
 
     nvoxel = cluster_size
 
-    res_img = nb.load(res_fname)
-    res_mask_img = nb.load(res_mask_fname)
+    res_img = nib.load(res_fname)
+    res_mask_img = nib.load(res_mask_fname)
 
     res_data = res_img.get_fdata()
     res_mask_data = res_mask_img.get_fdata()
 
+    IFLOGGER.info(res_data.shape)
     (n_x, n_y, n_z, n_t) = res_data.shape
 
     # "flatten" each volume of the timeseries into one big array instead of
@@ -257,7 +283,7 @@ def compute_reho(in_file, mask_file, cluster_size):
 
                     K[i, j, k] = f_kendall(mask_R_block)
 
-    img = nb.Nifti1Image(K, header=res_img.header, affine=res_img.affine)
+    img = nib.Nifti1Image(K, header=res_img.header, affine=res_img.affine)
     reho_file = os.path.join(os.getcwd(), "ReHo.nii.gz")
     img.to_filename(reho_file)
     return reho_file

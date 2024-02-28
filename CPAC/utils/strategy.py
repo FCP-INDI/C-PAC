@@ -14,11 +14,9 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-import logging
 
 from CPAC.pipeline.engine import ResourcePool
-
-logger = logging.getLogger("nipype.workflow")
+from CPAC.utils.monitoring import WFLOGGER
 
 
 class Strategy:
@@ -53,7 +51,7 @@ class Strategy:
         try:
             return self.resource_pool[resource_key]
         except:
-            logger.error("No node for output: %s", resource_key)
+            WFLOGGER.error("No node for output: %s", resource_key)
             raise
 
     @property
@@ -83,7 +81,7 @@ class Strategy:
         try:
             return self.resource_pool[resource_key]
         except:
-            logger.error("No node for output: %s", resource_key)
+            WFLOGGER.error("No node for output: %s", resource_key)
             raise
 
     def __contains__(self, resource_key):

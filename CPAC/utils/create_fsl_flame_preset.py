@@ -1,3 +1,21 @@
+# Copyright (C) 2018-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.utils.monitoring import FMLOGGER
+
 # TODO: create a function that can help easily map raw pheno files that do not
 # TODO: have the participant_session id that CPAC uses
 
@@ -44,7 +62,7 @@ def write_group_list_text_file(group_list, out_file=None):
             new_group_list.append(sub_ses_id)
 
     if not out_file:
-        out_file = os.path.join(os.getcwd(), "group_analysis_participant_" "list.txt")
+        out_file = os.path.join(os.getcwd(), "group_analysis_participant_list.txt")
     else:
         out_file = os.path.abspath(out_file)
         dir_path = out_file.split(os.path.basename(out_file))[0]
@@ -56,7 +74,7 @@ def write_group_list_text_file(group_list, out_file=None):
             f.write(f"{part_id}\n")
 
     if os.path.exists(out_file):
-        pass
+        FMLOGGER.info("Group-level analysis participant list written:\n%s\n", out_file)
 
     return out_file
 
@@ -83,7 +101,7 @@ def write_dataframe_to_csv(matrix_df, out_file=None):
     matrix_df.to_csv(out_file, index=False)
 
     if os.path.exists(out_file):
-        pass
+        FMLOGGER.info("CSV file written:\n%s\n", out_file)
 
 
 def write_config_dct_to_yaml(config_dct, out_file=None):
@@ -140,7 +158,7 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
 
     with open(out_file, "wt") as f:
         f.write(
-            "# CPAC Group-Level Analysis Configuration File\n" "# Version {0}\n".format(
+            "# CPAC Group-Level Analysis Configuration File\n# Version {0}\n".format(
                 CPAC.__version__
             )
         )
@@ -170,7 +188,9 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
                 )
 
     if os.path.exists(out_file):
-        pass
+        FMLOGGER.info(
+            "Group-level analysis configuration YAML file written:\n%s\n", out_file
+        )
 
 
 def create_design_matrix_df(
@@ -428,7 +448,7 @@ def preset_single_group_avg(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -615,7 +635,7 @@ def preset_unpaired_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -811,7 +831,7 @@ def preset_paired_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary
@@ -863,7 +883,7 @@ def preset_tripled_two_group(
 
     if len(conditions) != 3:
         # TODO: msg
-        msg = "Three conditions are required for the tripled " "t-test.\n"
+        msg = "Three conditions are required for the tripled t-test.\n"
         raise Exception(msg)
 
     sess_conditions = ["session", "Session", "sessions", "Sessions"]
@@ -1045,7 +1065,7 @@ def preset_tripled_two_group(
     )
 
     contrasts_mat_path = os.path.join(
-        output_dir, model_name, f"contrasts_matrix_{model_name}.csv" ""
+        output_dir, model_name, f"contrasts_matrix_{model_name}.csv"
     )
 
     # start group config yaml dictionary

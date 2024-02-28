@@ -189,12 +189,14 @@ from CPAC.timeseries.timeseries_analysis import (
 from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
+    FMLOGGER,
     getLogger,
     log_nodes_cb,
     log_nodes_initial,
     LOGTAIL,
     set_up_logger,
     WARNING_FREESURFER_OFF_WITH_DATA,
+    WFLOGGER,
 )
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.trimmer import the_trimmer
@@ -206,7 +208,6 @@ from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import smooth_func_vmhc, vmhc, warp_timeseries_to_sym_template
 
-logger = getLogger("nipype.workflow")
 faulthandler.enable()
 
 # config.enable_debug_mode()
@@ -274,7 +275,7 @@ def run_workflow(
         overwrite_existing=True,
     )
     if c.pipeline_setup["Debugging"]["verbose"]:
-        set_up_logger("engine", level="debug", log_dir=log_dir, mock=True)
+        set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
 
     config.update_config(
         {
@@ -331,7 +332,7 @@ def run_workflow(
     # TODO: solve the UNet model hanging issue during MultiProc
     if "UNet" in c.anatomical_preproc["brain_extraction"]["using"]:
         c.pipeline_setup["system_config"]["max_cores_per_participant"] = 1
-        logger.info(
+        WFLOGGER.info(
             "\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
             "MODEL.\n\nThis is a temporary measure due to a known "
             "issue preventing Nipype's parallelization from running "
@@ -401,7 +402,7 @@ def run_workflow(
         {output_check}
 """
 
-    logger.info(
+    WFLOGGER.info(
         "%s",
         information.format(
             run_command=" ".join(["run", *sys.argv[1:]]),
@@ -469,7 +470,7 @@ def run_workflow(
     try:
         workflow = build_workflow(subject_id, sub_dict, c, p_name)
     except Exception as exception:
-        logger.exception("Building workflow failed")
+        WFLOGGER.exception("Building workflow failed")
         raise exception
 
     wf_graph = c["pipeline_setup", "log_directory", "graphviz", "entire_workflow"]
@@ -500,7 +501,7 @@ def run_workflow(
     )
 
     if test_config:
-        logger.info(
+        WFLOGGER.info(
             "This has been a test of the pipeline configuration "
             "file, the pipeline was built successfully, but was "
             "not run"
@@ -527,7 +528,7 @@ def run_workflow(
         #             shutil.rmtree(f)
 
         if hasattr(c, "trim") and c.trim:
-            logger.warning(
+            WFLOGGER.warning(
                 """
 Trimming is an experimental feature, and if used wrongly, it can
 lead to unreproducible results.
@@ -579,7 +580,7 @@ Please, make yourself aware of how it works and its assumptions:
             # Add status callback function that writes in callback log
             nipype_version = REQUIREMENTS["nipype"]
             if nipype.__version__ != nipype_version:
-                logger.warning(
+                WFLOGGER.warning(
                     "This version of Nipype may not be compatible with CPAC v%s,"
                     " please install Nipype version %s\n",
                     CPAC.__version__,
@@ -773,7 +774,7 @@ Please, make yourself aware of how it works and its assumptions:
 
                 except Exception as exc:
                     err_msg = "Unable to upload CPAC log files in: %s.\nError: %s"
-                    logger.error(err_msg, log_dir, exc)
+                    FMLOGGER.error(err_msg, log_dir, exc)
 
         except Exception:
             import traceback
@@ -796,9 +797,9 @@ CPAC run error:
         finally:
             if workflow:
                 if os.path.exists(cb_log_filename):
-                    resource_report(cb_log_filename, num_cores_per_sub, logger)
+                    resource_report(cb_log_filename, num_cores_per_sub, WFLOGGER)
 
-                logger.info(
+                WFLOGGER.info(
                     "%s",
                     execution_info.format(
                         workflow=workflow.name,
@@ -843,10 +844,10 @@ def remove_workdir(wdpath: str) -> None:
     """
     try:
         if os.path.exists(wdpath):
-            logger.info("Removing working dir: %s", wdpath)
+            FMLOGGER.info("Removing working dir: %s", wdpath)
             shutil.rmtree(wdpath)
     except (FileNotFoundError, PermissionError):
-        logger.warning("Could not remove working directory %s", wdpath)
+        FMLOGGER.warning("Could not remove working directory %s", wdpath)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
@@ -1166,7 +1167,7 @@ def list_blocks(pipeline_blocks, indent=None):
 
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     """Connect the pipeline blocks to the workflow."""
-    logger.info(
+    WFLOGGER.info(
         "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
     )
 
@@ -1177,7 +1178,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == "freesurfer_postproc":
-                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
                 LOGTAIL["warnings"].append(WARNING_FREESURFER_OFF_WITH_DATA)
                 continue
             previous_nb_str = (
@@ -1201,7 +1202,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                     f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
                 )
             if cfg.pipeline_setup["Debugging"]["verbose"]:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug(e.args[0])
                 verbose_logger.debug(rpool)
             raise
@@ -1236,9 +1237,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     cfg.pipeline_setup["input_creds_path"] = input_creds_path
 
-    """""" """""" """""" """""" """""" """""" """""" """""" """
-     PREPROCESSING
-    """ """""" """""" """""" """""" """""" """""" """""" """"""
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
+    # PREPROCESSING
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
 
     wf, rpool = initiate_rpool(wf, cfg, sub_dict)
 
@@ -1600,7 +1601,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             missing_key = lookup_error.args[0].split("': ")[-1]
         for errorstring in [
             "[!] C-PAC says: The listed resource is not in the resource pool:",
-            "[!] C-PAC says: None of the listed resources are in the resource " "pool:",
+            "[!] C-PAC says: None of the listed resources are in the resource pool:",
             "[!] C-PAC says: None of the listed resources in the node block "
             "being connected exist in the resource pool.\n\nResources:",
         ]:

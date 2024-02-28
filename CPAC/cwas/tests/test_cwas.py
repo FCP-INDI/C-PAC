@@ -54,7 +54,7 @@ class RegressionTester(object):
         name,
         factor,
         formula,
-        base="/home2/data/Projects/CPAC_Regression_Test/" "2013-05-30_cwas",
+        base="/home2/data/Projects/CPAC_Regression_Test/2013-05-30_cwas",
     ):
         super(RegressionTester, self).__init__()
         self.base = base

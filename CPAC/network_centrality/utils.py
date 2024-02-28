@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -24,6 +24,7 @@ from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.typing import ITERABLE, LIST
 
 
@@ -47,7 +48,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
         correlation threshold value
     """
     import numpy as np
-    import nibabel as nb
+    import nibabel as nib
     import scipy.stats
 
     # Get two-tailed distribution
@@ -55,7 +56,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
         p_value = p_value / 2
 
     # Load in data and number of time pts
-    img = nb.load(datafile).get_fdata()
+    img = nib.load(datafile).get_fdata()
     t_pts = img.shape[-1]
 
     # N-2 degrees of freedom with Pearson correlation (two sample means)
@@ -261,9 +262,7 @@ def sep_nifti_subbriks(
         if len(nii_dims) == 3 and len(out_names) == 1:
             pass
         else:
-            err_msg = (
-                "out_names must have same number of elements as " "nifti sub-briks"
-            )
+            err_msg = "out_names must have same number of elements as nifti sub-briks"
             raise Exception(err_msg)
 
     for brik, option in enumerate(weight_options):
@@ -394,6 +393,7 @@ class ThresholdError(ValueError):
     def __init__(self, threshold_option, threshold):
         self.threshold_option = threshold_option
         self.threshold = threshold
+        IFLOGGER.error("%s", type(threshold))
         self.message = f"For '{threshold_option}', threshold value must be "
         if threshold_option in ("Significance threshold", "Sparsity threshold"):
             self.message += "a positive number greater than 0 "
