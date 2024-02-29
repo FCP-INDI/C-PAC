@@ -2650,15 +2650,21 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
 @nodeblock(
     name="ingress_regressors",
-    switch=[["nuisance_corrections", "2-nuisance_regression", "run"],
-            ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors", "run"]],
+    switch=[["nuisance_corrections", "2-nuisance_regression"],
+            ["nuisance_corrections", "2-nuisance_regression", "run"],
+            ["nuisance_corrections", "2-nuisance_regression", "ingress_regressors"]],
+    option_key=["nuisance_corrections", "2-nuisance_regression", "Regressors"],
+    option_val="USER-DEFINED",
     inputs=["pipeline-ingress_desc-confounds_timeseries"],
     outputs=["parsed_regressors"]
 )
 def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
 
-    regressors_list = cfg.nuisance_corrections['2-nuisance_regression']['ingress_regressors'][
-        'Regressors']['Columns']
+    #regressors_list = strat_pool.regressor_dct(cfg)
+    #WIP
+    reg_name = cfg['nuisance_corrections']['2-nuisance_regression']['Regressors'][0]["Name"]
+    regressors_list = cfg['nuisance_corrections']['2-nuisance_regression']['Regressors'][0]['ingressed_regressors']
+    #print(regressors_list)
     
     # Will need to generalize the name
     node, out = strat_pool.get_data('pipeline-ingress_desc-confounds_timeseries')
@@ -2680,7 +2686,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
                 output_names=['parsed_regressors'],
                 function=parse_regressors,
                 imports=ingress_imports
-            ), name="parse_regressors_file")
+            ), name=f"parse_regressors_file_reg-{reg_name}")
 
         wf.connect(node, out, ingress_regressors, 'regressors_file')
         ingress_regressors.inputs.regressors_list = regressors_list

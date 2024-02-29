@@ -890,12 +890,7 @@ latest_schema = Schema({
             'space': All(Coerce(ItemFromList),
                          Lower, In({'native', 'template'})),
             'create_regressors': bool1_1,
-            'ingress_regressors': {
-                'run': bool1_1,
-                'Regressors': {
-                    'Name': Maybe(str),
-                    'Columns': [str]},
-            },
+            'ingress_regressors': bool1_1,
             'Regressors': Maybe([Schema({
                 'Name': Required(str),
                 'Censor': {
@@ -929,7 +924,8 @@ latest_schema = Schema({
                     'bottom_frequency': float,
                     'top_frequency': float,
                     'method': str,
-                }  # how to check if [0] is > than [1]?
+                },  # how to check if [0] is > than [1]?
+                'ingressed_regressors': [str],
             }, extra=ALLOW_EXTRA)]),
             'lateral_ventricles_mask': Maybe(str),
             'bandpass_filtering_order': Maybe(

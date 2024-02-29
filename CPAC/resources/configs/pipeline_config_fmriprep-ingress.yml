@@ -119,10 +119,20 @@ nuisance_corrections:
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
     #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
     space: template
-    ingress_regressors:
-      run: On
-      Regressors:
-        Columns: [global_signal, white_matter]
+    ingress_regressors: True
+
+    # Regressors application (default is all generated)
+    regressor_application: 
+      - Name: strat_1
+        Regressors: 
+        - global_signal
+        - white_matter
+      - Name: strat_2
+        Regressors:
+        - white_matter
+        - a_comp_cor
+        - white_matter
+        - tcompcor
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off

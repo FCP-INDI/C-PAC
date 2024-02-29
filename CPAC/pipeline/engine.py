@@ -261,26 +261,30 @@ class ResourcePool:
         if hasattr(self, '_regressor_dct'):  # memoized
             # pylint: disable=access-member-before-definition
             return self._regressor_dct
-        key_error = KeyError("[!] No regressors in resource pool. \n\n"
+        key_error = KeyError("[!] No regressors in resource pool. "
                              "Try turning on create_regressors or "
                              "ingress_regressors.")
         _nr = cfg['nuisance_corrections', '2-nuisance_regression']
         if not hasattr(self, 'timeseries'):
             self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
-        if self.check_rpool('parsed_regressors'):  # ingressed regressor
-            # name regressor workflow without regressor_prov
-            strat_name = _nr['ingress_regressors']['Regressors']['Name']
-            if strat_name in self.regressors:
-                self._regressor_dct = self.regressors[strat_name]
-                return self._regressor_dct
-            raise key_error
+        if self.check_rpool('pipeline-ingress_desc-confounds_timeseries'):  # ingressed regressor
+            reg_name = cfg['nuisance_corrections']['2-nuisance_regression']['Regressors'][0]["Name"]
+            if reg_name in self.regressors:
+                self._regressor_dct = self.regressors[reg_name]
+            return self._regressor_dct
+        if self.check_rpool('parsed_regressors'):
+            prov = self.get_cpac_provenance('parsed_regressors')
+            strat_name_components = prov[-1].split('_')
+            reg_name = [name for name in strat_name_components if name in self.regressors]
+            self._regressor_dct = self.regressors[reg_name[0]]
+            return self._regressor_dct
         prov = self.get_cpac_provenance('desc-confounds_timeseries')
         strat_name_components = prov[-1].split('_')
         for _ in list(range(prov[-1].count('_'))):
             reg_name = '_'.join(strat_name_components[-_:])
             if reg_name in self.regressors:
                 self._regressor_dct = self.regressors[reg_name]
-                return self._regressor_dct
+            return self._regressor_dct
         raise key_error
 
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
@@ -1592,7 +1596,7 @@ class NodeBlock:
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
- 
+
                             rpool.set_data(label,
                                            connection[0],
                                            connection[1],
