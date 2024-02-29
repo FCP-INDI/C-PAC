@@ -58,31 +58,23 @@ nuisance_corrections:
 
     # Select which nuisance signal corrections to apply
     Regressors:
-      - Name: default
-        Motion:
-          include_delayed: On
-          include_squared: On
-          include_delayed_squared: On
-        aCompCor:
-          summary:
-            method: DetrendPC
-            components: 5
-          tissues:
-          - WhiteMatter
-          - CerebrospinalFluid
-          extraction_resolution: 2
-        CerebrospinalFluid:
-          summary: Mean
-          extraction_resolution: 2
-          erode_mask: On
-        GlobalSignal:
-          summary: Mean
-        PolyOrt:
-          degree: 2
+      - Name: strat1
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
           method: default
+        ingressed_regressors:
+          - global_signal
+          - white_matter
+      - Name: strat2
+        Bandpass:
+          bottom_frequency: 0.01
+          top_frequency: 0.1
+          method: default
+        ingressed_regressors:
+          - white_matter
+          - a_comp_cor
+          - tcompcor
 
     # Process and refine masks used to produce regressors and time series for
     # regression.
@@ -120,19 +112,6 @@ nuisance_corrections:
     #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
     space: template
     ingress_regressors: True
-
-    # Regressors application (default is all generated)
-    regressor_application: 
-      - Name: strat_1
-        Regressors: 
-        - global_signal
-        - white_matter
-      - Name: strat_2
-        Regressors:
-        - white_matter
-        - a_comp_cor
-        - white_matter
-        - tcompcor
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off
