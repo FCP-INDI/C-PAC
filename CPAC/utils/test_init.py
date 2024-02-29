@@ -1,17 +1,32 @@
 # CPAC/utils/test_init.py
+
+# Copyright (C) 2015-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 #
 # Contributing authors (please append):
 # Daniel Clark
 # Jon Clucas
-"""
-This module contains functions that assist in initializing CPAC
-tests resources.
-"""
+"""Assist in initializing CPAC tests resources."""
 from typing import Optional
 
 from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.typing import LIST
 
 
@@ -128,7 +143,7 @@ def populate_all_templates():
 
     # Check that they all returned a value
     if len(outputs) == len(config_types):
-        pass
+        UTLOGGER.info("Successfully populated and saved templates!")
     else:
         err_msg = "Something went wrong during template population"
         raise Exception(err_msg)
@@ -158,10 +173,12 @@ def return_aws_creds():
 
     # Check if set
     if not creds_path:
+        UTLOGGER.error(
+            "CPAC_AWS_CREDS environment variable not set!\n"
+            "Set this to the filepath location of your AWS credentials."
+        )
         creds_path = input("Enter path to AWS credentials file: ")
-        return None
-    else:
-        return creds_path
+    return creds_path
 
 
 # Get the default test bucket name
@@ -265,6 +282,7 @@ def download_cpac_resources_from_s3(local_base):
             )
 
     # Print done
+    UTLOGGER.info("CPAC resources folder in %s is complete!", local_base)
 
 
 # Look for CPAC_RESOURCE_DIR to be in environment
@@ -291,6 +309,11 @@ def return_resource_dir():
     # Check if set
     if not resource_dir:
         # Print notification of cpac resources directory
+        UTLOGGER.error(
+            "CPAC_RESOURCE_DIR environment variable not set! Enter directory of the"
+            " cpac_resources folder.\n\n*If the folder does not exist, it will be"
+            " downloaded under the directory specified."
+        )
         # Get user input
         resource_dir = input("Enter C-PAC resources directory: ")
 
@@ -464,6 +487,7 @@ def return_test_subj():
 
     # Check if set and exists
     if not test_subj:
+        UTLOGGER.error("CPAC_TEST_SUBJ environment variable not set!")
         # Get user input
         test_subj = input("Enter C-PAC benchmark test subject id: ")
 
@@ -541,10 +565,8 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
     return smooth_arr
 
 
-# Download test resource from S3 bucket
 def download_resource_from_s3(s3_url_path):
-    """ """
-
+    """Download test resource from S3 bucket."""
     # Import packages
     import os
     import tempfile

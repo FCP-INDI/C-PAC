@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2018-2022  C-PAC Developers
+# Copyright (C) 2018-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,11 +15,19 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from logging import basicConfig, INFO
 import os
+from typing import Union
 
 import click
 from click_aliases import ClickAliasedGroup
 import pkg_resources as p
+
+from CPAC.utils.docs import version_report
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("CPAC")
+basicConfig(format="%(message)s", level=INFO)
 
 # CLI tree
 #
@@ -55,6 +63,13 @@ def main():
 @main.command()
 def version():
     """Display environment version information."""
+    import CPAC
+
+    logger.info(
+        "Environment\n===========\n%s\nC-PAC version: %s",
+        version_report(),
+        CPAC.__version__,
+    )
 
 
 @main.command()
@@ -550,7 +565,7 @@ def test():
 @test.command(aliases=["run_suite"])
 @click.option("--list", "-l", "show_list", is_flag=True)
 @click.option("--filter", "-f", "pipeline_filter", default="")
-def run_suite(show_list=False, pipeline_filter=""):
+def run_suite(show_list: Union[bool, str] = False, pipeline_filter=""):
     from CPAC.pipeline import cpac_runner
 
     test_config_dir = p.resource_filename(
@@ -579,7 +594,7 @@ def run_suite(show_list=False, pipeline_filter=""):
     )
 
     if show_list:
-        pass
+        show_list = "\nAvailables pipelines:"
 
     no_params = False
     for config_file in os.listdir(test_config_dir):
@@ -588,6 +603,7 @@ def run_suite(show_list=False, pipeline_filter=""):
                 continue
 
             if show_list:
+                show_list += f"\n- {config_file[len('pipe-test_'):]}"
                 continue
 
             pipe = os.path.join(test_config_dir, config_file)
@@ -604,7 +620,7 @@ def run_suite(show_list=False, pipeline_filter=""):
             cpac_runner.run(data, pipe)
 
     if show_list:
-        pass
+        logger.info("%s\n", show_list)
 
 
 @test.group(cls=ClickAliasedGroup)

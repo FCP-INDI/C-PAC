@@ -20,7 +20,6 @@ import os
 import re
 from typing import Optional
 
-from nipype import logging
 from nipype.interfaces import afni, ants, fsl
 import nipype.interfaces.utility as util
 from nipype.pipeline.engine import Workflow
@@ -30,8 +29,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.registration.utils import generate_inverse_transform_flags
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.interfaces.function import Function
-
-logger = logging.getLogger("nipype.workflow")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def find_offending_time_points(
@@ -116,9 +114,7 @@ def find_offending_time_points(
             else:
                 threshold = float(threshold)
         except (AttributeError, re.error, IndexError, TypeError, ValueError):
-            msg = (
-                f"Could not translate threshold {threshold} into a " "meaningful value"
-            )
+            msg = f"Could not translate threshold {threshold} into a meaningful value"
             raise ValueError(msg)
 
         offending_time_points |= set(np.where(metric > threshold)[0].tolist())
@@ -470,8 +466,8 @@ def generate_summarize_tissue_mask_ventricles_masking(
     ventricle_mask_exist=True,
 ) -> Optional[dict]:
     """Update CSF mask to include only the lateral ventricles."""
-    if csf_mask_exist is False:
-        logger.warning(
+    if not csf_mask_exist:
+        IFLOGGER.warning(
             "Segmentation is Off, - therefore will be using "
             "lateral_ventricle_mask as CerebrospinalFluid_mask."
         )
@@ -487,7 +483,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
             if ventricles_key not in pipeline_resource_pool:
                 transforms = pipeline_resource_pool["Transformations"]
 
-                if use_ants is True:
+                if use_ants:
                     # perform the transform using ANTS
                     collect_linear_transforms = pe.Node(
                         util.Merge(3), name=f"{ventricles_key}_ants_transforms"

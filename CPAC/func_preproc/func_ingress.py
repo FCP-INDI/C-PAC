@@ -14,11 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from nipype import logging
-
 from CPAC.utils.datasource import create_func_datasource, ingress_func_metadata
-
-logger = logging.getLogger("nipype.workflow")
 
 
 def connect_func_ingress(

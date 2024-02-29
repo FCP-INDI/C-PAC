@@ -1,4 +1,21 @@
+# Copyright (C) 2021-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for bids_utils."""
+from logging import basicConfig, INFO
 import os
 
 import pytest
@@ -12,10 +29,14 @@ from CPAC.utils.bids_utils import (
     load_cpac_data_config,
     sub_list_filter_by_labels,
 )
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("CPAC.utils.tests")
+basicConfig(format="%(message)s", level=INFO)
 
 
 def create_sample_bids_structure(root_dir):
-    """Function to create temporary synthetic BIDS data for testing parsing."""
+    """Create temporary synthetic BIDS data for testing parsing."""
 
     def _prefix_entities(paths, path):
         return f'sub-{paths[path]["sub"]}_ses-{paths[path]["ses"]}'
@@ -53,9 +74,7 @@ def create_sample_bids_structure(root_dir):
 
 @pytest.mark.parametrize("only_one_anat", [True, False])
 def test_create_cpac_data_config_only_one_anat(tmp_path, only_one_anat):
-    """Function to test 'only_one_anat' parameter of
-    'create_cpac_data_config' function.
-    """
+    """Test 'only_one_anat' parameter of 'create_cpac_data_config' function."""
     create_sample_bids_structure(tmp_path)
     assert isinstance(
         create_cpac_data_config(str(tmp_path), only_one_anat=only_one_anat)[0]["anat"][
@@ -68,6 +87,7 @@ def test_create_cpac_data_config_only_one_anat(tmp_path, only_one_anat):
 @pytest.mark.skip(reason="needs local files not included in package")
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
     (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
+    logger.info("Found %d config files for %d image files", len(config), len(img_files))
     sublist = bids_gen_cpac_sublist(bids_dir, img_files, config, creds_path, dbg)
 
     with open(test_yml, "w") as ofd:
@@ -102,6 +122,7 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
     sub_list = sub_list_filter_by_labels(
         sub_list, {"T1w": t1w_label, "bold": bold_labels}
     )
+    logger.info(sub_list)
     if t1w_label is not None:
         if participant_label == "NDARAA504CRN":
             anat_sub_list = [sub.get("anat") for sub in sub_list]

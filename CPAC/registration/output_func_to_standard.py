@@ -1,3 +1,20 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Transform functional images to template space."""
 from nipype.interfaces import ants, c3, fsl
 from nipype.interfaces.afni import utils as afni_utils
 import nipype.interfaces.utility as util
@@ -27,9 +44,9 @@ def fsl_apply_transform_func_to_mni(
     func_ts=False,
     num_cpus=1,
 ):
-    """
-    Applies previously calculated FSL registration transforms to input
-    images. This workflow employs the FSL applywarp tool:
+    """Apply previously calculated FSL registration transforms to input images.
+
+    This workflow employs the FSL applywarp tool:
 
     https://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/registration/index.html
 
@@ -94,7 +111,7 @@ def fsl_apply_transform_func_to_mni(
         # parallelize time series warp application
         map_node = True
 
-    if map_node is True:
+    if map_node:
         # func_mni_warp
         func_mni_warp = pe.MapNode(
             interface=fsl.ApplyWarp(),
@@ -115,7 +132,7 @@ def fsl_apply_transform_func_to_mni(
     if int(num_cpus) > 1 and func_ts:
         node_id = f"{output_name}_{num_strat:d}"
 
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_cpus"],
@@ -234,16 +251,11 @@ def ants_apply_warps_func_mni(
     func_type="non-ica-aroma",
     num_cpus=1,
 ):
-    """
-    Applies previously calculated ANTS registration transforms to input
-    images. This workflow employs the antsApplyTransforms tool:
+    """Apply previously calculated ANTS registration transforms to input images.
+
+    This workflow employs the antsApplyTransforms tool:
 
     http://stnava.github.io/ANTs/
-
-    Parameters
-    ----------
-    name : string, optional
-        Name of the workflow.
 
     Returns
     -------
@@ -319,9 +331,6 @@ def ants_apply_warps_func_mni(
 
     Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
-
-    Parameters
-    ----------
     """
     # if the input is a string, assume that it is resource pool key,
     # if it is a tuple, assume that it is a node, outfile pair,
@@ -342,7 +351,7 @@ def ants_apply_warps_func_mni(
     # when inverse is enabled, we want to update the name of various
     # nodes so that we know they were inverted
     inverse_string = ""
-    if inverse is True:
+    if inverse:
         inverse_string = "_inverse"
 
     # make sure that resource pool has some required resources before proceeding
@@ -387,7 +396,7 @@ def ants_apply_warps_func_mni(
     num_transforms = 5
     collect_transforms_key = f"collect_transforms{inverse_string}"
 
-    if distcor is True and func_type not in "ica-aroma":
+    if distcor and func_type not in "ica-aroma":
         num_transforms = 6
         collect_transforms_key = "collect_transforms{0}{1}".format(
             "_distcor", inverse_string
@@ -423,8 +432,8 @@ def ants_apply_warps_func_mni(
             # the resource pool key related to the resource that should be
             # connected in, and the second element is the input to which it
             # should be connected
-            if inverse is True:
-                if distcor is True and func_type not in "ica-aroma":
+            if inverse:
+                if distcor and func_type not in "ica-aroma":
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [
                         ("mni_to_anatomical_nonlinear_xfm", "in6"),
@@ -451,7 +460,7 @@ def ants_apply_warps_func_mni(
                     ("fsl_mat_as_itk", "in5"),
                 ]
 
-                if distcor is True and func_type not in "ica-aroma":
+                if distcor and func_type not in "ica-aroma":
                     transforms_to_combine.append(("blip_warp", "in6"))
 
         if registration_template == "epi":
@@ -482,8 +491,8 @@ def ants_apply_warps_func_mni(
             # the resource pool key related to the resource that should be
             # connected in, and the second element is the input to which it
             # should be connected
-            if inverse is True:
-                if distcor is True and func_type not in "ica-aroma":
+            if inverse:
+                if distcor and func_type not in "ica-aroma":
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [
                         ("epi_to_func_nonlinear_xfm", "in4"),
@@ -521,7 +530,7 @@ def ants_apply_warps_func_mni(
                     ants_transformation_dict[symmetry][transform_key]
                 ]
             except KeyError:
-                raise Exception(locals())
+                raise KeyError(locals())
             workflow.connect(node, out_file, collect_transforms, input_port)
 
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
@@ -566,7 +575,7 @@ def ants_apply_warps_func_mni(
         strat.append_name(inverse_transform_flags.name)
 
     #### now we add in the apply ants warps node
-    if int(num_cpus) > 1 and input_image_type == 3:
+    if int(num_cpus) > 1 and input_image_type == 3:  # noqa: PLR2004
         # parallelize time series warp application
         map_node = True
 
@@ -593,7 +602,7 @@ def ants_apply_warps_func_mni(
     apply_ants_warp.inputs.out_postfix = "_antswarp"
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
 
-    if inverse is True:
+    if inverse:
         workflow.connect(
             inverse_transform_flags,
             "inverse_transform_flags",
@@ -672,10 +681,10 @@ def ants_apply_warps_func_mni(
         # })
 
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
-    if int(num_cpus) > 1 and input_image_type == 3:
+    if int(num_cpus) > 1 and input_image_type == 3:  # noqa: PLR2004
         node_id = f"_{output_name}_{inverse_string}_{registration_template}_{num_strat}"
 
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_cpus"],
@@ -738,11 +747,13 @@ def output_func_to_standard(
     registration_template="t1",
     func_type="non-ica-aroma",
 ):
+    """Apply previously calculated functional-to-standard transforms."""
     image_types = ["func_derivative", "func_derivative_multi", "func_4d", "func_mask"]
 
     if input_image_type not in image_types:
-        msg = "Input image type {0} should be one of {1}".format(
-            input_image_type, ", ".join(image_types)
+        msg = (
+            f"Input image type {input_image_type} should be one of"
+            f" {', '.join(image_types)}"
         )
         raise ValueError(msg)
 
@@ -821,8 +832,8 @@ def output_func_to_standard(
 
     else:
         msg = (
-            "Cannot determine whether a ANTS or FSL registration"
-            "is desired, check your pipeline."
+            "Cannot determine whether a ANTS or FSL registration is desired, check"
+            " your pipeline."
         )
         raise ValueError(msg)
 

@@ -497,7 +497,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(opp_pe_to_func, "out_file", calc_blip_warp, "opp_pe")
     wf.connect(prep_qwarp_input, "qwarp_input", calc_blip_warp, "same_pe")
 
-    convert_afni_warp_imports = ["import os", "import nibabel as nb"]
+    convert_afni_warp_imports = ["import os", "import nibabel as nib"]
     convert_afni_warp = pe.Node(
         function.Function(
             input_names=["afni_warp"],

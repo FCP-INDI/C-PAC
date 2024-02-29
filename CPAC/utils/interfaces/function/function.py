@@ -1,42 +1,158 @@
-from builtins import bytes, str
-import inspect
-from typing import Callable, List
+# from https://github.com/nipy/nipype/blob/0.13.1/nipype/interfaces/utility/wrappers.py
 
-from nipype import logging
+# CHANGES:
+#     * Adds `as_module` argument and property
+#     * Adds `sig_imports` decorator
+#     * Automatically imports global Nipype loggers in function nodes
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2018-2024 C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Interface for wrapping Python functions.
+
+Like the built-in nipype Function interace, except includes
+- `as_module` to allow module.function name
+- `sig_imports` to set necessary imports on function nodes with a decorator
+"""
+from ast import FunctionDef, parse
+from builtins import bytes, str
+from importlib import import_module
+import inspect
+from typing import Callable, Optional
+
 from nipype.interfaces.base import (
-    BaseInterfaceInputSpec,
-    DynamicTraitedSpec,
     isdefined,
-    traits,
-    Undefined,
 )
 from nipype.interfaces.io import add_traits, IOBase
+from nipype.interfaces.utility.wrappers import Function as NipypeFunction
 from nipype.utils.filemanip import ensure_list
-from nipype.utils.functions import create_function_from_source, getsource
+from nipype.utils.functions import getsource
 
-iflogger = logging.getLogger("nipype.interface")
+from CPAC.utils.docs import outdent_lines
+from CPAC.utils.typing import LIST, TUPLE
+
+_AUTOLOGGING_IMPORTS = [
+    "from CPAC.utils.monitoring.custom_logging import FMLOGGER, IFLOGGER, UTLOGGER,"
+    " WFLOGGER"
+]
 
 
-class FunctionInputSpec(DynamicTraitedSpec, BaseInterfaceInputSpec):
-    function_str = traits.Str(mandatory=True, desc="code for function")
+def _as_module(fxn: str, ns: dict) -> TUPLE[str, dict]:
+    """Get full module name and namespace."""
+    module = inspect.getmodule(fxn).__name__
+    return f"{module}.{fxn.__name__}", _module_imports(module, ns, fxn.__name__)
 
 
-class Function(IOBase):
-    """Runs arbitrary function as an interface.
+def get_function_name_from_source(function_source: str) -> str:
+    r"""Get the name of a function from its source code.
+
+    Parameters
+    ----------
+    function_source: str
+        The source code of the function.
+
+    Returns
+    -------
+    str
+        The name of the function.
 
     Examples
     --------
-    >>> func = 'def func(arg1, arg2=5): return arg1 + arg2'
-    >>> fi = Function(input_names=['arg1', 'arg2'], output_names=['out'])
-    >>> fi.inputs.function_str = func
-    >>> res = fi.run(arg1=1)
-    >>> res.outputs.out
-    6
-
+    >>> get_function_name_from_source("def fake_function():\n    return")
+    'fake_function'
+    >>> get_function_name_from_source("not a def")
+    Traceback (most recent call last):
+       ...
+    ValueError: No function definition found in the provided source.
+    >>> get_function_name_from_source("class FakeClass:\n    pass")
+    Traceback (most recent call last):
+       ...
+    ValueError: No function definition found in the provided source.
     """
+    value_error = ValueError("No function definition found in the provided source.")
+    try:
+        for node in parse(function_source).body:
+            if isinstance(node, FunctionDef):
+                return node.name
+    except SyntaxError as syntax_error:
+        raise value_error from syntax_error
+    raise value_error
 
-    input_spec = FunctionInputSpec
-    output_spec = DynamicTraitedSpec
+
+def create_function_from_source(
+    function_source: str, imports: Optional[LIST[str]] = None, ns: Optional[dict] = None
+):
+    """Return a function object from a function source.
+
+    Parameters
+    ----------
+    function_source : unicode string
+        unicode string defining a function
+    imports : list of strings
+        list of import statements in string form that allow the function
+        to be executed in an otherwise empty namespace
+    ns : dict
+        namespace dictionary
+    """
+    if ns is None:
+        ns = {}
+    import_keys = []
+    try:
+        if imports is not None:
+            for statement in imports:
+                exec(statement, ns)
+            import_keys = list(ns.keys())
+        exec(function_source, ns)
+
+    except Exception as e:
+        msg = f"Error executing function\n{function_source}\n"
+        msg += (
+            "Functions in connection strings have to be standalone. "
+            "They cannot be declared either interactively or inside "
+            "another function or inline in the connect string. Any "
+            "imports should be done inside the function."
+        )
+        raise RuntimeError(msg) from e
+    ns_funcs = list(set(ns) - {*import_keys, "__builtins__"})
+    assert len(ns_funcs) == 1, "Function or inputs are ill-defined"
+    return ns[ns_funcs[0]]
+
+
+class Function(NipypeFunction):
+    """Can automatically set a module name on the interface.
+
+    Automatically imports global Nipype loggers.
+    """
 
     def __init__(
         self,
@@ -47,7 +163,7 @@ class Function(IOBase):
         as_module=False,
         **inputs,
     ):
-        """
+        """Initialize a :py:func`~CPAC.utils.interfaces.function.Function` interface.
 
         Parameters
         ----------
@@ -68,7 +184,10 @@ class Function(IOBase):
             decorator, the imports given as a parameter here will take
             precedence over those from the decorator.
         """
-        super().__init__(**inputs)
+        super(IOBase, self).__init__(**inputs)
+        ns = {}
+        if imports is None:
+            imports = []
         if function:
             if hasattr(function, "ns_imports"):
                 # prepend the ns_imports from the decorator to
@@ -77,49 +196,49 @@ class Function(IOBase):
                     "from CPAC.utils.interfaces.function import Function",
                     *function.ns_imports,
                 ]
-                imports = _ns_imports if imports is None else [*_ns_imports, *imports]
+                imports = _ns_imports if not imports else [*_ns_imports, *imports]
             if as_module:
-                module = inspect.getmodule(function).__name__
-                full_name = "%s.%s" % (module, function.__name__)
-                self.inputs.function_str = full_name
+                self.inputs.function_str, ns = _as_module(function, ns)
             elif hasattr(function, "__call__"):
                 try:
                     self.inputs.function_str = getsource(function)
-                except IOError:
+                except IOError as os_error:
                     msg = (
                         "Interface Function does not accept "
                         "function objects defined interactively "
                         "in a python session"
                     )
-                    raise Exception(msg)
+                    raise ValueError(msg) from os_error
                 else:
                     if input_names is None:
                         fninfo = function.__code__
             elif isinstance(function, (str, bytes)):
                 self.inputs.function_str = function
                 if input_names is None:
-                    fninfo = create_function_from_source(function, imports).__code__
+                    fninfo = create_function_from_source(function, imports, ns).__code__
             else:
                 msg = "Unknown type of function"
-                raise Exception(msg)
+                raise TypeError(msg)
             if input_names is None:
-                input_names = fninfo.co_varnames[: fninfo.co_argcount]
+                try:
+                    input_names = fninfo.co_varnames[: fninfo.co_argcount]
+                except NameError:
+                    input_names = []
 
         self.as_module = as_module
         self.inputs.on_trait_change(self._set_function_string, "function_str")
         self._input_names = ensure_list(input_names)
         self._output_names = ensure_list(output_names)
         add_traits(self.inputs, list(self._input_names))
-        self.imports = imports
+        self.imports = [*imports, *_AUTOLOGGING_IMPORTS]
         self._out = {}
         for name in self._output_names:
             self._out[name] = None
 
     @staticmethod
-    def sig_imports(imports: List[str]) -> Callable:
-        """
-        Sets an ``ns_imports`` attribute on a function for
-        Function-node functions.
+    def sig_imports(imports: LIST[str]) -> Callable:
+        """Set an ``ns_imports`` attribute on a function for Function-node functions.
+
         This can be useful for classes needed for decorators, typehints
         and for avoiding redefinitions.
 
@@ -146,14 +265,9 @@ class Function(IOBase):
         ...                     output_names=['out_file'],
         ...                     function=calculate_FD_J,
         ...                     as_module=True)
-        >>> calc_fdj.imports  # doctest: +NORMALIZE_WHITESPACE
-        ['from CPAC.utils.interfaces.function import Function',
-         'import os',
-         'import sys',
-         'from typing import Optional',
-         'import numpy as np',
-         'from CPAC.utils.pytest import skipif',
-         'from CPAC.utils.typing import LITERAL, TUPLE']
+        >>> calc_fdj.imports == ["from CPAC.utils.interfaces.function import Function",
+        ...     *calculate_FD_J.ns_imports, *_AUTOLOGGING_IMPORTS]
+        True
         >>> from inspect import signature
         >>> from nipype.utils.functions import (getsource,
         ...     create_function_from_source)
@@ -171,16 +285,15 @@ class Function(IOBase):
 
     def _set_function_string(self, obj, name, old, new):
         if name == "function_str":
+            ns = {}
             if self.as_module:
-                module = inspect.getmodule(new).__name__
-                full_name = "%s.%s" % (module, new.__name__)
-                self.inputs.function_str = full_name
+                self.inputs.function_str, ns = _as_module(new, ns)
             elif hasattr(new, "__call__"):
                 function_source = getsource(new)
                 fninfo = new.__code__
             elif isinstance(new, (str, bytes)):
                 function_source = new
-                fninfo = create_function_from_source(new, self.imports).__code__
+                fninfo = create_function_from_source(new, self.imports, ns).__code__
             self.inputs.trait_set(
                 trait_change_notify=False, **{"%s" % name: function_source}
             )
@@ -190,32 +303,24 @@ class Function(IOBase):
             add_traits(self.inputs, list(new_names))
             self._input_names.extend(new_names)
 
-    def _add_output_traits(self, base):
-        undefined_traits = {}
-        for key in self._output_names:
-            base.add_trait(key, traits.Any)
-            undefined_traits[key] = Undefined
-        base.trait_set(trait_change_notify=False, **undefined_traits)
-        return base
-
     def _run_interface(self, runtime):
         # Create function handle
+        ns = {}
         if self.as_module:
-            import importlib
-
             pieces = self.inputs.function_str.split(".")
             module = ".".join(pieces[:-1])
             function = pieces[-1]
+            ns = _module_imports(module, ns, function)
             try:
-                function_handle = getattr(importlib.import_module(module), function)
-            except ImportError:
-                raise RuntimeError(
-                    "Could not import module: %s" % self.inputs.function_str
+                function_str = inspect.getsource(
+                    getattr(import_module(module), function)
                 )
+            except ImportError as import_error:
+                msg = f"Could not import module: {self.inputs.function_str}"
+                raise RuntimeError(msg) from import_error
         else:
-            function_handle = create_function_from_source(
-                self.inputs.function_str, self.imports
-            )
+            function_str = self.inputs.function_str
+        function_handle = create_function_from_source(function_str, self.imports, ns)
 
         # Get function args
         args = {}
@@ -223,7 +328,6 @@ class Function(IOBase):
             value = getattr(self.inputs, name)
             if isdefined(value):
                 args[name] = value
-
         out = function_handle(**args)
         if len(self._output_names) == 1:
             self._out[self._output_names[0]] = out
@@ -232,14 +336,22 @@ class Function(IOBase):
                 msg = "Mismatch in number of expected outputs"
                 raise RuntimeError(msg)
 
-            else:
-                for idx, name in enumerate(self._output_names):
-                    self._out[name] = out[idx]
+            for idx, name in enumerate(self._output_names):
+                self._out[name] = out[idx]
 
         return runtime
 
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        for key in self._output_names:
-            outputs[key] = self._out[key]
-        return outputs
+
+Function.__doc__ = "\n\n".join(
+    [NipypeFunction.__doc__.rstrip(), outdent_lines(Function.__doc__)]
+)
+
+
+def _module_imports(module: str, ns: dict, fxn: str) -> dict:
+    """Import module-level imports to a namespace."""
+    exec(f"from {module} import *", ns)
+    try:
+        exec(f"del {fxn}", ns)  # We'll redefine the function itself...
+    except NameError:
+        pass  # ...unless the function isn't defined in a module
+    return ns

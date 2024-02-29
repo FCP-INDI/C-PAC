@@ -33,22 +33,20 @@ __doc__ = __doc__.replace(r"{DOCS_URL_PREFIX}", DOCS_URL_PREFIX)  # noqa: A001
 if sys.version_info >= (3, 8):
     from typing import Literal
 
-    DICT = dict
     LITERAL = Literal
 else:
-    from typing import Dict
-
     from typing_extensions import Literal
 
-    DICT = Dict
     LITERAL = Literal
 if sys.version_info >= (3, 9):
     from collections.abc import Iterable
 
+    DICT = dict
     LIST = list
 else:
-    from typing import Iterable, List
+    from typing import Dict, Iterable, List
 
+    DICT = Dict
     LIST = List
 if sys.version_info >= (3, 10):
     LIST_OR_STR = LIST[str] | str  # pylint: disable=invalid-name

@@ -5,7 +5,7 @@ import shutil
 from shutil import SameFileError
 import time
 
-from nipype import config, logging
+from nipype import config
 from nipype.interfaces.base import isdefined, traits, Undefined
 from nipype.interfaces.io import (
     copytree,
@@ -17,8 +17,7 @@ from nipype.interfaces.io import (
 from nipype.utils.filemanip import copyfile, ensure_list
 from nipype.utils.misc import str2bool
 
-iflogger = logging.getLogger("nipype.interface")
-
+from CPAC.utils.monitoring import FMLOGGER, IFLOGGER
 
 RETRY = 5
 RETRY_WAIT = 5
@@ -170,7 +169,7 @@ class DataSink(IOBase):
                 oldpathstr = pathstr
                 pathstr = pathstr.replace(key, val)
                 if pathstr != oldpathstr:
-                    iflogger.debug(
+                    IFLOGGER.debug(
                         "sub.str: %s -> %s using %r -> %r",
                         oldpathstr,
                         pathstr,
@@ -182,7 +181,7 @@ class DataSink(IOBase):
                 oldpathstr = pathstr
                 pathstr, _ = re.subn(key, val, pathstr)
                 if pathstr != oldpathstr:
-                    iflogger.debug(
+                    IFLOGGER.debug(
                         "sub.regexp: %s -> %s using %r -> %r",
                         oldpathstr,
                         pathstr,
@@ -190,7 +189,7 @@ class DataSink(IOBase):
                         val,
                     )
         if pathstr_ != pathstr:
-            iflogger.info("sub: %s -> %s", pathstr_, pathstr)
+            IFLOGGER.info("sub: %s -> %s", pathstr_, pathstr)
         return pathstr
 
     # Check for s3 in base directory
@@ -319,7 +318,7 @@ class DataSink(IOBase):
             import boto3
             import botocore
         except ImportError:
-            err_msg = "Boto3 package is not installed - install boto3 and " "try again."
+            err_msg = "Boto3 package is not installed - install boto3 and try again."
             raise Exception(err_msg)
 
         # Init variables
@@ -338,7 +337,7 @@ class DataSink(IOBase):
         # Try and get AWS credentials if a creds_path is specified
         if aws_access_key_id and aws_secret_access_key:
             # Init connection
-            iflogger.info(
+            IFLOGGER.info(
                 "Connecting to S3 bucket: %s with credentials...", bucket_name
             )
             # Use individual session for each instance of DataSink
@@ -350,7 +349,7 @@ class DataSink(IOBase):
             )
 
         else:
-            iflogger.info("Connecting to S3 bucket: %s with IAM role...", bucket_name)
+            IFLOGGER.info("Connecting to S3 bucket: %s with IAM role...", bucket_name)
 
             # Lean on AWS environment / IAM role authentication and authorization
             session = boto3.session.Session()
@@ -366,7 +365,7 @@ class DataSink(IOBase):
                 "choose-signer.s3.*", botocore.handlers.disable_signing
             )
 
-            iflogger.info("Connecting to AWS: %s anonymously...", bucket_name)
+            IFLOGGER.info("Connecting to AWS: %s anonymously...", bucket_name)
             _get_head_bucket(s3_resource, bucket_name)
 
         # Explicitly declare a secure SSL connection for bucket object
@@ -419,16 +418,16 @@ class DataSink(IOBase):
                 src_md5 = hashlib.md5(src_read).hexdigest()
                 # Move to next loop iteration
                 if dst_md5 == src_md5:
-                    iflogger.info("File %s already exists on S3, skipping...", dst_f)
+                    FMLOGGER.info("File %s already exists on S3, skipping...", dst_f)
                     continue
                 else:
-                    iflogger.info("Overwriting previous S3 file...")
+                    FMLOGGER.info("Overwriting previous S3 file...")
 
             except ClientError:
-                iflogger.info("New file to S3")
+                FMLOGGER.info("New file to S3")
 
             # Copy file up to S3 (either encrypted or not)
-            iflogger.info(
+            FMLOGGER.info(
                 "Uploading %s to S3 bucket, %s, as %s...", src_f, bucket.name, dst_f
             )
             if self.inputs.encrypt_bucket_keys:
@@ -492,7 +491,7 @@ class DataSink(IOBase):
                         )
                         outdir = local_out_exception
                     # Log local copying directory
-                    iflogger.info(
+                    FMLOGGER.info(
                         "Access to S3 failed! Storing outputs locally at: "
                         "%s\nError: %s",
                         outdir,
@@ -523,7 +522,7 @@ class DataSink(IOBase):
         for key, files in list(self.inputs._outputs.items()):
             if not isdefined(files):
                 continue
-            iflogger.debug("key: %s files: %s", key, str(files))
+            IFLOGGER.debug("key: %s files: %s", key, str(files))
             files = ensure_list(files if files else [])
             tempoutdir = outdir
             if s3_flag:
@@ -574,7 +573,7 @@ class DataSink(IOBase):
                         if (not os.path.exists(dst)) or (os.stat(src) != os.stat(dst)):
                             # If src is a file, copy it to dst
                             if os.path.isfile(src):
-                                iflogger.debug(f"copyfile: {src} {dst}")
+                                FMLOGGER.debug(f"copyfile: {src} {dst}")
                                 copyfile(
                                     src,
                                     dst,
@@ -586,13 +585,13 @@ class DataSink(IOBase):
                             # entire contents to dst dir
                             elif os.path.isdir(src):
                                 if os.path.exists(dst) and self.inputs.remove_dest_dir:
-                                    iflogger.debug("removing: %s", dst)
+                                    FMLOGGER.debug("removing: %s", dst)
                                     shutil.rmtree(dst)
-                                iflogger.debug("copydir: %s %s", src, dst)
+                                FMLOGGER.debug("copydir: %s %s", src, dst)
                                 copytree(src, dst)
                                 out_files.append(dst)
                     except SameFileError:
-                        iflogger.debug(f"copyfile (same file): {src} {dst}")
+                        FMLOGGER.debug(f"copyfile (same file): {src} {dst}")
 
         # Return outputs dictionary
         outputs["out_file"] = out_files

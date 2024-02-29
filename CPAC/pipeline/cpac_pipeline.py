@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Build a pipeline for C-PAC to run on a subject."""
 import copy
 import csv
 import faulthandler
@@ -188,12 +189,14 @@ from CPAC.timeseries.timeseries_analysis import (
 from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
+    FMLOGGER,
     getLogger,
     log_nodes_cb,
     log_nodes_initial,
     LOGTAIL,
     set_up_logger,
     WARNING_FREESURFER_OFF_WITH_DATA,
+    WFLOGGER,
 )
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.trimmer import the_trimmer
@@ -205,7 +208,6 @@ from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import smooth_func_vmhc, vmhc, warp_timeseries_to_sym_template
 
-logger = getLogger("nipype.workflow")
 faulthandler.enable()
 
 # config.enable_debug_mode()
@@ -221,8 +223,7 @@ def run_workflow(
     plugin_args=None,
     test_config=False,
 ):
-    """
-    Function to prepare and, optionally, run the C-PAC workflow.
+    """Prepare and, optionally, run the C-PAC workflow.
 
     Parameters
     ----------
@@ -274,7 +275,7 @@ def run_workflow(
         overwrite_existing=True,
     )
     if c.pipeline_setup["Debugging"]["verbose"]:
-        set_up_logger("engine", level="debug", log_dir=log_dir, mock=True)
+        set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
 
     config.update_config(
         {
@@ -331,7 +332,7 @@ def run_workflow(
     # TODO: solve the UNet model hanging issue during MultiProc
     if "UNet" in c.anatomical_preproc["brain_extraction"]["using"]:
         c.pipeline_setup["system_config"]["max_cores_per_participant"] = 1
-        logger.info(
+        WFLOGGER.info(
             "\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
             "MODEL.\n\nThis is a temporary measure due to a known "
             "issue preventing Nipype's parallelization from running "
@@ -351,10 +352,10 @@ def run_workflow(
                 input_creds_path = os.path.abspath(creds_path)
             else:
                 err_msg = (
-                    'Credentials path: "%s" for subject "%s" was not '
-                    "found. Check this path and try again." % (creds_path, subject_id)
+                    f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
+                    " not found. Check this path and try again."
                 )
-                raise Exception(err_msg)
+                raise FileNotFoundError(err_msg)
         else:
             input_creds_path = None
     except KeyError:
@@ -363,7 +364,7 @@ def run_workflow(
     # TODO enforce value with schema validation
     try:
         encrypt_data = bool(config.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except:
+    except (KeyError, TypeError, ValueError):
         encrypt_data = False
 
     information = """
@@ -401,7 +402,7 @@ def run_workflow(
         {output_check}
 """
 
-    logger.info(
+    WFLOGGER.info(
         "%s",
         information.format(
             run_command=" ".join(["run", *sys.argv[1:]]),
@@ -413,7 +414,7 @@ def run_workflow(
             ants_threads=c.pipeline_setup["system_config"]["num_ants_threads"],
             max_cores=max_core_usage,
             random_seed=(
-                "    Random seed: %s" % c.pipeline_setup["system_config"]["random_seed"]
+                f"    Random seed: {c.pipeline_setup['system_config']['random_seed']}"
             )
             if c.pipeline_setup["system_config"]["random_seed"] is not None
             else "",
@@ -467,9 +468,9 @@ def run_workflow(
         set_up_random_state_logger(log_dir)
 
     try:
-        workflow = build_workflow(subject_id, sub_dict, c, p_name, num_ants_cores)
+        workflow = build_workflow(subject_id, sub_dict, c, p_name)
     except Exception as exception:
-        logger.exception("Building workflow failed")
+        WFLOGGER.exception("Building workflow failed")
         raise exception
 
     wf_graph = c["pipeline_setup", "log_directory", "graphviz", "entire_workflow"]
@@ -500,7 +501,7 @@ def run_workflow(
     )
 
     if test_config:
-        logger.info(
+        WFLOGGER.info(
             "This has been a test of the pipeline configuration "
             "file, the pipeline was built successfully, but was "
             "not run"
@@ -514,7 +515,7 @@ def run_workflow(
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
         #        pickle.dump(strat_list, f)
 
-        # if c.pipeline_setup['working_directory']['regenerate_outputs'] is True:
+        # if c.pipeline_setup['working_directory']['regenerate_outputs']:
 
         #     erasable = list(find_files(working_dir, '*sink*')) + \
         #         list(find_files(working_dir, '*link*')) + \
@@ -527,7 +528,7 @@ def run_workflow(
         #             shutil.rmtree(f)
 
         if hasattr(c, "trim") and c.trim:
-            logger.warning(
+            WFLOGGER.warning(
                 """
 Trimming is an experimental feature, and if used wrongly, it can
 lead to unreproducible results.
@@ -579,10 +580,11 @@ Please, make yourself aware of how it works and its assumptions:
             # Add status callback function that writes in callback log
             nipype_version = REQUIREMENTS["nipype"]
             if nipype.__version__ != nipype_version:
-                logger.warning(
-                    "This version of Nipype may not be compatible "
-                    f"with CPAC v{CPAC.__version__}, please "
-                    f"install Nipype version {nipype_version}\n"
+                WFLOGGER.warning(
+                    "This version of Nipype may not be compatible with CPAC v%s,"
+                    " please install Nipype version %s\n",
+                    CPAC.__version__,
+                    nipype_version,
                 )
 
             if plugin_args["n_procs"] == 1:
@@ -624,9 +626,7 @@ Please, make yourself aware of how it works and its assumptions:
             # Dump subject info pickle file to subject log dir
             subject_info["status"] = "Completed"
 
-            subject_info_file = os.path.join(
-                log_dir, "subject_info_%s.pkl" % subject_id
-            )
+            subject_info_file = os.path.join(log_dir, f"subject_info_{subject_id}.pkl")
             with open(subject_info_file, "wb") as info:
                 pickle.dump(list(subject_info), info)
 
@@ -661,7 +661,7 @@ Please, make yourself aware of how it works and its assumptions:
 
                 timing_temp_file_path = os.path.join(
                     c.pipeline_setup["log_directory"]["path"],
-                    "%s_pipeline_timing.tmp" % unique_pipeline_id,
+                    f"{unique_pipeline_id}_pipeline_timing.tmp",
                 )
 
                 if not os.path.isfile(timing_temp_file_path):
@@ -712,8 +712,8 @@ Please, make yourself aware of how it works and its assumptions:
                     with open(
                         os.path.join(
                             c.pipeline_setup["log_directory"]["path"],
-                            "cpac_individual_timing_%s.csv"
-                            % c.pipeline_setup["pipeline_name"],
+                            "cpac_individual_timing"
+                            f"_{c.pipeline_setup['pipeline_name']}.csv",
                         ),
                         "a",
                     ) as timeCSV, open(
@@ -732,7 +732,7 @@ Please, make yourself aware of how it works and its assumptions:
                             if "Start_Time" in line:
                                 headerExists = True
 
-                        if headerExists is False:
+                        if not headerExists:
                             timeWriter.writerow(timeHeader)
 
                         timeWriter.writerow(pipelineTimeDict)
@@ -774,7 +774,7 @@ Please, make yourself aware of how it works and its assumptions:
 
                 except Exception as exc:
                     err_msg = "Unable to upload CPAC log files in: %s.\nError: %s"
-                    logger.error(err_msg, log_dir, exc)
+                    FMLOGGER.error(err_msg, log_dir, exc)
 
         except Exception:
             import traceback
@@ -797,9 +797,9 @@ CPAC run error:
         finally:
             if workflow:
                 if os.path.exists(cb_log_filename):
-                    resource_report(cb_log_filename, num_cores_per_sub, logger)
+                    resource_report(cb_log_filename, num_cores_per_sub, WFLOGGER)
 
-                logger.info(
+                WFLOGGER.info(
                     "%s",
                     execution_info.format(
                         workflow=workflow.name,
@@ -844,13 +844,14 @@ def remove_workdir(wdpath: str) -> None:
     """
     try:
         if os.path.exists(wdpath):
-            logger.info("Removing working dir: %s", wdpath)
+            FMLOGGER.info("Removing working dir: %s", wdpath)
             shutil.rmtree(wdpath)
     except (FileNotFoundError, PermissionError):
-        logger.warning("Could not remove working directory %s", wdpath)
+        FMLOGGER.warning("Could not remove working directory %s", wdpath)
 
 
 def initialize_nipype_wf(cfg, sub_data_dct, name=""):
+    """Initialize a new nipype workflow."""
     if name:
         name = f"_{name}"
 
@@ -868,24 +869,23 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
 
 
 def load_cpac_pipe_config(pipe_config):
-    # Load in pipeline config file
+    """Load in pipeline config file."""
     config_file = os.path.realpath(pipe_config)
     try:
         if not os.path.exists(config_file):
             raise IOError
-        else:
-            cfg = Configuration(yaml.safe_load(open(config_file, "r")))
+        cfg = Configuration(yaml.safe_load(open(config_file, "r")))
     except IOError:
         raise
     except yaml.parser.ParserError as e:
-        error_detail = '"%s" at line %d' % (e.problem, e.problem_mark.line)
+        error_detail = f'"{e.problem}" at line {e.problem_mark.line}'
         msg = (
             f"Error parsing config file: {config_file}\n\n"
             "Error details:\n"
             f"    {error_detail}"
             "\n\n"
         )
-        raise Exception(msg)
+        raise yaml.parser.ParserError(msg) from e
     except Exception as e:
         msg = (
             f"Error parsing config file: {config_file}\n\n"
@@ -893,11 +893,12 @@ def load_cpac_pipe_config(pipe_config):
             f"    {e}"
             "\n\n"
         )
-        raise Exception(msg)
+        raise yaml.parser.ParserError(msg) from e
     return cfg
 
 
 def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
+    """Build the anatomical preprocessing stack."""
     if not pipeline_blocks:
         pipeline_blocks = []
 
@@ -1055,6 +1056,7 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
 
 def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
+    """Build the T1w registration pipeline blocks."""
     if not pipeline_blocks:
         pipeline_blocks = []
 
@@ -1084,6 +1086,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
 
 
 def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
+    """Build the tissue segmentation pipeline blocks."""
     if not pipeline_blocks:
         pipeline_blocks = []
 
@@ -1123,7 +1126,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
 
 
 def list_blocks(pipeline_blocks, indent=None):
-    """Function to list node blocks line by line.
+    """List node blocks line by line.
 
     Parameters
     ----------
@@ -1163,10 +1166,9 @@ def list_blocks(pipeline_blocks, indent=None):
 
 
 def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
-    logger.info(
-        "\n".join(
-            ["Connecting pipeline blocks:", list_blocks(pipeline_blocks, indent=1)]
-        )
+    """Connect the pipeline blocks to the workflow."""
+    WFLOGGER.info(
+        "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
     )
 
     previous_nb = None
@@ -1176,7 +1178,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
             wf = nb.connect_block(wf, cfg, rpool)
         except LookupError as e:
             if nb.name == "freesurfer_postproc":
-                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
                 LOGTAIL["warnings"].append(WARNING_FREESURFER_OFF_WITH_DATA)
                 continue
             previous_nb_str = (
@@ -1200,7 +1202,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                     f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
                 )
             if cfg.pipeline_setup["Debugging"]["verbose"]:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug(e.args[0])
                 verbose_logger.debug(rpool)
             raise
@@ -1209,11 +1211,12 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     return wf
 
 
-def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores=1):
+def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
+    """Build a C-PAC workflow for a single subject."""
     from CPAC.utils.datasource import gather_extraction_maps
 
     # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict)
+    wf = initialize_nipype_wf(cfg, sub_dict, name=pipeline_name)
 
     # Extract credentials path if it exists
     try:
@@ -1223,10 +1226,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
                 input_creds_path = os.path.abspath(creds_path)
             else:
                 err_msg = (
-                    'Credentials path: "%s" for subject "%s" was not '
-                    "found. Check this path and try again." % (creds_path, subject_id)
+                    f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
+                    " not found. Check this path and try again."
                 )
-                raise Exception(err_msg)
+                raise FileNotFoundError(err_msg)
         else:
             input_creds_path = None
     except KeyError:
@@ -1234,9 +1237,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
 
     cfg.pipeline_setup["input_creds_path"] = input_creds_path
 
-    """""" """""" """""" """""" """""" """""" """""" """""" """
-     PREPROCESSING
-    """ """""" """""" """""" """""" """""" """""" """""" """"""
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
+    # PREPROCESSING
+    # """""""""""""""""""""""""""""""""""""""""""""""""""
 
     wf, rpool = initiate_rpool(wf, cfg, sub_dict)
 
@@ -1288,7 +1291,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
             if "phasediff" in fmap_keys or "phase1" in fmap_keys:
                 if "magnitude" in fmap_keys or "magnitude1" in fmap_keys:
                     distcor_blocks.append(distcor_phasediff_fsl_fugue)
-            if len(fmap_keys) == 2:
+            if len(fmap_keys) == 2:  # noqa: PLR2004
                 for key in fmap_keys:
                     if "epi_" not in key:
                         break
@@ -1431,7 +1434,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
         if rpool.check_rpool(func):
             apply_func_warp["T1"] = False
 
-    target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
     target_space_alff = cfg.amplitude_low_frequency_fluctuation["target_space"]
     target_space_reho = cfg.regional_homogeneity["target_space"]
 
@@ -1461,9 +1463,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
         pipeline_blocks += [warp_bold_mask_to_T1template, warp_deriv_mask_to_T1template]
 
     pipeline_blocks += [func_despike_template]
-
-    if "Template" in target_space_alff and target_space_nuis == "native":
-        pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows["functional_registration"][
         "func_registration_to_template"
@@ -1602,7 +1601,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
             missing_key = lookup_error.args[0].split("': ")[-1]
         for errorstring in [
             "[!] C-PAC says: The listed resource is not in the resource pool:",
-            "[!] C-PAC says: None of the listed resources are in the resource " "pool:",
+            "[!] C-PAC says: None of the listed resources are in the resource pool:",
             "[!] C-PAC says: None of the listed resources in the node block "
             "being connected exist in the resource pool.\n\nResources:",
         ]:
@@ -1628,7 +1627,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
     # TODO enforce value with schema validation
     try:
         bool(cfg.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except:
+    except (KeyError, TypeError, ValueError):
         pass
 
     # TODO enforce value with schema validation
@@ -1650,16 +1649,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None, num_ants_cores
 
             if not s3_write_access:
                 msg = "Not able to write to bucket!"
-                raise Exception(msg)
+                raise PermissionError(msg)
 
     except Exception as e:
         if cfg.pipeline_setup["output_directory"]["path"].lower().startswith("s3://"):
             err_msg = (
-                "There was an error processing credentials or "
-                "accessing the S3 bucket. Check and try again.\n"
-                "Error: %s" % e
+                "There was an error processing credentials or accessing the S3 bucket."
+                f" Check and try again.\nError: {e}"
             )
-            raise Exception(err_msg)
+            raise ConnectionError(err_msg)
 
     # Collect all pipeline variants and write to output directory
     rpool.gather_pipes(wf, cfg)

@@ -303,9 +303,7 @@ class Configuration:
         def check_path(key):
             if isinstance(key, str) and "/" in key:
                 if not os.path.exists(key):
-                    warn(
-                        f"Invalid path- {key}. Please check your " "configuration file"
-                    )
+                    warn(f"Invalid path- {key}. Please check your configuration file")
 
         attributes = [
             (attr, getattr(self, attr))

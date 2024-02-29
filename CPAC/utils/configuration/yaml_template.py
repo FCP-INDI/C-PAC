@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,11 +20,13 @@ from datetime import datetime
 from hashlib import sha1
 import os
 import re
+from typing import Optional, Union
 
 from click import BadParameter
 import yaml
 
 from CPAC.utils.configuration import Configuration, preconfig_yaml, Preconfiguration
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for yaml_str in value}
@@ -50,7 +52,8 @@ class YamlTemplate:  # pylint: disable=too-few-public-methods
     """
 
     def __init__(self, original_yaml, base_config=None):
-        """
+        """Initialize a YamlTemplate.
+
         Parameters
         ----------
         original_yaml : str
@@ -79,8 +82,7 @@ class YamlTemplate:  # pylint: disable=too-few-public-methods
     get_nested = Configuration.get_nested
 
     def dump(self, new_dict, parents=None):
-        """Dump a YAML file from a new dictionary with the comments from
-        the template dictionary.
+        """Dump YAML from a new dictionary with comments from template dictionary.
 
         Parameters
         ----------
@@ -205,7 +207,7 @@ class YamlTemplate:  # pylint: disable=too-few-public-methods
 
 
 def _count_indent(line):
-    """Helper method to determine indentation level.
+    """Determine indentation level.
 
     Parameters
     ----------
@@ -226,15 +228,15 @@ def _count_indent(line):
 
 
 def create_yaml_from_template(
-    d,  # pylint: disable=invalid-name
-    template="default",
-    import_from=None,
-):
-    """Save dictionary to a YAML file, keeping the structure
-    (such as first level comments and ordering) from the template.
+    d: Union[Configuration, dict],  # pylint: disable=invalid-name
+    template: str = "default",
+    import_from: Optional[str] = None,
+) -> str:
+    """Save dictionary to a YAML file, keeping the structure from the template.
 
-    It may not be fully robust to YAML structures, but it works
-    for C-PAC config files!
+    For example, first level comments and ordering.
+
+    It may not be fully robust to YAML structures, but it works for C-PAC config files!
 
     Parameters
     ----------
@@ -245,6 +247,10 @@ def create_yaml_from_template(
 
     import_from : str, optional
         name of a preconfig. Full config is generated if omitted
+
+    Returns
+    -------
+    str
 
     Examples
     --------
@@ -294,10 +300,11 @@ def create_yaml_from_template(
 
 
 def _format_list_items(
-    l,  # noqa: E741  # pylint:disable=invalid-name
-    line_level,
-):
-    """Helper method to handle lists in the YAML.
+    l: list,  # noqa: E741  # pylint:disable=invalid-name
+    line_level: int,
+    short_list_length: int = 50,
+) -> str:
+    """Handle lists in the YAML.
 
     Parameters
     ----------
@@ -327,7 +334,7 @@ def _format_list_items(
     # keep short, simple lists in square brackets
     if all(isinstance(item, (str, bool, int, float)) for item in l):
         preformat = str([yaml_bool(item) for item in l])
-        if len(preformat) < 50:
+        if len(preformat) < short_list_length:
             return preformat.replace("'", "").replace('"', "")
     # list long or complex lists on lines with indented '-' lead-ins
     return "\n".join(
@@ -342,8 +349,7 @@ def _format_list_items(
 
 
 def hash_data_config(sub_list):
-    """Function to generate a short SHA1 hash from a data config
-    subject list of dicts.
+    """Generate a short SHA1 hash from a data config subject list of dicts.
 
     Parameters
     ----------
@@ -373,7 +379,7 @@ def hash_data_config(sub_list):
 
 
 def indent(line_level, plus=2):
-    """Function to return an indent string for a given level.
+    """Return an indent string for a given level.
 
     Parameters
     ----------
@@ -389,7 +395,7 @@ def indent(line_level, plus=2):
 
 
 def yaml_bool(value):
-    """Helper function to give On/Off value to bools.
+    """Give On/Off value to bools.
 
     Parameters
     ----------
@@ -419,14 +425,14 @@ def yaml_bool(value):
             **{k: yaml_bool(value[k]) for k in value if k != "Name"},
         }
     if isinstance(value, bool):
-        if value is True:
+        if value:
             return "On"
         return "Off"
     return value
 
 
 def upgrade_pipeline_to_1_8(path):
-    """Function to upgrade a C-PAC 1.7 pipeline config to C-PAC 1.8.
+    """Upgrade a C-PAC 1.7 pipeline config to C-PAC 1.8.
 
     Parameters
     ----------
@@ -447,6 +453,7 @@ def upgrade_pipeline_to_1_8(path):
     # back up original config
     now = datetime.isoformat(datetime.now()).replace(":", "_")
     backup = f"{path}.{now}.bak"
+    UTLOGGER.info("Backing up %s to %s and upgrading to C-PAC 1.8", path, backup)
     with open(path, "r", encoding="utf-8") as _f:
         original = _f.read()
     with open(backup, "w", encoding="utf-8") as _f:
@@ -469,13 +476,15 @@ def upgrade_pipeline_to_1_8(path):
 
 
 def update_a_preconfig(preconfig, import_from):
-    """
+    """Update a preconfig with comments from another config.
+
     Parameters
     ----------
     preconfig : str
 
     import_from : str
     """
+    UTLOGGER.info("Updating %s preconfig…", preconfig)
     updated = create_yaml_from_template(
         Preconfiguration(preconfig), import_from=import_from
     )

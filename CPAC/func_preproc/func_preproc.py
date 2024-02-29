@@ -16,10 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
-from nipype import logging
 from nipype.interfaces import afni, ants, fsl, utility as util
-
-logger = logging.getLogger("nipype.workflow")
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import nullify
@@ -34,6 +31,7 @@ from CPAC.utils.utils import add_afni_prefix
 
 
 def collect_arguments(*args):
+    """Collect arguments."""
     command_args = []
     if args[0]:
         command_args += [args[1]]
@@ -42,6 +40,7 @@ def collect_arguments(*args):
 
 
 def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
+    """Generate an anatomically refined mask."""
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(
@@ -76,7 +75,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
     wf.connect(func_single_volume, "out_file", func_tmp_brain, "in_file_a")
 
     # 2.1 get a tmp func brain mask
-    if init_bold_mask is True:
+    if init_bold_mask:
         # 2.1.1 N4BiasFieldCorrection single volume of raw_func
         func_single_volume_n4_corrected = pe.Node(
             interface=ants.N4BiasFieldCorrection(
@@ -164,7 +163,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 
     wf.connect(reg_anat_mask_to_func, "out_file", func_mask, "operand_files")
 
-    if init_bold_mask is True:
+    if init_bold_mask:
         wf.connect(func_tmp_brain_mask_dil, "out_file", func_mask, "in_file")
     else:
         wf.connect(input_node, "init_func_brain_mask", func_mask, "in_file")
@@ -175,7 +174,10 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 
 
 def anat_based_mask(wf_name="bold_mask"):
-    """Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_."""
+    """Generate a functional mask from anatomical data.
+
+    Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
+    """
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(
@@ -378,6 +380,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 def slice_timing_wf(name="slice_timing", tpattern=None, tzero=None):
+    """Calculate corrected slice-timing."""
     # allocate a workflow object
     wf = pe.Workflow(name=name)
 
@@ -442,11 +445,10 @@ def slice_timing_wf(name="slice_timing", tpattern=None, tzero=None):
 
 
 def get_idx(in_files, stop_idx=None, start_idx=None):
-    """
-    Method to get the first and the last slice for
-    the functional run. It verifies the user specified
-    first and last slice. If the values are not valid, it
-    calculates and returns the very first and the last slice.
+    """Get the first and the last slice for the functional run.
+
+    Verify the user specified first and last slice. If the values are not valid,
+    calculate and return the very first and the last slice.
 
     Parameters
     ----------
@@ -479,7 +481,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     shape = hdr.get_data_shape()
 
     # Check to make sure the input file is 4-dimensional
-    if len(shape) != 4:
+    if len(shape) != 4:  # noqa: PLR2004
         raise TypeError("Input nifti file: %s is not a 4D file" % in_files)
     # Grab the number of volumes
     nvols = int(hdr.get_data_shape()[3])
@@ -505,6 +507,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     outputs=["desc-preproc_bold", "desc-reorient_bold"],
 )
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Reorient functional timeseries."""
     func_deoblique = pe.Node(
         interface=afni_utils.Refit(),
         name=f"func_deoblique_{pipe_num}",
@@ -544,6 +547,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold"],
 )
 def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Scale functional timeseries."""
     scale_func_wf = create_scale_func_wf(
         scaling_factor=cfg.scaling_factor, wf_name=f"scale_func_{pipe_num}"
     )
@@ -567,6 +571,7 @@ def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_truncate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Truncate functional timeseries."""
     # if cfg.functional_preproc['truncation']['start_tr'] == 0 and \
     #                cfg.functional_preproc['truncation']['stop_tr'] == None:
     #    data, key = strat_pool.get_data("desc-preproc_bold",
@@ -602,6 +607,7 @@ def func_truncate(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate de-spiked functional timeseries in native space with AFNI."""
     despike = pe.Node(
         interface=preprocess.Despike(),
         name=f"func_despiked_{pipe_num}",
@@ -644,6 +650,7 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate de-spiked functional timeseries in template space with AFNI."""
     despike = pe.Node(
         interface=preprocess.Despike(),
         name=f"func_despiked_template_{pipe_num}",
@@ -698,6 +705,7 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Genetare slice-time correctied timeseries."""
     slice_time = slice_timing_wf(
         name="func_slice_timing_correction_" f"{pipe_num}",
         tpattern=cfg.functional_preproc["slice_timing_correction"]["tpattern"],
@@ -737,6 +745,7 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a functional mask with AFNI."""
     func_get_brain_mask = pe.Node(
         interface=preprocess.Automask(), name=f"func_get_brain_mask_AFNI_{pipe_num}"
     )
@@ -762,6 +771,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate functional mask with FSL."""
     inputnode_bet = pe.Node(
         util.IdentityInterface(
             fields=[
@@ -940,7 +950,8 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask", "desc-ref_bold"],
 )
 def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
-    """fMRIPrep-style BOLD mask
+    """fMRIPrep-style BOLD mask.
+
     `Ref <https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514>`_.
     """
     # Initialize transforms with antsAI
@@ -1139,6 +1150,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate the BOLD mask by basing it off of the refined anatomical brain mask."""
     # binarize anat mask, in case it is not a binary mask.
     anat_brain_mask_bin = pe.Node(
         interface=fsl.ImageMaths(), name=f"anat_brain_mask_bin_{pipe_num}"
@@ -1283,6 +1295,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain mask.
+
     Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
     """
     # 0. Take single volume of func
@@ -1375,7 +1388,8 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
+    """Resample anatomical brain mask to get BOLD brain mask in standard space.
+
     Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     """
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
@@ -1456,6 +1470,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain.
+
     Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110>`_.
     """
     # Run 3dAutomask to generate func initial mask
@@ -1592,6 +1607,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a functional brain mask."""
     func_edge_detect = pe.Node(
         interface=afni_utils.Calc(), name=f"func_extract_brain_{pipe_num}"
     )
@@ -1623,6 +1639,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-mean_bold"],
 )
 def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a mean functional image."""
     func_mean = pe.Node(interface=afni_utils.TStat(), name=f"func_mean_{pipe_num}")
 
     func_mean.inputs.options = "-mean"
@@ -1646,6 +1663,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold"],
 )
 def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Normalize a functional image."""
     func_normalize = pe.Node(
         interface=fsl.ImageMaths(),
         name=f"func_normalize_{pipe_num}",
@@ -1671,6 +1689,7 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Normalize a functional mask."""
     func_mask_normalize = pe.Node(
         interface=fsl.ImageMaths(),
         name=f"func_mask_normalize_{pipe_num}",
