@@ -1,13 +1,34 @@
+# Copyright (C) 2014-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Utilities for registration."""
 import os
+import subprocess
 
 import numpy as np
+from voluptuous import RequiredFieldInvalid
 
 
 def single_ants_xfm_to_list(transform):
+    """Convert a single ANTs transform to a list."""
     return [transform]
 
 
 def interpolation_string(interpolation, reg_tool):
+    """Translate interpolation string to reg_tool-specific string."""
     if reg_tool == "ants":
         pass
     elif reg_tool == "fsl":
@@ -20,22 +41,24 @@ def interpolation_string(interpolation, reg_tool):
 
 
 def combine_inputs_into_list(input1, input2, input3):
+    """Combine inputs into a list."""
     return [input1, input2, input3]
 
 
 def seperate_warps_list(warp_list, selection):
+    """Select the warp from the warp list."""
     selected_warp = None
     for warp in warp_list:
         if selection == "Warp":
             if "3Warp" in warp or "2Warp" in warp or "1Warp" in warp:
                 selected_warp = warp
-        else:
-            if selection in warp:
-                selected_warp = warp
+        elif selection in warp:
+            selected_warp = warp
     return selected_warp
 
 
 def check_transforms(transform_list):
+    """Check if the transform list is empty."""
     transform_number = list(filter(None, transform_list))
     return [(transform_number[index]) for index in range(len(transform_number))], len(
         transform_number
@@ -43,6 +66,7 @@ def check_transforms(transform_list):
 
 
 def generate_inverse_transform_flags(transform_list):
+    """List whether each transform has an inverse."""
     inverse_transform_flags = []
     for transform in transform_list:
         # check `blip_warp_inverse` file name and rename it
@@ -73,6 +97,7 @@ def hardcoded_reg(
     interp=None,
     reg_with_skull=0,
 ):
+    """Run ANTs registration."""
     # TODO: expand transforms to cover all in ANTs para
 
     regcmd = ["antsRegistration"]
@@ -81,93 +106,82 @@ def hardcoded_reg(
             if para_type == "dimensionality":
                 if ants_para[para_index][para_type] not in [2, 3, 4]:
                     err_msg = (
-                        "Dimensionality specified in ANTs parameters: %d, is not supported. "
-                        "Change to 2, 3, or 4 and try again"
-                        % ants_para[para_index][para_type]
+                        "Dimensionality specified in ANTs parameters:"
+                        f" {ants_para[para_index][para_type]}, is not supported."
+                        " Change to 2, 3, or 4 and try again"
                     )
-                    raise Exception(err_msg)
-                else:
-                    regcmd.append("--dimensionality")
-                    regcmd.append(str(ants_para[para_index][para_type]))
+                    raise ValueError(err_msg)
+                regcmd.append("--dimensionality")
+                regcmd.append(str(ants_para[para_index][para_type]))
 
             elif para_type == "verbose":
                 if ants_para[para_index][para_type] not in [0, 1]:
                     err_msg = (
-                        "Verbose output option in ANTs parameters: %d, is not supported. "
-                        "Change to 0 or 1 and try again"
-                        % ants_para[para_index][para_type]
+                        "Verbose output option in ANTs parameters:"
+                        f" {ants_para[para_index][para_type]}, is not supported."
+                        " Change to 0 or 1 and try again"
                     )
-                    raise Exception(err_msg)
-                else:
-                    regcmd.append("--verbose")
-                    regcmd.append(str(ants_para[para_index][para_type]))
+                    raise ValueError(err_msg)
+                regcmd.append("--verbose")
+                regcmd.append(str(ants_para[para_index][para_type]))
 
             elif para_type == "float":
                 if ants_para[para_index][para_type] not in [0, 1]:
                     err_msg = (
-                        "Float option in ANTs parameters: %d, is not supported. "
-                        "Change to 0 or 1 and try again"
-                        % ants_para[para_index][para_type]
+                        "Float option in ANTs parameters:"
+                        f" {ants_para[para_index][para_type]}, is not supported."
+                        " Change to 0 or 1 and try again"
                     )
-                    raise Exception(err_msg)
-                else:
-                    regcmd.append("--float")
-                    regcmd.append(str(ants_para[para_index][para_type]))
+                    raise ValueError(err_msg)
+                regcmd.append("--float")
+                regcmd.append(str(ants_para[para_index][para_type]))
 
             elif para_type == "collapse-output-transforms":
                 if ants_para[para_index][para_type] not in [0, 1]:
                     err_msg = (
-                        "collapse-output-transforms specified in ANTs parameters: %d, is not supported. "
-                        "Change to 0 or 1 and try again"
-                        % ants_para[para_index][para_type]
+                        "collapse-output-transforms specified in ANTs parameters:"
+                        f" {ants_para[para_index][para_type]}, is not supported."
+                        " Change to 0 or 1 and try again"
                     )
-                    raise Exception(err_msg)
-                else:
-                    regcmd.append("--collapse-output-transforms")
-                    regcmd.append(str(ants_para[para_index][para_type]))
+                    raise ValueError(err_msg)
+                regcmd.append("--collapse-output-transforms")
+                regcmd.append(str(ants_para[para_index][para_type]))
 
             elif para_type == "winsorize-image-intensities":
                 if (
                     ants_para[para_index][para_type]["lowerQuantile"] is None
                     or ants_para[para_index][para_type]["upperQuantile"] is None
                 ):
-                    err_msg = "Please specifiy lowerQuantile and upperQuantile of ANTs parameters --winsorize-image-intensities in pipeline config. "
-                    raise Exception(err_msg)
-                else:
-                    regcmd.append("--winsorize-image-intensities")
-                    regcmd.append(
-                        "[{0},{1}]".format(
-                            ants_para[para_index][para_type]["lowerQuantile"],
-                            ants_para[para_index][para_type]["upperQuantile"],
-                        )
+                    err_msg = (
+                        "Please specifiy lowerQuantile and upperQuantile of ANTs"
+                        " parameters --winsorize-image-intensities in pipeline config."
                     )
+                    raise RequiredFieldInvalid(err_msg)
+                regcmd.append("--winsorize-image-intensities")
+                _quantile = ants_para[para_index][para_type]
+                regcmd.append(
+                    f"[{_quantile['lowerQuantile']},{_quantile['upperQuantile']}]"
+                )
 
             elif para_type == "initial-moving-transform":
                 if ants_para[para_index][para_type]["initializationFeature"] is None:
-                    err_msg = "Please specifiy initializationFeature of ANTs parameters in pipeline config. "
-                    raise Exception(err_msg)
+                    err_msg = (
+                        "Please specifiy initializationFeature of ANTs parameters in"
+                        " pipeline config."
+                    )
+                    raise RequiredFieldInvalid(err_msg)
+                regcmd.append("--initial-moving-transform")
+                initialization_feature = ants_para[para_index][para_type][
+                    "initializationFeature"
+                ]
+                if reg_with_skull == 1:
+                    regcmd.append(
+                        f"[{reference_skull},{moving_skull},{initialization_feature}]"
+                    )
                 else:
-                    regcmd.append("--initial-moving-transform")
-                    if reg_with_skull == 1:
-                        regcmd.append(
-                            "[{0},{1},{2}]".format(
-                                reference_skull,
-                                moving_skull,
-                                ants_para[para_index][para_type][
-                                    "initializationFeature"
-                                ],
-                            )
-                        )
-                    else:
-                        regcmd.append(
-                            "[{0},{1},{2}]".format(
-                                reference_brain,
-                                moving_brain,
-                                ants_para[para_index][para_type][
-                                    "initializationFeature"
-                                ],
-                            )
-                        )
+                    regcmd.append(
+                        f"[{reference_brain},{moving_brain},{initialization_feature}]"
+                    )
 
             elif para_type == "transforms":
                 for trans_index in range(len(ants_para[para_index][para_type])):
@@ -181,19 +195,14 @@ def hardcoded_reg(
                                 is None
                             ):
                                 err_msg = (
-                                    "Please specifiy % s Gradient Step of ANTs parameters in pipeline config. "
-                                    % trans_type
+                                    f"Please specifiy {trans_type} Gradient Step of"
+                                    " ANTs parameters in pipeline config."
                                 )
-                                raise Exception(err_msg)
-                            else:
-                                regcmd.append(
-                                    "{0}[{1}]".format(
-                                        trans_type,
-                                        ants_para[para_index][para_type][trans_index][
-                                            trans_type
-                                        ]["gradientStep"],
-                                    )
-                                )
+                                raise RequiredFieldInvalid(err_msg)
+                            gradient_step = ants_para[para_index][para_type][
+                                trans_index
+                            ][trans_type]["gradientStep"]
+                            regcmd.append(f"{trans_type}[{gradient_step}]")
 
                         if trans_type == "SyN":
                             if (
@@ -202,52 +211,44 @@ def hardcoded_reg(
                                 ]["gradientStep"]
                                 is None
                             ):
-                                err_msg = (
-                                    "Please specifiy % s Gradient Step of ANTs parameters in pipeline config. "
-                                    % trans_type
+                                err_msg = f"Please specifiy {trans_type} Gradient Step of ANTs parameters in pipeline config."
+                                raise RequiredFieldInvalid(err_msg)
+                            SyN_para = []
+                            SyN_para.append(
+                                str(
+                                    ants_para[para_index][para_type][trans_index][
+                                        trans_type
+                                    ]["gradientStep"]
                                 )
-                                raise Exception(err_msg)
-                            else:
-                                SyN_para = []
+                            )
+                            if (
+                                ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["updateFieldVarianceInVoxelSpace"]
+                                is not None
+                            ):
                                 SyN_para.append(
-                                    "{0}".format(
+                                    str(
                                         ants_para[para_index][para_type][trans_index][
                                             trans_type
-                                        ]["gradientStep"]
+                                        ]["updateFieldVarianceInVoxelSpace"]
                                     )
                                 )
-                                if (
-                                    ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["updateFieldVarianceInVoxelSpace"]
-                                    is not None
-                                ):
-                                    SyN_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type][
-                                                "updateFieldVarianceInVoxelSpace"
-                                            ]
-                                        )
+                            if (
+                                ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["totalFieldVarianceInVoxelSpace"]
+                                is not None
+                            ):
+                                SyN_para.append(
+                                    str(
+                                        ants_para[para_index][para_type][trans_index][
+                                            trans_type
+                                        ]["totalFieldVarianceInVoxelSpace"]
                                     )
-                                if (
-                                    ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["totalFieldVarianceInVoxelSpace"]
-                                    is not None
-                                ):
-                                    SyN_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type][
-                                                "totalFieldVarianceInVoxelSpace"
-                                            ]
-                                        )
-                                    )
-                                SyN_para = ",".join([str(elem) for elem in SyN_para])
-                                regcmd.append("{0}[{1}]".format(trans_type, SyN_para))
+                                )
+                            SyN_para = ",".join([str(elem) for elem in SyN_para])
+                            regcmd.append(f"{trans_type}[{SyN_para}]")
 
                         if (
                             ants_para[para_index][para_type][trans_index][trans_type][
@@ -265,67 +266,59 @@ def hardcoded_reg(
                                 ]["metric"]["numberOfBins"]
                                 is None
                             ):
-                                err_msg = "Please specifiy metricWeight and numberOfBins for metric MI of ANTs parameters in pipeline config."
-                                raise Exception(err_msg)
-                            else:
-                                MI_para = []
+                                err_msg = (
+                                    "Please specifiy metricWeight and numberOfBins for"
+                                    " metric MI of ANTs parameters in pipeline config."
+                                )
+                                raise RequiredFieldInvalid(err_msg)
+                            MI_para = []
+                            _metric = ants_para[para_index][para_type][trans_index][
+                                trans_type
+                            ]["metric"]
+                            MI_para.append(
+                                f"{_metric['metricWeight']},{_metric['numberOfBins']}"
+                            )
+                            if "samplingStrategy" in ants_para[para_index][para_type][
+                                trans_index
+                            ][trans_type]["metric"] and ants_para[para_index][
+                                para_type
+                            ][trans_index][trans_type]["metric"][
+                                "samplingStrategy"
+                            ] in ["None", "Regular", "Random"]:
                                 MI_para.append(
-                                    "{0},{1}".format(
+                                    str(
                                         ants_para[para_index][para_type][trans_index][
                                             trans_type
-                                        ]["metric"]["metricWeight"],
-                                        ants_para[para_index][para_type][trans_index][
-                                            trans_type
-                                        ]["metric"]["numberOfBins"],
+                                        ]["metric"]["samplingStrategy"]
                                     )
                                 )
-                                if "samplingStrategy" in ants_para[para_index][
-                                    para_type
-                                ][trans_index][trans_type]["metric"] and ants_para[
-                                    para_index
-                                ][para_type][trans_index][trans_type]["metric"][
-                                    "samplingStrategy"
-                                ] in ["None", "Regular", "Random"]:
-                                    MI_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["metric"]["samplingStrategy"]
-                                        )
+                            if (
+                                "samplingPercentage"
+                                in ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["metric"]
+                                and ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["metric"]["samplingPercentage"]
+                                is not None
+                            ):
+                                MI_para.append(
+                                    str(
+                                        ants_para[para_index][para_type][trans_index][
+                                            trans_type
+                                        ]["metric"]["samplingPercentage"]
                                     )
-                                if (
-                                    "samplingPercentage"
-                                    in ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["metric"]
-                                    and ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["metric"]["samplingPercentage"]
-                                    is not None
-                                ):
-                                    MI_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["metric"][
-                                                "samplingPercentage"
-                                            ]
-                                        )
-                                    )
-                                MI_para = ",".join([str(elem) for elem in MI_para])
-                                regcmd.append("--metric")
-                                if reg_with_skull == 1:
-                                    regcmd.append(
-                                        "MI[{0},{1},{2}]".format(
-                                            reference_skull, moving_skull, MI_para
-                                        )
-                                    )
-                                else:
-                                    regcmd.append(
-                                        "MI[{0},{1},{2}]".format(
-                                            reference_brain, moving_brain, MI_para
-                                        )
-                                    )
+                                )
+                            MI_para = ",".join([str(elem) for elem in MI_para])
+                            regcmd.append("--metric")
+                            if reg_with_skull == 1:
+                                regcmd.append(
+                                    f"MI[{reference_skull},{moving_skull},{MI_para}]"
+                                )
+                            else:
+                                regcmd.append(
+                                    f"MI[{reference_brain},{moving_brain},{MI_para}]"
+                                )
 
                         if (
                             ants_para[para_index][para_type][trans_index][trans_type][
@@ -343,60 +336,54 @@ def hardcoded_reg(
                                 ]["metric"]["radius"]
                                 is None
                             ):
-                                err_msg = "Please specifiy metricWeight and radius for metric CC of ANTs parameters in pipeline config."
-                                raise Exception(err_msg)
-                            else:
-                                CC_para = []
+                                err_msg = (
+                                    "Please specifiy metricWeight and radius for metric"
+                                    " CC of ANTs parameters in pipeline config."
+                                )
+                                raise RequiredFieldInvalid(err_msg)
+                            CC_para = []
+                            _metric = ants_para[para_index][para_type][trans_index][
+                                trans_type
+                            ]["metric"]
+                            CC_para.append(
+                                f"{_metric['metricWeight']},{_metric['radius']}"
+                            )
+                            if "samplingStrategy" in ants_para[para_index][para_type][
+                                trans_index
+                            ][trans_type]["metric"] and ants_para[para_index][
+                                para_type
+                            ][trans_index][trans_type]["metric"][
+                                "samplingStrategy"
+                            ] in ["None", "Regular", "Random"]:
                                 CC_para.append(
-                                    "{0},{1}".format(
+                                    str(
                                         ants_para[para_index][para_type][trans_index][
                                             trans_type
-                                        ]["metric"]["metricWeight"],
+                                        ]["metric"]["samplingStrategy"]
+                                    )
+                                )
+                            if (
+                                "samplingPercentage"
+                                in ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["metric"]
+                                and ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["metric"]["samplingPercentage"]
+                                is not None
+                            ):
+                                CC_para.append(
+                                    str(
                                         ants_para[para_index][para_type][trans_index][
                                             trans_type
-                                        ]["metric"]["radius"],
+                                        ]["metric"]["samplingPercentage"]
                                     )
                                 )
-                                if "samplingStrategy" in ants_para[para_index][
-                                    para_type
-                                ][trans_index][trans_type]["metric"] and ants_para[
-                                    para_index
-                                ][para_type][trans_index][trans_type]["metric"][
-                                    "samplingStrategy"
-                                ] in ["None", "Regular", "Random"]:
-                                    CC_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["metric"]["samplingStrategy"]
-                                        )
-                                    )
-                                if (
-                                    "samplingPercentage"
-                                    in ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["metric"]
-                                    and ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["metric"]["samplingPercentage"]
-                                    is not None
-                                ):
-                                    CC_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["metric"][
-                                                "samplingPercentage"
-                                            ]
-                                        )
-                                    )
-                                CC_para = ",".join([str(elem) for elem in CC_para])
-                                regcmd.append("--metric")
-                                regcmd.append(
-                                    "CC[{0},{1},{2}]".format(
-                                        reference_skull, moving_skull, CC_para
-                                    )
-                                )
+                            CC_para = ",".join([str(elem) for elem in CC_para])
+                            regcmd.append("--metric")
+                            regcmd.append(
+                                f"CC[{reference_skull},{moving_skull},{CC_para}]"
+                            )
 
                         if (
                             "convergence"
@@ -409,59 +396,57 @@ def hardcoded_reg(
                                 ]["convergence"]["iteration"]
                                 is None
                             ):
-                                err_msg = "Please specifiy convergence iteration of ANTs parameters in pipeline config."
-                                raise Exception(err_msg)
-                            else:
+                                err_msg = (
+                                    "Please specifiy convergence iteration of ANTs"
+                                    " parameters in pipeline config."
+                                )
+                                raise RequiredFieldInvalid(err_msg)
+                            convergence_para.append(
+                                str(
+                                    ants_para[para_index][para_type][trans_index][
+                                        trans_type
+                                    ]["convergence"]["iteration"]
+                                )
+                            )
+                            if (
+                                "convergenceThreshold"
+                                in ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["convergence"]
+                                and ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["convergence"]["convergenceThreshold"]
+                                is not None
+                            ):
                                 convergence_para.append(
-                                    "{0}".format(
+                                    str(
                                         ants_para[para_index][para_type][trans_index][
                                             trans_type
-                                        ]["convergence"]["iteration"]
+                                        ]["convergence"]["convergenceThreshold"]
                                     )
                                 )
-                                if (
-                                    "convergenceThreshold"
-                                    in ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["convergence"]
-                                    and ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["convergence"]["convergenceThreshold"]
-                                    is not None
-                                ):
-                                    convergence_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["convergence"][
-                                                "convergenceThreshold"
-                                            ]
-                                        )
+                            if (
+                                "convergenceWindowSize"
+                                in ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["convergence"]
+                                and ants_para[para_index][para_type][trans_index][
+                                    trans_type
+                                ]["convergence"]["convergenceWindowSize"]
+                                is not None
+                            ):
+                                convergence_para.append(
+                                    str(
+                                        ants_para[para_index][para_type][trans_index][
+                                            trans_type
+                                        ]["convergence"]["convergenceWindowSize"]
                                     )
-                                if (
-                                    "convergenceWindowSize"
-                                    in ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["convergence"]
-                                    and ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["convergence"]["convergenceWindowSize"]
-                                    is not None
-                                ):
-                                    convergence_para.append(
-                                        "{0}".format(
-                                            ants_para[para_index][para_type][
-                                                trans_index
-                                            ][trans_type]["convergence"][
-                                                "convergenceWindowSize"
-                                            ]
-                                        )
-                                    )
-                                convergence_para = ",".join(
-                                    [str(elem) for elem in convergence_para]
                                 )
-                                regcmd.append("--convergence")
-                                regcmd.append("[{0}]".format(convergence_para))
+                            convergence_para = ",".join(
+                                [str(elem) for elem in convergence_para]
+                            )
+                            regcmd.append("--convergence")
+                            regcmd.append(f"[{convergence_para}]")
 
                         if (
                             "smoothing-sigmas"
@@ -473,7 +458,7 @@ def hardcoded_reg(
                         ):
                             regcmd.append("--smoothing-sigmas")
                             regcmd.append(
-                                "{0}".format(
+                                str(
                                     ants_para[para_index][para_type][trans_index][
                                         trans_type
                                     ]["smoothing-sigmas"]
@@ -490,7 +475,7 @@ def hardcoded_reg(
                         ):
                             regcmd.append("--shrink-factors")
                             regcmd.append(
-                                "{0}".format(
+                                str(
                                     ants_para[para_index][para_type][trans_index][
                                         trans_type
                                     ]["shrink-factors"]
@@ -520,15 +505,11 @@ def hardcoded_reg(
                             is not None
                         ):
                             regcmd.append("--winsorize-image-intensities")
+                            _quantile = ants_para[para_index][para_type][trans_index][
+                                trans_type
+                            ]["winsorize-image-intensities"]
                             regcmd.append(
-                                "[{0},{1}]".format(
-                                    ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["winsorize-image-intensities"]["lowerQuantile"],
-                                    ants_para[para_index][para_type][trans_index][
-                                        trans_type
-                                    ]["winsorize-image-intensities"]["upperQuantile"],
-                                )
+                                f"[{_quantile['lowerQuantile']},{_quantile['upperQuantile']}]"
                             )
 
                         if (
@@ -543,9 +524,7 @@ def hardcoded_reg(
                                 trans_type
                             ]["masks"]:
                                 regcmd.append("--masks")
-                                regcmd.append(
-                                    "[{0},{1}]".format(reference_mask, moving_mask)
-                                )
+                                regcmd.append(f"[{reference_mask},{moving_mask}]")
                             else:
                                 regcmd.append("--masks")
                                 regcmd.append("[NULL,NULL]")
@@ -557,30 +536,27 @@ def hardcoded_reg(
                     regcmd.append(str(fixed_image_mask))
                 else:
                     if (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is False
+                        not ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is True
                     ):
                         err_msg = (
-                            "Masks option in ANTs parameters: %d is not supported. "
-                            "Please set `fixed_image_mask` as True. "
-                            "Or set both `fixed_image_mask` and `moving_image_mask` as False"
-                            % ants_para[para_index][para_type]
+                            "Masks option in ANTs parameters:"
+                            f" {ants_para[para_index][para_type]} is not supported."
+                            " Please set `fixed_image_mask` as True. Or set both"
+                            " `fixed_image_mask` and `moving_image_mask` as False"
                         )
-                        raise Exception(err_msg)
-                    elif (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is True
+                        raise NotImplementedError(err_msg)
+                    if (
+                        ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is True
                     ):
                         regcmd.append("--masks")
                         regcmd.append(
                             "[" + str(reference_mask) + "," + str(moving_mask) + "]"
                         )
                     elif (
-                        ants_para[para_index][para_type]["fixed_image_mask"] is True
+                        ants_para[para_index][para_type]["fixed_image_mask"]
                         and ants_para[para_index][para_type]["moving_image_mask"]
-                        is False
                     ):
                         regcmd.append("--masks")
                         regcmd.append("[" + str(reference_mask) + "]")
@@ -589,7 +565,7 @@ def hardcoded_reg(
 
     if interp is not None:
         regcmd.append("--interpolation")
-        regcmd.append("{0}".format(interp))
+        regcmd.append(f"{interp}")
 
     regcmd.append("--output")
     regcmd.append("[transform,transform_Warped.nii.gz]")
@@ -602,10 +578,11 @@ def hardcoded_reg(
     try:
         subprocess.check_output(regcmd)
     except Exception as e:
-        raise Exception(
+        msg = (
             "[!] ANTS registration did not complete successfully."
-            "\n\nError details:\n{0}\n{1}\n".format(e, e.output)
+            f"\n\nError details:\n{e}\n{e.output}\n"
         )
+        raise RuntimeError(msg)
 
     warp_list = []
     warped_image = None
@@ -619,21 +596,22 @@ def hardcoded_reg(
             warped_image = os.getcwd() + "/" + f
 
     if not warped_image:
-        raise Exception(
-            "\n\n[!] No registration output file found. ANTS "
-            "registration may not have completed "
-            "successfully.\n\n"
+        msg = (
+            "\n\n[!] No registration output file found. ANTS registration may not have"
+            " completed successfully.\n\n"
         )
+        raise RuntimeError(msg)
 
     return warp_list, warped_image
 
 
 def change_itk_transform_type(input_affine_file):
-    """
-    this function takes in the affine.txt produced by the c3d_affine_tool
+    """Produce an updated affine file for ANTs compatibility.
+
+    This function takes in the affine.txt produced by the c3d_affine_tool
     (which converted an FSL FLIRT affine.mat into the affine.txt).
 
-    it then modifies the 'Transform Type' of this affine.txt so that it is
+    It then modifies the 'Transform Type' of this affine.txt so that it is
     compatible with the antsApplyTransforms tool and produces a new affine
     file titled 'updated_affine.txt'
     """
@@ -698,7 +676,7 @@ def one_d_to_mat(one_d_filename):
     return mat_filenames
 
 
-def run_ants_apply_warp(
+def run_ants_apply_warp(  # noqa: PLR0913
     moving_image,
     reference,
     initial=None,
@@ -757,35 +735,35 @@ def run_ants_apply_warp(
     if nonlinear:
         cmd.append("-t")
         if inverse:
-            cmd.append("[{0}, {1}]".format(os.path.abspath(nonlinear), "1"))
+            cmd.append(f"[{os.path.abspath(nonlinear)}, 1]")
         else:
             cmd.append(os.path.abspath(nonlinear))
 
     if affine:
         cmd.append("-t")
         if inverse:
-            cmd.append("[{0}, {1}]".format(os.path.abspath(affine), "1"))
+            cmd.append(f"[{os.path.abspath(affine)}, 1]")
         else:
             cmd.append(os.path.abspath(affine))
 
     if rigid:
         cmd.append("-t")
         if inverse:
-            cmd.append("[{0}, {1}]".format(os.path.abspath(rigid), "1"))
+            cmd.append(f"[{os.path.abspath(rigid)}, 1]")
         else:
             cmd.append(os.path.abspath(rigid))
 
     if initial:
         cmd.append("-t")
         if inverse:
-            cmd.append("[{0}, {1}]".format(os.path.abspath(initial), "1"))
+            cmd.append(f"[{os.path.abspath(initial)}, 1]")
         else:
             cmd.append(os.path.abspath(initial))
 
     if func_to_anat:
         cmd.append("-t")
         if inverse:
-            cmd.append("[{0}, {1}]".format(os.path.abspath(func_to_anat), "1"))
+            cmd.append(f"[{os.path.abspath(func_to_anat)}, 1]")
         else:
             cmd.append(os.path.abspath(func_to_anat))
 
@@ -794,24 +772,8 @@ def run_ants_apply_warp(
     return out_image
 
 
-def cpac_ants_apply_nonlinear_inverse_warp(
-    cpac_dir, moving_image, reference, dim=3, interp="Linear"
-):
-    """Run antsApplyTransforms for inverse warping when given a C-PAC output
-    directory.
-    """
-    import os
-
-    cpac_dir = os.path.abspath(cpac_dir)
-
-    for dir in os.listdir(cpac_dir):
-        if "ants_initial_xfm" in dir:
-            pass
-
-            # run_ants_apply_warp()
-
-
 def run_c3d(reference_file, source_file, transform_file):
+    """Run c3d_affine_tool to convert an FSL FLIRT affine transform to ITK."""
     import os
     import subprocess
 
@@ -833,14 +795,15 @@ def run_c3d(reference_file, source_file, transform_file):
     return itk_transform
 
 
-def run_c4d(input, output_name):
+def run_c4d(input_name, output_name):
+    """Run c4d to split a 4D image into 3D images."""
     import os
 
     output1 = os.path.join(os.getcwd(), output_name + "1.nii.gz")
     output2 = os.path.join(os.getcwd(), output_name + "2.nii.gz")
     output3 = os.path.join(os.getcwd(), output_name + "3.nii.gz")
 
-    cmd = "c4d -mcs %s -oo %s %s %s" % (input, output1, output2, output3)
+    cmd = f"c4d -mcs {input_name} -oo {output1} {output2} {output3}"
     os.system(cmd)
 
     return output1, output2, output3

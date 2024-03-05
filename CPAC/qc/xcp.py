@@ -161,10 +161,11 @@ def dvcorr(dvars, fdj):
     dvars = np.loadtxt(dvars)
     fdj = np.loadtxt(fdj)
     if len(dvars) != len(fdj) - 1:
-        raise ValueError(
+        msg = (
             "len(DVARS) should be 1 less than len(FDJ), but their respective "
             f"lengths are {len(dvars)} and {len(fdj)}."
         )
+        raise ValueError(msg)
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
@@ -456,7 +457,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         Function(
             input_names=["subject", "scan", "wf_name"],
             output_names=["subject", "session", "task", "run"],
-            imports=["from bids.layout import " "parse_file_entities"],
+            imports=["from bids.layout import parse_file_entities"],
             function=get_bids_info,
             as_module=True,
         ),

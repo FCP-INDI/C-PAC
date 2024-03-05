@@ -1,40 +1,54 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
 import numpy as np
 import nibabel as nib
-from nipype import logging
+from nibabel.filebasedimages import ImageFileError
 from scipy import signal
 from scipy.linalg import svd
 
 from CPAC.utils import safe_shape
-
-iflogger = logging.getLogger("nipype.interface")
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def calc_compcor_components(data_filename, num_components, mask_filename):
     if num_components < 1:
-        raise ValueError(
-            "Improper value for num_components ({0}), should be >= 1.".format(
-                num_components
-            )
-        )
+        msg = f"Improper value for num_components ({num_components}), should be >= 1."
+        raise ValueError(msg)
 
     try:
         image_data = nib.load(data_filename).get_fdata().astype(np.float64)
-    except:
-        raise
+    except (ImageFileError, MemoryError, OSError, TypeError, ValueError) as e:
+        msg = f"Unable to load data from {data_filename}"
+        raise ImageFileError(msg) from e
 
     try:
         binary_mask = nib.load(mask_filename).get_fdata().astype(np.int16)
-    except:
-        pass
+    except (ImageFileError, MemoryError, OSError, TypeError, ValueError) as e:
+        msg = f"Unable to load data from {mask_filename}"
+        raise ImageFileError(msg) from e
 
     if not safe_shape(image_data, binary_mask):
-        raise ValueError(
-            "The data in {0} and {1} do not have a consistent shape".format(
-                data_filename, mask_filename
-            )
+        msg = (
+            f"The data in {data_filename} and {mask_filename} do not have a"
+            " consistent shape"
         )
+        raise ValueError(msg)
 
     # make sure that the values in binary_mask are binary
     binary_mask[binary_mask > 0] = 1
@@ -44,6 +58,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
     image_data = image_data[binary_mask == 1, :]
 
     # filter out any voxels whose variance equals 0
+    IFLOGGER.info("Removing zero variance components")
     image_data = image_data[image_data.std(1) != 0, :]
 
     if image_data.shape.count(0):
@@ -53,10 +68,11 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         )
         raise Exception(err)
 
+    IFLOGGER.info("Detrending and centering data")
     Y = signal.detrend(image_data, axis=1, type="linear").T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
     Yc = Yc / np.tile(np.array(Yc.std(0)).reshape(1, Yc.shape[1]), (Yc.shape[0], 1))
-
+    IFLOGGER.info("Calculating SVD decomposition of Y*Y'")
     U, S, Vh = np.linalg.svd(Yc, full_matrices=False)
 
     # write out the resulting regressor file
@@ -179,7 +195,7 @@ def _full_rank(X, cmax=1e15):
     c = smax / smin
     if c < cmax:
         return X, c
-    iflogger.warning("Matrix is singular at working precision, regularizing...")
+    IFLOGGER.warning("Matrix is singular at working precision, regularizing...")
     lda = (smax - cmax * smin) / (cmax - 1)
     s = s + lda
     X = np.dot(U, np.dot(np.diag(s), V))
@@ -212,7 +228,8 @@ def TR_string_to_float(tr):
     tr in seconds (float)
     """
     if not isinstance(tr, str):
-        raise TypeError(f"Improper type for TR_string_to_float ({tr}).")
+        msg = f"Improper type for TR_string_to_float ({tr})."
+        raise TypeError(msg)
 
     tr_str = tr.replace(" ", "")
 
@@ -224,6 +241,7 @@ def TR_string_to_float(tr):
         else:
             tr_numeric = float(tr_str)
     except Exception as exc:
-        raise ValueError(f'Can not convert TR string to float: "{tr}".') from exc
+        msg = f'Can not convert TR string to float: "{tr}".'
+        raise ValueError(msg) from exc
 
     return tr_numeric

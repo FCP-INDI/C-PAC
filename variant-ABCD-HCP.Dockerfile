@@ -1,3 +1,13 @@
+#!/bin/bash
+# Copyright (C) 2022-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.7.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
@@ -12,9 +22,9 @@ COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/checksum && \
     mv /code/docker_data/* /code && \
     rm -Rf /code/docker_data && \
-    chmod +x /code/run.py && \
-    chmod +x /code/run-with-freesurfer.sh
-ENTRYPOINT ["/code/run-with-freesurfer.sh"]
+    chmod +x /code/CPAC/_entrypoints/run.py && \
+    chmod +x /code/CPAC/_entrypoints/run-with-freesurfer.sh
+ENTRYPOINT ["/code/CPAC/_entrypoints/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
 RUN ldconfig \

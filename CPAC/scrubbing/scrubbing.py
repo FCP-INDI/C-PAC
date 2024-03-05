@@ -188,7 +188,8 @@ def get_mov_parameters(infile_a, infile_b):
         l1 = l1.rstrip(",").split(",")
         warnings.warn("number of timepoints remaining after scrubbing -> %d" % len(l1))
     else:
-        raise Exception("No time points remaining after scrubbing.")
+        msg = "No time points remaining after scrubbing."
+        raise Exception(msg)
 
     f = open(out_file, "a")
     for l in l1:
@@ -222,7 +223,8 @@ def get_indx(scrub_input, frames_in_1D_file):
     if line:
         indx = map(int, line.split(","))
     else:
-        raise Exception("No time points remaining after scrubbing.")
+        msg = "No time points remaining after scrubbing."
+        raise Exception(msg)
 
     return scrub_input + str(indx).replace(" ", "")
 

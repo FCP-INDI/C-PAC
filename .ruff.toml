@@ -1,10 +1,11 @@
 extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
-extend-select = ["A", "C4", "D", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "W"]
+extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]
+# proposed rules to add next release cylce: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
 # variants still use 3.7
 target-version = "py37"
 
-[per-file-ignores]
-"CPAC/func_preproc/func_preproc.py" = ["E402"]
+[lint]
+external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
 
 [lint.flake8-import-conventions.extend-aliases]
 "CPAC.pipeline.cpac_group_runner" = "cgr"
@@ -19,7 +20,7 @@ combine-as-imports = true
 force-sort-within-sections = true
 known-first-party = ["CPAC"]
 no-lines-before = ["collab", "other-first-party", "local-folder"]
-order-by-type = true
+order-by-type = false
 section-order = ["future", "standard-library", "third-party", "collab", "other-first-party", "first-party", "local-folder"]
 
 [lint.isort.sections]
@@ -39,3 +40,8 @@ max-statements = 100
 [lint.pyupgrade]
 # Until variants Python ≥ 3.10
 keep-runtime-typing = true
+
+[per-file-ignores]
+"CPAC/func_preproc/func_preproc.py" = ["E402"]
+"CPAC/utils/sklearn.py" = ["RUF003"]
+"CPAC/utils/utils.py" = ["T201"]  # until `repickle` is removed

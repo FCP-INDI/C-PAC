@@ -1,4 +1,5 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+#!/usr/bin/env python
+# Copyright (C) 2018-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,26 +15,5 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Functions for generating motion statistics."""
-from .generate_motion_statistics import (
-    calculate_DVARS,
-    calculate_FD_J,
-    calculate_FD_P,
-    gen_motion_parameters,
-    gen_power_parameters,
-    ImageTo1D,
-    motion_power_statistics,
-)
-from .utils import affine_file_from_params_file, affine_from_params
-
-__all__ = [
-    "affine_file_from_params_file",
-    "affine_from_params",
-    "calculate_DVARS",
-    "calculate_FD_P",
-    "calculate_FD_J",
-    "gen_motion_parameters",
-    "gen_power_parameters",
-    "ImageTo1D",
-    "motion_power_statistics",
-]
+"""Entrypoints for C-PAC containers."""
+__all__ = []

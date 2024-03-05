@@ -82,7 +82,7 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
     if map_node:
         calc_average = pe.MapNode(
             interface=preprocess.Maskave(),
-            name="{0}_mean_{1}".format(output_name, num_strat),
+            name=f"{output_name}_mean_{num_strat}",
             iterfield=["in_file"],
         )
 
@@ -93,13 +93,13 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
                 function=extract_output_mean,
                 as_module=True,
             ),
-            name="{0}_mean_to_txt_{1}".format(output_name, num_strat),
+            name=f"{output_name}_mean_to_txt_{num_strat}",
             iterfield=["in_file"],
         )
     else:
         calc_average = pe.Node(
             interface=preprocess.Maskave(),
-            name="{0}_mean_{1}".format(output_name, num_strat),
+            name=f"{output_name}_mean_{num_strat}",
         )
 
         mean_to_csv = pe.Node(
@@ -109,7 +109,7 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
                 function=extract_output_mean,
                 as_module=True,
             ),
-            name="{0}_mean_to_txt_{1}".format(output_name, num_strat),
+            name=f"{output_name}_mean_to_txt_{num_strat}",
         )
 
     mean_to_csv.inputs.output_name = output_name
@@ -120,7 +120,7 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
 
     strat.append_name(calc_average.name)
     strat.update_resource_pool(
-        {"output_means.@{0}_average".format(output_name): (mean_to_csv, "output_mean")}
+        {f"output_means.@{output_name}_average": (mean_to_csv, "output_mean")}
     )
 
     return strat

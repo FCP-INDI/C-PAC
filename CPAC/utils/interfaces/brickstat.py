@@ -1,6 +1,5 @@
 import os
 
-from nipype import logging
 from nipype.interfaces.afni.base import (
     AFNICommandBase,
 )
@@ -11,8 +10,6 @@ from nipype.interfaces.base import (
     traits,
 )
 from nipype.utils.filemanip import load_json, save_json
-
-iflogger = logging.getLogger("nipype.interface")
 
 
 class BrickStatInputSpec(CommandLineInputSpec):

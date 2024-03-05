@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -53,7 +53,12 @@ from CPAC.utils.datasource import (
 )
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.monitoring import LOGTAIL, WARNING_FREESURFER_OFF_WITH_DATA, getLogger
+from CPAC.utils.monitoring import (
+    getLogger,
+    LOGTAIL,
+    WARNING_FREESURFER_OFF_WITH_DATA,
+    WFLOGGER,
+)
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.typing import LIST_OR_STR, TUPLE
 from CPAC.utils.utils import (
@@ -63,8 +68,6 @@ from CPAC.utils.utils import (
     read_json,
     write_output_json,
 )
-
-logger = getLogger("nipype.workflow")
 
 
 class ResourcePool:
@@ -244,6 +247,9 @@ class ResourcePool:
         if label:
             if not logdir:
                 logdir = self.logdir
+            WFLOGGER.info(
+                "\n\nPrinting out strategy info for %s in %s\n", label, logdir
+            )
             write_output_json(
                 strat_info, f"{label}_strat_info", indent=4, basedir=logdir
             )
@@ -251,11 +257,12 @@ class ResourcePool:
     def set_json_info(self, resource, pipe_idx, key, val):
         # TODO: actually should probably be able to inititialize resource/pipe_idx
         if pipe_idx not in self.rpool[resource]:
-            raise Exception(
+            msg = (
                 "\n[!] DEV: The pipeline/strat ID does not exist "
                 f"in the resource pool.\nResource: {resource}"
                 f"Pipe idx: {pipe_idx}\nKey: {key}\nVal: {val}\n"
             )
+            raise Exception(msg)
         else:
             if "json" not in self.rpool[resource][pipe_idx]:
                 self.rpool[resource][pipe_idx]["json"] = {}
@@ -336,11 +343,12 @@ class ResourcePool:
         try:
             res, new_pipe_idx = self.generate_prov_string(new_prov_list)
         except IndexError:
-            raise IndexError(
+            msg = (
                 f"\n\nThe set_data() call for {resource} has no "
                 "provenance information and should not be an "
                 "injection."
             )
+            raise IndexError(msg)
         if not json_info:
             json_info = {
                 "RawSources": [resource]
@@ -414,7 +422,7 @@ class ResourcePool:
             if report_fetched:
                 return (None, None)
             return None
-        raise LookupError(
+        msg = (
             "\n\n[!] C-PAC says: None of the listed resources are in "
             f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
             "can enable a node block earlier in the pipeline which "
@@ -428,6 +436,7 @@ class ResourcePool:
             "through any of our support channels at: "
             "https://fcp-indi.github.io/\n"
         )
+        raise LookupError(msg)
 
     def get_data(
         self, resource, pipe_idx=None, report_fetched=False, quick_single=False
@@ -451,7 +460,8 @@ class ResourcePool:
         try:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
-            raise Exception(f"[!] {resource} not in the resource pool.")
+            msg = f"[!] {resource} not in the resource pool."
+            raise Exception(msg)
 
     def update_resource(self, resource, new_name):
         # move over any new pipe_idx's
@@ -474,11 +484,12 @@ class ResourcePool:
         if "json" in resource_strat_dct:
             strat_json = resource_strat_dct["json"]
         else:
-            raise Exception(
+            msg = (
                 "\n[!] Developer info: the JSON "
                 f"information for {resource} and {strat} "
                 f"is incomplete.\n"
             )
+            raise Exception(msg)
         return strat_json
 
     def get_cpac_provenance(self, resource, strat=None):
@@ -499,10 +510,11 @@ class ResourcePool:
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
         #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
         if not isinstance(prov, list):
-            raise Exception(
+            msg = (
                 "\n[!] Developer info: the CpacProvenance "
                 f"entry for {prov} has to be a list.\n"
             )
+            raise Exception(msg)
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(":")[0]
         return (resource, str(prov))
@@ -510,10 +522,11 @@ class ResourcePool:
     @staticmethod
     def generate_prov_list(prov_str):
         if not isinstance(prov_str, str):
-            raise Exception(
+            msg = (
                 "\n[!] Developer info: the CpacProvenance "
                 f"entry for {prov_str!s} has to be a string.\n"
             )
+            raise Exception(msg)
         return ast.literal_eval(prov_str)
 
     @staticmethod
@@ -559,7 +572,7 @@ class ResourcePool:
         linked_resources = []
         resource_list = []
         if debug:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("\nresources: %s", resources)
         for resource in resources:
             # grab the linked-input tuples
@@ -583,7 +596,7 @@ class ResourcePool:
         variant_pool = {}
         len_inputs = len(resource_list)
         if debug:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("linked_resources: %s", linked_resources)
             verbose_logger.debug("resource_list: %s", resource_list)
         for resource in resource_list:
@@ -611,7 +624,7 @@ class ResourcePool:
                             variant_pool[fetched_resource].append(f"NO-{val[0]}")
 
             if debug:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("%s sub_pool: %s\n", resource, sub_pool)
             total_pool.append(sub_pool)
 
@@ -649,7 +662,7 @@ class ResourcePool:
                     strat_list_list.append(strat_list)
 
             if debug:
-                verbose_logger = getLogger("engine")
+                verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("len(strat_list_list): %s\n", len(strat_list_list))
             for strat_list in strat_list_list:
                 json_dct = {}
@@ -1342,7 +1355,7 @@ class ResourcePool:
                 try:
                     wf.connect(node, out, nii_name, "in_file")
                 except OSError as os_error:
-                    logger.warning(os_error)
+                    WFLOGGER.warning(os_error)
                     continue
 
                 write_json_imports = ["import os", "import json"]
@@ -1421,7 +1434,8 @@ class NodeBlock:
                     if hasattr(node_block_function, "__name__")
                     else str(node_block_function)
                 )
-                raise TypeError(f'Object is not a nodeblock: "{obj_str}"')
+                msg = f'Object is not a nodeblock: "{obj_str}"'
+                raise TypeError(msg)
 
             name = node_block_function.name
             self.name = name
@@ -1456,11 +1470,11 @@ class NodeBlock:
             if node_block_function.outputs is not None:
                 self.options = node_block_function.outputs
 
-            logger.info("Connecting %s...", name)
+            WFLOGGER.info("Connecting %s...", name)
             if debug:
                 config.update_config({"logging": {"workflow_level": "DEBUG"}})
                 logging.update_logging(config)
-                logger.debug(
+                WFLOGGER.debug(
                     '"inputs": %s\n\t "outputs": %s%s',
                     node_block_function.inputs,
                     list(self.outputs.keys()),
@@ -1481,11 +1495,12 @@ class NodeBlock:
 
     def check_output(self, outputs, label, name):
         if label not in outputs:
-            raise NameError(
+            msg = (
                 f'\n[!] Output name "{label}" in the block '
                 "function does not match the outputs list "
                 f'{outputs} in Node Block "{name}"\n'
             )
+            raise NameError(msg)
 
     def grab_tiered_dct(self, cfg, key_list):
         cfg_dct = cfg
@@ -1521,7 +1536,8 @@ class NodeBlock:
                             ):  # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                                 opts.append(option)
                         except AttributeError as err:
-                            raise Exception(f"{err}\nNode Block: {name}")
+                            msg = f"{err}\nNode Block: {name}"
+                            raise Exception(msg)
 
                 if opts is None:
                     opts = [opts]
@@ -1529,7 +1545,7 @@ class NodeBlock:
             elif option_key and not option_val:
                 # enables multiple config forking entries
                 if not isinstance(option_key[0], list):
-                    raise Exception(
+                    msg = (
                         f"[!] The option_key field ({option_key}) "
                         f"for {name} exists but there is no "
                         "option_val.\n\nIf you are trying to "
@@ -1537,6 +1553,7 @@ class NodeBlock:
                         "option_val field must contain a list of "
                         "a list.\n"
                     )
+                    raise Exception(msg)
                 for option_config in option_key:
                     # option_config is a list of pipe config levels down to the option
                     if config:
@@ -1611,11 +1628,12 @@ class NodeBlock:
                     try:
                         key_list = config + switch
                     except TypeError:
-                        raise Exception(
+                        msg = (
                             "\n\n[!] Developer info: Docstring error "
                             f"for {name}, make sure the 'config' or "
                             "'switch' fields are lists.\n\n"
                         )
+                        raise Exception(msg)
                     switch = self.grab_tiered_dct(cfg, key_list)
                 else:
                     if isinstance(switch[0], list):
@@ -1670,12 +1688,12 @@ class NodeBlock:
                         try:
                             wf, outs = block_function(wf, cfg, strat_pool, pipe_x, opt)
                         except IOError as e:  # duplicate node
-                            logger.warning(e)
+                            WFLOGGER.warning(e)
                             continue
 
                         if not outs:
-                            if block_function.__name__ == "freesurfer_" "postproc":
-                                logger.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                            if block_function.__name__ == "freesurfer_postproc":
+                                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
                                 LOGTAIL["warnings"].append(
                                     WARNING_FREESURFER_OFF_WITH_DATA
                                 )
@@ -1687,7 +1705,7 @@ class NodeBlock:
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if debug:
-                            verbose_logger = getLogger("engine")
+                            verbose_logger = getLogger("CPAC.engine")
                             verbose_logger.debug("\n=======================")
                             verbose_logger.debug("Node name: %s", node_name)
                             prov_dct = rpool.get_resource_strats_from_prov(
@@ -1890,6 +1908,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
+        WFLOGGER.warning("No anatomical data present.")
         return rpool
 
     if "creds_path" not in data_paths:
@@ -1934,6 +1953,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
 
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     if "anat" not in data_paths:
+        WFLOGGER.warning("No FreeSurfer data present.")
         return rpool
 
     if "freesurfer_dir" in data_paths["anat"]:
@@ -2038,7 +2058,7 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
         # pylint: disable=protected-access
         wf._local_func_scans = local_func_scans
         if cfg.pipeline_setup["Debugging"]["verbose"]:
-            verbose_logger = getLogger("engine")
+            verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("local_func_scans: %s", local_func_scans)
     del local_func_scans
 
@@ -2049,6 +2069,8 @@ def ingress_output_dir(
     wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, creds_path=None
 ):
     dir_path = data_paths["derivatives_dir"]
+
+    WFLOGGER.info("\nPulling outputs from %s.\n", dir_path)
 
     anat = os.path.join(dir_path, "anat")
     func = os.path.join(dir_path, "func")
@@ -2091,11 +2113,12 @@ def ingress_output_dir(
             data_label = filename.split(unique_id)[1].lstrip("_")
 
             if len(filename) == len(data_label):
-                raise Exception(
+                msg = (
                     "\n\n[!] Possibly wrong participant or "
                     "session in this directory?\n\n"
                     f"Filepath: {filepath}\n\n"
                 )
+                raise Exception(msg)
 
             bidstag = ""
             for tag in data_label.split("_"):
@@ -2201,6 +2224,9 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
     jsonpath = f"{jsonpath}.json"
 
     if not os.path.exists(jsonpath):
+        WFLOGGER.info(
+            "\n\n[!] No JSON found for file %s.\nCreating %s..\n\n", filepath, jsonpath
+        )
         json_info = {
             "Description": "This data was generated elsewhere and "
             "supplied by the user into this C-PAC run's "
@@ -2228,13 +2254,14 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
                 if only_desc[-1] == "-":
                     only_desc = only_desc.rstrip("-")
                 else:
-                    raise Exception(
+                    msg = (
                         "\n[!] Something went wrong with either "
                         "reading in the output directory or when "
                         "it was written out previously.\n\nGive "
                         "this to your friendly local C-PAC "
                         f"developer:\n\n{data_label!s}\n"
                     )
+                    raise Exception(msg)
 
             # remove the integer at the end of the desc-* variant, we will
             # get the unique pipe_idx from the CpacProvenance below
@@ -2654,11 +2681,11 @@ def run_node_blocks(blocks, data_paths, cfg=None):
 
     run_blocks = []
     if rpool.check_rpool("desc-preproc_T1w"):
-        pass
+        WFLOGGER.info("Preprocessed T1w found, skipping anatomical preprocessing.")
     else:
         run_blocks += blocks[0]
     if rpool.check_rpool("desc-preproc_bold"):
-        pass
+        WFLOGGER.info("Preprocessed BOLD found, skipping functional preprocessing.")
     else:
         run_blocks += blocks[1]
 

@@ -1,3 +1,22 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from CPAC.utils.monitoring import IFLOGGER
+
+
 def load_pheno_file(pheno_file):
     import os
 
@@ -362,7 +381,13 @@ def model_group_var_separately(
     grouping_var, formula, pheno_data_dict, ev_selections, coding_scheme
 ):
     if grouping_var is None or grouping_var not in formula:
-        raise Exception
+        msg = (
+            "\n\n[!] CPAC says: Model group variances separately is enabled, but the"
+            " grouping variable set is either set to None, or was not included in the"
+            f" model as one of the EVs.\n\nDesign formula: {formula}\nGrouping"
+            f" variable: {grouping_var}\n\n"
+        )
+        raise ValueError(msg)
 
     # do this a little early for the grouping variable so that it doesn't
     # get in the way of doing this for the other EVs once they have the
@@ -471,18 +496,33 @@ def model_group_var_separately(
 def check_multicollinearity(matrix):
     import numpy as np
 
+    IFLOGGER.info("\nChecking for multicollinearity in the model..")
+
     U, s, V = np.linalg.svd(matrix)
 
     max_singular = np.max(s)
     min_singular = np.min(s)
 
+    IFLOGGER.info(
+        "Max singular: %s\nMin singular: %s\nRank: %s\n\n",
+        max_singular,
+        min_singular,
+        np.linalg.matrix_rank(matrix),
+    )
+
+    _warning = (
+        "[!] CPAC warns: Detected multicollinearity in the computed group-level"
+        " analysis model. Please double-check your model design.\n\n"
+    )
+
     if min_singular == 0:
-        pass
+        IFLOGGER.warning(_warning)
 
     else:
         condition_number = float(max_singular) / float(min_singular)
+        IFLOGGER.info("Condition number: %f\n\n", condition_number)
         if condition_number > 30:
-            pass
+            IFLOGGER.warning(_warning)
 
 
 def write_mat_file(
@@ -805,8 +845,17 @@ def create_design_matrix(
     try:
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action="raise")
 
-    except:
-        raise Exception
+    except Exception as e:
+        msg = (
+            "\n\n[!] CPAC says: Design matrix creation wasn't successful - do the"
+            " terms in your formula correctly correspond to the EVs listed in your"
+            " phenotype file?\nPhenotype file provided: %s\n\nPhenotypic data"
+            " columns (regressors): %s\nFormula: %s\n\n",
+            pheno_file,
+            list(pheno_data_dict.keys()),
+            formula,
+        )
+        raise RuntimeError(msg) from e
 
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
@@ -892,7 +941,7 @@ def positive(dmat, a, coding, group_sep, grouping_var):
     evs = dmat.design_info.column_name_indexes
     con = np.zeros(dmat.shape[1])
 
-    if group_sep is True:
+    if group_sep:
         if "__" in a and grouping_var in a:
             ev_desc = a.split("__")
 
@@ -976,6 +1025,8 @@ def create_dummy_string(length):
 def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
     import os
 
+    IFLOGGER.info("col names: %s", col_names)
+
     with open(os.path.join(out_dir, file_name) + ".con", "w+") as f:
         # write header
         num = 1
@@ -1012,6 +1063,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, out_dir):
     import numpy as np
 
     try:
+        IFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         with open(os.path.join(out_dir, model_name + ".fts"), "w") as f:
             print("/NumWaves\t", len(con_dict), file=f)
             print("/NumContrasts\t", len(ftest_list), file=f)
@@ -1089,6 +1141,7 @@ def create_con_ftst_file(
     # evs[0] = "Intercept"
 
     fTest = False
+    IFLOGGER.info("evs: %s", evs)
     for ev in evs:
         if "f_test" in ev:
             count_ftests += 1
@@ -1099,8 +1152,9 @@ def create_con_ftst_file(
     try:
         data = np.genfromtxt(con_file, names=True, delimiter=",", dtype=None)
 
-    except:
-        raise Exception
+    except Exception as e:
+        msg = f"Error: Could not successfully read in contrast file: {con_file}"
+        raise OSError(msg) from e
 
     lst = data.tolist()
 
@@ -1218,6 +1272,7 @@ def create_con_ftst_file(
         np.savetxt(f, contrasts, fmt="%1.5e", delimiter="\t")
 
     if fTest:
+        IFLOGGER.info("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
         ftest_out_dir = os.path.join(output_dir, model_name + ".fts")
 
         with open(ftest_out_dir, "wt") as f:
@@ -1263,7 +1318,7 @@ def process_contrast(
                 # are being modeled separately, and we don't want the EV
                 # that is the grouping variable (which is now present in
                 # other EV names) to confound this operation
-                if group_sep is True:
+                if group_sep:
                     gpvar = grouping_var
                 else:
                     gpvar = "..."
@@ -1361,8 +1416,13 @@ def run(
     try:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-    except:
-        raise Exception
+    except Exception as e:
+        msg = (
+            "\n\n[!] CPAC says: Could not successfully create the group analysis"
+            f" output directory:\n{output_dir}\n\nMake sure you have write access"
+            " in this file structure.\n\n\n"
+        )
+        raise OSError(msg) from e
 
     measure_dict = {}
 
@@ -1487,7 +1547,7 @@ def run(
 
             if len(contrast_items) > 2:
                 idx = 0
-                for item in contrast_items:
+                for _item in contrast_items:
                     # they need to be put back into Patsy formatted header
                     # titles because the dmatrix gets passed into the function
                     # that writes out the contrast matrix
@@ -1551,6 +1611,10 @@ def run(
         or (custom_contrasts == "")
         or ("None" in custom_contrasts)
     ):
+        IFLOGGER.info(
+            "Writing contrasts file (.con) based on contrasts provided using the group"
+            " analysis model builder's contrasts editor.."
+        )
         create_con_file(
             contrasts_dict, regressor_names, model_name, current_output, model_out_dir
         )
@@ -1561,6 +1625,11 @@ def run(
             )
 
     else:
+        IFLOGGER.info(
+            "\nWriting contrasts file (.con) based on contrasts provided with a custom"
+            " contrasts matrix CSV file..\n"
+        )
+
         create_con_ftst_file(
             custom_contrasts,
             model_name,

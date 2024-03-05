@@ -1,8 +1,5 @@
-from nipype import logging
 from nipype.interfaces.afni.base import AFNICommand, AFNICommandInputSpec
 from nipype.interfaces.base import File, InputMultiPath, Str, TraitedSpec, traits
-
-iflogger = logging.getLogger("nipype.interface")
 
 
 class MaskToolInputSpec(AFNICommandInputSpec):

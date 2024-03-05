@@ -1,3 +1,19 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 
@@ -6,6 +22,8 @@ import torch
 from torch import nn
 from torch.utils import data
 import nibabel as nib
+
+from CPAC.utils.monitoring import IFLOGGER
 
 
 class VolumeDataset(data.Dataset):
@@ -29,6 +47,7 @@ class VolumeDataset(data.Dataset):
                 self.rimg_dir = rimg_dir
                 self.rimg_files = [rimg_file]
             else:
+                IFLOGGER.error("Invalid rimg_in: %s", rimg_in)
                 sys.exit(1)
 
         # Corrected Images
@@ -47,9 +66,7 @@ class VolumeDataset(data.Dataset):
                 self.cimg_dir = cimg_dir
                 self.cimg_files = [cimg_file]
             else:
-                # print(type(cimg_in))
-                # print(type(str(cimg_in)))
-                # print(str(cimg_in))
+                IFLOGGER.error("Invalid cimg_in: %s", cimg_in)
                 sys.exit(1)
 
         # Brain Masks
@@ -67,6 +84,7 @@ class VolumeDataset(data.Dataset):
                 self.bmsk_dir = bmsk_dir
                 self.bmsk_files = [bmsk_file]
             else:
+                IFLOGGER.error("Invalid bmsk_in: %s", bmsk_in)
                 sys.exit(1)
 
         self.cur_rimg_nii = None
@@ -90,11 +108,11 @@ class VolumeDataset(data.Dataset):
     def __getitem__(self, index):
         if self.debug:
             if isinstance(self.rimg_files, list):
-                pass
+                IFLOGGER.debug(self.rimg_files[index])
             if isinstance(self.cimg_files, list):
-                pass
+                IFLOGGER.debug(self.cimg_files[index])
             if isinstance(self.bmsk_files, list):
-                pass
+                IFLOGGER.debug(self.bmsk_files[index])
 
         Out = []
         if isinstance(self.rimg_files, list):
@@ -144,6 +162,7 @@ class BlockDataset(data.Dataset):
         super(BlockDataset, self).__init__()
 
         if isinstance(bmsk, torch.Tensor) and rimg.shape != bmsk.shape:
+            IFLOGGER.error("Invalid shape of image %s", rimg.shape)
             return
         raw_shape = rimg.data[0].shape
         max_dim = torch.tensor(raw_shape).max()

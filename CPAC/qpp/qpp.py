@@ -127,10 +127,11 @@ def detect_qpp(
         [r["correlation_score"] if r else 0.0 for r in permutation_result]
     )
     if not np.any(correlation_scores):
-        raise Exception(
+        msg = (
             "C-PAC could not find QPP in your data. "
             "Please lower your correlation threshold and try again."
         )
+        raise Exception(msg)
 
     max_correlation = np.argsort(correlation_scores)[-1]
     best_template = permutation_result[max_correlation]["template"]

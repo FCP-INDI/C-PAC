@@ -91,7 +91,7 @@ def run_warp_nipype(inputs, output_dir=None, run=True):
     warp_workflow.connect(t_node, "outputspec.fmap_despiked", dataSink, "fmap_despiked")
     warp_workflow.connect(t_node, "outputspec.struct", dataSink, "epi2struct")
     warp_workflow.connect(t_node, "outputspec.anat_func", dataSink, "anat_func")
-    if run is True:
+    if run:
         plugin_args = {"n_procs": num_of_cores}
         warp_workflow.run(plugin=MultiProcPlugin(plugin_args), plugin_args=plugin_args)
         return None

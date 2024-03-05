@@ -8,10 +8,10 @@ from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline.nipype_pipeline_engine import (
     DEFAULT_MEM_GB,
+    get_data_size,
     MapNode,
     Node,
     Workflow,
-    get_data_size,
 )
 
 

@@ -17,9 +17,9 @@
 from ._torch import torch  # this import has to be first to install torch
 from .dataset import BlockDataset, VolumeDataset
 from .function import (
-    MyParser,
     estimate_dice,
     extract_large_comp,
+    MyParser,
     predict_volumes,
     write_nifti,
 )

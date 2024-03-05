@@ -3,7 +3,7 @@ import os
 import numpy as np
 import nibabel as nib
 
-from CPAC.generate_motion_statistics import ImageTo1D, calculate_DVARS
+from CPAC.generate_motion_statistics import calculate_DVARS, ImageTo1D
 
 np.random.seed(10)
 

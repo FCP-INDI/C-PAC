@@ -25,8 +25,6 @@ from CPAC.timeseries.timeseries_analysis import (
     get_spatial_map_timeseries,
     resample_function,
 )
-
-# from CPAC.utils.utils import extract_one_d
 from CPAC.utils.datasource import (
     create_roi_mask_dataflow,
     create_spatial_map_dataflow,
@@ -145,33 +143,8 @@ def create_sca(name_sca="sca"):
 
     concat.inputs.outputtype = "NIFTI_GZ"
 
-    # also write out volumes as individual files
-    # split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-    # split.inputs.dimension = 't'
-    # split.inputs.out_base_name = 'sca_'
-
-    # get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
-    #                                                      'prefix'],
-    #                                         output_names=['roi_list'],
-    #                                         function=get_roi_num_list),
-    #                           name='get_roi_num_list')
-    # get_roi_num_list.inputs.prefix = "sca"
-
-    # sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-    #            'timeseries_file')
-
-    # rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-    #                         iterfield=['in_file', 'format_string'])
-    # rename_rois.inputs.keep_ext = True
-
-    # sca.connect(split, 'out_files', rename_rois, 'in_file')
-    # sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
     sca.connect(corr, "out_file", concat, "in_files")
-    # sca.connect(concat, 'out_file', split, 'in_file')
     sca.connect(concat, "out_file", outputNode, "correlation_stack")
-    # sca.connect(rename_rois, 'out_file', outputNode,
-    #            'correlation_files')
 
     return sca
 
@@ -483,15 +456,12 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(
         roi_timeseries_for_sca,
         "outputspec.roi_csv",
-        # ('outputspec.roi_outputs', extract_one_d),
         sca_roi,
         "inputspec.timeseries_one_d",
     )
 
     outputs = {
         "desc-MeanSCA_timeseries": (roi_timeseries_for_sca, "outputspec.roi_csv"),
-        # ('outputspec.roi_outputs',
-        # extract_one_d)),
         "space-template_desc-MeanSCA_correlations": (
             sca_roi,
             "outputspec.correlation_stack",
@@ -680,7 +650,6 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(
         roi_timeseries_for_multreg,
         "outputspec.roi_csv",
-        # ('outputspec.roi_outputs', extract_one_d),
         sc_temp_reg,
         "inputspec.subject_timeseries",
     )

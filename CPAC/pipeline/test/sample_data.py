@@ -1,6 +1,6 @@
 sub_list = [
     {
-        "anat": "/fake/data/sub-0001/ses-NFB3/anat/" "sub-0001_ses-NFB3_T1w.nii.gz",
+        "anat": "/fake/data/sub-0001/ses-NFB3/anat/sub-0001_ses-NFB3_T1w.nii.gz",
         "func": {
             "MSIT": {
                 "fmap_mag": "/fake/data/sub-0001/ses-NFB3/fmap/"

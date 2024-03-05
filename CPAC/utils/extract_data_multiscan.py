@@ -1,8 +1,26 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import glob
 import os
 import string
 
 import yaml
+
+from CPAC.utils.monitoring import UTLOGGER
 
 
 def extract_data(c, param_map):
@@ -83,17 +101,19 @@ def extract_data(c, param_map):
     # check if Template is correct
     def checkTemplate(template):
         if template.count("%s") != 2:
-            raise Exception(
+            msg = (
                 "Please provide '%s' in the template"
                 "where your site and subjects are present"
                 "Please see examples"
             )
+            raise Exception(msg)
 
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
 
         if ext not in [".nii", ".nii.gz"]:
-            raise Exception("Invalid file name", os.path.basename(template))
+            msg = "Invalid file name"
+            raise Exception(msg, os.path.basename(template))
 
     def get_site_list(path):
         base = path.split("%s")[0]
@@ -165,17 +185,26 @@ def extract_data(c, param_map):
     func_base, func_relative, subject_map = getPath(c.functionalTemplate)
 
     if not anat_base:
-        raise Exception("Anatomical Data template incorrect")
+        msg = (
+            f"No such file or directory {anat_base}"
+            "\nAnatomical Data template incorrect"
+        )
+        raise FileNotFoundError(msg)
 
     if not func_base:
-        raise Exception("Functional Data template incorrect")
+        msg = (
+            f"No such file or directory {func_base}"
+            "Functional Data template incorrect"
+        )
+        raise FileNotFoundError(msg)
 
     if len(anat_base) != len(func_base):
-        raise Exception(
-            " Base length Unequal. Some sites are missing."
-            "extract_data doesn't script support this.Please"
-            "Provide your own subjects_list file"
+        msg = (
+            f"Some sites are missing, Please check your template {anat_base} !="
+            f" {func_base}\nBase length Unequal. Some sites are missing. extract_data"
+            " doesn't script support this. Please provide your own subjects_list file"
         )
+        raise FileNotFoundError(msg)
 
     # calculate the length of relative paths(path after subject directory)
     func_relative_len = len(func_relative.split("/"))
@@ -194,12 +223,13 @@ def extract_data(c, param_map):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            raise Exception(
+            msg = (
                 "extract_data script currently doesn't support"
                 "this directory structure.Please provide the"
                 "subjects_list file to run CPAC."
                 "For more information refer to manual"
             )
+            raise Exception(msg)
 
         return session_present, session_path, relative_path
 
@@ -270,6 +300,7 @@ def extract_data(c, param_map):
                                 " parameters csv file" % (subject_map.get(sub), scan[0])
                             )
 
+                    UTLOGGER.info("site for sub %s -> %s", sub, subject_map.get(sub))
                     print("    scan_parameters: ", file=f)
                     print("        tr:", file=f)
                     print_scan_param(4)
@@ -364,13 +395,13 @@ def extract_data(c, param_map):
                             index, sub, os.path.join(sub, session_id), session_id
                         )
             else:
+                UTLOGGER.info("No sessions")
                 session_id = ""
                 fetch_path(index, sub, sub, session_id)
 
-        except Exception:
-            raise
-        except:
-            raise
+        except Exception as e:
+            msg = "Please make sessions are consistent across all subjects"
+            raise ValueError(msg) from e
 
     try:
         for i in range(len(anat_base)):
@@ -378,12 +409,15 @@ def extract_data(c, param_map):
                 # check if subject is present in subject_list
                 if subject_list:
                     if sub in subject_list and sub not in exclusion_list:
+                        UTLOGGER.info("extracting data for subject: %s", sub)
                         walk(i, sub)
                 # check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in ".DS_Store":
+                    UTLOGGER.info("extracting data for subject: %s", sub)
                     walk(i, sub)
 
-        os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
+        name = os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
+        UTLOGGER.info("Extraction Complete...Input Subjects_list for CPAC - %s", name)
     except Exception:
         raise
     finally:
@@ -397,15 +431,13 @@ def generate_suplimentary_files(output_path):
     """
     import csv
 
-    from sets import Set
-
     subjects_list = yaml.safe_load(
         open(os.path.join(output_path, "CPAC_subject_list.yml"), "r")
     )
 
-    subject_scan_set = Set()
-    subject_set = Set()
-    scan_set = Set()
+    subject_scan_set = set()
+    subject_set = set()
+    scan_set = set()
     data_list = []
 
     for sub in subjects_list:
@@ -456,12 +488,15 @@ def generate_suplimentary_files(output_path):
 
     f.close()
 
+    UTLOGGER.info("Template Phenotypic file for group analysis - %s", file_name)
+
     file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
     f = open(file_name, "w")
 
     for sub in subject_set:
         print(sub, file=f)
 
+    UTLOGGER.info("Subject list required later for group analysis - %s", file_name)
     f.close()
 
 
@@ -489,9 +524,11 @@ def read_csv(csv_input):
             ]
 
         if len(dict_labels) < 1:
-            raise Exception("Scan Parameters File is either empty" "or missing header")
+            msg = "Scan Parameters File is either empty or missing header"
+            raise ValueError(msg)
     except:
-        raise
+        msg = "Error reading scan parameters csv"
+        raise ValueError(msg)
 
     return dict_labels
 
@@ -519,6 +556,10 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
+        UTLOGGER.warning(
+            "no scan parameters csv included. make sure you turn off slice timing"
+            " correction option in CPAC configuration"
+        )
         s_param_map = None
 
     extract_data(c, s_param_map)

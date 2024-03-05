@@ -317,7 +317,7 @@ def create_3dskullstrip_arg_string(
     }
 
     if float(shrink_fac) != defaults["shrink_fac"]:
-        expr += " -shrink_fac {0}".format(shrink_fac)
+        expr += f" -shrink_fac {shrink_fac}"
 
     if not var_shrink_fac:
         expr += " -no_var_shrink_fac"
@@ -329,7 +329,7 @@ def create_3dskullstrip_arg_string(
         expr += " -monkey"
 
     if float(shrink_fac_bot_lim) != defaults["shrink_fac_bot_lim"]:
-        expr += " -shrink_fac_bot_lim {0}".format(shrink_fac_bot_lim)
+        expr += f" -shrink_fac_bot_lim {shrink_fac_bot_lim}"
 
     if not use_edge:
         expr += " -no_use_edge"
@@ -338,7 +338,7 @@ def create_3dskullstrip_arg_string(
         expr += " -no_avoid_vent"
 
     if int(niter) != defaults["niter"]:
-        expr += " -niter {0}".format(niter)
+        expr += f" -niter {niter}"
 
     if not pushout:
         expr += " -no_pushout"
@@ -347,19 +347,19 @@ def create_3dskullstrip_arg_string(
         expr += " -no_touchup"
 
     if int(fill_hole) != defaults["fill_hole"]:
-        expr += " -fill_hole {0}".format(fill_hole)
+        expr += f" -fill_hole {fill_hole}"
 
     if not avoid_eyes:
         expr += " -no_avoid_eyes"
 
     if float(exp_frac) != defaults["exp_frac"]:
-        expr += " -exp_frac {0}".format(exp_frac)
+        expr += f" -exp_frac {exp_frac}"
 
     if int(NN_smooth) != defaults["NN_smooth"]:
-        expr += " -NN_smooth {0}".format(NN_smooth)
+        expr += f" -NN_smooth {NN_smooth}"
 
     if int(smooth_final) != defaults["smooth_final"]:
-        expr += " -smooth_final {0}".format(smooth_final)
+        expr += f" -smooth_final {smooth_final}"
 
     if push_to_edge:
         expr += " -push_to_edge"
@@ -368,16 +368,16 @@ def create_3dskullstrip_arg_string(
         expr += " -use_skull"
 
     if float(perc_int) != defaults["perc_int"]:
-        expr += " -perc_int {0}".format(perc_int)
+        expr += f" -perc_int {perc_int}"
 
     if int(max_inter_iter) != defaults["max_inter_iter"]:
-        expr += " -max_inter_iter {0}".format(max_inter_iter)
+        expr += f" -max_inter_iter {max_inter_iter}"
 
     if float(blur_fwhm) != defaults["blur_fwhm"]:
-        expr += " -blur_fwhm {0}".format(blur_fwhm)
+        expr += f" -blur_fwhm {blur_fwhm}"
 
     if float(fac) != defaults["fac"]:
-        expr += " -fac {0}".format(fac)
+        expr += f" -fac {fac}"
 
     return expr
 
@@ -463,11 +463,8 @@ def normalize_wmparc(source_file, target_file, xfm, out_file):
 
 
 """This module provides interfaces for workbench -volume-remove-islands commands"""
-from nipype import logging
 from nipype.interfaces.base import CommandLineInputSpec, File, TraitedSpec
 from nipype.interfaces.workbench.base import WBCommand
-
-iflogger = logging.getLogger("nipype.interface")
 
 
 class VolumeRemoveIslandsInputSpec(CommandLineInputSpec):

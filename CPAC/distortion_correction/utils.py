@@ -176,11 +176,12 @@ def phase_encode(
     """
     meta_data = [dwell_time_one, dwell_time_two, ro_time_one, ro_time_two]
     if not any(meta_data):
-        raise Exception(
+        msg = (
             "\n[!] Blip-FSL-TOPUP workflow: neither "
             "TotalReadoutTime nor DwellTime is present in the "
             "epi field map meta-data."
         )
+        raise Exception(msg)
 
     # create text file
     acq_params = os.path.join(os.getcwd(), "acqparams.txt")
@@ -197,10 +198,11 @@ def phase_encode(
         if ro_time_one and ro_time_two:
             ro_times = [f"-1 0 0 {ro_time_one}", f"1 0 0 {ro_time_two}"]
         else:
-            raise Exception(
+            msg = (
                 "[!] No dwell time or total readout time "
                 "present for the acq-fMRI EPI field maps."
             )
+            raise Exception(msg)
     elif unwarp_dir in ["y", "y-", "-y", "j", "-j", "j-"]:
         if dwell_time_one and dwell_time_two:
             dim = nib.load(phase_one).shape[1]
@@ -210,12 +212,14 @@ def phase_encode(
         if ro_time_one and ro_time_two:
             ro_times = [f"0 -1 0 {ro_time_one}", f"0 1 0 {ro_time_two}"]
         else:
-            raise Exception(
+            msg = (
                 "[!] No dwell time or total readout time "
                 "present for the acq-fMRI EPI field maps."
             )
+            raise Exception(msg)
     else:
-        raise Exception(f"unwarp_dir={unwarp_dir} is unsupported.")
+        msg = f"unwarp_dir={unwarp_dir} is unsupported."
+        raise Exception(msg)
 
     # get number of volumes
     dims = [

@@ -27,10 +27,11 @@ def chunk_ts(func_file, n_chunks=None, chunk_size=None):
     elif chunk_size:
         n_chunks = int(trs / chunk_size)
     else:
-        raise Exception(
+        msg = (
             "\n[!] Dev error: Either 'n_chunks' or 'chunk_size' "
             "arguments must be passed to 'chunk_ts' function.\n"
         )
+        raise Exception(msg)
 
     for chunk_idx in range(0, n_chunks):
         if chunk_idx == n_chunks - 1:
@@ -52,9 +53,9 @@ def split_ts_chunks(func_file, tr_ranges):
     for chunk_idx, tr_range in enumerate(tr_ranges):
         out_file = os.path.join(
             os.getcwd(),
-            os.path.basename(func_file).replace(ext, "_{0}{1}".format(chunk_idx, ext)),
+            os.path.basename(func_file).replace(ext, f"_{chunk_idx}{ext}"),
         )
-        in_file = "{0}[{1}..{2}]".format(func_file, tr_range[0], tr_range[1])
+        in_file = f"{func_file}[{tr_range[0]}..{tr_range[1]}]"
 
         cmd = ["3dcalc", "-a", in_file, "-expr", "a", "-prefix", out_file]
 
@@ -230,7 +231,7 @@ def notch_filter_motion(
     filtered_params[0:3, :] = mm_to_degrees(filtered_params[0:3, :], head_radius=50)
 
     filtered_motion_params = os.path.join(
-        os.getcwd(), "{0}_filtered.1D".format(os.path.basename(motion_params))
+        os.getcwd(), f"{os.path.basename(motion_params)}_filtered.1D"
     )
     np.savetxt(filtered_motion_params, filtered_params.T, fmt="%f")
 

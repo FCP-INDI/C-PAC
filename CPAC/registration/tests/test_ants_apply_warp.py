@@ -1,3 +1,19 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
 import pytest
@@ -129,10 +145,8 @@ def test_ants_apply_warps_func_mni_mapnode():
             test_name,
             "apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0",
             "mapflow",
-            "_apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0{0}".format(
-                n
-            ),
-            "temp_reg_map_000{0}_antswarp_antswarp.nii.gz".format(n),
+            f"_apply_ants_warp_dr_tempreg_maps_standard_to_original_mapnode_inverse_0{n}",
+            f"temp_reg_map_000{n}_antswarp_antswarp.nii.gz",
         )
         for n in range(0, 10)
     ]
@@ -270,10 +284,8 @@ def test_ants_apply_warps_func_mni_mapnode_symm():
             test_name,
             "apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0",
             "mapflow",
-            "_apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0{0}".format(
-                n
-            ),
-            "temp_reg_map_000{0}_antswarp_antswarp.nii.gz".format(n),
+            f"_apply_ants_warp_dr_tempreg_maps_standard_symm_to_original_mapnode_inverse_0{n}",
+            f"temp_reg_map_000{n}_antswarp_antswarp.nii.gz",
         )
         for n in range(0, 10)
     ]
@@ -282,7 +294,7 @@ def test_ants_apply_warps_func_mni_mapnode_symm():
         test_utils.pearson_correlation(orig_file, xformed_file)
         for orig_file, xformed_file in zip(dr_spatmaps, dr_spatmaps_after_transform)
     ]
-
+    print(r)  # noqa: T201
     test_results = [r_value > 0.93 for r_value in r]
 
     assert all(test_results)

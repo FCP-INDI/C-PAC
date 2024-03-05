@@ -259,7 +259,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
 
     if use_ants:
         collect_linear_transforms = pe.Node(
-            util.Merge(3), name="{0}_collect_linear_transforms".format(wf_name)
+            util.Merge(3), name=f"{wf_name}_collect_linear_transforms"
         )
 
         preproc.connect(
@@ -279,7 +279,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
                 output_names=["checked_transform_list", "list_length"],
                 function=check_transforms,
             ),
-            name="{0}_check_transforms".format(wf_name),
+            name=f"{wf_name}_check_transforms",
         )
 
         preproc.connect(
@@ -294,7 +294,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
                 output_names=["inverse_transform_flags"],
                 function=generate_inverse_transform_flags,
             ),
-            name="{0}_inverse_transform_flags".format(wf_name),
+            name=f"{wf_name}_inverse_transform_flags",
         )
 
         preproc.connect(
@@ -306,7 +306,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
 
         # mni to t1
         tissueprior_mni_to_t1 = pe.Node(
-            interface=ants.ApplyTransforms(), name="{0}_mni_to_t1".format(wf_name)
+            interface=ants.ApplyTransforms(), name=f"{wf_name}_mni_to_t1"
         )
 
         tissueprior_mni_to_t1.inputs.interpolation = "NearestNeighbor"
@@ -334,7 +334,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
 
     else:
         tissueprior_mni_to_t1 = pe.Node(
-            interface=fsl.FLIRT(), name="{0}_mni_to_t1".format(wf_name)
+            interface=fsl.FLIRT(), name=f"{wf_name}_mni_to_t1"
         )
         tissueprior_mni_to_t1.inputs.apply_xfm = True
         tissueprior_mni_to_t1.inputs.interp = "nearestneighbour"
@@ -402,7 +402,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
                 "anatomical_brain",
                 "anatomical_brain_mask",
                 "template_brain_list",
-                "template_segmentation" "_list",
+                "template_segmentation_list",
                 "csf_label",
                 "gm_label",
                 "wm_label",
@@ -427,7 +427,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
             output_names=["multiatlas_Intensity", "multiatlas_Labels"],
             function=hardcoded_antsJointLabelFusion,
         ),
-        name="{0}_antsJointLabel".format(wf_name),
+        name=f"{wf_name}_antsJointLabel",
     )
 
     preproc.connect(
@@ -453,7 +453,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
     )
 
     pick_tissue = pe.Node(
-        pick_tissue_from_labels_file_interface(), name="{0}_tissue_mask".format(wf_name)
+        pick_tissue_from_labels_file_interface(), name=f"{wf_name}_tissue_mask"
     )
 
     preproc.connect(

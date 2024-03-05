@@ -23,8 +23,8 @@ import re
 import numpy as np
 from pathvalidate import sanitize_filename
 from voluptuous import (
-    ALLOW_EXTRA,
     All,
+    ALLOW_EXTRA,
     Any,
     BooleanInvalid,
     Capitalize,
@@ -89,11 +89,12 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
             else x
         )
     if not isinstance(x, (bool, int)):
-        raise BooleanInvalid(
+        msg = (
             'Type boolean value was expected, type '
             f'{getattr(type(x), "__name__", str(type(x)))} '
             f'value\n\n{x}\n\nwas provided'
         )
+        raise BooleanInvalid(msg)
     return bool(x)
 
 
@@ -1265,9 +1266,12 @@ def schema(config_dict):
             "2-nuisance_regression",
             "space",
         ] and isinstance(multiple_invalid.errors[0], CoerceInvalid):
-            raise CoerceInvalid(
+            msg = (
                 'Nusiance regression space is not forkable. Please choose '
-                f'only one of {valid_options["space"]}',
+                f'only one of {valid_options["space"]}'
+            )
+            raise CoerceInvalid(
+                msg,
                 path=multiple_invalid.path,
             ) from multiple_invalid
         raise multiple_invalid
@@ -1294,24 +1298,26 @@ def schema(config_dict):
                 ]["space"]
                 != "template"
             ):
-                raise ExclusiveInvalid(
+                msg = (
                     "``single_step_resampling_from_stc`` requires "
                     "template-space nuisance regression. Either set "
                     "``nuisance_corrections: 2-nuisance_regression: space`` "
                     f"to ``template`` {or_else}"
                 )
+                raise ExclusiveInvalid(msg)
             if any(
                 registration != "ANTS"
                 for registration in partially_validated["registration_workflows"][
                     "anatomical_registration"
                 ]["registration"]["using"]
             ):
-                raise ExclusiveInvalid(
+                msg = (
                     "``single_step_resampling_from_stc`` requires "
                     "ANTS registration. Either set "
                     "``registration_workflows: anatomical_registration: "
                     f"registration: using`` to ``ANTS`` {or_else}"
                 )
+                raise ExclusiveInvalid(msg)
     except KeyError:
         pass
     try:
@@ -1339,12 +1345,15 @@ def schema(config_dict):
                 Length(min=1, max=1)(mec["motion_correction"]["using"])
             except LengthInvalid:
                 mec_path = ["functional_preproc", "motion_estimates_and_correction"]
-                raise LengthInvalid(  # pylint: disable=raise-missing-from
+                msg = (
                     f'If data[{"][".join(map(repr, mec_path))}][\'run\'] is '
                     # length must be between 1 and
                     # len(valid_options['motion_correction']) once #1935 is
                     # resolved
-                    'True, length of list must be exactly 1',
+                    'True, length of list must be exactly 1'
+                )
+                raise LengthInvalid(  # pylint: disable=raise-missing-from
+                    msg,
                     path=[*mec_path, "motion_correction", "using"],
                 )
     except KeyError:
@@ -1359,10 +1368,11 @@ def schema(config_dict):
                 "create_regressors"
             ]
         ):
-            raise ExclusiveInvalid(
+            msg = (
                 "[!] Ingress_regressors and create_regressors can't both run! "
                 " Try turning one option off.\n "
             )
+            raise ExclusiveInvalid(msg)
     except KeyError:
         pass
     try:
@@ -1379,12 +1389,13 @@ def schema(config_dict):
             except (ImportError, ModuleNotFoundError, OSError) as error:
                 import site
 
-                raise OSError(
+                msg = (
                     "U-Net brain extraction requires torch to be installed, "
                     "but the installation path in this container is "
                     "read-only. Please bind a local writable path to "
                     f'"{site.USER_BASE}" in the container to use U-Net.'
-                ) from error
+                )
+                raise OSError(msg) from error
     except KeyError:
         pass
     return partially_validated

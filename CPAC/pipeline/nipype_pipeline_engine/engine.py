@@ -71,13 +71,11 @@ from nipype.pipeline.engine.utils import (
 from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 
-from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.monitoring import getLogger, WFLOGGER
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
 UNDEFINED_SIZE = (42, 42, 42, 1200)
-
-logger = getLogger("nipype.workflow")
 
 
 def _check_mem_x_path(mem_x_path):
@@ -119,7 +117,8 @@ def _doctest_skiplines(docstring, lines_to_skip):
     'skip this line  # doctest: +SKIP'
     """
     if not isinstance(lines_to_skip, set) and not isinstance(lines_to_skip, list):
-        raise TypeError("_doctest_skiplines: `lines_to_skip` must be a set or list.")
+        msg = "_doctest_skiplines: `lines_to_skip` must be a set or list."
+        raise TypeError(msg)
 
     return "\n".join(
         [
@@ -157,7 +156,7 @@ class Node(pe.Node):
         from CPAC.pipeline.random_state import random_seed
 
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
-        self.logger = getLogger("nipype.workflow")
+        self.logger = WFLOGGER
         self.seed = random_seed()
         self.seed_applied = False
         self.input_data_shape = Undefined
@@ -400,9 +399,8 @@ class Node(pe.Node):
             try:
                 mem_x_path = getattr(self.inputs, self._mem_x["file"])
             except AttributeError as attribute_error:
-                raise AttributeError(
-                    f"{attribute_error.args[0]} in Node '{self.name}'"
-                ) from attribute_error
+                msg = f"{attribute_error.args[0]} in Node '{self.name}'"
+                raise AttributeError(msg) from attribute_error
             if _check_mem_x_path(mem_x_path):
                 # constant + mem_x[0] * t
                 return self._apply_mem_x()
@@ -500,7 +498,7 @@ class Workflow(pe.Workflow):
 
         super().__init__(name, base_dir)
         self._debug = debug
-        self.verbose_logger = getLogger("engine") if debug else None
+        self.verbose_logger = getLogger("CPAC.engine") if debug else None
         self._graph = nx.DiGraph()
 
         self._nodes_cache = set()
@@ -630,7 +628,7 @@ class Workflow(pe.Workflow):
                         subnodename = subnodefullname.replace(".", "_")
                         for _ in self._graph.get_edge_data(node, subnode)["connect"]:
                             dotlist.append(f'"{nodename}" -> "{subnodename}";')
-                        logger.debug("connection: %s", dotlist[-1])
+                        WFLOGGER.debug("connection: %s", dotlist[-1])
         # add between workflow connections
         for u, v, d in self._graph.edges(data=True):
             uname = ".".join([*hierarchy, u.fullname])
@@ -655,7 +653,7 @@ class Workflow(pe.Workflow):
                         f'"{uname1.replace(".", "_")}" -> '
                         f'"{vname1.replace(".", "_")}";'
                     )
-                    logger.debug("cross connection: %s", dotlist[-1])
+                    WFLOGGER.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
 
     def _handle_just_in_time_exception(self, node):
@@ -689,10 +687,11 @@ class Workflow(pe.Workflow):
         os.makedirs(base_dir, exist_ok=True)
         if graph2use in ["hierarchical", "colored"]:
             if self.name[:1].isdigit():  # these graphs break if int
-                raise ValueError(
+                msg = (
                     f"{graph2use} graph failed, workflow name "
                     "cannot begin with a number"
                 )
+                raise ValueError(msg)
             dotfilename = os.path.join(base_dir, dotfilename)
             self.write_hierarchical_dotfile(
                 dotfilename=dotfilename,
@@ -714,8 +713,8 @@ class Workflow(pe.Workflow):
                 simple_form=simple_form,
             )
 
-        logger.info(
-            "Generated workflow graph: %s " "(graph2use=%s, simple_form=%s).",
+        WFLOGGER.info(
+            "Generated workflow graph: %s (graph2use=%s, simple_form=%s).",
             outfname,
             graph2use,
             simple_form,
@@ -739,7 +738,7 @@ class Workflow(pe.Workflow):
                 fp.writelines(dotstr)
                 fp.close()
         else:
-            logger.info(dotstr)
+            WFLOGGER.info(dotstr)
 
 
 def get_data_size(filepath, mode="xyzt"):
@@ -809,9 +808,9 @@ def export_graph(
     graph = deepcopy(graph_in)
     if use_execgraph:
         graph = generate_expanded_graph(graph)
-        logger.debug("using execgraph")
+        WFLOGGER.debug("using execgraph")
     else:
-        logger.debug("using input graph")
+        WFLOGGER.debug("using input graph")
     if base_dir is None:
         base_dir = os.getcwd()
 
@@ -824,7 +823,7 @@ def export_graph(
     # Convert .dot if format != 'dot'
     outfname, res = _run_dot(out_dot, format_ext=format)
     if res is not None and res.runtime.returncode:
-        logger.warning("dot2png: %s", res.runtime.stderr)
+        WFLOGGER.warning("dot2png: %s", res.runtime.stderr)
 
     pklgraph = _create_dot_graph(graph, show_connectinfo, simple_form)
     simple_dot = fname_presuffix(
@@ -835,7 +834,7 @@ def export_graph(
     # Convert .dot if format != 'dot'
     simplefname, res = _run_dot(simple_dot, format_ext=format)
     if res is not None and res.runtime.returncode:
-        logger.warning("dot2png: %s", res.runtime.stderr)
+        WFLOGGER.warning("dot2png: %s", res.runtime.stderr)
 
     if show:
         pos = nx.graphviz_layout(pklgraph, prog="dot")

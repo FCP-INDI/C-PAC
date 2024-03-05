@@ -306,7 +306,7 @@ def get_mcflirt_rms_abs(rms_files):
 )
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt not in get_motion_ref.option_val:
-        raise ValueError(
+        msg = (
             "\n\n[!] Error: The 'motion_correction_reference' "
             "parameter of the 'motion_correction' workflow "
             "must be one of:\n\t{0}.\n\nTool input: '{1}'"
@@ -314,6 +314,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
                 " or ".join([f"'{val}'" for val in get_motion_ref.option_val]), opt
             )
         )
+        raise ValueError(msg)
 
     if opt == "mean":
         func_get_RPI = pe.Node(
@@ -377,7 +378,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
     """Calculate motion parameters with 3dvolreg."""
     if int(cfg.pipeline_setup["system_config"]["max_cores_per_participant"]) > 1:
-        chunk_imports = ["import nibabel as nb"]
+        chunk_imports = ["import nibabel as nib"]
         chunk = pe.Node(
             Function(
                 input_names=["func_file", "n_chunks", "chunk_size"],
@@ -667,12 +668,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     """Check opt for valid option, then connect that option."""
     motion_correct_options = valid_options["motion_correction"]
     if opt not in motion_correct_options:
-        raise KeyError(
+        msg = (
             "\n\n[!] Error: The 'tool' parameter of the "
             "'motion_correction' workflow must be one of "
             f"{str(motion_correct_options).strip('[{()}]')}"
             f".\n\nTool input: {opt}\n\n"
         )
+        raise KeyError(msg)
     return motion_correct[opt](wf, cfg, strat_pool, pipe_num)
 
 
@@ -732,9 +734,9 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     notch_imports = [
         "import os",
         "import numpy as np",
-        "from scipy.signal import iirnotch, filtfilt, firwin, " "freqz",
+        "from scipy.signal import iirnotch, filtfilt, firwin, freqz",
         "from matplotlib import pyplot as plt",
-        "from CPAC.func_preproc.utils import degrees_to_mm, " "mm_to_degrees",
+        "from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees",
     ]
     notch = pe.Node(
         Function(

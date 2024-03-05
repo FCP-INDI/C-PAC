@@ -10,11 +10,11 @@ from CPAC.pipeline.cpac_pipeline import (
     load_cpac_pipe_config,
 )
 from CPAC.pipeline.engine import (
-    ResourcePool,
     ingress_pipeconfig_paths,
     ingress_raw_anat_data,
     ingress_raw_func_data,
     initiate_rpool,
+    ResourcePool,
 )
 from CPAC.utils.bids_utils import create_cpac_data_config
 

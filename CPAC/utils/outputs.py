@@ -11,7 +11,7 @@ class Outputs:
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.tsv "
-            "resource file:\n{0}\n\nError details {1}\n".format(reference_csv, e)
+            f"resource file:\n{reference_csv}\n\nError details {e}\n"
         )
         raise Exception(err)
 

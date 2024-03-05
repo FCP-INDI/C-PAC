@@ -15,8 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
+"""Workflows for registration."""
 from typing import Optional
 
+from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -49,12 +51,13 @@ def apply_transform(
     num_cpus=1,
     num_ants_cores=1,
 ):
+    """Apply transform."""
     if not reg_tool:
-        raise Exception(
-            "\n[!] Developer info: the 'reg_tool' parameter sent "
-            f"to the 'apply_transform' node for '{wf_name}' is "
-            f"empty.\n"
+        msg = (
+            "\n[!] Developer info: the 'reg_tool' parameter sent to the"
+            f" 'apply_transform' node for '{wf_name}' is empty.\n"
         )
+        raise RequiredFieldInvalid(msg)
 
     wf = pe.Workflow(name=wf_name)
 
@@ -130,7 +133,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
@@ -217,7 +220,7 @@ def apply_transform(
         # parallelize the apply warp, if multiple CPUs, and it's a time
         # series!
         if int(num_cpus) > 1 and time_series:
-            chunk_imports = ["import nibabel as nb"]
+            chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
                 util.Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
@@ -352,19 +355,16 @@ def convert_pedir(pedir, convert="xyz_to_int"):
     if isinstance(pedir, bytes):
         pedir = pedir.decode()
     if not isinstance(pedir, str):
-        raise Exception(
-            "\n\nPhase-encoding direction must be a "
-            "string value.\n\nValue: {0}"
-            "\n\n".format(pedir)
-        )
+        msg = f"\n\nPhase-encoding direction must be a string value.\n\nValue: {pedir}\n\n"
+        raise ValueError(msg)
     if pedir not in conv_dct.keys():
-        raise Exception(
-            "\n\nInvalid phase-encoding direction " "entered: {0}\n\n".format(pedir)
-        )
+        msg = f"\n\nInvalid phase-encoding direction entered: {pedir}\n\n"
+        raise ValueError(msg)
     return conv_dct[pedir]
 
 
 def create_fsl_flirt_linear_reg(name="fsl_flirt_linear_reg"):
+    """Create a FLIRT workflow."""
     linear_register = pe.Workflow(name=name)
 
     inputspec = pe.Node(
@@ -405,9 +405,7 @@ def create_fsl_flirt_linear_reg(name="fsl_flirt_linear_reg"):
 
 
 def create_fsl_fnirt_nonlinear_reg(name="fsl_fnirt_nonlinear_reg"):
-    """
-    Performs non-linear registration of an input file to a reference file
-    using FSL FNIRT.
+    """Perform non-linear registration of an input to a reference using FSL FNIRT.
 
     Parameters
     ----------
@@ -516,9 +514,7 @@ def create_fsl_fnirt_nonlinear_reg(name="fsl_fnirt_nonlinear_reg"):
 
 
 def create_fsl_fnirt_nonlinear_reg_nhp(name="fsl_fnirt_nonlinear_reg_nhp"):
-    """
-    Performs non-linear registration of an input file to a reference file
-    using FSL FNIRT.
+    """Perform non-linear registration of an input to a reference using FSL FNIRT.
 
     Parameters
     ----------
@@ -681,9 +677,9 @@ def create_fsl_fnirt_nonlinear_reg_nhp(name="fsl_fnirt_nonlinear_reg_nhp"):
 def create_register_func_to_anat(
     config, phase_diff_distcor=False, name="register_func_to_anat"
 ):
-    """
-    Registers a functional scan in native space to anatomical space using a
-    linear transform and does not include bbregister.
+    """Register a functional scan in native space to anatomical space...
+
+    ...using a linear transform and does not include bbregister.
 
     Parameters
     ----------
@@ -804,12 +800,9 @@ def create_register_func_to_anat(
 
 
 def create_register_func_to_anat_use_T2(config, name="register_func_to_anat_use_T2"):
-    # for monkey data
-    # ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L287-L295
-    # https://github.com/HechengJin0/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L524-L535
-    """
-    Registers a functional scan in native space to anatomical space using a
-    linear transform and does not include bbregister, use T1 and T2 image.
+    """Register a functional scan in native space to anatomical space...
+
+    ...using a linear transform and does not include bbregister, use T1 and T2 image.
 
     Parameters
     ----------
@@ -824,6 +817,10 @@ def create_register_func_to_anat_use_T2(config, name="register_func_to_anat_use_
 
     Notes
     -----
+    for monkey data
+    ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L287-L295
+    https://github.com/HechengJin0/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L524-L535
+
     Workflow Inputs::
 
         inputspec.func : string (nifti file)
@@ -962,9 +959,9 @@ def create_register_func_to_anat_use_T2(config, name="register_func_to_anat_use_
 def create_bbregister_func_to_anat(
     phase_diff_distcor=False, name="bbregister_func_to_anat"
 ):
-    """
-    Registers a functional scan in native space to structural.  This is
-    meant to be used after create_nonlinear_register() has been run and
+    """Register a functional scan in native space to structural.
+
+    This is meant to be used after create_nonlinear_register() has been run and
     relies on some of its outputs.
 
     Parameters
@@ -1109,9 +1106,9 @@ def create_bbregister_func_to_anat(
 def create_wf_calculate_ants_warp(
     name="create_wf_calculate_ants_warp", num_threads=1, reg_ants_skull=1
 ):
-    """
-    Calculates the nonlinear ANTS registration transform. This workflow
-    employs the antsRegistration tool:
+    """Calculate the nonlinear ANTS registration transform.
+
+    This workflow employs the antsRegistration tool:
 
     http://stnava.github.io/ANTs/
 
@@ -1456,6 +1453,7 @@ def create_wf_calculate_ants_warp(
 def FSL_registration_connector(
     wf_name, cfg, orig="T1w", opt=None, symmetric=False, template="T1w"
 ):
+    """Transform raw data to template with FSL."""
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
@@ -1658,6 +1656,7 @@ def FSL_registration_connector(
 def ANTs_registration_connector(
     wf_name, cfg, params, orig="T1w", symmetric=False, template="T1w"
 ):
+    """Transform raw data to template with ANTs."""
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
@@ -1688,12 +1687,11 @@ def ANTs_registration_connector(
 
     if params is None:
         err_msg = (
-            "\n\n[!] C-PAC says: \nYou have selected ANTs as your "
-            "anatomical registration method.\n"
-            "However, no ANTs parameters were specified.\n"
-            "Please specify ANTs parameters properly and try again."
+            "\n\n[!] C-PAC says: \nYou have selected ANTs as your"
+            " anatomical registration method.\nHowever, no ANTs parameters were"
+            " specified.\nPlease specify ANTs parameters properly and try again."
         )
-        raise Exception(err_msg)
+        raise RequiredFieldInvalid(err_msg)
 
     ants_reg_anat_mni = create_wf_calculate_ants_warp(
         f"anat_mni_ants_register{symm}",
@@ -2086,6 +2084,7 @@ def ANTs_registration_connector(
 def bold_to_T1template_xfm_connector(
     wf_name, cfg, reg_tool, symmetric=False, blip=False
 ):
+    """Transform functional to T1w template."""
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
@@ -2286,6 +2285,7 @@ def bold_to_T1template_xfm_connector(
     },
 )
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Register T1w to template with FSL."""
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_anat_to_" f"template_{pipe_num}", cfg, orig="T1w", opt=opt
     )
@@ -2384,6 +2384,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Register T1w to symmetric template with FSL."""
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_anat_to_" f"template_symmetric_" f"{pipe_num}",
         cfg,
@@ -2457,9 +2458,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     },
 )
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Directly register the mean functional to an EPI template. No T1w
-    involved.
-    """
+    """Directly register the mean functional to an EPI template. No T1w involved."""
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_EPI_to_" f"template_{pipe_num}",
         cfg,
@@ -2596,6 +2595,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Register T1w to template with ANTs."""
     params = cfg.registration_workflows["anatomical_registration"]["registration"][
         "ANTs"
     ]["T1_registration"]
@@ -2730,6 +2730,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Register T1 to symmetric template with ANTs."""
     params = cfg.registration_workflows["anatomical_registration"]["registration"][
         "ANTs"
     ]["T1_registration"]
@@ -2819,9 +2820,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     },
 )
 def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Directly register the mean functional to an EPI template. No T1w
-    involved.
-    """
+    """Directly register the mean functional to an EPI template. No T1w involved."""
     params = cfg.registration_workflows["functional_registration"]["EPI_registration"][
         "ANTs"
     ]["parameters"]
@@ -2901,6 +2900,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Overwrite ANTs transforms with FSL transforms."""
     xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
 
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -2964,7 +2964,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # -mcs: -multicomponent-split, -oo: -output-multiple
         split_combined_warp = pe.Node(
             util.Function(
-                input_names=["input", "output_name"],
+                input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
             ),
@@ -2973,13 +2973,16 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         split_combined_warp.inputs.output_name = "e"
 
         wf.connect(
-            ants_apply_warp_t1_to_template, "output_image", split_combined_warp, "input"
+            ants_apply_warp_t1_to_template,
+            "output_image",
+            split_combined_warp,
+            "input_name",
         )
 
         # c4d -mcs ${WD}/xfms/ANTs_CombinedInvWarp.nii.gz -oo ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
         split_combined_inv_warp = pe.Node(
             util.Function(
-                input_names=["input", "output_name"],
+                input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
             ),
@@ -2991,7 +2994,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             ants_apply_warp_template_to_t1,
             "output_image",
             split_combined_inv_warp,
-            "input",
+            "input_name",
         )
 
         # fslmaths ${WD}/xfms/e2.nii.gz -mul -1 ${WD}/xfms/e-2.nii.gz
@@ -3137,6 +3140,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
     outputs=["sbref"],
 )
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Create single-band reference for coreg by selecting a functional volume."""
     get_func_volume = pe.Node(interface=afni.Calc(), name=f"get_func_volume_{pipe_num}")
 
     get_func_volume.inputs.set(
@@ -3180,6 +3184,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["sbref"],
 )
 def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Create single-band reference for coregistration from mean BOLD."""
     coreg_input = strat_pool.get_data("desc-mean_bold")
 
     # TODO add mean skull
@@ -3220,6 +3225,7 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["sbref"],
 )
 def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate fMRIPrep-style single-band reference for coregistration."""
     coreg_input = strat_pool.get_data("desc-ref_bold")
 
     outputs = {"sbref": coreg_input}
@@ -3260,6 +3266,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Coregister BOLD to T1w."""
     diff_complete = False
     if strat_pool.check_rpool("despiked-fieldmap") and strat_pool.check_rpool(
         "fieldmap-mask"
@@ -3489,8 +3496,9 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Condense the BOLD-to-T1 coregistration transform and the T1-to-template
-    transform into one transform matrix.
+    """Create a single transform from BOLD-to-T1 coregistration and T1-to-template.
+
+    Condense the BOLD-to-T1 coregistration transform and the T1-to-template transform into one transform matrix.
     """
     xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -3566,8 +3574,10 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Condense the BOLD-to-T1 coregistration transform and the T1-to-
-    symmetric-template transform into one transform matrix.
+    """Create a single transform from coregistration and T1-to-symmetric-template.
+
+    Condense the BOLD-to-T1 coregistration transform and the T1-to-symmetric-template
+    transform into one transform matrix.
     """
     xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-symtemplate_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
@@ -3636,6 +3646,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num, opt=N
     outputs=["sbref", "desc-preproc_bold", "desc-stc_bold", "bold"],
 )
 def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Apply phasediff to timeseries."""
     outputs = {"desc-preproc_bold": strat_pool.get_data("desc-preproc_bold")}
     if not strat_pool.check_rpool("despiked-fieldmap"):
         return (wf, outputs)
@@ -3773,6 +3784,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
     outputs=["desc-preproc_bold", "desc-stc_bold", "bold"],
 )
 def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Apply blip to timeseries."""
     xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -3852,6 +3864,7 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None)
     outputs={"space-template_desc-head_T1w": {"Template": "T1w-template"}},
 )
 def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp T1 head to template."""
     xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -3905,6 +3918,7 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
 )
 def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp T1 mask to template."""
     xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -3965,6 +3979,7 @@ def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp timeseries to T1 template."""
     xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -4027,6 +4042,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp timeseries to T1 template at derivative resolution."""
     xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -4099,11 +4115,15 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, opt=None)
     },
 )
 def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries using ABCD-style registration
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
+    """Apply motion correction, coreg, anat-to-template transforms...
 
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
-    # convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
+    ...on raw functional timeseries using ABCD-style registration.
+
+    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
+
+    https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
+    convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
+    """
     convert_func_to_anat_linear_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_anat_linear_warp_{pipe_num}"
     )
@@ -4409,11 +4429,16 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=None):
-    # Apply motion correction, coreg, anat-to-template transforms on raw functional timeseries
-    # Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh
+    """
+    Apply motion correction, coreg, anat-to-template transforms...
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L131
-    # ${FSLDIR}/bin/flirt -interp spline -in ${T1wImage} -ref ${T1wImage} -applyisoxfm $FinalfMRIResolution -out ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    ...on raw functional timeseries.
+
+    Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh
+
+    https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L131
+    ${FSLDIR}/bin/flirt -interp spline -in ${T1wImage} -ref ${T1wImage} -applyisoxfm $FinalfMRIResolution -out ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    """
     anat_resample = pe.Node(
         interface=fsl.FLIRT(), name=f"anat_resample_func_res_{pipe_num}"
     )
@@ -4753,10 +4778,9 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 def single_step_resample_timeseries_to_T1template(
     wf, cfg, strat_pool, pipe_num, opt=None
 ):
-    """
-    Apply motion correction, coreg, anat-to-template transforms on
-    slice-time corrected functional timeseries based on fMRIPrep
-    pipeline.
+    """Apply motion correction, coreg, anat-to-template transforms...
+
+    ...on slice-time corrected functional timeseries based on fMRIPrep pipeline.
 
     Copyright (c) 2015-2018, the CRN developers team.
     All rights reserved.
@@ -5048,6 +5072,7 @@ def single_step_resample_timeseries_to_T1template(
     },
 )
 def warp_sbref_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp single-band reference to T1 template."""
     xfm = "from-bold_to-template_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
         wf,
@@ -5091,6 +5116,7 @@ def warp_sbref_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp BOLD mask to T1 template."""
     xfm = "from-bold_to-template_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
         wf,
@@ -5136,8 +5162,9 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Transform the BOLD mask to template space and to the resolution set for
-    the derivative outputs.
+    """Transform the BOLD mask to template space...
+
+    ...and to the resolution set for the derivative outputs.
     """
     xfm = "from-bold_to-template_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
@@ -5174,6 +5201,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-preproc_bold": {"Template": "EPI-template"}},
 )
 def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp timeseries to EPI template."""
     xfm = "from-bold_to-EPItemplate_mode-image_xfm"
     wf, apply_xfm, resource = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, "desc-preproc_bold", xfm, time_series=True
@@ -5197,6 +5225,7 @@ def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-mean_bold": {"Template": "EPI-template"}},
 )
 def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp mean BOLD to EPI template space."""
     xfm = "from-bold_to-EPItemplate_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
         wf, cfg, strat_pool, pipe_num, "desc-mean_bold", xfm, time_series=False
@@ -5220,6 +5249,7 @@ def warp_bold_mean_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-template_desc-bold_mask": {"Template": "EPI-template"}},
 )
 def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp BOLD mask to EPI tempalate."""
     xfm = "from-bold_to-EPItemplate_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
         wf,
@@ -5251,8 +5281,9 @@ def warp_bold_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Transform the BOLD mask to template space and to the resolution set for
-    the derivative outputs.
+    """Transform the BOLD mask to EPI template space...
+
+    ...and to the resolution set for the derivative outputs.
     """
     xfm = "from-bold_to-EPItemplate_mode-image_xfm"
     wf, apply_xfm = warp_resource_to_template(
@@ -5292,12 +5323,13 @@ def warp_deriv_mask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp tissue masks to T1 template."""
     return warp_tissuemask_to_template(
         wf,
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-T1w_to-template_mode-image_" "xfm",
+        xfm="from-T1w_to-template_mode-image_xfm",
         template_space="T1",
     )
 
@@ -5326,18 +5358,19 @@ def warp_tissuemask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def warp_tissuemask_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Warp tissue masks to EPI template."""
     return warp_tissuemask_to_template(
         wf,
         cfg,
         strat_pool,
         pipe_num,
-        xfm="from-bold_to-EPItemplate_" "mode-image_xfm",
+        xfm="from-bold_to-EPItemplate_mode-image_xfm",
         template_space="EPI",
     )
 
 
 def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm, template_space):
-    """Function to apply transforms to tissue masks.
+    """Apply transforms to tissue masks.
 
     Parameters
     ----------
@@ -5390,7 +5423,7 @@ def warp_resource_to_template(
     reference: Optional[str] = None,
     time_series: Optional[bool] = False,
 ) -> TUPLE[pe.Workflow, pe.Workflow, str]:
-    """Function to warp a resource into a template space.
+    """Warp a resource into a template space.
 
     Parameters
     ----------

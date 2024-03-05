@@ -1,3 +1,19 @@
+# Copyright (C) 2018-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import configparser
 import os
 import os.path as op
@@ -10,6 +26,7 @@ import requests
 
 from CPAC.info import __version__, ga_tracker
 
+temp_dir = False
 udir = op.expanduser("~")
 if udir == "/":
     udir = tempfile.mkdtemp()
@@ -43,24 +60,24 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        headers = {
-            "User-Agent": "C-PAC/{} (https://fcp-indi.github.io)".format(__version__)
-        }
-        return requests.post(
+        headers = {"User-Agent": f"C-PAC/{__version__} (https://fcp-indi.github.io)"}
+        _done = requests.post(
             "https://www.google-analytics.com/collect",
             data=data,
             timeout=timeout,
             headers=headers,
         )
     except:
-        return False
-    if temp_dir:
-        try:
-            os.remove(tracking_path)
-            os.rmdir(udir)
-        except:
-            pass
-    return None
+        _done = False
+    finally:
+        if temp_dir:
+            try:
+                os.remove(tracking_path)
+                os.rmdir(udir)
+            except (TypeError, OSError) as e:
+                msg = f"Unable to delete temporary tracking path {tracking_path}."
+                raise OSError(msg) from e
+        return _done
 
 
 def track_event(

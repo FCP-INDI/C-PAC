@@ -1,10 +1,38 @@
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import glob
 import logging
 import os
 import string
 import sys
+from typing import BinaryIO, Optional
 
 import yaml
+
+logger = logging.getLogger("extract_data_logs")
+if logger.handlers:
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+logging.basicConfig(
+    filename=os.path.join(os.getcwd(), "extract_data_logs.log"),
+    filemode="w",
+    level=logging.DEBUG,
+    format="%(levelname)s %(asctime)s %(lineno)d %(message)s",
+)
 
 
 def extract_data(c, param_map):
@@ -77,7 +105,7 @@ def extract_data(c, param_map):
                 "where your site and subjects are present"
                 "Please see examples"
             )
-            logging.exception(msg)
+            logger.exception(msg)
             raise Exception(msg)
 
         filename, ext = os.path.splitext(os.path.basename(template))
@@ -85,7 +113,7 @@ def extract_data(c, param_map):
 
         if ext not in [".nii", ".nii.gz"]:
             msg = "Invalid file name", os.path.basename(template)
-            logging.exception(msg)
+            logger.exception(msg)
             raise Exception(msg)
 
     def get_site_list(path):
@@ -98,7 +126,7 @@ def extract_data(c, param_map):
                 "filename- %s is too long."
                 "It should not be more than 30 characters." % (file_name)
             )
-            logging.exception(msg)
+            logger.exception(msg)
             raise Exception(msg)
 
         if (
@@ -114,7 +142,7 @@ def extract_data(c, param_map):
                     )
                 )
             )
-            logging.exception(msg)
+            logger.exception(msg)
             raise Exception(msg)
 
     def create_site_subject_mapping(base, relative):
@@ -164,12 +192,12 @@ def extract_data(c, param_map):
             "Anatomical Data template incorrect. No such file or directory %s",
             anat_base,
         )
-        logging.exception(msg)
+        logger.exception(msg)
         raise Exception(msg)
 
     if not func_base:
         msg = "Functional Data template incorrect. No such file or directory %s, func_base"
-        logging.exception(msg)
+        logger.exception(msg)
         raise Exception(msg)
 
     if len(anat_base) != len(func_base):
@@ -179,14 +207,14 @@ def extract_data(c, param_map):
             "!=",
             func_base,
         )
-        logging.exception(msg1)
+        logger.exception(msg1)
 
         msg2 = (
             " Base length Unequal. Some sites are missing."
             "extract_data doesn't script support this.Please"
             "Provide your own subjects_list file"
         )
-        logging.exception(msg2)
+        logger.exception(msg2)
         raise Exception(msg2)
 
     # calculate the length of relative paths(path after subject directory)
@@ -211,7 +239,7 @@ def extract_data(c, param_map):
                 "Please provide the subjects_list file to run CPAC."
                 "For more information refer to manual"
             )
-            logging.exception(msg)
+            logger.exception(msg)
             raise Exception(msg)
         return session_present, session_path, relative_path
 
@@ -262,12 +290,10 @@ def extract_data(c, param_map):
             def print_end_of_file(sub):
                 if param_map is not None:
                     try:
-                        logging.debug(
-                            "site for sub %s -> %s" % (sub, subject_map.get(sub))
-                        )
-                        logging.debug(
-                            "scan parameters for the above site %s"
-                            % param_map.get(subject_map.get(sub))
+                        logger.debug("site for sub %s -> %s", sub, subject_map.get(sub))
+                        logger.debug(
+                            "scan parameters for the above site %s",
+                            param_map.get(subject_map.get(sub)),
                         )
                         print("    scan_parameters:", file=f)
                         print(
@@ -340,10 +366,10 @@ def extract_data(c, param_map):
                 print_end_of_file(anat_sub.split("/")[0])
 
             else:
-                logging.debug("skipping subject %s" % anat_sub.split("/")[0])
+                logger.debug("skipping subject %s", anat_sub.split("/")[0])
 
         except ValueError:
-            logging.exception(ValueError.message)
+            logger.exception(ValueError.message)
             raise
 
         except Exception as e:
@@ -352,7 +378,7 @@ def extract_data(c, param_map):
                 "paths: \n" + str(e)
             )
 
-            logging.exception(err_msg)
+            logger.exception(err_msg)
             raise Exception(err_msg)
 
     def walk(index, sub):
@@ -406,21 +432,21 @@ def extract_data(c, param_map):
                                 index, sub, os.path.join(sub, session_id), session_id
                             )
                 else:
-                    logging.debug("Skipping subject %s", sub)
+                    logger.debug("Skipping subject %s", sub)
 
             else:
-                logging.debug("No sessions")
+                logger.debug("No sessions")
                 session_id = ""
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
-            logging.exception(Exception.message)
+            logger.exception(Exception.message)
             raise
 
         except:
-            err_msg = "Please make sessions are consistent across all " "subjects.\n\n"
+            err_msg = "Please make sessions are consistent across all subjects.\n\n"
 
-            logging.exception(err_msg)
+            logger.exception(err_msg)
             raise Exception(err_msg)
 
     try:
@@ -429,17 +455,21 @@ def extract_data(c, param_map):
                 # check if subject is present in subject_list
                 if subject_list:
                     if sub in subject_list and sub not in exclusion_list:
-                        logging.debug("extracting data for subject: %s", sub)
+                        logger.debug("extracting data for subject: %s", sub)
                         walk(i, sub)
                 # check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in ".DS_Store":
-                    logging.debug("extracting data for subject: %s", sub)
+                    logger.debug("extracting data for subject: %s", sub)
                     walk(i, sub)
 
         os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
+        logger.info(
+            "Extraction Successfully Completed...Input Subjects_list for CPAC - %s",
+            name,
+        )
 
     except Exception:
-        logging.exception(Exception.message)
+        logger.exception(Exception.message)
         raise
 
     finally:
@@ -454,22 +484,20 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     import csv
     import os
 
-    from sets import Set
-
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
         subjects_list = yaml.safe_load(open(data_config_path, "r"))
     except:
-        "\n\n[!] Data configuration file couldn't be read!\nFile " "path: {0}\n".format(
+        "\n\n[!] Data configuration file couldn't be read!\nFile path: {0}\n".format(
             data_config_path
         )
 
-    subject_scan_set = Set()
-    subID_set = Set()
-    session_set = Set()
-    subject_set = Set()
-    scan_set = Set()
+    subject_scan_set = set()
+    subID_set = set()
+    session_set = set()
+    subject_set = set()
+    scan_set = set()
     data_list = []
 
     try:
@@ -503,8 +531,11 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
     except TypeError:
         err_str = (
-            "Check formatting of your anatomical/functional path "
-            "templates and inclusion/exclusion subjects text files"
+            "Subject list could not be populated!\nThis is most likely due to a"
+            " mis-formatting in your inclusion and/or exclusion subjects txt file or"
+            " your anatomical and/or functional path templates.\nCheck formatting of"
+            " your anatomical/functional path templates and inclusion/exclusion"
+            " subjects text files"
         )
         raise TypeError(err_str)
 
@@ -530,10 +561,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
         data_config_outdir, "phenotypic_template_%s.csv" % data_config_name
     )
 
-    try:
-        f = open(file_name, "wb")
-    except:
-        raise IOError
+    f = _sassy_try_open_wb(file_name)
 
     writer = csv.writer(f)
 
@@ -543,6 +571,8 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
     f.close()
 
+    logger.info("Template Phenotypic file for group analysis - %s", file_name)
+
     """
     # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
@@ -551,14 +581,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
                 '_measures_mult_sessions_and_scans_%s.csv' \
                 % data_config_name)
 
-        try:
-            f = open(file_name, 'wb')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
-            raise IOError
+        f = _sassy_try_open_wb(file_name)
 
         writer = csv.writer(f)
         writer.writerow(['participant', 'session', 'series', 'EV1', '..'])
@@ -570,22 +593,17 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
         f.close()
 
-        print "Template Phenotypic file for group analysis with repeated " \
-              "measures (multiple sessions and scans) - %s" % file_name
+        logger.info(
+            "Template Phenotypic file for group analysis with repeated "
+            "measures (multiple sessions and scans) - %s", file_name
+        )
 
     if (len(session_set) > 1):
 
         file_name = os.path.join(data_config_outdir, 'phenotypic_template_repeated' \
                 '_measures_multiple_sessions_%s.csv' % data_config_name)
 
-        try:
-            f = open(file_name, 'wb')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                  'worry.. I\'ll wait.\n\n'
-            raise IOError
+        f = _sassy_try_open_wb(file_name)
 
         writer = csv.writer(f)
 
@@ -597,22 +615,17 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
         f.close()
 
-        print "Template Phenotypic file for group analysis with repeated " \
-              "measures (multiple sessions) - %s" % file_name
+        logger.info(
+            "Template Phenotypic file for group analysis with repeated "
+            "measures (multiple sessions) - %s", file_name
+        )
 
     if (len(scan_set) > 1):
 
         file_name = os.path.join(data_config_outdir, 'phenotypic_template_repeated' \
                 '_measures_multiple_scans_%s.csv' % data_config_name)
 
-        try:
-            f = open(file_name, 'wb')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                  'worry.. I\'ll wait.\n\n'
-            raise IOError
+        f = _sassy_try_open_wb(file_name)
 
         writer = csv.writer(f)
 
@@ -624,8 +637,9 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
         f.close()
 
-    print "Template Phenotypic file for group analysis with repeated " \
-          "measures (multiple scans) - %s" % file_name
+    logger.info("Template Phenotypic file for group analysis with repeated "
+        "measures (multiple scans) - %s", file_name
+    )
     """
 
     # generate the group analysis subject lists
@@ -638,7 +652,11 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
             for sub in sorted(subID_set):
                 print(sub, file=f)
     except:
-        raise IOError
+        _sassy_oserror(file_name)
+
+    logger.info(
+        "Participant list required later for group analysis - %s\n\n", file_name
+    )
 
 
 def read_csv(csv_input):
@@ -666,28 +684,44 @@ def read_csv(csv_input):
             ]
 
         if len(dict_labels) < 1:
-            msg = "Scan Parameters File is either empty" "or missing header"
-            logging.exception(msg)
+            msg = "Scan Parameters File is either empty or missing header"
+            logger.exception(msg)
             raise Exception(msg)
 
         return dict_labels
 
     except IOError:
         msg = "Error reading the csv file %s", csv_input
-        logging.exception(msg)
+        logger.exception(msg)
         raise Exception(msg)
     except:
         msg = "Error reading scan parameters csv. Make sure you are using the correct template"
-        logging.exception(msg)
+        logger.exception(msg)
         raise Exception(msg)
 
 
-"""
-Class to set dictionary keys as map attributes
-"""
+def _sassy_oserror(file_name: str) -> None:
+    """Open a file in 'wb' mode or raise a sassy OSError if a file can't be saved."""
+    msg = (
+        f"\n\nCPAC says: I couldn't save this file to your drive:\n {file_name}"
+        "\n\nMake sure you have write access? Then come back. Don't worry.. I'll"
+        " wait.\n\n"
+    )
+    raise OSError(msg)
+
+
+def _sassy_try_open_wb(file_name: str) -> Optional[BinaryIO]:
+    f = None
+    try:
+        f = open(file_name, "wb")
+    except (OSError, TypeError):
+        _sassy_oserror(file_name)
+    return f
 
 
 class Configuration(object):
+    """Set dictionary keys as map attributes."""
+
     def __init__(self, config_map):
         for key in config_map:
             if config_map[key] == "None":
@@ -700,15 +734,9 @@ def run(data_config):
     Run method takes data_config
     file as the input argument.
     """
-    root = logging.getLogger()
-    if root.handlers:
-        for handler in root.handlers:
-            root.removeHandler(handler)
-    logging.basicConfig(
-        filename=os.path.join(os.getcwd(), "extract_data_logs.log"),
-        filemode="w",
-        level=logging.DEBUG,
-        format="%(levelname)s %(asctime)s %(lineno)d %(message)s",
+    logger.info(
+        "For any errors or messages check the log file - %s",
+        os.path.join(os.getcwd(), "extract_data_logs.log"),
     )
 
     c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), "r")))
@@ -716,7 +744,7 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         read_csv(c.scanParametersCSV)
     else:
-        logging.debug(
+        logger.debug(
             "no scan parameters csv included\n"
             "make sure you turn off slice timing correction option\n"
             "in CPAC configuration\n"
@@ -727,6 +755,7 @@ def run(data_config):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
+        print("Usage: python extract_data.py data_config.yml")  # noqa T201
         sys.exit()
     else:
         run(sys.argv[1])

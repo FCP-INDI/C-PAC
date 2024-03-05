@@ -188,10 +188,11 @@ def set_up_random_state(seed):
                 seed = int(seed)
                 assert 0 < seed <= np.iinfo(np.int32).max
             except (ValueError, TypeError, AssertionError):
-                raise ValueError(
+                msg = (
                     "Valid random seeds are positive integers up to "
                     f'2147483647, "random", or None, not {seed}'
                 )
+                raise ValueError(msg)
 
     _seed["seed"] = seed
     return random_seed()

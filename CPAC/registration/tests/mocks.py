@@ -12,7 +12,7 @@ from CPAC.utils.strategy import Strategy
 def file_node(path, file_node_num=0):
     input_node = pe.Node(
         util.IdentityInterface(fields=["file"]),
-        name="file_node_{0}".format(file_node_num),
+        name=f"file_node_{file_node_num}",
     )
     input_node.inputs.file = path
     return input_node, "file"
@@ -99,9 +99,7 @@ def configuration_strategy_mock(method="FSL"):
             os.path.join(
                 "/scratch",
                 "resting_preproc_sub-M10978008_ses-NFB3_cpac105",
-                "temporal_dual_regression_0/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/split_raw_volumes/temp_reg_map_000{0}.nii.gz".format(
-                    n
-                ),
+                f"temporal_dual_regression_0/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/split_raw_volumes/temp_reg_map_000{n}.nii.gz",
             )
             for n in range(10)
         ],

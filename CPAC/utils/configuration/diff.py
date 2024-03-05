@@ -53,7 +53,8 @@ def dct_diff(dct1, dct2):
                 _d = _d.dict()
             except AttributeError:
                 # pylint: disable=raise-missing-from
-                raise TypeError(f"{_d} is not a dict.")
+                msg = f"{_d} is not a dict."
+                raise TypeError(msg)
         dcts.append(_d)
     dct1, dct2 = dcts  # pylint: disable=unbalanced-tuple-unpacking
     del dcts

@@ -20,7 +20,7 @@ try:
 except ModuleNotFoundError:
     from importlib_metadata import distributions
 from pathlib import Path
-from subprocess import PIPE, STDOUT, Popen
+from subprocess import PIPE, Popen, STDOUT
 import sys
 
 __all__ = ["PYTHON_PACKAGES", "REPORTED", "REQUIREMENTS"]

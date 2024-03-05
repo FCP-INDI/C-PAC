@@ -1,22 +1,23 @@
-"""Copyright (C) 2022  C-PAC Developers.
+# Copyright (C) 2022-2024  C-PAC Developers.
 
-This file is part of C-PAC.
+# This file is part of C-PAC.
 
-C-PAC is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 
-C-PAC is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import re
+
+from CPAC.utils.monitoring import IFLOGGER
 
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
@@ -103,7 +104,7 @@ def check_merged_file(list_of_output_files, merged_outfile):
         test_string = [
             "3ddot",
             "-demean",
-            "{0}[{1}]".format(merged_outfile, str(i)),
+            f"{merged_outfile}[{i!s}]",
             output_file,
         ]
 
@@ -198,6 +199,14 @@ def check_mask_file_resolution(
     roi_mask_dims = roi_mask_hdr.get_zooms()
 
     if raw_file_dims != roi_mask_dims:
+        IFLOGGER.warning(
+            "The custom ROI mask file is a different resolution than the output data!"
+            " Resampling the ROI mask file to match the original output data!"
+            "\n\nCustom ROI mask file: %s\n\nOutput measure: %s\n\n",
+            roi_mask,
+            output_id,
+        )
+
         resampled_outfile = os.path.join(
             out_dir, "resampled_%s" % os.path.basename(roi_mask)
         )
@@ -429,12 +438,12 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 
     # pad end with single space so the formula.replace below won't miss the last
     # covariate when relevant
-    formula = "{0} ".format(formula)
+    formula = f"{formula} "
 
     for ev in categorical_list:
         if ev in formula:
             new_ev = "C(" + ev + closer
-            formula = formula.replace(" {0} ".format(ev), new_ev)
+            formula = formula.replace(f" {ev} ", new_ev)
 
     # remove Intercept - if user wants one, they should add "+ Intercept" when
     # specifying the design formula
@@ -455,19 +464,36 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 def check_multicollinearity(matrix):
     import numpy as np
 
+    IFLOGGER.info("\nChecking for multicollinearity in the model..")
+
     U, s, V = np.linalg.svd(matrix)
 
     max_singular = np.max(s)
     min_singular = np.min(s)
 
+    IFLOGGER.info(
+        "Max singular:  %s\nMin singular:  %s\nRank:  %s\n",
+        max_singular,
+        min_singular,
+        np.linalg.matrix_rank(matrix),
+    )
+
     if min_singular == 0:
-        pass
+        IFLOGGER.warning(
+            "[!] CPAC warns: Detected multicollinearity in the computed group-level"
+            " analysis model. Please double-check your model design.\n\n"
+        )
     else:
         condition_number = float(max_singular) / float(min_singular)
+        IFLOGGER.info("Condition number: %f", condition_number)
         if condition_number > 30:
-            pass
+            IFLOGGER.warning(
+                "[!] CPAC warns: Detected multicollinearity in the computed"
+                " group-level analysis model. Please double-check your model"
+                " design.\n\n"
+            )
         else:
-            pass
+            IFLOGGER.info("Looks good..\n")
 
 
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
@@ -530,7 +556,7 @@ def build_feat_model(
     # sublist_txt = group_config_obj.participant_list
 
     # if sublist_txt == None:
-    #    print ("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory")
+    #    IFLOGGER.warning("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory")
     #    sublist_txt = group_config_obj.participant_list
     # else:
     #    sublist_txt = group_config_obj.particpant_list
@@ -585,8 +611,8 @@ def build_feat_model(
         group_config_obj.output_dir,
         "cpac_group_analysis",
         "FSL_FEAT",
-        "{0}".format(pipeline_ID),
-        "group_model_{0}".format(model_name),
+        f"{pipeline_ID}",
+        f"group_model_{model_name}",
     )
 
     out_dir = os.path.join(
@@ -829,7 +855,7 @@ def build_feat_model(
                             "to model each group's variances separately) "
                             "either have more than 2 levels (1/0), or are "
                             "not encoded as 1's and 0's.\n\nCovariates:\n"
-                            "{0}\n{1}\n\n".format(group_ev[0], group_ev[1])
+                            f"{group_ev[0]}\n{group_ev[1]}\n\n"
                         )
                         raise Exception(err)
 
@@ -850,9 +876,7 @@ def build_feat_model(
                             "to model each group's variances separately) "
                             "either have more than 2 levels (1/0), or are "
                             "not encoded as 1's and 0's.\n\nCovariates:\n"
-                            "{0}\n{1}\n{2}\n\n".format(
-                                group_ev[0], group_ev[1], group_ev[2]
-                            )
+                            f"{group_ev[0]}\n{group_ev[1]}\n{group_ev[2]}\n\n"
                         )
                         raise Exception(err)
 
@@ -868,8 +892,8 @@ def build_feat_model(
                     "3. For some reason, the configuration has been set up "
                     "in a way where CPAC currently thinks you're including "
                     "only one group, or more than three, neither of which "
-                    "are supported.\n\nGroups provided:\n{0}"
-                    "\n\n".format(str(group_ev))
+                    f"are supported.\n\nGroups provided:\n{group_ev!s}"
+                    "\n\n"
                 )
                 raise Exception(err)
 
@@ -975,35 +999,29 @@ def build_feat_model(
 
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
-        err = (
-            "\n\n################## MODEL NOT GENERATED ##################"
-            "\n\n[!] CPAC says: There are more EVs than there are "
-            "participants currently included in the model for:\n\n"
-            "Derivative: {0}\nSession: {1}\nScan: {2}\nPreproc strategy:"
-            "\n    {3}\n\n"
-            "There must be more participants than EVs in the design.\n\n"
-            "Number of participants: {4}\nNumber of EVs: {5}\n\nEV/"
-            "covariate list: {6}\n\nNote: If you specified to model group "
-            "variances separately, the amount of EVs can nearly double "
-            "once they are split along the grouping variable.\n\nIf the "
-            "number of participants is lower than the number of "
-            "participants in your group analysis inclusion list, this "
-            "may be because not every participant originally included has "
-            "an output for {7} for this scan and preprocessing strategy in "
-            "the individual-level analysis output directory.\n\nDesign "
-            "formula going in: {8}"
-            "\n\n#########################################################"
-            "\n\n".format(
-                resource_id,
-                session_id,
-                series_or_repeated_label,
-                preproc_strat,
-                num_subjects,
-                len(column_names),
-                column_names,
-                resource_id,
-                design_formula,
-            )
+        IFLOGGER.error(
+            "\n\n################## MODEL NOT GENERATED ##################\n\n[!] CPAC"
+            " says: There are more EVs than there are participants currently included"
+            " in the model for:\n\nDerivative: %s\nSession: %s\nScan: %s\nPreproc"
+            " strategy:\n    %s\n\nThere must be more participants than EVs in the"
+            " design.\n\nNumber of participants: %s\nNumber of EVs: %s\n\nEV/covariate"
+            " list: %s\n\nNote: If you specified to model group variances separately,"
+            " the amount of EVs can nearly double once they are split along the"
+            " grouping variable.\n\nIf the number of participants is lower than the"
+            " number of participants in your group analysis inclusion list, this may"
+            " be because not every participant originally included has an output for"
+            " %s for this scan and preprocessing strategy in the individual-level"
+            " analysis output directory.\n\nDesign formula going in: %s"
+            "\n\n#########################################################\n\n",
+            resource_id,
+            session_id,
+            series_or_repeated_label,
+            preproc_strat,
+            num_subjects,
+            len(column_names),
+            column_names,
+            resource_id,
+            design_formula,
         )
 
     # check the merged file's order
@@ -1070,7 +1088,7 @@ def build_feat_model(
         contrasts_columns = column_names
         if group_config_obj.f_tests:
             for i in group_config_obj.f_tests[1 : len(group_config_obj.f_tests) - 1]:
-                contrasts_columns.append("f_test_{0}".format(i))
+                contrasts_columns.append(f"f_test_{i}")
     else:
         pass
 
@@ -1091,15 +1109,15 @@ def build_feat_model(
                     "\n\n[!] C-PAC says: It appears you have modified your "
                     "contrasts CSV file already- back up this file before "
                     "building your model again to avoid overwriting your "
-                    "changes.\n\nContrasts file:\n{0}"
-                    "\n\n".format(contrast_out_path)
+                    f"changes.\n\nContrasts file:\n{contrast_out_path}"
+                    "\n\n"
                 )
                 raise Exception(msg)
 
         with open(contrast_out_path, "w") as f:
             f.write("Contrasts")
             for col in contrasts_columns:
-                f.write(",{0}".format(col))
+                f.write(f",{col}")
             f.write("\ncontrast_1")
             for col in contrasts_columns:
                 f.write(",0")
@@ -1107,25 +1125,25 @@ def build_feat_model(
     groups_out_path = os.path.join(model_path, "groups.txt")
     with open(groups_out_path, "w") as f:
         for val in grp_vector:
-            f.write("{0}\n".format(val))
+            f.write(f"{val}\n")
 
-    msg = (
-        "Model successfully generated for..\nDerivative: {0}\nSession: {1}"
-        "\nScan: {2}\nPreprocessing strategy:\n    {3}\n\nModel directory:"
-        "\n{4}\n\nGroup configuration file:\n{5}\n\nContrasts template CSV:"
-        "\n{6}\n\nDefine your contrasts in this contrasts template CSV and "
-        "save your changes, then run FSL-FEAT "
-        "through the command-line like so:\n\n    cpac group "
-        "feat run <path to group config.yml>"
-        "\n".format(
-            resource_id,
-            session_id,
-            series_or_repeated_label,
-            preproc_strat,
-            model_path,
-            group_config_file,
-            contrast_out_path,
-        )
+    hrow = "-------------------------------------------------------------------\n"
+    IFLOGGER.info(
+        "%sModel successfully generated for..\nDerivative: %s\nSession: %s\nScan: %s"
+        "\nPreprocessing strategy:\n    %s\n\nModel directory:\n%s\n\nGroup"
+        " configuration file:\n%s\n\nContrasts template CSV:\n%s\n\nDefine your"
+        " contrasts in this contrasts template CSV and save your changes, then run"
+        " FSL-FEAT through the command-line like so:\n\n    cpac group feat run <path"
+        " to group config.yml>\n%s",
+        hrow,
+        resource_id,
+        session_id,
+        series_or_repeated_label,
+        preproc_strat,
+        model_path,
+        group_config_file,
+        contrast_out_path,
+        hrow,
     )
 
     return dmat_csv_path, new_sub_file, contrast_out_path

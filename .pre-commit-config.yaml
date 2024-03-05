@@ -29,10 +29,12 @@ repos:
     hooks:
     - id: check-case-conflict
     - id: end-of-file-fixer
+      exclude: '.*\.?sv|.*\.pkl(z)?'
     - id: mixed-line-ending
       args:
       - --fix=lf
     - id: trailing-whitespace
+      exclude: '.*\.tsv'
     - id: check-json
     - id: pretty-format-json
       args:

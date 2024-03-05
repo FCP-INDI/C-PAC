@@ -39,7 +39,8 @@ def _custom_pip_install(env_var: Optional[str] = None) -> None:
     """
     if env_var is not None:
         if env_var not in os.environ:
-            raise FileNotFoundError(f"${env_var}")
+            msg = f"${env_var}"
+            raise FileNotFoundError(msg)
         site.USER_BASE = os.environ["PYTHONUSERBASE"] = os.path.join(
             os.environ[env_var], ".local"
         )

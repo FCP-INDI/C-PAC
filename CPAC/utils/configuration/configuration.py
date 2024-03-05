@@ -26,7 +26,7 @@ from click import BadParameter
 import pkg_resources as p
 import yaml
 
-from CPAC.utils.typing import TUPLE, ConfigKeyType
+from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
 
 SPECIAL_REPLACEMENT_STRINGS = {r"${resolution_for_anat}", r"${func_resolution}"}
@@ -303,9 +303,7 @@ class Configuration:
         def check_path(key):
             if isinstance(key, str) and "/" in key:
                 if not os.path.exists(key):
-                    warn(
-                        f"Invalid path- {key}. Please check your " "configuration file"
-                    )
+                    warn(f"Invalid path- {key}. Please check your configuration file")
 
         attributes = [
             (attr, getattr(self, attr))
@@ -393,7 +391,8 @@ class Configuration:
             if _answer:
                 return _answer
         if error:
-            raise TypeError(f"`{key}` is not a switch in {self!s}.")
+            msg = f"`{key}` is not a switch in {self!s}."
+            raise TypeError(msg)
         return False
 
     def _switch_bool(self, key: ConfigKeyType, value: bool, exclusive: bool) -> bool:
@@ -643,10 +642,13 @@ def preconfig_yaml(preconfig_name="default", load=False):
     from CPAC.pipeline import ALL_PIPELINE_CONFIGS, AVAILABLE_PIPELINE_CONFIGS
 
     if preconfig_name not in ALL_PIPELINE_CONFIGS:
-        raise BadParameter(
+        msg = (
             f"The pre-configured pipeline name '{preconfig_name}' you "
             "provided is not one of the available pipelines.\n\nAvailable "
-            f"pipelines:\n{AVAILABLE_PIPELINE_CONFIGS!s}\n",
+            f"pipelines:\n{AVAILABLE_PIPELINE_CONFIGS!s}\n"
+        )
+        raise BadParameter(
+            msg,
             param="preconfig",
         )
     if load:

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -30,6 +30,7 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     resample_func_roi,
 )
+from CPAC.utils.monitoring import FMLOGGER
 
 
 def get_voxel_timeseries(wf_name="voxel_timeseries"):
@@ -547,11 +548,12 @@ def gen_roi_timeseries(data_file, template, output_type):
     img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception(
+        msg = (
             "\n\n[!] CPAC says: Invalid Shape Error."
             "Please check the voxel dimensions. "
             "Data and roi should have the same shape.\n\n"
         )
+        raise Exception(msg)
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
@@ -570,7 +572,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     for n in nodes:
         if n > 0:
             node_array = img_data[unit_data == n]
-            node_str = "node_{0}".format(n)
+            node_str = f"node_{n}"
             avg = np.mean(node_array, axis=0)
             avg = np.round(avg, 6)
             list1 = [n, *avg.tolist()]
@@ -578,7 +580,7 @@ def gen_roi_timeseries(data_file, template, output_type):
             node_dict[node_str] = avg.tolist()
 
     # writing to 1Dfile
-
+    FMLOGGER.info("writing 1D file..")
     f = open(oneD_file, "w")
     writer = csv.writer(f, delimiter=",")
 
@@ -593,7 +595,7 @@ def gen_roi_timeseries(data_file, template, output_type):
         roi_number_str.append("#" + number)
 
     for key in new_keys:
-        value_list.append(str("{0}\n".format(node_dict["node_{0}".format(key)])))
+        value_list.append(str("{0}\n".format(node_dict[f"node_{key}"])))
 
     column_list = list(zip(*value_list))
 
@@ -612,7 +614,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     # if csv is required
     """
     if output_type[0]:
-        print("writing csv file..")
+        FMLOGGER.info("writing csv file..")
         f = open(csv_file, 'wt')
         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
         headers = ['node/volume'] + np.arange(vol).tolist()
@@ -623,7 +625,7 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # if npz file is required
     if output_type[1]:
-        print("writing npz file..")
+        FMLOGGER.info("writing npz file..")
         np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
@@ -690,7 +692,7 @@ def gen_voxel_timeseries(data_file, template):
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        string = "vol {0}".format(t)
+        string = f"vol {t}"
         vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
         f.write("\n")
@@ -754,7 +756,7 @@ def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     mghobj1.load(rh_surface_file)
     vol = mghobj1.vol
     (x, y) = vol.shape
-    #        print "rh shape", x, y
+    #        IFLOGGER.info("rh shape %s %s", x, y)
 
     np.savetxt(rh_file, vol, delimiter="\t")
     out_list.append(rh_file)
@@ -765,7 +767,7 @@ def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     mghobj2.load(lh_surface_file)
     vol = mghobj2.vol
     (x, y) = vol.shape
-    #        print "lh shape", x, y
+    #        IFLOGGER.info("lh shape %s %s", x, y)
 
     np.savetxt(lh_file, vol, delimiter=",")
     out_list.append(lh_file)

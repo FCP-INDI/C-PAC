@@ -25,7 +25,7 @@ import yaml
 
 from CPAC.utils.bids_utils import with_key, without_key
 from CPAC.utils.datasource import bidsier_prefix
-from CPAC.utils.monitoring.custom_logging import MockLogger, getLogger, set_up_logger
+from CPAC.utils.monitoring.custom_logging import getLogger, MockLogger, set_up_logger
 
 
 def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str) -> str:
@@ -87,8 +87,9 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str)
                     ):
                         missing_outputs += (subdir, filename)
                 except Exception as exception:  # pylint: disable=broad-except
-                    logger = getLogger("nipype.workflow")
-                    logger.error(str(exception))
+                    from CPAC.utils.monitoring import WFLOGGER
+
+                    WFLOGGER.error(str(exception))
         if missing_outputs:
             missing_log = set_up_logger(
                 f"missingOutputs_{unique_id}",
@@ -169,7 +170,8 @@ class ExpectedOutputs:
     def __init__(self, expected=None):
         self.expected_outputs = {} if expected is None else expected
         if not isinstance(self.expected_outputs, dict):
-            raise TypeError("ExpectedOutputs.expected_outputs must be a dict")
+            msg = "ExpectedOutputs.expected_outputs must be a dict"
+            raise TypeError(msg)
 
     def __bool__(self):
         return bool(len(self))
@@ -182,10 +184,11 @@ class ExpectedOutputs:
 
     def __iadd__(self, other):
         if not isinstance(other, tuple) or len(other) != 2:
-            raise TypeError(
+            msg = (
                 f"{self.__module__}.{self.__class__.__name__} requires a "
                 "tuple of ('subdir', 'output') for addition"
             )
+            raise TypeError(msg)
         self.add(*other)
         return self
 

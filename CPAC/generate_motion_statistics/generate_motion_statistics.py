@@ -488,7 +488,8 @@ def calculate_FD_J(
         fd = np.append(0, rel_rms)
 
     else:
-        raise ValueError(f"calc_from {calc_from} not supported")
+        msg = f"calc_from {calc_from} not supported"
+        raise ValueError(msg)
 
     out_file = os.path.join(os.getcwd(), "FD_J.1D")
     np.savetxt(out_file, fd, fmt="%.8f")
@@ -621,7 +622,7 @@ def gen_motion_parameters(
     with open(out_file, "w") as f:
         f.write(",".join(t for t, v in info))
         f.write("\n")
-        f.write(",".join(v if type(v) == str else "{0:.6f}".format(v) for t, v in info))
+        f.write(",".join(v if type(v) == str else f"{v:.6f}" for t, v in info))
         f.write("\n")
 
     return out_file, info, maxdisp, relsdisp
@@ -698,7 +699,7 @@ def gen_power_parameters(
     with open(out_file, "a") as f:
         f.write(",".join(t for t, v in info))
         f.write("\n")
-        f.write(",".join(v if type(v) == str else "{0:.4f}".format(v) for t, v in info))
+        f.write(",".join(v if type(v) == str else f"{v:.4f}" for t, v in info))
         f.write("\n")
 
     return out_file, info

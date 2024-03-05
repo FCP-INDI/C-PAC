@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023  C-PAC Developers
+# Copyright (C) 2016-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,7 +20,10 @@ import re
 import sys
 from warnings import warn
 
+from botocore.exceptions import BotoCoreError
 import yaml
+
+from CPAC.utils.monitoring import UTLOGGER
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -30,33 +33,39 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
 
     # first lets make sure that we know how to handle the file
     if "nii" not in fname.lower() and "json" not in fname.lower():
-        raise IOError(
-            "File (%s) does not appear to be" % fname + "a nifti or json file"
-        )
+        msg = f"File ({fname}) does not appear to be a nifti or json file"
+        raise IOError(msg)
 
     if dbg:
-        pass
+        UTLOGGER.debug("parsing %s", file_path)
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
     file_path_vals = os.path.dirname(file_path).split("/")
     sub = [s for s in file_path_vals if "sub-" in s]
     if dbg:
-        pass
+        UTLOGGER.debug("found subject %s in %s", sub, file_path_vals)
 
     if len(sub) > 1:
-        pass
+        UTLOGGER.debug(
+            "Odd that there is more than one subject directory in (%s), does the"
+            " filename conform to BIDS format?",
+            file_path,
+        )
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
             if dbg:
-                pass
+                UTLOGGER.debug("setting site to %s", file_path_vals[sub_ndx - 1])
             f_dict["site"] = file_path_vals[sub_ndx - 1]
         else:
             f_dict["site"] = "none"
     elif file_path_vals[-1]:
         if dbg:
-            pass
+            UTLOGGER.debug(
+                "looking for subject id didn't pan out settling for last subdir %s",
+                file_path_vals[-1],
+            )
         f_dict["site"] = file_path_vals[-1]
     else:
         f_dict["site"] = "none"
@@ -77,33 +86,32 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
 
     if "scantype" not in f_dict:
         msg = (
-            "Filename ({0}) does not appear to contain"
-            " scan type, does it conform to the BIDS format?".format(fname)
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
         )
         if raise_error:
             raise ValueError(msg)
         else:
-            pass
+            UTLOGGER.error(msg)
     elif not f_dict["scantype"]:
         msg = (
-            "Filename ({0}) does not appear to contain"
-            " scan type, does it conform to the BIDS format?".format(fname)
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
         )
         if raise_error:
             raise ValueError(msg)
         else:
-            pass
+            UTLOGGER.error(msg)
     else:
         if "bold" in f_dict["scantype"] and not f_dict["task"]:
             msg = (
-                "Filename ({0}) is a BOLD file, but "
-                "doesn't contain a task, does it conform to the"
-                " BIDS format?".format(fname)
+                f"Filename ({fname}) is a BOLD file, but doesn't contain a task, does"
+                " it conform to the BIDS format?"
             )
             if raise_error:
                 raise ValueError(msg)
             else:
-                pass
+                UTLOGGER.error(msg)
 
     return f_dict
 
@@ -275,14 +283,16 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             key = "-".join([level, "none"])
 
         if dbg:
-            pass
+            UTLOGGER.debug(key)
         # if the key doesn't exist in the config dictionary, check to see if
         # the generic key exists and return that
         if key in t_dict:
             t_dict = t_dict[key]
         else:
             if dbg:
-                pass
+                UTLOGGER.debug(
+                    "Couldn't find %s, so going with %s", key, "-".join([level, "none"])
+                )
             key = "-".join([level, "none"])
             if key in t_dict:
                 t_dict = t_dict[key]
@@ -293,7 +303,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # sidecar files
 
     if dbg:
-        pass
+        UTLOGGER.debug(t_dict)
 
     for key in t_dict.keys():
         if "RepetitionTime" in key:
@@ -334,7 +344,7 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
         t_dict = t_dict[key]
 
     if dbg:
-        pass
+        UTLOGGER.debug(bids_config_dict)
 
     # get the paths to the json yaml files in config_dict, the paths contain
     # the information needed to map the parameters from the jsons (the vals
@@ -345,11 +355,11 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
     config_paths = sorted(config_dict.keys(), key=lambda p: len(p.split("/")))
 
     if dbg:
-        pass
+        UTLOGGER.debug(config_paths)
 
     for cp in config_paths:
         if dbg:
-            pass
+            UTLOGGER.debug("processing %s", cp)
 
         # decode the filepath into its various components as defined by  BIDS
         f_dict = bids_decode_fname(cp, raise_error=raise_error)
@@ -503,7 +513,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             if run_info not in subjdict[subj_info]["funcs"]:
                 subjdict[subj_info]["funcs"][run_info] = {"run_info": run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
-                pass
+                UTLOGGER.warning("resource %s already exists in subjdict ??", resource)
             subjdict[subj_info]["funcs"][run_info][resource] = p
         else:
             subjdict[subj_info][resource] = p
@@ -513,6 +523,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
         missing = 0
         for tkey in top_keys:
             if tkey not in subj_res:
+                UTLOGGER.warning("%s not found for %s", tkey, subj_info)
                 missing += 1
                 break
 
@@ -520,9 +531,13 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             for func_key, func_res in subj_res["funcs"].items():
                 for bkey in bot_keys:
                     if bkey not in func_res:
+                        UTLOGGER.warning("%s not found for %s", bkey, func_key)
                         missing += 1
                         break
                 if missing == 0:
+                    UTLOGGER.info(
+                        "adding: %s, %s, %d", subj_info, func_key, len(sublist)
+                    )
                     tdict = copy.deepcopy(subj_res)
                     del tdict["funcs"]
                     tdict.update(func_res)
@@ -584,7 +599,14 @@ def bids_gen_cpac_sublist(
         to be processed
     """
     if dbg:
-        pass
+        UTLOGGER.debug(
+            "gen_bids_sublist called with:\n  bids_dir: %s\n  # paths: %s"
+            "\n  config_dict: %s\n  creds_path: %s",
+            bids_dir,
+            len(paths_list),
+            "missing" if not config_dict else "found",
+            creds_path,
+        )
 
     # if configuration information is not desired, config_dict will be empty,
     # otherwise parse the information in the sidecar json files into a dict
@@ -615,7 +637,9 @@ def bids_gen_cpac_sublist(
             if config_dict:
                 t_params = bids_retrieve_params(bids_config_dict, f_dict)
                 if not t_params:
-                    pass
+                    UTLOGGER.warning(
+                        "Did not receive any parameters for %s, is this a problem?", p
+                    )
 
                 task_info = {
                     "scan": os.path.join(bids_dir, p),
@@ -652,7 +676,15 @@ def bids_gen_cpac_sublist(
                             "lesion_mask"
                         ] = task_info["scan"]
                     else:
-                        pass
+                        UTLOGGER.warning(
+                            "Lesion mask file (%s) already found for (%s:%s)"
+                            " discarding %s",
+                            subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"],
+                            f_dict["sub"],
+                            f_dict["ses"],
+                            p,
+                        )
+
                 # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = {}
@@ -689,7 +721,14 @@ def bids_gen_cpac_sublist(
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = task_info
 
                 else:
-                    pass
+                    UTLOGGER.warning(
+                        "Func file (%s) already found for (%s: %s: %s) discarding %s",
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key],
+                        f_dict["sub"],
+                        f_dict["ses"],
+                        task_key,
+                        p,
+                    )
 
             if "phase" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -720,11 +759,11 @@ def bids_gen_cpac_sublist(
                         if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if (
-                            "epi_{0}".format(pe_dir)
+                            f"epi_{pe_dir}"
                             not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]
                         ):
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
-                                "epi_{0}".format(pe_dir)
+                                f"epi_{pe_dir}"
                             ] = task_info
 
     sublist = []
@@ -734,9 +773,19 @@ def bids_gen_cpac_sublist(
                 sublist.append(ses)
             else:
                 if "anat" not in ses:
-                    pass
+                    UTLOGGER.warning(
+                        "%s %s %s is missing an anat",
+                        ses["site_id"] if "none" not in ses["site_id"] else "",
+                        ses["subject_id"],
+                        ses["unique_id"],
+                    )
                 if "func" not in ses:
-                    pass
+                    UTLOGGER.warning(
+                        "%s %s %s is missing a func",
+                        ses["site_id"] if "none" not in ses["site_id"] else "",
+                        ses["subject_id"],
+                        ses["unique_id"],
+                    )
 
     return sublist
 
@@ -777,6 +826,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
 
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
+        UTLOGGER.info("gathering files from S3 bucket (%s) for %s", bucket, prefix)
+
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
@@ -787,8 +838,12 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                             config_dict[
                                 s3_obj.key.replace(prefix, "").lstrip("/")
                             ] = json.loads(s3_obj.get()["Body"].read())
-                        except Exception:
-                            raise
+                        except Exception as e:
+                            msg = (
+                                f"Error retrieving {s3_obj.key.replace(prefix, '')}"
+                                f" ({e.message})"
+                            )
+                            raise BotoCoreError(msg) from e
                     elif "nii" in str(s3_obj.key):
                         file_paths.append(
                             str(s3_obj.key).replace(prefix, "").lstrip("/")
@@ -815,17 +870,16 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                                     }
                                 )
                             except UnicodeDecodeError:
-                                raise Exception(
-                                    "Could not decode {0}".format(os.path.join(root, f))
-                                )
+                                msg = f"Could not decode {os.path.join(root, f)}"
+                                raise UnicodeDecodeError(msg)
 
     if not file_paths and not config_dict:
-        raise IOError(
-            "Didn't find any files in {0}. Please verify that the "
-            "path is typed correctly, that you have read access to "
-            "the directory, and that it is not "
-            "empty.".format(bids_dir)
+        msg = (
+            f"Didn't find any files in {bids_dir}. Please verify that the path is"
+            " typed correctly, that you have read access to the directory, and that it"
+            " is not empty."
         )
+        raise IOError(msg)
 
     return file_paths, config_dict
 
@@ -937,7 +991,8 @@ def load_yaml_config(config_filename, aws_input_creds):
             config_content = b64decode(encoded)
             return yaml.safe_load(config_content)
         except:
-            raise
+            msg = f"Error! Could not find load config from data URI {config_filename}"
+            raise BotoCoreError(msg)
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -961,7 +1016,8 @@ def load_yaml_config(config_filename, aws_input_creds):
     try:
         return yaml.safe_load(open(config_filename, "r"))
     except IOError:
-        raise
+        msg = f"Error! Could not find config file {config_filename}"
+        raise FileNotFoundError(msg)
 
 
 def cl_strip_brackets(arg_list):
@@ -1019,6 +1075,8 @@ def create_cpac_data_config(
     -------
     list
     """
+    UTLOGGER.info("Parsing %s..", bids_dir)
+
     (file_paths, config) = collect_bids_files_configs(bids_dir, aws_input_creds)
 
     if participant_labels and file_paths:
@@ -1032,6 +1090,7 @@ def create_cpac_data_config(
         ]
 
     if not file_paths:
+        UTLOGGER.error("Did not find data for %s", ", ".join(participant_labels))
         sys.exit(1)
 
     raise_error = not skip_bids_validator
@@ -1046,6 +1105,7 @@ def create_cpac_data_config(
     )
 
     if not sub_list:
+        UTLOGGER.error("Did not find data in %s", bids_dir)
         sys.exit(1)
 
     return sub_list
@@ -1083,6 +1143,13 @@ def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds)
         ]
 
         if not sub_list:
+            UTLOGGER.error(
+                "Did not find data for %s in %s",
+                ", ".join(participant_labels),
+                data_config_file
+                if not data_config_file.startswith("data:")
+                else "data URI",
+            )
             sys.exit(1)
 
     return sub_list

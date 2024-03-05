@@ -1,11 +1,32 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from logging import basicConfig, INFO
 import os
 
 import pytest
 
 from CPAC.image_utils import spatial_smoothing
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.monitoring.custom_logging import getLogger
 import CPAC.utils.test_init as test_utils
 from CPAC.utils.test_mocks import configuration_strategy_mock
+
+logger = getLogger("CPAC.image_utils.tests")
+basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.skip(reason="needs refactoring")
@@ -45,7 +66,7 @@ def test_smooth():
         num_strat,
         c,
     )
-
+    logger.info("%s", workflow.list_node_names())
     workflow.run()
 
     correlations = []
@@ -54,14 +75,14 @@ def test_smooth():
         out_name1 = os.path.join(
             c.workingDirectory,
             test_name,
-            "_fwhm_{0}/mean_functional_smooth_0/".format(fwhm),
+            f"_fwhm_{fwhm}/mean_functional_smooth_0/",
             "sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_maths.nii.gz",
         )
 
         out_name2 = os.path.join(
             c.workingDirectory,
             test_name,
-            "_fwhm_{0}/mean_functional_smooth_nodes_0/".format(fwhm),
+            f"_fwhm_{fwhm}/mean_functional_smooth_nodes_0/",
             "sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_maths.nii.gz",
         )
 
@@ -109,7 +130,7 @@ def test_smooth_mapnode():
         c,
         input_image_type="func_derivative_multi",
     )
-
+    logger.info("%s", workflow.list_node_names())
     workflow.run()
 
     correlations = []
@@ -119,10 +140,8 @@ def test_smooth_mapnode():
             os.path.join(
                 c.workingDirectory,
                 test_name,
-                "_fwhm_{0}/dr_tempreg_maps_smooth_multi_0/mapflow".format(fwhm),
-                "_dr_tempreg_maps_smooth_multi_0{0}/temp_reg_map_000{0}_maths.nii.gz".format(
-                    n
-                ),
+                f"_fwhm_{fwhm}/dr_tempreg_maps_smooth_multi_0/mapflow",
+                f"_dr_tempreg_maps_smooth_multi_0{n}/temp_reg_map_000{n}_maths.nii.gz",
             )
             for n in range(0, 10)
         ]
@@ -131,10 +150,8 @@ def test_smooth_mapnode():
             os.path.join(
                 c.workingDirectory,
                 test_name,
-                "_fwhm_{0}/dr_tempreg_maps_smooth_nodes_multi_0/mapflow".format(fwhm),
-                "_dr_tempreg_maps_smooth_nodes_multi_0{0}/temp_reg_map_000{0}_maths.nii.gz".format(
-                    n
-                ),
+                f"_fwhm_{fwhm}/dr_tempreg_maps_smooth_nodes_multi_0/mapflow",
+                f"_dr_tempreg_maps_smooth_nodes_multi_0{n}/temp_reg_map_000{n}_maths.nii.gz",
             )
             for n in range(0, 10)
         ]

@@ -17,7 +17,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
-from nipype import logging
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
 from indi_aws import aws_utils
@@ -46,8 +45,6 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.strategy import Strategy
 from CPAC.utils.utils import check_config_resources, check_prov_for_regtool
-
-logger = logging.getLogger("nipype.workflow")
 
 
 @nodeblock(
@@ -122,7 +119,8 @@ def create_datasink(
             )
 
             if not s3_write_access:
-                raise Exception("Not able to write to bucket!")
+                msg = "Not able to write to bucket!"
+                raise Exception(msg)
 
     except Exception as e:
         if (
@@ -140,11 +138,11 @@ def create_datasink(
     if map_node_iterfield is not None:
         ds = pe.MapNode(
             DataSink(infields=map_node_iterfield),
-            name="sinker_{}".format(datasink_name),
+            name=f"sinker_{datasink_name}",
             iterfield=map_node_iterfield,
         )
     else:
-        ds = pe.Node(DataSink(), name="sinker_{}".format(datasink_name))
+        ds = pe.Node(DataSink(), name=f"sinker_{datasink_name}")
 
     ds.inputs.base_directory = config.pipeline_setup["output_directory"]["path"]
     ds.inputs.creds_path = creds_path
@@ -630,7 +628,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             )
 
             rpool.set_data(
-                "from-T1w_to-longitudinal_mode-image_" "desc-linear_xfm",
+                "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
                 select_sess,
                 "warp_path",
                 {},

@@ -1,43 +1,47 @@
-"""
-Functions in this file adapted from NeuroData group:
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
+# Functions in this file adapted from NeuroData group:
 
-CHANGES:
-    * Minor refactoring for compatibility with C-PAC
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
 
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright 2016 NeuroData (http://neurodata.io)
+# CHANGES:
+#     * Minor refactoring for compatibility with C-PAC
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright 2016 NeuroData (http://neurodata.io)
 
-        http://www.apache.org/licenses/LICENSE-2.0
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+#         http://www.apache.org/licenses/LICENSE-2.0
 
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 
-    graph.py
-    Created by Greg Kiar on 2016-01-27.
-    Email: gkiar@jhu.edu
+#     graph.py
+#     Created by Greg Kiar on 2016-01-27.
+#     Email: gkiar@jhu.edu
 
-Can be found here:
-    https://github.com/neurodata/m2g/blob/v0.1.0/ndmg/graph/graph.py
+# Can be found here:
+#     https://github.com/neurodata/m2g/blob/v0.1.0/ndmg/graph/graph.py
 
-Modifications Copyright (C) 2022  C-PAC Developers
+# Modifications Copyright (C) 2022-2024  C-PAC Developers
 
-This file is part of C-PAC.
-"""
+# This file is part of C-PAC.
+from logging import basicConfig, INFO
 import os
 
 import numpy as np
 import nibabel as nib
+
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nuerodata.m2g.ndmg")
+basicConfig(format="%(message)s", level=INFO)
 
 
 def ndmg_roi_timeseries(func_file, label_file):
@@ -75,7 +79,7 @@ def ndmg_roi_timeseries(func_file, label_file):
             err = (
                 "\n[!] Error: functional data and ROI mask may not be in "
                 "the same space or be the same size.\nDetails: "
-                "{0}".format(e)
+                f"{e}"
             )
             raise IndexError(err)
         # take the mean for the voxel timeseries, and ignore voxels with
@@ -146,13 +150,15 @@ class graph(object):
             ecount=0,
             vcount=len(self.n_ids),
         )
+        logger.info(self.g.graph)
         [str(self.g.add_node(ids)) for ids in self.n_ids]
 
         nlines = np.shape(streamlines)[0]
+        logger.info("# of Streamlines: %s", nlines)
         print_id = np.max((int(nlines * 0.05), 1))  # in case nlines*.05=0
         for idx, streamline in enumerate(streamlines):
             if (idx % print_id) == 0:
-                pass
+                logger.info(idx)
 
             points = np.round(streamline).astype(int)
             p = set()
@@ -183,8 +189,9 @@ class graph(object):
         """
         import numpy as np
 
-        timeseries[0]
+        ts = timeseries[0]  # noqa: F841
         rois = timeseries[1]
+        logger.info("Estimating correlation matrix for %s ROIs...", self.N)
         self.g = np.abs(np.corrcoef(timeseries))  # calculate pearson correlation
         self.g = np.nan_to_num(self.g).astype(object)
         self.n_ids = rois
@@ -203,6 +210,7 @@ class graph(object):
         try:
             return self.g
         except AttributeError:
+            logger.error("The graph has not yet been defined.")
             pass
 
     def as_matrix(self):
@@ -235,12 +243,14 @@ class graph(object):
                 header=",".join([str(n) for n in self.n_ids]),
             )
         else:
-            raise ValueError("Unsupported Modality.")
-        pass
+            msg = "Unsupported Modality."
+            raise ValueError(msg)
 
     def summary(self):
         """User friendly wrapping and display of graph properties."""
-        pass
+        import networkx as nx
+
+        logger.info("\n Graph Summary: %s", nx.info(self.g))
 
 
 def ndmg_create_graphs(ts, labels):

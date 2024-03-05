@@ -1,3 +1,19 @@
+# Copyright (C) 2013-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import matplotlib as mpl
 
 mpl.use("Agg", force=True)
@@ -282,7 +298,7 @@ def qa_montages(
                     function=gen_histogram,
                     as_module=True,
                 ),
-                name="hist_{0}_{1}".format(measure, num_strat),
+                name=f"hist_{measure}_{num_strat}",
                 iterfield=["measure_file"],
             )
         else:
@@ -293,7 +309,7 @@ def qa_montages(
                     function=gen_histogram,
                     as_module=True,
                 ),
-                name="hist_{0}_{1}".format(measure, num_strat),
+                name=f"hist_{measure}_{num_strat}",
             )
 
         histogram.inputs.measure = measure
@@ -313,8 +329,9 @@ def qa_montages(
             qc_montage_id_s[idx] = "%s_s" % measure
             qc_hist_id[idx] = "%s_hist" % measure
 
-    except Exception:
-        pass
+    except Exception as e:
+        msg = f"[!] Connection of QA montages workflow for {measure} has failed.\n"
+        raise OSError(msg) from e
 
 
 def create_qc_snr(wf_name="qc_snr"):
