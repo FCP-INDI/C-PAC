@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+## Added
+
+- `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
+
 ## Changed
 
 - Moved autoversioning from CI to pre-commit
