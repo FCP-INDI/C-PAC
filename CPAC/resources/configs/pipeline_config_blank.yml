@@ -356,9 +356,6 @@ anatomical_preproc:
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
 
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: On
-
       # Mesh created along with skull stripping
       mesh_boolean: Off
 

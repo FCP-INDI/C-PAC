@@ -45,11 +45,6 @@ pipeline_setup:
     s3_encryption: On
 
 anatomical_preproc:
-  brain_extraction:
-    FSL-BET:
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
 
   # N4 bias field correction via ANTs
   n4_bias_field_correction:
