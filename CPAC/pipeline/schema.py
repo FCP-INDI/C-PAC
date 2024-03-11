@@ -365,11 +365,10 @@ def name_motion_filter(mfilter, mfilters=None):
                     f'fc{mfilter["center_frequency"]}'
                     f'bw{mfilter["filter_bandwidth"]}'
                 )
+        elif mfilter.get("breathing_rate_min"):
+            range_str = f'fl{mfilter["breathing_rate_min"]}'
         else:
-            if mfilter.get("breathing_rate_min"):
-                range_str = f'fl{mfilter["breathing_rate_min"]}'
-            else:
-                range_str = f'fc{mfilter["lowpass_cutoff"]}'
+            range_str = f'fc{mfilter["lowpass_cutoff"]}'
         range_str = range_str.replace(".", "p")
         name = f'{mfilter["filter_type"]}{mfilter["filter_order"]}{range_str}'
     dupes = "Name" not in mfilter and len(
@@ -385,8 +384,7 @@ def name_motion_filter(mfilter, mfilters=None):
 
 
 def permutation_message(key, options):
-    """Function to give a clean, human-readable error message for keys
-    that accept permutation values.
+    """Give a human-readable error message for keys that accept permutation values.
 
     Parameters
     ----------
@@ -611,7 +609,6 @@ latest_schema = Schema(
                 },
                 "FSL-BET": {
                     "frac": Number,
-                    "mask_boolean": bool1_1,
                     "mesh_boolean": bool1_1,
                     "outline": bool1_1,
                     "padding": bool1_1,
@@ -1243,10 +1240,11 @@ latest_schema = Schema(
 
 
 def schema(config_dict):
-    """Validate a pipeline configuration against the latest validation schema
-    by first applying backwards-compatibility patches, then applying
-    Voluptuous validation, then handling complex configuration interaction
-    checks before returning validated config_dict.
+    """Validate a participant-analysis pipeline configuration.
+
+    Validate against the latest validation schema by first applying backwards-
+    compatibility patches, then applying Voluptuous validation, then handling complex
+    configuration interaction checks before returning validated config_dict.
 
     Parameters
     ----------

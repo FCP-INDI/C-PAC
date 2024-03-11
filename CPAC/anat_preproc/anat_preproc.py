@@ -732,9 +732,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     inputnode_bet.inputs.set(
         frac=cfg.anatomical_preproc["brain_extraction"]["FSL-BET"]["frac"],
-        mask_boolean=cfg.anatomical_preproc["brain_extraction"]["FSL-BET"][
-            "mask_boolean"
-        ],
+        mask_boolean=True,
         mesh_boolean=cfg.anatomical_preproc["brain_extraction"]["FSL-BET"][
             "mesh_boolean"
         ],
@@ -2131,7 +2129,7 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
                                    name='brain_mask_deoblique')
     brain_mask_deoblique.inputs.deoblique = True
     wf.connect(inputnode, 'brain_mask',
-                    brain_mask_deoblique, 'in_file').
+                    brain_mask_deoblique, 'in_file')
 
     brain_mask_reorient = pe.Node(interface=afni.Resample(),
                                   name='brain_mask_reorient',
