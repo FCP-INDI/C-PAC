@@ -363,7 +363,7 @@ def run_workflow(
 
     # TODO enforce value with schema validation
     try:
-        encrypt_data = bool(config.pipeline_setup["Amazon-AWS"]["s3_encryption"])
+        encrypt_data = bool(c.pipeline_setup["Amazon-AWS"]["s3_encryption"])
     except (KeyError, TypeError, ValueError):
         encrypt_data = False
 
