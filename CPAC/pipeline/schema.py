@@ -746,6 +746,16 @@ latest_schema = Schema({
             'fmri_res': Maybe(int),
             'smooth_fwhm': Maybe(int),
         },
+        'amplitude_low_frequency_fluctuation': {
+            'run': bool1_1,
+        },
+        'regional_homogeneity': {
+            'run': bool1_1,
+        },
+        'surface_connectivity': {
+            'run': bool1_1,
+            'surface_parcellation_template': Maybe(str),
+        },
     },
     'longitudinal_template_generation': {
         'run': bool1_1,

@@ -25,6 +25,7 @@ import re
 from typing import Any, Optional, Union
 import warnings
 
+
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype import config, logging  # pylint: disable=wrong-import-order
@@ -675,6 +676,7 @@ class ResourcePool:
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = ResourcePool()     # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool['json'] = {}
                 new_strats[pipe_idx].rpool['json']['subjson'] = {}
@@ -1130,7 +1132,8 @@ class ResourcePool:
                                                           'template_desc',
                                                           'atlas_id',
                                                           'fwhm',
-                                                          'subdir'],
+                                                          'subdir',
+                                                          'extension'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1185,6 +1188,22 @@ class ResourcePool:
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
+                
+                if resource in Outputs.ciftis:
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = Outputs.ciftis[resource]
+                else:
+                   nii_name.inputs.keep_ext = True
+                
+               
+                if resource in Outputs.giftis:
+
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = f'{Outputs.giftis[resource]}.gii'
+                   
+                else:
+                   nii_name.inputs.keep_ext = True
+                
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
                 
@@ -1326,9 +1345,12 @@ class NodeBlock:
                             f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
-        cfg_dct = cfg
+        cfg_dct = cfg.dict()
         for key in key_list:
-            cfg_dct = cfg_dct.__getitem__(key)
+            try:
+                cfg_dct = cfg_dct.get(key, {})
+            except KeyError:
+                raise Exception(f"[!] The config provided to the node block is not valid")  
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
@@ -1439,6 +1461,7 @@ class NodeBlock:
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
                     switch = self.grab_tiered_dct(cfg, key_list)
+                    
                 else:
                     if isinstance(switch[0], list):
                         # we have multiple switches, which is designed to only work if
