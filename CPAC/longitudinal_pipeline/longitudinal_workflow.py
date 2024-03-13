@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2020-2022  C-PAC Developers
+# Copyright (C) 2020-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -92,10 +92,7 @@ def create_datasink(
     -------
 
     """
-    try:
-        encrypt_data = bool(config.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except:
-        encrypt_data = False
+    encrypt_data = config.pipeline_setup["Amazon-AWS"]["s3_encryption"]
 
     # TODO Enforce value with schema validation
     # Extract credentials path for output if it exists

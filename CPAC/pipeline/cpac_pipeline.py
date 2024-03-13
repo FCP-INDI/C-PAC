@@ -361,12 +361,6 @@ def run_workflow(
     except KeyError:
         input_creds_path = None
 
-    # TODO enforce value with schema validation
-    try:
-        encrypt_data = bool(config.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except (KeyError, TypeError, ValueError):
-        encrypt_data = False
-
     information = """
     Environment
     ===========
@@ -766,7 +760,9 @@ Please, make yourself aware of how it works and its assumptions:
                     ]
                     # Upload logs
                     aws_utils.s3_upload(
-                        bucket, (local_log_files, s3_log_files), encrypt=encrypt_data
+                        bucket,
+                        (local_log_files, s3_log_files),
+                        encrypt=c["pipeline_setup", "Amazon-AWS", "s3_encryption"],
                     )
                     # Delete local log files
                     for log_f in local_log_files:
@@ -1622,13 +1618,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                 "your data and pipeline configurations."
             ) from lookup_error
         raise lookup_error
-
-    # Write out the data
-    # TODO enforce value with schema validation
-    try:
-        bool(cfg.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except (KeyError, TypeError, ValueError):
-        pass
 
     # TODO enforce value with schema validation
     # Extract credentials path for output if it exists
