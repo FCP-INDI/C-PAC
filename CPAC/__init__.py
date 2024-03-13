@@ -15,13 +15,13 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """
-Configurable Pipeline for the Analysis of Connectomes.
+Configurable Pipeline for the Analysis of Connectomes
 =====================================================
 
 CPAC is a configurable, open-source, Nipype-based, automated processing
 pipeline for resting state functional MRI (R-fMRI) data, for use by
 both novice and expert users.
-"""
+"""  # noqa: D205,D400
 
 from .info import __version__
 
