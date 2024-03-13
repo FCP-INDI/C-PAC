@@ -16,11 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
-## Added
+### Added
 
 - `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
+- Ability to throttle nodes, estimating all available memory when threading
 
-## Changed
+### Changed
 
 - Moved autoversioning from CI to pre-commit
 - Updated `FSL-BET` config to default `-mask-boolean` flag as on, and removed all removed `mask-boolean` keys from configs.
@@ -28,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.6] - 2024-01-15
 
-## Added
+### Added
 
 - Some automatic handling of user-provided BIDSy atlas names.
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
