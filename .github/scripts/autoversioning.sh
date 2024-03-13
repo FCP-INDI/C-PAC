@@ -66,7 +66,7 @@ cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
 cp .github/Dockerfiles/C-PAC.develop-ABCD-HCP-bionic.Dockerfile variant-ABCD-HCP.Dockerfile
 cp .github/Dockerfiles/C-PAC.develop-fMRIPrep-LTS-xenial.Dockerfile variant-fMRIPrep-LTS.Dockerfile
 cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
-while [ -f "/Users/jon.clucas/CNL/GitHub/C-PAC/.git/index.lock" ]; do
+while [ -f "./.git/index.lock" ]; do
     echo "Waiting for the lock file to be removed..."
     sleep 1
 done
