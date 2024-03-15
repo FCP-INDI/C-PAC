@@ -129,8 +129,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def estimate_reference_image(in_file):
-    """fMRIPrep-style BOLD reference
-    Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/interfaces/registration.py#L446-L549.
+    """fMRIPrep-style BOLD reference.
+
+    Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/interfaces/registration.py#L446-L549
     """
     import os
 
