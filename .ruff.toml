@@ -1,9 +1,11 @@
-extend-exclude=["dev/docker_data/get-pip_23.0.1.py"]
-extend-select = ["A", "C4", "D", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "W"]
+extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
 # variants still use 3.7
 target-version = "py37"
 
-[per-file-ignores]
+[lint]
+extend-select = ["A", "C4", "D", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "W"]
+
+[lint.per-file-ignores]
 "CPAC/func_preproc/func_preproc.py" = ["E402"]
 
 [lint.flake8-import-conventions.extend-aliases]
@@ -37,5 +39,5 @@ max-returns = 12
 max-statements = 100
 
 [lint.pyupgrade]
-# Until variants Python ≥ 3.10
+# Until variants Python >= 3.10
 keep-runtime-typing = true
