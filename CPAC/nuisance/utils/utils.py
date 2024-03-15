@@ -637,7 +637,8 @@ def generate_summarize_tissue_mask_ventricles_masking(
                 ]
 
         return pipeline_resource_pool
-    return None
+    msg = f"`{mask_key}_Unmasked` already in resource pool"
+    raise LookupError(msg)
 
 
 class NuisanceRegressor(object):
