@@ -8,8 +8,6 @@ https://fmriprep.readthedocs.io/
 https://poldracklab.stanford.edu/
 We are temporarily maintaining our own copy for more granular control.
 """
-
-# general purpose
 from collections import OrderedDict
 from logging import getLogger
 
@@ -19,14 +17,13 @@ from nipype.interfaces import utility as niu
 from nipype.interfaces.ants import Atropos, MultiplyImages, N4BiasFieldCorrection
 from nipype.interfaces.fsl.maths import ApplyMask
 
-# nipype
 import CPAC.pipeline.nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.fixes import (
     FixHeaderApplyTransforms as ApplyTransforms,
     FixHeaderRegistration as Registration,
 )
 from CPAC.utils.interfaces.utils import CopyXForm
-from ..utils.interfaces.ants import (  # niworkflows
+from ..utils.interfaces.ants import (
     AI,
     ImageMath,
     ResampleImageBySpacing,
