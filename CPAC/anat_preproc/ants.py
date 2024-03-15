@@ -1,14 +1,13 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
+"""Nipype translation of ANTs workflows.
+
+This functionality is adapted from poldracklab/niworkflows:
+https://github.com/poldracklab/niworkflows/blob/master/niworkflows/anat/ants.py
+https://fmriprep.readthedocs.io/
+https://poldracklab.stanford.edu/
+We are temporarily maintaining our own copy for more granular control.
 """
-Nipype translation of ANTs workflows.
-------------------------------------
-"""
-# This functionality is adapted from poldracklab/niworkflows:
-# https://github.com/poldracklab/niworkflows/blob/master/niworkflows/anat/ants.py
-# https://fmriprep.readthedocs.io/
-# https://poldracklab.stanford.edu/
-# We are temporarily maintaining our own copy for more granular control.
 
 # general purpose
 from collections import OrderedDict
@@ -79,7 +78,8 @@ def init_brain_extraction_wf(
     use_laplacian=True,
     bspline_fitting_distance=200,
 ):
-    """
+    """Implement ``antsBrainExtraction.sh`` in Nipype.
+
     A Nipype implementation of the official ANTs' ``antsBrainExtraction.sh``
     workflow (only for 3D images).
     The official workflow is built as follows (and this implementation
@@ -453,10 +453,11 @@ def init_atropos_wf(
     padding=10,
     in_segmentation_model=list(ATROPOS_MODELS["T1w"].values()),
 ):
-    """
-    Implements supersteps 6 and 7 of ``antsBrainExtraction.sh``,
-    which refine the mask previously computed with the spatial
+    """Implement supersteps 6 and 7 of ``antsBrainExtraction.sh``.
+
+    This refines the mask previously computed with the spatial
     normalization to the template.
+
     **Parameters**
         use_random_seed : bool
             Whether ATROPOS should generate a random seed based on the
@@ -728,7 +729,7 @@ def _select_labels(in_segm, labels):
 
     cwd = getcwd()
     nii = nib.load(in_segm)
-    for l in labels:
+    for l in labels:  # noqa: E741
         data = (nii.get_fdata() == l).astype(np.uint8)
         newnii = nii.__class__(data, nii.affine, nii.header)
         newnii.set_data_dtype("uint8")
@@ -739,7 +740,7 @@ def _select_labels(in_segm, labels):
 
 
 def _conform_mask(in_mask, in_reference):
-    """Ensures the mask headers make sense and match those of the T1w."""
+    """Ensure the mask headers make sense and match those of the T1w."""
     from pathlib import Path
 
     import nibabel as nib
