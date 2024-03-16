@@ -1,13 +1,46 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Templates are specified in C-PAC pipeline configuration instead of sourced from templateflow
+#     * Imports local names from C-PAC instead of from niworkflows
+#     * Replaces `niworkflows.data` with `CPAC.anat_preproc.data`
+#     * Sets custom memory estimates on `CopyXForm`, `FillHoles`, `map_brainmask`, `Registration`, and `sel_wm` Nodes
+#     * Uses C-PAC custom Nipype pipeline engine instead of canonical Nipype pipeline engine
+#     * Logs `(Atropos constant)` if random seed is not fixed in the C-PAC pipeline configuration
+#     * Changes deprecated `get_data` to `get_fdata`
+#     * Docstrings updated accordingly
+#     * Style modifications
+#     * Removed comments from import blocks
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#    Copyright 2020 The NiPreps Developers
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+
+#        http://www.apache.org/licenses/LICENSE-2.0
+
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+# Modifications copyright (C) 2019 - 2024  C-PAC Developers
+# This file is part of C-PAC.
 """Nipype translation of ANTs workflows.
 
 This functionality is adapted from poldracklab/niworkflows:
-https://github.com/poldracklab/niworkflows/blob/master/niworkflows/anat/ants.py
+https://github.com/poldracklab/niworkflows/blob/994dd2dc/niworkflows/anat/ants.py
 https://fmriprep.readthedocs.io/
 https://poldracklab.stanford.edu/
 We are temporarily maintaining our own copy for more granular control.
 """
+
 from collections import OrderedDict
 from logging import getLogger
 
@@ -58,7 +91,7 @@ ATROPOS_MODELS = {
 }
 
 
-def init_brain_extraction_wf(
+def init_brain_extraction_wf(  # noqa: PLR0913
     tpl_target_path,
     tpl_mask_path,
     tpl_regmask_path,

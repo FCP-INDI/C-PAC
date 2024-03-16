@@ -2,55 +2,45 @@
 # -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
+# emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
+# vi: set ft=python sts=4 ts=4 sw=4 et:
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Removes classes unused by C-PAC
+#     * Removes niworkflows doctests
+#     * Adds `PrintHeader`, `SetDirectionByMatrix` and their respective (InputSpec and OutputSpec)s
+#     * Made private classes public
+#     * Removed original example code
+#     * Docstrings updated accordingly
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#    Copyright 2020 The NiPreps Developers
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+
+#        http://www.apache.org/licenses/LICENSE-2.0
+
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+# Modifications copyright (C) 2019 - 2024  C-PAC Developers
+# This file is part of C-PAC.
 """Nipype interfaces for ANTs commands.
 
 Some of this functionality is adapted from nipreps/niworkflows:
-- https://github.com/nipreps/niworkflows/blob/5a0f4bd3/niworkflows/interfaces/ants.py
+- https://github.com/nipreps/niworkflows/blob/994dd2dc/niworkflows/interfaces/ants.py
 - https://fmriprep.readthedocs.io/
 - https://poldracklab.stanford.edu/
 We are temporarily maintaining our own copy for more granular control.
+"""
 
-Adapted from niworkflows:
-  - AIInputSpec
-  - AIOutputSpec
-  - AI
-  - ImageMathInputSpec
-  - ImageMathOuputSpec
-  - ImageMath
-  - ResampleImageBySpacingInputSpec
-  - ResampleImageBySpacingOutputSpec
-  - ResampleImageBySpacing
-  - ThresholdImageInputSpec
-  - ThresholdImageOutputSpec
-  - ThresholdImage
-
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
-
-CHANGES:
-    * Made private classes public
-    * Removed original example code
-
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-Modifications Copyright (C) 2022  C-PAC Developers
-
-This file is part of C-PAC.
-"""  # pylint: disable=line-too-long
 import os
 
 from nipype.interfaces import base
@@ -59,6 +49,8 @@ from nipype.interfaces.base import isdefined, traits
 
 
 class ImageMathInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ImageMath."""
+
     dimension = traits.Int(
         3, usedefault=True, position=1, argstr="%d", desc="dimension of output image"
     )
@@ -86,6 +78,8 @@ class ImageMathInputSpec(ANTSCommandInputSpec):
 
 
 class ImageMathOuputSpec(base.TraitedSpec):
+    """OutputSpec for ImageMath."""
+
     output_image = base.File(exists=True, desc="output image file")
 
 
@@ -140,6 +134,7 @@ class PrintHeader(ANTSCommand):
     _terminal_output = "stream"
 
     def aggregate_outputs(self, runtime=None, needed_outputs=None):
+        """Populate outputs."""
         outputs = super().aggregate_outputs(runtime, needed_outputs)
         outputs.trait_set(header=runtime.stdout)
         self.output_spec().trait_set(header=runtime.stdout)
@@ -150,6 +145,8 @@ class PrintHeader(ANTSCommand):
 
 
 class ResampleImageBySpacingInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ResampleImageBySpacing."""
+
     dimension = traits.Int(
         3, usedefault=True, position=1, argstr="%d", desc="dimension of output image"
     )
@@ -188,39 +185,13 @@ class ResampleImageBySpacingInputSpec(ANTSCommandInputSpec):
 
 
 class ResampleImageBySpacingOutputSpec(base.TraitedSpec):
+    """OutputSpec for ResampleImageBySpacing."""
+
     output_image = traits.File(exists=True, desc="resampled file")
 
 
 class ResampleImageBySpacing(ANTSCommand):
-    """
-    Resamples an image with a given spacing.
-
-    Example:
-    --------
-
-    >>> res = ResampleImageBySpacing(dimension=3)
-    >>> res.inputs.input_image = 'input.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.output_image = 'output.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.out_spacing = (4, 4, 4)  # doctest: +SKIP
-    'ResampleImageBySpacing input.nii.gz output.nii.gz 4 4 4'
-
-    >>> res = ResampleImageBySpacing(dimension=3)
-    >>> res.inputs.input_image = 'input.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.output_image = 'output.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.out_spacing = (4, 4, 4)
-    >>> res.inputs.apply_smoothing = True  # doctest: +SKIP
-    'ResampleImageBySpacing input.nii.gz output.nii.gz 4 4 4 1'
-
-    >>> res = ResampleImageBySpacing(dimension=3)
-    >>> res.inputs.input_image = 'input.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.output_image = 'output.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.out_spacing = (4, 4, 4)
-    >>> res.inputs.apply_smoothing = True
-    >>> res.inputs.addvox = 2
-    >>> res.inputs.nn_interp = False  # doctest: +SKIP
-    'ResampleImageBySpacing input.nii.gz output.nii.gz 4 4 4 1 2 0'
-
-    """
+    """Resamples an image with a given spacing."""
 
     _cmd = "ResampleImageBySpacing"
     input_spec = ResampleImageBySpacingInputSpec
@@ -283,6 +254,8 @@ class SetDirectionByMatrix(ANTSCommand):
 
 
 class ThresholdImageInputSpec(ANTSCommandInputSpec):
+    """InputSpec for ThresholdImage."""
+
     dimension = traits.Int(
         3, usedefault=True, position=1, argstr="%d", desc="dimension of output image"
     )
@@ -328,33 +301,13 @@ class ThresholdImageInputSpec(ANTSCommandInputSpec):
 
 
 class ThresholdImageOutputSpec(base.TraitedSpec):
+    """OutputSpec for ThresholdImage."""
+
     output_image = traits.File(exists=True, desc="resampled file")
 
 
 class ThresholdImage(ANTSCommand):
-    """
-    Apply thresholds on images.
-
-    Example:
-    --------
-
-    >>> res = ThresholdImage(dimension=3)
-    >>> res.inputs.input_image = 'input.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.output_image = 'output.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.th_low = 0.5
-    >>> res.inputs.th_high = 1.0
-    >>> res.inputs.inside_val = 1.0  # doctest: +SKIP
-    >>> res.inputs.outside_val = 0.0  # doctest: +SKIP
-    'ThresholdImage input.nii.gz output.nii.gz 0.50000 1.00000 1.00000 0.00000'
-
-    >>> res = ThresholdImage(dimension=3)
-    >>> res.inputs.input_image = 'input.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.output_image = 'output.nii.gz'  # doctest: +SKIP
-    >>> res.inputs.mode = 'Kmeans'
-    >>> res.inputs.num_thresholds = 4  # doctest: +SKIP
-    'ThresholdImage input.nii.gz output.nii.gz Kmeans 4'
-
-    """
+    """Apply thresholds on images."""
 
     _cmd = "ThresholdImage"
     input_spec = ThresholdImageInputSpec
@@ -362,6 +315,8 @@ class ThresholdImage(ANTSCommand):
 
 
 class AIInputSpec(ANTSCommandInputSpec):
+    """InputSpec for AffineInitializer."""
+
     dimension = traits.Int(
         3, usedefault=True, argstr="-d %d", desc="dimension of output image"
     )
@@ -442,6 +397,8 @@ class AIInputSpec(ANTSCommandInputSpec):
 
 
 class AIOuputSpec(base.TraitedSpec):
+    """OutputSpec for AffineInitializer."""
+
     output_transform = traits.File(exists=True, desc="output file name")
 
 
