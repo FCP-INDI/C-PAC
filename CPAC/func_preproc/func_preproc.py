@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
+
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype.interfaces import afni, ants, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
@@ -947,13 +948,105 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
         "FSL-AFNI-brain-mask",
         "FSL-AFNI-brain-probseg",
     ],
-    outputs=["space-bold_desc-brain_mask", "desc-ref_bold"],
+    outputs={
+        "space-bold_desc-brain_mask": {
+            "Description": "mask of the skull-stripped input file"
+        },
+        "desc-ref_bold": {
+            "Description": "the ``bias_corrected_file`` after skull-stripping"
+        },
+    },
 )
 def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     """fMRIPrep-style BOLD mask.
 
+        Enhance and run brain extraction on a BOLD EPI image.
+
+        This workflow takes in a :abbr:`BOLD (blood-oxygen level-dependant)`
+        :abbr:`fMRI (functional MRI)` average/summary (e.g., a reference image
+        averaging non-steady-state timepoints), and sharpens the histogram
+        with the application of the N4 algorithm for removing the
+        :abbr:`INU (intensity non-uniformity)` bias field and calculates a signal
+        mask.
+
+        Steps of this workflow are:
+
+        [1]. Binary dilation of the tentative mask with a sphere of 3mm diameter.
+        [2]. Run ANTs' ``N4BiasFieldCorrection`` on the input
+            :abbr:`BOLD (blood-oxygen level-dependant)` average, using the
+            mask generated in 1) instead of the internal Otsu thresholding.
+        [3]. Calculate a loose mask using FSL's ``bet``, with one mathematical morphology
+            dilation of one iteration and a sphere of 6mm as structuring element.
+        [4]. Mask the :abbr:`INU (intensity non-uniformity)`-corrected image
+            with the latest mask calculated in 3), then use AFNI's ``3dUnifize``
+            to *standardize* the T2* contrast distribution.
+        [5]. Calculate a mask using AFNI's ``3dAutomask`` after the contrast
+            enhancement of 4).
+        [6]. Calculate a final mask as the intersection of 4) and 6).
+        [7]. Apply final mask on the enhanced reference.
+
     `Ref <https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514>`_.
     """
+    # STATEMENT OF CHANGES:
+    #     This function is derived from sources licensed under the Apache-2.0 terms,
+    #     and this function has been changed.
+
+    # CHANGES:
+    #     * Converted from a plain function to a CPAC.pipeline.nodeblock.NodeBlockFunction
+    #     * Removed Registration version check
+    #     * Hardcoded Registration parameters instead of loading epi_atlasbased_brainmask.json
+    #     * Uses C-PAC's ``FSL-AFNI-brain-probseg`` template in place of ``templateflow.api.get("MNI152NLin2009cAsym", resolution=1, label="brain", suffix="probseg")``
+    #     * Replaced niworkflows.interfaces.nibabel.Binarize with fsl.maths.MathsCommand and hardcoded threshold
+    #     * Replaced niworkflows.interfaces.images.MatchHeader with CPAC.utils.interfaces.ants.(PrintHeader and SetDirectionByMatrix)
+    #     * Removed header fix for unifize
+    #     * Removed header fix for skullstrip_second_pass
+    #     * Removed ``if not pre_mask`` conditional block
+    #     * Modified docstring to reflect local changes
+    #     * Refactored some variables and connections and updated style to match C-PAC codebase
+
+    # ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    #    Copyright (c) 2016, the CRN developers team.
+    #    All rights reserved.
+
+    #    Redistribution and use in source and binary forms, with or without
+    #    modification, are permitted provided that the following conditions are met:
+
+    #    * Redistributions of source code must retain the above copyright notice, this
+    #      list of conditions and the following disclaimer.
+
+    #    * Redistributions in binary form must reproduce the above copyright notice,
+    #      this list of conditions and the following disclaimer in the documentation
+    #      and/or other materials provided with the distribution.
+
+    #   * Neither the name of niworkflows nor the names of its
+    #      contributors may be used to endorse or promote products derived from
+    #      this software without specific prior written permission.
+
+    #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    #    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    #    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    #    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    #    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    #    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    #    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    #    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    #    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    #    Licensed under the Apache License, Version 2.0 (the "License");
+    #    you may not use this file except in compliance with the License.
+    #    You may obtain a copy of the License at
+
+    #        http://www.apache.org/licenses/LICENSE-2.0
+
+    #    Unless required by applicable law or agreed to in writing, software
+    #    distributed under the License is distributed on an "AS IS" BASIS,
+    #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    #    See the License for the specific language governing permissions and
+    #    limitations under the License.
+
+    # Modifications copyright (C) 2021 - 2024  C-PAC Developers
+
     # Initialize transforms with antsAI
     init_aff = pe.Node(
         AI(
@@ -1050,6 +1143,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         n_procs=1,
     )
 
+    # Create a generous BET mask out of the bias-corrected EPI
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
         name=f"skullstrip_first_pass_{pipe_num}",
@@ -1067,6 +1161,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_" f"{pipe_num}")
 
+    # Use AFNI's unifize for T2 constrast
     unifize = pe.Node(
         afni_utils.Unifize(
             t2=True,
@@ -1077,15 +1172,18 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"unifize_{pipe_num}",
     )
 
+    # Run ANFI's 3dAutomask to extract a refined brain mask
     skullstrip_second_pass = pe.Node(
         preprocess.Automask(dilate=1, outputtype="NIFTI_GZ"),
         name=f"skullstrip_second_pass_{pipe_num}",
     )
 
+    # Take intersection of both masks
     combine_masks = pe.Node(
         fsl.BinaryMaths(operation="mul"), name=f"combine_masks_{pipe_num}"
     )
 
+    # Compute masked brain
     apply_mask = pe.Node(fsl.ApplyMask(), name=f"extract_ref_brain_bold_{pipe_num}")
 
     node, out = strat_pool.get_data(["motion-basefile"])
