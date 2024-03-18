@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for calculating motion parameters."""
+
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
@@ -131,8 +132,70 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
 def estimate_reference_image(in_file):
     """fMRIPrep-style BOLD reference.
 
-    Ref: https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/interfaces/registration.py#L446-L549
+        Generate a reference 3D map from BOLD and SBRef EPI images for BOLD datasets.
+
+        Given a 4D BOLD file[...], estimate a reference
+        image for subsequent motion estimation and coregistration steps.
+        For the case of BOLD datasets, it estimates a number of T1w saturated volumes
+        (non-steady state at the beginning of the scan) and calculates the median
+        across them.
+        Otherwise (SBRefs or detected zero non-steady state frames), a median of
+        of a subset of motion corrected volumes is used.
+
+    Ref: https://github.com/nipreps/niworkflows/blob/6d4f2b5/niworkflows/interfaces/registration.py#L446-L549
     """
+    # STATEMENT OF CHANGES:
+    #     This function is derived from sources licensed under the Apache-2.0 terms,
+    #     and this function has been changed.
+
+    # CHANGES:
+    #     * Converted from a nipype.interfaces.base.SimpleInterface class to a function
+    #     * Removed 3D image capabilities (now requires 4D image for in_file)
+    #     * Modified docstring to reflect local changes
+    #     * Updated style to match C-PAC codebase
+
+    # ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    #    Copyright (c) 2016, the CRN developers team.
+    #    All rights reserved.
+
+    #    Redistribution and use in source and binary forms, with or without
+    #    modification, are permitted provided that the following conditions are met:
+
+    #    * Redistributions of source code must retain the above copyright notice, this
+    #      list of conditions and the following disclaimer.
+
+    #    * Redistributions in binary form must reproduce the above copyright notice,
+    #      this list of conditions and the following disclaimer in the documentation
+    #      and/or other materials provided with the distribution.
+
+    #   * Neither the name of niworkflows nor the names of its
+    #      contributors may be used to endorse or promote products derived from
+    #      this software without specific prior written permission.
+
+    #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    #    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    #    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    #    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    #    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    #    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    #    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    #    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    #    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    #    Licensed under the Apache License, Version 2.0 (the "License");
+    #    you may not use this file except in compliance with the License.
+    #    You may obtain a copy of the License at
+
+    #        http://www.apache.org/licenses/LICENSE-2.0
+
+    #    Unless required by applicable law or agreed to in writing, software
+    #    distributed under the License is distributed on an "AS IS" BASIS,
+    #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    #    See the License for the specific language governing permissions and
+    #    limitations under the License.
+
+    # Modifications copyright (C) 2021 - 2024  C-PAC Developers
     import os
 
     import numpy as np
@@ -148,9 +211,9 @@ def estimate_reference_image(in_file):
         if max_new_volumes <= 0:
             break
         nib_i = nib.squeeze_image(nib.load(im_i))
-        if nib_i.dataobj.ndim == 3:
+        if nib_i.dataobj.ndim == 3:  # noqa: PLR2004
             ref_im.append(nib_i)
-        elif nib_i.dataobj.ndim == 4:
+        elif nib_i.dataobj.ndim == 4:  # noqa: PLR2004
             ref_im += nib.four_to_three(nib_i.slicer[..., :max_new_volumes])
     ref_im = nib.squeeze_image(nib.concat_images(ref_im))
 
@@ -161,7 +224,7 @@ def estimate_reference_image(in_file):
     # that don't break pipeline stages.
     ref_im.header.extensions.clear()
 
-    if ref_im.shape[-1] > 40:
+    if ref_im.shape[-1] > 40:  # noqa: PLR2004
         ref_im = nib.Nifti1Image(
             ref_im.dataobj[:, :, :, 20:40], ref_im.affine, ref_im.header
         )
